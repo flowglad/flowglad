@@ -725,7 +725,6 @@ export const createPaymentIntentForInvoice = async (params: {
   const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
     invoice.bankPaymentOnly
   ) as Partial<Stripe.PaymentIntentCreateParams>
-
   const metadata: InvoiceStripeIntentMetadata = {
     invoiceId: invoice.id,
     type: IntentMetadataType.Invoice,
@@ -955,6 +954,11 @@ export const createPaymentIntentForInvoicePurchaseSession =
       feeCalculation,
     } = params
     const livemode = invoice.livemode
+    console.log('=====invoice', invoice)
+    const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
+      invoice.bankPaymentOnly
+    ) as Partial<Stripe.PaymentIntentCreateParams>
+    console.log('=====achOnlyParams', achOnlyParams)
     const { on_behalf_of, transfer_data } =
       stripeConnectTransferDataForOrganization({
         organization,
@@ -985,6 +989,8 @@ export const createPaymentIntentForInvoicePurchaseSession =
       on_behalf_of,
       transfer_data,
       metadata,
+      customer: stripeCustomerId,
+      ...achOnlyParams,
     })
   }
 
@@ -1317,7 +1323,6 @@ export const createSetupIntentForPurchaseSession = async (params: {
           enabled: true,
         },
       }
-
   /**
    * On behalf of required to comply with SCA
    */

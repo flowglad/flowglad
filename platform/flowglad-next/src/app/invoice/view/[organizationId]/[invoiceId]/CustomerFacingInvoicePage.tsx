@@ -33,7 +33,7 @@ export const CustomerFacingInvoicePage = (
         invoicesWithLineItems[0].OrganizationId,
         transaction
       )
-      const paymentDataItems =
+      const payments =
         await selectPaymentsAndPaymentMethodsByPaymentsWhere(
           { InvoiceId: invoiceId },
           transaction
@@ -43,7 +43,7 @@ export const CustomerFacingInvoicePage = (
         invoiceLineItems: invoicesWithLineItems[0].invoiceLineItems,
         customerProfile: customerProfile,
         organization: organization,
-        paymentDataItems,
+        payments,
       }
     })
 
@@ -55,7 +55,7 @@ export const CustomerFacingInvoicePage = (
       invoiceLineItems,
       customerProfile,
       organization,
-      paymentDataItems,
+      payments,
     } = result
     if (result.invoice.OrganizationId !== organizationId) {
       return notFound()
@@ -66,7 +66,7 @@ export const CustomerFacingInvoicePage = (
         invoiceLineItems={invoiceLineItems}
         customerProfile={customerProfile}
         organization={organization}
-        paymentDataItems={paymentDataItems}
+        paymentDataItems={payments}
       />
     )
   }

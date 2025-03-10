@@ -28,6 +28,8 @@ import {
 import { z } from 'zod'
 import { sendInvoiceReminderEmail } from '@/utils/email'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { update } from 'ramda'
+import { updatePaymentIntent } from '@/utils/stripe'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',
@@ -63,6 +65,7 @@ const createInvoiceProcedure = protectedProcedure
     z.object({
       invoice: invoicesClientSelectSchema,
       invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
+      autoSend: z.boolean().optional(),
     })
   )
   .mutation(async ({ ctx, input }) => {
