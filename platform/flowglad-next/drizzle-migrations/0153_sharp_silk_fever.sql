@@ -10,3 +10,9 @@ ALTER TABLE "PurchaseSessions" ADD COLUMN "type" "PurchaseSessionType";
 UPDATE "PurchaseSessions" SET "type" = 'product';
 
 ALTER TABLE "PurchaseSessions" ALTER COLUMN "type" SET NOT NULL;
+
+DO $$ BEGIN
+    ALTER TYPE "InvoiceType" ADD VALUE IF NOT EXISTS 'standalone';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;

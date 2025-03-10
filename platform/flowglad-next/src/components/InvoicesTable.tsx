@@ -17,6 +17,12 @@ import {
   InvoiceLineItem,
   InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
+import { PopoverMenuItem } from './PopoverMenu'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { InvoiceStatus } from '@/types'
+import TableRowPopoverMenu from './TableRowPopoverMenu'
+import EditInvoiceModal from './forms/EditInvoiceModal'
+import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -48,6 +54,56 @@ const InvoiceStatusBadge = ({
     <Badge variant="soft" color={color} size="sm">
       {sentenceCase(invoice.status)}
     </Badge>
+  )
+}
+
+const MoreMenuCell = ({
+  invoice,
+  invoiceLineItems,
+}: {
+  invoice: Invoice.ClientRecord
+  invoiceLineItems: InvoiceLineItem.ClientRecord[]
+}) => {
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isCreateVariantOpen, setIsCreateVariantOpen] =
+    useState(false)
+
+  const text =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/invoice/view/${invoice.OrganizationId}/${invoice.id}`
+      : ''
+
+  const copyInvoiceUrlHandler = useCopyTextHandler({
+    text,
+  })
+
+  const items: PopoverMenuItem[] = [
+    {
+      label: 'Copy URL',
+      handler: copyInvoiceUrlHandler,
+    },
+  ]
+
+  if (!invoiceIsInTerminalState(invoice)) {
+    items.push({
+      label: 'Edit Invoice',
+      handler: () => setIsEditOpen(true),
+    })
+  }
+  return (
+    <>
+      <TableRowPopoverMenu items={items} />
+      <EditInvoiceModal
+        isOpen={isEditOpen}
+        setIsOpen={setIsEditOpen}
+        invoiceAndLineItems={{
+          invoice: invoice,
+          invoiceLineItems: invoiceLineItems,
+        }}
+      />
+    </>
   )
 }
 
@@ -135,13 +191,15 @@ const InvoicesTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <Button
-              iconLeading={<Ellipsis size={16} />}
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              onClick={() => {}}
-            />
+            <div
+              className="w-fit"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreMenuCell
+                invoice={cellData}
+                invoiceLineItems={cellData.invoiceLineItems}
+              />
+            </div>
           ),
         },
       ] as ColumnDef<InvoiceWithLineItems>[],

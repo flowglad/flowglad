@@ -58,7 +58,9 @@ export const deleteOpenInvoicesForPurchase = (
     )
 }
 
-export const invoiceIsInTerminalState = (invoice: Invoice.Record) => {
+export const invoiceIsInTerminalState = (
+  invoice: Invoice.ClientRecord
+) => {
   return (
     invoice.status === InvoiceStatus.Paid ||
     invoice.status === InvoiceStatus.Uncollectible ||

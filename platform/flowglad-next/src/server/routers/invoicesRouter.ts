@@ -15,11 +15,15 @@ import { idInputSchema } from '@/db/tableUtils'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
   createInvoiceSchema,
+  editInvoiceSchema,
   invoiceLineItemsClientSelectSchema,
 } from '@/db/schema/invoiceLineItems'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  bulkUpsertInvoiceLineItems,
+  insertInvoiceLineItems,
+} from '@/db/tableMethods/invoiceLineItemMethods'
 import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -69,12 +73,21 @@ const createInvoiceProcedure = protectedProcedure
         transaction
       )
 
-      const invoice = await insertInvoice(invoiceInsert, transaction)
+      const invoice = await insertInvoice(
+        {
+          ...invoiceInsert,
+          livemode: ctx.livemode,
+          dueDate: invoiceInsert.dueDate ?? new Date(),
+          OrganizationId: ctx.OrganizationId!,
+        },
+        transaction
+      )
 
       const invoiceLineItems = await insertInvoiceLineItems(
         invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
           ...invoiceLineItemInsert,
           InvoiceId: invoice.id,
+          livemode: ctx.livemode,
         })),
         transaction
       )
@@ -89,8 +102,27 @@ const createInvoiceProcedure = protectedProcedure
     })
   })
 
+const updateInvoiceProcedure = protectedProcedure
+  .meta(openApiMetas.PUT)
+  .input(editInvoiceSchema)
+  .output(
+    z.object({
+      invoice: invoicesClientSelectSchema,
+      invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
+    const invoice = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return updateInvoice(input.invoice, transaction)
+      }
+    )
+    return { invoice, invoiceLineItems: [] }
+  })
+
 export const invoicesRouter = router({
   list: listInvoicesProcedure,
   create: createInvoiceProcedure,
   get: getInvoiceProcedure,
+  update: updateInvoiceProcedure,
 })

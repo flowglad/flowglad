@@ -33,7 +33,10 @@ import {
   trpcToRest,
   RouteConfig,
 } from '@/utils/openapi'
-import { externalIdInputSchema } from '@/db/tableUtils'
+import {
+  externalIdInputSchema,
+  SelectConditions,
+} from '@/db/tableUtils'
 import { selectCatalog } from '@/utils/catalog'
 import { variantsClientSelectSchema } from '@/db/schema/variants'
 import { productsClientSelectSchema } from '@/db/schema/products'
@@ -166,13 +169,18 @@ export const editCustomerProfile = protectedProcedure
 export const getCustomerProfile = protectedProcedure
   .meta(openApiMetas.GET)
   .input(
-    z.object({
-      externalId: z
-        .string()
-        .describe(
-          'The ID of the customer, as defined in your application'
-        ),
-    })
+    z.union([
+      z.object({
+        externalId: z
+          .string()
+          .describe(
+            'The ID of the customer, as defined in your application'
+          ),
+      }),
+      z.object({
+        id: z.string().describe('The ID of the customer profile'),
+      }),
+    ])
   )
   .output(
     z.object({ customerProfile: customerProfileClientSelectSchema })
@@ -188,10 +196,11 @@ export const getCustomerProfile = protectedProcedure
 
     const customerProfiles = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCustomerProfiles(
-          { ...input, OrganizationId },
-          transaction
-        )
+        const selectConditions =
+          'id' in input
+            ? { id: input.id }
+            : { externalId: input.externalId, OrganizationId }
+        return selectCustomerProfiles(selectConditions, transaction)
       },
       {
         apiKey: ctx.apiKey,
@@ -199,10 +208,17 @@ export const getCustomerProfile = protectedProcedure
     )
 
     if (!customerProfiles.length) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Customer profile with externalId ${input.externalId} not found`,
-      })
+      if ('id' in input) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Customer profile with id ${input.id} not found`,
+        })
+      } else {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Customer profile with externalId ${input.externalId} not found`,
+        })
+      }
     }
 
     return { customerProfile: customerProfiles[0] }

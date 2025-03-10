@@ -273,7 +273,7 @@ export const invoicesClientUpdateSchema = z.discriminatedUnion(
 )
 
 export const invoicesPaginatedSelectSchema =
-  createPaginatedSelectSchema(invoicesClientSelectSchema)
+  createPaginatedSelectSchema(coreInvoicesSelectSchema.partial())
 
 export const invoicesPaginatedListSchema =
   createPaginatedListQuerySchema<

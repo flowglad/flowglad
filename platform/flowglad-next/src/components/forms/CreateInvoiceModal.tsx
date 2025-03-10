@@ -9,7 +9,7 @@ import {
 } from '@/db/schema/invoiceLineItems'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { InvoiceType } from '@/types'
+import { InvoiceStatus, InvoiceType } from '@/types'
 
 function CreateInvoiceModal({
   isOpen,
@@ -34,6 +34,7 @@ function CreateInvoiceModal({
         customerProfile?.invoiceNumberBase ?? '',
         1
       ),
+      status: InvoiceStatus.Open,
       type: InvoiceType.Standalone,
       PurchaseId: null,
       BillingPeriodId: null,

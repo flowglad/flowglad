@@ -16,6 +16,7 @@ import {
   Invoice,
   invoices,
   invoicesClientInsertSchema,
+  invoicesClientUpdateSchema,
 } from './invoices'
 import { variants } from './variants'
 import core from '@/utils/core'
@@ -113,6 +114,11 @@ export namespace InvoiceLineItem {
 export const createInvoiceSchema = z.object({
   invoice: invoicesClientInsertSchema,
   invoiceLineItems: invoiceLineItemsClientInsertSchema.array(),
+})
+
+export const editInvoiceSchema = z.object({
+  invoice: invoicesClientUpdateSchema,
+  invoiceLineItems: invoiceLineItemsClientUpdateSchema.array(),
 })
 
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>

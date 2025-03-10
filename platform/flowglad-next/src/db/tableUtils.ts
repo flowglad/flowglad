@@ -10,6 +10,7 @@ import {
   InferSelectModel,
   lt,
   sql,
+  count,
 } from 'drizzle-orm'
 import core from '@/utils/core'
 import {
@@ -502,14 +503,18 @@ export const enhancedCreateInsertSchema = <T extends PgTableWithId>(
   )
 }
 
-export const createPaginatedSelectSchema = <T extends PgTableWithId>(
-  parameters: ZodTableUnionOrType<InferSelectModel<T>>
+export const createPaginatedSelectSchema = <T extends {}>(
+  parameters: ZodTableUnionOrType<T>
 ) => {
   return z.object({
     cursor: z.string().optional(),
     limit: z.number().min(1).max(100).optional(),
-    // parameters: parameters.optional(),
-  })
+    parameters: parameters.optional(),
+  }) as z.ZodType<{
+    cursor?: string
+    limit?: number
+    parameters?: z.infer<typeof parameters>
+  }>
 }
 
 export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
@@ -723,6 +728,7 @@ export const createPaginatedSelectFunction = <
     currentCursor?: string
     nextCursor?: string
     hasMore: boolean
+    total: number
   }> => {
     if (limit > 100) {
       throw new Error(
@@ -762,7 +768,10 @@ export const createPaginatedSelectFunction = <
     const hasMore = result.length > limit
     // Remove the extra item if it exists
     const data = result.slice(0, limit)
-
+    const total = await transaction
+      .select({ count: count() })
+      .from(table)
+      .where(whereClauseFromObject(table, parameters))
     return {
       data: data.map((item) => selectSchema.parse(item)),
       currentCursor: cursor,
@@ -774,6 +783,7 @@ export const createPaginatedSelectFunction = <
           })
         : undefined,
       hasMore,
+      total: total[0].count,
     }
   }
 }
@@ -786,10 +796,12 @@ export const createPaginatedListQuerySchema = <T extends {}>(
     currentCursor: z.string().optional(),
     nextCursor: z.string().optional(),
     hasMore: z.boolean(),
+    total: z.number(),
   }) as z.ZodType<{
     data: z.infer<ZodTableUnionOrType<T>>[]
     currentCursor?: string
     nextCursor?: string
+    total: number
     hasMore: boolean
   }>
 }

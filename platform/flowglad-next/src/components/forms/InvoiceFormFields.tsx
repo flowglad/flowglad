@@ -1,5 +1,5 @@
 import { Calendar, ChevronDown } from 'lucide-react'
-
+import { encodeCursor } from '@/db/tableUtils'
 import Input from '@/components/ion/Input'
 import Select from '@/components/ion/Select'
 import Textarea from '@/components/ion/Textarea'
@@ -10,14 +10,14 @@ import { Controller, useFormContext } from 'react-hook-form'
 import { useAuthenticatedContext } from '../../contexts/authContext'
 import Datepicker from '../ion/Datepicker'
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { trpc } from '@/app/_trpc/client'
 import Switch from '@/components/ion/Switch'
-import StatusBadge from '../StatusBadge'
 import Label from '../ion/Label'
 import Badge from '../ion/Badge'
 import ConnectedSelect from './ConnectedSelect'
+import core from '@/utils/core'
 
 const customerProfileOptions = (
   customerProfile?: CustomerProfile.ClientRecord,
@@ -45,7 +45,13 @@ const InvoiceFormFields = ({
   customerProfile?: CustomerProfile.ClientRecord
 }) => {
   const { organization } = useAuthenticatedContext()
-  const { data } = trpc.customerProfiles.list.useQuery({})
+  const { data } = trpc.customerProfiles.list.useQuery({
+    cursor: encodeCursor({
+      parameters: {
+        OrganizationId: organization!.id,
+      },
+    }),
+  })
   const { refetch } = trpc.organizations.getMembers.useQuery(
     undefined,
     {
@@ -56,11 +62,49 @@ const InvoiceFormFields = ({
     customerProfile,
     data
   )
-  const { control, register } = useFormContext<{
+  const { control, register, watch, setValue } = useFormContext<{
     invoice: Invoice.Insert
   }>()
+  const CustomerProfileId = watch('invoice.CustomerProfileId')
+  const { data: associatedCustomerProfileData } =
+    trpc.customerProfiles.get.useQuery(
+      { id: CustomerProfileId! },
+      { enabled: !!CustomerProfileId }
+    )
+  console.log(
+    'associatedCustomerProfileData',
+    associatedCustomerProfileData
+  )
+  const { data: invoicesForCustomerProfile } =
+    trpc.invoices.list.useQuery(
+      {
+        cursor: encodeCursor({
+          parameters: {
+            CustomerProfileId: CustomerProfileId,
+          },
+        }),
+      },
+      {
+        enabled: !!CustomerProfileId,
+      }
+    )
+  const totalInvoicesForCustomerProfile =
+    invoicesForCustomerProfile?.total ?? 0
+  const invoiceNumberBase =
+    associatedCustomerProfileData?.customerProfile
+      .invoiceNumberBase ?? ''
   const [dueOption, setDueOption] = useState('On Receipt')
-
+  useEffect(() => {
+    if (totalInvoicesForCustomerProfile > 0 && invoiceNumberBase) {
+      setValue(
+        'invoice.invoiceNumber',
+        core.createInvoiceNumber(
+          invoiceNumberBase,
+          totalInvoicesForCustomerProfile + 1
+        )
+      )
+    }
+  }, [totalInvoicesForCustomerProfile, invoiceNumberBase])
   return (
     <>
       <div className="w-full flex items-start gap-2.5">
