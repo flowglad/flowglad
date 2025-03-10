@@ -6,7 +6,6 @@ import {
   editInvoiceSchema,
   InvoiceLineItem,
 } from '@/db/schema/invoiceLineItems'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 import { Invoice } from '@/db/schema/invoices'
 
 function EditInvoiceModal({

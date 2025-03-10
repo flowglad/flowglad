@@ -119,7 +119,12 @@ export const createInvoiceSchema = z.object({
 
 export const editInvoiceSchema = z.object({
   invoice: invoicesClientUpdateSchema,
-  invoiceLineItems: invoiceLineItemsClientUpdateSchema.array(),
+  invoiceLineItems: z
+    .union([
+      invoiceLineItemsClientInsertSchema,
+      invoiceLineItemsClientSelectSchema,
+    ])
+    .array(),
 })
 
 export const sendInvoiceReminderSchema = z.object({

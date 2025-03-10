@@ -16,14 +16,18 @@ import { generateOpenApiMetas } from '@/utils/openapi'
 import {
   createInvoiceSchema,
   editInvoiceSchema,
+  InvoiceLineItem,
   invoiceLineItemsClientSelectSchema,
   sendInvoiceReminderSchema,
 } from '@/db/schema/invoiceLineItems'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
+  deleteInvoiceLineItems,
+  insertInvoiceLineItem,
   insertInvoiceLineItems,
   selectInvoiceLineItems,
+  updateInvoiceLineItem,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import { z } from 'zod'
 import {
@@ -136,12 +140,57 @@ const updateInvoiceProcedure = protectedProcedure
     })
   )
   .mutation(async ({ ctx, input }) => {
-    const invoice = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return updateInvoice(input.invoice, transaction)
-      }
-    )
-    return { invoice, invoiceLineItems: [] }
+    const { invoice, invoiceLineItems } =
+      await authenticatedTransaction(async ({ transaction }) => {
+        const updatedInvoice = await updateInvoice(
+          input.invoice,
+          transaction
+        )
+        const existingInvoiceLineItems = await selectInvoiceLineItems(
+          {
+            InvoiceId: updatedInvoice.id,
+          },
+          transaction
+        )
+
+        const lineItemsToDelete = existingInvoiceLineItems.filter(
+          (invoiceLineItem) =>
+            !input.invoiceLineItems.includes(invoiceLineItem)
+        )
+
+        await deleteInvoiceLineItems(
+          lineItemsToDelete.map((invoiceLineItem) => ({
+            id: invoiceLineItem.id,
+          })),
+          transaction
+        )
+        await Promise.all(
+          input.invoiceLineItems.map(async (invoiceLineItem) => {
+            if ('id' in invoiceLineItem) {
+              return updateInvoiceLineItem(
+                invoiceLineItem,
+                transaction
+              )
+            } else {
+              return insertInvoiceLineItem(
+                {
+                  ...invoiceLineItem,
+                  livemode: ctx.livemode,
+                },
+                transaction
+              )
+            }
+          })
+        )
+        const invoiceLineItems = await selectInvoiceLineItems(
+          {
+            InvoiceId: updatedInvoice.id,
+          },
+          transaction
+        )
+        return { invoice: updatedInvoice, invoiceLineItems }
+      })
+    return { invoice, invoiceLineItems }
   })
 
 const sendInvoiceReminderProcedure = protectedProcedure
