@@ -8,6 +8,7 @@ import {
   createSelectFunction,
   whereClauseFromObject,
   createPaginatedSelectFunction,
+  createBulkUpsertFunction,
 } from '@/db/tableUtils'
 import {
   InvoiceLineItem,
@@ -141,3 +142,8 @@ export const deleteInvoiceLineItemsByInvoiceId = async (
 
 export const selectInvoiceLineItemsPaginated =
   createPaginatedSelectFunction(invoiceLineItems, config)
+
+export const bulkUpsertInvoiceLineItems = createBulkUpsertFunction(
+  invoiceLineItems,
+  config
+)
