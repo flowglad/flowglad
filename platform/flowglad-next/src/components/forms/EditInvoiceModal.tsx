@@ -21,7 +21,6 @@ function EditInvoiceModal({
     invoiceLineItems: InvoiceLineItem.ClientRecord[]
   }
 }) {
-  const { organization } = useAuthenticatedContext()
   const updateInvoice = trpc.invoices.update.useMutation()
   const defaultValues = {
     invoice: invoiceAndLineItems.invoice,
@@ -46,6 +45,7 @@ function EditInvoiceModal({
     >
       <InvoiceFormFields
         customerProfile={customerProfileData.customerProfile}
+        editMode
       />
     </FormModal>
   )
