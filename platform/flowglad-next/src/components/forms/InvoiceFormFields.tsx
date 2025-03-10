@@ -71,10 +71,6 @@ const InvoiceFormFields = ({
       { id: CustomerProfileId! },
       { enabled: !!CustomerProfileId }
     )
-  console.log(
-    'associatedCustomerProfileData',
-    associatedCustomerProfileData
-  )
   const { data: invoicesForCustomerProfile } =
     trpc.invoices.list.useQuery(
       {

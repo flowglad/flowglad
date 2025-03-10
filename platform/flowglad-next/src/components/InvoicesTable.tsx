@@ -1,11 +1,7 @@
 import Table from '@/components/ion/Table'
 import TableTitle from '@/components/ion/TableTitle'
-import Button from '@/components/ion/Button'
-import { Ellipsis, Plus } from 'lucide-react'
 import { Invoice } from '@/db/schema/invoices'
-import { Customer } from '@/db/schema/customers'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { Purchase } from '@/db/schema/purchases'
 import { useMemo, useState } from 'react'
 import Badge, { BadgeProps } from './ion/Badge'
 import { ColumnDef } from '@tanstack/react-table'
@@ -14,15 +10,17 @@ import { sentenceCase } from 'change-case'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import CreateInvoiceModal from './forms/CreateInvoiceModal'
 import {
+  ClientInvoiceWithLineItems,
   InvoiceLineItem,
   InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
 import { PopoverMenuItem } from './PopoverMenu'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { InvoiceStatus } from '@/types'
 import TableRowPopoverMenu from './TableRowPopoverMenu'
 import EditInvoiceModal from './forms/EditInvoiceModal'
 import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { Plus } from 'lucide-react'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -109,15 +107,11 @@ const MoreMenuCell = ({
 
 const InvoicesTable = ({
   invoicesAndLineItems,
-  customer,
+  customerProfile,
 }: {
-  invoicesAndLineItems: InvoiceWithLineItems[]
-  customer: {
-    customer: Customer.ClientRecord
-    customerProfile: CustomerProfile.ClientRecord
-  }
+  invoicesAndLineItems: ClientInvoiceWithLineItems[]
+  customerProfile?: CustomerProfile.ClientRecord
   showOwners?: boolean
-  purchases: Purchase.ClientRecord[]
 }) => {
   const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
     useState(false)
@@ -135,7 +129,15 @@ const InvoicesTable = ({
           accessorKey: 'amount',
           cell: ({ row: { original: cellData } }) => (
             <>
-              <span className="font-bold text-sm">$0.00</span>
+              <span className="font-bold text-sm">
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  cellData.currency,
+                  cellData.invoiceLineItems.reduce(
+                    (acc, item) => acc + item.price * item.quantity,
+                    0
+                  )
+                )}
+              </span>
             </>
           ),
         },
@@ -202,7 +204,7 @@ const InvoicesTable = ({
             </div>
           ),
         },
-      ] as ColumnDef<InvoiceWithLineItems>[],
+      ] as ColumnDef<ClientInvoiceWithLineItems>[],
     []
   )
 
@@ -225,7 +227,7 @@ const InvoicesTable = ({
       <CreateInvoiceModal
         isOpen={createInvoiceModalOpen}
         setIsOpen={setCreateInvoiceModalOpen}
-        customerProfile={customer.customerProfile}
+        customerProfile={customerProfile}
       />
     </div>
   )

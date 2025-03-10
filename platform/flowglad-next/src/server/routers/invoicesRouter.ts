@@ -20,10 +20,7 @@ import {
 } from '@/db/schema/invoiceLineItems'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import {
-  bulkUpsertInvoiceLineItems,
-  insertInvoiceLineItems,
-} from '@/db/tableMethods/invoiceLineItemMethods'
+import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
