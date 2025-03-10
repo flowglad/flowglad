@@ -114,6 +114,7 @@ export namespace InvoiceLineItem {
 export const createInvoiceSchema = z.object({
   invoice: invoicesClientInsertSchema,
   invoiceLineItems: invoiceLineItemsClientInsertSchema.array(),
+  autoSend: z.boolean().optional(),
 })
 
 export const editInvoiceSchema = z.object({

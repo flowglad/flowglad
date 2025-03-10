@@ -26,7 +26,10 @@ import {
   selectInvoiceLineItems,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import { z } from 'zod'
-import { sendInvoiceReminderEmail } from '@/utils/email'
+import {
+  sendInvoiceReminderEmail,
+  sendInvoiceNotificationEmail,
+} from '@/utils/email'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { update } from 'ramda'
 import { updatePaymentIntent } from '@/utils/stripe'
@@ -73,6 +76,7 @@ const createInvoiceProcedure = protectedProcedure
       const {
         invoice: invoiceInsert,
         invoiceLineItems: invoiceLineItemInserts,
+        autoSend,
       } = input
       const customerProfile = await selectCustomerProfileById(
         invoiceInsert.CustomerProfileId,
@@ -102,6 +106,20 @@ const createInvoiceProcedure = protectedProcedure
         throw new Error(
           `Customer profile ${customerProfile.id} does not have a stripeCustomerId`
         )
+      }
+
+      if (autoSend) {
+        const organization = await selectOrganizationById(
+          ctx.OrganizationId!,
+          transaction
+        )
+        await sendInvoiceNotificationEmail({
+          to: [customerProfile.email],
+          invoice,
+          invoiceLineItems,
+          organizationName: organization.name,
+          organizationLogoUrl: organization.logoURL ?? undefined,
+        })
       }
 
       return { invoice, invoiceLineItems }

@@ -41,8 +41,10 @@ const customerProfileOptions = (
 
 const InvoiceFormFields = ({
   customerProfile,
+  editMode = false,
 }: {
   customerProfile?: CustomerProfile.ClientRecord
+  editMode?: boolean
 }) => {
   const { organization } = useAuthenticatedContext()
   const { data } = trpc.customerProfiles.list.useQuery({
@@ -64,6 +66,7 @@ const InvoiceFormFields = ({
   )
   const { control, register, watch, setValue } = useFormContext<{
     invoice: Invoice.Insert
+    autoSend: boolean
   }>()
   const CustomerProfileId = watch('invoice.CustomerProfileId')
   const { data: associatedCustomerProfileData } =
@@ -193,15 +196,7 @@ const InvoiceFormFields = ({
                 onCheckedChange={field.onChange}
                 label={
                   <div className="cursor-pointer w-full">
-                    {field.value ? (
-                      <Badge>
-                        Only accept payment via ACH or Wire.
-                      </Badge>
-                    ) : (
-                      <Badge>
-                        Accept payment via all payment methods.
-                      </Badge>
-                    )}
+                    Only accept payment via ACH or Wire.
                   </div>
                 }
               />
@@ -249,6 +244,24 @@ const InvoiceFormFields = ({
           )}
         />
       </div>
+      {!editMode && (
+        <Controller
+          name="autoSend"
+          control={control}
+          render={({ field }) => (
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                id="auto-send"
+              />
+              <Label htmlFor="auto-send">
+                Email invoice to customer after creation
+              </Label>
+            </div>
+          )}
+        />
+      )}
       <div className="w-full border-opacity-[0.07] flex items-start py-6 border-b border-white">
         <div className="flex-1 w-full flex flex-col justify-center gap-6">
           <div className="w-full flex flex-col gap-3">
