@@ -7,6 +7,7 @@ import {
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
   insertInvoice,
+  invoiceIsInTerminalState,
   selectInvoiceById,
   selectInvoicesPaginated,
   updateInvoice,
@@ -142,10 +143,22 @@ const updateInvoiceProcedure = protectedProcedure
   .mutation(async ({ ctx, input }) => {
     const { invoice, invoiceLineItems } =
       await authenticatedTransaction(async ({ transaction }) => {
+        const existingInvoice = await selectInvoiceById(
+          input.invoice.id,
+          transaction
+        )
+        if (invoiceIsInTerminalState(existingInvoice)) {
+          throw new Error(
+            `Invoice ${existingInvoice.id} has status ${existingInvoice.status}, which is terminal. You cannot update invoices that are in a terminal state.`
+          )
+        }
         const updatedInvoice = await updateInvoice(
           input.invoice,
           transaction
         )
+        if (invoiceIsInTerminalState(updatedInvoice)) {
+          throw new Error('Cannot update a paid invoice')
+        }
         const existingInvoiceLineItems = await selectInvoiceLineItems(
           {
             InvoiceId: updatedInvoice.id,
