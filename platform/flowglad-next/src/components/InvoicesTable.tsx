@@ -19,8 +19,10 @@ import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import TableRowPopoverMenu from './TableRowPopoverMenu'
 import EditInvoiceModal from './forms/EditInvoiceModal'
 import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
+import { InvoiceStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { Plus } from 'lucide-react'
+import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -62,10 +64,8 @@ const MoreMenuCell = ({
   invoice: Invoice.ClientRecord
   invoiceLineItems: InvoiceLineItem.ClientRecord[]
 }) => {
-  const [isArchiveOpen, setIsArchiveOpen] = useState(false)
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isCreateVariantOpen, setIsCreateVariantOpen] =
+  const [isSendReminderEmailOpen, setIsSendReminderEmailOpen] =
     useState(false)
 
   const text =
@@ -89,7 +89,15 @@ const MoreMenuCell = ({
       label: 'Edit Invoice',
       handler: () => setIsEditOpen(true),
     })
+
+    if (invoice.status !== InvoiceStatus.Draft) {
+      items.push({
+        label: 'Send Reminder Email',
+        handler: () => setIsSendReminderEmailOpen(true),
+      })
+    }
   }
+
   return (
     <>
       <TableRowPopoverMenu items={items} />
@@ -100,6 +108,11 @@ const MoreMenuCell = ({
           invoice: invoice,
           invoiceLineItems: invoiceLineItems,
         }}
+      />
+      <SendInvoiceReminderEmailModal
+        isOpen={isSendReminderEmailOpen}
+        setIsOpen={setIsSendReminderEmailOpen}
+        invoiceId={invoice.id}
       />
     </>
   )

@@ -17,11 +17,17 @@ import {
   createInvoiceSchema,
   editInvoiceSchema,
   invoiceLineItemsClientSelectSchema,
+  sendInvoiceReminderSchema,
 } from '@/db/schema/invoiceLineItems'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  insertInvoiceLineItems,
+  selectInvoiceLineItems,
+} from '@/db/tableMethods/invoiceLineItemMethods'
 import { z } from 'zod'
+import { sendInvoiceReminderEmail } from '@/utils/email'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',
@@ -117,9 +123,51 @@ const updateInvoiceProcedure = protectedProcedure
     return { invoice, invoiceLineItems: [] }
   })
 
+const sendInvoiceReminderProcedure = protectedProcedure
+  .meta(openApiMetas.POST)
+  .input(sendInvoiceReminderSchema)
+  .mutation(async ({ ctx, input }) => {
+    return authenticatedTransaction(async ({ transaction }) => {
+      const invoice = await selectInvoiceById(
+        input.invoiceId,
+        transaction
+      )
+      const customerProfile = await selectCustomerProfileById(
+        invoice.CustomerProfileId,
+        transaction
+      )
+      const customer = await selectCustomerById(
+        customerProfile.CustomerId,
+        transaction
+      )
+      const organization = await selectOrganizationById(
+        invoice.OrganizationId!,
+        transaction
+      )
+      const invoiceLineItems = await selectInvoiceLineItems(
+        {
+          InvoiceId: invoice.id,
+        },
+        transaction
+      )
+
+      await sendInvoiceReminderEmail({
+        to: input.to,
+        cc: input.cc,
+        invoice,
+        invoiceLineItems,
+        organizationName: organization.name,
+        organizationLogoUrl: organization.logoURL ?? undefined,
+      })
+
+      return { success: true }
+    })
+  })
+
 export const invoicesRouter = router({
   list: listInvoicesProcedure,
   create: createInvoiceProcedure,
   get: getInvoiceProcedure,
   update: updateInvoiceProcedure,
+  sendReminder: sendInvoiceReminderProcedure,
 })
