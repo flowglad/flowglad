@@ -120,7 +120,6 @@ export const createInsertManyFunction = <
       .insert(table)
       .values(parsedInsert)
       .returning()
-    console.log('====result', result)
     return result.map((item) => selectSchema.parse(item))
   }
 }

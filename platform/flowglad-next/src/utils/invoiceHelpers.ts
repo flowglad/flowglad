@@ -58,17 +58,22 @@ export const updateInvoiceTransaction = async (
     },
     transaction
   )
-
-  const lineItemsToDelete = existingInvoiceLineItems.filter(
-    (invoiceLineItem) => !invoiceLineItems.includes(invoiceLineItem)
+  const providedInvoiceLineItemsById = new Map(
+    invoiceLineItems
+      .filter((item) => 'id' in item)
+      .map((invoiceLineItem) => [invoiceLineItem.id, invoiceLineItem])
   )
-
+  const lineItemsToDelete = existingInvoiceLineItems.filter(
+    (invoiceLineItem) =>
+      !providedInvoiceLineItemsById.has(invoiceLineItem.id)
+  )
   await deleteInvoiceLineItems(
     lineItemsToDelete.map((invoiceLineItem) => ({
       id: invoiceLineItem.id,
     })),
     transaction
   )
+
   await Promise.all(
     invoiceLineItems.map(async (invoiceLineItem) => {
       if ('id' in invoiceLineItem) {

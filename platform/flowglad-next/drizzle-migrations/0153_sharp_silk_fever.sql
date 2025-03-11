@@ -1,3 +1,9 @@
+DO $$ BEGIN
+    ALTER TYPE "PurchaseSessionStatus" ADD VALUE IF NOT EXISTS 'pending';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 ALTER TABLE "PurchaseSessions" ALTER COLUMN "VariantId" DROP NOT NULL;--> statement-breakpoint
 DO $$ BEGIN
     CREATE TYPE "PurchaseSessionType" AS ENUM ('product', 'purchase', 'invoice');
