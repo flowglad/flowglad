@@ -22,7 +22,7 @@
     "unlink:packages": "yalc remove --all && pnpm install"
   },
   "dependencies": {
-    "@flowglad/node": "catalog:repo",
+    "@flowglad/node": "0.4.1",
     "@flowglad/nextjs": "file:.yalc/@flowglad/nextjs",
     "@flowglad/react": "file:.yalc/@flowglad/react",
     "@flowglad/server": "file:.yalc/@flowglad/server",
