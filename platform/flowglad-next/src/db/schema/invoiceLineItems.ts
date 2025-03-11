@@ -127,6 +127,8 @@ export const editInvoiceSchema = z.object({
     .array(),
 })
 
+export type EditInvoiceInput = z.infer<typeof editInvoiceSchema>
+
 export const sendInvoiceReminderSchema = z.object({
   invoiceId: z.string(),
   to: z.array(z.string().email()),

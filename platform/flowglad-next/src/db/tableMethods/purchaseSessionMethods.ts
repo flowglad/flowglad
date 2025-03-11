@@ -143,3 +143,27 @@ export const updatePurchaseSessionsForOpenPurchase = async (
       )
     )
 }
+
+/**
+ * This is a "scorched earth" operation that deletes all the incomplete purchase sessions for an invoice.
+ * It's used when the billing state of an invoice is updated,
+ * and we need to invalidate the associated payment intents.
+ * @param invoiceId
+ * @param transaction
+ */
+export const deleteIncompletePurchaseSessionsForInvoice = async (
+  invoiceId: string,
+  transaction: DbTransaction
+) => {
+  await transaction
+    .delete(purchaseSessions)
+    .where(
+      and(
+        eq(purchaseSessions.InvoiceId, invoiceId),
+        inArray(purchaseSessions.status, [
+          PurchaseSessionStatus.Open,
+          PurchaseSessionStatus.Pending,
+        ])
+      )
+    )
+}

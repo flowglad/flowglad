@@ -38,6 +38,7 @@ import {
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { update } from 'ramda'
 import { updatePaymentIntent } from '@/utils/stripe'
+import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',
@@ -143,65 +144,11 @@ const updateInvoiceProcedure = protectedProcedure
   .mutation(async ({ ctx, input }) => {
     const { invoice, invoiceLineItems } =
       await authenticatedTransaction(async ({ transaction }) => {
-        const existingInvoice = await selectInvoiceById(
-          input.invoice.id,
+        return updateInvoiceTransaction(
+          input,
+          ctx.livemode,
           transaction
         )
-        if (invoiceIsInTerminalState(existingInvoice)) {
-          throw new Error(
-            `Invoice ${existingInvoice.id} has status ${existingInvoice.status}, which is terminal. You cannot update invoices that are in a terminal state.`
-          )
-        }
-        const updatedInvoice = await updateInvoice(
-          input.invoice,
-          transaction
-        )
-        if (invoiceIsInTerminalState(updatedInvoice)) {
-          throw new Error('Cannot update a paid invoice')
-        }
-        const existingInvoiceLineItems = await selectInvoiceLineItems(
-          {
-            InvoiceId: updatedInvoice.id,
-          },
-          transaction
-        )
-
-        const lineItemsToDelete = existingInvoiceLineItems.filter(
-          (invoiceLineItem) =>
-            !input.invoiceLineItems.includes(invoiceLineItem)
-        )
-
-        await deleteInvoiceLineItems(
-          lineItemsToDelete.map((invoiceLineItem) => ({
-            id: invoiceLineItem.id,
-          })),
-          transaction
-        )
-        await Promise.all(
-          input.invoiceLineItems.map(async (invoiceLineItem) => {
-            if ('id' in invoiceLineItem) {
-              return updateInvoiceLineItem(
-                invoiceLineItem,
-                transaction
-              )
-            } else {
-              return insertInvoiceLineItem(
-                {
-                  ...invoiceLineItem,
-                  livemode: ctx.livemode,
-                },
-                transaction
-              )
-            }
-          })
-        )
-        const invoiceLineItems = await selectInvoiceLineItems(
-          {
-            InvoiceId: updatedInvoice.id,
-          },
-          transaction
-        )
-        return { invoice: updatedInvoice, invoiceLineItems }
       })
     return { invoice, invoiceLineItems }
   })

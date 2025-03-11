@@ -954,11 +954,9 @@ export const createPaymentIntentForInvoicePurchaseSession =
       feeCalculation,
     } = params
     const livemode = invoice.livemode
-    console.log('=====invoice', invoice)
     const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
       invoice.bankPaymentOnly
     ) as Partial<Stripe.PaymentIntentCreateParams>
-    console.log('=====achOnlyParams', achOnlyParams)
     const { on_behalf_of, transfer_data } =
       stripeConnectTransferDataForOrganization({
         organization,
