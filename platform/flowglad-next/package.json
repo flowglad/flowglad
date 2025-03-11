@@ -86,7 +86,7 @@
     "@unkey/api": "^0.31.0",
     "@unkey/nextjs": "^0.18.5",
     "ai": "^4.0.21",
-    "axios": "^1.7.4",
+    "axios": "1.8.2",
     "bcrypt": "^5.1.1",
     "change-case": "^5.4.4",
     "class-variance-authority": "^0.7.0",
@@ -103,7 +103,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.474.0",
     "nanoid": "^5.0.7",
-    "next": "14.2.5",
+    "next": "14.2.21",
     "octokit": "4.1.2",
     "openai": "^4.76.3",
     "papaparse": "^5.5.1",
@@ -157,7 +157,7 @@
     "autoprefixer": "^10.4.20",
     "babel-plugin-syntax-trailing-function-commas": "^6.22.0",
     "drizzle-kit": "0.28.1",
-    "esbuild": "0.23.1",
+    "esbuild": "0.25.0",
     "esbuild-plugin-babel": "^0.2.3",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
@@ -168,12 +168,12 @@
     "tailwindcss": "^3.4.1",
     "typescript": "5.5.4",
     "vite": "6.0.11",
-    "vitest": "3.0.4",
+    "vitest": "3.0.5",
     "zlib-sync": "^0.1.9"
   },
   "pnpm": {
     "overrides": {
-      "esbuild": "0.23.1"
+      "esbuild": "0.25.0"
     },
     "patchedDependencies": {
       "trpc-swagger@1.2.6": "src/patches/trpc-swagger@1.2.6.patch"
