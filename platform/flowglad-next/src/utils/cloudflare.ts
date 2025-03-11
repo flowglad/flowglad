@@ -210,12 +210,21 @@ export const getHeadObject = async (key: string) => {
   })
   return response
 }
+
+const keyFromCDNUrl = (cdnUrl: string) => {
+  const parsedUrl = new URL(cdnUrl)
+  const pathParts = parsedUrl.pathname.split('/')
+  const key = pathParts[pathParts.length - 1]
+  return key
+}
+
 const cloudflareMethods = {
   screenshotKeyFromContentAddress,
   getPresignedURL,
   putImage,
   putPDF,
   putCsv,
+  keyFromCDNUrl,
   screenshotURLFromContentAddress,
   BUCKET_PUBLIC_URL,
   getDesignerIdFromUrl,

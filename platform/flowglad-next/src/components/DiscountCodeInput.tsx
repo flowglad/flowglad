@@ -4,22 +4,29 @@ import { useState } from 'react'
 import Hint from './ion/Hint'
 import Button from './ion/Button'
 import Label from './ion/Label'
+import { CheckoutFlowType } from '@/types'
 
 export default function DiscountCodeInput() {
   const checkoutPageContext = useCheckoutPageContext()
-  const {
-    attemptDiscountCode,
-    purchase,
-    product,
-    discount,
-    clearDiscountCode,
-  } = checkoutPageContext
+  const { discount, flowType } = checkoutPageContext
   const [discountCodeStatus, setDiscountCodeStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >(discount ? 'success' : 'idle')
   const [discountCode, setDiscountCode] = useState(
     discount?.code ?? ''
   )
+
+  if (flowType === CheckoutFlowType.Invoice) {
+    return null
+  }
+
+  const {
+    attemptDiscountCode,
+    purchase,
+    product,
+    clearDiscountCode,
+  } = checkoutPageContext
+
   let hint: string | undefined = undefined
   if (discountCodeStatus === 'error') {
     hint = 'Invalid discount code'

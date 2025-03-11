@@ -11,6 +11,8 @@ import NumberInput from '../ion/NumberInput'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 interface InvoiceFormLineItemProps {
   id: string
@@ -27,6 +29,7 @@ const InvoiceFormLineItem = ({
 }: InvoiceFormLineItemProps) => {
   const { watch, control, register } =
     useFormContext<CreateInvoiceInput>()
+  const { organization } = useAuthenticatedContext()
   const quantity = watch(`invoiceLineItems.${index}.quantity`)
   const price = watch(`invoiceLineItems.${index}.price`)
   const {
@@ -101,7 +104,12 @@ const InvoiceFormLineItem = ({
         className="w-[100px]"
       />
       <div className="w-20 flex items-center">
-        <p className="text-md">${(quantity * price).toFixed(2)}</p>
+        <p className="text-md">
+          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            organization!.defaultCurrency,
+            quantity * price
+          )}
+        </p>
       </div>
       <Button
         {...attributes}

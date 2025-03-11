@@ -32,6 +32,7 @@ import {
   customerProfiles,
   customerProfilesSelectSchema,
 } from '../schema/customerProfiles'
+import { Bai_Jamjuree } from 'next/font/google'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriodItems,
@@ -146,6 +147,35 @@ export const selectBillingPeriodAndItemsForDate = async (
     billingPeriod: billingPeriodsSelectSchema.parse(
       result[0].billingPeriod
     ),
+    billingPeriodItems: result.map((item) =>
+      billingPeriodItemsSelectSchema.parse(item.billingPeriodItems)
+    ),
+  }
+}
+
+export const selectBillingPeriodAndItemsByBillingPeriodWhere = async (
+  whereConditions: SelectConditions<typeof billingPeriods>,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      billingPeriod: billingPeriods,
+      billingPeriodItems: billingPeriodItems,
+    })
+    .from(billingPeriods)
+    .innerJoin(
+      billingPeriodItems,
+      eq(billingPeriods.id, billingPeriodItems.BillingPeriodId)
+    )
+    .where(whereClauseFromObject(billingPeriods, whereConditions))
+  if (!result[0]) {
+    return null
+  }
+  const billingPeriod = billingPeriodsSelectSchema.parse(
+    result[0].billingPeriod
+  )
+  return {
+    billingPeriod,
     billingPeriodItems: result.map((item) =>
       billingPeriodItemsSelectSchema.parse(item.billingPeriodItems)
     ),

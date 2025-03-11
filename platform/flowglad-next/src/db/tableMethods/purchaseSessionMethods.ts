@@ -14,9 +14,9 @@ import {
   purchaseSessionsSelectSchema,
   purchaseSessionsUpdateSchema,
 } from '@/db/schema/purchaseSessions'
-import { PurchaseSessionStatus } from '@/types'
+import { PurchaseSessionStatus, PurchaseSessionType } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { and, inArray, lt, not } from 'drizzle-orm'
+import { and, eq, inArray, lt, not } from 'drizzle-orm'
 import { feeCalculations } from '../schema/feeCalculations'
 
 const config: ORMMethodCreatorConfig<
@@ -92,7 +92,7 @@ export const deleteExpiredPurchaseSessionsAndFeeCalculations = async (
 }
 
 export const selectOpenNonExpiredPurchaseSessions = async (
-  where: Partial<PurchaseSession.Record>,
+  where: SelectConditions<typeof purchaseSessions>,
   transaction: DbTransaction
 ) => {
   const sessions = await selectPurchaseSessions(
@@ -121,3 +121,49 @@ export const bulkUpdatePurchaseSessions = async (
 
 export const selectPurchaseSessionsPaginated =
   createPaginatedSelectFunction(purchaseSessions, config)
+
+export const updatePurchaseSessionsForOpenPurchase = async (
+  {
+    PurchaseId,
+    stripePaymentIntentId,
+  }: { PurchaseId: string; stripePaymentIntentId: string },
+  transaction: DbTransaction
+) => {
+  await transaction
+    .update(purchaseSessions)
+    .set({
+      status: PurchaseSessionStatus.Open,
+      stripePaymentIntentId,
+    })
+    .where(
+      and(
+        eq(purchaseSessions.PurchaseId, PurchaseId),
+        eq(purchaseSessions.type, PurchaseSessionType.Purchase),
+        eq(purchaseSessions.status, PurchaseSessionStatus.Open)
+      )
+    )
+}
+
+/**
+ * This is a "scorched earth" operation that deletes all the incomplete purchase sessions for an invoice.
+ * It's used when the billing state of an invoice is updated,
+ * and we need to invalidate the associated payment intents.
+ * @param invoiceId
+ * @param transaction
+ */
+export const deleteIncompletePurchaseSessionsForInvoice = async (
+  invoiceId: string,
+  transaction: DbTransaction
+) => {
+  await transaction
+    .delete(purchaseSessions)
+    .where(
+      and(
+        eq(purchaseSessions.InvoiceId, invoiceId),
+        inArray(purchaseSessions.status, [
+          PurchaseSessionStatus.Open,
+          PurchaseSessionStatus.Pending,
+        ])
+      )
+    )
+}

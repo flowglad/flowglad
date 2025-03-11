@@ -7,7 +7,7 @@ import {
   SubscriptionCheckoutDetails,
   useCheckoutPageContext,
 } from '@/contexts/checkoutPageContext'
-import { CurrencyCode, PriceType } from '@/types'
+import { CheckoutFlowType, CurrencyCode, PriceType } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { sentenceCase } from 'change-case'
@@ -52,13 +52,19 @@ const BillingHeader = React.forwardRef<
   HTMLDivElement,
   BillingHeaderProps
 >(({ className, ...props }, ref) => {
+  const checkoutPageContext = useCheckoutPageContext()
+
+  if (checkoutPageContext.flowType === CheckoutFlowType.Invoice) {
+    return null
+  }
+
   const {
     purchase,
     variant,
     product,
-    priceType,
     subscriptionDetails,
-  } = useCheckoutPageContext()
+    flowType,
+  } = checkoutPageContext
   let mainTitleSuffix = ''
   if (variant.priceType === PriceType.SinglePayment) {
     mainTitleSuffix = `${stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -67,14 +73,14 @@ const BillingHeader = React.forwardRef<
         ? variant.unitPrice
         : purchase.firstInvoiceValue
     )}`
-  } else if (priceType === PriceType.Subscription) {
+  } else if (flowType === CheckoutFlowType.Subscription) {
     mainTitleSuffix = `${stripeCurrencyAmountToHumanReadableCurrencyAmount(
       variant.currency,
       subscriptionDetails.pricePerBillingCycle
     )} billed ${intervalLabel(subscriptionDetails)}`
   }
   let subTitle: string | null = null
-  if (priceType === PriceType.Subscription) {
+  if (flowType === CheckoutFlowType.Subscription) {
     subTitle = subscriptionSubtitle(subscriptionDetails)
   }
   return (

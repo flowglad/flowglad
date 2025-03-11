@@ -40,6 +40,7 @@ import { invoiceLineItemsRouter } from './routers/invoiceLineItemsRouter'
 import { invoicesRouter } from './routers/invoicesRouter'
 import { countriesRouter } from './routers/countriesRouter'
 import { paymentMethodsRouter } from './routers/paymentMethodsRouter'
+import { getMembers } from './queries/getMembers'
 
 const purchasesRouter = router({
   create: createPurchase,
@@ -55,6 +56,7 @@ const organizationsRouter = router({
   create: createOrganization,
   update: editOrganization,
   requestStripeConnect: requestStripeConnectOnboardingLink,
+  getMembers: getMembers,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
 })

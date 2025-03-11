@@ -6,7 +6,7 @@ import {
   safelyInsertPaymentMethod,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
-
+import { titleCase } from '@/utils/core'
 export const paymentMethodForStripePaymentMethodId = async (
   {
     stripePaymentMethodId,
@@ -67,4 +67,17 @@ export const paymentMethodForStripePaymentMethodId = async (
     )
   }
   return paymentMethod
+}
+
+export const paymentMethodSummaryLabel = (
+  paymentMethod: PaymentMethod.Record
+) => {
+  switch (paymentMethod.type) {
+    case PaymentMethodType.Card:
+      return `${titleCase(paymentMethod.paymentMethodData.brand as string)} ending in ${paymentMethod.paymentMethodData.last4}`
+    case PaymentMethodType.USBankAccount:
+      return `Bank account ending in ${paymentMethod.paymentMethodData.last4}`
+    default:
+      return titleCase(paymentMethod.type)
+  }
 }

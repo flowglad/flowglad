@@ -9,11 +9,12 @@ import {
   updatePurchaseSession,
 } from '@/db/tableMethods/purchaseSessionMethods'
 import { selectCustomerProfiles } from '@/db/tableMethods/customerProfileMethods'
-import { PurchaseSessionStatus } from '@/types'
+import { PurchaseSessionStatus, PurchaseSessionType } from '@/types'
 import { PriceType } from '@/types'
 import { TRPCError } from '@trpc/server'
 import {
   editPurchaseSessionInputSchema,
+  PurchaseSession,
   purchaseSessionClientSelectSchema,
   purchaseSessionsPaginatedListSchema,
   purchaseSessionsPaginatedSelectSchema,
@@ -89,6 +90,8 @@ export const createPurchaseSession = protectedProcedure
             { id: input.VariantId },
             transaction
           )
+        // NOTE: invoice and purchase purchase sessions
+        // are not supported by API yet.
         const purchaseSession = await insertPurchaseSession(
           {
             CustomerProfileId: customerProfile.id,
@@ -100,7 +103,9 @@ export const createPurchaseSession = protectedProcedure
             livemode,
             successUrl: input.successUrl,
             cancelUrl: input.cancelUrl,
-          },
+            InvoiceId: null,
+            type: PurchaseSessionType.Product,
+          } as const,
           transaction
         )
 
@@ -130,6 +135,9 @@ export const createPurchaseSession = protectedProcedure
             id: purchaseSession.id,
             stripeSetupIntentId,
             stripePaymentIntentId,
+            InvoiceId: null,
+            VariantId: input.VariantId,
+            type: PurchaseSessionType.Product,
           },
           transaction
         )
@@ -174,7 +182,10 @@ export const editPurchaseSession = protectedProcedure
         }
 
         const updatedPurchaseSession = await updatePurchaseSession(
-          input.purchaseSession,
+          {
+            ...purchaseSession,
+            ...input.purchaseSession,
+          } as PurchaseSession.Update,
           transaction
         )
         if (!updatedPurchaseSession) {

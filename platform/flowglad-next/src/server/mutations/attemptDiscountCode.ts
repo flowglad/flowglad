@@ -5,8 +5,12 @@ import { attemptDiscountCodeInputSchema } from '@/db/schema/discounts'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { findPurchaseSession } from '@/utils/purchaseSessionState'
+import {
+  findPurchaseSession,
+  PurchaseSessionCookieNameParams,
+} from '@/utils/purchaseSessionState'
 import { editPurchaseSession } from '@/utils/bookkeeping/purchaseSessions'
+import { PurchaseSessionType } from '@/types'
 
 export const attemptDiscountCode = publicProcedure
   .input(attemptDiscountCodeInputSchema)
@@ -33,8 +37,11 @@ export const attemptDiscountCode = publicProcedure
 
         // Check if product or purchase exists and get its OrganizationId
         let OrganizationId: string | null = null
-
-        if ('productId' in input) {
+        if ('invoiceId' in input) {
+          throw new Error(
+            `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
+          )
+        } else if ('productId' in input) {
           const products = await selectProducts(
             {
               id: input.productId,
@@ -42,7 +49,7 @@ export const attemptDiscountCode = publicProcedure
             transaction
           )
           OrganizationId = products[0]?.OrganizationId
-        } else {
+        } else if ('purchaseId' in input) {
           const purchase = await selectPurchaseById(
             input.purchaseId,
             transaction
@@ -53,9 +60,23 @@ export const attemptDiscountCode = publicProcedure
         if (!OrganizationId) {
           return false
         }
-
+        if ('invoiceId' in input) {
+          throw new Error(
+            `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
+          )
+        }
+        const findInput: PurchaseSessionCookieNameParams =
+          'productId' in input
+            ? {
+                productId: input.productId,
+                type: PurchaseSessionType.Product,
+              }
+            : {
+                purchaseId: input.purchaseId,
+                type: PurchaseSessionType.Purchase,
+              }
         const purchaseSession = await findPurchaseSession(
-          input,
+          findInput,
           transaction
         )
 

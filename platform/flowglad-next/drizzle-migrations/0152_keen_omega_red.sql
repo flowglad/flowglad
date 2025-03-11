@@ -1,0 +1,2 @@
+ALTER TABLE "Subscriptions" ADD COLUMN "stripeSetupIntentId" text;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "Subscriptions_stripeSetupIntentId_unique_idx" ON "Subscriptions" USING btree ("stripeSetupIntentId");

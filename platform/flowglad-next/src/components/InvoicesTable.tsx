@@ -1,22 +1,33 @@
 import Table from '@/components/ion/Table'
 import TableTitle from '@/components/ion/TableTitle'
-import Button from '@/components/ion/Button'
-import { Ellipsis, Plus } from 'lucide-react'
 import { Invoice } from '@/db/schema/invoices'
-import { Customer } from '@/db/schema/customers'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { Purchase } from '@/db/schema/purchases'
 import { useMemo, useState } from 'react'
 import Badge, { BadgeProps } from './ion/Badge'
 import { ColumnDef } from '@tanstack/react-table'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import CreateInvoiceModal from './forms/CreateInvoiceModal'
+import {
+  ClientInvoiceWithLineItems,
+  InvoiceLineItem,
+  InvoiceWithLineItems,
+} from '@/db/schema/invoiceLineItems'
+import { PopoverMenuItem } from './PopoverMenu'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import TableRowPopoverMenu from './TableRowPopoverMenu'
+import EditInvoiceModal from './forms/EditInvoiceModal'
+import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
+import { InvoiceStatus } from '@/types'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { Plus } from 'lucide-react'
+import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
 
 const InvoiceStatusBadge = ({
   invoice,
 }: {
-  invoice: Invoice.Record
+  invoice: Invoice.ClientRecord
 }) => {
   let color: BadgeProps['color']
   switch (invoice.status) {
@@ -46,17 +57,74 @@ const InvoiceStatusBadge = ({
   )
 }
 
-const InvoicesTable = ({
-  invoices,
-  customer,
-  purchases,
+const MoreMenuCell = ({
+  invoice,
+  invoiceLineItems,
 }: {
-  invoices: Invoice.Record[]
-  customer: {
-    customer: Customer.ClientRecord
-    customerProfile: CustomerProfile.ClientRecord
+  invoice: Invoice.ClientRecord
+  invoiceLineItems: InvoiceLineItem.ClientRecord[]
+}) => {
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isSendReminderEmailOpen, setIsSendReminderEmailOpen] =
+    useState(false)
+
+  const text =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/invoice/view/${invoice.OrganizationId}/${invoice.id}`
+      : ''
+
+  const copyInvoiceUrlHandler = useCopyTextHandler({
+    text,
+  })
+
+  const items: PopoverMenuItem[] = [
+    {
+      label: 'Copy URL',
+      handler: copyInvoiceUrlHandler,
+    },
+  ]
+
+  if (!invoiceIsInTerminalState(invoice)) {
+    items.push({
+      label: 'Edit Invoice',
+      handler: () => setIsEditOpen(true),
+    })
+
+    if (invoice.status !== InvoiceStatus.Draft) {
+      items.push({
+        label: 'Send Reminder Email',
+        handler: () => setIsSendReminderEmailOpen(true),
+      })
+    }
   }
-  purchases: Purchase.ClientRecord[]
+
+  return (
+    <>
+      <TableRowPopoverMenu items={items} />
+      <EditInvoiceModal
+        isOpen={isEditOpen}
+        setIsOpen={setIsEditOpen}
+        invoiceAndLineItems={{
+          invoice: invoice,
+          invoiceLineItems: invoiceLineItems,
+        }}
+      />
+      <SendInvoiceReminderEmailModal
+        isOpen={isSendReminderEmailOpen}
+        setIsOpen={setIsSendReminderEmailOpen}
+        invoiceId={invoice.id}
+      />
+    </>
+  )
+}
+
+const InvoicesTable = ({
+  invoicesAndLineItems,
+  customerProfile,
+}: {
+  invoicesAndLineItems: ClientInvoiceWithLineItems[]
+  customerProfile?: CustomerProfile.ClientRecord
+  showOwners?: boolean
 }) => {
   const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
     useState(false)
@@ -74,7 +142,15 @@ const InvoicesTable = ({
           accessorKey: 'amount',
           cell: ({ row: { original: cellData } }) => (
             <>
-              <span className="font-bold text-sm">$0.00</span>
+              <span className="font-bold text-sm">
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  cellData.currency,
+                  cellData.invoiceLineItems.reduce(
+                    (acc, item) => acc + item.price * item.quantity,
+                    0
+                  )
+                )}
+              </span>
             </>
           ),
         },
@@ -87,7 +163,7 @@ const InvoicesTable = ({
           ),
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
-            <InvoiceStatusBadge invoice={cellData.invoice} />
+            <InvoiceStatusBadge invoice={cellData} />
           ),
         },
         {
@@ -99,7 +175,7 @@ const InvoicesTable = ({
           ),
           accessorKey: 'invoiceNumber',
           cell: ({ row: { original: cellData } }) => (
-            <>{cellData.invoice.invoiceNumber}</>
+            <>{cellData.invoiceNumber}</>
           ),
         },
         {
@@ -109,8 +185,8 @@ const InvoicesTable = ({
           accessorKey: 'due',
           cell: ({ row: { original: cellData } }) => (
             <>
-              {cellData.invoice.dueDate
-                ? core.formatDate(cellData.invoice.dueDate)
+              {cellData.dueDate
+                ? core.formatDate(cellData.dueDate)
                 : '-'}
             </>
           ),
@@ -124,30 +200,24 @@ const InvoicesTable = ({
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.invoice.createdAt)}</>
+            <>{core.formatDate(cellData.createdAt)}</>
           ),
         },
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <Button
-              iconLeading={<Ellipsis size={16} />}
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              onClick={() => {}}
-            />
+            <div
+              className="w-fit"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreMenuCell
+                invoice={cellData}
+                invoiceLineItems={cellData.invoiceLineItems}
+              />
+            </div>
           ),
         },
-      ] as ColumnDef<{
-        invoice: Invoice.Record
-        amount: string
-        status: string
-        frequency: string
-        invoiceNumber: string
-        due: string
-        created: string
-      }>[],
+      ] as ColumnDef<ClientInvoiceWithLineItems>[],
     []
   )
 
@@ -162,21 +232,16 @@ const InvoicesTable = ({
       <div className="w-full flex flex-col gap-5 pb-20">
         <Table
           columns={columns_1}
-          data={invoices.map((invoice) => {
-            return {
-              invoice,
-              amount: '',
-              status: '',
-              frequency: '',
-              invoiceNumber: '',
-              due: '',
-              created: '',
-            }
-          })}
+          data={invoicesAndLineItems}
           className="w-full rounded-radius"
           bordered
         />
       </div>
+      <CreateInvoiceModal
+        isOpen={createInvoiceModalOpen}
+        setIsOpen={setCreateInvoiceModalOpen}
+        customerProfile={customerProfile}
+      />
     </div>
   )
 }

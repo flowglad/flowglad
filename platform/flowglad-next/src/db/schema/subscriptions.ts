@@ -16,6 +16,7 @@ import {
   nullableStringForeignKey,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  constructUniqueIndex,
 } from '@/db/tableUtils'
 import {
   customerProfileClientSelectSchema,
@@ -58,6 +59,7 @@ const columns = {
     'backupPaymentMethodId',
     paymentMethods
   ),
+  stripeSetupIntentId: text('stripeSetupIntentId'),
   trialEnd: timestamp('trialEnd'),
   currentBillingPeriodStart: timestamp(
     'currentBillingPeriodStart'
@@ -85,6 +87,7 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.CustomerProfileId]),
     constructIndex(TABLE_NAME, [table.VariantId]),
     constructIndex(TABLE_NAME, [table.status]),
+    constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
     pgPolicy(
       'Enable actions for own organizations via customer profiles',
       {
@@ -148,7 +151,9 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  stripeSetupIntentId: true,
+} as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,

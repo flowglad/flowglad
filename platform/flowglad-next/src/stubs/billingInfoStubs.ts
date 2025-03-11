@@ -5,7 +5,11 @@ import {
 import { dummyProduct } from '@/stubs/productStubs'
 import { dummyOrganization } from '@/stubs/organizationStubs'
 import { subscriptionDummyVariant } from '@/stubs/variantStubs'
-import { PriceType, PurchaseSessionStatus } from '@/types'
+import {
+  CheckoutFlowType,
+  PurchaseSessionStatus,
+  PurchaseSessionType,
+} from '@/types'
 import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { PurchaseSession } from '@/db/schema/purchaseSessions'
 
@@ -30,6 +34,8 @@ const purchaseSession: PurchaseSession.Record = {
   successUrl: null,
   cancelUrl: null,
   quantity: 1,
+  InvoiceId: null,
+  type: PurchaseSessionType.Product,
 }
 
 const billingInfoDefaults = {
@@ -48,7 +54,7 @@ export const subscriptionBillingInfoCoreWithTrial: BillingInfoCore = {
   purchase: subscriptionWithTrialDummyPurchase,
   variant: subscriptionDummyVariant,
   sellerOrganization: dummyOrganization,
-  priceType: PriceType.Subscription,
+  flowType: CheckoutFlowType.Subscription,
   ...billingInfoDefaults,
 }
 
@@ -58,6 +64,6 @@ export const subscriptionBillingInfoCoreWithoutTrial: BillingInfoCore =
     purchase: subscriptionWithoutTrialDummyPurchase,
     variant: subscriptionDummyVariant,
     sellerOrganization: dummyOrganization,
-    priceType: PriceType.Subscription,
+    flowType: CheckoutFlowType.Subscription,
     ...billingInfoDefaults,
   }

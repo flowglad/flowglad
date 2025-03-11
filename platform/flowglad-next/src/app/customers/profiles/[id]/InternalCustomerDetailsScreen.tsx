@@ -15,7 +15,6 @@ function InternalCustomerDetailsScreen({
   customerProfile,
   purchases,
   invoices,
-  variants,
   payments,
 }: {
   customer: Customer.ClientRecord
@@ -44,16 +43,6 @@ function InternalCustomerDetailsScreen({
                 />
               ),
             },
-            // {
-            //   label: 'Social Proof',
-            //   subPath: 'social-proof',
-            //   Component: () => (
-            //     <CustomerDetailsSocialProofSubPage
-            //       customer={customer}
-            //       customerProfile={customerProfile}
-            //     />
-            //   ),
-            // },
           ]}
         />
       </div>

@@ -1,4 +1,8 @@
-import { PriceType, PurchaseSessionStatus } from '@/types'
+import {
+  PriceType,
+  PurchaseSessionStatus,
+  PurchaseSessionType,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { PurchaseSession } from '@/db/schema/purchaseSessions'
@@ -16,11 +20,16 @@ export const processNonPaymentPurchaseSession = async (
 ) => {
   purchaseSession = await updatePurchaseSession(
     {
-      id: purchaseSession.id,
+      ...purchaseSession,
       status: PurchaseSessionStatus.Succeeded,
     },
     transaction
   )
+  if (purchaseSession.type === PurchaseSessionType.Invoice) {
+    throw new Error(
+      'Invoice checkout flow does not support non-payment purchase sessions. If the invoice had 0 balance due, the invoice should have been paid automatically.'
+    )
+  }
   const variant = await selectVariantById(
     purchaseSession.VariantId,
     transaction

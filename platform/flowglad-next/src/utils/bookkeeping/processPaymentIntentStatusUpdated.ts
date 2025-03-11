@@ -1,4 +1,8 @@
-import { CurrencyCode, PaymentStatus } from '@/types'
+import {
+  CurrencyCode,
+  PaymentStatus,
+  PurchaseSessionType,
+} from '@/types'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { CountryCode } from '@/types'
 import { DbTransaction } from '@/db/types'
@@ -16,9 +20,9 @@ import {
 import Stripe from 'stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { isNil } from '../core'
+import { isNil } from '@/utils/core'
 import { processStripeChargeForPurchaseSession } from './purchaseSessions'
-import { dateFromStripeTimestamp } from '../stripe'
+import { dateFromStripeTimestamp } from '@/utils/stripe'
 import { Payment } from '@/db/schema/payments'
 import { updateInvoiceStatusToReflectLatestPayment } from '../bookkeeping'
 import { updatePurchaseStatusToReflectLatestPayment } from '../bookkeeping'
@@ -99,6 +103,10 @@ export const upsertPaymentForStripeCharge = async (
     OrganizationId = subscription.OrganizationId
     livemode = subscription.livemode
   } else if ('invoiceId' in paymentIntentMetadata) {
+    // TODO: the whole "invoiceId" block should be removed
+    // we now support paying invoices through purchase sessions,
+    // which seems to be more adaptive,
+    // and allows us to use the CheckoutPageContext and PaymentForm
     let [maybeInvoiceAndLineItems] =
       await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
         {
@@ -116,8 +124,8 @@ export const upsertPaymentForStripeCharge = async (
     livemode = invoiceAndLineItems.livemode
   } else if ('purchaseSessionId' in paymentIntentMetadata) {
     const {
-      purchase: updatedPurchase,
       purchaseSession,
+      purchase: updatedPurchase,
       invoice,
     } = await processStripeChargeForPurchaseSession(
       {
@@ -126,6 +134,11 @@ export const upsertPaymentForStripeCharge = async (
       },
       transaction
     )
+    if (purchaseSession.type === PurchaseSessionType.Invoice) {
+      throw new Error(
+        'Invoice checkout flow does not support charges'
+      )
+    }
     InvoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
     OrganizationId = invoice?.OrganizationId!
@@ -133,7 +146,10 @@ export const upsertPaymentForStripeCharge = async (
     purchase = updatedPurchase
     PurchaseId = purchase?.id ?? null
     livemode = purchaseSession.livemode
-    CustomerProfileId = purchase?.CustomerProfileId ?? null
+    CustomerProfileId =
+      purchase?.CustomerProfileId ||
+      invoice?.CustomerProfileId ||
+      null
   } else {
     throw new Error(
       'No invoice, purchase, or subscription found for payment intent'

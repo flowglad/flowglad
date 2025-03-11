@@ -83,6 +83,7 @@ export const invoices = pgTable(
       memberships
     ),
     pdfURL: text('pdfURL'),
+    receiptPdfURL: text('receiptPdfURL'),
     memo: text('memo'),
     bankPaymentOnly: boolean('bankPaymentOnly').default(false),
     type: pgEnumColumn({
@@ -114,6 +115,8 @@ const refineColumns = {
   status: core.createSafeZodEnum(InvoiceStatus),
   type: core.createSafeZodEnum(InvoiceType),
   currency: core.createSafeZodEnum(CurrencyCode),
+  receiptPdfURL: z.string().url().nullable(),
+  pdfURL: z.string().url().nullable(),
   ...taxSchemaColumns,
 }
 
@@ -134,6 +137,12 @@ const subscriptionInvoiceColumnExtensions = {
   BillingPeriodId: z.string(),
 }
 
+const standaloneInvoiceColumnExtensions = {
+  type: z.literal(InvoiceType.Standalone),
+  PurchaseId: z.null(),
+  BillingPeriodId: z.null(),
+}
+
 const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema.extend(
   purchaseInvoiceColumnExtensions
 )
@@ -141,9 +150,14 @@ const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema.extend(
 const subscriptionInvoiceInsertSchema =
   coreInvoicesInsertSchema.extend(subscriptionInvoiceColumnExtensions)
 
+const standaloneInvoiceInsertSchema = coreInvoicesInsertSchema.extend(
+  standaloneInvoiceColumnExtensions
+)
+
 export const invoicesInsertSchema = z.discriminatedUnion('type', [
   purchaseInvoiceInsertSchema,
   subscriptionInvoiceInsertSchema,
+  standaloneInvoiceInsertSchema,
 ])
 
 const coreInvoicesSelectSchema = createSelectSchema(
@@ -157,9 +171,13 @@ export const purchaseInvoiceSelectSchema =
 export const subscriptionInvoiceSelectSchema =
   coreInvoicesSelectSchema.extend(subscriptionInvoiceColumnExtensions)
 
+export const standaloneInvoiceSelectSchema =
+  coreInvoicesSelectSchema.extend(standaloneInvoiceColumnExtensions)
+
 export const invoicesSelectSchema = z.discriminatedUnion('type', [
   purchaseInvoiceSelectSchema,
   subscriptionInvoiceSelectSchema,
+  standaloneInvoiceSelectSchema,
 ])
 
 const coreInvoicesUpdateSchema = createUpdateSchema(
@@ -173,9 +191,13 @@ export const purchaseInvoiceUpdateSchema =
 export const subscriptionInvoiceUpdateSchema =
   coreInvoicesUpdateSchema.extend(subscriptionInvoiceColumnExtensions)
 
+export const standaloneInvoiceUpdateSchema =
+  coreInvoicesUpdateSchema.extend(standaloneInvoiceColumnExtensions)
+
 export const invoicesUpdateSchema = z.discriminatedUnion('type', [
   purchaseInvoiceUpdateSchema,
   subscriptionInvoiceUpdateSchema,
+  standaloneInvoiceUpdateSchema,
 ])
 
 const hiddenColumns = {
@@ -186,7 +208,6 @@ const hiddenColumns = {
 
 const createOnlyColumns = {
   CustomerProfileId: true,
-  OrganizationId: true,
   PurchaseId: true,
 } as const
 
@@ -200,7 +221,6 @@ const readOnlyColumns = {
 
 const nonClientEditableColumns = {
   ...hiddenColumns,
-  ...createOnlyColumns,
   ...readOnlyColumns,
 } as const
 
@@ -208,23 +228,31 @@ export const purchaseInvoiceClientSelectSchema =
   purchaseInvoiceSelectSchema.omit(hiddenColumns)
 export const subscriptionInvoiceClientSelectSchema =
   subscriptionInvoiceSelectSchema.omit(hiddenColumns)
+export const standaloneInvoiceClientSelectSchema =
+  standaloneInvoiceSelectSchema.omit(hiddenColumns)
+
 export const invoicesClientSelectSchema = z.discriminatedUnion(
   'type',
   [
     purchaseInvoiceClientSelectSchema,
     subscriptionInvoiceClientSelectSchema,
+    standaloneInvoiceClientSelectSchema,
   ]
 )
 
 export const purchaseInvoiceClientInsertSchema =
-  purchaseInvoiceInsertSchema.omit(createOnlyColumns)
+  purchaseInvoiceInsertSchema.omit(nonClientEditableColumns)
 export const subscriptionInvoiceClientInsertSchema =
-  subscriptionInvoiceInsertSchema.omit(createOnlyColumns)
+  subscriptionInvoiceInsertSchema.omit(nonClientEditableColumns)
+export const standaloneInvoiceClientInsertSchema =
+  standaloneInvoiceInsertSchema.omit(nonClientEditableColumns)
+
 export const invoicesClientInsertSchema = z.discriminatedUnion(
   'type',
   [
     purchaseInvoiceClientInsertSchema,
     subscriptionInvoiceClientInsertSchema,
+    standaloneInvoiceClientInsertSchema,
   ]
 )
 
@@ -232,16 +260,20 @@ export const purchaseInvoiceClientUpdateSchema =
   purchaseInvoiceUpdateSchema.omit(nonClientEditableColumns)
 export const subscriptionInvoiceClientUpdateSchema =
   subscriptionInvoiceUpdateSchema.omit(nonClientEditableColumns)
+export const standaloneInvoiceClientUpdateSchema =
+  standaloneInvoiceUpdateSchema.omit(nonClientEditableColumns)
+
 export const invoicesClientUpdateSchema = z.discriminatedUnion(
   'type',
   [
     purchaseInvoiceClientUpdateSchema,
     subscriptionInvoiceClientUpdateSchema,
+    standaloneInvoiceClientUpdateSchema,
   ]
 )
 
 export const invoicesPaginatedSelectSchema =
-  createPaginatedSelectSchema(invoicesClientSelectSchema)
+  createPaginatedSelectSchema(coreInvoicesSelectSchema.partial())
 
 export const invoicesPaginatedListSchema =
   createPaginatedListQuerySchema<

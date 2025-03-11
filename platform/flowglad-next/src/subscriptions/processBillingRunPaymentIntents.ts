@@ -18,8 +18,6 @@ import { DbTransaction } from '@/db/types'
 import {
   billingRunIntentMetadataSchema,
   dateFromStripeTimestamp,
-  getStripeCharge,
-  stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import Stripe from 'stripe'
 import {
@@ -43,8 +41,10 @@ import { UserRecord } from '@/db/schema/users'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { subscriptionBillingInfoCoreWithTrial } from '@/stubs/billingInfoStubs'
-import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
+import {
+  safelyUpdateSubscriptionStatus,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
@@ -81,19 +81,6 @@ const billingRunStatusToInvoiceStatus: Record<
   [BillingRunStatus.Scheduled]: InvoiceStatus.Open,
   [BillingRunStatus.Abandoned]: InvoiceStatus.Open,
   [BillingRunStatus.InProgress]: InvoiceStatus.Open,
-}
-
-const paymentIntentStatusToPaymentStatus: Record<
-  Stripe.PaymentIntent.Status,
-  PaymentStatus
-> = {
-  succeeded: PaymentStatus.Succeeded,
-  canceled: PaymentStatus.Canceled,
-  requires_payment_method: PaymentStatus.Canceled,
-  requires_action: PaymentStatus.RequiresAction,
-  requires_capture: PaymentStatus.Processing,
-  requires_confirmation: PaymentStatus.RequiresConfirmation,
-  processing: PaymentStatus.Processing,
 }
 
 interface BillingRunNotificationParams {
@@ -304,6 +291,7 @@ export const processPaymentIntentEventForBillingRun = async (
   const organizationMemberUsers = usersAndMemberships.map(
     (userAndMembership) => userAndMembership.user
   )
+
   const notificationParams: BillingRunNotificationParams = {
     invoice,
     customerProfile,
@@ -313,13 +301,12 @@ export const processPaymentIntentEventForBillingRun = async (
     organizationMemberUsers,
     invoiceLineItems,
   }
+
   if (billingRunStatus === BillingRunStatus.Succeeded) {
     await processSucceededNotifications(notificationParams)
-    await updateSubscription(
-      {
-        id: subscription.id,
-        status: SubscriptionStatus.Active,
-      },
+    await safelyUpdateSubscriptionStatus(
+      subscription,
+      SubscriptionStatus.Active,
       transaction
     )
   } else if (billingRunStatus === BillingRunStatus.Failed) {
@@ -331,20 +318,16 @@ export const processPaymentIntentEventForBillingRun = async (
       ...notificationParams,
       retryDate: maybeRetry?.scheduledFor,
     })
-    await updateSubscription(
-      {
-        id: subscription.id,
-        status: SubscriptionStatus.PastDue,
-      },
+    await safelyUpdateSubscriptionStatus(
+      subscription,
+      SubscriptionStatus.PastDue,
       transaction
     )
   } else if (billingRunStatus === BillingRunStatus.Aborted) {
     await processAbortedNotifications(notificationParams)
-    await updateSubscription(
-      {
-        id: subscription.id,
-        status: SubscriptionStatus.PastDue,
-      },
+    await safelyUpdateSubscriptionStatus(
+      subscription,
+      SubscriptionStatus.PastDue,
       transaction
     )
   } else if (

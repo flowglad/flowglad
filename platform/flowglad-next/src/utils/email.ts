@@ -7,6 +7,8 @@ import core from './core'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
+import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
+import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
 import {
   OrganizationPaymentNotificationEmail,
   OrganizationPaymentNotificationEmailProps,
@@ -45,7 +47,7 @@ export const sendReceiptEmail = async (params: {
   organizationLogoUrl?: string
 }) => {
   return safeSend({
-    from: 'notifs@flowglad.com',
+    from: 'notifs@send.flowglad.com',
     to: params.to.map(safeTo),
     subject: `${params.organizationName} Order Receipt: #${params.invoice.invoiceNumber}`,
     react: OrderReceiptEmail({
@@ -138,6 +140,50 @@ export const sendAwaitingPaymentConfirmationEmail = async (params: {
       invoiceNumber: params.invoiceNumber,
       customerProfileId: params.customerProfileId,
       currency: params.currency,
+    }),
+  })
+}
+
+export const sendInvoiceReminderEmail = async (params: {
+  to: string[]
+  cc?: string[]
+  invoice: Invoice.Record
+  invoiceLineItems: InvoiceLineItem.Record[]
+  organizationName: string
+  organizationLogoUrl?: string
+}) => {
+  return safeSend({
+    from: 'notifs@flowglad.com',
+    to: params.to.map(safeTo),
+    cc: params.cc?.map(safeTo),
+    subject: `${params.organizationName} Invoice Reminder: #${params.invoice.invoiceNumber}`,
+    react: InvoiceReminderEmail({
+      invoice: params.invoice,
+      invoiceLineItems: params.invoiceLineItems,
+      organizationName: params.organizationName,
+      organizationLogoUrl: params.organizationLogoUrl,
+    }),
+  })
+}
+
+export const sendInvoiceNotificationEmail = async (params: {
+  to: string[]
+  cc?: string[]
+  invoice: Invoice.Record
+  invoiceLineItems: InvoiceLineItem.Record[]
+  organizationName: string
+  organizationLogoUrl?: string
+}) => {
+  return safeSend({
+    from: 'notifs@flowglad.com',
+    to: params.to.map(safeTo),
+    cc: params.cc?.map(safeTo),
+    subject: `${params.organizationName} New Invoice: #${params.invoice.invoiceNumber}`,
+    react: InvoiceNotificationEmail({
+      invoice: params.invoice,
+      invoiceLineItems: params.invoiceLineItems,
+      organizationName: params.organizationName,
+      organizationLogoUrl: params.organizationLogoUrl,
     }),
   })
 }

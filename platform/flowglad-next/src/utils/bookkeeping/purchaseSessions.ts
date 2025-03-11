@@ -1,6 +1,9 @@
 import {
   FeeCalculationType,
+  InvoiceStatus,
+  PaymentStatus,
   PurchaseSessionStatus,
+  PurchaseSessionType,
   PurchaseStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
@@ -59,6 +62,13 @@ import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { createInitialInvoiceForPurchase } from '../bookkeeping'
 import { Invoice } from '@/db/schema/invoices'
 import Stripe from 'stripe'
+import {
+  safelyUpdateInvoiceStatus,
+  selectInvoiceById,
+  updateInvoice,
+} from '@/db/tableMethods/invoiceMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
 
 export const createFeeCalculationForPurchaseSession = async (
   purchaseSession: PurchaseSession.FeeReadyRecord,
@@ -72,7 +82,7 @@ export const createFeeCalculationForPurchaseSession = async (
     : undefined
   const [{ variant, product, organization }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: purchaseSession.VariantId },
+      { id: purchaseSession.VariantId! },
       transaction
     )
   const organizationCountryId = organization.CountryId
@@ -120,7 +130,10 @@ export const editPurchaseSession = async (
    * update the purchase session with the new tax calculation.
    */
   const updatedPurchaseSession = await updatePurchaseSession(
-    purchaseSession,
+    {
+      ...previousPurchaseSession,
+      ...purchaseSession,
+    } as PurchaseSession.Update,
     transaction
   )
   let feeCalculation: FeeCalculation.Record | null = null
@@ -196,6 +209,34 @@ export const editPurchaseSession = async (
   }
 }
 
+/**
+ * Handles the bookkeeping operations for a purchase session, managing customer, purchase, and fee records.
+ *
+ * @param purchaseSession - The purchase session record to process
+ * @param providedStripeCustomerId - Optional Stripe customer ID to link with the customer profile
+ * @param transaction - Database transaction for ensuring data consistency
+ *
+ * Operations performed:
+ * 1. Fetches product and variant details for the purchase
+ * 2. Resolves customer profile:
+ *    - Uses existing profile if purchase exists
+ *    - Finds profile by email/org
+ *    - Creates new customer and profile if needed
+ * 3. Links Stripe customer:
+ *    - Uses provided Stripe ID
+ *    - Falls back to existing profile's Stripe ID
+ *    - Creates new Stripe customer if needed
+ * 4. Creates/updates purchase record with variant and product details
+ * 5. Processes fee calculations for the purchase session
+ * 6. Handles discount redemption if applicable
+ *
+ * @returns Object containing:
+ *  - purchase: The created/updated purchase record
+ *  - customerProfile: The resolved customer profile
+ *  - discount: The applied discount if any
+ *  - feeCalculation: The updated fee calculation
+ *  - discountRedemption: The created discount redemption if applicable
+ */
 export const processPurchaseBookkeepingForPurchaseSession = async (
   {
     purchaseSession,
@@ -208,7 +249,7 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
 ) => {
   const [{ variant, product }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: purchaseSession.VariantId },
+      { id: purchaseSession.VariantId! },
       transaction
     )
   let customerProfile: CustomerProfile.Record | null = null
@@ -362,6 +403,128 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
   }
 }
 
+const purchaseSessionStatusFromStripeCharge = (
+  charge: Stripe.Charge
+): PurchaseSessionStatus => {
+  let purchaseSessionStatus = PurchaseSessionStatus.Succeeded
+  if (charge.status === 'pending') {
+    return PurchaseSessionStatus.Pending
+  } else if (charge.status !== 'succeeded') {
+    return PurchaseSessionStatus.Failed
+  }
+  return purchaseSessionStatus
+}
+
+/**
+ * Processes a Stripe charge for an invoice-based purchase session.
+ *
+ * This function handles the bookkeeping when a charge is processed for an invoice:
+ * 1. Validates the purchase session is for an invoice
+ * 2. Updates the purchase session status based on the charge status
+ * 3. Calculates total payments made against the invoice
+ * 4. Updates invoice status based on payment status and amounts:
+ *    - Marks as Paid if total payments >= invoice total
+ *    - Marks as AwaitingPaymentConfirmation if charge is pending
+ *    - Leaves status unchanged if payment succeeded but total < invoice amount
+ *
+ * @param purchaseSession - The purchase session record associated with the invoice
+ * @param charge - The Stripe charge object containing payment details
+ * @param transaction - Database transaction to use for all DB operations
+ * @returns Updated purchase session and invoice records
+ */
+export const processStripeChargeForInvoicePurchaseSession = async (
+  {
+    purchaseSession,
+    charge,
+  }: {
+    purchaseSession: PurchaseSession.Record
+    charge: Stripe.Charge
+  },
+  transaction: DbTransaction
+) => {
+  if (purchaseSession.type !== PurchaseSessionType.Invoice) {
+    throw new Error('Invoice checkout flow does not support charges')
+  }
+  const invoice = await selectInvoiceById(
+    purchaseSession.InvoiceId,
+    transaction
+  )
+  const purchaseSessionStatus =
+    purchaseSessionStatusFromStripeCharge(charge)
+  const updatedPurchaseSession = await updatePurchaseSession(
+    {
+      ...purchaseSession,
+      status: purchaseSessionStatus,
+    },
+    transaction
+  )
+  const [invoiceAndLineItems] =
+    await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+      {
+        id: purchaseSession.InvoiceId,
+      },
+      transaction
+    )
+  const invoiceTotal = invoiceAndLineItems.invoiceLineItems.reduce(
+    (acc, lineItem) => acc + lineItem.price * lineItem.quantity,
+    0
+  )
+  const successfulPaymentsForInvoice = await selectPayments(
+    {
+      InvoiceId: purchaseSession.InvoiceId,
+      status: PaymentStatus.Succeeded,
+    },
+    transaction
+  )
+  const totalPriorPaymentsForInvoice =
+    successfulPaymentsForInvoice.reduce(
+      (acc, payment) => acc + payment.amount,
+      0
+    )
+  if (totalPriorPaymentsForInvoice >= invoiceTotal) {
+    const updatedInvoice = await safelyUpdateInvoiceStatus(
+      invoice,
+      InvoiceStatus.Paid,
+      transaction
+    )
+    return {
+      purchaseSession: updatedPurchaseSession,
+      invoice: updatedInvoice,
+    }
+  }
+  if (purchaseSessionStatus === PurchaseSessionStatus.Pending) {
+    const updatedInvoice = await safelyUpdateInvoiceStatus(
+      invoice,
+      InvoiceStatus.AwaitingPaymentConfirmation,
+      transaction
+    )
+    return {
+      purchaseSession: updatedPurchaseSession,
+      invoice: updatedInvoice,
+    }
+  } else if (
+    purchaseSessionStatus === PurchaseSessionStatus.Succeeded
+  ) {
+    const totalPaymentsForInvoice =
+      totalPriorPaymentsForInvoice + charge.amount
+    if (totalPaymentsForInvoice >= invoiceTotal) {
+      const updatedInvoice = await safelyUpdateInvoiceStatus(
+        invoice,
+        InvoiceStatus.Paid,
+        transaction
+      )
+      return {
+        purchaseSession: updatedPurchaseSession,
+        invoice: updatedInvoice,
+      }
+    }
+  }
+  return {
+    purchaseSession: updatedPurchaseSession,
+    invoice,
+  }
+}
+
 export const processStripeChargeForPurchaseSession = async (
   {
     purchaseSessionId,
@@ -371,22 +534,37 @@ export const processStripeChargeForPurchaseSession = async (
     charge: Stripe.Charge
   },
   transaction: DbTransaction
-) => {
+): Promise<{
+  purchase: Purchase.Record | null
+  invoice: Invoice.Record | null
+  purchaseSession: PurchaseSession.Record
+}> => {
   let purchase: Purchase.Record | null = null
   let purchaseSession = await selectPurchaseSessionById(
     purchaseSessionId,
     transaction
   )
+
+  if (purchaseSession.type === PurchaseSessionType.Invoice) {
+    const result = await processStripeChargeForInvoicePurchaseSession(
+      {
+        purchaseSession,
+        charge,
+      },
+      transaction
+    )
+    return {
+      purchase: null,
+      invoice: result.invoice,
+      purchaseSession: result.purchaseSession,
+    }
+  }
   let invoice: Invoice.Record | null = null
   if (!purchaseSession) {
     throw new Error('No purchase session found for payment intent')
   }
-  let purchaseSessionStatus = PurchaseSessionStatus.Succeeded
-  if (charge.status === 'pending') {
-    purchaseSessionStatus = PurchaseSessionStatus.Pending
-  } else if (charge.status !== 'succeeded') {
-    purchaseSessionStatus = PurchaseSessionStatus.Failed
-  }
+  const purchaseSessionStatus =
+    purchaseSessionStatusFromStripeCharge(charge)
   if (
     purchaseSessionStatus === PurchaseSessionStatus.Succeeded ||
     purchaseSessionStatus === PurchaseSessionStatus.Pending
@@ -412,13 +590,17 @@ export const processStripeChargeForPurchaseSession = async (
   }
   purchaseSession = await updatePurchaseSession(
     {
-      id: purchaseSession.id,
+      ...purchaseSession,
       status: purchaseSessionStatus,
       customerName: charge.billing_details?.name,
       customerEmail: charge.billing_details?.email,
       PurchaseId: purchase?.id,
-    },
+    } as PurchaseSession.Update,
     transaction
   )
-  return { purchase, invoice, purchaseSession }
+  return {
+    purchase,
+    invoice,
+    purchaseSession,
+  }
 }

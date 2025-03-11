@@ -4,15 +4,31 @@
 import * as React from 'react'
 import clsx from 'clsx'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import { CurrencyCode, PriceType } from '@/types'
+import {
+  CheckoutFlowType,
+  CurrencyCode,
+  Nullish,
+  PriceType,
+} from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { FallbackSkeleton } from './Skeleton'
 import {
   calculateVariantBaseAmount,
   calculateDiscountAmount,
   calculateTotalDueAmount,
+  calculateInvoiceBaseAmount,
 } from '@/utils/bookkeeping/fees'
 import { isNil } from '@/utils/core'
+import { Purchase } from '@/db/schema/purchases'
+import { FeeCalculation } from '@/db/schema/feeCalculations'
+import { Variant } from '@/db/schema/variants'
+import { Discount } from '@/db/schema/discounts'
+import {
+  ClientInvoiceWithLineItems,
+  InvoiceLineItem,
+  InvoiceWithLineItems,
+} from '@/db/schema/invoiceLineItems'
+import { Invoice } from '@/db/schema/invoices'
 
 export interface TotalBillingDetailsProps
   extends React.HTMLAttributes<HTMLDivElement> {}
@@ -49,40 +65,133 @@ const PurchasSessionDependentLine = ({
   )
 }
 
-const TotalBillingDetails = React.forwardRef<
-  HTMLDivElement,
-  TotalBillingDetailsProps
->(({ className, ...props }, ref) => {
+interface CoreTotalBillingDetailsParams {
+  feeCalculation?: Nullish<FeeCalculation.CustomerRecord>
+  discount?: Nullish<Discount.ClientRecord>
+}
+interface VariantTotalBillingDetailsParams
+  extends CoreTotalBillingDetailsParams {
+  purchase?: Purchase.ClientRecord
+  variant: Variant.ClientRecord
+  invoice: undefined
+  type: 'variant'
+}
+
+interface InvoiceTotalBillingDetailsParams
+  extends CoreTotalBillingDetailsParams {
+  invoice: Invoice.ClientRecord
+  invoiceLineItems: InvoiceLineItem.ClientRecord[]
+  variant: undefined
+  purchase: undefined
+  type: 'invoice'
+}
+
+type TotalBillingDetailsParams =
+  | VariantTotalBillingDetailsParams
+  | InvoiceTotalBillingDetailsParams
+const calculateTotalBillingDetails = (
+  params: TotalBillingDetailsParams
+) => {
   const {
+    purchase,
+    feeCalculation,
     variant,
     discount,
-    editPurchaseSessionLoading,
-    subscriptionDetails,
-    feeCalculation,
-    purchase,
-  } = useCheckoutPageContext()
-
-  let afterwardsTotal: number | null = null
-  let afterwardsTotalLabel = ''
-  const baseAmount = calculateVariantBaseAmount(variant, purchase)
-  if (subscriptionDetails?.trialPeriodDays) {
-    afterwardsTotalLabel = 'Total After Trial'
-    afterwardsTotal = subscriptionDetails.pricePerBillingCycle
+    invoice,
+    type,
+  } = params
+  if (!variant && !invoice) {
+    throw new Error('Either variant or invoice is required')
   }
-  let subtotalAmount: number | null = baseAmount
+  if (variant && invoice) {
+    throw new Error(
+      'Only one of variant or invoice is permitted. Received both'
+    )
+  }
+
+  const baseAmount =
+    type === 'invoice'
+      ? calculateInvoiceBaseAmount({
+          ...invoice,
+          invoiceLineItems: params.invoiceLineItems,
+        })
+      : calculateVariantBaseAmount({
+          variant,
+          purchase,
+        })
+  let subtotalAmount: number = baseAmount
   let discountAmount: number | null = calculateDiscountAmount(
     baseAmount,
     discount
   )
   let taxAmount: number | null = null
-  let totalDueAmount: number | null =
-    subtotalAmount - (discountAmount ?? 0)
+  let totalDueAmount: number = subtotalAmount - (discountAmount ?? 0)
   if (feeCalculation) {
-    subtotalAmount = feeCalculation.baseAmount
-    discountAmount = feeCalculation.discountAmountFixed
-    taxAmount = feeCalculation.taxAmountFixed
-    totalDueAmount = calculateTotalDueAmount(feeCalculation)
+    return {
+      baseAmount,
+      subtotalAmount: feeCalculation.baseAmount,
+      discountAmount: feeCalculation.discountAmountFixed,
+      taxAmount: feeCalculation.taxAmountFixed,
+      totalDueAmount: calculateTotalDueAmount(feeCalculation),
+    }
   }
+  return {
+    baseAmount,
+    subtotalAmount,
+    discountAmount,
+    taxAmount,
+    totalDueAmount,
+  }
+}
+
+const TotalBillingDetails = React.forwardRef<
+  HTMLDivElement,
+  TotalBillingDetailsProps
+>(({ className, ...props }, ref) => {
+  const checkoutPageContext = useCheckoutPageContext()
+  const {
+    // variant,
+    discount,
+    currency,
+    editPurchaseSessionLoading,
+    subscriptionDetails,
+    feeCalculation,
+    flowType,
+  } = checkoutPageContext
+  let afterwardsTotal: number | null = null
+  let afterwardsTotalLabel = ''
+  if (subscriptionDetails?.trialPeriodDays) {
+    afterwardsTotalLabel = 'Total After Trial'
+    afterwardsTotal = subscriptionDetails.pricePerBillingCycle
+  }
+  const isInvoiceFlow = flowType === CheckoutFlowType.Invoice
+  const totalBillingDetailsParams: TotalBillingDetailsParams =
+    isInvoiceFlow
+      ? {
+          invoice: checkoutPageContext.invoice,
+          invoiceLineItems: checkoutPageContext.invoiceLineItems,
+          type: 'invoice',
+          purchase: undefined,
+          feeCalculation,
+          variant: undefined,
+          discount,
+        }
+      : {
+          purchase: checkoutPageContext.purchase ?? undefined,
+          variant: checkoutPageContext.variant,
+          type: 'variant',
+          discount,
+          invoice: undefined,
+          feeCalculation,
+        }
+  const {
+    subtotalAmount,
+    discountAmount,
+    taxAmount,
+    baseAmount,
+    totalDueAmount,
+  } = calculateTotalBillingDetails(totalBillingDetailsParams)
+
   return (
     <div
       ref={ref}
@@ -96,7 +205,7 @@ const TotalBillingDetails = React.forwardRef<
           data-testid="billing-info-subtotal-amount"
         >
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-            variant.currency,
+            currency,
             baseAmount
           )}
         </div>
@@ -105,7 +214,7 @@ const TotalBillingDetails = React.forwardRef<
         <PurchasSessionDependentLine
           label="Discount"
           amount={discountAmount ?? 0}
-          currency={variant.currency}
+          currency={currency}
           editPurchaseSessionLoading={editPurchaseSessionLoading}
         />
       ) : null}
@@ -113,7 +222,7 @@ const TotalBillingDetails = React.forwardRef<
         <PurchasSessionDependentLine
           label="Tax"
           amount={taxAmount ?? 0}
-          currency={variant.currency}
+          currency={currency}
           editPurchaseSessionLoading={editPurchaseSessionLoading}
         />
       ) : null}
@@ -124,7 +233,7 @@ const TotalBillingDetails = React.forwardRef<
           </span>
           <span data-testid="billing-info-total-afterwards-amount">
             {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              variant.currency,
+              currency,
               afterwardsTotal
             )}
           </span>
@@ -137,9 +246,7 @@ const TotalBillingDetails = React.forwardRef<
           data-testid="billing-info-total-due-label"
         >
           {`Total Due${
-            variant.priceType === PriceType.SinglePayment
-              ? ''
-              : ' Today'
+            flowType === CheckoutFlowType.Subscription ? ' Today' : ''
           }`}
         </div>
         <FallbackSkeleton showSkeleton={editPurchaseSessionLoading}>
@@ -150,7 +257,7 @@ const TotalBillingDetails = React.forwardRef<
             {isNil(totalDueAmount)
               ? ''
               : stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                  variant.currency,
+                  currency,
                   totalDueAmount
                 )}
           </div>

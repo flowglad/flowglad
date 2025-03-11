@@ -1,5 +1,6 @@
 import { BillingRun } from '@/db/schema/billingRuns'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
+import { BillingRunStatus } from '@/types'
 import { logger, task } from '@trigger.dev/sdk/v3'
 
 export const attemptBillingRunTask = task({
@@ -11,6 +12,12 @@ export const attemptBillingRunTask = task({
     { ctx }
   ) => {
     logger.log('Attempting billing run', { payload, ctx })
+    if (payload.billingRun.status !== BillingRunStatus.Scheduled) {
+      return logger.log('Billing run status is not scheduled', {
+        payload,
+        ctx,
+      })
+    }
     await executeBillingRun(payload.billingRun.id)
     return {
       message: 'Billing run executed',

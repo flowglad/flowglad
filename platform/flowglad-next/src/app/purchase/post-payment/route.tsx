@@ -1,8 +1,5 @@
 import { adminTransaction } from '@/db/databaseMethods'
-import {
-  PurchaseAccessSessionSource,
-  PurchaseSessionStatus,
-} from '@/types'
+import { PurchaseAccessSessionSource } from '@/types'
 import { processSetupIntentUpdated } from '@/utils/bookkeeping/processSetupIntentUpdated'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import {
@@ -24,13 +21,19 @@ import { processNonPaymentPurchaseSession } from '@/utils/bookkeeping/processNon
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { isNil } from '@/utils/core'
 import { PurchaseSession } from '@/db/schema/purchaseSessions'
+import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
+import { Invoice } from '@/db/schema/invoices'
+
+interface ProcessPostPaymentResult {
+  purchase: Purchase.Record
+  invoice: Invoice.Record
+  url: string | URL | null
+}
 
 const processPaymentIntent = async (
   paymentIntentId: string
-): Promise<{
-  purchase: Purchase.Record
-  url: string | URL | null
-}> => {
+): Promise<ProcessPostPaymentResult> => {
   const paymentIntent = await getPaymentIntent(paymentIntentId)
   if (!paymentIntent) {
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
@@ -49,6 +52,10 @@ const processPaymentIntent = async (
       payment.PurchaseId,
       transaction
     )
+    const invoice = await selectInvoiceById(
+      payment.InvoiceId,
+      transaction
+    )
     const metadata = stripeIntentMetadataSchema.parse(
       paymentIntent.metadata
     )
@@ -59,10 +66,11 @@ const processPaymentIntent = async (
         transaction
       )
     }
-    return { payment, purchase, purchaseSession }
+    return { payment, purchase, purchaseSession, invoice }
   })
   return {
     purchase: result.purchase,
+    invoice: result.invoice,
     url: result.purchaseSession?.successUrl
       ? new URL(result.purchaseSession.successUrl)
       : null,
@@ -71,10 +79,7 @@ const processPaymentIntent = async (
 
 const processPurchaseSession = async (
   purchaseSessionId: string
-): Promise<{
-  purchase: Purchase.Record
-  url: string | URL | null
-}> => {
+): Promise<ProcessPostPaymentResult> => {
   const result = await adminTransaction(async ({ transaction }) => {
     const [purchaseSession] = await selectPurchaseSessions(
       {
@@ -106,7 +111,7 @@ const processPurchaseSession = async (
     ? new URL(result.purchaseSession.successUrl)
     : null
 
-  return { purchase: result.purchase, url }
+  return { purchase: result.purchase, url, invoice: result.invoice }
 }
 
 const processSetupIntent = async (
@@ -149,9 +154,21 @@ export const GET = async (request: NextRequest) => {
     }
 
     if (purchaseSessionId) {
-      result = await processPurchaseSession(purchaseSessionId)
+      const purchaseSessionResult =
+        await processPurchaseSession(purchaseSessionId)
+      const { invoice } = purchaseSessionResult
+      result = purchaseSessionResult
+      await generateInvoicePdfTask.trigger({
+        invoiceId: invoice.id,
+      })
     } else if (paymentIntentId) {
-      result = await processPaymentIntent(paymentIntentId)
+      const paymentIntentResult =
+        await processPaymentIntent(paymentIntentId)
+      const { invoice } = paymentIntentResult
+      result = paymentIntentResult
+      await generateInvoicePdfTask.trigger({
+        invoiceId: invoice.id,
+      })
     } else if (setupIntentId) {
       result = await processSetupIntent(setupIntentId)
     } else {

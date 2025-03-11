@@ -9,11 +9,13 @@ import {
   billingInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
 import { selectDefaultVariantAndProductByProductId } from '@/db/tableMethods/variantMethods'
-import core from '@/utils/core'
 import {
-  createPurchaseSession,
-  findPurchaseSession,
-} from '@/utils/purchaseSessionState'
+  CheckoutFlowType,
+  PriceType,
+  PurchaseSessionType,
+} from '@/types'
+import core from '@/utils/core'
+import { findOrCreatePurchaseSession } from '@/utils/purchaseSessionState'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 
 interface PurchasePageProps {
@@ -53,21 +55,15 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
      * If not found, or the variant id does not match, create a new purchase session
      * and save it to cookies.
      */
-    let purchaseSession = await findPurchaseSession(
+    const purchaseSession = await findOrCreatePurchaseSession(
       {
-        productId: product.id,
+        ProductId: product.id,
+        OrganizationId: organization.id,
+        variant,
+        type: PurchaseSessionType.Product,
       },
       transaction
     )
-    if (
-      core.isNil(purchaseSession) ||
-      purchaseSession.VariantId !== variant.id
-    ) {
-      purchaseSession = await createPurchaseSession(
-        { variant, OrganizationId: organization.id },
-        transaction
-      )
-    }
     const discount = purchaseSession.DiscountId
       ? await selectDiscountById(
           purchaseSession.DiscountId,
@@ -118,13 +114,15 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
     )
     clientSecret = setupIntent.client_secret
   }
-
   const billingInfo = billingInfoSchema.parse({
     purchaseSession,
     product,
     variant,
     sellerOrganization: organization,
-    priceType: variant?.priceType as BillingInfoCore['priceType'],
+    flowType:
+      variant.priceType === PriceType.SinglePayment
+        ? CheckoutFlowType.SinglePayment
+        : CheckoutFlowType.Subscription,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
       core.envVariable('NEXT_PUBLIC_APP_URL')

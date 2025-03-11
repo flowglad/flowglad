@@ -6,13 +6,13 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
 import core from '@/utils/core'
-import { createPurchaseSession } from '@/utils/purchaseSessionState'
-import { findPurchaseSession } from '@/utils/purchaseSessionState'
+import { findOrCreatePurchaseSession } from '@/utils/purchaseSessionState'
 import CheckoutPage from '@/components/CheckoutPage'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { PurchaseSessionType } from '@/types'
 
 const PayPurchasePage = async ({
   params,
@@ -26,24 +26,17 @@ const PayPurchasePage = async ({
         transaction
       )
       const { variant, organization, purchase, product } = result
-      let purchaseSession = await findPurchaseSession(
+      const purchaseSession = await findOrCreatePurchaseSession(
         {
-          productId: product.id,
-          purchaseId: purchase.id,
+          ProductId: product.id,
+          OrganizationId: organization.id,
+          variant,
+          purchase,
+          type: PurchaseSessionType.Purchase,
         },
         transaction
       )
 
-      if (core.isNil(purchaseSession)) {
-        purchaseSession = await createPurchaseSession(
-          {
-            variant,
-            purchase,
-            OrganizationId: organization.id,
-          },
-          transaction
-        )
-      }
       const discount = purchaseSession.DiscountId
         ? await selectDiscountById(
             purchaseSession.DiscountId,
