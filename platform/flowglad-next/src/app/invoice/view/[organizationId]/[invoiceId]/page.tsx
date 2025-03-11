@@ -157,7 +157,7 @@ const CustomerInvoiceView = (props: InvoiceTemplateProps) => {
   }
 
   return (
-    // @ts-expect-error async component
+    // @ts-ignore - async component
     <CustomerInvoiceOpenView
       invoice={invoice}
       invoiceLineItems={invoiceLineItems}
