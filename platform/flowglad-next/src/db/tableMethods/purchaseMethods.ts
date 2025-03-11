@@ -17,7 +17,7 @@ import {
   createUpdateFunction,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import { PriceType } from '@/types'
+import { CheckoutFlowType, PriceType } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq } from 'drizzle-orm'
 import {
@@ -52,6 +52,8 @@ import { payments, paymentsSelectSchema } from '../schema/payments'
 import { discountClientSelectSchema } from '../schema/discounts'
 import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
 import { ProperNoun } from '../schema/properNouns'
+import { invoicesClientSelectSchema } from '../schema/invoices'
+import { invoiceLineItemsClientSelectSchema } from '../schema/invoiceLineItems'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -193,7 +195,8 @@ export const selectPurchaseCheckoutParametersById = async (
 const subscriptionBillingInfoSchema = z.object({
   purchase: subscriptionPurchaseSelectSchema.nullish(),
   variant: subscriptionVariantSelectSchema,
-  priceType: z.literal(PriceType.Subscription),
+  flowType: z.literal(CheckoutFlowType.Subscription),
+  product: productsSelectSchema,
 })
 
 export type SubscriptionBillingInfoCore = z.infer<
@@ -203,26 +206,33 @@ export type SubscriptionBillingInfoCore = z.infer<
 const singlePaymentBillingInfoSchema = z.object({
   purchase: singlePaymentPurchaseSelectSchema.nullish(),
   variant: otherVariantSelectSchema,
-  priceType: z.literal(PriceType.SinglePayment),
+  flowType: z.literal(CheckoutFlowType.SinglePayment),
+  product: productsSelectSchema,
+})
+
+const invoiceBillingInfoSchema = z.object({
+  invoice: invoicesClientSelectSchema,
+  invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
+  flowType: z.literal(CheckoutFlowType.Invoice),
 })
 
 export const billingInfoSchema = z
-  .discriminatedUnion('priceType', [
+  .discriminatedUnion('flowType', [
     subscriptionBillingInfoSchema,
     singlePaymentBillingInfoSchema,
+    invoiceBillingInfoSchema,
   ])
   .and(
     z.object({
+      purchaseSession: purchaseSessionClientSelectSchema,
       /**
        * Only present for open purchases
        */
       customerProfile: customerProfilesSelectSchema.nullish(),
       sellerOrganization: organizationsSelectSchema,
-      product: productsSelectSchema,
       redirectUrl: z.string().url(),
       cancelUrl: z.string().url().nullish(),
       clientSecret: z.string().nullable(),
-      purchaseSession: purchaseSessionClientSelectSchema,
       discount: discountClientSelectSchema.nullish(),
       /**
        * Only present when purchaseSession.CustomerProfileId is not null

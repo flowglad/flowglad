@@ -30,6 +30,17 @@ const PurchaseSessionPage = async ({
       params.id,
       transaction
     )
+    /**
+     * Currently, only variant / product checkout flows
+     * are supported on this page.
+     * For invoice or purchase flows, those should go through their respective
+     * pages.
+     */
+    if (!purchaseSession.VariantId) {
+      throw new Error(
+        `No variant id found for purchase session ${purchaseSession.id}. Currently, only variant / product checkout flows are supported on this page.`
+      )
+    }
     const [{ product, variant, organization }] =
       await selectVariantProductAndOrganizationByVariantWhere(
         { id: purchaseSession.VariantId },

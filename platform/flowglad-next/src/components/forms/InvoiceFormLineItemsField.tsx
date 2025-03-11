@@ -3,11 +3,12 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
 } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+
 import {
   arrayMove,
   SortableContext,
@@ -36,7 +37,6 @@ export const InvoiceFormLineItemsField = () => {
 
   const invoiceLineItems = watch('invoiceLineItems') || []
   const sensors = useSensors(
-    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -60,13 +60,6 @@ export const InvoiceFormLineItemsField = () => {
     }
   }
 
-  const handleRemove = (id: string) => {
-    const newItems = invoiceLineItems.filter(
-      (item) => `${(item as InvoiceLineItem.ClientRecord).id}` !== id
-    )
-    setValue('invoiceLineItems', newItems)
-  }
-
   const addAnItemClickHandler = () => {
     const newItem: InvoiceLineItem.ClientInsert = {
       InvoiceId: '1',
@@ -74,7 +67,6 @@ export const InvoiceFormLineItemsField = () => {
       quantity: 1,
       price: 0,
       VariantId: null,
-      livemode,
     }
     append(newItem)
   }
@@ -101,6 +93,7 @@ export const InvoiceFormLineItemsField = () => {
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
+        modifiers={[restrictToVerticalAxis]}
       >
         <SortableContext
           items={fields.map((item) => item.id)}
@@ -111,7 +104,9 @@ export const InvoiceFormLineItemsField = () => {
               id={item.id}
               key={item.id}
               index={index}
-              onRemove={handleRemove}
+              onRemove={() => {
+                remove(index)
+              }}
               disableRemove={invoiceLineItems.length === 1}
             />
           ))}
@@ -124,7 +119,7 @@ export const InvoiceFormLineItemsField = () => {
         size="sm"
         onClick={addAnItemClickHandler}
       >
-        Add an item
+        Add Item
       </Button>
     </div>
   )

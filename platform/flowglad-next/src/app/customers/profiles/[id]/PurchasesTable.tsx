@@ -184,9 +184,10 @@ const PurchasesTable = ({
     <div className="w-full flex flex-col gap-5">
       <TableTitle
         title="Purchases"
-        buttonLabel="Create Purchase"
-        buttonIcon={<Plus size={8} strokeWidth={2} />}
-        buttonOnClick={() => setCreatePurchaseModalOpen(true)}
+        noButtons
+        // buttonLabel="Create Purchase"
+        // buttonIcon={<Plus size={8} strokeWidth={2} />}
+        // buttonOnClick={() => setCreatePurchaseModalOpen(true)}
       />
       <div className="w-full flex flex-col gap-5 pb-20">
         <Table

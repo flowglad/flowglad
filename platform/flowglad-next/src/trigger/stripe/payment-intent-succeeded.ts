@@ -10,6 +10,9 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 
 import { logger, task } from '@trigger.dev/sdk/v3'
 import Stripe from 'stripe'
+import { generateInvoicePdfTask } from '../generate-invoice-pdf'
+import { InvoiceStatus } from '@/types'
+import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -38,6 +41,7 @@ export const stripePaymentIntentSucceededTask = task({
       membersForOrganization,
       organization,
       customerProfileAndCustomer,
+      payment,
     } = await adminTransaction(async ({ transaction }) => {
       const { payment } = await processPaymentIntentStatusUpdated(
         payload.data.object,
@@ -81,8 +85,25 @@ export const stripePaymentIntentSucceededTask = task({
         organization,
         customerProfileAndCustomer,
         membersForOrganization,
+        payment,
       }
     })
+
+    /**
+     * Generate the invoice PDF
+     */
+    await generateInvoicePdfTask.triggerAndWait({
+      invoiceId: invoice.id,
+    })
+
+    if (invoice.status === InvoiceStatus.Paid) {
+      await generatePaymentReceiptPdfTask.triggerAndWait({
+        paymentId: payment.id,
+      })
+    }
+    /**
+     * Send the organization payment notification email
+     */
     logger.info('Sending organization payment notification email')
 
     await sendOrganizationPaymentNotificationEmail({

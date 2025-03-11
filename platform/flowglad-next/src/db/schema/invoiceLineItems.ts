@@ -1,4 +1,4 @@
-import { pgTable, integer, text, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, integer, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
@@ -12,7 +12,12 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
 } from '@/db/tableUtils'
-import { Invoice, invoices, invoicesInsertSchema } from './invoices'
+import {
+  Invoice,
+  invoices,
+  invoicesClientInsertSchema,
+  invoicesClientUpdateSchema,
+} from './invoices'
 import { variants } from './variants'
 import core from '@/utils/core'
 
@@ -71,7 +76,7 @@ const nonEditableColumns = {
 } as const
 
 export const invoiceLineItemsClientInsertSchema =
-  invoiceLineItemsInsertSchema.omit(hiddenColumns)
+  invoiceLineItemsInsertSchema.omit(readonlyColumns)
 
 export const invoiceLineItemsClientUpdateSchema =
   invoiceLineItemsUpdateSchema.omit(nonEditableColumns)
@@ -107,12 +112,35 @@ export namespace InvoiceLineItem {
 
 // Add this new schema at the end of the file
 export const createInvoiceSchema = z.object({
-  invoice: invoicesInsertSchema,
-  invoiceLineItems: invoiceLineItemsInsertSchema.array(),
+  invoice: invoicesClientInsertSchema,
+  invoiceLineItems: invoiceLineItemsClientInsertSchema.array(),
+  autoSend: z.boolean().optional(),
+})
+
+export const editInvoiceSchema = z.object({
+  invoice: invoicesClientUpdateSchema,
+  invoiceLineItems: z
+    .union([
+      invoiceLineItemsClientInsertSchema,
+      invoiceLineItemsClientSelectSchema,
+    ])
+    .array(),
+})
+
+export type EditInvoiceInput = z.infer<typeof editInvoiceSchema>
+
+export const sendInvoiceReminderSchema = z.object({
+  invoiceId: z.string(),
+  to: z.array(z.string().email()),
+  cc: z.array(z.string().email()).optional(),
 })
 
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>
 
 export type InvoiceWithLineItems = Invoice.Record & {
   invoiceLineItems: InvoiceLineItem.Record[]
+}
+
+export type ClientInvoiceWithLineItems = Invoice.ClientRecord & {
+  invoiceLineItems: InvoiceLineItem.ClientRecord[]
 }

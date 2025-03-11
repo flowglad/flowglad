@@ -429,6 +429,12 @@ export enum PriceType {
   // ZeroPrice = 'zero_price',
 }
 
+export enum CheckoutFlowType {
+  SinglePayment = 'single_payment',
+  Subscription = 'subscription',
+  Invoice = 'invoice',
+}
+
 export enum SupabasePayloadType {
   INSERT = 'INSERT',
   UPDATE = 'UPDATE',
@@ -716,6 +722,7 @@ export enum FeeCalculationType {
 export enum InvoiceType {
   Purchase = 'purchase',
   Subscription = 'subscription',
+  Standalone = 'standalone',
 }
 
 export enum SubscriptionCancellationArrangement {
@@ -735,4 +742,10 @@ export enum SubscriptionAdjustmentTiming {
   Immediately = 'immediately',
   AtEndOfCurrentBillingPeriod = 'at_end_of_current_billing_period',
   // AtFutureDate = 'at_future_date',
+}
+
+export enum PurchaseSessionType {
+  Product = 'product',
+  Purchase = 'purchase',
+  Invoice = 'invoice',
 }

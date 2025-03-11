@@ -60,9 +60,8 @@ export const CustomerBillingSubPage = ({
           </div>
           <PurchasesTable purchases={purchases} payments={payments} />
           <InvoicesTable
-            invoices={invoices}
-            customer={{ customer, customerProfile }}
-            purchases={purchases}
+            invoicesAndLineItems={invoices}
+            customerProfile={customerProfile}
           />
         </div>
       </div>

@@ -1044,6 +1044,41 @@
       "when": 1741288565263,
       "tag": "0148_lowly_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1741384099980,
+      "tag": "0149_concerned_mandroid",
+      "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1741458257879,
+      "tag": "0150_great_harry_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1741494139212,
+      "tag": "0151_bright_giant_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1741539746903,
+      "tag": "0152_keen_omega_red",
+      "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1741567444895,
+      "tag": "0153_sharp_silk_fever",
+      "breakpoints": true
     }
   ]
 }

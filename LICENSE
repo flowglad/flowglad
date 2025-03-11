@@ -1,5 +1,5 @@
-Flowglad is fully open-source, but licensed per-package.
+Flowglad is fully open source.
 
 - ./packages: MIT
 - ./playground: MIT
-- ./platform: APGLv3, unless using the Flowglad-hosted version in which case Flowglad Terms of Service (https://www.flowglad.com/terms-of-service)
+- ./platform: APGLv3

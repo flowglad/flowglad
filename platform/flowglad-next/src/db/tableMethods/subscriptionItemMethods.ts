@@ -71,37 +71,49 @@ const bulkUpsertSubscriptionItems = createBulkUpsertFunction(
   subscriptionItems,
   config
 )
+
+export const selectSubscriptionAndItems = async (
+  whereClause: SelectConditions<typeof subscriptions>,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      subscriptionItems: subscriptionItems,
+      subscription: subscriptions,
+    })
+    .from(subscriptionItems)
+    .innerJoin(
+      subscriptions,
+      eq(subscriptionItems.SubscriptionId, subscriptions.id)
+    )
+    .where(whereClauseFromObject(subscriptions, whereClause))
+
+  if (!result.length) {
+    return null
+  }
+
+  const subscription = subscriptionsSelectSchema.parse(
+    result[0].subscription
+  )
+
+  const subscriptionItemsResults = result.map((row) =>
+    subscriptionItemsSelectSchema.parse(row.subscriptionItems)
+  )
+
+  return {
+    subscription,
+    subscriptionItems: subscriptionItemsResults,
+  }
+}
+
 export const selectSubscriptionItemsAndSubscriptionBySubscriptionId =
   async (subscriptionId: string, transaction: DbTransaction) => {
-    const result = await transaction
-      .select({
-        subscriptionItems: subscriptionItems,
-        subscription: subscriptions,
-      })
-      .from(subscriptionItems)
-      .innerJoin(
-        subscriptions,
-        eq(subscriptionItems.SubscriptionId, subscriptions.id)
-      )
-      .where(eq(subscriptionItems.SubscriptionId, subscriptionId))
-      .execute()
-
-    if (!result.length) {
-      return null
-    }
-
-    const subscription = subscriptionsSelectSchema.parse(
-      result[0].subscription
+    return selectSubscriptionAndItems(
+      {
+        id: subscriptionId,
+      },
+      transaction
     )
-
-    const subscriptionItemsResults = result.map((row) =>
-      subscriptionItemsSelectSchema.parse(row.subscriptionItems)
-    )
-
-    return {
-      subscription,
-      subscriptionItems: subscriptionItemsResults,
-    }
   }
 
 export const bulkCreateOrUpdateSubscriptionItems = async (
@@ -144,11 +156,6 @@ export const selectRichSubscriptions = async (
     )
     .innerJoin(variants, eq(subscriptionItems.VariantId, variants.id))
     .where(whereClauseFromObject(subscriptions, whereConditions))
-
-  const subscriptionItemsResults = result.map((row) => ({
-    ...subscriptionItemsSelectSchema.parse(row.subscriptionItems),
-    variant: variantsClientSelectSchema.parse(row.variant),
-  }))
 
   const subscriptionItemsBySubscriptionId = result.reduce(
     (acc, row) => {

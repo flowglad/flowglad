@@ -1,8 +1,6 @@
-import { z } from 'zod'
 import { publicProcedure } from '@/server/trpc'
 import {
   getPurchaseSessionCookie,
-  purchaseSessionCookieNameParamsSchema,
   setPurchaseSessionCookie as setPurchaseSessionCookieFn,
   setPurchaseSessionCookieParamsSchema,
 } from '@/utils/purchaseSessionState'

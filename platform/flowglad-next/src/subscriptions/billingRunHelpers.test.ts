@@ -335,7 +335,7 @@ describe('billingRunHelpers', async () => {
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     })
   })
-  it('should throw an error when trying to execute a billing run that is not in Scheduled status', async () => {
+  it('should silently return when trying to execute a billing run that is not in Scheduled status', async () => {
     // Test each billing run status
     const billingRunStatuses = Object.values(BillingRunStatus).filter(
       (status) => status !== BillingRunStatus.Scheduled
@@ -352,9 +352,7 @@ describe('billingRunHelpers', async () => {
 
       await expect(
         executeBillingRun(testBillingRun.id)
-      ).rejects.toThrow(
-        `Cannot execute billing run ${testBillingRun.id} because it has status: ${testBillingRun.id}`
-      )
+      ).resolves.toBeUndefined()
     }
     await adminTransaction(async ({ transaction }) => {
       await updateBillingRun(
@@ -366,8 +364,8 @@ describe('billingRunHelpers', async () => {
       )
     })
 
-    await expect(executeBillingRun(billingRun.id)).rejects.toThrow(
-      `Cannot execute billing run ${billingRun.id} because it has status: ${billingRun.id}`
-    )
+    await expect(
+      executeBillingRun(billingRun.id)
+    ).resolves.toBeUndefined()
   })
 })

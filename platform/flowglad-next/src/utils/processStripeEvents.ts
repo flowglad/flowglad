@@ -13,6 +13,7 @@ import { selectProducts } from '@/db/tableMethods/productMethods'
 import { BusinessOnboardingStatus } from '@/types'
 import { stripePaymentIntentPaymentFailedTask } from '@/trigger/stripe/payment-intent-payment-failed'
 import { stripePaymentIntentCanceledTask } from '@/trigger/stripe/payment-intent-canceled'
+import { setupIntentSucceededTask } from '@/trigger/stripe/setup-intent-succeeded'
 
 export const handleStripePrimaryWebhookEvent = async (
   event: Stripe.Event
@@ -45,7 +46,7 @@ export const handleStripePrimaryWebhookEvent = async (
       break
     }
     case 'setup_intent.succeeded': {
-      // await stripeSetupIntentSucceededTask.trigger(event)
+      await setupIntentSucceededTask.trigger(event)
       break
     }
     case 'setup_intent.setup_failed': {

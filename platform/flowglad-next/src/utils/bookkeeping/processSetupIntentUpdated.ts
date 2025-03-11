@@ -1,6 +1,6 @@
 import { Organization } from '@/db/schema/organizations'
 import { updateCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
-import { PurchaseStatus } from '@/types'
+import { PurchaseSessionType, PurchaseStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   StripeIntentMetadata,
@@ -41,6 +41,11 @@ const processPurchaseSessionSetupIntent = async (
   )
   if (!purchaseSession) {
     throw new Error('Purchase session not found')
+  }
+  if (purchaseSession.type === PurchaseSessionType.Invoice) {
+    throw new Error(
+      'Invoice checkout flow does not support setup intents'
+    )
   }
 
   const [{ variant, product, organization }] =
@@ -142,6 +147,7 @@ export const processSetupIntentUpdated = async (
   }
   await createSubscriptionWorkflow(
     {
+      stripeSetupIntentId: setupIntent.id,
       defaultPaymentMethod: paymentMethod,
       organization,
       variant,

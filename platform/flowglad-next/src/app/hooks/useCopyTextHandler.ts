@@ -7,7 +7,7 @@ export const useCopyTextHandler = ({ text }: { text: string }) => {
   return useMemo(() => {
     return () => {
       navigator.clipboard.writeText(text)
-      toast.success('Copied to clipboard!')
+      toast.success('Copied to clipboard!', { duration: 1500 })
     }
   }, [text])
 }

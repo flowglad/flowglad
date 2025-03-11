@@ -6,10 +6,12 @@ import { dummyProduct } from '@/stubs/productStubs'
 import { dummyOrganization } from '@/stubs/organizationStubs'
 import { subscriptionDummyVariant } from '@/stubs/variantStubs'
 import {
+  CheckoutFlowType,
   CurrencyCode,
   IntervalUnit,
   PriceType,
   PurchaseSessionStatus,
+  PurchaseSessionType,
 } from '@/types'
 import { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
 import { PurchaseSession } from '@/db/schema/purchaseSessions'
@@ -22,11 +24,12 @@ const subscriptionDetails = {
   currency: CurrencyCode.USD,
 }
 
-const purchaseSession: PurchaseSession.Record = {
+export const stubbedPurchaseSession: PurchaseSession.Record = {
   id: '1',
   createdAt: new Date(),
   updatedAt: new Date(),
   VariantId: '1',
+  InvoiceId: null,
   status: PurchaseSessionStatus.Pending,
   OrganizationId: '1',
   customerName: 'Test Customer',
@@ -43,6 +46,7 @@ const purchaseSession: PurchaseSession.Record = {
   quantity: 1,
   successUrl: null,
   cancelUrl: null,
+  type: PurchaseSessionType.Product,
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =
@@ -50,7 +54,7 @@ const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =
 
 const functionStubs = {
   editPurchaseSession: async () =>
-    Promise.resolve({ purchaseSession }),
+    Promise.resolve({ purchaseSession: stubbedPurchaseSession }),
   attemptDiscountCode: async () => ({ isValid: true }),
   clearDiscountCode,
   feeCalculation: null,
@@ -58,28 +62,30 @@ const functionStubs = {
 
 export const subscriptionCheckoutPageContextValuesWithTrial: CheckoutPageContextValues =
   {
+    currency: CurrencyCode.USD,
     product: dummyProduct,
     purchase: subscriptionWithTrialDummyPurchase,
     variant: subscriptionDummyVariant,
     sellerOrganization: dummyOrganization,
-    priceType: PriceType.Subscription,
+    flowType: CheckoutFlowType.Subscription,
     redirectUrl: 'https://google.com',
     clientSecret: '123',
-    purchaseSession,
+    purchaseSession: stubbedPurchaseSession,
     subscriptionDetails,
     ...functionStubs,
   }
 
 export const subscriptionCheckoutPageContextValuesWithoutTrial: CheckoutPageContextValues =
   {
+    currency: CurrencyCode.USD,
     product: dummyProduct,
     purchase: subscriptionWithoutTrialDummyPurchase,
     variant: subscriptionDummyVariant,
     sellerOrganization: dummyOrganization,
-    priceType: PriceType.Subscription,
+    flowType: CheckoutFlowType.Subscription,
     redirectUrl: 'https://google.com',
     clientSecret: '123',
-    purchaseSession,
+    purchaseSession: stubbedPurchaseSession,
     subscriptionDetails,
     ...functionStubs,
   }

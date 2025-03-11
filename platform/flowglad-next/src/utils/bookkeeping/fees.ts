@@ -31,17 +31,34 @@ import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { Country } from '@/db/schema/countries'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectResolvedPaymentsMonthToDate } from '@/db/tableMethods/paymentMethods'
+import {
+  ClientInvoiceWithLineItems,
+  InvoiceWithLineItems,
+} from '@/db/schema/invoiceLineItems'
 
-export const calculateVariantBaseAmount = (
-  variant: Variant.Record,
-  purchase?: Purchase.Record | null
+export const calculateInvoiceBaseAmount = (
+  invoice: ClientInvoiceWithLineItems
 ) => {
-  if (!purchase) {
+  return invoice.invoiceLineItems.reduce((acc, item) => {
+    return acc + item.price * item.quantity
+  }, 0)
+}
+
+export const calculateVariantBaseAmount = ({
+  variant,
+  invoice,
+  purchase,
+}: {
+  variant: Variant.Record
+  invoice?: InvoiceWithLineItems | null
+  purchase?: Purchase.ClientRecord | null
+}) => {
+  if (!purchase && !invoice) {
     return variant.unitPrice
   }
   if (
-    isNil(purchase.firstInvoiceValue) &&
-    isNil(purchase.pricePerBillingCycle)
+    isNil(purchase?.firstInvoiceValue) &&
+    isNil(purchase?.pricePerBillingCycle)
   ) {
     return variant.unitPrice
   }
@@ -296,7 +313,10 @@ export const createPurchaseSessionFeeCalculationInsert = async ({
   organizationCountry,
   PurchaseSessionId,
 }: PurchaseSessionFeeCalculationParams) => {
-  const baseAmount = calculateVariantBaseAmount(variant, purchase)
+  const baseAmount = calculateVariantBaseAmount({
+    variant,
+    purchase,
+  })
   const discountAmount = calculateDiscountAmount(baseAmount, discount)
   const flowgladFeePercentage = calculateFlowgladFeePercentage({
     organization,

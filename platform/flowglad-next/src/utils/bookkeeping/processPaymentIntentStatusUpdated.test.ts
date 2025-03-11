@@ -27,7 +27,10 @@ import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { Invoice } from '@/db/schema/invoices'
 import { adminTransaction } from '@/db/databaseMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
+import {
+  safelyUpdateInvoiceStatus,
+  selectInvoiceById,
+} from '@/db/tableMethods/invoiceMethods'
 import { IntentMetadataType, StripeIntentMetadata } from '../stripe'
 import core from '../core'
 
@@ -453,13 +456,6 @@ describe('Process payment intent status updated', async () => {
         billing_details: {}, // missing address
       }
       const fakeMetadata: any = { invoiceId: 'inv_nobilling' }
-      const fakeInvoice = {
-        id: 'inv_nobilling',
-        OrganizationId: 'org_nobilling',
-        PurchaseId: 'pur_nobilling',
-        taxCountry: null,
-        CustomerProfileId: 'cp_nobilling',
-      }
       await expect(
         adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
@@ -506,6 +502,49 @@ describe('Process payment intent status updated', async () => {
         )
       )
       expect(result.refunded).toBe(false)
+    })
+    it('marks the invoice as paid when the charge is successful and the invoice total is met', async () => {
+      const invoice = await setupInvoice({
+        OrganizationId: organization.id,
+        CustomerProfileId: customerProfile.id,
+        VariantId: variant.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        OrganizationId: organization.id,
+        CustomerProfileId: customerProfile.id,
+      })
+      const fakeCharge: any = {
+        id: 'ch_paid',
+        payment_intent: 'pi_paid',
+        created: new Date().getTime() / 1000,
+        amount: 5000,
+        status: 'succeeded',
+        metadata: {
+          invoiceId: invoice.id,
+          type: IntentMetadataType.Invoice,
+        },
+        payment_method_details: {
+          id: paymentMethod.stripePaymentMethodId,
+          type: paymentMethod.type,
+        },
+      }
+      const fakeMetadata: StripeIntentMetadata = {
+        invoiceId: invoice.id,
+        type: IntentMetadataType.Invoice,
+      }
+      const updatedInvoice = await adminTransaction(
+        async ({ transaction }) => {
+          await upsertPaymentForStripeCharge(
+            {
+              charge: fakeCharge,
+              paymentIntentMetadata: fakeMetadata,
+            },
+            transaction
+          )
+          return selectInvoiceById(invoice.id, transaction)
+        }
+      )
+      expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
     })
   })
 

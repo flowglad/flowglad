@@ -67,6 +67,8 @@ export const payments = pgTable(
     chargeDate: timestamp('chargeDate').notNull(),
     settlementDate: timestamp('settlementDate'),
     description: text('description'),
+    receiptNumber: text('receiptNumber'),
+    receiptURL: text('receiptURL'),
     OrganizationId: notNullStringForeignKey(
       'OrganizationId',
       organizations
@@ -129,6 +131,8 @@ const columnEnhancements = {
   settlementDate: core.safeZodDate.nullable(),
   refundedAt: core.safeZodDate.nullable(),
   paymentMethod: core.createSafeZodEnum(PaymentMethodType),
+  receiptNumber: z.string().nullable(),
+  receiptURL: z.string().url().nullable(),
   ...taxSchemaColumns,
 }
 

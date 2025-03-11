@@ -128,6 +128,10 @@ export const SideNavigation = () => {
                   label: 'Subscriptions',
                   href: '/finance/subscriptions',
                 },
+                {
+                  label: 'Invoices',
+                  href: '/finance/invoices',
+                },
               ]}
               basePath="/finance"
             />

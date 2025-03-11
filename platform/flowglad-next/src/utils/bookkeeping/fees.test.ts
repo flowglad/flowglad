@@ -44,7 +44,9 @@ describe('fees.ts', () => {
   describe('calculateVariantBaseAmount', () => {
     it('returns variant unit price when no purchase exists', () => {
       const variant = { unitPrice: 1000 } as Variant.Record
-      expect(calculateVariantBaseAmount(variant, null)).toBe(1000)
+      expect(
+        calculateVariantBaseAmount({ variant, purchase: null })
+      ).toBe(1000)
     })
 
     it('returns firstInvoiceValue for single payment purchases', () => {
@@ -53,7 +55,9 @@ describe('fees.ts', () => {
         priceType: PriceType.SinglePayment,
         firstInvoiceValue: 800,
       } as Purchase.Record
-      expect(calculateVariantBaseAmount(variant, purchase)).toBe(800)
+      expect(calculateVariantBaseAmount({ variant, purchase })).toBe(
+        800
+      )
     })
 
     it('returns pricePerBillingCycle for subscription purchases', () => {
@@ -62,21 +66,23 @@ describe('fees.ts', () => {
         priceType: PriceType.Subscription,
         pricePerBillingCycle: 900,
       } as Purchase.Record
-      expect(calculateVariantBaseAmount(variant, purchase)).toBe(900)
+      expect(calculateVariantBaseAmount({ variant, purchase })).toBe(
+        900
+      )
     })
 
     it('falls back to unitPrice when purchase is provided but firstInvoiceValue or pricePerBillingCycle is missing', () => {
       const variant = { unitPrice: 1000 } as Variant.Record
       expect(
-        calculateVariantBaseAmount(
+        calculateVariantBaseAmount({
           variant,
           // @ts-expect-error - we are testing the fallback behavior
-          {
+          purchase: {
             ...subscriptionWithoutTrialDummyPurchase,
             firstInvoiceValue: null,
             pricePerBillingCycle: null,
-          } as Purchase.Record
-        )
+          } as Purchase.Record,
+        })
       ).toBe(1000)
     })
 
@@ -86,7 +92,9 @@ describe('fees.ts', () => {
         priceType: 'InvalidType' as PriceType, // Invalid price type
         firstInvoiceValue: 800,
       } as Purchase.Record
-      expect(calculateVariantBaseAmount(variant, purchase)).toBe(1000)
+      expect(calculateVariantBaseAmount({ variant, purchase })).toBe(
+        1000
+      )
     })
   })
 

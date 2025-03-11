@@ -28,6 +28,7 @@ import {
   InvoiceType,
   PaymentStatus,
   PriceType,
+  PurchaseSessionType,
   PurchaseStatus,
 } from '@/types'
 import {
@@ -52,7 +53,9 @@ import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMet
 import {
   bulkUpdatePurchaseSessions,
   selectOpenNonExpiredPurchaseSessions,
+  updatePurchaseSessionsForOpenPurchase,
 } from '@/db/tableMethods/purchaseSessionMethods'
+import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -127,6 +130,9 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
       InvoiceStatus.Paid,
       transaction
     )
+    await generatePaymentReceiptPdfTask.trigger({
+      paymentId: payment.id,
+    })
   }
 }
 
@@ -454,11 +460,11 @@ export const editOpenPurchase = async (
         transaction
       )
     if (openPurchaseSessions.length > 0) {
-      await bulkUpdatePurchaseSessions(
+      await updatePurchaseSessionsForOpenPurchase(
         {
           stripePaymentIntentId: paymentIntent.id,
+          PurchaseId: payload.id,
         },
-        openPurchaseSessions.map((session) => session.id),
         transaction
       )
     }

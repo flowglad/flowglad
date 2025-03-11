@@ -26,6 +26,11 @@ import { invoices } from '../schema/invoices'
 import { GetRevenueDataInput } from '../schema/payments'
 import { customerProfiles } from '../schema/customerProfiles'
 import { getCurrentMonthStartTimestamp } from '@/utils/core'
+import {
+  PaymentMethod,
+  paymentMethods,
+  paymentMethodsSelectSchema,
+} from '../schema/paymentMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof payments,
@@ -355,4 +360,33 @@ export const selectResolvedPaymentsMonthToDate = async (
   return monthToDateResolvedPayments.map((row) =>
     paymentsSelectSchema.parse(row)
   )
+}
+
+export interface PaymentAndPaymentMethod {
+  payment: Payment.Record
+  paymentMethod: PaymentMethod.Record | null
+}
+
+export const selectPaymentsAndPaymentMethodsByPaymentsWhere = async (
+  selectConditions: SelectConditions<typeof payments>,
+  transaction: DbTransaction
+): Promise<PaymentAndPaymentMethod[]> => {
+  const result = await transaction
+    .select({
+      payment: payments,
+      paymentMethod: paymentMethods,
+    })
+    .from(payments)
+    .leftJoin(
+      paymentMethods,
+      eq(payments.PaymentMethodId, paymentMethods.id)
+    )
+    .where(whereClauseFromObject(payments, selectConditions))
+
+  return result.map((row) => ({
+    payment: paymentsSelectSchema.parse(row.payment),
+    paymentMethod: row.paymentMethod
+      ? paymentMethodsSelectSchema.parse(row.paymentMethod)
+      : null,
+  }))
 }

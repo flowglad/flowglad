@@ -17,6 +17,7 @@ import {
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq } from 'drizzle-orm'
+import { BillingInfoCore } from './purchaseMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof invoices,
@@ -57,7 +58,9 @@ export const deleteOpenInvoicesForPurchase = (
     )
 }
 
-export const invoiceIsInTerminalState = (invoice: Invoice.Record) => {
+export const invoiceIsInTerminalState = (
+  invoice: Invoice.ClientRecord
+) => {
   return (
     invoice.status === InvoiceStatus.Paid ||
     invoice.status === InvoiceStatus.Uncollectible ||

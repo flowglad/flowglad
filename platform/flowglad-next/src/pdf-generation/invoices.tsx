@@ -1,4 +1,3 @@
-// components/email/invoice/InvoiceComponents.tsx
 import React from 'react'
 import {
   Section,
@@ -14,17 +13,35 @@ import {
 } from '@react-email/components'
 import { Organization } from '@/db/schema/organizations'
 import { Invoice } from '@/db/schema/invoices'
+import { Payment } from '@/db/schema/payments'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { formatCurrency, formatDate } from '@/utils/core'
+import { formatCurrency, formatDate, titleCase } from '@/utils/core'
 import { BillingAddress } from '@/db/schema/customers'
-
-interface InvoiceHeaderProps {
-  organization: Organization.Record
+import { PaymentMethod } from '@/db/schema/paymentMethods'
+import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
+import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
+/**
+ * Use the
+ * @param paymentMethod
+ * @returns
+ */
+const safePaymentMethodSummaryLabel = (
+  paymentData: PaymentAndPaymentMethod
+) => {
+  return paymentData.paymentMethod
+    ? paymentMethodSummaryLabel(paymentData.paymentMethod)
+    : titleCase(paymentData.payment.paymentMethod)
 }
 
-export const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({
+interface DocumentHeaderProps {
+  organization: Organization.Record
+  mode: 'receipt' | 'invoice'
+}
+
+export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
   organization,
+  mode,
 }) => {
   return (
     <Row style={{ marginBottom: '20px' }}>
@@ -37,16 +54,26 @@ export const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({
             color: '#000',
           }}
         >
-          Invoice
+          {mode === 'receipt' ? 'Receipt' : 'Invoice'}
         </Text>
       </Column>
-      <Column style={{ width: '30%', textAlign: 'right' }}>
+      <Column
+        style={{
+          width: '100%',
+          textAlign: 'right',
+          justifyContent: 'flex-end',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+        }}
+      >
         {organization.logoURL ? (
           <Img
             src={organization.logoURL}
             alt={`${organization.name}`}
             width="64"
             height="64"
+            style={{ marginLeft: 'auto' }}
           />
         ) : (
           <Text style={{ fontSize: '24px', fontWeight: 'bold' }}>
@@ -58,12 +85,19 @@ export const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({
   )
 }
 
-interface InvoiceDetailsProps {
+interface DocumentDetailsProps {
   invoice: Invoice.Record
+  mode: 'receipt' | 'invoice'
+  paymentData?: {
+    payment: Payment.Record
+    paymentMethod: PaymentMethod.Record | null
+  }
 }
 
-export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
+export const DocumentDetails: React.FC<DocumentDetailsProps> = ({
   invoice,
+  mode,
+  paymentData,
 }) => {
   const formattedInvoiceDate = formatDate(invoice.invoiceDate)
   const formattedDueDate = invoice.dueDate
@@ -75,22 +109,36 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
       <Column>
         <Text style={{ margin: '0', fontWeight: 'normal' }}>
           <span style={{ display: 'inline-block', width: '150px' }}>
-            Invoice number
+            {mode === 'receipt' ? 'Receipt number' : 'Invoice number'}
           </span>
-          {invoice.invoiceNumber}
+          {mode === 'receipt' && paymentData
+            ? paymentData.payment.id
+            : invoice.invoiceNumber}
         </Text>
         <Text style={{ margin: '5px 0', fontWeight: 'normal' }}>
           <span style={{ display: 'inline-block', width: '150px' }}>
-            Date of issue
+            {mode === 'receipt' ? 'Date paid' : 'Date of issue'}
           </span>
-          {formattedInvoiceDate}
+          {mode === 'receipt' && paymentData
+            ? formatDate(paymentData.payment.chargeDate)
+            : formattedInvoiceDate}
         </Text>
-        <Text style={{ margin: '5px 0', fontWeight: 'normal' }}>
-          <span style={{ display: 'inline-block', width: '150px' }}>
-            Date due
-          </span>
-          {formattedDueDate}
-        </Text>
+        {mode === 'receipt' && paymentData && (
+          <Text style={{ margin: '5px 0', fontWeight: 'normal' }}>
+            <span style={{ display: 'inline-block', width: '150px' }}>
+              Payment method
+            </span>
+            {safePaymentMethodSummaryLabel(paymentData)}
+          </Text>
+        )}
+        {mode === 'invoice' && (
+          <Text style={{ margin: '5px 0', fontWeight: 'normal' }}>
+            <span style={{ display: 'inline-block', width: '150px' }}>
+              Date due
+            </span>
+            {formattedDueDate}
+          </Text>
+        )}
       </Column>
     </Row>
   )
@@ -99,7 +147,7 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
 interface BillingInfoProps {
   organization: Organization.Record
   customerProfile: CustomerProfile.Record
-  billingAddress: any
+  billingAddress?: BillingAddress
 }
 
 const BillingAddressLabel: React.FC<{
@@ -129,7 +177,6 @@ const OrganizationContactInfo: React.FC<{
       <Text style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>
         {organization.name}
       </Text>
-      {/* Render organization address if available */}
       {organization.billingAddress && (
         <BillingAddressLabel
           billingAddress={organization.billingAddress}
@@ -172,7 +219,7 @@ export const BillingInfo: React.FC<BillingInfoProps> = ({
           Bill to
         </Text>
         <Text style={{ margin: '0' }}>{customerProfile.name}</Text>
-        {billingAddress ? (
+        {billingAddress && (
           <>
             <Text style={{ margin: '0' }}>
               {billingAddress.address.line1}
@@ -191,8 +238,6 @@ export const BillingInfo: React.FC<BillingInfoProps> = ({
               {billingAddress.address.country}
             </Text>
           </>
-        ) : (
-          <></>
         )}
         <Text style={{ margin: '5px 0 0 0' }}>
           {customerProfile.email}
@@ -266,6 +311,8 @@ interface PaymentInfoProps {
   invoice: Invoice.Record
   total: number
   paymentLink?: string
+  mode: 'receipt' | 'invoice'
+  payment?: Payment.Record
 }
 
 const constructPaymentLink = (invoice: Invoice.Record) => {
@@ -276,10 +323,29 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
   invoice,
   total,
   paymentLink,
+  mode,
+  payment,
 }) => {
   const formattedDueDate = invoice.dueDate
     ? formatDate(invoice.dueDate)
     : formatDate(invoice.createdAt)
+
+  if (mode === 'receipt' && payment) {
+    return (
+      <Section style={{ marginBottom: '20px' }}>
+        <Text
+          style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            margin: '30px 0 10px 0',
+          }}
+        >
+          {formatCurrency(payment.amount)} paid on{' '}
+          {formatDate(payment.chargeDate)}
+        </Text>
+      </Section>
+    )
+  }
 
   return (
     <Section style={{ marginBottom: '20px' }}>
@@ -313,6 +379,8 @@ interface InvoiceTotalsProps {
   taxAmount: number
   total: number
   currency?: string
+  mode: 'receipt' | 'invoice'
+  payment?: Payment.Record
 }
 
 export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
@@ -320,6 +388,8 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
   taxAmount,
   total,
   currency = 'USD',
+  mode,
+  payment,
 }) => {
   return (
     <Row>
@@ -375,14 +445,71 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                 {formatCurrency(total)}
               </td>
             </tr>
-            <tr style={{ fontWeight: 'bold' }}>
-              <td style={{ padding: '5px 0', textAlign: 'left' }}>
-                Amount due
-              </td>
-              <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                {formatCurrency(total)} {currency}
-              </td>
-            </tr>
+            {mode === 'receipt' && payment ? (
+              <>
+                <tr style={{ fontWeight: 'bold' }}>
+                  <td style={{ padding: '5px 0', textAlign: 'left' }}>
+                    Amount paid
+                  </td>
+                  <td
+                    style={{ padding: '5px 0', textAlign: 'right' }}
+                  >
+                    {formatCurrency(payment.amount)} {currency}
+                  </td>
+                </tr>
+                {payment.refunded &&
+                  payment.refundedAmount &&
+                  payment.refundedAt && (
+                    <>
+                      <tr style={{ fontWeight: 'bold' }}>
+                        <td
+                          style={{
+                            padding: '5px 0',
+                            textAlign: 'left',
+                          }}
+                        >
+                          Refunded on {formatDate(payment.refundedAt)}
+                        </td>
+                        <td
+                          style={{
+                            padding: '5px 0',
+                            textAlign: 'right',
+                          }}
+                        >
+                          {formatCurrency(payment.refundedAmount)}
+                        </td>
+                      </tr>
+                      <tr style={{ fontWeight: 'bold' }}>
+                        <td
+                          style={{
+                            padding: '5px 0',
+                            textAlign: 'left',
+                          }}
+                        >
+                          Total refunded without credit note
+                        </td>
+                        <td
+                          style={{
+                            padding: '5px 0',
+                            textAlign: 'right',
+                          }}
+                        >
+                          {formatCurrency(payment.refundedAmount)}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+              </>
+            ) : (
+              <tr style={{ fontWeight: 'bold' }}>
+                <td style={{ padding: '5px 0', textAlign: 'left' }}>
+                  Amount due
+                </td>
+                <td style={{ padding: '5px 0', textAlign: 'right' }}>
+                  {formatCurrency(total)} {currency}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Column>
@@ -421,11 +548,10 @@ export interface InvoiceTemplateProps {
   customerProfile: CustomerProfile.Record
   organization: Organization.Record
   paymentLink?: string
+  paymentDataItems?: PaymentAndPaymentMethod[]
 }
 
-export const InnerInvoiceTemplate: React.FC<
-  InvoiceTemplateProps & { mode: 'receipt' | 'invoice' }
-> = ({
+export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   invoice,
   invoiceLineItems,
   customerProfile,
@@ -443,38 +569,38 @@ export const InnerInvoiceTemplate: React.FC<
         <title>Invoice #{invoice.invoiceNumber}</title>
         <style>
           {`
-body { 
-    font-family: 'Inter', sans-serif; 
-    color: #333; 
-    line-height: 1.4;
-    margin: 0;
-    padding: 0;
-  }
-  .invoice-table { 
-    width: 100%; 
-    border-collapse: collapse; 
-    margin: 20px 0; 
-  }
-  .invoice-table th, .invoice-table td { 
-    padding: 10px; 
-    text-align: left; 
-    border-bottom: 1px solid #eee; 
-  }
-  .invoice-table th { 
-    background-color: #f8f8f8; 
-    font-weight: 500;
-  }
-  .amount-column, .qty-column, .price-column { 
-    text-align: right; 
-  }
-  .invoice-total-row {
-    font-weight: normal;
-    border-top: 1px solid #eee;
-  }
-  .invoice-final-row {
-    font-weight: bold;
-  }
-`}
+            body { 
+                font-family: 'Inter', sans-serif; 
+                color: #333; 
+                line-height: 1.4;
+                margin: 0;
+                padding: 0;
+              }
+              .invoice-table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 20px 0; 
+              }
+              .invoice-table th, .invoice-table td { 
+                padding: 10px; 
+                text-align: left; 
+                border-bottom: 1px solid #eee; 
+              }
+              .invoice-table th { 
+                background-color: #f8f8f8; 
+                font-weight: 500;
+              }
+              .amount-column, .qty-column, .price-column { 
+                text-align: right; 
+              }
+              .invoice-total-row {
+                font-weight: normal;
+                border-top: 1px solid #eee;
+              }
+              .invoice-final-row {
+                font-weight: bold;
+              }
+          `}
         </style>
       </Head>
       <Body
@@ -491,72 +617,35 @@ body {
             margin: '0 auto',
           }}
         >
-          <InvoiceHeader organization={organization} />
-
-          <InvoiceDetails invoice={invoice} />
-
-          <BillingInfo
+          <DocumentHeader
             organization={organization}
-            customerProfile={customerProfile}
-            billingAddress={billingAddress}
+            mode="invoice"
           />
-
+          <DocumentDetails invoice={invoice} mode="invoice" />
+          {billingAddress && (
+            <BillingInfo
+              organization={organization}
+              customerProfile={customerProfile}
+              billingAddress={billingAddress}
+            />
+          )}
           <PaymentInfo
             invoice={invoice}
             total={total}
             paymentLink={paymentLink}
+            mode="invoice"
           />
-
           <InvoiceLineItems lineItems={invoiceLineItems} />
-
           <InvoiceTotals
             subtotal={subtotal}
             taxAmount={taxAmount}
             total={total}
             currency={invoice.currency}
+            mode="invoice"
           />
-
           <InvoiceFooter organization={organization} />
         </Container>
       </Body>
     </Html>
-  )
-}
-
-export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
-  invoice,
-  invoiceLineItems,
-  customerProfile,
-  organization,
-  paymentLink,
-}) => {
-  return (
-    <InnerInvoiceTemplate
-      invoice={invoice}
-      invoiceLineItems={invoiceLineItems}
-      customerProfile={customerProfile}
-      organization={organization}
-      paymentLink={paymentLink}
-      mode="receipt"
-    />
-  )
-}
-
-export const InvoiceTemplate = ({
-  invoice,
-  invoiceLineItems,
-  customerProfile,
-  organization,
-  paymentLink,
-}: InvoiceTemplateProps) => {
-  return (
-    <InnerInvoiceTemplate
-      invoice={invoice}
-      invoiceLineItems={invoiceLineItems}
-      customerProfile={customerProfile}
-      organization={organization}
-      paymentLink={paymentLink}
-      mode="invoice"
-    />
   )
 }

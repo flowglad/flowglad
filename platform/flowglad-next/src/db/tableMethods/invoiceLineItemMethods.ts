@@ -8,6 +8,7 @@ import {
   createSelectFunction,
   whereClauseFromObject,
   createPaginatedSelectFunction,
+  createBulkUpsertFunction,
 } from '@/db/tableUtils'
 import {
   InvoiceLineItem,
@@ -18,7 +19,7 @@ import {
   InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
 import { DbTransaction } from '@/db/types'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import {
   Invoice,
   invoices,
@@ -139,5 +140,22 @@ export const deleteInvoiceLineItemsByInvoiceId = async (
     .where(eq(invoiceLineItems.InvoiceId, invoiceId))
 }
 
+export const deleteInvoiceLineItems = async (
+  ids: { id: string }[],
+  transaction: DbTransaction
+) => {
+  return transaction.delete(invoiceLineItems).where(
+    inArray(
+      invoiceLineItems.id,
+      ids.map((id) => id.id)
+    )
+  )
+}
+
 export const selectInvoiceLineItemsPaginated =
   createPaginatedSelectFunction(invoiceLineItems, config)
+
+export const bulkUpsertInvoiceLineItems = createBulkUpsertFunction(
+  invoiceLineItems,
+  config
+)
