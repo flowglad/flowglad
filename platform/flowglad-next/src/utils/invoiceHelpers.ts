@@ -13,6 +13,27 @@ import {
 import { DbTransaction } from '@/db/types'
 import { deleteIncompletePurchaseSessionsForInvoice } from '@/db/tableMethods/purchaseSessionMethods'
 
+/**
+ * This function updates an invoice and its line items.
+ * If the invoice is in a terminal state, it throws an error.
+ *
+ * If the invoice has line items in the database but they
+ * are not present in the input, they are deleted.
+ *
+ * If the invoice has line items in the input that don't
+ * exist in the database, they are created.
+ *
+ * If the input provides line items that do not have an id,
+ * those are created and attached to the invoice.
+ *
+ * It also deletes any incomplete purchase sessions for the invoice,
+ * even if the update doesn't have any billing impacts.
+ *
+ * @param params
+ * @param livemode
+ * @param transaction
+ * @returns
+ */
 export const updateInvoiceTransaction = async (
   { invoice, invoiceLineItems }: EditInvoiceInput,
   livemode: boolean,
