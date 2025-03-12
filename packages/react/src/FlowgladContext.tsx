@@ -9,6 +9,7 @@ import {
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
+import { FlowgladTheme } from './FlowgladTheme'
 
 type LoadedFlowgladContextValues = {
   loaded: true
@@ -191,7 +192,7 @@ export const FlowgladContextProvider = ({
 
   return (
     <FlowgladContext.Provider value={value}>
-      {children}
+      <FlowgladTheme>{children}</FlowgladTheme>
     </FlowgladContext.Provider>
   )
 }

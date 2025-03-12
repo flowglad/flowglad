@@ -8,23 +8,38 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "pnpm build:css && tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch --onSuccess 'yalc push'",
     "lint": "eslint --config eslint.config.js && tsc --noEmit",
     "yalc:publish": "yalc publish && yalc link",
-    "build:declarations": "tsc -p tsconfig.declarations.json"
+    "build:declarations": "tsc -p tsconfig.declarations.json",
+    "build:css": "tsx scripts/build-css.ts"
   },
   "dependencies": {
-    "@flowglad/node": "catalog:repo",
+    "@flowglad/node": "0.4.1",
     "@flowglad/shared": "workspace:*",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-tooltip": "^1.1.8",
     "@tanstack/react-query": "5.66.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "4.1.0",
+    "lucide-react": "^0.479.0",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss-animate": "^1.0.7",
     "zod": "3.23.8"
   },
   "devDependencies": {
+    "@flowglad/types": "workspace:*",
+    "@types/autoprefixer": "^10.2.0",
     "@types/react": "catalog:react",
+    "autoprefixer": "^10.4.18",
     "eslint": "catalog:repo",
-    "typescript": "catalog:repo"
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "catalog:repo",
+    "ts-node": "^10.9.2"
   },
   "exports": {
     ".": {
