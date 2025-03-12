@@ -132,14 +132,10 @@ function PricingTableProductColumn({
 
 export function PricingTable({ products }: PricingTableProps) {
   return (
-    <div className="flex flex-row gap-4 w-full">
+    <div className="flowglad-flex flowglad-flex-row flowglad-gap-4 flowglad-w-full">
       {products.map((product, index) => (
         <PricingTableProductColumn key={index} product={product} />
       ))}
-      <div className="flowglad-debug hover:flowglad-bg-blue-500">
-        Debug Test 1
-      </div>
-      <div className="flowglad-test">Debug Test 2</div>
     </div>
   )
 }
