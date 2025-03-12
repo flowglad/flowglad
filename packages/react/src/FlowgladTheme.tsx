@@ -1,5 +1,5 @@
 // @flowglad/react/src/FlowgladTheme.tsx
-import React from 'react'
+import React, { useEffect } from 'react'
 import { styles } from './generated/styles'
 
 interface FlowgladThemeProps {
@@ -18,19 +18,32 @@ export const FlowgladTheme: React.FC<FlowgladThemeProps> = ({
 }) => {
   const rootClassName = `flowglad-root${darkMode ? ' flowglad-dark' : ''}`
 
+  useEffect(() => {
+    // Apply the class to the html element
+    document.documentElement.classList.add('flowglad-root')
+    if (darkMode) {
+      document.documentElement.classList.add('flowglad-dark')
+    }
+
+    // Cleanup function to remove the classes
+    return () => {
+      document.documentElement.classList.remove(
+        'flowglad-root',
+        'flowglad-dark'
+      )
+    }
+  }, [darkMode])
+
   return (
     <>
       <style
-        suppressHydrationWarning // we need this since the nonce can differ between client and server
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{
-          //   __html: `.flowglad-root{font-family:sans-serif}.flowglad-dark{color-scheme:dark}`,
           __html: styles,
         }}
         nonce={nonce}
         // @ts-expect-error - precedence is needed for hoisting
-        // this node into the head element, but it's not
-        // in the formal types
-        precedence="default"
+        precedence="high"
         href={STYLE_HREF}
         key={STYLE_HREF}
       />

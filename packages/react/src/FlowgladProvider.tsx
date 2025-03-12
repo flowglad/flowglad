@@ -8,6 +8,10 @@ import { FlowgladContextProvider } from './FlowgladContext'
 import { validateUrl } from './utils'
 const queryClient = new QueryClient()
 
+export interface Appearance {
+  darkMode?: boolean
+}
+
 export const FlowgladProvider = ({
   children,
   cancelUrl,
@@ -15,14 +19,17 @@ export const FlowgladProvider = ({
   authenticated,
   loadBilling,
   serverRoute,
+  darkMode,
 }: {
   children: React.ReactNode
+  appearance?: Appearance
   serverRoute?: string
   cancelUrl?: string
   successUrl?: string
   loadBilling: boolean
   /** @deprecated use loadBilling instead */
-  authenticated: boolean
+  authenticated?: boolean
+  darkMode?: boolean
 }) => {
   validateUrl(serverRoute, 'serverRoute', true)
   validateUrl(cancelUrl, 'cancelUrl')
@@ -36,6 +43,7 @@ export const FlowgladProvider = ({
         cancelUrl={cancelUrl}
         successUrl={successUrl}
         loadBilling={shouldLoad}
+        darkMode={darkMode}
       >
         {children}
       </FlowgladContextProvider>

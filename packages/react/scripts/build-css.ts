@@ -23,8 +23,10 @@ execSync(
 const cssContent = fs.readFileSync(TEMP_CSS_PATH, 'utf-8')
 
 // Create the TypeScript content
+// note we need to escape backslashes and backticks
+// to get things like hover selectors to work
 const tsContent = `// This file is auto-generated. Do not edit it manually.
-export const styles = \`${cssContent.replace(/`/g, '\\`')}\`
+export const styles = \`${cssContent.replace(/\\/g, '\\\\').replace(/`/g, '\\`')}\`
 `
 
 // Write the TypeScript file

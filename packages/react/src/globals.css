@@ -7,7 +7,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
+  /* --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -25,13 +25,12 @@
   --destructive-foreground: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
+  --ring: oklch(0.708 0 0); */
+  /* --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -39,7 +38,7 @@
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.708 0 0); */
   --flowglad-background: oklch(1 0 0);
   --flowglad-foreground: oklch(0.145 0 0);
   --flowglad-card: oklch(1 0 0);
@@ -60,10 +59,11 @@
   --flowglad-input: oklch(0.922 0 0);
   --flowglad-ring: oklch(0.708 0 0);
   --flowglad-radius: 0.625rem;
+  --radius: 0.625rem;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  /* --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -94,7 +94,7 @@
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar-ring: oklch(0.439 0 0); */
   --flowglad-background: oklch(0.145 0 0);
   --flowglad-foreground: oklch(0.985 0 0);
   --flowglad-card: oklch(0.145 0 0);
@@ -216,68 +216,6 @@
 }
 
 @layer utilities {
-  /* Background Colors */
-  .flowglad-bg-background { background-color: var(--flowglad-background); }
-  .flowglad-bg-foreground { background-color: var(--flowglad-foreground); }
-  .flowglad-bg-card { background-color: var(--flowglad-card); }
-  .flowglad-bg-card-foreground { background-color: var(--flowglad-card-foreground); }
-  .flowglad-bg-popover { background-color: var(--flowglad-popover); }
-  .flowglad-bg-popover-foreground { background-color: var(--flowglad-popover-foreground); }
-  .flowglad-bg-primary { background-color: var(--flowglad-primary); }
-  .flowglad-bg-primary-foreground { background-color: var(--flowglad-primary-foreground); }
-  .flowglad-bg-secondary { background-color: var(--flowglad-secondary); }
-  .flowglad-bg-secondary-foreground { background-color: var(--flowglad-secondary-foreground); }
-  .flowglad-bg-muted { background-color: var(--flowglad-muted); }
-  .flowglad-bg-muted-foreground { background-color: var(--flowglad-muted-foreground); }
-  .flowglad-bg-accent { background-color: var(--flowglad-accent); }
-  .flowglad-bg-accent-foreground { background-color: var(--flowglad-accent-foreground); }
-  .flowglad-bg-destructive { background-color: var(--flowglad-destructive); }
-  .flowglad-bg-destructive-foreground { background-color: var(--flowglad-destructive-foreground); }
-
-  /* Text Colors */
-  .flowglad-text-background { color: var(--flowglad-background); }
-  .flowglad-text-foreground { color: var(--flowglad-foreground); }
-  .flowglad-text-card { color: var(--flowglad-card); }
-  .flowglad-text-card-foreground { color: var(--flowglad-card-foreground); }
-  .flowglad-text-popover { color: var(--flowglad-popover); }
-  .flowglad-text-popover-foreground { color: var(--flowglad-popover-foreground); }
-  .flowglad-text-primary { color: var(--flowglad-primary); }
-  .flowglad-text-primary-foreground { color: var(--flowglad-primary-foreground); }
-  .flowglad-text-secondary { color: var(--flowglad-secondary); }
-  .flowglad-text-secondary-foreground { color: var(--flowglad-secondary-foreground); }
-  .flowglad-text-muted { color: var(--flowglad-muted); }
-  .flowglad-text-muted-foreground { color: var(--flowglad-muted-foreground); }
-  .flowglad-text-accent { color: var(--flowglad-accent); }
-  .flowglad-text-accent-foreground { color: var(--flowglad-accent-foreground); }
-  .flowglad-text-destructive { color: var(--flowglad-destructive); }
-  .flowglad-text-destructive-foreground { color: var(--flowglad-destructive-foreground); }
-
-  /* Border Colors */
-  .flowglad-border { border-color: var(--flowglad-border); }
-  .flowglad-border-background { border-color: var(--flowglad-background); }
-  .flowglad-border-foreground { border-color: var(--flowglad-foreground); }
-  .flowglad-border-card { border-color: var(--flowglad-card); }
-  .flowglad-border-card-foreground { border-color: var(--flowglad-card-foreground); }
-  .flowglad-border-input { border-color: var(--flowglad-input); }
-  .flowglad-border-primary { border-color: var(--flowglad-primary); }
-  .flowglad-border-secondary { border-color: var(--flowglad-secondary); }
-  .flowglad-border-destructive { border-color: var(--flowglad-destructive); }
-  .flowglad-border-muted { border-color: var(--flowglad-muted); }
-  .flowglad-border-accent { border-color: var(--flowglad-accent); }
-
-  /* Ring Colors */
-  .flowglad-ring { --tw-ring-color: var(--flowglad-ring); }
-  .flowglad-ring-background { --tw-ring-color: var(--flowglad-background); }
-  .flowglad-ring-foreground { --tw-ring-color: var(--flowglad-foreground); }
-  .flowglad-ring-card { --tw-ring-color: var(--flowglad-card); }
-  .flowglad-ring-card-foreground { --tw-ring-color: var(--flowglad-card-foreground); }
-  .flowglad-ring-input { --tw-ring-color: var(--flowglad-input); }
-  .flowglad-ring-primary { --tw-ring-color: var(--flowglad-primary); }
-  .flowglad-ring-secondary { --tw-ring-color: var(--flowglad-secondary); }
-  .flowglad-ring-destructive { --tw-ring-color: var(--flowglad-destructive); }
-  .flowglad-ring-muted { --tw-ring-color: var(--flowglad-muted); }
-  .flowglad-ring-accent { --tw-ring-color: var(--flowglad-accent); }
-
   /* Border Radius */
   .flowglad-rounded-sm { border-radius: calc(var(--flowglad-radius) - 4px); }
   .flowglad-rounded { border-radius: calc(var(--flowglad-radius) - 2px); }

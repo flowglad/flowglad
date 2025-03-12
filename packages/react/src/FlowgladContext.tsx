@@ -31,19 +31,27 @@ type LoadedFlowgladContextValues = {
   errors: null
 }
 
-interface NotLoadedFlowgladContextValues {
+interface NonPresentContextValues {
+  customerProfile: null
+  subscriptions: null
+  createPurchaseSession: null
+  catalog: null
+}
+interface NotLoadedFlowgladContextValues
+  extends NonPresentContextValues {
   loaded: false
   loadBilling: boolean
   errors: null
 }
 
-interface NotAuthenticatedFlowgladContextValues {
+interface NotAuthenticatedFlowgladContextValues
+  extends NonPresentContextValues {
   loaded: true
   loadBilling: false
   errors: null
 }
 
-interface ErrorFlowgladContextValues {
+interface ErrorFlowgladContextValues extends NonPresentContextValues {
   loaded: true
   loadBilling: boolean
   errors: Error[]
@@ -55,10 +63,17 @@ type FlowgladContextValues =
   | NotAuthenticatedFlowgladContextValues
   | ErrorFlowgladContextValues
 
+const notPresentContextValues = {
+  customerProfile: null,
+  subscriptions: null,
+  createPurchaseSession: null,
+  catalog: null,
+} as const
 const FlowgladContext = createContext<FlowgladContextValues>({
   loaded: false,
   loadBilling: false,
   errors: null,
+  ...notPresentContextValues,
 })
 
 const constructCreatePurchaseSession =
@@ -115,8 +130,10 @@ export const FlowgladContextProvider = ({
   cancelUrl,
   successUrl,
   loadBilling,
+  darkMode,
 }: {
   loadBilling?: boolean
+  darkMode?: boolean
   customerProfile?: {
     externalId: string
     email: string
@@ -157,11 +174,13 @@ export const FlowgladContextProvider = ({
     constructCreatePurchaseSession(serverRoute)
 
   let value: FlowgladContextValues
+
   if (!loadBilling) {
     value = {
       loaded: true,
       loadBilling: loadBilling ?? false,
       errors: null,
+      ...notPresentContextValues,
     }
   } else if (billing) {
     value = {
@@ -178,6 +197,7 @@ export const FlowgladContextProvider = ({
       loaded: false,
       loadBilling,
       errors: null,
+      ...notPresentContextValues,
     }
   } else {
     const errors: Error[] = [errorBilling].filter(
@@ -187,12 +207,13 @@ export const FlowgladContextProvider = ({
       loaded: true,
       loadBilling,
       errors,
+      ...notPresentContextValues,
     }
   }
 
   return (
     <FlowgladContext.Provider value={value}>
-      <FlowgladTheme>{children}</FlowgladTheme>
+      <FlowgladTheme darkMode={darkMode}>{children}</FlowgladTheme>
     </FlowgladContext.Provider>
   )
 }

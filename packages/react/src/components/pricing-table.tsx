@@ -136,6 +136,10 @@ export function PricingTable({ products }: PricingTableProps) {
       {products.map((product, index) => (
         <PricingTableProductColumn key={index} product={product} />
       ))}
+      <div className="flowglad-debug hover:flowglad-bg-blue-500">
+        Debug Test 1
+      </div>
+      <div className="flowglad-test">Debug Test 2</div>
     </div>
   )
 }
