@@ -27,6 +27,9 @@ export const FlowgladTheme: React.FC<FlowgladThemeProps> = ({
           __html: styles,
         }}
         nonce={nonce}
+        // @ts-expect-error - precedence is needed for hoisting
+        // this node into the head element, but it's not
+        // in the formal types
         precedence="default"
         href={STYLE_HREF}
         key={STYLE_HREF}
