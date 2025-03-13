@@ -6,14 +6,14 @@ import { apiKeyClientWhereClauseSchema } from '@/db/schema/apiKeys'
 export const getApiKeys = protectedProcedure
   .input(apiKeyClientWhereClauseSchema)
   .query(async ({ ctx, input }) => {
-    if (!ctx.OrganizationId) {
-      throw new Error('OrganizationId is required')
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
     }
 
     const apiKeys = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectApiKeys(
-          { organizationId: ctx.OrganizationId, ...input },
+          { organizationId: ctx.organizationId, ...input },
           transaction
         )
       }

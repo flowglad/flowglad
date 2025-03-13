@@ -73,16 +73,16 @@ export const confirmPurchaseSession = publicProcedure
         const result = await selectCustomerProfiles(
           {
             email: purchaseSession.customerEmail,
-            organizationId: purchaseSession.OrganizationId,
+            organizationId: purchaseSession.organizationId,
           },
           transaction
         )
         customerProfile = result[0]
-      } else if (purchaseSession.PurchaseId) {
+      } else if (purchaseSession.purchaseId) {
         const purchaseAndCustomerProfile =
           await selectPurchasesCustomerProfileAndCustomer(
             {
-              id: purchaseSession.PurchaseId!,
+              id: purchaseSession.purchaseId!,
             },
             transaction
           )
@@ -110,9 +110,9 @@ export const confirmPurchaseSession = publicProcedure
         // Create new customer profile
         customerProfile = await insertCustomerProfile(
           {
-            CustomerId: customer.id,
+            customerId: customer.id,
             email: purchaseSession.customerEmail,
-            organizationId: purchaseSession.OrganizationId,
+            organizationId: purchaseSession.organizationId,
             name:
               purchaseSession.customerName ||
               purchaseSession.customerEmail,

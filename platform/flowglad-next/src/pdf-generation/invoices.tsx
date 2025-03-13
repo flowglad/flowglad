@@ -316,7 +316,7 @@ interface PaymentInfoProps {
 }
 
 const constructPaymentLink = (invoice: Invoice.Record) => {
-  return `/invoice/view/${invoice.OrganizationId}/${invoice.id}`
+  return `/invoice/view/${invoice.organizationId}/${invoice.id}`
 }
 
 export const PaymentInfo: React.FC<PaymentInfoProps> = ({

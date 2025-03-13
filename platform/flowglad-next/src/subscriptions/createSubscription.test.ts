@@ -28,11 +28,11 @@ import { core } from '@/utils/core'
 describe('createSubscription', async () => {
   const { organization, product, variant } = await setupOrg()
   const customerProfile = await setupCustomerProfile({
-    OrganizationId: organization.id,
+    organizationId: organization.id,
   })
   const paymentMethod = await setupPaymentMethod({
-    OrganizationId: organization.id,
-    CustomerProfileId: customerProfile.id,
+    organizationId: organization.id,
+    customerProfileId: customerProfile.id,
   })
   const {
     subscription,
@@ -101,11 +101,11 @@ describe('createSubscription', async () => {
   })
   it('does not throw an error if creating a subscription for a customer with no active subscriptions, but past non-active subscriptions', async () => {
     const newCustomerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     const newPaymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: newCustomerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: newCustomerProfile.id,
     })
     // Create a past subscription that is now cancelled
     await adminTransaction(async ({ transaction }) => {
@@ -164,11 +164,11 @@ describe('createSubscription', async () => {
   it('creates billing periods correctly for trial subscriptions', async () => {
     const { organization, product, variant } = await setupOrg()
     const newCustomerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     const newPaymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: newCustomerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: newCustomerProfile.id,
     })
 
     const startDate = new Date()
@@ -211,7 +211,7 @@ describe('createSubscription', async () => {
     await adminTransaction(async ({ transaction }) => {
       const billingPeriodItems = await selectBillingPeriodItems(
         {
-          BillingPeriodId: billingPeriod.id,
+          billingPeriodId: billingPeriod.id,
         },
         transaction
       )
@@ -221,36 +221,36 @@ describe('createSubscription', async () => {
   it("doesn't recreate subscriptions, billing periods, or billing period items for the same setup intent", async () => {
     const startDate = new Date()
     const newCustomerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     const newPaymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: newCustomerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: newCustomerProfile.id,
     })
     // Create initial subscription
     const firstSubscription = await setupSubscription({
-      OrganizationId: organization.id,
-      CustomerProfileId: newCustomerProfile.id,
-      PaymentMethodId: newPaymentMethod.id,
-      VariantId: variant.id,
+      organizationId: organization.id,
+      customerProfileId: newCustomerProfile.id,
+      paymentMethodId: newPaymentMethod.id,
+      variantId: variant.id,
       interval: IntervalUnit.Month,
       intervalCount: 1,
       trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       status: SubscriptionStatus.Incomplete,
     })
     await setupSubscriptionItem({
-      SubscriptionId: firstSubscription.id,
+      subscriptionId: firstSubscription.id,
       name: 'Test Item',
       quantity: 1,
       unitPrice: variant.unitPrice,
     })
     const billingPeriod = await setupBillingPeriod({
-      SubscriptionId: firstSubscription.id,
+      subscriptionId: firstSubscription.id,
       startDate,
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     })
     await setupBillingPeriodItems({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: variant.unitPrice,
     })

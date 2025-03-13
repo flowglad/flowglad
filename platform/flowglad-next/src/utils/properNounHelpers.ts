@@ -30,7 +30,7 @@ export const productRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.Product,
     name: params.record.name,
-    OrganizationId: params.organizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -42,7 +42,7 @@ export const variantRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.Variant,
     name: params.record.name ?? '',
-    OrganizationId: params.organizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -54,7 +54,7 @@ export const discountRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.Discount,
     name: params.record.name,
-    OrganizationId: params.organizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -66,7 +66,7 @@ export const fileRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.File,
     name: params.record.name,
-    OrganizationId: params.organizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -78,7 +78,7 @@ export const customerProfileToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.CustomerProfile,
     name: params.record.name ?? params.record.email,
-    OrganizationId: params.organizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -101,7 +101,7 @@ export const supabasePayloadToProperNounUpsert = async (
       properNounUpsert = productRecordToProperNounUpsert({
         record: payload.record as Product.Record,
         organizationId: (payload.record as Product.Record)
-          .OrganizationId,
+          .organizationId,
       })
       break
     case 'Variants':

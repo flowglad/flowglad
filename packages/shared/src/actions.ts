@@ -10,7 +10,7 @@ export type FlowgladActionValidatorMap = Record<
 >
 
 export const createPurchaseSessionSchema = z.object({
-  VariantId: z.string(),
+  variantId: z.string(),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
 })

@@ -54,7 +54,7 @@ const columns = {
   // includeTaxInPrice: boolean('includeTaxInPrice')
   //   .notNull()
   //   .default(false),
-  ProductId: notNullStringForeignKey('ProductId', products),
+  productId: notNullStringForeignKey('ProductId', products),
   stripePriceId: text('stripePriceId').unique(),
   active: boolean('active').notNull().default(true),
   currency: pgEnumColumn({
@@ -70,7 +70,7 @@ export const variants = pgTable(
   (table) => {
     return [
       constructIndex(VARIANTS_TABLE_NAME, [table.priceType]),
-      constructIndex(VARIANTS_TABLE_NAME, [table.ProductId]),
+      constructIndex(VARIANTS_TABLE_NAME, [table.productId]),
       constructUniqueIndex(VARIANTS_TABLE_NAME, [
         table.stripePriceId,
       ]),
@@ -242,7 +242,7 @@ export const variantsClientSelectSchema = z.discriminatedUnion(
 export const variantsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     z.object({
-      ProductId: z.string().optional(),
+      productId: z.string().optional(),
       priceType: z.nativeEnum(PriceType).optional(),
       active: z.boolean().optional(),
     })

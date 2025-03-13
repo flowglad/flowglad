@@ -76,17 +76,17 @@ export const projectVariantFieldsOntoPurchaseFields = (
 export const createManualPurchaseInsert = ({
   customerProfile,
   variant,
-  OrganizationId,
+  organizationId,
 }: {
   customerProfile: CustomerProfile.Record
   variant: Variant.Record
-  OrganizationId: string
+  organizationId: string
 }) => {
   const enhancements = projectVariantFieldsOntoPurchaseFields(variant)
   const purchaseInsert = purchasesInsertSchema.parse({
-    CustomerProfileId: customerProfile.id,
-    VariantId: variant.id,
-    OrganizationId,
+    customerProfileId: customerProfile.id,
+    variantId: variant.id,
+    organizationId,
     status: PurchaseStatus.Paid,
     name: `${variant.name} - ${customerProfile.name}`,
     priceType: variant.priceType,
@@ -169,7 +169,7 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
 
 export const customerAndCustomerProfileInsertsFromBulkImport = async (
   input: BulkImportCustomerProfilesInput,
-  OrganizationId: string,
+  organizationId: string,
   livemode: boolean
 ) => {
   let customerUpserts: Customer.Insert[] = []
@@ -181,7 +181,7 @@ export const customerAndCustomerProfileInsertsFromBulkImport = async (
     const csvContent = input.csvContent
     const result = await customerAndCustomerProfileInsertsFromCSV(
       csvContent,
-      OrganizationId,
+      organizationId,
       livemode
     )
     customerUpserts = result.customerInserts

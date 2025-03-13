@@ -86,7 +86,7 @@ export const setupOrg = async () => {
     const product = await insertProduct(
       {
         name: 'Flowglad Test Product',
-        OrganizationId: organization.id,
+        organizationId: organization.id,
         livemode: true,
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
@@ -98,7 +98,7 @@ export const setupOrg = async () => {
     )
     const variant = await insertVariant(
       {
-        ProductId: product.id,
+        productId: product.id,
         name: 'Flowglad Test Product Variant',
         priceType: PriceType.Subscription,
         intervalUnit: IntervalUnit.Month,
@@ -119,8 +119,8 @@ export const setupOrg = async () => {
 }
 
 export const setupPaymentMethod = async (params: {
-  OrganizationId: string
-  CustomerProfileId: string
+  organizationId: string
+  customerProfileId: string
   livemode?: boolean
   paymentMethodData?: Record<string, any>
   type?: PaymentMethodType
@@ -128,7 +128,7 @@ export const setupPaymentMethod = async (params: {
   return adminTransaction(async ({ transaction }) => {
     return safelyInsertPaymentMethod(
       {
-        CustomerProfileId: params.CustomerProfileId,
+        customerProfileId: params.customerProfileId,
         type: params.type ?? PaymentMethodType.Card,
         livemode: params.livemode ?? true,
         default: true,
@@ -184,27 +184,27 @@ export const setupCustomerProfile = async (params: {
 }
 
 export const teardownOrg = async ({
-  OrganizationId,
+  organizationId,
 }: {
-  OrganizationId: string
+  organizationId: string
 }) => {
-  await sql`DELETE FROM "BillingPeriodItems" WHERE BillingPeriodId IN (SELECT id FROM "BillingPeriods" WHERE SubscriptionId IN (SELECT id FROM "Subscriptions" WHERE OrganizationId = ${OrganizationId}))`
-  await sql`DELETE FROM "BillingRuns" WHERE BillingPeriodId IN (SELECT id FROM "BillingPeriods" WHERE SubscriptionId IN (SELECT id FROM "Subscriptions" WHERE OrganizationId = ${OrganizationId}))`
-  await sql`DELETE FROM "Invoices" WHERE BillingPeriodId IN (SELECT id FROM "BillingPeriods" WHERE SubscriptionId IN (SELECT id FROM "Subscriptions" WHERE OrganizationId = ${OrganizationId}))`
-  await sql`DELETE FROM "SubscriptionItems" WHERE SubscriptionId IN (SELECT id FROM "Subscriptions" WHERE OrganizationId = ${OrganizationId})`
-  await sql`DELETE FROM "BillingPeriods" WHERE SubscriptionId IN (SELECT id FROM "Subscriptions" WHERE OrganizationId = ${OrganizationId})`
-  await sql`DELETE FROM "Subscriptions" WHERE OrganizationId = ${OrganizationId}`
-  await sql`DELETE FROM "CustomerProfiles" WHERE OrganizationId = ${OrganizationId}`
-  await sql`DELETE FROM "Variants" WHERE OrganizationId = ${OrganizationId}`
-  await sql`DELETE FROM "Products" WHERE OrganizationId = ${OrganizationId}`
-  await sql`DELETE FROM "Organizations" WHERE id = ${OrganizationId} CASCADE`
+  await sql`DELETE FROM "BillingPeriodItems" WHERE billingPeriodId IN (SELECT id FROM "BillingPeriods" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId}))`
+  await sql`DELETE FROM "BillingRuns" WHERE billingPeriodId IN (SELECT id FROM "BillingPeriods" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId}))`
+  await sql`DELETE FROM "Invoices" WHERE billingPeriodId IN (SELECT id FROM "BillingPeriods" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId}))`
+  await sql`DELETE FROM "SubscriptionItems" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId})`
+  await sql`DELETE FROM "BillingPeriods" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId})`
+  await sql`DELETE FROM "Subscriptions" WHERE organizationId = ${organizationId}`
+  await sql`DELETE FROM "CustomerProfiles" WHERE organizationId = ${organizationId}`
+  await sql`DELETE FROM "Variants" WHERE organizationId = ${organizationId}`
+  await sql`DELETE FROM "Products" WHERE organizationId = ${organizationId}`
+  await sql`DELETE FROM "Organizations" WHERE id = ${organizationId} CASCADE`
 }
 
 export const setupSubscription = async (params: {
-  OrganizationId: string
-  CustomerProfileId: string
-  PaymentMethodId: string
-  VariantId: string
+  organizationId: string
+  customerProfileId: string
+  paymentMethodId: string
+  variantId: string
   interval?: IntervalUnit
   intervalCount?: number
   livemode?: boolean
@@ -216,9 +216,9 @@ export const setupSubscription = async (params: {
   return adminTransaction(async ({ transaction }) => {
     return insertSubscription(
       {
-        OrganizationId: params.OrganizationId,
-        CustomerProfileId: params.CustomerProfileId,
-        defaultPaymentMethodId: params.PaymentMethodId,
+        organizationId: params.organizationId,
+        customerProfileId: params.customerProfileId,
+        defaultPaymentMethodId: params.paymentMethodId,
         status: params.status ?? SubscriptionStatus.Active,
         livemode: params.livemode ?? true,
         billingCycleAnchorDate: new Date(),
@@ -231,7 +231,7 @@ export const setupSubscription = async (params: {
         cancelScheduledAt: null,
         trialEnd: params.trialEnd ?? null,
         backupPaymentMethodId: null,
-        VariantId: params.VariantId,
+        variantId: params.variantId,
         interval: params.interval ?? IntervalUnit.Month,
         intervalCount: params.intervalCount ?? 1,
         metadata: {},
@@ -332,27 +332,27 @@ export const setupBillingPeriodItems = async ({
 }
 
 export const setupPurchase = async ({
-  CustomerProfileId,
-  OrganizationId,
+  customerProfileId,
+  organizationId,
   livemode,
-  VariantId,
+  variantId,
 }: {
-  CustomerProfileId: string
-  OrganizationId: string
+  customerProfileId: string
+  organizationId: string
   livemode?: boolean
-  VariantId: string
+  variantId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const variant = await selectVariantById(VariantId, transaction)
+    const variant = await selectVariantById(variantId, transaction)
     const purchaseFields =
       projectVariantFieldsOntoPurchaseFields(variant)
     return insertPurchase(
       {
-        CustomerProfileId,
-        OrganizationId,
+        customerProfileId,
+        organizationId,
         livemode: livemode ?? variant.livemode,
         name: 'Test Purchase',
-        VariantId: variant.id,
+        variantId: variant.id,
         priceType: variant.priceType,
         totalPurchaseValue: variant.unitPrice,
         quantity: 1,
@@ -365,45 +365,45 @@ export const setupPurchase = async ({
 }
 
 export const setupInvoice = async ({
-  BillingPeriodId,
-  CustomerProfileId,
-  OrganizationId,
+  billingPeriodId,
+  customerProfileId,
+  organizationId,
   status = InvoiceStatus.Draft,
   livemode = true,
-  VariantId,
+  variantId,
 }: {
-  BillingPeriodId?: string
-  CustomerProfileId: string
-  OrganizationId: string
+  billingPeriodId?: string
+  customerProfileId: string
+  organizationId: string
   status?: InvoiceStatus
   livemode?: boolean
   type?: InvoiceType
-  VariantId: string
+  variantId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let billingPeriod: BillingPeriod.Record | null = null
-    let PurchaseId: string | null = null
-    if (BillingPeriodId) {
+    let purchaseId: string | null = null
+    if (billingPeriodId) {
       billingPeriod = await selectBillingPeriodById(
-        BillingPeriodId,
+        billingPeriodId,
         transaction
       )
     } else {
       const purchase = await setupPurchase({
-        CustomerProfileId,
-        OrganizationId,
+        customerProfileId,
+        organizationId,
         livemode,
-        VariantId,
+        variantId,
       })
-      PurchaseId = purchase.id
+      purchaseId = purchase.id
     }
 
     const invoice = await insertInvoice(
       // @ts-expect-error
       {
-        BillingPeriodId: billingPeriod?.id ?? null,
-        CustomerProfileId,
-        OrganizationId,
+        billingPeriodId: billingPeriod?.id ?? null,
+        customerProfileId,
+        organizationId,
         status,
         livemode,
         invoiceNumber: `TEST-001-${core.nanoid()}`,
@@ -414,7 +414,7 @@ export const setupInvoice = async ({
         type: billingPeriod
           ? InvoiceType.Subscription
           : InvoiceType.Purchase,
-        PurchaseId,
+        purchaseId,
         currency: CurrencyCode.USD,
         taxCountry: CountryCode.US,
       },
@@ -422,7 +422,7 @@ export const setupInvoice = async ({
     )
     await insertInvoiceLineItem(
       {
-        InvoiceId: invoice.id,
+        invoiceId: invoice.id,
         description: 'Test Description',
         price: 1000,
         quantity: 1,
@@ -439,23 +439,23 @@ export const setupPayment = async ({
   status,
   amount,
   livemode = true,
-  CustomerProfileId,
-  OrganizationId,
+  customerProfileId,
+  organizationId,
   stripePaymentIntentId,
-  InvoiceId,
+  invoiceId,
   paymentMethod,
-  BillingPeriodId,
+  billingPeriodId,
 }: {
   stripeChargeId: string
   status: PaymentStatus
   amount: number
   livemode?: boolean
-  CustomerProfileId: string
-  OrganizationId: string
+  customerProfileId: string
+  organizationId: string
   stripePaymentIntentId?: string
   paymentMethod?: PaymentMethodType
-  InvoiceId: string
-  BillingPeriodId?: string
+  invoiceId: string
+  billingPeriodId?: string
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -464,11 +464,11 @@ export const setupPayment = async ({
         status,
         amount,
         livemode,
-        CustomerProfileId,
-        OrganizationId,
+        customerProfileId,
+        organizationId,
         stripePaymentIntentId: stripePaymentIntentId ?? core.nanoid(),
-        InvoiceId,
-        BillingPeriodId,
+        invoiceId,
+        billingPeriodId,
         currency: CurrencyCode.USD,
         paymentMethod: paymentMethod ?? PaymentMethodType.Card,
         chargeDate: new Date(),
@@ -484,9 +484,9 @@ export const setupPayment = async ({
 }
 
 export const setupMemberships = async ({
-  OrganizationId,
+  organizationId,
 }: {
-  OrganizationId: string
+  organizationId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const nanoid = core.nanoid()
@@ -500,7 +500,7 @@ export const setupMemberships = async ({
     )
     return insertMembership(
       {
-        OrganizationId,
+        organizationId,
         UserId: user.id,
         focused: true,
         livemode: true,
@@ -539,12 +539,12 @@ export const setupSubscriptionItem = async ({
     }
     return insertSubscriptionItem(
       {
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         name,
         quantity,
         unitPrice,
         livemode: subscription.livemode,
-        VariantId: variantId ?? subscription.VariantId,
+        variantId: variantId ?? subscription.variantId,
         addedDate: addedDate ?? new Date(),
         metadata: metadata ?? {},
       },

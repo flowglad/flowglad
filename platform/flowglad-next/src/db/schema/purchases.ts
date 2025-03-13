@@ -40,12 +40,12 @@ const columns = {
     columnName: 'status',
     enumBase: PurchaseStatus,
   }).default(PurchaseStatus.Open),
-  CustomerProfileId: notNullStringForeignKey(
-    'CustomerProfileId',
+  customerProfileId: notNullStringForeignKey(
+    'customerProfileId',
     customerProfiles
   ),
-  OrganizationId: notNullStringForeignKey(
-    'OrganizationId',
+  organizationId: notNullStringForeignKey(
+    'organization_id',
     organizations
   ),
   billingCycleAnchor: timestamp('billingCycleAnchor'),
@@ -53,8 +53,8 @@ const columns = {
    * Billing fields
    */
   // stripeSetupIntentId: text('stripeSetupIntentId').unique(),
-  stripeSubscriptionId: text('stripeSubscriptionId').unique(),
-  VariantId: notNullStringForeignKey('VariantId', variants),
+  stripesubscriptionId: text('stripesubscriptionId').unique(),
+  variantId: notNullStringForeignKey('VariantId', variants),
   quantity: integer('quantity').notNull(),
   priceType: pgEnumColumn({
     enumName: 'PriceType',
@@ -86,9 +86,9 @@ export const purchases = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(PURCHASES_TABLE_NAME, [table.CustomerProfileId]),
-      constructIndex(PURCHASES_TABLE_NAME, [table.OrganizationId]),
-      constructIndex(PURCHASES_TABLE_NAME, [table.VariantId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.customerProfileId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.organizationId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.variantId]),
       livemodePolicy(),
       // constructIndex(PURCHASES_TABLE_NAME, [
       //   table.stripeSetupIntentId,
@@ -133,7 +133,7 @@ const nulledSubscriptionColumns = {
   intervalUnit: makeSchemaPropNull(z.any()),
   intervalCount: makeSchemaPropNull(z.any()),
   trialPeriodDays: makeSchemaPropNull(z.any()),
-  stripeSubscriptionId: makeSchemaPropNull(z.any()),
+  stripesubscriptionId: makeSchemaPropNull(z.any()),
 }
 
 export const subscriptionPurchaseInsertSchema = baseInsertSchema
@@ -193,20 +193,20 @@ export const subscriptionPurchaseClientInsertSchema =
   subscriptionPurchaseInsertSchema
     .extend({
       stripePaymentIntentId: core.safeZodAlwaysNull,
-      stripeSubscriptionId: core.safeZodAlwaysNull,
+      stripesubscriptionId: core.safeZodAlwaysNull,
     })
     .omit({
       billingAddress: true,
     })
 
 const clientSelectOmits = {
-  stripeSubscriptionId: true,
+  stripesubscriptionId: true,
 } as const
 
 const clientWriteOmits = {
-  stripeSubscriptionId: true,
+  stripesubscriptionId: true,
   billingAddress: true,
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

@@ -68,13 +68,13 @@ export const upsertPaymentForStripeCharge = async (
       `No metadata found on payment intent ${paymentIntentId}`
     )
   }
-  let OrganizationId: string | null = null
-  let InvoiceId: string | null = null
-  let PurchaseId: string | null = null
+  let organizationId: string | null = null
+  let invoiceId: string | null = null
+  let purchaseId: string | null = null
   let purchase: Purchase.Record | null = null
   let taxCountry: CountryCode | null = null
   let livemode: boolean | null = null
-  let CustomerProfileId: string | null = null
+  let customerProfileId: string | null = null
   let currency: CurrencyCode | null = null
   if ('billingRunId' in paymentIntentMetadata) {
     const billingRun = await selectBillingRunById(
@@ -87,7 +87,7 @@ export const upsertPaymentForStripeCharge = async (
     )
     const [invoice] = await selectInvoices(
       {
-        BillingPeriodId: billingRun.billingPeriodId,
+        billingPeriodId: billingRun.billingPeriodId,
       },
       transaction
     )
@@ -97,10 +97,10 @@ export const upsertPaymentForStripeCharge = async (
         `No invoice found for billing run ${billingRun.id}`
       )
     }
-    InvoiceId = invoice.id
+    invoiceId = invoice.id
     currency = invoice.currency
-    CustomerProfileId = subscription.CustomerProfileId
-    OrganizationId = subscription.OrganizationId
+    customerProfileId = subscription.customerProfileId
+    organizationId = subscription.organizationId
     livemode = subscription.livemode
   } else if ('invoiceId' in paymentIntentMetadata) {
     // TODO: the whole "invoiceId" block should be removed
@@ -116,11 +116,11 @@ export const upsertPaymentForStripeCharge = async (
       )
     const invoiceAndLineItems = maybeInvoiceAndLineItems
     currency = invoiceAndLineItems.currency
-    InvoiceId = invoiceAndLineItems.id
-    OrganizationId = invoiceAndLineItems.OrganizationId!
-    PurchaseId = invoiceAndLineItems.PurchaseId
+    invoiceId = invoiceAndLineItems.id
+    organizationId = invoiceAndLineItems.organizationId!
+    purchaseId = invoiceAndLineItems.purchaseId
     taxCountry = invoiceAndLineItems.taxCountry
-    CustomerProfileId = invoiceAndLineItems.CustomerProfileId
+    customerProfileId = invoiceAndLineItems.customerProfileId
     livemode = invoiceAndLineItems.livemode
   } else if ('purchaseSessionId' in paymentIntentMetadata) {
     const {
@@ -139,16 +139,16 @@ export const upsertPaymentForStripeCharge = async (
         'Invoice checkout flow does not support charges'
       )
     }
-    InvoiceId = invoice?.id ?? null
+    invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
-    OrganizationId = invoice?.OrganizationId!
+    organizationId = invoice?.organizationId!
     taxCountry = invoice?.taxCountry ?? null
     purchase = updatedPurchase
-    PurchaseId = purchase?.id ?? null
+    purchaseId = purchase?.id ?? null
     livemode = purchaseSession.livemode
-    CustomerProfileId =
-      purchase?.CustomerProfileId ||
-      invoice?.CustomerProfileId ||
+    customerProfileId =
+      purchase?.customerProfileId ||
+      invoice?.customerProfileId ||
       null
   } else {
     throw new Error(
@@ -156,17 +156,17 @@ export const upsertPaymentForStripeCharge = async (
     )
   }
 
-  if (!OrganizationId) {
+  if (!organizationId) {
     throw new Error(
       `No organization found for payment intent ${paymentIntentId}`
     )
   }
-  if (!InvoiceId) {
+  if (!invoiceId) {
     throw new Error(
       `No invoice found for payment intent ${paymentIntentId}`
     )
   }
-  if (!CustomerProfileId) {
+  if (!customerProfileId) {
     throw new Error(
       `No customer profile id found for payment intent ${paymentIntentId} with metadata: ${JSON.stringify(
         paymentIntentMetadata
@@ -197,18 +197,18 @@ export const upsertPaymentForStripeCharge = async (
   const paymentInsert: Payment.Insert = {
     amount: charge.amount,
     status: chargeStatusToPaymentStatus(charge.status),
-    InvoiceId,
+    invoiceId,
     chargeDate: dateFromStripeTimestamp(latestChargeDate),
     refunded: false,
-    OrganizationId,
-    PurchaseId,
+    organizationId,
+    purchaseId,
     stripePaymentIntentId: paymentIntentId,
     paymentMethod: paymentMethodFromStripeCharge(charge),
     currency: currency ?? CurrencyCode.USD,
     refundedAt: null,
     taxCountry,
     stripeChargeId: stripeIdFromObjectOrId(charge),
-    CustomerProfileId,
+    customerProfileId,
     livemode,
   }
   const [payment] = await upsertPaymentByStripeChargeId(
@@ -247,13 +247,13 @@ export const updatePaymentToReflectLatestChargeStatus = async (
   /**
    * Update associated invoice if it exists
    */
-  if (payment.InvoiceId) {
+  if (payment.invoiceId) {
     await updateInvoiceStatusToReflectLatestPayment(
       updatedPayment,
       transaction
     )
   }
-  if (payment.PurchaseId) {
+  if (payment.purchaseId) {
     /**
      * Update associated purchase if it exists
      */
@@ -262,7 +262,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
       transaction
     )
   }
-  if (!payment.InvoiceId && !payment.PurchaseId) {
+  if (!payment.invoiceId && !payment.purchaseId) {
     throw new Error(
       `No invoice or purchase found for payment ${payment.id}`
     )

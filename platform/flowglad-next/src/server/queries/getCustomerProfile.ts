@@ -34,7 +34,7 @@ export const getCustomerProfile = protectedProcedure
     if (!organizationId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'OrganizationId is required',
+        message: 'organizationId is required',
       })
     }
 

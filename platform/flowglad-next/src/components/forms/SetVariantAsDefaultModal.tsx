@@ -26,7 +26,7 @@ const SetVariantAsDefault: React.FC<SetVariantAsDefaultProps> = ({
     const data = {
       variant: {
         id: variant.id,
-        ProductId: variant.ProductId,
+        productId: variant.productId,
         isDefault: true,
       },
     }

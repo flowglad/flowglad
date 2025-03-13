@@ -26,7 +26,7 @@ export const createDiscount = protectedProcedure
         return insertDiscount(
           {
             ...input.discount,
-            OrganizationId: organization.id,
+            organizationId: organization.id,
             stripeCouponId: stripeCoupon.id,
             livemode,
           },

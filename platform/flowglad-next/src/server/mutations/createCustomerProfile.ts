@@ -33,9 +33,9 @@ export const createCustomerProfile = protectedProcedure
     //     message: 'test error!',
     //   })
     // }
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
-      throw new Error('OrganizationId is required')
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new Error('organizationId is required')
     }
     /**
      * We can't allow an insert on to customers without
@@ -78,8 +78,8 @@ export const createCustomerProfile = protectedProcedure
               customer: customerRecord,
               customerProfile: {
                 ...customerProfile,
-                OrganizationId,
-                CustomerId: customerRecord.id,
+                organizationId: organizationId,
+                customerId: customerRecord.id,
                 livemode,
               },
             },

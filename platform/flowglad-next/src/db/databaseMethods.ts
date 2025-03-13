@@ -78,7 +78,7 @@ export const authenticatedTransaction = async <T>(
       .from(memberships)
       .where(
         and(
-          eq(memberships.OrganizationId, result.ownerId!),
+          eq(memberships.organizationId, result.ownerId!),
           eq(memberships.UserId, `${result.meta?.userId}`)
         )
       )

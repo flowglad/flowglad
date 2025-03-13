@@ -38,12 +38,12 @@ const TABLE_NAME = 'Subscriptions'
 
 const columns = {
   ...tableBase('sub'),
-  CustomerProfileId: notNullStringForeignKey(
-    'CustomerProfileId',
+  customerProfileId: notNullStringForeignKey(
+    'customerProfileId',
     customerProfiles
   ),
-  OrganizationId: notNullStringForeignKey(
-    'OrganizationId',
+  organizationId: notNullStringForeignKey(
+    'organization_id',
     organizations
   ),
   status: pgEnumColumn({
@@ -70,7 +70,7 @@ const columns = {
   metadata: jsonb('metadata'),
   canceledAt: timestamp('canceledAt'),
   cancelScheduledAt: timestamp('cancelScheduledAt'),
-  VariantId: notNullStringForeignKey('VariantId', variants),
+  variantId: notNullStringForeignKey('VariantId', variants),
   interval: pgEnumColumn({
     enumName: 'IntervalUnit',
     columnName: 'interval',
@@ -84,8 +84,8 @@ const columns = {
 
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
   return [
-    constructIndex(TABLE_NAME, [table.CustomerProfileId]),
-    constructIndex(TABLE_NAME, [table.VariantId]),
+    constructIndex(TABLE_NAME, [table.customerProfileId]),
+    constructIndex(TABLE_NAME, [table.variantId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
     pgPolicy(
@@ -94,7 +94,7 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"CustomerProfileId" in (select "id" from "CustomerProfiles")`,
+        using: sql`"customerProfileId" in (select "id" from "CustomerProfiles")`,
       }
     ),
     pgPolicy('Forbid deletion', {
@@ -144,7 +144,7 @@ export const subscriptionsUpdateSchema = createSelectSchema(
   })
 
 const createOnlyColumns = {
-  CustomerProfileId: true,
+  customerProfileId: true,
 } as const
 
 const readOnlyColumns = {
@@ -184,9 +184,9 @@ export const subscriptionsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     subscriptionClientSelectSchema.pick({
       status: true,
-      VariantId: true,
-      CustomerProfileId: true,
-      OrganizationId: true,
+      variantId: true,
+      customerProfileId: true,
+      organizationId: true,
     })
   )
 

@@ -44,24 +44,24 @@ const columns = {
     columnName: 'status',
     enumBase: PurchaseSessionStatus,
   }).notNull(),
-  billingAddress: jsonb('billingAddress'),
-  VariantId: nullableStringForeignKey('VariantId', variants),
-  PurchaseId: nullableStringForeignKey('PurchaseId', purchases),
-  InvoiceId: nullableStringForeignKey('InvoiceId', invoices),
+  billingAddress: jsonb('billing_address'),
+  variantId: nullableStringForeignKey('variant_id', variants),
+  purchaseId: nullableStringForeignKey('purchase_id', purchases),
+  invoiceId: nullableStringForeignKey('invoice_id', invoices),
   /**
-   * Should only be non-1 in the case of VariantId is not null.
+   * Should only be non-1 in the case of variantId is not null.
    */
   quantity: integer('quantity').notNull().default(1),
-  OrganizationId: notNullStringForeignKey(
-    'OrganizationId',
+  organizationId: notNullStringForeignKey(
+    'organization_id',
     organizations
   ),
-  customerName: text('customerName'),
-  customerEmail: text('customerEmail'),
-  stripeSetupIntentId: text('stripeSetupIntentId'),
-  stripePaymentIntentId: text('stripePaymentIntentId'),
-  CustomerProfileId: nullableStringForeignKey(
-    'CustomerProfileId',
+  customerName: text('customer_name'),
+  customerEmail: text('customer_email'),
+  stripeSetupIntentId: text('stripe_setup_intent_id'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  customerProfileId: nullableStringForeignKey(
+    'customer_profile_id',
     customerProfiles
   ),
   /**
@@ -75,7 +75,7 @@ const columns = {
     columnName: 'paymentMethodType',
     enumBase: PaymentMethodType,
   }),
-  DiscountId: nullableStringForeignKey('DiscountId', discounts),
+  discountId: nullableStringForeignKey('discountId', discounts),
   successUrl: text('successUrl'),
   cancelUrl: text('cancelUrl'),
   type: pgEnumColumn({
@@ -90,14 +90,14 @@ export const purchaseSessions = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.VariantId]),
+      constructIndex(TABLE_NAME, [table.variantId]),
       constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.stripeSetupIntentId]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
-      constructIndex(TABLE_NAME, [table.DiscountId]),
-      constructIndex(TABLE_NAME, [table.CustomerProfileId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
+      constructIndex(TABLE_NAME, [table.discountId]),
+      constructIndex(TABLE_NAME, [table.customerProfileId]),
       livemodePolicy(),
       pgPolicy(
         'Enable all actions for discounts in own organization',
@@ -105,7 +105,7 @@ export const purchaseSessions = pgTable(
           as: 'permissive',
           to: 'authenticated',
           for: 'all',
-          using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+          using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
         }
       ),
     ]
@@ -124,21 +124,21 @@ const refinement = {
 }
 
 const purchasePurchaseSessionRefinement = {
-  PurchaseId: z.string(),
-  VariantId: z.string(),
+  purchaseId: z.string(),
+  variantId: z.string(),
   type: z.literal(PurchaseSessionType.Purchase),
 }
 
 const invoicePurchaseSessionRefinement = {
-  InvoiceId: z.string(),
-  VariantId: z.null(),
-  PurchaseId: z.null(),
+  invoiceId: z.string(),
+  variantId: z.null(),
+  purchaseId: z.null(),
   type: z.literal(PurchaseSessionType.Invoice),
 }
 
 const productPurchaseSessionRefinement = {
-  VariantId: z.string(),
-  InvoiceId: z.null(),
+  variantId: z.string(),
+  invoiceId: z.null(),
   type: z.literal(PurchaseSessionType.Product),
 }
 
@@ -232,7 +232,7 @@ const readOnlyColumns = {
   status: true,
   stripePaymentIntentId: true,
   stripeSetupIntentId: true,
-  PurchaseId: true,
+  purchaseId: true,
 } as const
 
 const purchasePurchaseSessionClientUpdateSchema =

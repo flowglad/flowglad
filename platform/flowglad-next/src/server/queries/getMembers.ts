@@ -5,13 +5,13 @@ import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/me
 export const getMembers = protectedProcedure.query(
   async ({ ctx }) => {
     if (!ctx.organizationId) {
-      throw new Error('OrganizationId is required')
+      throw new Error('organizationId is required')
     }
 
     const members = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectMembershipsAndUsersByMembershipWhere(
-          { OrganizationId: ctx.organizationId },
+          { organizationId: ctx.organizationId },
           transaction
         )
       }

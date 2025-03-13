@@ -39,34 +39,34 @@ describe('Subscription Cancellation Test Suite', async () => {
   let subscription: Subscription.Record
   beforeEach(async () => {
     customerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
     })
 
     subscription = await setupSubscription({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
-      VariantId: variant.id,
-      PaymentMethodId: paymentMethod.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
+      variantId: variant.id,
+      paymentMethodId: paymentMethod.id,
     })
 
     billingPeriod = await setupBillingPeriod({
-      SubscriptionId: subscription.id,
+      subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart,
       endDate: subscription.currentBillingPeriodEnd,
       status: BillingPeriodStatus.Active,
     })
     billingRun = await setupBillingRun({
-      BillingPeriodId: billingPeriod.id,
-      PaymentMethodId: paymentMethod.id,
-      SubscriptionId: subscription.id,
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
     billingPeriodItems = await setupBillingPeriodItems({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,
     })
@@ -80,18 +80,18 @@ describe('Subscription Cancellation Test Suite', async () => {
         // – one that starts in the future.
         const now = new Date()
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         const activeBP = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() - 60 * 60 * 1000), // 1 hour ago
           endDate: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour later
         })
         const futureBP = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() + 2 * 60 * 60 * 1000), // 2 hours later
           endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000), // 3 hours later
         })
@@ -132,10 +132,10 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Set up a subscription that is already canceled.
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Simulate a terminal state.
         subscription.status = SubscriptionStatus.Canceled
@@ -153,13 +153,13 @@ describe('Subscription Cancellation Test Suite', async () => {
         const now = new Date()
         const futureStart = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour later
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: futureStart,
           endDate: new Date(futureStart.getTime() + 60 * 60 * 1000),
         })
@@ -176,10 +176,10 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a subscription without billing periods.
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Depending on your design, the function may update the subscription even if there
         // are no billing periods. Here we verify that no error is thrown.
@@ -201,14 +201,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         // To test boundaries, we force a known “current” time.
         const fixedNow = new Date('2025-02-02T12:00:00Z')
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Create a billing period that starts exactly at fixedNow.
         const bp = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: fixedNow,
           endDate: new Date(fixedNow.getTime() + 60 * 60 * 1000),
         })
@@ -249,20 +249,20 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Create a current billing period.
         const currentBP = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() - 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 60 * 60 * 1000),
         })
         // Create a future billing period.
         const futureBP = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() + 2 * 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000),
         })
@@ -300,20 +300,20 @@ describe('Subscription Cancellation Test Suite', async () => {
           now.getTime() + 2 * 60 * 60 * 1000
         )
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Create a billing period that is active now.
         await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() - 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000),
         })
         // Create a future billing period.
         const futureBP = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() + 4 * 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 5 * 60 * 60 * 1000),
         })
@@ -346,10 +346,10 @@ describe('Subscription Cancellation Test Suite', async () => {
     it('should make no update if the subscription is already in a terminal state', async () => {
       await adminTransaction(async ({ transaction }) => {
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Mark the subscription as terminal.
         await safelyUpdateSubscriptionStatus(
@@ -375,10 +375,10 @@ describe('Subscription Cancellation Test Suite', async () => {
     it('should throw an error if no current billing period exists for `AtEndOfCurrentBillingPeriod`', async () => {
       await adminTransaction(async ({ transaction }) => {
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Do not create any billing period so that the helper returns null.
         const params: ScheduleSubscriptionCancellationParams = {
@@ -399,14 +399,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         const now = new Date()
         const futureStart = new Date(now.getTime() + 60 * 60 * 1000)
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Create a billing period that starts in the future.
         await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: futureStart,
           endDate: new Date(futureStart.getTime() + 60 * 60 * 1000),
         })
@@ -430,14 +430,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Use a fixed cancellation time.
         const fixedNow = new Date()
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Create a billing period that starts exactly at fixedNow.
         const bp = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: fixedNow,
           endDate: new Date(fixedNow.getTime() + 60 * 60 * 1000),
         })
@@ -476,10 +476,10 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Test with a subscription that has no billing periods.
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         let result
         try {
@@ -498,19 +498,19 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         // Create two billing periods that overlap.
         const bp1 = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() - 2 * 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 2 * 60 * 60 * 1000),
         })
         const bp2 = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(now.getTime() - 60 * 60 * 1000),
           endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000),
         })
@@ -545,13 +545,13 @@ describe('Subscription Cancellation Test Suite', async () => {
     it('should handle concurrent cancellation requests without data inconsistencies', async () => {
       await adminTransaction(async ({ transaction }) => {
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(Date.now() - 60 * 60 * 1000),
           endDate: new Date(Date.now() + 60 * 60 * 1000),
         })
@@ -583,13 +583,13 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Simulate an activation phase followed by an immediate cancellation.
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(Date.now() - 60 * 60 * 1000),
           endDate: new Date(Date.now() + 60 * 60 * 1000),
         })

@@ -91,7 +91,7 @@ const MoreMenuCell = ({
       <ArchiveCustomerModal
         isOpen={isArchiveCustomerOpen}
         setIsOpen={setIsArchiveCustomerOpen}
-        CustomerProfileId={customerProfile.id}
+        customerProfileId={customerProfile.id}
         customerArchived={customerProfile.archived ?? false}
       />
       <TableRowPopoverMenu

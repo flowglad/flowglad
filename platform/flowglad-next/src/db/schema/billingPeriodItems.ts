@@ -42,7 +42,7 @@ export const billingPeriodItems = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"BillingPeriodId" in (select "id" from "BillingPeriods" where "SubscriptionId" in (select "id" from "Subscriptions" where "OrganizationId" in (select "OrganizationId" from "Memberships")))`,
+        using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organizationId" in (select "organizationId" from "Memberships")))`,
       }),
     ]
   }

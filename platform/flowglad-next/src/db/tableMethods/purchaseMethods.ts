@@ -88,13 +88,13 @@ export const upsertPurchaseById = createUpsertFunction(
 export const updatePurchase = createUpdateFunction(purchases, config)
 
 export const selectPurchasesForCustomerProfile = (
-  CustomerProfileId: string,
+  customerProfileId: string,
   transaction: DbTransaction
 ) => {
   return transaction
     .select()
     .from(purchases)
-    .where(and(eq(purchases.CustomerProfileId, CustomerProfileId)))
+    .where(and(eq(purchases.customerProfileId, customerProfileId)))
 }
 
 export const selectPurchasesAndAssociatedPaymentsByPurchaseWhere =
@@ -108,7 +108,7 @@ export const selectPurchasesAndAssociatedPaymentsByPurchaseWhere =
         payment: payments,
       })
       .from(purchases)
-      .innerJoin(payments, eq(payments.PurchaseId, purchases.id))
+      .innerJoin(payments, eq(payments.purchaseId, purchases.id))
       .where(whereClauseFromObject(purchases, selectConditions))
     return result.map((item) => {
       return {
@@ -131,11 +131,11 @@ export const selectPurchasesCustomerProfileAndCustomer = async (
     .from(purchases)
     .innerJoin(
       customerProfiles,
-      eq(customerProfiles.id, purchases.CustomerProfileId)
+      eq(customerProfiles.id, purchases.customerProfileId)
     )
     .innerJoin(
       customers,
-      eq(customers.id, customerProfiles.CustomerId)
+      eq(customers.id, customerProfiles.customerId)
     )
     .where(whereClauseFromObject(purchases, selectConditions))
   return result.map((item) => {
@@ -163,20 +163,20 @@ export const selectPurchaseCheckoutParametersById = async (
       product: products,
     })
     .from(purchases)
-    .innerJoin(variants, eq(purchases.VariantId, variants.id))
+    .innerJoin(variants, eq(purchases.variantId, variants.id))
     .innerJoin(
       customerProfiles,
-      eq(customerProfiles.id, purchases.CustomerProfileId)
+      eq(customerProfiles.id, purchases.customerProfileId)
     )
     .innerJoin(
       customers,
-      eq(customers.id, customerProfiles.CustomerId)
+      eq(customers.id, customerProfiles.customerId)
     )
     .innerJoin(
       organizations,
       eq(organizations.id, customerProfiles.organizationId)
     )
-    .innerJoin(products, eq(products.id, variants.ProductId))
+    .innerJoin(products, eq(products.id, variants.productId))
     .where(and(eq(purchases.id, id)))
   return {
     purchase: purchasesSelectSchema.parse(result.purchase),
@@ -235,7 +235,7 @@ export const billingInfoSchema = z
       clientSecret: z.string().nullable(),
       discount: discountClientSelectSchema.nullish(),
       /**
-       * Only present when purchaseSession.CustomerProfileId is not null
+       * Only present when purchaseSession.customerProfileId is not null
        */
       readonlyCustomerEmail: z.string().email().nullish(),
       feeCalculation:
@@ -260,7 +260,7 @@ export const purchaseToProperNounUpsert = (
     EntityId: purchase.id,
     entityType: 'purchase',
     name: purchase.name,
-    OrganizationId: purchase.OrganizationId,
+    organizationId: purchase.organizationId,
     livemode: purchase.livemode,
   }
 }
@@ -276,7 +276,7 @@ export const bulkInsertPurchases = async (
 }
 
 export const selectPurchaseRowDataForOrganization = async (
-  OrganizationId: string,
+  organizationId: string,
   transaction: DbTransaction
 ): Promise<Purchase.PurchaseTableRowData[]> => {
   const result = await transaction
@@ -286,13 +286,13 @@ export const selectPurchaseRowDataForOrganization = async (
       customerProfile: customerProfiles,
     })
     .from(purchases)
-    .innerJoin(variants, eq(purchases.VariantId, variants.id))
-    .innerJoin(products, eq(variants.ProductId, products.id))
+    .innerJoin(variants, eq(purchases.variantId, variants.id))
+    .innerJoin(products, eq(variants.productId, products.id))
     .innerJoin(
       customerProfiles,
-      eq(purchases.CustomerProfileId, customerProfiles.id)
+      eq(purchases.customerProfileId, customerProfiles.id)
     )
-    .where(eq(purchases.OrganizationId, OrganizationId))
+    .where(eq(purchases.organizationId, organizationId))
 
   return result.map((item) => ({
     purchase: purchasesSelectSchema.parse(item.purchase),

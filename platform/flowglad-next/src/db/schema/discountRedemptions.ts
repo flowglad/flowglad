@@ -23,8 +23,8 @@ export const discountRedemptions = pgTable(
   TABLE_NAME,
   {
     ...tableBase('discountRedemption'),
-    DiscountId: notNullStringForeignKey('DiscountId', discounts),
-    PurchaseId: notNullStringForeignKey('PurchaseId', purchases),
+    discountId: notNullStringForeignKey('discountId', discounts),
+    purchaseId: notNullStringForeignKey('PurchaseId', purchases),
     discountName: text('discountName').notNull(),
     discountCode: text('discountCode').notNull(),
     discountAmount: integer('discountAmount').notNull(),
@@ -42,15 +42,15 @@ export const discountRedemptions = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.DiscountId]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
-      constructUniqueIndex(TABLE_NAME, [table.PurchaseId]),
+      constructIndex(TABLE_NAME, [table.discountId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
+      constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
       livemodePolicy(),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"DiscountId" in (select "DiscountId" from "Discounts" where "OrganizationId" in (select "OrganizationId" from "Memberships"))`,
+        using: sql`"discountId" in (select "discountId" from "Discounts" where "organizationId" in (select "organizationId" from "Memberships"))`,
       }),
     ]
   }
@@ -166,8 +166,8 @@ export const discountRedemptionsUpdateSchema = z.discriminatedUnion(
 )
 
 const readOnlyColumns = {
-  PurchaseId: true,
-  DiscountId: true,
+  purchaseId: true,
+  discountId: true,
   discountName: true,
   discountCode: true,
   discountAmount: true,

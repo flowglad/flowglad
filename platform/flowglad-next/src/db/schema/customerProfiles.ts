@@ -77,7 +77,7 @@ export const customerProfiles = pgTable(
       //   as: 'permissive',
       //   to: 'authenticated',
       //   for: 'all',
-      //   using: sql`"CustomerId" = requesting_user_id()`,
+      //   using: sql`"customerId" = requesting_user_id()`,
       // }),
     ]
   }

@@ -30,14 +30,15 @@ export const processNonPaymentPurchaseSession = async (
       'Invoice checkout flow does not support non-payment purchase sessions. If the invoice had 0 balance due, the invoice should have been paid automatically.'
     )
   }
+
   const variant = await selectVariantById(
-    purchaseSession.VariantId,
+    purchaseSession.variantId,
     transaction
   )
 
-  let purchase = purchaseSession.PurchaseId
+  let purchase = purchaseSession.purchaseId
     ? await selectPurchaseById(
-        purchaseSession.PurchaseId,
+        purchaseSession.purchaseId,
         transaction
       )
     : null

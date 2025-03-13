@@ -21,7 +21,7 @@ const InvoicesPage = async ({
         )
       const invoices =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { OrganizationId: organization.id },
+          { organizationId: organization.id },
           transaction
         )
       return { invoices }

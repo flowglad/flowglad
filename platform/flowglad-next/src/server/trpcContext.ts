@@ -35,10 +35,10 @@ export const createContext = async (
 }
 
 export const createApiContext = ({
-  OrganizationId,
+  organizationId,
   environment,
 }: {
-  OrganizationId: string
+  organizationId: string
   environment: ApiEnvironment
 }) => {
   return async (opts: trpcNext.CreateNextContextOptions) => {
@@ -54,7 +54,7 @@ export const createApiContext = ({
       apiKey,
       isApi: true,
       path: opts.req.url,
-      OrganizationId,
+      organizationId,
       environment,
       livemode: environment === 'live',
     }

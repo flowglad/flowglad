@@ -70,7 +70,7 @@ export const bulkInsertBillingPeriodItems = createBulkInsertFunction(
   config
 )
 
-export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId =
+export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId =
   async (billingPeriodId: string, transaction: DbTransaction) => {
     const result = await transaction
       .select({
@@ -91,11 +91,11 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
       )
       .innerJoin(
         organizations,
-        eq(subscriptions.OrganizationId, organizations.id)
+        eq(subscriptions.organizationId, organizations.id)
       )
       .innerJoin(
         customerProfiles,
-        eq(subscriptions.CustomerProfileId, customerProfiles.id)
+        eq(subscriptions.customerProfileId, customerProfiles.id)
       )
       .where(eq(billingPeriodItems.billingPeriodId, billingPeriodId))
 

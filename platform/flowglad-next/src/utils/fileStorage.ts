@@ -39,7 +39,7 @@ export const safeObjectKeyToFileInsert = async (
     ),
     contentHash: r2Object.ETag!,
     etag: r2Object.ETag!,
-    OrganizationId: organizations[0].organization.id,
+    organizationId: organizations[0].organization.id,
     livemode,
   }
 

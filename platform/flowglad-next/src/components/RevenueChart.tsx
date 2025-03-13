@@ -39,11 +39,11 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
 export function RevenueChart({
   fromDate,
   toDate,
-  ProductId,
+  productId,
 }: {
   fromDate: Date
   toDate: Date
-  ProductId?: string
+  productId?: string
 }) {
   const { organization } = useAuthenticatedContext()
   const [interval, setInterval] =
@@ -53,11 +53,11 @@ export function RevenueChart({
 
   const { data: revenueData, isLoading } =
     trpc.organizations.getRevenue.useQuery({
-      OrganizationId: organization?.id ?? '',
+      organizationId: organization?.id ?? '',
       revenueChartIntervalUnit: interval,
       fromDate,
       toDate,
-      ProductId,
+      productId,
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)

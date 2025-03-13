@@ -43,17 +43,17 @@ const processPaymentIntent = async (
       paymentIntent,
       transaction
     )
-    if (!payment.PurchaseId) {
+    if (!payment.purchaseId) {
       throw new Error(
         `No purchase id found for payment ${payment.id}`
       )
     }
     const purchase = await selectPurchaseById(
-      payment.PurchaseId,
+      payment.purchaseId,
       transaction
     )
     const invoice = await selectInvoiceById(
-      payment.InvoiceId,
+      payment.invoiceId,
       transaction
     )
     const metadata = stripeIntentMetadataSchema.parse(
@@ -195,20 +195,20 @@ export const GET = async (request: NextRequest) => {
       url = new URL(`/purchase/access/${purchase.id}`, request.url)
     }
 
-    const PurchaseId = purchase.id
-    const VariantId = purchase.VariantId
+    const purchaseId = purchase.id
+    const variantId = purchase.variantId
     const { product } = await adminTransaction(
       async ({ transaction }) => {
         const [{ product }] =
           await selectVariantProductAndOrganizationByVariantWhere(
             {
-              id: VariantId,
+              id: variantId,
             },
             transaction
           )
         await createPurchaseAccessSession(
           {
-            PurchaseId,
+            purchaseId,
             source: PurchaseAccessSessionSource.PurchaseSession,
             autoGrant: true,
             livemode: product.livemode,

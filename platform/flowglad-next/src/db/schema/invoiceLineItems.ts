@@ -27,16 +27,16 @@ export const invoiceLineItems = pgTable(
   TABLE_NAME,
   {
     ...tableBase('inv_li'),
-    InvoiceId: notNullStringForeignKey('InvoiceId', invoices),
+    invoiceId: notNullStringForeignKey('invoiceId', invoices),
     quantity: integer('quantity').notNull(),
-    VariantId: nullableStringForeignKey('VariantId', variants),
+    variantId: nullableStringForeignKey('VariantId', variants),
     description: text('description'),
     price: integer('price').notNull(),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.InvoiceId]),
-      constructIndex(TABLE_NAME, [table.VariantId]),
+      constructIndex(TABLE_NAME, [table.invoiceId]),
+      constructIndex(TABLE_NAME, [table.variantId]),
       livemodePolicy(),
     ]
   }
@@ -61,8 +61,8 @@ export const invoiceLineItemsUpdateSchema = createUpdateSchema(
 
 const createOnlyColumns = {
   id: true,
-  InvoiceId: true,
-  VariantId: true,
+  invoiceId: true,
+  variantId: true,
 } as const
 const readonlyColumns = {
   livemode: true,
