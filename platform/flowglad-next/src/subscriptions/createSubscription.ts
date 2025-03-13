@@ -15,7 +15,7 @@ import {
   bulkInsertSubscriptionItems,
   selectRichSubscriptions,
   selectSubscriptionAndItems,
-  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
+  selectSubscriptionItemsAndSubscriptionBysubscriptionId,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { createBillingPeriodAndItems } from './billingPeriodHelpers'
@@ -70,9 +70,9 @@ export const insertSubscriptionAndItems = async (
   })
 
   const subscriptionInsert: Subscription.Insert = {
-    OrganizationId: organization.id,
-    CustomerProfileId: customerProfile.id,
-    VariantId: variant.id,
+    organizationId: organization.id,
+    customerProfileId: customerProfile.id,
+    variantId: variant.id,
     livemode,
     status: SubscriptionStatus.Incomplete,
     defaultPaymentMethodId: defaultPaymentMethod.id,
@@ -96,8 +96,8 @@ export const insertSubscriptionAndItems = async (
 
   const subscriptionItemInsert: SubscriptionItem.Insert = {
     name: `${variant.name} x ${quantity}`,
-    SubscriptionId: subscription.id,
-    VariantId: variant.id,
+    subscriptionId: subscription.id,
+    variantId: variant.id,
     addedDate: startDate,
     quantity,
     livemode,
@@ -143,7 +143,7 @@ const safelyProcessCreationForExistingSubscription = async (
   const billingPeriodAndItems =
     await selectBillingPeriodAndItemsByBillingPeriodWhere(
       {
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
       },
       transaction
     )
@@ -153,7 +153,7 @@ const safelyProcessCreationForExistingSubscription = async (
   const { billingPeriod } = billingPeriodAndItems
   const [existingBillingRun] = await selectBillingRuns(
     {
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
     },
     transaction
   )
@@ -162,7 +162,7 @@ const safelyProcessCreationForExistingSubscription = async (
     (await createBillingRun(
       {
         billingPeriod,
-        PaymentMethodId: params.defaultPaymentMethod.id,
+        paymentMethodId: params.defaultPaymentMethod.id,
         scheduledFor: subscription.currentBillingPeriodStart,
       },
       transaction
@@ -191,7 +191,7 @@ export const createSubscriptionWorkflow = async (
   const activeSubscriptionsForCustomerProfile =
     await selectSubscriptions(
       {
-        CustomerProfileId: customerProfile.id,
+        customerProfileId: customerProfile.id,
         status: SubscriptionStatus.Active,
       },
       transaction
@@ -201,17 +201,17 @@ export const createSubscriptionWorkflow = async (
       'Customer profile already has an active subscription'
     )
   }
-  if (customerProfile.id !== defaultPaymentMethod.CustomerProfileId) {
+  if (customerProfile.id !== defaultPaymentMethod.customerProfileId) {
     throw new Error(
-      `Customer profile ${customerProfile.id} does not match default payment method ${defaultPaymentMethod.CustomerProfileId}`
+      `Customer profile ${customerProfile.id} does not match default payment method ${defaultPaymentMethod.customerProfileId}`
     )
   }
   if (
     backupPaymentMethod &&
-    customerProfile.id !== backupPaymentMethod.CustomerProfileId
+    customerProfile.id !== backupPaymentMethod.customerProfileId
   ) {
     throw new Error(
-      `Customer profile ${customerProfile.id} does not match backup payment method ${backupPaymentMethod.CustomerProfileId}`
+      `Customer profile ${customerProfile.id} does not match backup payment method ${backupPaymentMethod.customerProfileId}`
     )
   }
 
@@ -249,7 +249,7 @@ export const createSubscriptionWorkflow = async (
   const billingRun = await createBillingRun(
     {
       billingPeriod,
-      PaymentMethodId: params.defaultPaymentMethod.id,
+      paymentMethodId: params.defaultPaymentMethod.id,
       scheduledFor: subscription.currentBillingPeriodStart,
     },
     transaction

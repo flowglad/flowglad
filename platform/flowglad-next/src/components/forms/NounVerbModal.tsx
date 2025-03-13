@@ -15,7 +15,7 @@ const NounVerbModalMap = {
   [Nouns.Variant]: {
     [Verbs.Create]: {
       Component: CreateVariantModal,
-      parentIdToModalProp: (ProductId: string) => ({ ProductId }),
+      parentIdToModalProp: (productId: string) => ({ productId }),
     },
   },
   [Nouns.CustomerProfile]: {
@@ -24,7 +24,7 @@ const NounVerbModalMap = {
   [Nouns.File]: {
     [Verbs.Create]: {
       Component: CreatePostPurchaseFileModal,
-      parentIdToModalProp: (ProductId: string) => ({ ProductId }),
+      parentIdToModalProp: (productId: string) => ({ productId }),
     },
   },
 }

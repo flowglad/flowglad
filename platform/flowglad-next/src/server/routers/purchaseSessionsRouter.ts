@@ -40,7 +40,7 @@ const createPurchaseSessionSchema = z.object({
     .describe(
       'The id of the CustomerProfile for this purchase session, as defined in your system'
     ),
-  VariantId: z
+  variantId: z
     .string()
     .describe('The ID of the variant the customer shall purchase'),
   successUrl: z
@@ -69,9 +69,9 @@ export const createPurchaseSession = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, livemode }) => {
-        const OrganizationId = ctx.OrganizationId
-        if (!OrganizationId) {
-          throw new Error('OrganizationId is required')
+        const organizationId = ctx.organizationId
+        if (!organizationId) {
+          throw new Error('organizationId is required')
         }
         const [customerProfile] = await selectCustomerProfiles(
           {
@@ -87,23 +87,23 @@ export const createPurchaseSession = protectedProcedure
         }
         const [{ variant, product, organization }] =
           await selectVariantProductAndOrganizationByVariantWhere(
-            { id: input.VariantId },
+            { id: input.variantId },
             transaction
           )
         // NOTE: invoice and purchase purchase sessions
         // are not supported by API yet.
         const purchaseSession = await insertPurchaseSession(
           {
-            CustomerProfileId: customerProfile.id,
-            VariantId: input.VariantId,
-            OrganizationId,
+            customerProfileId: customerProfile.id,
+            variantId: input.variantId,
+            organizationId,
             customerEmail: customerProfile.email,
             customerName: customerProfile.name,
             status: PurchaseSessionStatus.Open,
             livemode,
             successUrl: input.successUrl,
             cancelUrl: input.cancelUrl,
-            InvoiceId: null,
+            invoiceId: null,
             type: PurchaseSessionType.Product,
           } as const,
           transaction
@@ -135,8 +135,8 @@ export const createPurchaseSession = protectedProcedure
             id: purchaseSession.id,
             stripeSetupIntentId,
             stripePaymentIntentId,
-            InvoiceId: null,
-            VariantId: input.VariantId,
+            invoiceId: null,
+            variantId: input.variantId,
             type: PurchaseSessionType.Product,
           },
           transaction
@@ -157,9 +157,9 @@ export const editPurchaseSession = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const OrganizationId = ctx.OrganizationId
-        if (!OrganizationId) {
-          throw new Error('OrganizationId is required')
+        const organizationId = ctx.organizationId
+        if (!organizationId) {
+          throw new Error('organizationId is required')
         }
         const [purchaseSession] = await selectPurchaseSessions(
           {

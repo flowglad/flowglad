@@ -15,30 +15,30 @@ import { products } from '@/db/schema/products'
 import { createSelectSchema } from 'drizzle-zod'
 import { fileClientInsertSchema } from './files'
 
-const TABLE_NAME = 'Links'
+const TABLE_NAME = 'links'
 
 export const links = pgTable(
   TABLE_NAME,
   {
     ...tableBase('link'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
-    ProductId: nullableStringForeignKey('ProductId', products),
+    productId: nullableStringForeignKey('product_id', products),
     name: text('name').notNull(),
     url: text('url').notNull(),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
-      constructIndex(TABLE_NAME, [table.ProductId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
+      constructIndex(TABLE_NAME, [table.productId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
-        withCheck: sql`"ProductId" is null OR "ProductId" in (select "id" from "Products")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
       }),
       livemodePolicy(),
     ]
@@ -66,7 +66,7 @@ export const linksUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

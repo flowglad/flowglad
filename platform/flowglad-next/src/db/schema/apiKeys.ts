@@ -24,20 +24,20 @@ import { FlowgladApiKeyType } from '@/types'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 
-const TABLE_NAME = 'ApiKeys'
+const TABLE_NAME = 'api_keys'
 
 export const apiKeys = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('apiKey'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    ...tableBase('apikey'),
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     name: text('name').notNull(),
     token: text('token').notNull(),
     active: boolean('active').notNull().default(true),
-    unkeyId: text('unkeyId').notNull(),
+    unkeyId: text('unkey_id').notNull(),
     type: pgEnumColumn({
       enumName: 'apiKeyType',
       columnName: 'type',
@@ -46,12 +46,12 @@ export const apiKeys = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       pgPolicy('Enable all actions for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       livemodePolicy(),
     ]
@@ -81,7 +81,7 @@ export const apiKeysUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
   token: true,
 } as const

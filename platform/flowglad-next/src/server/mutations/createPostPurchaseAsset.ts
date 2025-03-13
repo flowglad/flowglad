@@ -35,7 +35,7 @@ export const createPostPurchaseAsset = protectedProcedure
           const [{ organization }] =
             await selectMembershipAndOrganizations(
               {
-                UserId: userId,
+                userId,
                 focused: true,
               },
               transaction
@@ -43,7 +43,7 @@ export const createPostPurchaseAsset = protectedProcedure
           linkRecord = await insertLink(
             {
               ...input.link,
-              OrganizationId: organization.id,
+              organizationId: organization.id,
               livemode,
             },
             transaction

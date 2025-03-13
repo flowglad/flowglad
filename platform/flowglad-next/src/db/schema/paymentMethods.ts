@@ -21,24 +21,24 @@ import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { billingAddressSchema } from './customers'
 
-const TABLE_NAME = 'PaymentMethods'
+const TABLE_NAME = 'payment_methods'
 
 const columns = {
   ...tableBase('pm'),
-  CustomerProfileId: notNullStringForeignKey(
-    'CustomerProfileId',
+  customerProfileId: notNullStringForeignKey(
+    'customer_profile_id',
     customerProfiles
   ),
-  billingDetails: jsonb('billingDetails').notNull(),
+  billingDetails: jsonb('billing_details').notNull(),
   type: pgEnumColumn({
     enumName: 'PaymentMethodType',
     columnName: 'type',
     enumBase: PaymentMethodType,
   }).notNull(),
   default: boolean('default').notNull().default(false),
-  paymentMethodData: jsonb('paymentMethodData').notNull(),
+  paymentMethodData: jsonb('payment_method_data').notNull(),
   metadata: jsonb('metadata'),
-  stripePaymentMethodId: text('stripePaymentMethodId'),
+  stripePaymentMethodId: text('stripe_payment_method_id'),
 }
 
 export const paymentMethods = pgTable(
@@ -46,7 +46,7 @@ export const paymentMethods = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.CustomerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerProfileId]),
       constructIndex(TABLE_NAME, [table.type]),
       pgPolicy(
         'Enable read for own organizations via customer profiles',
@@ -54,7 +54,7 @@ export const paymentMethods = pgTable(
           as: 'permissive',
           to: 'authenticated',
           for: 'all',
-          using: sql`"CustomerProfileId" in (select "id" from "CustomerProfiles")`,
+          using: sql`"customerProfileId" in (select "id" from "CustomerProfiles")`,
         }
       ),
       livemodePolicy(),
@@ -109,7 +109,7 @@ export const paymentMethodsUpdateSchema = createSelectSchema(
   })
 
 const createOnlyColumns = {
-  CustomerProfileId: true,
+  customerProfileId: true,
 } as const
 
 const readOnlyColumns = {

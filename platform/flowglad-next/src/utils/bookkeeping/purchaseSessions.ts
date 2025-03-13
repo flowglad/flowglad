@@ -47,7 +47,7 @@ import {
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
   selectCustomerProfiles,
-  upsertCustomerProfileByCustomerIdAndOrganizationId,
+  upsertCustomerProfileBycustomerIdAndorganizationId,
 } from '@/db/tableMethods/customerProfileMethods'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
@@ -74,18 +74,18 @@ export const createFeeCalculationForPurchaseSession = async (
   purchaseSession: PurchaseSession.FeeReadyRecord,
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
-  const discount = purchaseSession.DiscountId
+  const discount = purchaseSession.discountId
     ? await selectDiscountById(
-        purchaseSession.DiscountId,
+        purchaseSession.discountId,
         transaction
       )
     : undefined
   const [{ variant, product, organization }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: purchaseSession.VariantId! },
+      { id: purchaseSession.variantId! },
       transaction
     )
-  const organizationCountryId = organization.CountryId
+  const organizationCountryId = organization.countryId
   if (!organizationCountryId) {
     throw new Error('Organization country id is required')
   }
@@ -213,7 +213,7 @@ export const editPurchaseSession = async (
  * Handles the bookkeeping operations for a purchase session, managing customer, purchase, and fee records.
  *
  * @param purchaseSession - The purchase session record to process
- * @param providedStripeCustomerId - Optional Stripe customer ID to link with the customer profile
+ * @param providedStripecustomerId - Optional Stripe customer ID to link with the customer profile
  * @param transaction - Database transaction for ensuring data consistency
  *
  * Operations performed:
@@ -240,7 +240,7 @@ export const editPurchaseSession = async (
 export const processPurchaseBookkeepingForPurchaseSession = async (
   {
     purchaseSession,
-    stripeCustomerId: providedStripeCustomerId,
+    stripeCustomerId: providedStripecustomerId,
   }: {
     purchaseSession: PurchaseSession.Record
     stripeCustomerId: string | null
@@ -249,18 +249,18 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
 ) => {
   const [{ variant, product }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: purchaseSession.VariantId! },
+      { id: purchaseSession.variantId! },
       transaction
     )
   let customerProfile: CustomerProfile.Record | null = null
   let purchase: Purchase.Record | null = null
-  if (purchaseSession.PurchaseId) {
+  if (purchaseSession.purchaseId) {
     purchase = await selectPurchaseById(
-      purchaseSession.PurchaseId,
+      purchaseSession.purchaseId,
       transaction
     )
     customerProfile = await selectCustomerProfileById(
-      purchase.CustomerProfileId!,
+      purchase.customerProfileId!,
       transaction
     )
   } else {
@@ -268,7 +268,7 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
     const result = await selectCustomerProfiles(
       {
         email: purchaseSession.customerEmail!,
-        OrganizationId: product.OrganizationId,
+        organizationId: product.organizationId,
       },
       transaction
     )
@@ -297,12 +297,12 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
       customer = customerUpsertResult[0]
     }
     const customerProfileUpsert =
-      await upsertCustomerProfileByCustomerIdAndOrganizationId(
+      await upsertCustomerProfileBycustomerIdAndorganizationId(
         {
-          CustomerId: customer.id,
+          customerId: customer.id,
           email: purchaseSession.customerEmail!,
           name: purchaseSession.customerName!,
-          OrganizationId: product.OrganizationId,
+          organizationId: product.organizationId,
           billingAddress: purchaseSession.billingAddress,
           externalId: core.nanoid(),
           livemode: purchaseSession.livemode,
@@ -310,7 +310,7 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
         transaction
       )
     customerProfile = customerProfileUpsert[0]
-    let stripeCustomerId: string | null = providedStripeCustomerId
+    let stripeCustomerId: string | null = providedStripecustomerId
     if (!stripeCustomerId) {
       stripeCustomerId = customerProfile.stripeCustomerId
     }
@@ -324,12 +324,12 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
       stripeCustomerId = stripeCustomer.id
     }
     const upsertResult =
-      await upsertCustomerProfileByCustomerIdAndOrganizationId(
+      await upsertCustomerProfileBycustomerIdAndorganizationId(
         {
-          CustomerId: customer.id,
+          customerId: customer.id,
           email: purchaseSession.customerEmail!,
           name: purchaseSession.customerName!,
-          OrganizationId: product.OrganizationId,
+          organizationId: product.organizationId,
           billingAddress: purchaseSession.billingAddress,
           stripeCustomerId,
           externalId: core.nanoid(),
@@ -345,9 +345,9 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
     const purchaseInsert = {
       ...purchaseVariantFields,
       name: product.name,
-      OrganizationId: product.OrganizationId,
-      CustomerProfileId: customerProfile.id,
-      VariantId: variant.id,
+      organizationId: product.organizationId,
+      customerProfileId: customerProfile.id,
+      variantId: variant.id,
       quantity: 1,
       billingAddress: purchaseSession.billingAddress,
       livemode: purchaseSession.livemode,
@@ -376,16 +376,16 @@ export const processPurchaseBookkeepingForPurchaseSession = async (
   feeCalculation = await updateFeeCalculation(
     {
       id: feeCalculation.id,
-      PurchaseId: purchase.id,
+      purchaseId: purchase.id,
       type: FeeCalculationType.PurchaseSessionPayment,
-      VariantId: variant.id,
-      BillingPeriodId: null,
+      variantId: variant.id,
+      billingPeriodId: null,
     },
     transaction
   )
-  if (feeCalculation.DiscountId) {
+  if (feeCalculation.discountId) {
     discount = await selectDiscountById(
-      feeCalculation.DiscountId,
+      feeCalculation.discountId,
       transaction
     )
     await upsertDiscountRedemptionForPurchaseAndDiscount(
@@ -446,7 +446,7 @@ export const processStripeChargeForInvoicePurchaseSession = async (
     throw new Error('Invoice checkout flow does not support charges')
   }
   const invoice = await selectInvoiceById(
-    purchaseSession.InvoiceId,
+    purchaseSession.invoiceId,
     transaction
   )
   const purchaseSessionStatus =
@@ -461,7 +461,7 @@ export const processStripeChargeForInvoicePurchaseSession = async (
   const [invoiceAndLineItems] =
     await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
       {
-        id: purchaseSession.InvoiceId,
+        id: purchaseSession.invoiceId,
       },
       transaction
     )
@@ -471,7 +471,7 @@ export const processStripeChargeForInvoicePurchaseSession = async (
   )
   const successfulPaymentsForInvoice = await selectPayments(
     {
-      InvoiceId: purchaseSession.InvoiceId,
+      invoiceId: purchaseSession.invoiceId,
       status: PaymentStatus.Succeeded,
     },
     transaction
@@ -594,7 +594,7 @@ export const processStripeChargeForPurchaseSession = async (
       status: purchaseSessionStatus,
       customerName: charge.billing_details?.name,
       customerEmail: charge.billing_details?.email,
-      PurchaseId: purchase?.id,
+      purchaseId: purchase?.id,
     } as PurchaseSession.Update,
     transaction
   )

@@ -8,7 +8,7 @@ export const dummyProduct: Product.Record = {
   description: 'Test Product Description',
   imageURL: null,
   stripeProductId: null,
-  OrganizationId: '1',
+  organizationId: '1',
   displayFeatures: null,
   active: true,
   livemode: false,

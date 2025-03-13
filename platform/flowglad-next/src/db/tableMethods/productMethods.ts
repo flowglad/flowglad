@@ -64,9 +64,9 @@ export const productToProperNounUpsert = (
 ): ProperNoun.Insert => {
   return {
     name: product.name,
-    EntityId: product.id,
+    entityId: product.id,
     entityType: 'product',
-    OrganizationId: product.OrganizationId,
+    organizationId: product.organizationId,
     livemode: product.livemode,
   }
 }

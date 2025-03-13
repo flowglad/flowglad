@@ -30,7 +30,7 @@ import { z } from 'zod'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
 import { Product } from './products'
 
-export const PURCHASES_TABLE_NAME = 'Purchases'
+export const PURCHASES_TABLE_NAME = 'purchases'
 
 const columns = {
   ...tableBase('prch'),
@@ -40,45 +40,43 @@ const columns = {
     columnName: 'status',
     enumBase: PurchaseStatus,
   }).default(PurchaseStatus.Open),
-  CustomerProfileId: notNullStringForeignKey(
-    'CustomerProfileId',
+  customerProfileId: notNullStringForeignKey(
+    'customer_profile_id',
     customerProfiles
   ),
-  OrganizationId: notNullStringForeignKey(
-    'OrganizationId',
+  organizationId: notNullStringForeignKey(
+    'organization_id',
     organizations
   ),
-  billingCycleAnchor: timestamp('billingCycleAnchor'),
+  billingCycleAnchor: timestamp('billing_cycle_anchor'),
   /**
    * Billing fields
    */
-  // stripeSetupIntentId: text('stripeSetupIntentId').unique(),
-  stripeSubscriptionId: text('stripeSubscriptionId').unique(),
-  VariantId: notNullStringForeignKey('VariantId', variants),
+  variantId: notNullStringForeignKey('variant_id', variants),
   quantity: integer('quantity').notNull(),
   priceType: pgEnumColumn({
     enumName: 'PriceType',
-    columnName: 'priceType',
+    columnName: 'price_type',
     enumBase: PriceType,
   })
     .default(PriceType.SinglePayment)
     .notNull(),
-  trialPeriodDays: integer('trialPeriodDays').default(0),
-  pricePerBillingCycle: integer('pricePerBillingCycle'),
+  trialPeriodDays: integer('trial_period_days').default(0),
+  pricePerBillingCycle: integer('price_per_billing_cycle'),
   intervalUnit: pgEnumColumn({
     enumName: 'IntervalUnit',
-    columnName: 'intervalUnit',
+    columnName: 'interval_unit',
     enumBase: IntervalUnit,
   }),
-  intervalCount: integer('intervalCount'),
-  firstInvoiceValue: integer('firstInvoiceValue'),
-  totalPurchaseValue: integer('totalPurchaseValue'),
-  bankPaymentOnly: boolean('bankPaymentOnly').default(false),
-  purchaseDate: timestamp('purchaseDate'),
-  endDate: timestamp('endDate'),
+  intervalCount: integer('interval_count'),
+  firstInvoiceValue: integer('first_invoice_value'),
+  totalPurchaseValue: integer('total_purchase_value'),
+  bankPaymentOnly: boolean('bank_payment_only').default(false),
+  purchaseDate: timestamp('purchase_date'),
+  endDate: timestamp('end_date'),
   proposal: text('proposal'),
   archived: boolean('archived').default(false),
-  billingAddress: jsonb('billingAddress'),
+  billingAddress: jsonb('billing_address'),
 }
 
 export const purchases = pgTable(
@@ -86,9 +84,9 @@ export const purchases = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(PURCHASES_TABLE_NAME, [table.CustomerProfileId]),
-      constructIndex(PURCHASES_TABLE_NAME, [table.OrganizationId]),
-      constructIndex(PURCHASES_TABLE_NAME, [table.VariantId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.customerProfileId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.organizationId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.variantId]),
       livemodePolicy(),
       // constructIndex(PURCHASES_TABLE_NAME, [
       //   table.stripeSetupIntentId,
@@ -133,7 +131,7 @@ const nulledSubscriptionColumns = {
   intervalUnit: makeSchemaPropNull(z.any()),
   intervalCount: makeSchemaPropNull(z.any()),
   trialPeriodDays: makeSchemaPropNull(z.any()),
-  stripeSubscriptionId: makeSchemaPropNull(z.any()),
+  stripesubscriptionId: makeSchemaPropNull(z.any()),
 }
 
 export const subscriptionPurchaseInsertSchema = baseInsertSchema
@@ -193,20 +191,17 @@ export const subscriptionPurchaseClientInsertSchema =
   subscriptionPurchaseInsertSchema
     .extend({
       stripePaymentIntentId: core.safeZodAlwaysNull,
-      stripeSubscriptionId: core.safeZodAlwaysNull,
+      stripesubscriptionId: core.safeZodAlwaysNull,
     })
     .omit({
       billingAddress: true,
     })
 
-const clientSelectOmits = {
-  stripeSubscriptionId: true,
-} as const
+const clientSelectOmits = {} as const
 
 const clientWriteOmits = {
-  stripeSubscriptionId: true,
   billingAddress: true,
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

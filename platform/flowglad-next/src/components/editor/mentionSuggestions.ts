@@ -14,8 +14,8 @@ const createMentionSuggestions = (
     return (
       getProperNouns.data
         ?.slice(0, 5)
-        .map(({ name, entityType, EntityId }) => ({
-          id: `${entityType}:${EntityId}`,
+        .map(({ name, entityType, entityId }) => ({
+          id: `${entityType}:${entityId}`,
           label: `${name} (${entityType})`,
         })) ?? []
     )

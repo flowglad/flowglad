@@ -21,30 +21,30 @@ export const files = pgTable(
   TABLE_NAME,
   {
     ...tableBase('file'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
-    ProductId: nullableStringForeignKey('ProductId', products),
+    productId: nullableStringForeignKey('product_id', products),
     name: text('name').notNull(),
-    sizeKb: integer('sizeKb').notNull(),
-    contentType: text('contentType').notNull(),
-    objectKey: text('objectKey').notNull().unique(),
-    cdnUrl: text('cdnUrl').notNull(),
+    sizeKb: integer('size_kb').notNull(),
+    contentType: text('content_type').notNull(),
+    objectKey: text('object_key').notNull().unique(),
+    cdnUrl: text('cdn_url').notNull(),
     etag: text('etag').notNull(),
-    contentHash: text('contentHash').notNull(),
+    contentHash: text('content_hash').notNull(),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(TABLE_NAME, [table.objectKey]),
       livemodePolicy(),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
-        withCheck: sql`"ProductId" is null OR "ProductId" in (select "id" from "Products")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
       }),
     ]
   }
@@ -72,7 +72,7 @@ export const filesUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
   sizeKb: true,
   contentType: true,

@@ -14,14 +14,14 @@ const InvoicesPage = async ({
       const [{ organization }] =
         await selectMembershipAndOrganizations(
           {
-            UserId: userId,
+            userId,
             focused: true,
           },
           transaction
         )
       const invoices =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { OrganizationId: organization.id },
+          { organizationId: organization.id },
           transaction
         )
       return { invoices }

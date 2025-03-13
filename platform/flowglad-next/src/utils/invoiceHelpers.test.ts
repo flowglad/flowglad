@@ -14,13 +14,13 @@ describe('updateInvoiceTransaction', () => {
     //     it('should successfully update a non-terminal invoice', async () => {
     //       const { organization, variant } = await setupOrg()
     //       const customerProfile = await setupCustomerProfile({
-    //         OrganizationId: organization.id,
+    //         organizationId: organization.id,
     //       })
     //       const invoice = await setupInvoice({
-    //         CustomerProfileId: customerProfile.id,
-    //         OrganizationId: organization.id,
+    //         customerProfileId: customerProfile.id,
+    //         organizationId: organization.id,
     //         status: InvoiceStatus.Draft,
-    //         VariantId: variant.id,
+    //         variantId: variant.id,
     //       })
 
     //       await adminTransaction(async ({ transaction }) => {
@@ -30,12 +30,12 @@ describe('updateInvoiceTransaction', () => {
     //               id: invoice.id,
     //               status: InvoiceStatus.Open,
     //               type: InvoiceType.Purchase,
-    //               BillingPeriodId: null,
-    //               PurchaseId: invoice.PurchaseId!,
+    //               billingPeriodId: null,
+    //               purchaseId: invoice.purchaseId!,
     //             },
     //             invoiceLineItems: [
     //               {
-    //                 InvoiceId: invoice.id,
+    //                 invoiceId: invoice.id,
     //                 description: 'Updated line item',
     //                 quantity: 1,
     //                 price: 2000,
@@ -55,13 +55,13 @@ describe('updateInvoiceTransaction', () => {
     //     it('should throw error when updating terminal state invoice', async () => {
     //       const { organization, variant } = await setupOrg()
     //       const customerProfile = await setupCustomerProfile({
-    //         OrganizationId: organization.id,
+    //         organizationId: organization.id,
     //       })
     //       const invoice = await setupInvoice({
-    //         CustomerProfileId: customerProfile.id,
-    //         OrganizationId: organization.id,
+    //         customerProfileId: customerProfile.id,
+    //         organizationId: organization.id,
     //         status: InvoiceStatus.Paid,
-    //         VariantId: variant.id,
+    //         variantId: variant.id,
     //       })
 
     //       await expect(
@@ -72,8 +72,8 @@ describe('updateInvoiceTransaction', () => {
     //                 id: invoice.id,
     //                 status: InvoiceStatus.Open,
     //                 type: InvoiceType.Purchase,
-    //                 BillingPeriodId: null,
-    //                 PurchaseId: invoice.PurchaseId!,
+    //                 billingPeriodId: null,
+    //                 purchaseId: invoice.purchaseId!,
     //               },
     //               invoiceLineItems: [],
     //             },
@@ -87,13 +87,13 @@ describe('updateInvoiceTransaction', () => {
     //     it('should throw error when updating to terminal state', async () => {
     //       const { organization, variant } = await setupOrg()
     //       const customerProfile = await setupCustomerProfile({
-    //         OrganizationId: organization.id,
+    //         organizationId: organization.id,
     //       })
     //       const invoice = await setupInvoice({
-    //         CustomerProfileId: customerProfile.id,
-    //         OrganizationId: organization.id,
+    //         customerProfileId: customerProfile.id,
+    //         organizationId: organization.id,
     //         status: InvoiceStatus.Draft,
-    //         VariantId: variant.id,
+    //         variantId: variant.id,
     //       })
 
     //       await expect(
@@ -104,8 +104,8 @@ describe('updateInvoiceTransaction', () => {
     //                 id: invoice.id,
     //                 status: InvoiceStatus.Paid,
     //                 type: InvoiceType.Purchase,
-    //                 BillingPeriodId: null,
-    //                 PurchaseId: invoice.PurchaseId!,
+    //                 billingPeriodId: null,
+    //                 purchaseId: invoice.purchaseId!,
     //               },
     //               invoiceLineItems: [],
     //             },
@@ -121,13 +121,13 @@ describe('updateInvoiceTransaction', () => {
     //     it('should update invoice metadata without changing line items', async () => {
     //       const { organization, variant } = await setupOrg()
     //       const customerProfile = await setupCustomerProfile({
-    //         OrganizationId: organization.id,
+    //         organizationId: organization.id,
     //       })
     //       const invoice = await setupInvoice({
-    //         CustomerProfileId: customerProfile.id,
-    //         OrganizationId: organization.id,
+    //         customerProfileId: customerProfile.id,
+    //         organizationId: organization.id,
     //         status: InvoiceStatus.Draft,
-    //         VariantId: variant.id,
+    //         variantId: variant.id,
     //       })
 
     //       await adminTransaction(async ({ transaction }) => {
@@ -137,12 +137,12 @@ describe('updateInvoiceTransaction', () => {
     //               id: invoice.id,
     //               memo: 'Updated memo',
     //               type: InvoiceType.Purchase,
-    //               BillingPeriodId: null,
-    //               PurchaseId: invoice.PurchaseId!,
+    //               billingPeriodId: null,
+    //               purchaseId: invoice.purchaseId!,
     //             },
     //             invoiceLineItems: [
     //               {
-    //                 InvoiceId: invoice.id,
+    //                 invoiceId: invoice.id,
     //                 description: 'Test Description',
     //                 quantity: 1,
     //                 price: 1000,
@@ -162,13 +162,13 @@ describe('updateInvoiceTransaction', () => {
     //     it('should modify existing line items', async () => {
     //       const { organization, variant } = await setupOrg()
     //       const customerProfile = await setupCustomerProfile({
-    //         OrganizationId: organization.id,
+    //         organizationId: organization.id,
     //       })
     //       const invoice = await setupInvoice({
-    //         CustomerProfileId: customerProfile.id,
-    //         OrganizationId: organization.id,
+    //         customerProfileId: customerProfile.id,
+    //         organizationId: organization.id,
     //         status: InvoiceStatus.Draft,
-    //         VariantId: variant.id,
+    //         variantId: variant.id,
     //       })
 
     //       await adminTransaction(async ({ transaction }) => {
@@ -177,12 +177,12 @@ describe('updateInvoiceTransaction', () => {
     //             invoice: {
     //               id: invoice.id,
     //               type: InvoiceType.Purchase,
-    //               BillingPeriodId: null,
-    //               PurchaseId: invoice.PurchaseId!,
+    //               billingPeriodId: null,
+    //               purchaseId: invoice.purchaseId!,
     //             },
     //             invoiceLineItems: [
     //               {
-    //                 InvoiceId: invoice.id,
+    //                 invoiceId: invoice.id,
     //                 description: 'Modified description',
     //                 quantity: 2,
     //                 price: 2000,
@@ -205,13 +205,13 @@ describe('updateInvoiceTransaction', () => {
     //     it('should add new line items', async () => {
     //       const { organization, variant } = await setupOrg()
     //       const customerProfile = await setupCustomerProfile({
-    //         OrganizationId: organization.id,
+    //         organizationId: organization.id,
     //       })
     //       const invoice = await setupInvoice({
-    //         CustomerProfileId: customerProfile.id,
-    //         OrganizationId: organization.id,
+    //         customerProfileId: customerProfile.id,
+    //         organizationId: organization.id,
     //         status: InvoiceStatus.Draft,
-    //         VariantId: variant.id,
+    //         variantId: variant.id,
     //       })
 
     //       await adminTransaction(async ({ transaction }) => {
@@ -220,18 +220,18 @@ describe('updateInvoiceTransaction', () => {
     //             invoice: {
     //               id: invoice.id,
     //               type: InvoiceType.Purchase,
-    //               BillingPeriodId: null,
-    //               PurchaseId: invoice.PurchaseId!,
+    //               billingPeriodId: null,
+    //               purchaseId: invoice.purchaseId!,
     //             },
     //             invoiceLineItems: [
     //               {
-    //                 InvoiceId: invoice.id,
+    //                 invoiceId: invoice.id,
     //                 description: 'New line item 1',
     //                 quantity: 1,
     //                 price: 1000,
     //               },
     //               {
-    //                 InvoiceId: invoice.id,
+    //                 invoiceId: invoice.id,
     //                 description: 'New line item 2',
     //                 quantity: 2,
     //                 price: 2000,
@@ -255,13 +255,13 @@ describe('updateInvoiceTransaction', () => {
     //     it('should delete existing line items', async () => {
     //       const { organization, variant } = await setupOrg()
     //       const customerProfile = await setupCustomerProfile({
-    //         OrganizationId: organization.id,
+    //         organizationId: organization.id,
     //       })
     //       const invoice = await setupInvoice({
-    //         CustomerProfileId: customerProfile.id,
-    //         OrganizationId: organization.id,
+    //         customerProfileId: customerProfile.id,
+    //         organizationId: organization.id,
     //         status: InvoiceStatus.Draft,
-    //         VariantId: variant.id,
+    //         variantId: variant.id,
     //       })
 
     //       await adminTransaction(async ({ transaction }) => {
@@ -270,8 +270,8 @@ describe('updateInvoiceTransaction', () => {
     //             invoice: {
     //               id: invoice.id,
     //               type: InvoiceType.Purchase,
-    //               BillingPeriodId: null,
-    //               PurchaseId: invoice.PurchaseId!,
+    //               billingPeriodId: null,
+    //               purchaseId: invoice.purchaseId!,
     //             },
     //             invoiceLineItems: [], // Empty array should delete all line items
     //           },
@@ -286,13 +286,13 @@ describe('updateInvoiceTransaction', () => {
     it('should handle mixed changes to line items', async () => {
       const { organization, variant } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
-        OrganizationId: organization.id,
+        organizationId: organization.id,
       })
       const invoice = await setupInvoice({
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
         status: InvoiceStatus.Draft,
-        VariantId: variant.id,
+        variantId: variant.id,
       })
 
       await adminTransaction(async ({ transaction }) => {
@@ -300,21 +300,22 @@ describe('updateInvoiceTransaction', () => {
         const { invoiceLineItems: updatedInvoiceLineItems } =
           await updateInvoiceTransaction(
             {
+              id: invoice.id,
               invoice: {
                 id: invoice.id,
                 type: InvoiceType.Purchase,
-                BillingPeriodId: null,
-                PurchaseId: invoice.PurchaseId!,
+                billingPeriodId: null,
+                purchaseId: invoice.purchaseId!,
               },
               invoiceLineItems: [
                 {
-                  InvoiceId: invoice.id,
+                  invoiceId: invoice.id,
                   description: 'Item 1',
                   quantity: 1,
                   price: 1000,
                 },
                 {
-                  InvoiceId: invoice.id,
+                  invoiceId: invoice.id,
                   description: 'Item 2',
                   quantity: 1,
                   price: 2000,
@@ -324,29 +325,26 @@ describe('updateInvoiceTransaction', () => {
             true,
             transaction
           )
-        console.log(
-          '====updatedInvoiceLineItems',
-          updatedInvoiceLineItems
-        )
         // Second update with mixed changes
         const result = await updateInvoiceTransaction(
           {
+            id: invoice.id,
             invoice: {
               id: invoice.id,
               type: InvoiceType.Purchase,
-              BillingPeriodId: null,
-              PurchaseId: invoice.PurchaseId!,
+              billingPeriodId: null,
+              purchaseId: invoice.purchaseId!,
             },
             invoiceLineItems: [
               {
                 id: updatedInvoiceLineItems[0].id, // Modify existing
-                InvoiceId: invoice.id,
+                invoiceId: invoice.id,
                 description: 'Modified Item 1',
                 quantity: 2,
                 price: 1500,
               },
               {
-                InvoiceId: invoice.id, // Add new
+                invoiceId: invoice.id, // Add new
                 description: 'New Item 3',
                 quantity: 1,
                 price: 3000,
@@ -380,8 +378,8 @@ describe('updateInvoiceTransaction', () => {
   //               invoice: {
   //                 id: 'non-existent-id',
   //                 type: InvoiceType.Purchase,
-  //                 BillingPeriodId: null,
-  //                 PurchaseId: core.nanoid(),
+  //                 billingPeriodId: null,
+  //                 purchaseId: core.nanoid(),
   //               },
   //               invoiceLineItems: [],
   //             },
@@ -395,13 +393,13 @@ describe('updateInvoiceTransaction', () => {
   //     it('should maintain data integrity across operations', async () => {
   //       const { organization, variant } = await setupOrg()
   //       const customerProfile = await setupCustomerProfile({
-  //         OrganizationId: organization.id,
+  //         organizationId: organization.id,
   //       })
   //       const invoice = await setupInvoice({
-  //         CustomerProfileId: customerProfile.id,
-  //         OrganizationId: organization.id,
+  //         customerProfileId: customerProfile.id,
+  //         organizationId: organization.id,
   //         status: InvoiceStatus.Draft,
-  //         VariantId: variant.id,
+  //         variantId: variant.id,
   //       })
 
   //       // Attempt an update that should fail
@@ -413,12 +411,12 @@ describe('updateInvoiceTransaction', () => {
   //                 id: invoice.id,
   //                 status: InvoiceStatus.Paid, // This should cause failure
   //                 type: InvoiceType.Purchase,
-  //                 BillingPeriodId: null,
-  //                 PurchaseId: invoice.PurchaseId!,
+  //                 billingPeriodId: null,
+  //                 purchaseId: invoice.purchaseId!,
   //               },
   //               invoiceLineItems: [
   //                 {
-  //                   InvoiceId: invoice.id,
+  //                   invoiceId: invoice.id,
   //                   description: 'New Item',
   //                   quantity: 1,
   //                   price: 1000,
@@ -438,12 +436,12 @@ describe('updateInvoiceTransaction', () => {
   //             invoice: {
   //               id: invoice.id,
   //               type: InvoiceType.Purchase,
-  //               BillingPeriodId: null,
-  //               PurchaseId: invoice.PurchaseId!,
+  //               billingPeriodId: null,
+  //               purchaseId: invoice.purchaseId!,
   //             },
   //             invoiceLineItems: [
   //               {
-  //                 InvoiceId: invoice.id,
+  //                 invoiceId: invoice.id,
   //                 description: 'Test Description',
   //                 quantity: 1,
   //                 price: 1000,
@@ -464,13 +462,13 @@ describe('updateInvoiceTransaction', () => {
   //     it('should propagate livemode flag to new line items', async () => {
   //       const { organization, variant } = await setupOrg()
   //       const customerProfile = await setupCustomerProfile({
-  //         OrganizationId: organization.id,
+  //         organizationId: organization.id,
   //       })
   //       const invoice = await setupInvoice({
-  //         CustomerProfileId: customerProfile.id,
-  //         OrganizationId: organization.id,
+  //         customerProfileId: customerProfile.id,
+  //         organizationId: organization.id,
   //         status: InvoiceStatus.Draft,
-  //         VariantId: variant.id,
+  //         variantId: variant.id,
   //         livemode: false,
   //       })
 
@@ -480,12 +478,12 @@ describe('updateInvoiceTransaction', () => {
   //             invoice: {
   //               id: invoice.id,
   //               type: InvoiceType.Purchase,
-  //               BillingPeriodId: null,
-  //               PurchaseId: invoice.PurchaseId!,
+  //               billingPeriodId: null,
+  //               purchaseId: invoice.purchaseId!,
   //             },
   //             invoiceLineItems: [
   //               {
-  //                 InvoiceId: invoice.id,
+  //                 invoiceId: invoice.id,
   //                 description: 'Test Item',
   //                 quantity: 1,
   //                 price: 1000,

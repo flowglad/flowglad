@@ -36,23 +36,23 @@ const PurchaseSessionPage = async ({
      * For invoice or purchase flows, those should go through their respective
      * pages.
      */
-    if (!purchaseSession.VariantId) {
+    if (!purchaseSession.variantId) {
       throw new Error(
         `No variant id found for purchase session ${purchaseSession.id}. Currently, only variant / product checkout flows are supported on this page.`
       )
     }
     const [{ product, variant, organization }] =
       await selectVariantProductAndOrganizationByVariantWhere(
-        { id: purchaseSession.VariantId },
+        { id: purchaseSession.variantId },
         transaction
       )
     const feeCalculation = await selectLatestFeeCalculation(
       { PurchaseSessionId: purchaseSession.id },
       transaction
     )
-    const maybeCustomerProfile = purchaseSession.CustomerProfileId
+    const maybeCustomerProfile = purchaseSession.customerProfileId
       ? await selectCustomerProfileById(
-          purchaseSession.CustomerProfileId,
+          purchaseSession.customerProfileId,
           transaction
         )
       : null

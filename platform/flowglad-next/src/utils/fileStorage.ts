@@ -12,7 +12,7 @@ export const safeObjectKeyToFileInsert = async (
   transaction: DbTransaction
 ) => {
   const organizations = await selectMembershipAndOrganizations(
-    { UserId: userId, focused: true },
+    { userId, focused: true },
     transaction
   )
 
@@ -39,7 +39,7 @@ export const safeObjectKeyToFileInsert = async (
     ),
     contentHash: r2Object.ETag!,
     etag: r2Object.ETag!,
-    OrganizationId: organizations[0].organization.id,
+    organizationId: organizations[0].organization.id,
     livemode,
   }
 

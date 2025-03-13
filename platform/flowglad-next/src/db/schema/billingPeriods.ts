@@ -1,5 +1,4 @@
 import {
-  date,
   pgTable,
   pgPolicy,
   timestamp,
@@ -20,34 +19,34 @@ import { createSelectSchema } from 'drizzle-zod'
 import { BillingPeriodStatus } from '@/types'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'BillingPeriods'
+const TABLE_NAME = 'billing_periods'
 
 export const billingPeriods = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('billingPeriod'),
-    SubscriptionId: notNullStringForeignKey(
-      'SubscriptionId',
+    ...tableBase('billing_period'),
+    subscriptionId: notNullStringForeignKey(
+      'subscription_id',
       subscriptions
     ),
-    startDate: timestamp('startDate').notNull(),
-    endDate: timestamp('endDate').notNull(),
+    startDate: timestamp('start_date').notNull(),
+    endDate: timestamp('end_date').notNull(),
     status: pgEnumColumn({
       enumName: 'BillingPeriodStatus',
       columnName: 'status',
       enumBase: BillingPeriodStatus,
     }).notNull(),
-    trialPeriod: boolean('trialPeriod').notNull().default(false),
+    trialPeriod: boolean('trial_period').notNull().default(false),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.SubscriptionId]),
+      constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.status]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"SubscriptionId" in (select "id" from "Subscriptions" where "OrganizationId" in (select "OrganizationId" from "Memberships"))`,
+        using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
     ]
   }
@@ -74,7 +73,7 @@ export const billingPeriodsUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  SubscriptionId: true,
+  subscriptionId: true,
 } as const
 
 const hiddenColumns = {} as const

@@ -19,18 +19,18 @@ import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
 
-const TABLE_NAME = 'SubscriptionItems'
+const TABLE_NAME = 'subscription_items'
 
 const columns = {
   ...tableBase('si'),
-  SubscriptionId: notNullStringForeignKey(
-    'SubscriptionId',
+  subscriptionId: notNullStringForeignKey(
+    'subscription_id',
     subscriptions
   ),
   name: text('name'),
-  addedDate: timestamp('addedDate').notNull(),
-  VariantId: notNullStringForeignKey('VariantId', variants),
-  unitPrice: integer('unitPrice').notNull(),
+  addedDate: timestamp('added_date').notNull(),
+  variantId: notNullStringForeignKey('variant_id', variants),
+  unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
   metadata: jsonb('metadata'),
 }
@@ -40,15 +40,15 @@ export const subscriptionItems = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.SubscriptionId]),
-      constructIndex(TABLE_NAME, [table.VariantId]),
+      constructIndex(TABLE_NAME, [table.subscriptionId]),
+      constructIndex(TABLE_NAME, [table.variantId]),
       pgPolicy(
         'Enable actions for own organizations via subscriptions',
         {
           as: 'permissive',
           to: 'authenticated',
           for: 'all',
-          using: sql`"SubscriptionId" in (select "id" from "Subscriptions")`,
+          using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
         }
       ),
       livemodePolicy(),
@@ -87,8 +87,8 @@ export const subscriptionItemsUpdateSchema = createSelectSchema(
   })
 
 const createOnlyColumns = {
-  SubscriptionId: true,
-  VariantId: true,
+  subscriptionId: true,
+  variantId: true,
 } as const
 
 const readOnlyColumns = {

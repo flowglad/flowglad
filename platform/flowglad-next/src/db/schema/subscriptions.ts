@@ -34,16 +34,16 @@ import core from '@/utils/core'
 import { paymentMethods } from './paymentMethods'
 import { productsClientSelectSchema } from './products'
 
-const TABLE_NAME = 'Subscriptions'
+const TABLE_NAME = 'subscriptions'
 
 const columns = {
   ...tableBase('sub'),
-  CustomerProfileId: notNullStringForeignKey(
-    'CustomerProfileId',
+  customerProfileId: notNullStringForeignKey(
+    'customer_profile_id',
     customerProfiles
   ),
-  OrganizationId: notNullStringForeignKey(
-    'OrganizationId',
+  organizationId: notNullStringForeignKey(
+    'organization_id',
     organizations
   ),
   status: pgEnumColumn({
@@ -52,40 +52,40 @@ const columns = {
     enumBase: SubscriptionStatus,
   }).notNull(),
   defaultPaymentMethodId: nullableStringForeignKey(
-    'defaultPaymentMethodId',
+    'default_payment_method_id',
     paymentMethods
   ),
   backupPaymentMethodId: nullableStringForeignKey(
-    'backupPaymentMethodId',
+    'backup_payment_method_id',
     paymentMethods
   ),
-  stripeSetupIntentId: text('stripeSetupIntentId'),
-  trialEnd: timestamp('trialEnd'),
+  stripeSetupIntentId: text('stripe_setup_intent_id'),
+  trialEnd: timestamp('trial_end'),
   currentBillingPeriodStart: timestamp(
-    'currentBillingPeriodStart'
+    'current_billing_period_start'
   ).notNull(),
   currentBillingPeriodEnd: timestamp(
-    'currentBillingPeriodEnd'
+    'current_billing_period_end'
   ).notNull(),
   metadata: jsonb('metadata'),
-  canceledAt: timestamp('canceledAt'),
-  cancelScheduledAt: timestamp('cancelScheduledAt'),
-  VariantId: notNullStringForeignKey('VariantId', variants),
+  canceledAt: timestamp('canceled_at'),
+  cancelScheduledAt: timestamp('cancel_scheduled_at'),
+  variantId: notNullStringForeignKey('variant_id', variants),
   interval: pgEnumColumn({
     enumName: 'IntervalUnit',
     columnName: 'interval',
     enumBase: IntervalUnit,
   }).notNull(),
-  intervalCount: integer('intervalCount').notNull(),
+  intervalCount: integer('interval_count').notNull(),
   billingCycleAnchorDate: timestamp(
-    'billingCycleAnchorDate'
+    'billing_cycle_anchor_date'
   ).notNull(),
 }
 
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
   return [
-    constructIndex(TABLE_NAME, [table.CustomerProfileId]),
-    constructIndex(TABLE_NAME, [table.VariantId]),
+    constructIndex(TABLE_NAME, [table.customerProfileId]),
+    constructIndex(TABLE_NAME, [table.variantId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
     pgPolicy(
@@ -94,7 +94,7 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"CustomerProfileId" in (select "id" from "CustomerProfiles")`,
+        using: sql`"customer_profile_id" in (select "id" from "customer_profiles")`,
       }
     ),
     pgPolicy('Forbid deletion', {
@@ -144,7 +144,7 @@ export const subscriptionsUpdateSchema = createSelectSchema(
   })
 
 const createOnlyColumns = {
-  CustomerProfileId: true,
+  customerProfileId: true,
 } as const
 
 const readOnlyColumns = {
@@ -184,9 +184,9 @@ export const subscriptionsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     subscriptionClientSelectSchema.pick({
       status: true,
-      VariantId: true,
-      CustomerProfileId: true,
-      OrganizationId: true,
+      variantId: true,
+      customerProfileId: true,
+      organizationId: true,
     })
   )
 

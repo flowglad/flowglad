@@ -26,7 +26,6 @@ import { purchases } from './purchases'
 import {
   IntervalUnit,
   InvoiceStatus,
-  IdNumberParam,
   InvoiceType,
   CurrencyCode,
 } from '@/types'
@@ -36,30 +35,30 @@ import { organizations } from './organizations'
 import { billingPeriods } from './billingPeriods'
 import { memberships } from './memberships'
 
-export const TABLE_NAME = 'Invoices'
+export const TABLE_NAME = 'invoices'
 
 export const invoices = pgTable(
   TABLE_NAME,
   {
     ...tableBase('inv'),
-    PurchaseId: nullableStringForeignKey('PurchaseId', purchases),
-    invoiceNumber: text('invoiceNumber').notNull().unique(),
-    invoiceDate: timestamp('invoiceDate').notNull().defaultNow(),
-    BillingPeriodId: nullableStringForeignKey(
-      'BillingPeriodId',
+    purchaseId: nullableStringForeignKey('purchase_id', purchases),
+    invoiceNumber: text('invoice_number').notNull().unique(),
+    invoiceDate: timestamp('invoice_date').notNull().defaultNow(),
+    billingPeriodId: nullableStringForeignKey(
+      'billing_period_id',
       billingPeriods
     ),
     /**
      * If this is null, the invoice is due upon receipt
      */
-    dueDate: timestamp('dueDate'),
-    stripePaymentIntentId: text('stripePaymentIntentId'),
-    CustomerProfileId: notNullStringForeignKey(
-      'CustomerProfileId',
+    dueDate: timestamp('due_date'),
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
+    customerProfileId: notNullStringForeignKey(
+      'customer_profile_id',
       customerProfiles
     ).notNull(),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     status: pgEnumColumn({
@@ -71,21 +70,21 @@ export const invoices = pgTable(
       .default(InvoiceStatus.Draft),
     billingInterval: pgEnumColumn({
       enumName: 'interval',
-      columnName: 'billingInterval',
+      columnName: 'billing_interval',
       enumBase: IntervalUnit,
     }),
-    billingPeriodStartDate: timestamp('billingPeriodStartDate'),
-    billingPeriodEndDate: timestamp('billingPeriodEndDate'),
-    billingIntervalCount: integer('billingIntervalCount'),
-    billingAnchorDate: timestamp('billingAnchorDate'),
+    billingPeriodStartDate: timestamp('billing_period_start_date'),
+    billingPeriodEndDate: timestamp('billing_period_end_date'),
+    billingIntervalCount: integer('billing_interval_count'),
+    billingAnchorDate: timestamp('billing_anchor_date'),
     ownerMembershipId: nullableStringForeignKey(
-      'ownerMembershipId',
+      'owner_membership_id',
       memberships
     ),
-    pdfURL: text('pdfURL'),
-    receiptPdfURL: text('receiptPdfURL'),
+    pdfURL: text('pdf_url'),
+    receiptPdfURL: text('receipt_pdf_url'),
     memo: text('memo'),
-    bankPaymentOnly: boolean('bankPaymentOnly').default(false),
+    bankPaymentOnly: boolean('bank_payment_only').default(false),
     type: pgEnumColumn({
       enumName: 'InvoiceType',
       columnName: 'type',
@@ -101,11 +100,11 @@ export const invoices = pgTable(
   (table) => {
     return [
       constructUniqueIndex(TABLE_NAME, [table.invoiceNumber]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.CustomerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerProfileId]),
       constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       livemodePolicy(),
     ]
   }
@@ -127,20 +126,20 @@ const coreInvoicesInsertSchema = enhancedCreateInsertSchema(
 
 const purchaseInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Purchase),
-  PurchaseId: z.string(),
-  BillingPeriodId: z.null(),
+  purchaseId: z.string(),
+  billingPeriodId: z.null(),
 }
 
 const subscriptionInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Subscription),
-  PurchaseId: z.null(),
-  BillingPeriodId: z.string(),
+  purchaseId: z.null(),
+  billingPeriodId: z.string(),
 }
 
 const standaloneInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Standalone),
-  PurchaseId: z.null(),
-  BillingPeriodId: z.null(),
+  purchaseId: z.null(),
+  billingPeriodId: z.null(),
 }
 
 const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema.extend(
@@ -207,12 +206,12 @@ const hiddenColumns = {
 } as const
 
 const createOnlyColumns = {
-  CustomerProfileId: true,
-  PurchaseId: true,
+  customerProfileId: true,
+  purchaseId: true,
 } as const
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
   applicationFee: true,
   taxRatePercentage: true,

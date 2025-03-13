@@ -36,36 +36,38 @@ import { sql } from 'drizzle-orm'
 import { variants } from './variants'
 import { billingPeriods } from './billingPeriods'
 
-const TABLE_NAME = 'FeeCalculations'
+const TABLE_NAME = 'fee_calculations'
 
 export const feeCalculations = pgTable(
   TABLE_NAME,
   {
     ...tableBase('feec'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     PurchaseSessionId: nullableStringForeignKey(
-      'PurchaseSessionId',
+      'purchase_session_id',
       purchaseSessions
     ),
-    PurchaseId: nullableStringForeignKey('PurchaseId', purchases),
-    DiscountId: nullableStringForeignKey('DiscountId', discounts),
-    VariantId: nullableStringForeignKey('VariantId', variants),
+    purchaseId: nullableStringForeignKey('purchase_id', purchases),
+    discountId: nullableStringForeignKey('discount_id', discounts),
+    variantId: nullableStringForeignKey('variant_id', variants),
     paymentMethodType: pgEnumColumn({
       enumName: 'PaymentMethodType',
-      columnName: 'paymentMethodType',
+      columnName: 'payment_method_type',
       enumBase: PaymentMethodType,
     }).notNull(),
-    discountAmountFixed: integer('discountAmountFixed').notNull(),
-    paymentMethodFeeFixed: integer('paymentMethodFeeFixed').notNull(),
-    baseAmount: integer('baseAmount').notNull(),
-    internationalFeePercentage: text(
-      'internationalFeePercentage'
+    discountAmountFixed: integer('discount_amount_fixed').notNull(),
+    paymentMethodFeeFixed: integer(
+      'payment_method_fee_fixed'
     ).notNull(),
-    flowgladFeePercentage: text('flowgladFeePercentage').notNull(),
-    billingAddress: jsonb('billingAddress').notNull(),
+    baseAmount: integer('base_amount').notNull(),
+    internationalFeePercentage: text(
+      'international_fee_percentage'
+    ).notNull(),
+    flowgladFeePercentage: text('flowglad_fee_percentage').notNull(),
+    billingAddress: jsonb('billing_address').notNull(),
     /**
      * Tax columns
      */
@@ -73,8 +75,8 @@ export const feeCalculations = pgTable(
     pretaxTotal: integer('pretaxTotal').notNull(),
     stripeTaxCalculationId: text('stripeTaxCalculationId'),
     stripeTaxTransactionId: text('stripeTaxTransactionId'),
-    BillingPeriodId: nullableStringForeignKey(
-      'BillingPeriodId',
+    billingPeriodId: nullableStringForeignKey(
+      'billing_period_id',
       billingPeriods
     ),
     currency: pgEnumColumn({
@@ -91,16 +93,16 @@ export const feeCalculations = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.PurchaseSessionId]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
-      constructIndex(TABLE_NAME, [table.DiscountId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
+      constructIndex(TABLE_NAME, [table.discountId]),
       livemodePolicy(),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
     ]
   }
@@ -126,13 +128,13 @@ export const coreFeeCalculationsSelectSchema =
 const subscriptionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.SubscriptionPayment),
   PurchaseSessionId: z.null(),
-  VariantId: z.null(),
+  variantId: z.null(),
 }
 
 const purchaseSessionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.PurchaseSessionPayment),
-  BillingPeriodId: z.null(),
-  VariantId: z.string(),
+  billingPeriodId: z.null(),
+  variantId: z.string(),
 }
 
 export const subscriptionPaymentFeeCalculationInsertSchema =
@@ -192,9 +194,9 @@ export const feeCalculationsUpdateSchema = z.discriminatedUnion(
 )
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   PurchaseSessionId: true,
-  PurchaseId: true,
+  purchaseId: true,
   livemode: true,
 } as const
 
@@ -260,8 +262,8 @@ export const purchaseSessionFeeCalculationParametersChanged = ({
 }) => {
   const keys = [
     'billingAddress',
-    'DiscountId',
-    'VariantId',
+    'discountId',
+    'variantId',
     'paymentMethodType',
     'quantity',
   ] as const

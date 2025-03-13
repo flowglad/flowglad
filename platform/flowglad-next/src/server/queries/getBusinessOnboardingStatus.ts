@@ -16,14 +16,14 @@ import { getConnectedAccountOnboardingStatus } from '@/utils/stripe'
 export const getBusinessOnboardingStatus = protectedProcedure
   .input(
     z.object({
-      OrganizationId: z.string(),
+      organizationId: z.string(),
     })
   )
   .query(async ({ input, ctx }) => {
     const organization = await authenticatedTransaction(
       async ({ transaction }) => {
         const organization = await selectOrganizationById(
-          input.OrganizationId,
+          input.organizationId,
           transaction
         )
 

@@ -44,14 +44,14 @@ export const invoiceUpdatedTask = task({
         paymentForInvoice,
       } = await adminTransaction(async ({ transaction }) => {
         const invoiceLineItems = await selectInvoiceLineItems(
-          { InvoiceId: newRecord.id },
+          { invoiceId: newRecord.id },
           transaction
         )
 
         const [{ customer, customerProfile }] =
           await selectCustomerProfileAndCustomerTableRows(
             {
-              id: newRecord.CustomerProfileId,
+              id: newRecord.customerProfileId,
             },
             transaction
           )
@@ -62,7 +62,7 @@ export const invoiceUpdatedTask = task({
         }
 
         const organization = await selectOrganizationById(
-          customerProfile.OrganizationId,
+          customerProfile.organizationId,
           transaction
         )
         if (!organization) {
@@ -72,7 +72,7 @@ export const invoiceUpdatedTask = task({
         }
         logger.info(`Sending receipt email to ${customer.email}`)
         const [paymentForInvoice] = await selectPayments(
-          { InvoiceId: newRecord.id },
+          { invoiceId: newRecord.id },
           transaction
         )
         return {

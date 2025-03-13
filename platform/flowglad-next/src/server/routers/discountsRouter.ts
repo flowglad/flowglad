@@ -42,7 +42,7 @@ export const createDiscount = protectedProcedure
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction
@@ -55,7 +55,7 @@ export const createDiscount = protectedProcedure
         return insertDiscount(
           {
             ...input.discount,
-            OrganizationId: organization.id,
+            organizationId: organization.id,
             stripeCouponId: stripeCoupon.id,
             livemode,
           },

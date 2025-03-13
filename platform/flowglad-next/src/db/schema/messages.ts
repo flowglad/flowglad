@@ -15,35 +15,35 @@ import { pgTable, text, timestamp, jsonb } from 'drizzle-orm/pg-core'
 import { customerProfiles } from './customerProfiles'
 import { memberships } from './memberships'
 
-const TABLE_NAME = 'Messages'
+const TABLE_NAME = 'messages'
 export const messages = pgTable(
   TABLE_NAME,
   {
     ...tableBase('msg'),
-    CustomerProfileId: nullableStringForeignKey(
-      'CustomerProfileId',
+    customerProfileId: nullableStringForeignKey(
+      'customer_profile_id',
       customerProfiles
     ),
-    messageSentAt: timestamp('messageSentAt').notNull(),
-    OrganizationMemberId: nullableStringForeignKey(
-      'OrganizationMemberId',
+    messageSentAt: timestamp('message_sent_at').notNull(),
+    organizationMemberId: nullableStringForeignKey(
+      'organization_member_id',
       memberships
     ),
-    rawText: text('rawText').notNull(),
+    rawText: text('raw_text').notNull(),
     platform: text('platform').notNull(),
     /**
      * For Figma, there isn't really a notion of "thread"
      * For Slack, this is the thread
      * For Gmail, this is the thread
      */
-    platformThreadId: text('platformThreadId'),
+    platformThreadId: text('platform_thread_id'),
     /**
      * For Figma, this is the file
      * For Slack, this is the literal channel
      */
-    platformChannelId: text('platformChannelId'),
-    platformId: text('platformId').notNull(),
-    platformUserId: text('platformUserId').notNull(),
+    platformChannelId: text('platform_channel_id'),
+    platformId: text('platform_id').notNull(),
+    platformUserId: text('platform_user_id').notNull(),
     payload: jsonb('payload'),
   },
   (table) => {
@@ -81,8 +81,8 @@ export const messagesUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  CustomerProfileId: true,
-  OrganizationMemberId: true,
+  customerProfileId: true,
+  organizationMemberId: true,
   platformId: true,
   platformUserId: true,
   platformThreadId: true,

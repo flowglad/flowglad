@@ -16,29 +16,29 @@ import { organizations } from '@/db/schema/organizations'
 import { products } from './products'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'Forms'
+const TABLE_NAME = 'forms'
 
 export const forms = pgTable(
   TABLE_NAME,
   {
     ...tableBase('form'),
     title: text('title').notNull(),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
-    ProductId: nullableStringForeignKey('ProductId', products),
+    productId: nullableStringForeignKey('product_id', products),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
-      constructUniqueIndex(TABLE_NAME, [table.ProductId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
+      constructUniqueIndex(TABLE_NAME, [table.productId]),
       pgPolicy('Enable all for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
-        withCheck: sql`"ProductId" is null OR "ProductId" in (select "id" from "Products")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
       }),
       livemodePolicy(),
     ]
@@ -64,7 +64,7 @@ export const formsUpdateSchema = createUpdateSchema(forms, {
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

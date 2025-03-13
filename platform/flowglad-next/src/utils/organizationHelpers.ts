@@ -76,7 +76,7 @@ export const createOrganizationTransaction = async (
   }
 
   const country = await selectCountryById(
-    organization.CountryId,
+    organization.countryId,
     transaction
   )
 
@@ -97,8 +97,8 @@ export const createOrganizationTransaction = async (
 
   await insertMembership(
     {
-      OrganizationId: organizationRecord.id,
-      UserId: user.id,
+      organizationId: organizationRecord.id,
+      userId: user.id,
       focused: true,
       /**
        * Deliberate - we need them to onboard into test mode so they can quickly see what the

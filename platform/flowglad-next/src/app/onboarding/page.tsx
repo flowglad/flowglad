@@ -26,7 +26,7 @@ const OnboardingPage = async () => {
       const membershipsAndOrganizations =
         await selectMembershipAndOrganizations(
           {
-            UserId: userId,
+            userId,
             focused: true,
           },
           transaction
@@ -42,7 +42,7 @@ const OnboardingPage = async () => {
         transaction
       )
       const discounts = await selectDiscounts(
-        { OrganizationId: organization.id },
+        { organizationId: organization.id },
         transaction
       )
       return { organization, countries, products, discounts }
@@ -57,7 +57,7 @@ const OnboardingPage = async () => {
   const testmodeApiKeys = await adminTransaction(
     async ({ transaction }) => {
       return selectApiKeys(
-        { OrganizationId: organization.id, livemode: false },
+        { organizationId: organization.id, livemode: false },
         transaction
       )
     }

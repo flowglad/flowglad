@@ -16,15 +16,15 @@ const CustomersPage = async ({
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction
           )
-        // Then, use the OrganizationId to fetch customer profiles
+        // Then, use the organizationId to fetch customer profiles
         const customerProfiles =
           await selectCustomerProfileAndCustomerTableRows(
-            { OrganizationId: organization.id },
+            { organizationId: organization.id },
             transaction
           )
         const variants =

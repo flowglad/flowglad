@@ -27,26 +27,26 @@ import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 
-const VARIANTS_TABLE_NAME = 'Variants'
+const VARIANTS_TABLE_NAME = 'variants'
 
 const columns = {
   ...tableBase('vrnt'),
   intervalUnit: pgEnumColumn({
     enumName: 'IntervalUnit',
-    columnName: 'intervalUnit',
+    columnName: 'interval_unit',
     enumBase: IntervalUnit,
   }),
   name: text('name'),
   intervalCount: integer('intervalCount'),
   priceType: pgEnumColumn({
     enumName: 'PriceType',
-    columnName: 'priceType',
+    columnName: 'price_type',
     enumBase: PriceType,
   }).notNull(),
-  trialPeriodDays: integer('trialPeriodDays'),
-  setupFeeAmount: integer('setupFeeAmount'),
-  isDefault: boolean('isDefault').notNull(),
-  unitPrice: integer('unitPrice').notNull(),
+  trialPeriodDays: integer('trial_period_days'),
+  setupFeeAmount: integer('setup_fee_amount'),
+  isDefault: boolean('is_default').notNull(),
+  unitPrice: integer('unit_price').notNull(),
   /**
    * Omitting this for now to reduce MVP complexity,
    * will re-introduce later
@@ -54,8 +54,8 @@ const columns = {
   // includeTaxInPrice: boolean('includeTaxInPrice')
   //   .notNull()
   //   .default(false),
-  ProductId: notNullStringForeignKey('ProductId', products),
-  stripePriceId: text('stripePriceId').unique(),
+  productId: notNullStringForeignKey('product_id', products),
+  stripePriceId: text('stripe_price_id').unique(),
   active: boolean('active').notNull().default(true),
   currency: pgEnumColumn({
     enumName: 'CurrencyCode',
@@ -70,7 +70,7 @@ export const variants = pgTable(
   (table) => {
     return [
       constructIndex(VARIANTS_TABLE_NAME, [table.priceType]),
-      constructIndex(VARIANTS_TABLE_NAME, [table.ProductId]),
+      constructIndex(VARIANTS_TABLE_NAME, [table.productId]),
       constructUniqueIndex(VARIANTS_TABLE_NAME, [
         table.stripePriceId,
       ]),
@@ -78,7 +78,7 @@ export const variants = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"ProductId" in (select "id" from "Products")`,
+        using: sql`"product_id" in (select "id" from "products")`,
       }),
       livemodePolicy(),
     ]
@@ -242,7 +242,7 @@ export const variantsClientSelectSchema = z.discriminatedUnion(
 export const variantsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     z.object({
-      ProductId: z.string().optional(),
+      productId: z.string().optional(),
       priceType: z.nativeEnum(PriceType).optional(),
       active: z.boolean().optional(),
     })

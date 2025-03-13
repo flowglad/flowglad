@@ -24,14 +24,14 @@ import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 
-const TABLE_NAME = 'Discounts'
+const TABLE_NAME = 'discounts'
 
 export const discounts = pgTable(
   TABLE_NAME,
   {
     ...tableBase('discount'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     name: text('name').notNull(),
@@ -39,7 +39,7 @@ export const discounts = pgTable(
     amount: integer('amount').notNull(),
     amountType: pgEnumColumn({
       enumName: 'DiscountAmountType',
-      columnName: 'amountType',
+      columnName: 'amount_type',
       enumBase: DiscountAmountType,
     }).notNull(),
     active: boolean('active').notNull().default(true),
@@ -48,16 +48,16 @@ export const discounts = pgTable(
       columnName: 'duration',
       enumBase: DiscountDuration,
     }).notNull(),
-    numberOfPayments: integer('numberOfPayments'),
-    stripeCouponId: text('stripeCouponId'),
+    numberOfPayments: integer('number_of_payments'),
+    stripeCouponId: text('stripe_coupon_id'),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.code]),
       constructUniqueIndex(TABLE_NAME, [
         table.code,
-        table.OrganizationId,
+        table.organizationId,
       ]),
       livemodePolicy(),
       pgPolicy(
@@ -66,7 +66,7 @@ export const discounts = pgTable(
           as: 'permissive',
           to: 'authenticated',
           for: 'all',
-          using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
     ]
@@ -201,7 +201,7 @@ const hiddenColumns = {
 } as const
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

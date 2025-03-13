@@ -15,34 +15,34 @@ import core from '@/utils/core'
 import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'BillingPeriodItems'
+const TABLE_NAME = 'billing_period_items'
 
 export const billingPeriodItems = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('billingPeriodItem'),
-    BillingPeriodId: notNullStringForeignKey(
-      'BillingPeriodId',
+    ...tableBase('billing_period_item'),
+    billingPeriodId: notNullStringForeignKey(
+      'billing_period_id',
       billingPeriods
     ),
     quantity: integer('quantity').notNull(),
-    unitPrice: integer('unitPrice').notNull(),
+    unitPrice: integer('unit_price').notNull(),
     name: text('name').notNull(),
-    DiscountRedemptionId: nullableStringForeignKey(
-      'DiscountRedemptionId',
+    discountRedemptionId: nullableStringForeignKey(
+      'discount_redemption_id',
       discountRedemptions
     ),
     description: text('description').notNull(),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.BillingPeriodId]),
-      constructIndex(TABLE_NAME, [table.DiscountRedemptionId]),
+      constructIndex(TABLE_NAME, [table.billingPeriodId]),
+      constructIndex(TABLE_NAME, [table.discountRedemptionId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"BillingPeriodId" in (select "id" from "BillingPeriods" where "SubscriptionId" in (select "id" from "Subscriptions" where "OrganizationId" in (select "OrganizationId" from "Memberships")))`,
+        using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
       }),
     ]
   }
@@ -68,8 +68,8 @@ export const billingPeriodItemsUpdateSchema = createUpdateSchema(
 )
 
 const createOnlyColumns = {
-  BillingPeriodId: true,
-  DiscountRedemptionId: true,
+  billingPeriodId: true,
+  discountRedemptionId: true,
 } as const
 
 const readOnlyColumns = {} as const

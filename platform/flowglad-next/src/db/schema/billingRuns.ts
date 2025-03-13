@@ -23,51 +23,51 @@ import { sql } from 'drizzle-orm'
 import { subscriptions } from './subscriptions'
 import { paymentMethods } from './paymentMethods'
 
-const TABLE_NAME = 'BillingRuns'
+const TABLE_NAME = 'billing_runs'
 
 export const billingRuns = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('billingRun'),
-    BillingPeriodId: notNullStringForeignKey(
-      'BillingPeriodId',
+    ...tableBase('billing_run'),
+    billingPeriodId: notNullStringForeignKey(
+      'billing_period_id',
       billingPeriods
     ),
-    scheduledFor: timestamp('scheduledFor').notNull(),
-    startedAt: timestamp('startedAt'),
-    completedAt: timestamp('completedAt'),
+    scheduledFor: timestamp('scheduled_for').notNull(),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
     status: pgEnumColumn({
       enumName: 'BillingRunStatus',
       columnName: 'status',
       enumBase: BillingRunStatus,
     }).notNull(),
-    stripePaymentIntentId: text('stripePaymentIntentId'),
-    attemptNumber: integer('attemptNumber').notNull().default(1),
-    errorDetails: jsonb('errorDetails'),
-    SubscriptionId: notNullStringForeignKey(
-      'SubscriptionId',
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
+    attemptNumber: integer('attempt_number').notNull().default(1),
+    errorDetails: jsonb('error_details'),
+    subscriptionId: notNullStringForeignKey(
+      'subscription_id',
       subscriptions
     ),
-    PaymentMethodId: notNullStringForeignKey(
-      'PaymentMethodId',
+    paymentMethodId: notNullStringForeignKey(
+      'payment_method_id',
       paymentMethods
     ),
     /**
      * Used to deal with out-of-order event deliveries.
      */
     lastPaymentIntentEventTimestamp: timestamp(
-      'lastStripePaymentIntentEventTimestamp'
+      'last_stripe_payment_intent_event_timestamp'
     ),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.BillingPeriodId]),
+      constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.status]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"BillingPeriodId" in (select "id" from "BillingPeriods" where "SubscriptionId" in (select "id" from "Subscriptions" where "OrganizationId" in (select "OrganizationId" from "Memberships")))`,
+        using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
       }),
     ]
   }
@@ -95,7 +95,7 @@ export const billingRunsUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  BillingPeriodId: true,
+  billingPeriodId: true,
 } as const
 
 const hiddenColumns = {

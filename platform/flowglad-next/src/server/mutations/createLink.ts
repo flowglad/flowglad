@@ -12,7 +12,7 @@ export const createLink = protectedProcedure
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction
@@ -20,7 +20,7 @@ export const createLink = protectedProcedure
         return insertLink(
           {
             ...input.link,
-            OrganizationId: organization.id,
+            organizationId: organization.id,
             livemode,
           },
           transaction

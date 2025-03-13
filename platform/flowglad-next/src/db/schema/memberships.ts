@@ -15,26 +15,26 @@ import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 
-const MEMBERSHIPS_TABLE_NAME = 'Memberships'
+const MEMBERSHIPS_TABLE_NAME = 'memberships'
 
 export const memberships = pgTable(
   MEMBERSHIPS_TABLE_NAME,
   {
     ...tableBase('memb'),
-    UserId: notNullStringForeignKey('UserId', users),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    userId: notNullStringForeignKey('user_id', users),
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     focused: boolean('focused').notNull().default(false),
   },
   (table) => {
     return [
-      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.UserId]),
-      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.OrganizationId]),
+      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.userId]),
+      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(MEMBERSHIPS_TABLE_NAME, [
-        table.UserId,
-        table.OrganizationId,
+        table.userId,
+        table.organizationId,
       ]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
@@ -71,8 +71,8 @@ export const membershipsUpdateSchema = createUpdateSchema(
 const hiddenColumns = {} as const
 
 const readOnlyColumns = {
-  UserId: true,
-  OrganizationId: true,
+  userId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

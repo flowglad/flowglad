@@ -49,32 +49,32 @@ export const stripePaymentIntentSucceededTask = task({
       )
 
       const purchase = await selectPurchaseById(
-        payment.PurchaseId!,
+        payment.purchaseId!,
         transaction
       )
 
       const [invoice] =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { id: payment.InvoiceId },
+          { id: payment.invoiceId },
           transaction
         )
 
       const [customerProfileAndCustomer] =
         await selectCustomerProfileAndCustomerFromCustomerProfileWhere(
           {
-            id: purchase.CustomerProfileId,
+            id: purchase.customerProfileId,
           },
           transaction
         )
 
       const organization = await selectOrganizationById(
-        purchase.OrganizationId,
+        purchase.organizationId,
         transaction
       )
 
       const membersForOrganization =
         await selectMembershipsAndUsersByMembershipWhere(
-          { OrganizationId: organization.id },
+          { organizationId: organization.id },
           transaction
         )
 

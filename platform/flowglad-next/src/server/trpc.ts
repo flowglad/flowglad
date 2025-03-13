@@ -22,7 +22,7 @@ const isAuthed = t.middleware(({ next, ctx }) => {
         path: (ctx as TRPCContext).path,
         environment,
         apiKey,
-        OrganizationId: (ctx as TRPCContext).OrganizationId,
+        organizationId: (ctx as TRPCContext).organizationId,
         livemode,
       },
     })
@@ -36,7 +36,7 @@ const isAuthed = t.middleware(({ next, ctx }) => {
       auth,
       path: (ctx as TRPCContext).path,
       environment,
-      OrganizationId: (ctx as TRPCContext).OrganizationId,
+      organizationId: (ctx as TRPCContext).organizationId,
       livemode,
     },
   })

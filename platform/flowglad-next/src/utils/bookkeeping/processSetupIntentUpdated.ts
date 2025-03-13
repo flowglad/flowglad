@@ -50,7 +50,7 @@ const processPurchaseSessionSetupIntent = async (
 
   const [{ variant, product, organization }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: purchaseSession.VariantId },
+      { id: purchaseSession.variantId },
       transaction
     )
 
@@ -135,7 +135,7 @@ export const processSetupIntentUpdated = async (
     {
       stripePaymentMethodId,
       livemode: purchase.livemode,
-      CustomerProfileId: customerProfile.id,
+      customerProfileId: customerProfile.id,
     },
     transaction
   )

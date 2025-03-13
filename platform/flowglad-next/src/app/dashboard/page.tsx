@@ -10,7 +10,7 @@ export default async function Home() {
       const [{ organization }] =
         await selectMembershipAndOrganizations(
           {
-            UserId: userId,
+            userId,
             focused: true,
           },
           transaction

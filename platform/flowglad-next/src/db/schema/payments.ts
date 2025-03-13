@@ -41,17 +41,17 @@ import { sql } from 'drizzle-orm'
 import { paymentMethods } from './paymentMethods'
 import { billingPeriods } from './billingPeriods'
 
-export const TABLE_NAME = 'Payments'
+export const TABLE_NAME = 'payments'
 
 export const payments = pgTable(
   TABLE_NAME,
   {
     ...tableBase('pym'),
-    InvoiceId: notNullStringForeignKey('InvoiceId', invoices),
+    invoiceId: notNullStringForeignKey('invoice_id', invoices),
     amount: integer('amount').notNull(),
     paymentMethod: pgEnumColumn({
       enumName: 'PaymentMethod',
-      columnName: 'paymentMethod',
+      columnName: 'payment_method',
       enumBase: PaymentMethodType,
     }).notNull(),
     currency: pgEnumColumn({
@@ -64,59 +64,59 @@ export const payments = pgTable(
       columnName: 'status',
       enumBase: PaymentStatus,
     }).notNull(),
-    chargeDate: timestamp('chargeDate').notNull(),
-    settlementDate: timestamp('settlementDate'),
+    chargeDate: timestamp('charge_date').notNull(),
+    settlementDate: timestamp('settlement_date'),
     description: text('description'),
-    receiptNumber: text('receiptNumber'),
-    receiptURL: text('receiptURL'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    receiptNumber: text('receipt_number'),
+    receiptURL: text('receipt_url'),
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
-    CustomerProfileId: notNullStringForeignKey(
-      'CustomerProfileId',
+    customerProfileId: notNullStringForeignKey(
+      'customer_profile_id',
       customerProfiles
     ),
-    PurchaseId: nullableStringForeignKey('PurchaseId', purchases),
-    PaymentMethodId: nullableStringForeignKey(
-      'PaymentMethodId',
+    purchaseId: nullableStringForeignKey('purchase_id', purchases),
+    paymentMethodId: nullableStringForeignKey(
+      'payment_method_id',
       paymentMethods
     ),
-    BillingPeriodId: nullableStringForeignKey(
-      'BillingPeriodId',
+    billingPeriodId: nullableStringForeignKey(
+      'billing_period_id',
       billingPeriods
     ),
-    stripePaymentIntentId: text('stripePaymentIntentId').notNull(),
-    stripeChargeId: text('stripeChargeId'),
+    stripePaymentIntentId: text('stripe_payment_intent_id').notNull(),
+    stripeChargeId: text('stripe_charge_id'),
     ...taxColumns(),
     /**
      * Refund columns
      */
     refunded: boolean('refunded').notNull().default(false),
-    refundedAmount: integer('refundedAmount'),
-    refundedAt: timestamp('refundedAt'),
+    refundedAmount: integer('refunded_amount'),
+    refundedAt: timestamp('refunded_at'),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.InvoiceId]),
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.invoiceId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.paymentMethod]),
-      constructIndex(TABLE_NAME, [table.CustomerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerProfileId]),
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.currency]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       pgPolicy('Enable update for own organization', {
         as: 'permissive',
         to: 'authenticated',
         for: 'update',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       livemodePolicy(),
     ]
@@ -151,7 +151,7 @@ export const paymentsUpdateSchema = createUpdateSchema(
 )
 
 const readonlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 
@@ -191,11 +191,11 @@ export namespace Payment {
 }
 
 export const getRevenueDataInputSchema = z.object({
-  OrganizationId: z.string(),
+  organizationId: z.string(),
   revenueChartIntervalUnit: core.createSafeZodEnum(
     RevenueChartIntervalUnit
   ),
-  ProductId: z.string().nullish(),
+  productId: z.string().nullish(),
   fromDate: core.safeZodDate,
   toDate: core.safeZodDate,
 })
@@ -222,6 +222,6 @@ export const paymentsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     paymentsClientSelectSchema.pick({
       status: true,
-      CustomerProfileId: true,
+      customerProfileId: true,
     })
   )

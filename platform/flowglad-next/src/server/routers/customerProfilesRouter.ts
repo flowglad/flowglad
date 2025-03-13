@@ -6,6 +6,7 @@ import {
 } from '@/db/databaseMethods'
 import { z } from 'zod'
 import {
+  selectCustomerProfileById,
   selectCustomerProfiles,
   selectCustomerProfilesPaginated,
   updateCustomerProfile,
@@ -42,6 +43,13 @@ import { variantsClientSelectSchema } from '@/db/schema/variants'
 import { productsClientSelectSchema } from '@/db/schema/products'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
+import { invoicesClientSelectSchema } from '@/db/schema/invoices'
+import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { SubscriptionStatus } from '@/types'
+import { isPaymentInTerminalState } from '@/db/tableMethods/paymentMethods'
+import { isSubscriptionInTerminalState } from '@/db/tableMethods/subscriptionMethods'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Customer Profile',
@@ -79,9 +87,9 @@ const createCustomerProfileProcedure = protectedProcedure
   .input(createCustomerProfileInputSchema)
   .output(createCustomerProfileOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
-      throw new Error('OrganizationId is required')
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new Error('organizationId is required')
     }
     /**
      * We can't allow an insert on to customers without
@@ -124,8 +132,8 @@ const createCustomerProfileProcedure = protectedProcedure
               customer: customerRecord,
               customerProfile: {
                 ...customerProfile,
-                OrganizationId,
-                CustomerId: customerRecord.id,
+                organizationId,
+                customerId: customerRecord.id,
                 livemode: ctx.livemode,
               },
             },
@@ -166,41 +174,50 @@ export const editCustomerProfile = protectedProcedure
     })
   })
 
+export const getCustomerProfileById = protectedProcedure
+  .input(z.object({ id: z.string() }))
+  .output(
+    z.object({ customerProfile: customerProfileClientSelectSchema })
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(async ({ transaction }) => {
+      const customerProfile = await selectCustomerProfileById(
+        input.id,
+        transaction
+      )
+      return { customerProfile }
+    })
+  })
+
 export const getCustomerProfile = protectedProcedure
   .meta(openApiMetas.GET)
   .input(
-    z.union([
-      z.object({
-        externalId: z
-          .string()
-          .describe(
-            'The ID of the customer, as defined in your application'
-          ),
-      }),
-      z.object({
-        id: z.string().describe('The ID of the customer profile'),
-      }),
-    ])
+    z.object({
+      externalId: z
+        .string()
+        .describe(
+          'The ID of the customer, as defined in your application'
+        ),
+    })
   )
   .output(
     z.object({ customerProfile: customerProfileClientSelectSchema })
   )
   .query(async ({ input, ctx }) => {
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'OrganizationId is required',
+        message: 'organizationId is required',
       })
     }
 
     const customerProfiles = await authenticatedTransaction(
       async ({ transaction }) => {
-        const selectConditions =
-          'id' in input
-            ? { id: input.id }
-            : { externalId: input.externalId, OrganizationId }
-        return selectCustomerProfiles(selectConditions, transaction)
+        return selectCustomerProfiles(
+          { externalId: input.externalId, organizationId },
+          transaction
+        )
       },
       {
         apiKey: ctx.apiKey,
@@ -239,6 +256,14 @@ export const getCustomerBilling = protectedProcedure
     z.object({
       customerProfile: customerProfileClientSelectSchema,
       subscriptions: richSubscriptionClientSelectSchema.array(),
+      invoices: invoicesClientSelectSchema.array(),
+      paymentMethods: paymentMethodClientSelectSchema.array(),
+      currentSubscriptions: richSubscriptionClientSelectSchema
+        .array()
+        .optional()
+        .describe(
+          'The current subscriptions for the customer. By default, customers can only have one active subscription at a time. This will only return multiple subscriptions if you have enabled multiple subscriptions per customer.'
+        ),
       catalog: z.object({
         products: z
           .object({
@@ -250,39 +275,62 @@ export const getCustomerBilling = protectedProcedure
     })
   )
   .query(async ({ input, ctx }) => {
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
-      throw new Error('OrganizationId is required')
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new Error('organizationId is required')
     }
-    const { customerProfile, catalog } =
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          const customerProfiles = await selectCustomerProfiles(
-            { ...input, OrganizationId },
+    const {
+      customerProfile,
+      catalog,
+      invoices,
+      paymentMethods,
+      currentSubscriptions,
+    } = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const customerProfiles = await selectCustomerProfiles(
+          { ...input, organizationId },
+          transaction
+        )
+        const subscriptions = await selectRichSubscriptions(
+          { customerProfileId: customerProfiles[0].id },
+          transaction
+        )
+        const catalog = await selectCatalog(
+          { organizationId },
+          transaction
+        )
+        const invoices =
+          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+            { customerProfileId: customerProfiles[0].id },
             transaction
           )
-          const subscriptions = await selectRichSubscriptions(
-            { CustomerProfileId: customerProfiles[0].id },
-            transaction
-          )
-          const catalog = await selectCatalog(
-            { OrganizationId },
-            transaction
-          )
-          return {
-            customerProfile: {
-              ...customerProfiles[0],
-              subscriptions,
-            },
-            catalog,
-          }
-        },
-        {
-          apiKey: ctx.apiKey,
+        const paymentMethods = await selectPaymentMethods(
+          { customerProfileId: customerProfiles[0].id },
+          transaction
+        )
+        const currentSubscriptions = subscriptions.filter((item) => {
+          return isSubscriptionInTerminalState(item.status)
+        })
+        return {
+          customerProfile: {
+            ...customerProfiles[0],
+            subscriptions,
+          },
+          invoices,
+          paymentMethods,
+          catalog,
+          currentSubscriptions,
         }
-      )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
     return {
       customerProfile,
+      invoices,
+      paymentMethods,
+      currentSubscriptions,
       subscriptions: customerProfile.subscriptions,
       catalog: {
         products: catalog,
@@ -305,5 +353,6 @@ export const customerProfilesRouter = router({
   edit: editCustomerProfile,
   getBilling: getCustomerBilling,
   get: getCustomerProfile,
+  internal__getById: getCustomerProfileById,
   list: listCustomerProfilesProcedure,
 })

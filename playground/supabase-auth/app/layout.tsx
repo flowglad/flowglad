@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/Toasts/toaster';
 import { PropsWithChildren, Suspense } from 'react';
 import { getURL } from '@/utils/helpers';
 import { createClient } from '@/utils/supabase/server';
-import 'styles/main.css';
+import '@/styles/main.css';
 import { FlowgladProvider } from '@flowglad/nextjs';
 
 const title = 'Next.js Subscription Starter';
@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
     data: { user }
   } = await supabase.auth.getUser();
   return (
-    <FlowgladProvider authenticated={!!user}>
+    <FlowgladProvider loadBilling={!!user} darkMode={true}>
       <html lang="en">
         <body className="bg-black">
           <Navbar />

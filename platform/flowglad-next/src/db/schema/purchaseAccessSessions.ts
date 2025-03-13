@@ -27,7 +27,7 @@ export const purchaseAccessSessions = pgTable(
   TABLE_NAME,
   {
     ...tableBase('pasess'),
-    PurchaseId: notNullStringForeignKey('PurchaseId', purchases),
+    purchaseId: notNullStringForeignKey('purchase_id', purchases),
     token: text('token').notNull(),
     source: pgEnumColumn({
       enumName: 'PurchaseAccessSessionSource',
@@ -44,7 +44,7 @@ export const purchaseAccessSessions = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.token]),
       livemodePolicy(),
     ]
@@ -68,7 +68,7 @@ export const purchaseAccessSessionsUpdateSchema = createUpdateSchema(
 )
 
 const readonlyColumns = {
-  PurchaseId: true,
+  purchaseId: true,
   granted: true,
   expires: true,
   metadata: true,

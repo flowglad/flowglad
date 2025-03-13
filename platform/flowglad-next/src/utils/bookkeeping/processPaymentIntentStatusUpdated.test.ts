@@ -46,21 +46,21 @@ describe('Process payment intent status updated', async () => {
   let invoice: Invoice.Record
   beforeEach(async () => {
     customerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     invoice = await setupInvoice({
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      VariantId: variant.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      variantId: variant.id,
     })
     payment = await setupPayment({
       stripeChargeId: `ch123_${invoice.id}`,
       status: PaymentStatus.Processing,
       amount: 1000,
       livemode: true,
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
-      InvoiceId: invoice.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
+      invoiceId: invoice.id,
     })
   })
 
@@ -90,9 +90,9 @@ describe('Process payment intent status updated', async () => {
         status: PaymentStatus.Processing,
         amount: 1000,
         livemode: true,
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
-        InvoiceId: invoice.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        invoiceId: invoice.id,
       })
     })
 
@@ -126,7 +126,7 @@ describe('Process payment intent status updated', async () => {
       expect(result.status).toEqual(PaymentStatus.Succeeded)
     })
 
-    it('updates the associated invoice status when an InvoiceId exists', async () => {
+    it('updates the associated invoice status when an invoiceId exists', async () => {
       const updatedPayment = {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
@@ -138,24 +138,24 @@ describe('Process payment intent status updated', async () => {
           transaction
         )
         const invoice = await selectInvoiceById(
-          fakePayment.InvoiceId,
+          fakePayment.invoiceId,
           transaction
         )
         expect(invoice.status).toEqual(InvoiceStatus.Paid)
       })
     })
 
-    it('updates the associated purchase status when a PurchaseId exists', async () => {
+    it('updates the associated purchase status when a purchaseId exists', async () => {
       const purchase = await setupPurchase({
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
         livemode: true,
-        VariantId: variant.id,
+        variantId: variant.id,
       })
       const updatedPayment = {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
-        PurchaseId: purchase.id,
+        purchaseId: purchase.id,
       }
       await adminTransaction(async ({ transaction }) => {
         await updatePaymentToReflectLatestChargeStatus(
@@ -173,7 +173,7 @@ describe('Process payment intent status updated', async () => {
 
     it('throws an error if there is no associated invoice', async () => {
       // @ts-expect-error - no invoice id
-      fakePayment.InvoiceId = null
+      fakePayment.invoiceId = null
       await expect(
         adminTransaction(async ({ transaction }) =>
           updatePaymentToReflectLatestChargeStatus(
@@ -186,7 +186,7 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('handles cases gracefully when there is no associated purchase', async () => {
-      fakePayment.PurchaseId = null
+      fakePayment.purchaseId = null
       const updatedPayment = {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
@@ -319,8 +319,8 @@ describe('Process payment intent status updated', async () => {
 
     it('correctly maps payment record fields in a valid invoice flow', async () => {
       const paymentMethod = await setupPaymentMethod({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
       })
       const fakeCharge: any = {
         id: 'ch1',
@@ -344,16 +344,16 @@ describe('Process payment intent status updated', async () => {
       }
       const fakeInvoice = {
         id: 'inv_123',
-        OrganizationId: 'org123',
-        PurchaseId: 'pur123',
+        organizationId: 'org123',
+        purchaseId: 'pur123',
         taxCountry: 'US',
-        CustomerProfileId: 'cp123',
+        customerProfileId: 'cp123',
       }
       const fakePayment = {
         id: 'payment1',
         status: PaymentStatus.Processing,
-        InvoiceId: 'inv_123',
-        PurchaseId: 'pur123',
+        invoiceId: 'inv_123',
+        purchaseId: 'pur123',
       }
 
       const result = await adminTransaction(async ({ transaction }) =>
@@ -368,8 +368,8 @@ describe('Process payment intent status updated', async () => {
 
     it('maintains idempotency by not creating duplicate payment records', async () => {
       const paymentMethod = await setupPaymentMethod({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
       })
       const fakeCharge: any = {
         id: 'ch1',
@@ -410,16 +410,16 @@ describe('Process payment intent status updated', async () => {
       expect(result2.id).toEqual(result1.id)
       expect(result2.amount).toEqual(result1.amount)
       expect(result2.stripeChargeId).toEqual(result1.stripeChargeId)
-      expect(result2.PaymentMethodId).toEqual(result1.PaymentMethodId)
-      expect(result2.InvoiceId).toEqual(result1.InvoiceId)
-      expect(result2.PurchaseId).toEqual(result1.PurchaseId)
+      expect(result2.paymentMethodId).toEqual(result1.paymentMethodId)
+      expect(result2.invoiceId).toEqual(result1.invoiceId)
+      expect(result2.purchaseId).toEqual(result1.purchaseId)
       expect(result2.status).toEqual(result1.status)
     })
 
     it('handles zero amount charges', async () => {
       const paymentMethod = await setupPaymentMethod({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
       })
       const fakeCharge: any = {
         id: 'ch_zero',
@@ -472,8 +472,8 @@ describe('Process payment intent status updated', async () => {
 
     it('handles partially refunded charges', async () => {
       const paymentMethod = await setupPaymentMethod({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
       })
       const fakeCharge: any = {
         id: 'ch_partial',
@@ -505,13 +505,13 @@ describe('Process payment intent status updated', async () => {
     })
     it('marks the invoice as paid when the charge is successful and the invoice total is met', async () => {
       const invoice = await setupInvoice({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
-        VariantId: variant.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        variantId: variant.id,
       })
       const paymentMethod = await setupPaymentMethod({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
       })
       const fakeCharge: any = {
         id: 'ch_paid',
@@ -580,18 +580,18 @@ describe('Process payment intent status updated', async () => {
     describe('Billing Run Flow', async () => {
       it('correctly processes a payment when metadata contains a billingRunId and a valid subscription', async () => {
         const paymentMethod = await setupPaymentMethod({
-          OrganizationId: organization.id,
-          CustomerProfileId: customerProfile.id,
+          organizationId: organization.id,
+          customerProfileId: customerProfile.id,
         })
         const subscription = await setupSubscription({
-          OrganizationId: organization.id,
+          organizationId: organization.id,
           livemode: true,
-          CustomerProfileId: customerProfile.id,
-          PaymentMethodId: paymentMethod.id,
-          VariantId: variant.id,
+          customerProfileId: customerProfile.id,
+          paymentMethodId: paymentMethod.id,
+          variantId: variant.id,
         })
         const billingPeriod = await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           livemode: true,
           startDate: new Date(),
           endDate: new Date(
@@ -599,17 +599,17 @@ describe('Process payment intent status updated', async () => {
           ),
         })
         const billingRun = await setupBillingRun({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           livemode: true,
-          BillingPeriodId: billingPeriod.id,
-          PaymentMethodId: paymentMethod.id,
+          billingPeriodId: billingPeriod.id,
+          paymentMethodId: paymentMethod.id,
         })
         await setupInvoice({
-          OrganizationId: organization.id,
-          BillingPeriodId: billingPeriod.id,
+          organizationId: organization.id,
+          billingPeriodId: billingPeriod.id,
           livemode: true,
-          CustomerProfileId: customerProfile.id,
-          VariantId: variant.id,
+          customerProfileId: customerProfile.id,
+          variantId: variant.id,
         })
         const fakePI: any = {
           id: 'pi_br',
@@ -631,22 +631,22 @@ describe('Process payment intent status updated', async () => {
         }
         const fakeBillingRun = {
           id: 'br_123',
-          SubscriptionId: 'sub_br',
-          BillingPeriodId: 'bp_br',
+          subscriptionId: 'sub_br',
+          billingPeriodId: 'bp_br',
           livemode: true,
         }
         const fakeSubscription = {
           id: 'sub_br',
-          OrganizationId: 'org_br',
-          CustomerProfileId: 'cp_br',
+          organizationId: 'org_br',
+          customerProfileId: 'cp_br',
           livemode: true,
         }
         const fakeInvoice = { id: 'inv_br' }
         const fakePayment = {
           id: 'payment_br',
           status: PaymentStatus.Processing,
-          InvoiceId: 'inv_br',
-          PurchaseId: null,
+          invoiceId: 'inv_br',
+          purchaseId: null,
         }
         const result = await adminTransaction(
           async ({ transaction }) =>
@@ -676,14 +676,14 @@ describe('Process payment intent status updated', async () => {
         }
         const fakeBillingRun = {
           id: 'br_err',
-          SubscriptionId: 'sub_br_err',
-          BillingPeriodId: 'bp_br_err',
+          subscriptionId: 'sub_br_err',
+          billingPeriodId: 'bp_br_err',
           livemode: true,
         }
         const fakeSubscription = {
           id: 'sub_br_err',
-          OrganizationId: 'org_br_err',
-          CustomerProfileId: 'cp_br_err',
+          organizationId: 'org_br_err',
+          customerProfileId: 'cp_br_err',
           livemode: true,
         }
         await expect(
@@ -715,16 +715,16 @@ describe('Process payment intent status updated', async () => {
     //   }
     //   const fakeInvoice = {
     //     id: 'inv_123',
-    //     OrganizationId: 'org_inv',
-    //     PurchaseId: null,
+    //     organizationId: 'org_inv',
+    //     purchaseId: null,
     //     taxCountry: 'CA',
-    //     CustomerProfileId: 'cp_inv',
+    //     customerProfileId: 'cp_inv',
     //   }
     //   const fakePayment = {
     //     id: 'payment_inv',
     //     status: PaymentStatus.Processing,
-    //     InvoiceId: 'inv_123',
-    //     PurchaseId: null,
+    //     invoiceId: 'inv_123',
+    //     purchaseId: null,
     //   }
     //   const result = await adminTransaction(
     //     async ({ transaction }) =>
@@ -761,14 +761,14 @@ describe('Process payment intent status updated', async () => {
     //   //   const fakePurchase = { id: 'pur_123' }
     //   //   const fakeInvoice = {
     //   //     id: 'inv_ps',
-    //   //     OrganizationId: 'org_ps',
+    //   //     organizationId: 'org_ps',
     //   //     taxCountry: 'US',
     //   //   }
     //   //   const fakePayment = {
     //   //     id: 'payment_ps',
     //   //     status: PaymentStatus.Processing,
-    //   //     InvoiceId: 'inv_ps',
-    //   //     PurchaseId: 'pur_123',
+    //   //     invoiceId: 'inv_ps',
+    //   //     purchaseId: 'pur_123',
     //   //   }
 
     //   //   const result = await adminTransaction(
@@ -776,7 +776,7 @@ describe('Process payment intent status updated', async () => {
     //   //       processPaymentIntentStatusUpdated(fakePI, transaction)
     //   //   )
     //   //   expect(result.payment).toBeDefined()
-    //   //   expect(result.payment.PurchaseId).toBe('pur_123')
+    //   //   expect(result.payment.purchaseId).toBe('pur_123')
     //   // })
     // })
 
@@ -797,16 +797,16 @@ describe('Process payment intent status updated', async () => {
     //   }
     //   const fakeInvoice = {
     //     id: 'inv_can',
-    //     OrganizationId: 'org_can',
-    //     PurchaseId: null,
+    //     organizationId: 'org_can',
+    //     purchaseId: null,
     //     taxCountry: 'US',
-    //     CustomerProfileId: 'cp_can',
+    //     customerProfileId: 'cp_can',
     //   }
     //   const fakePayment = {
     //     id: 'payment_can',
     //     status: PaymentStatus.Processing,
-    //     InvoiceId: 'inv_can',
-    //     PurchaseId: null,
+    //     invoiceId: 'inv_can',
+    //     purchaseId: null,
     //   }
 
     //   const result = await adminTransaction(async ({ transaction }) =>
@@ -839,16 +839,16 @@ describe('Process payment intent status updated', async () => {
     //   }
     //   const fakeInvoice = {
     //     id: 'inv_other',
-    //     OrganizationId: 'org_other',
-    //     PurchaseId: null,
+    //     organizationId: 'org_other',
+    //     purchaseId: null,
     //     taxCountry: 'US',
-    //     CustomerProfileId: 'cp_other',
+    //     customerProfileId: 'cp_other',
     //   }
     //   const fakePayment = {
     //     id: 'payment_other',
     //     status: PaymentStatus.Processing,
-    //     InvoiceId: 'inv_other',
-    //     PurchaseId: null,
+    //     invoiceId: 'inv_other',
+    //     purchaseId: null,
     //   }
 
     //   const result = await adminTransaction(async ({ transaction }) =>
@@ -881,16 +881,16 @@ describe('Process payment intent status updated', async () => {
     //   }
     //   const fakeInvoice = {
     //     id: 'inv_idemp',
-    //     OrganizationId: 'org_idemp',
-    //     PurchaseId: null,
+    //     organizationId: 'org_idemp',
+    //     purchaseId: null,
     //     taxCountry: 'US',
-    //     CustomerProfileId: 'cp_idemp',
+    //     customerProfileId: 'cp_idemp',
     //   }
     //   const fakePayment = {
     //     id: 'payment_idemp',
     //     status: PaymentStatus.Processing,
-    //     InvoiceId: 'inv_idemp',
-    //     PurchaseId: null,
+    //     invoiceId: 'inv_idemp',
+    //     purchaseId: null,
     //   }
     //   const result1 = await adminTransaction(
     //     async ({ transaction }) =>
@@ -909,8 +909,8 @@ describe('Process payment intent status updated', async () => {
   //     let fakePayment: any = {
   //       id: 'state',
   //       status: PaymentStatus.Processing,
-  //       InvoiceId: invoice.id,
-  //       PurchaseId: null,
+  //       invoiceId: invoice.id,
+  //       purchaseId: null,
   //     }
   //     const validTransition = await adminTransaction(
   //       async ({ transaction }) =>

@@ -30,7 +30,7 @@ export const createVariant = async (
 
   // Fetch the associated product to get its Stripe ID
   const product = await selectProductById(
-    createdVariant.ProductId,
+    createdVariant.productId,
     transaction
   )
   if (!product) {
@@ -65,11 +65,11 @@ export const createProductTransaction = async (
 ) => {
   const [
     {
-      organization: { id: OrganizationId, defaultCurrency },
+      organization: { id: organizationId, defaultCurrency },
     },
   ] = await selectMembershipAndOrganizations(
     {
-      UserId: userId,
+      userId,
       focused: true,
     },
     transaction
@@ -78,7 +78,7 @@ export const createProductTransaction = async (
     {
       ...payload.product,
       active: true,
-      OrganizationId,
+      organizationId,
       livemode,
       stripeProductId: null,
     },
@@ -104,7 +104,7 @@ export const createProductTransaction = async (
       return createVariant(
         {
           ...variant,
-          ProductId: createdProduct.id,
+          productId: createdProduct.id,
           livemode,
           currency: defaultCurrency,
         },
@@ -140,7 +140,7 @@ export const editVariantTransaction = async (
   const { variant } = params
   // Get all variants for this product to validate default price constraint
   const existingVariants = await selectVariants(
-    { ProductId: variant.ProductId },
+    { productId: variant.productId },
     transaction
   )
   const previousVariant = existingVariants.find(
@@ -185,7 +185,7 @@ export const editVariantTransaction = async (
 
   if (variant.stripePriceId && pricingDetailsChanged) {
     const [product] = await selectProducts(
-      { id: variant.ProductId },
+      { id: variant.productId },
       transaction
     )
     const newStripePrice = await upsertStripePriceFromVariant({
@@ -204,12 +204,12 @@ export const editVariantTransaction = async (
 }
 
 export const selectCatalog = async (
-  { OrganizationId }: { OrganizationId: string },
+  { organizationId }: { organizationId: string },
   transaction: DbTransaction
 ) => {
   const result = await selectVariantsAndProductsForOrganization(
     { active: true },
-    OrganizationId,
+    organizationId,
     transaction
   )
   // Group variants by product
