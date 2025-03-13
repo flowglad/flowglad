@@ -26,7 +26,6 @@ import { purchases } from './purchases'
 import {
   IntervalUnit,
   InvoiceStatus,
-  IdNumberParam,
   InvoiceType,
   CurrencyCode,
 } from '@/types'
@@ -42,24 +41,24 @@ export const invoices = pgTable(
   TABLE_NAME,
   {
     ...tableBase('inv'),
-    PurchaseId: nullableStringForeignKey('PurchaseId', purchases),
-    invoiceNumber: text('invoiceNumber').notNull().unique(),
-    invoiceDate: timestamp('invoiceDate').notNull().defaultNow(),
+    PurchaseId: nullableStringForeignKey('purchase_id', purchases),
+    invoiceNumber: text('invoice_number').notNull().unique(),
+    invoiceDate: timestamp('invoice_date').notNull().defaultNow(),
     BillingPeriodId: nullableStringForeignKey(
-      'BillingPeriodId',
+      'billing_period_id',
       billingPeriods
     ),
     /**
      * If this is null, the invoice is due upon receipt
      */
-    dueDate: timestamp('dueDate'),
-    stripePaymentIntentId: text('stripePaymentIntentId'),
+    dueDate: timestamp('due_date'),
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
     CustomerProfileId: notNullStringForeignKey(
-      'CustomerProfileId',
+      'customer_profile_id',
       customerProfiles
     ).notNull(),
     OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+      'organization_id',
       organizations
     ),
     status: pgEnumColumn({
@@ -74,18 +73,18 @@ export const invoices = pgTable(
       columnName: 'billingInterval',
       enumBase: IntervalUnit,
     }),
-    billingPeriodStartDate: timestamp('billingPeriodStartDate'),
-    billingPeriodEndDate: timestamp('billingPeriodEndDate'),
-    billingIntervalCount: integer('billingIntervalCount'),
-    billingAnchorDate: timestamp('billingAnchorDate'),
+    billingPeriodStartDate: timestamp('billing_period_start_date'),
+    billingPeriodEndDate: timestamp('billing_period_end_date'),
+    billingIntervalCount: integer('billing_interval_count'),
+    billingAnchorDate: timestamp('billing_anchor_date'),
     ownerMembershipId: nullableStringForeignKey(
-      'ownerMembershipId',
+      'owner_membership_id',
       memberships
     ),
-    pdfURL: text('pdfURL'),
-    receiptPdfURL: text('receiptPdfURL'),
+    pdfURL: text('pdf_url'),
+    receiptPdfURL: text('receipt_pdf_url'),
     memo: text('memo'),
-    bankPaymentOnly: boolean('bankPaymentOnly').default(false),
+    bankPaymentOnly: boolean('bank_payment_only').default(false),
     type: pgEnumColumn({
       enumName: 'InvoiceType',
       columnName: 'type',
