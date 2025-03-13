@@ -1,8 +1,13 @@
-import { kebabCase, sentenceCase } from 'change-case'
+import { kebabCase } from 'change-case'
 import { OpenApiMeta, OpenApiMethod } from 'trpc-swagger'
 import { titleCase } from './core'
 
 export type CreateOpenApiMetaParams = {
+  /***
+   * Used to override the default id param for the resource.
+   * so, e.g. idParamOverride: 'externalId' =>
+   *  customer-profile/:id -> customer-profile/:externalId
+   */
   idParamOverride?: string
   routeSuffix?: string
   resource: string
@@ -33,7 +38,14 @@ export const createGetOpenApiMeta = (
   }
 }
 
-const createPostOpenApiMeta = ({
+export const createPostOpenApiMetaWithIdParam = (
+  params: CreateOpenApiMetaParams
+): OpenApiMeta => {
+  const { summary, tags } = params
+  return createPostOpenApiMeta({ ...params })
+}
+
+export const createPostOpenApiMeta = ({
   resource,
   summary,
   tags,

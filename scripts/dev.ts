@@ -36,6 +36,7 @@ const dependencyGraph: Record<string, string[]> = {
   '@flowglad/react': ['@flowglad/shared'],
   '@flowglad/server': ['@flowglad/shared'],
   '@flowglad/nextjs': ['@flowglad/react', '@flowglad/server'],
+  '@flowglad/types': [],
 }
 
 // Get all dependencies that need to be rebuilt when a package changes
@@ -135,6 +136,7 @@ const main = async () => {
         /node_modules/,
         /dist/,
         /build/,
+        /packages\/react\/src\/generated\/styles/,
       ],
     })
     .on('change', (path) => {

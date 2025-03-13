@@ -300,6 +300,7 @@ describe('updateInvoiceTransaction', () => {
         const { invoiceLineItems: updatedInvoiceLineItems } =
           await updateInvoiceTransaction(
             {
+              id: invoice.id,
               invoice: {
                 id: invoice.id,
                 type: InvoiceType.Purchase,
@@ -324,13 +325,10 @@ describe('updateInvoiceTransaction', () => {
             true,
             transaction
           )
-        console.log(
-          '====updatedInvoiceLineItems',
-          updatedInvoiceLineItems
-        )
         // Second update with mixed changes
         const result = await updateInvoiceTransaction(
           {
+            id: invoice.id,
             invoice: {
               id: invoice.id,
               type: InvoiceType.Purchase,

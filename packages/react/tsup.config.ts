@@ -2,6 +2,11 @@ import { runAfterLast } from '../../scripts/runAfterLast'
 // @ts-ignore
 import { name, version } from './package.json'
 import { defineConfig, type Options } from 'tsup'
+import postcss from 'postcss'
+import tailwindcss from 'tailwindcss'
+import autoprefixer from 'autoprefixer'
+import fs from 'fs/promises'
+import path from 'path'
 
 export default defineConfig((overrideOptions) => {
   const isProd = overrideOptions.env?.NODE_ENV === 'production'
@@ -12,9 +17,6 @@ export default defineConfig((overrideOptions) => {
       './src/**/*.{ts,tsx,js,jsx}',
       '!./src/**/*.test.{ts,tsx}',
     ],
-    // We want to preserve original file structure
-    // so that the "use client" directives are not lost
-    // and make debugging easier via node_modules easier
     bundle: false,
     clean: true,
     minify: false,
@@ -25,6 +27,42 @@ export default defineConfig((overrideOptions) => {
       PACKAGE_NAME: `"${name}"`,
       PACKAGE_VERSION: `"${version}"`,
       __DEV__: `${!isProd}`,
+    },
+    async onSuccess() {
+      try {
+        // Read the source CSS file
+        const cssContent = await fs.readFile(
+          path.join('./src', 'globals.css'),
+          'utf-8'
+        )
+
+        // Process CSS with Tailwind
+        const css = await postcss([
+          tailwindcss({
+            config: path.join(__dirname, 'tailwind.config.ts'),
+          }),
+          autoprefixer(),
+        ]).process(cssContent, {
+          from: path.join('./src', 'globals.css'),
+        })
+
+        // Write to both ESM and CJS directories
+        const directories = ['./dist', './dist/cjs']
+
+        for (const dir of directories) {
+          // Ensure directory exists
+          await fs.mkdir(dir, { recursive: true })
+          // Write the processed CSS
+          await fs.writeFile(path.join(dir, 'styles.css'), css.css)
+        }
+
+        console.log(
+          '✅ CSS files processed and written to dist directories'
+        )
+      } catch (error) {
+        console.error('Error processing CSS:', error)
+        throw error // This will make the build fail if CSS processing fails
+      }
     },
   }
 
@@ -39,15 +77,8 @@ export default defineConfig((overrideOptions) => {
     outDir: './dist/cjs',
   }
 
-  // const copyPackageJson = (format: 'esm' | 'cjs') =>
-  //   `cp ./package.${format}.json ./dist/${format}/package.json`
-
   return runAfterLast([
     'pnpm build:declarations',
-    // copyPackageJson('esm'),
-    // copyPackageJson('cjs'),
-    // moveKeylessActions('esm'),
-    // moveKeylessActions('cjs'),
     shouldPublish && 'pnpm publish:local',
   ])(esm, cjs)
 })
