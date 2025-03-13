@@ -60,7 +60,7 @@ export const selectProperNounsByQuery = (
           properNouns.name
         }) @@ websearch_to_tsquery('english', ${`${query}:*`})`,
         ilike(properNouns.name, `%${query}%`),
-        sql`similarity(${properNouns.EntityId}, ${query}) > 0.3`
+        sql`similarity(${properNouns.entityId}, ${query}) > 0.3`
       )
     )
     .limit(10)
@@ -77,7 +77,7 @@ export const bulkUpsertProperNounsByEntityId = (
 ) => {
   return bulkUpsertProperNouns(
     data,
-    [properNouns.EntityId, properNouns.entityType],
+    [properNouns.entityId, properNouns.entityType],
     transaction
   )
 }

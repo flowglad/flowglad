@@ -78,7 +78,7 @@ export const setupOrg = async () => {
     const organization = await insertOrganization(
       {
         name: `Flowglad Test ${core.nanoid()}`,
-        CountryId: country.id,
+        countryId: country.id,
         defaultCurrency: CurrencyCode.USD,
       },
       transaction
@@ -501,7 +501,7 @@ export const setupMemberships = async ({
     return insertMembership(
       {
         organizationId,
-        UserId: user.id,
+        userId: user.id,
         focused: true,
         livemode: true,
       },
@@ -517,7 +517,6 @@ export const setupSubscriptionItem = async ({
   unitPrice,
   variantId,
   addedDate,
-  removedDate,
   metadata,
 }: {
   subscriptionId: string

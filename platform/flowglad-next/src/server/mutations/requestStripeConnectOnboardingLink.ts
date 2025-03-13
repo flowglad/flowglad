@@ -20,7 +20,7 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
       async ({ transaction, userId }) => {
         const [membership] = await selectMembershipAndOrganizations(
           {
-            UserId: userId,
+            userId,
             focused: true,
           },
           transaction
@@ -72,7 +72,7 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
         const updatedOrganization = await updateOrganization(
           {
             ...organization,
-            CountryId: country.id,
+            countryId: country.id,
           },
           transaction
         )
@@ -80,7 +80,7 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
           {
             ...updatedOrganization,
             stripeAccountId,
-            CountryId: country.id,
+            countryId: country.id,
             onboardingStatus:
               BusinessOnboardingStatus.PartiallyOnboarded,
           },

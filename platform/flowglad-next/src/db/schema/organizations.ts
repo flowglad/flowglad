@@ -20,38 +20,38 @@ import {
 } from '@/types'
 import { billingAddressSchema } from './customers'
 
-const TABLE_NAME = 'Organizations'
+const TABLE_NAME = 'organizations'
 
 export const organizations = pgTable(
   TABLE_NAME,
   {
     ...R.omit(['livemode'], tableBase('org')),
     name: text('name').notNull(),
-    stripeAccountId: text('stripeAccountId').unique(),
+    stripeAccountId: text('stripe_account_id').unique(),
     domain: text('domain').unique(),
-    CountryId: notNullStringForeignKey('CountryId', countries),
-    logoURL: text('logoURL'),
+    countryId: notNullStringForeignKey('country_id', countries),
+    logoURL: text('logo_url'),
     tagline: text('tagline'),
-    subdomainSlug: text('subdomainSlug').unique(),
-    payoutsEnabled: boolean('payoutsEnabled')
+    subdomainSlug: text('subdomain_slug').unique(),
+    payoutsEnabled: boolean('payouts_enabled')
       .notNull()
       .default(false),
     onboardingStatus: pgEnumColumn({
       enumName: 'BusinessOnboardingStatus',
-      columnName: 'onboardingStatus',
+      columnName: 'onboarding_status',
       enumBase: BusinessOnboardingStatus,
     }),
-    feePercentage: text('feePercentage').notNull().default('3.00'),
+    feePercentage: text('fee_percentage').notNull().default('3.00'),
     defaultCurrency: pgEnumColumn({
       enumName: 'CurrencyCode',
-      columnName: 'defaultCurrency',
+      columnName: 'default_currency',
       enumBase: CurrencyCode,
     }).notNull(),
-    billingAddress: jsonb('billingAddress'),
-    contactEmail: text('contactEmail'),
+    billingAddress: jsonb('billing_address'),
+    contactEmail: text('contact_email'),
     stripeConnectContractType: pgEnumColumn({
       enumName: 'StripeConnectContractType',
-      columnName: 'stripeConnectContractType',
+      columnName: 'stripe_connect_contract_type',
       enumBase: StripeConnectContractType,
     })
       .notNull()
@@ -62,7 +62,7 @@ export const organizations = pgTable(
       constructIndex(TABLE_NAME, [table.name]),
       constructUniqueIndex(TABLE_NAME, [table.stripeAccountId]),
       constructUniqueIndex(TABLE_NAME, [table.domain]),
-      constructIndex(TABLE_NAME, [table.CountryId]),
+      constructIndex(TABLE_NAME, [table.countryId]),
     ]
   }
 ).enableRLS()

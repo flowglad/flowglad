@@ -9,7 +9,7 @@ export const dummyOrganization: Organization.Record = {
   stripeAccountId: 'acct_123456',
   subdomainSlug: 'test-org',
   domain: 'testorg.com',
-  CountryId: '1',
+  countryId: '1',
   logoURL: null,
   tagline: null,
   payoutsEnabled: false,

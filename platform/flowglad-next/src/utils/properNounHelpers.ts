@@ -27,7 +27,7 @@ export const productRecordToProperNounUpsert = (
   params: CreateProperNounUpsertParams<Product.Record>
 ): ProperNoun.Insert => {
   return {
-    EntityId: params.record.id,
+    entityId: params.record.id,
     entityType: Nouns.Product,
     name: params.record.name,
     organizationId: params.organizationId,
@@ -39,7 +39,7 @@ export const variantRecordToProperNounUpsert = (
   params: CreateProperNounUpsertParams<Variant.Record>
 ): ProperNoun.Insert => {
   return {
-    EntityId: params.record.id,
+    entityId: params.record.id,
     entityType: Nouns.Variant,
     name: params.record.name ?? '',
     organizationId: params.organizationId,
@@ -51,7 +51,7 @@ export const discountRecordToProperNounUpsert = (
   params: CreateProperNounUpsertParams<Discount.Record>
 ): ProperNoun.Insert => {
   return {
-    EntityId: params.record.id,
+    entityId: params.record.id,
     entityType: Nouns.Discount,
     name: params.record.name,
     organizationId: params.organizationId,
@@ -63,7 +63,7 @@ export const fileRecordToProperNounUpsert = (
   params: CreateProperNounUpsertParams<File.Record>
 ): ProperNoun.Insert => {
   return {
-    EntityId: params.record.id,
+    entityId: params.record.id,
     entityType: Nouns.File,
     name: params.record.name,
     organizationId: params.organizationId,
@@ -75,7 +75,7 @@ export const customerProfileToProperNounUpsert = (
   params: CreateProperNounUpsertParams<CustomerProfile.Record>
 ): ProperNoun.Insert => {
   return {
-    EntityId: params.record.id,
+    entityId: params.record.id,
     entityType: Nouns.CustomerProfile,
     name: params.record.name ?? params.record.email,
     organizationId: params.organizationId,

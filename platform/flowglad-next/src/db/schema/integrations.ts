@@ -23,13 +23,13 @@ import { users } from '@/db/schema/users'
 import { IntegrationMethod, IntegrationStatus } from '@/types'
 import core from '@/utils/core'
 
-const TABLE_NAME = 'Integrations'
+const TABLE_NAME = 'integrations'
 
 export const integrations = pgTable(
   TABLE_NAME,
   {
     ...tableBase('integration'),
-    UserId: nullableStringForeignKey('UserId', users),
+    UserId: nullableStringForeignKey('user_id', users),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
@@ -40,18 +40,18 @@ export const integrations = pgTable(
       columnName: 'method',
       enumBase: IntegrationMethod,
     }).notNull(),
-    encryptedAccessToken: text('encryptedAccessToken'),
-    encryptedRefreshToken: text('encryptedRefreshToken'),
-    encryptedApiKey: text('encryptedApiKey'),
+    encryptedAccessToken: text('encrypted_access_token'),
+    encryptedRefreshToken: text('encrypted_refresh_token'),
+    encryptedApiKey: text('encrypted_api_key'),
     status: pgEnumColumn({
       enumName: 'IntegrationStatus',
       columnName: 'status',
       enumBase: IntegrationStatus,
     }).notNull(),
     scope: text('scope'), // Store granted scopes
-    tokenExpiresAt: timestamp('tokenExpiresAt'),
-    lastTokenRefresh: timestamp('lastTokenRefresh'),
-    providerConfig: jsonb('providerConfig'), // JSON string of additional provider settings
+    tokenExpiresAt: timestamp('token_expires_at'),
+    lastTokenRefresh: timestamp('last_token_refresh'),
+    providerConfig: jsonb('provider_config'), // JSON string of additional provider settings
   },
   (table) => {
     return [
@@ -63,7 +63,7 @@ export const integrations = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships") OR "UserId" = requesting_user_id()`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships") OR "user_id" = requesting_user_id()`,
       }),
       livemodePolicy(),
     ]

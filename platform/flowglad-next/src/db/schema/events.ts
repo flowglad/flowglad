@@ -28,7 +28,7 @@ import { integer } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
 
-const TABLE_NAME = 'Events'
+const TABLE_NAME = 'events'
 
 export const events = pgTable(
   TABLE_NAME,
@@ -41,32 +41,32 @@ export const events = pgTable(
     }).notNull(),
     eventCategory: pgEnumColumn({
       enumName: 'EventCategory',
-      columnName: 'eventCategory',
+      columnName: 'event_category',
       enumBase: EventCategory,
     }).notNull(),
     eventRetentionPolicy: pgEnumColumn({
       enumName: 'EventRetentionPolicy',
-      columnName: 'eventRetentionPolicy',
+      columnName: 'event_retention_policy',
       enumBase: EventRetentionPolicy,
     }).notNull(),
-    rawPayload: jsonb('rawPayload').notNull(),
-    occurredAt: timestamp('occurredAt').notNull(),
-    submittedAt: timestamp('submittedAt').notNull(),
-    processedAt: timestamp('processedAt'),
+    rawPayload: jsonb('raw_payload').notNull(),
+    occurredAt: timestamp('occurred_at').notNull(),
+    submittedAt: timestamp('submitted_at').notNull(),
+    processedAt: timestamp('processed_at'),
     metadata: jsonb('metadata').notNull(),
     source: text('source').notNull(),
     subjectEntity: pgEnumColumn({
       enumName: 'EventNoun',
-      columnName: 'subjectEntity',
+      columnName: 'subject_entity',
       enumBase: EventNoun,
     }),
-    subjectId: integer('subjectId'),
+    subjectId: integer('subject_id'),
     objectEntity: pgEnumColumn({
       enumName: 'EventNoun',
-      columnName: 'objectEntity',
+      columnName: 'object_entity',
       enumBase: EventNoun,
     }),
-    objectId: integer('objectId'),
+    objectId: integer('object_id'),
     hash: text('hash').notNull().unique(),
     organizationId: nullableStringForeignKey(
       'organization_id',
@@ -94,7 +94,7 @@ export const events = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
     ]
   }

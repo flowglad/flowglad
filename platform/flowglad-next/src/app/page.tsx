@@ -31,7 +31,7 @@ export default async function Home() {
       )
       return selectMembershipAndOrganizations(
         {
-          UserId: user.id,
+          userId: user.id,
         },
         transaction
       )

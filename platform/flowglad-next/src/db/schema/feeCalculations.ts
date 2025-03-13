@@ -36,7 +36,7 @@ import { sql } from 'drizzle-orm'
 import { variants } from './variants'
 import { billingPeriods } from './billingPeriods'
 
-const TABLE_NAME = 'FeeCalculations'
+const TABLE_NAME = 'fee_calculations'
 
 export const feeCalculations = pgTable(
   TABLE_NAME,
@@ -47,25 +47,27 @@ export const feeCalculations = pgTable(
       organizations
     ),
     PurchaseSessionId: nullableStringForeignKey(
-      'PurchaseSessionId',
+      'purchase_session_id',
       purchaseSessions
     ),
-    purchaseId: nullableStringForeignKey('PurchaseId', purchases),
+    purchaseId: nullableStringForeignKey('purchase_id', purchases),
     discountId: nullableStringForeignKey('discount_id', discounts),
     variantId: nullableStringForeignKey('variant_id', variants),
     paymentMethodType: pgEnumColumn({
       enumName: 'PaymentMethodType',
-      columnName: 'paymentMethodType',
+      columnName: 'payment_method_type',
       enumBase: PaymentMethodType,
     }).notNull(),
-    discountAmountFixed: integer('discountAmountFixed').notNull(),
-    paymentMethodFeeFixed: integer('paymentMethodFeeFixed').notNull(),
-    baseAmount: integer('baseAmount').notNull(),
-    internationalFeePercentage: text(
-      'internationalFeePercentage'
+    discountAmountFixed: integer('discount_amount_fixed').notNull(),
+    paymentMethodFeeFixed: integer(
+      'payment_method_fee_fixed'
     ).notNull(),
-    flowgladFeePercentage: text('flowgladFeePercentage').notNull(),
-    billingAddress: jsonb('billingAddress').notNull(),
+    baseAmount: integer('base_amount').notNull(),
+    internationalFeePercentage: text(
+      'international_fee_percentage'
+    ).notNull(),
+    flowgladFeePercentage: text('flowglad_fee_percentage').notNull(),
+    billingAddress: jsonb('billing_address').notNull(),
     /**
      * Tax columns
      */
@@ -100,7 +102,7 @@ export const feeCalculations = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
     ]
   }

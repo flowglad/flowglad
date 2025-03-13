@@ -11,7 +11,7 @@ const SubscriptionsPage = async () => {
       const [{ organization }] =
         await selectMembershipAndOrganizations(
           {
-            UserId: userId,
+            userId,
             focused: true,
           },
           transaction

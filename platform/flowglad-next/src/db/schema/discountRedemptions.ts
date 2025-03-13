@@ -17,7 +17,7 @@ import { createSelectSchema } from 'drizzle-zod'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
 
-const TABLE_NAME = 'DiscountRedemptions'
+const TABLE_NAME = 'discount_redemptions'
 
 export const discountRedemptions = pgTable(
   TABLE_NAME,
@@ -50,7 +50,7 @@ export const discountRedemptions = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"discountId" in (select "discountId" from "Discounts" where "organizationId" in (select "organizationId" from "Memberships"))`,
+        using: sql`"discountId" in (select "discountId" from "Discounts" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
     ]
   }

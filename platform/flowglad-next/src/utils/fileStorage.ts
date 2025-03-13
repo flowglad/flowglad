@@ -12,7 +12,7 @@ export const safeObjectKeyToFileInsert = async (
   transaction: DbTransaction
 ) => {
   const organizations = await selectMembershipAndOrganizations(
-    { UserId: userId, focused: true },
+    { userId, focused: true },
     transaction
   )
 

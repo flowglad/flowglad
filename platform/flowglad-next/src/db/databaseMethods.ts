@@ -50,7 +50,7 @@ export const authenticatedTransaction = async <T>(
       .from(memberships)
       .where(
         and(
-          eq(memberships.UserId, userId),
+          eq(memberships.userId, userId),
           eq(memberships.focused, true)
         )
       )
@@ -79,11 +79,11 @@ export const authenticatedTransaction = async <T>(
       .where(
         and(
           eq(memberships.organizationId, result.ownerId!),
-          eq(memberships.UserId, `${result.meta?.userId}`)
+          eq(memberships.userId, `${result.meta?.userId}`)
         )
       )
     userId =
-      membershipsForOrganization[0].UserId ?? `${result.meta?.userId}`
+      membershipsForOrganization[0].userId ?? `${result.meta?.userId}`
     livemode = result.environment === 'live'
     jwtClaim = {
       role: 'authenticated',

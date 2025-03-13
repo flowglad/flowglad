@@ -29,7 +29,7 @@ export const bulkImportCustomerProfiles = protectedProcedure
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction
@@ -61,7 +61,7 @@ export const bulkImportCustomerProfiles = protectedProcedure
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction

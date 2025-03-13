@@ -7,7 +7,7 @@ const StripeConnectedPage = async () => {
     async ({ userId, transaction }) => {
       const [membership] = await selectMembershipAndOrganizations(
         {
-          UserId: userId,
+          userId,
           focused: true,
         },
         transaction

@@ -266,7 +266,7 @@ export const createOpenPurchase = async (
 ) => {
   const results = await selectMembershipAndOrganizations(
     {
-      UserId: userId,
+      userId,
       focused: true,
     },
     transaction

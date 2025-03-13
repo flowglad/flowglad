@@ -19,7 +19,7 @@ import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
 
-const TABLE_NAME = 'SubscriptionItems'
+const TABLE_NAME = 'subscription_items'
 
 const columns = {
   ...tableBase('si'),

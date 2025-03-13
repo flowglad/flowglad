@@ -8,7 +8,7 @@ import {
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
-const USERS_TABLE_NAME = 'Users'
+const USERS_TABLE_NAME = 'users'
 
 export const users = pgTable(
   USERS_TABLE_NAME,

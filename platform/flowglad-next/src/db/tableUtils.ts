@@ -282,13 +282,13 @@ export const tableBase = (idPrefix?: string) => ({
 })
 
 export const taxColumns = () => ({
-  taxAmount: integer('taxAmount'),
+  taxAmount: integer('tax_amount'),
   subtotal: integer('subtotal'),
-  stripeTaxCalculationId: text('stripeTaxCalculationId'),
-  stripeTaxTransactionId: text('stripeTaxTransactionId'),
+  stripeTaxCalculationId: text('stripe_tax_calculation_id'),
+  stripeTaxTransactionId: text('stripe_tax_transaction_id'),
   taxType: pgEnumColumn({
     enumName: 'TaxType',
-    columnName: 'taxType',
+    columnName: 'tax_type',
     enumBase: TaxType,
   }),
   /**
@@ -296,11 +296,11 @@ export const taxColumns = () => ({
    */
   taxCountry: pgEnumColumn({
     enumName: 'CountryCode',
-    columnName: 'taxCountry',
+    columnName: 'tax_country',
     enumBase: CountryCode,
   }),
-  taxState: text('taxState'),
-  taxRatePercentage: text('taxRatePercentage'),
+  taxState: text('tax_state'),
+  taxRatePercentage: text('tax_rate_percentage'),
   /**
    * The Flowglad processing fee
    */

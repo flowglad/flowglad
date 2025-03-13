@@ -10,7 +10,7 @@ export const getVariantsAndProducts = protectedProcedure.query(
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction

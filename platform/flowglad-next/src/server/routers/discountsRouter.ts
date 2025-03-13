@@ -42,7 +42,7 @@ export const createDiscount = protectedProcedure
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction

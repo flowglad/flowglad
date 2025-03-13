@@ -51,7 +51,7 @@ export const apiKeys = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       livemodePolicy(),
     ]

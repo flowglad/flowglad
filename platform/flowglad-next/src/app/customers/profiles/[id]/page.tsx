@@ -28,7 +28,7 @@ const CustomerPage = async ({
     async ({ transaction, userId }) => {
       await selectMembershipAndOrganizations(
         {
-          UserId: userId,
+          userId,
           focused: true,
         },
         transaction

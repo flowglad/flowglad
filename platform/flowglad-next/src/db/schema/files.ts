@@ -25,14 +25,14 @@ export const files = pgTable(
       'organization_id',
       organizations
     ),
-    productId: nullableStringForeignKey('ProductId', products),
+    productId: nullableStringForeignKey('product_id', products),
     name: text('name').notNull(),
-    sizeKb: integer('sizeKb').notNull(),
-    contentType: text('contentType').notNull(),
-    objectKey: text('objectKey').notNull().unique(),
-    cdnUrl: text('cdnUrl').notNull(),
+    sizeKb: integer('size_kb').notNull(),
+    contentType: text('content_type').notNull(),
+    objectKey: text('object_key').notNull().unique(),
+    cdnUrl: text('cdn_url').notNull(),
     etag: text('etag').notNull(),
-    contentHash: text('contentHash').notNull(),
+    contentHash: text('content_hash').notNull(),
   },
   (table) => {
     return [
@@ -43,8 +43,8 @@ export const files = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
-        withCheck: sql`"ProductId" is null OR "ProductId" in (select "id" from "Products")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
       }),
     ]
   }

@@ -7,7 +7,7 @@ const PurchasesPage = async () => {
   const purchases = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       const memberships = await selectMembershipAndOrganizations(
-        { UserId: userId, focused: true },
+        { userId, focused: true },
         transaction
       )
       if (memberships.length === 0) {

@@ -35,7 +35,7 @@ export const createPostPurchaseAsset = protectedProcedure
           const [{ organization }] =
             await selectMembershipAndOrganizations(
               {
-                UserId: userId,
+                userId,
                 focused: true,
               },
               transaction
