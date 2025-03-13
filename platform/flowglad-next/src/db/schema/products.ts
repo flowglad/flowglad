@@ -27,13 +27,13 @@ const columns = {
   ...tableBase('prod'),
   name: text('name').notNull(),
   description: text('description'),
-  imageURL: text('imageURL'),
-  stripeProductId: text('stripeProductId').unique(),
+  imageURL: text('image_url'),
+  stripeProductId: text('stripe_product_id').unique(),
   organizationId: notNullStringForeignKey(
     'organization_id',
     organizations
   ),
-  displayFeatures: jsonb('displayFeatures'),
+  displayFeatures: jsonb('display_features'),
   active: boolean('active').notNull().default(true),
 }
 
@@ -49,7 +49,7 @@ export const products = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       livemodePolicy(),
     ]

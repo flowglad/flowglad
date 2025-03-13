@@ -13,20 +13,20 @@ import { integrations } from '@/db/schema/integrations'
 import { IdNumberParam } from '@/types'
 import core from '@/utils/core'
 
-const TABLE_NAME = 'IntegrationSessions'
+const TABLE_NAME = 'integration_sessions'
 
 export const integrationSessions = pgTable(
   TABLE_NAME,
   {
     ...tableBase('integrationSession'),
     IntegrationId: notNullStringForeignKey(
-      'IntegrationId',
+      'integration_id',
       integrations
     ),
     state: text('state').notNull(),
-    codeVerifier: text('codeVerifier'),
-    redirectUrl: text('redirectUrl').notNull(),
-    expiresAt: timestamp('expiresAt').notNull(),
+    codeVerifier: text('code_verifier'),
+    redirectUrl: text('redirect_url').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
     metadata: jsonb('metadata'),
   },
   (table) => {

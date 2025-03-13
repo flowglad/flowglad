@@ -21,7 +21,7 @@ import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { billingAddressSchema } from './customers'
 
-const TABLE_NAME = 'PaymentMethods'
+const TABLE_NAME = 'payment_methods'
 
 const columns = {
   ...tableBase('pm'),
@@ -29,16 +29,16 @@ const columns = {
     'customer_profile_id',
     customerProfiles
   ),
-  billingDetails: jsonb('billingDetails').notNull(),
+  billingDetails: jsonb('billing_details').notNull(),
   type: pgEnumColumn({
     enumName: 'PaymentMethodType',
     columnName: 'type',
     enumBase: PaymentMethodType,
   }).notNull(),
   default: boolean('default').notNull().default(false),
-  paymentMethodData: jsonb('paymentMethodData').notNull(),
+  paymentMethodData: jsonb('payment_method_data').notNull(),
   metadata: jsonb('metadata'),
-  stripePaymentMethodId: text('stripePaymentMethodId'),
+  stripePaymentMethodId: text('stripe_payment_method_id'),
 }
 
 export const paymentMethods = pgTable(

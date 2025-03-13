@@ -21,7 +21,7 @@ import {
 import { variants } from './variants'
 import core from '@/utils/core'
 
-export const TABLE_NAME = 'InvoiceLineItems'
+export const TABLE_NAME = 'invoice_line_items'
 
 export const invoiceLineItems = pgTable(
   TABLE_NAME,

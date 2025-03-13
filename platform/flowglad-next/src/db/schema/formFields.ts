@@ -21,14 +21,14 @@ import core from '@/utils/core'
 import { FormFieldType } from '@/types'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'FormFields'
+const TABLE_NAME = 'form_fields'
 
 export const formFields = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('formField'),
+    ...tableBase('form_field'),
     order: integer('order').notNull(),
-    FormId: notNullStringForeignKey('FormId', forms),
+    FormId: notNullStringForeignKey('form_id', forms),
     type: pgEnumColumn({
       enumName: 'FormFieldType',
       columnName: 'type',
@@ -37,7 +37,7 @@ export const formFields = pgTable(
     question: text('question').notNull(),
     description: text('description'),
     required: boolean('required').notNull().default(false),
-    fieldParameters: jsonb('fieldParameters'),
+    fieldParameters: jsonb('field_parameters'),
   },
   (table) => {
     return [
@@ -216,7 +216,7 @@ const toUpdateSchema = <
     },
     any,
     any
-  >
+  >,
 >(
   schema: T
 ) => {
