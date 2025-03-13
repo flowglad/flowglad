@@ -70,7 +70,7 @@ const InvoiceFormFields = ({
   }>()
   const customerProfileId = watch('invoice.customerProfileId')
   const { data: associatedCustomerProfileData } =
-    trpc.customerProfiles.get.useQuery(
+    trpc.customerProfiles.internal__getById.useQuery(
       { id: customerProfileId! },
       { enabled: !!customerProfileId }
     )

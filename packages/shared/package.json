@@ -12,7 +12,8 @@
     "clean": "rm -rf dist",
     "dev": "tsup --watch --onSuccess 'yalc push'",
     "lint": "eslint && tsc --noEmit",
-    "build:declarations": "tsc -p tsconfig.declarations.json"
+    "build:declarations": "tsc -p tsconfig.declarations.json",
+    "yalc:publish": "yalc publish && yalc link"
   },
   "publishConfig": {
     "access": "public"

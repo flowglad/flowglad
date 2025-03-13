@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+.flowglad-root {
+  --flowglad-background: 0 0% 100%;
+  --flowglad-foreground: 240 10% 3.9%;
+  --flowglad-card: 0 0% 100%;
+  --flowglad-card-foreground: 240 10% 3.9%;
+  --flowglad-popover: 0 0% 100%;
+  --flowglad-popover-foreground: 240 10% 3.9%;
+  --flowglad-primary: 240 5.9% 10%;
+  --flowglad-primary-foreground: 0 0% 98%;
+  --flowglad-secondary: 240 4.8% 95.9%;
+  --flowglad-secondary-foreground: 240 5.9% 10%;
+  --flowglad-muted: 240 4.8% 95.9%;
+  --flowglad-muted-foreground: 240 3.8% 46.1%;
+  --flowglad-accent: 240 4.8% 95.9%;
+  --flowglad-accent-foreground: 240 5.9% 10%;
+  --flowglad-destructive: 0 84.2% 60.2%;
+  --flowglad-destructive-foreground: 0 0% 98%;
+  --flowglad-border: 240 5.9% 90%;
+  --flowglad-input: 240 5.9% 90%;
+  --flowglad-ring: 240 10% 3.9%;
+  --flowglad-radius: 0.5rem;
+  --radius: 0.5rem;
+}
+
+.flowglad-dark {
+  --flowglad-background: 240 10% 3.9%;
+  --flowglad-foreground: 0 0% 98%;
+  --flowglad-card: 240 10% 3.9%;
+  --flowglad-card-foreground: 0 0% 98%;
+  --flowglad-popover: 240 10% 3.9%;
+  --flowglad-popover-foreground: 0 0% 98%;
+  --flowglad-primary: 0 0% 98%;
+  --flowglad-primary-foreground: 240 5.9% 10%;
+  --flowglad-secondary: 240 3.7% 15.9%;
+  --flowglad-secondary-foreground: 0 0% 98%;
+  --flowglad-muted: 240 3.7% 15.9%;
+  --flowglad-muted-foreground: 240 5% 64.9%;
+  --flowglad-accent: 240 3.7% 15.9%;
+  --flowglad-accent-foreground: 0 0% 98%;
+  --flowglad-destructive: 0 62.8% 30.6%;
+  --flowglad-destructive-foreground: 0 0% 98%;
+  --flowglad-border: 240 3.7% 15.9%;
+  --flowglad-input: 240 3.7% 15.9%;
+  --flowglad-ring: 240 4.9% 83.9%;
+  --flowglad-radius: 0.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    border-color: var(--flowglad-border);
+    outline-color: var(--flowglad-ring);
+    outline-width: 0;
+  }
+  
+  body {
+    background-color: var(--flowglad-background);
+    color: var(--flowglad-foreground);
+  }
+
+  .flowglad-root {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    border-color: var(--flowglad-border);
+  }
+
+  .flowglad-root.flowglad-dark {
+    --flowglad-background: 240 10% 3.9%;
+    --flowglad-foreground: 0 0% 98%;
+    --flowglad-card: 240 10% 3.9%;
+    --flowglad-card-foreground: 0 0% 98%;
+    --flowglad-popover: 240 10% 3.9%;
+    --flowglad-popover-foreground: 0 0% 98%;
+    --flowglad-primary: 0 0% 98%;
+    --flowglad-primary-foreground: 240 5.9% 10%;
+    --flowglad-secondary: 240 3.7% 15.9%;
+    --flowglad-secondary-foreground: 0 0% 98%;
+    --flowglad-muted: 240 3.7% 15.9%;
+    --flowglad-muted-foreground: 240 5% 64.9%;
+    --flowglad-accent: 240 3.7% 15.9%;
+    --flowglad-accent-foreground: 0 0% 98%;
+    --flowglad-destructive: 0 62.8% 30.6%;
+    --flowglad-destructive-foreground: 0 0% 98%;
+    --flowglad-border: 240 3.7% 15.9%;
+    --flowglad-input: 240 3.7% 15.9%;
+    --flowglad-ring: 240 4.9% 83.9%;
+
+    /* Chart Colors - Dark */
+    --flowglad-chart-1: 220 70% 50%;
+    --flowglad-chart-2: 160 60% 45%;
+    --flowglad-chart-3: 30 80% 55%;
+    --flowglad-chart-4: 280 65% 60%;
+    --flowglad-chart-5: 340 75% 55%;
+
+    /* Sidebar Colors - Dark */
+    --flowglad-sidebar: 240 5.9% 10%;
+    --flowglad-sidebar-foreground: 240 4.8% 95.9%;
+    --flowglad-sidebar-primary: 224.3 76.3% 48%;
+    --flowglad-sidebar-primary-foreground: 0 0% 100%;
+    --flowglad-sidebar-accent: 240 3.7% 15.9%;
+    --flowglad-sidebar-accent-foreground: 240 4.8% 95.9%;
+    --flowglad-sidebar-border: 240 3.7% 15.9%;
+    --flowglad-sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer utilities {
+  /* Background Colors */
+  .flowglad-bg-background { background-color: hsl(var(--flowglad-background)); }
+  .flowglad-bg-foreground { background-color: hsl(var(--flowglad-foreground)); }
+  .flowglad-bg-card { background-color: hsl(var(--flowglad-card)); }
+  .flowglad-bg-card-foreground { background-color: hsl(var(--flowglad-card-foreground)); }
+  .flowglad-bg-popover { background-color: hsl(var(--flowglad-popover)); }
+  .flowglad-bg-popover-foreground { background-color: hsl(var(--flowglad-popover-foreground)); }
+  .flowglad-bg-primary { background-color: hsl(var(--flowglad-primary)); }
+  .flowglad-bg-primary-foreground { background-color: hsl(var(--flowglad-primary-foreground)); }
+  .flowglad-bg-secondary { background-color: hsl(var(--flowglad-secondary)); }
+  .flowglad-bg-secondary-foreground { background-color: hsl(var(--flowglad-secondary-foreground)); }
+  .flowglad-bg-muted { background-color: hsl(var(--flowglad-muted)); }
+  .flowglad-bg-muted-foreground { background-color: hsl(var(--flowglad-muted-foreground)); }
+  .flowglad-bg-accent { background-color: hsl(var(--flowglad-accent)); }
+  .flowglad-bg-accent-foreground { background-color: hsl(var(--flowglad-accent-foreground)); }
+  .flowglad-bg-destructive { background-color: hsl(var(--flowglad-destructive)); }
+  .flowglad-bg-destructive-foreground { background-color: hsl(var(--flowglad-destructive-foreground)); }
+
+  /* Text Colors */
+  .flowglad-text-background { color: hsl(var(--flowglad-background)); }
+  .flowglad-text-foreground { color: hsl(var(--flowglad-foreground)); }
+  .flowglad-text-card { color: hsl(var(--flowglad-card)); }
+  .flowglad-text-card-foreground { color: hsl(var(--flowglad-card-foreground)); }
+  .flowglad-text-popover { color: hsl(var(--flowglad-popover)); }
+  .flowglad-text-popover-foreground { color: hsl(var(--flowglad-popover-foreground)); }
+  .flowglad-text-primary { color: hsl(var(--flowglad-primary)); }
+  .flowglad-text-primary-foreground { color: hsl(var(--flowglad-primary-foreground)); }
+  .flowglad-text-secondary { color: hsl(var(--flowglad-secondary)); }
+  .flowglad-text-secondary-foreground { color: hsl(var(--flowglad-secondary-foreground)); }
+  .flowglad-text-muted { color: hsl(var(--flowglad-muted)); }
+  .flowglad-text-muted-foreground { color: hsl(var(--flowglad-muted-foreground)); }
+  .flowglad-text-accent { color: hsl(var(--flowglad-accent)); }
+  .flowglad-text-accent-foreground { color: hsl(var(--flowglad-accent-foreground)); }
+  .flowglad-text-destructive { color: hsl(var(--flowglad-destructive)); }
+  .flowglad-text-destructive-foreground { color: hsl(var(--flowglad-destructive-foreground)); }
+
+  /* Border Colors */
+  .flowglad-border { border-color: hsl(var(--flowglad-border)); }
+  .flowglad-border-background { border-color: hsl(var(--flowglad-background)); }
+  .flowglad-border-foreground { border-color: hsl(var(--flowglad-foreground)); }
+  .flowglad-border-card { border-color: hsl(var(--flowglad-card)); }
+  .flowglad-border-card-foreground { border-color: hsl(var(--flowglad-card-foreground)); }
+  .flowglad-border-input { border-color: hsl(var(--flowglad-input)); }
+  .flowglad-border-primary { border-color: hsl(var(--flowglad-primary)); }
+  .flowglad-border-secondary { border-color: hsl(var(--flowglad-secondary)); }
+  .flowglad-border-destructive { border-color: hsl(var(--flowglad-destructive)); }
+  .flowglad-border-muted { border-color: hsl(var(--flowglad-muted)); }
+  .flowglad-border-accent { border-color: hsl(var(--flowglad-accent)); }
+
+  /* Ring Colors */
+  .flowglad-ring { --tw-ring-color: hsl(var(--flowglad-ring)); }
+  .flowglad-ring-background { --tw-ring-color: hsl(var(--flowglad-background)); }
+  .flowglad-ring-foreground { --tw-ring-color: hsl(var(--flowglad-foreground)); }
+  .flowglad-ring-card { --tw-ring-color: hsl(var(--flowglad-card)); }
+  .flowglad-ring-card-foreground { --tw-ring-color: hsl(var(--flowglad-card-foreground)); }
+  .flowglad-ring-input { --tw-ring-color: hsl(var(--flowglad-input)); }
+  .flowglad-ring-primary { --tw-ring-color: hsl(var(--flowglad-primary)); }
+  .flowglad-ring-secondary { --tw-ring-color: hsl(var(--flowglad-secondary)); }
+  .flowglad-ring-destructive { --tw-ring-color: hsl(var(--flowglad-destructive)); }
+  .flowglad-ring-muted { --tw-ring-color: hsl(var(--flowglad-muted)); }
+  .flowglad-ring-accent { --tw-ring-color: hsl(var(--flowglad-accent)); }
+
+  /* Border Radius */
+  .flowglad-rounded-sm { border-radius: calc(var(--flowglad-radius) - 4px); }
+  .flowglad-rounded { border-radius: calc(var(--flowglad-radius) - 2px); }
+  .flowglad-rounded-md { border-radius: var(--flowglad-radius); }
+  .flowglad-rounded-lg { border-radius: calc(var(--flowglad-radius) + 2px); }
+  .flowglad-rounded-xl { border-radius: calc(var(--flowglad-radius) + 4px); }
+}

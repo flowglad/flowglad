@@ -509,11 +509,9 @@ export const createPaginatedSelectSchema = <T extends {}>(
   return z.object({
     cursor: z.string().optional(),
     limit: z.number().min(1).max(100).optional(),
-    parameters: parameters.optional(),
   }) as z.ZodType<{
     cursor?: string
     limit?: number
-    parameters?: z.infer<typeof parameters>
   }>
 }
 

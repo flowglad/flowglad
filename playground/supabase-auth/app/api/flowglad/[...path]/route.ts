@@ -1,6 +1,6 @@
 'use server';
 import { createNextRouteHandler } from '@flowglad/nextjs/server';
-import { flowgladServer } from '@/app/flowglad';
+import { flowgladServer } from '@/utils/flowglad';
 
 const routeHandler = createNextRouteHandler(flowgladServer);
 

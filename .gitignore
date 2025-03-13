@@ -17,3 +17,5 @@ node_modules
 yalc.lock
 
 dist
+
+generated/styles.ts

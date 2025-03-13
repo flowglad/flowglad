@@ -9,8 +9,7 @@ catalogs:
     react-dom: 18.3.1
     '@types/react': 18.3.12
     '@types/react-dom': 18.3.1
-  # flowglad/node:
-  #   '@flowglad/node': 0.1.0-alpha.5
+
   # Can be referenced through "catalog:peer-react"
   peer-react:
     react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
@@ -22,4 +21,4 @@ catalogs:
     typescript: 5.6.3
     zx: 8.3.0
     eslint: 8.57.0
-    '@flowglad/node': 0.4.1
+    '@flowglad/node': 0.5.0

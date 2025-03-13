@@ -9,7 +9,11 @@
       "sourceMap": false,
       "outDir": "./dist/types",
       "declarationDir": "./dist/types",
-      "noImplicitReturns": false
+      "noImplicitReturns": false,
+      "baseUrl": "./src",
+      "paths": {
+        "@/*": ["./*"]
+      }
     },
     "include": [
       "src/index.ts",
