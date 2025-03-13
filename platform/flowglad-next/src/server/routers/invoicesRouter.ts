@@ -85,7 +85,7 @@ const createInvoiceProcedure = protectedProcedure
         autoSend,
       } = input
       const customerProfile = await selectCustomerProfileById(
-        invoiceInsert.CustomerProfileId,
+        invoiceInsert.customerProfileId,
         transaction
       )
 
@@ -94,7 +94,7 @@ const createInvoiceProcedure = protectedProcedure
           ...invoiceInsert,
           livemode: ctx.livemode,
           dueDate: invoiceInsert.dueDate ?? new Date(),
-          OrganizationId: ctx.OrganizationId!,
+          organizationId: ctx.organizationId!,
         },
         transaction
       )
@@ -102,7 +102,7 @@ const createInvoiceProcedure = protectedProcedure
       const invoiceLineItems = await insertInvoiceLineItems(
         invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
           ...invoiceLineItemInsert,
-          InvoiceId: invoice.id,
+          invoiceId: invoice.id,
           livemode: ctx.livemode,
         })),
         transaction
@@ -116,7 +116,7 @@ const createInvoiceProcedure = protectedProcedure
 
       if (autoSend) {
         const organization = await selectOrganizationById(
-          ctx.OrganizationId!,
+          ctx.organizationId!,
           transaction
         )
         await sendInvoiceNotificationEmail({
@@ -163,20 +163,20 @@ const sendInvoiceReminderProcedure = protectedProcedure
         transaction
       )
       const customerProfile = await selectCustomerProfileById(
-        invoice.CustomerProfileId,
+        invoice.customerProfileId,
         transaction
       )
       const customer = await selectCustomerById(
-        customerProfile.CustomerId,
+        customerProfile.customerId,
         transaction
       )
       const organization = await selectOrganizationById(
-        invoice.OrganizationId!,
+        invoice.organizationId!,
         transaction
       )
       const invoiceLineItems = await selectInvoiceLineItems(
         {
-          InvoiceId: invoice.id,
+          invoiceId: invoice.id,
         },
         transaction
       )

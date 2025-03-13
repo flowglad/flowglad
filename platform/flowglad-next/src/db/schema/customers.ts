@@ -21,12 +21,12 @@ export const customers = pgTable(
     ...tableBase('cust'),
     name: text('name').notNull(),
     email: text('email').notNull().unique(),
-    billingAddress: jsonb('billingAddress'),
-    UserId: nullableStringForeignKey('UserId', users),
+    billingAddress: jsonb('billing_address'),
+    userId: nullableStringForeignKey('user_id', users),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.UserId]),
+      constructIndex(TABLE_NAME, [table.userId]),
       constructUniqueIndex(TABLE_NAME, [table.email, table.livemode]),
       livemodePolicy(),
     ]
@@ -83,7 +83,7 @@ const readOnlyColumns = {
   name: true,
   email: true,
   billingAddress: true,
-  UserId: true,
+  userId: true,
   livemode: true,
 } as const
 

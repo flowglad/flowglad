@@ -40,7 +40,7 @@ describe('createOrganizationTransaction', () => {
 
       const testmodeKeys = await selectApiKeys(
         {
-          OrganizationId: organization.id,
+          organizationId: organization.id,
           livemode: false,
         },
         transaction
@@ -57,7 +57,7 @@ describe('createOrganizationTransaction', () => {
       ).toBe(true)
       const livemodeKeys = await selectApiKeys(
         {
-          OrganizationId: organization.id,
+          organizationId: organization.id,
           livemode: true,
         },
         transaction

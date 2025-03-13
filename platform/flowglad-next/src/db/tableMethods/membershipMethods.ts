@@ -39,10 +39,10 @@ export const selectMembershipById = createSelectById(
   config
 )
 
-export const upsertMembershipByUserIdAndOrganizationId =
+export const upsertMembershipByUserIdAndorganizationId =
   createUpsertFunction(
     memberships,
-    [memberships.UserId, memberships.OrganizationId],
+    [memberships.UserId, memberships.organizationId],
     config
   )
 
@@ -68,7 +68,7 @@ export const selectMembershipAndOrganizations = async (
     .from(memberships)
     .innerJoin(
       organizations,
-      eq(memberships.OrganizationId, organizations.id)
+      eq(memberships.organizationId, organizations.id)
     )
     .$dynamic()
   if (!R.isEmpty(selectConditions)) {

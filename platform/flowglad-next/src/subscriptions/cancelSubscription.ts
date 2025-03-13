@@ -31,7 +31,7 @@ export const cancelSubscriptionImmediately = async (
   const status = SubscriptionStatus.Canceled
 
   const billingPeriodsForSubscription = await selectBillingPeriods(
-    { SubscriptionId: subscription.id },
+    { subscriptionId: subscription.id },
     transaction
   )
   const earliestBillingPeriod = billingPeriodsForSubscription.sort(
@@ -170,7 +170,7 @@ export const scheduleSubscriptionCancellation = async (
   const status = SubscriptionStatus.CancellationScheduled
 
   const billingPeriodsForSubscription = await selectBillingPeriods(
-    { SubscriptionId: subscription.id },
+    { subscriptionId: subscription.id },
     transaction
   )
   const earliestBillingPeriod = billingPeriodsForSubscription.sort(

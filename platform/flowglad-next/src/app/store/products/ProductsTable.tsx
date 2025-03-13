@@ -105,7 +105,7 @@ const MoreMenuCell = ({
       <CreateVariantModal
         isOpen={isCreateVariantOpen}
         setIsOpen={setIsCreateVariantOpen}
-        ProductId={product.id}
+        productId={product.id}
       />
       <TableRowPopoverMenu items={items} />
     </>

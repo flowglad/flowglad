@@ -97,7 +97,7 @@ export const createOrganizationTransaction = async (
 
   await insertMembership(
     {
-      OrganizationId: organizationRecord.id,
+      organizationId: organizationRecord.id,
       UserId: user.id,
       focused: true,
       /**

@@ -45,7 +45,7 @@ import {
   safelyUpdateSubscriptionStatus,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
+import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 
@@ -187,7 +187,7 @@ export const processPaymentIntentEventForBillingRun = async (
   }
 
   const paymentMethod = await selectPaymentMethodById(
-    billingRun.PaymentMethodId,
+    billingRun.paymentMethodId,
     transaction
   )
 
@@ -198,8 +198,8 @@ export const processPaymentIntentEventForBillingRun = async (
     subscription,
     customerProfile,
   } =
-    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
-      billingRun.BillingPeriodId,
+    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId(
+      billingRun.billingPeriodId,
       transaction
     )
 
@@ -217,13 +217,13 @@ export const processPaymentIntentEventForBillingRun = async (
 
   let [invoice] = await selectInvoices(
     {
-      BillingPeriodId: billingRun.BillingPeriodId,
+      billingPeriodId: billingRun.billingPeriodId,
     },
     transaction
   )
   if (!invoice) {
     throw Error(
-      `Invoice for billing period ${billingRun.BillingPeriodId} not found.`
+      `Invoice for billing period ${billingRun.billingPeriodId} not found.`
     )
   }
 
@@ -242,7 +242,7 @@ export const processPaymentIntentEventForBillingRun = async (
 
   const invoiceLineItems = await selectInvoiceLineItems(
     {
-      InvoiceId: invoice.id,
+      invoiceId: invoice.id,
     },
     transaction
   )
@@ -260,7 +260,7 @@ export const processPaymentIntentEventForBillingRun = async (
 
   const { total: totalPaidAmount } =
     await sumNetTotalSettledPaymentsForBillingPeriod(
-      billingRun.BillingPeriodId,
+      billingRun.billingPeriodId,
       transaction
     )
 
@@ -283,7 +283,7 @@ export const processPaymentIntentEventForBillingRun = async (
   const usersAndMemberships =
     await selectMembershipsAndUsersByMembershipWhere(
       {
-        OrganizationId: organization.id,
+        organizationId: organization.id,
       },
       transaction
     )
@@ -337,8 +337,8 @@ export const processPaymentIntentEventForBillingRun = async (
       {
         id: invoice.id,
         status: InvoiceStatus.AwaitingPaymentConfirmation,
-        PurchaseId: invoice.PurchaseId,
-        BillingPeriodId: invoice.BillingPeriodId,
+        purchaseId: invoice.purchaseId,
+        billingPeriodId: invoice.billingPeriodId,
         type: invoice.type,
       } as Invoice.Update,
       transaction

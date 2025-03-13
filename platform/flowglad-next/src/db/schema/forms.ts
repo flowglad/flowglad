@@ -23,21 +23,21 @@ export const forms = pgTable(
   {
     ...tableBase('form'),
     title: text('title').notNull(),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
-    ProductId: nullableStringForeignKey('ProductId', products),
+    productId: nullableStringForeignKey('ProductId', products),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
-      constructUniqueIndex(TABLE_NAME, [table.ProductId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
+      constructUniqueIndex(TABLE_NAME, [table.productId]),
       pgPolicy('Enable all for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
         withCheck: sql`"ProductId" is null OR "ProductId" in (select "id" from "Products")`,
       }),
       livemodePolicy(),
@@ -64,7 +64,7 @@ export const formsUpdateSchema = createUpdateSchema(forms, {
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

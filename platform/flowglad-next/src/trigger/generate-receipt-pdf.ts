@@ -24,8 +24,8 @@ export const generatePaymentReceiptPdfTask = task({
           paymentId,
           transaction
         )
-        const invoice = payment.InvoiceId
-          ? await selectInvoiceById(payment.InvoiceId, transaction)
+        const invoice = payment.invoiceId
+          ? await selectInvoiceById(payment.invoiceId, transaction)
           : null
         return { payment, invoice }
       }
@@ -39,10 +39,10 @@ export const generatePaymentReceiptPdfTask = task({
       ? 'https://staging.flowglad.com'
       : core.envVariable('NEXT_PUBLIC_APP_URL')
     const invoiceUrl = core.safeUrl(
-      `/receipt/view/${payment.OrganizationId}/${payment.id}/pdf-preview`,
+      `/receipt/view/${payment.organizationId}/${payment.id}/pdf-preview`,
       urlBase
     )
-    const key = `receipts/${payment.OrganizationId}/${payment.id}/receipt_${core.nanoid()}.pdf`
+    const key = `receipts/${payment.organizationId}/${payment.id}/receipt_${core.nanoid()}.pdf`
     await generatePdf({ url: invoiceUrl, bucketKey: key })
     const receiptURL = core.safeUrl(
       key,

@@ -30,18 +30,18 @@ export const getCustomerProfile = protectedProcedure
     })
   )
   .query(async ({ input, ctx }) => {
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'OrganizationId is required',
+        message: 'organizationId is required',
       })
     }
 
     const customerProfiles = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectCustomerProfiles(
-          { ...input, OrganizationId },
+          { ...input, organizationId },
           transaction
         )
       },

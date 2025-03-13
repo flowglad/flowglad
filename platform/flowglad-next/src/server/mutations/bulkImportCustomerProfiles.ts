@@ -9,7 +9,7 @@ import {
   customersInsertSchema,
 } from '@/db/schema/customers'
 import { bulkIdempotentInsertCustomersByEmail } from '@/db/tableMethods/customerMethods'
-import { bulkInsertOrDoNothinCustomerProfilesByCustomerIdAndOrganizationId } from '@/db/tableMethods/customerProfileMethods'
+import { bulkInsertOrDoNothinCustomerProfilesBycustomerIdAndorganizationId } from '@/db/tableMethods/customerProfileMethods'
 import {
   bulkImportCustomerProfilesInputSchema,
   CustomerProfile,
@@ -79,15 +79,15 @@ export const bulkImportCustomerProfiles = protectedProcedure
             const customerProfile: CustomerProfile.Insert = {
               email: row.email,
               name: row.name,
-              CustomerId: customer.id,
-              OrganizationId: organization.id,
+              customerId: customer.id,
+              organizationId: organization.id,
               externalId: core.nanoid(),
               livemode,
             }
             return customerProfile
           })
 
-        return await bulkInsertOrDoNothinCustomerProfilesByCustomerIdAndOrganizationId(
+        return await bulkInsertOrDoNothinCustomerProfilesBycustomerIdAndorganizationId(
           customerProfileUpserts,
           transaction
         )

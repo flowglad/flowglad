@@ -27,10 +27,10 @@ export const generateInvoicePdfTask = task({
       : core.envVariable('NEXT_PUBLIC_APP_URL')
 
     const invoiceUrl = core.safeUrl(
-      `/invoice/view/${invoice.OrganizationId}/${invoice.id}/pdf-preview`,
+      `/invoice/view/${invoice.organizationId}/${invoice.id}/pdf-preview`,
       urlBase
     )
-    const key = `invoices/${invoice.OrganizationId}/${invoice.id}/${core.nanoid()}.pdf`
+    const key = `invoices/${invoice.organizationId}/${invoice.id}/${core.nanoid()}.pdf`
     await generatePdf({ url: invoiceUrl, bucketKey: key })
     const invoicePdfUrl = core.safeUrl(
       key,

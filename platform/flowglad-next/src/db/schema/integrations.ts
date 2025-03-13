@@ -30,8 +30,8 @@ export const integrations = pgTable(
   {
     ...tableBase('integration'),
     UserId: nullableStringForeignKey('UserId', users),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     provider: text('provider').notNull(),
@@ -56,14 +56,14 @@ export const integrations = pgTable(
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.UserId]),
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.provider]),
       constructIndex(TABLE_NAME, [table.status]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships") OR "UserId" = requesting_user_id()`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships") OR "UserId" = requesting_user_id()`,
       }),
       livemodePolicy(),
     ]
@@ -77,7 +77,7 @@ const integrationRefinementColumns = {
 }
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   UserId: true,
   status: true,
   method: true,

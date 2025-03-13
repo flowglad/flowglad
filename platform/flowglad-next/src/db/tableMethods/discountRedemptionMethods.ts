@@ -55,7 +55,7 @@ export const updateDiscountRedemption = createUpdateFunction(
 export const upsertDiscountRedemptionByPurchaseId =
   createUpsertFunction(
     discountRedemptions,
-    [discountRedemptions.PurchaseId],
+    [discountRedemptions.purchaseId],
     config
   )
 
@@ -66,12 +66,12 @@ export const upsertDiscountRedemptionForPurchaseAndDiscount = async (
 ) => {
   const discountRedemptionsInsert =
     discountRedemptionsInsertSchema.parse({
-      DiscountId: discount.id,
+      discountId: discount.id,
       discountName: discount.name,
       discountCode: discount.code,
       discountAmount: discount.amount,
       discountAmountType: discount.amountType,
-      PurchaseId: purchase.id,
+      purchaseId: purchase.id,
       duration: discount.duration,
       numberOfPayments: discount.numberOfPayments,
       livemode: purchase.livemode,
@@ -95,9 +95,9 @@ export const selectDiscountAndDiscountRedemptionByPurchaseId = async (
     .from(discountRedemptions)
     .innerJoin(
       discounts,
-      eq(discountRedemptions.DiscountId, discounts.id)
+      eq(discountRedemptions.discountId, discounts.id)
     )
-    .where(eq(discountRedemptions.PurchaseId, purchaseId))
+    .where(eq(discountRedemptions.purchaseId, purchaseId))
   if (!result) {
     return null
   }

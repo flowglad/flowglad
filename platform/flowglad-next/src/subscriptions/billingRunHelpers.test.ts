@@ -56,33 +56,33 @@ describe('billingRunHelpers', async () => {
   let subscription: Subscription.Record
   beforeEach(async () => {
     customerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
     })
 
     subscription = await setupSubscription({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
-      VariantId: variant.id,
-      PaymentMethodId: paymentMethod.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
+      variantId: variant.id,
+      paymentMethodId: paymentMethod.id,
     })
     billingPeriod = await setupBillingPeriod({
-      SubscriptionId: subscription.id,
+      subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart,
       endDate: subscription.currentBillingPeriodEnd,
       status: BillingPeriodStatus.Active,
     })
     billingRun = await setupBillingRun({
-      BillingPeriodId: billingPeriod.id,
-      PaymentMethodId: paymentMethod.id,
-      SubscriptionId: subscription.id,
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
     billingPeriodItems = await setupBillingPeriodItems({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,
     })
@@ -91,7 +91,7 @@ describe('billingRunHelpers', async () => {
   describe('Billing Period State Management', () => {
     it('should mark billing period as PastDue when current date is after end date', async () => {
       const billingPeriod = await setupBillingPeriod({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         startDate: new Date(
           subscription.currentBillingPeriodStart.getTime() -
             30 * 24 * 60 * 60 * 1000
@@ -116,11 +116,11 @@ describe('billingRunHelpers', async () => {
 
     it('should mark billing period as Completed when all payments are settled', async () => {
       const invoice = await setupInvoice({
-        BillingPeriodId: billingPeriod.id,
+        billingPeriodId: billingPeriod.id,
         status: InvoiceStatus.Paid,
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
-        VariantId: variant.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        variantId: variant.id,
       })
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -166,11 +166,11 @@ describe('billingRunHelpers', async () => {
 
     it('should not create a payment intent if the invoice is in a terminal state', async () => {
       await setupInvoice({
-        BillingPeriodId: billingPeriod.id,
+        billingPeriodId: billingPeriod.id,
         status: InvoiceStatus.Paid,
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
-        VariantId: variant.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        variantId: variant.id,
       })
       const result = await adminTransaction(({ transaction }) =>
         executeBillingRunCalculationAndBookkeepingSteps(
@@ -255,13 +255,13 @@ describe('billingRunHelpers', async () => {
 
     it('should generate invoice line items from billing period items', async () => {
       const invoice = await setupInvoice({
-        BillingPeriodId: billingPeriod.id,
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
-        VariantId: variant.id,
+        billingPeriodId: billingPeriod.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        variantId: variant.id,
       })
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        InvoiceId: invoice.id,
+        invoiceId: invoice.id,
         billingPeriodItems,
       })
       expect(lineItems.length).toBe(billingPeriodItems.length)
@@ -284,7 +284,7 @@ describe('billingRunHelpers', async () => {
       const allBillingRuns = await adminTransaction(
         ({ transaction }) =>
           selectBillingRuns(
-            { BillingPeriodId: billingPeriod.id },
+            { billingPeriodId: billingPeriod.id },
             transaction
           )
       )
@@ -345,9 +345,9 @@ describe('billingRunHelpers', async () => {
       const testBillingRun = await setupBillingRun({
         status,
         livemode: false,
-        BillingPeriodId: billingPeriod.id,
-        PaymentMethodId: paymentMethod.id,
-        SubscriptionId: subscription.id,
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
       })
 
       await expect(

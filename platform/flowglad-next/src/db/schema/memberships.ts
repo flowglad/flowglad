@@ -22,8 +22,8 @@ export const memberships = pgTable(
   {
     ...tableBase('memb'),
     UserId: notNullStringForeignKey('UserId', users),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     focused: boolean('focused').notNull().default(false),
@@ -31,10 +31,10 @@ export const memberships = pgTable(
   (table) => {
     return [
       constructIndex(MEMBERSHIPS_TABLE_NAME, [table.UserId]),
-      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.OrganizationId]),
+      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(MEMBERSHIPS_TABLE_NAME, [
         table.UserId,
-        table.OrganizationId,
+        table.organizationId,
       ]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
@@ -72,7 +72,7 @@ const hiddenColumns = {} as const
 
 const readOnlyColumns = {
   UserId: true,
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

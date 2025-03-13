@@ -42,17 +42,17 @@ export const feeCalculations = pgTable(
   TABLE_NAME,
   {
     ...tableBase('feec'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     PurchaseSessionId: nullableStringForeignKey(
       'PurchaseSessionId',
       purchaseSessions
     ),
-    PurchaseId: nullableStringForeignKey('PurchaseId', purchases),
-    DiscountId: nullableStringForeignKey('DiscountId', discounts),
-    VariantId: nullableStringForeignKey('VariantId', variants),
+    purchaseId: nullableStringForeignKey('PurchaseId', purchases),
+    discountId: nullableStringForeignKey('discount_id', discounts),
+    variantId: nullableStringForeignKey('variant_id', variants),
     paymentMethodType: pgEnumColumn({
       enumName: 'PaymentMethodType',
       columnName: 'paymentMethodType',
@@ -73,8 +73,8 @@ export const feeCalculations = pgTable(
     pretaxTotal: integer('pretaxTotal').notNull(),
     stripeTaxCalculationId: text('stripeTaxCalculationId'),
     stripeTaxTransactionId: text('stripeTaxTransactionId'),
-    BillingPeriodId: nullableStringForeignKey(
-      'BillingPeriodId',
+    billingPeriodId: nullableStringForeignKey(
+      'billing_period_id',
       billingPeriods
     ),
     currency: pgEnumColumn({
@@ -91,16 +91,16 @@ export const feeCalculations = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.PurchaseSessionId]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
-      constructIndex(TABLE_NAME, [table.DiscountId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
+      constructIndex(TABLE_NAME, [table.discountId]),
       livemodePolicy(),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
       }),
     ]
   }
@@ -126,13 +126,13 @@ export const coreFeeCalculationsSelectSchema =
 const subscriptionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.SubscriptionPayment),
   PurchaseSessionId: z.null(),
-  VariantId: z.null(),
+  variantId: z.null(),
 }
 
 const purchaseSessionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.PurchaseSessionPayment),
-  BillingPeriodId: z.null(),
-  VariantId: z.string(),
+  billingPeriodId: z.null(),
+  variantId: z.string(),
 }
 
 export const subscriptionPaymentFeeCalculationInsertSchema =
@@ -192,9 +192,9 @@ export const feeCalculationsUpdateSchema = z.discriminatedUnion(
 )
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   PurchaseSessionId: true,
-  PurchaseId: true,
+  purchaseId: true,
   livemode: true,
 } as const
 
@@ -260,8 +260,8 @@ export const purchaseSessionFeeCalculationParametersChanged = ({
 }) => {
   const keys = [
     'billingAddress',
-    'DiscountId',
-    'VariantId',
+    'discountId',
+    'variantId',
     'paymentMethodType',
     'quantity',
   ] as const

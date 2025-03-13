@@ -368,13 +368,13 @@ export const createPurchaseSessionFeeCalculationInsert = async ({
     currency: variant.currency,
     stripeTaxCalculationId,
     stripeTaxTransactionId,
-    OrganizationId: organization.id,
-    PurchaseId: purchase?.id,
-    VariantId: variant.id,
-    DiscountId: discount?.id,
+    organizationId: organization.id,
+    purchaseId: purchase?.id,
+    variantId: variant.id,
+    discountId: discount?.id,
     paymentMethodType,
     billingAddress,
-    BillingPeriodId: null,
+    billingPeriodId: null,
     type: FeeCalculationType.PurchaseSessionPayment,
     livemode: variant.livemode,
   }
@@ -463,14 +463,14 @@ const createSubscriptionFeeCalculationInsert = (
 
   const feeCalculationInsert: FeeCalculation.Insert = {
     type: FeeCalculationType.SubscriptionPayment,
-    OrganizationId: organization.id,
+    organizationId: organization.id,
     billingAddress: paymentMethod.billingDetails.address,
-    VariantId: null,
+    variantId: null,
     PurchaseSessionId: null,
     paymentMethodType: paymentMethod.type,
     discountAmountFixed: discountAmount,
     pretaxTotal: discountInclusiveAmount,
-    BillingPeriodId: billingPeriod.id,
+    billingPeriodId: billingPeriod.id,
     baseAmount,
     currency,
     flowgladFeePercentage: flowgladFeePercentage.toString(),
@@ -535,7 +535,7 @@ export const finalizeFeeCalculation = async (
   const monthToDateResolvedPayments =
     await selectResolvedPaymentsMonthToDate(
       {
-        OrganizationId: feeCalculation.OrganizationId,
+        organizationId: feeCalculation.organizationId,
       },
       transaction
     )
@@ -556,8 +556,8 @@ export const finalizeFeeCalculation = async (
     id: feeCalculation.id,
     flowgladFeePercentage,
     type: feeCalculation.type,
-    VariantId: feeCalculation.VariantId,
-    BillingPeriodId: feeCalculation.BillingPeriodId,
+    variantId: feeCalculation.variantId,
+    billingPeriodId: feeCalculation.billingPeriodId,
     PurchaseSessionId: feeCalculation.PurchaseSessionId,
     internalNotes: `Total processed month to date: ${totalProcessedMonthToDatePennies}; Calculated time: ${new Date().toISOString()}`,
   } as FeeCalculation.Update

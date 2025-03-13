@@ -22,15 +22,15 @@ const TABLE_NAME = 'DiscountRedemptions'
 export const discountRedemptions = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('discountRedemption'),
-    DiscountId: notNullStringForeignKey('DiscountId', discounts),
-    PurchaseId: notNullStringForeignKey('PurchaseId', purchases),
-    discountName: text('discountName').notNull(),
-    discountCode: text('discountCode').notNull(),
-    discountAmount: integer('discountAmount').notNull(),
+    ...tableBase('discount_redemption'),
+    discountId: notNullStringForeignKey('discount_id', discounts),
+    purchaseId: notNullStringForeignKey('purchase_id', purchases),
+    discountName: text('discount_name').notNull(),
+    discountCode: text('discount_code').notNull(),
+    discountAmount: integer('discount_amount').notNull(),
     discountAmountType: pgEnumColumn({
       enumName: 'DiscountAmountType',
-      columnName: 'discountAmountType',
+      columnName: 'discount_amount_type',
       enumBase: DiscountAmountType,
     }).notNull(),
     duration: pgEnumColumn({
@@ -38,19 +38,19 @@ export const discountRedemptions = pgTable(
       columnName: 'duration',
       enumBase: DiscountDuration,
     }).notNull(),
-    numberOfPayments: integer('numberOfPayments'),
+    numberOfPayments: integer('number_of_payments'),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.DiscountId]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
-      constructUniqueIndex(TABLE_NAME, [table.PurchaseId]),
+      constructIndex(TABLE_NAME, [table.discountId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
+      constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
       livemodePolicy(),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"DiscountId" in (select "DiscountId" from "Discounts" where "OrganizationId" in (select "OrganizationId" from "Memberships"))`,
+        using: sql`"discountId" in (select "discountId" from "Discounts" where "organizationId" in (select "organizationId" from "Memberships"))`,
       }),
     ]
   }
@@ -166,8 +166,8 @@ export const discountRedemptionsUpdateSchema = z.discriminatedUnion(
 )
 
 const readOnlyColumns = {
-  PurchaseId: true,
-  DiscountId: true,
+  purchaseId: true,
+  discountId: true,
   discountName: true,
   discountCode: true,
   discountAmount: true,

@@ -11,11 +11,11 @@ export const paymentMethodForStripePaymentMethodId = async (
   {
     stripePaymentMethodId,
     livemode,
-    CustomerProfileId,
+    customerProfileId,
   }: {
     stripePaymentMethodId: string
     livemode: boolean
-    CustomerProfileId: string
+    customerProfileId: string
   },
   transaction: DbTransaction
 ): Promise<PaymentMethod.Record> => {
@@ -36,7 +36,7 @@ export const paymentMethodForStripePaymentMethodId = async (
     const paymentMethodInsert: PaymentMethod.Insert = {
       type: PaymentMethodType.Card,
       livemode,
-      CustomerProfileId,
+      customerProfileId,
       billingDetails: {
         name: stripePaymentMethod.billing_details?.name,
         email: stripePaymentMethod.billing_details?.email,
