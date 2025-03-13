@@ -30,7 +30,7 @@ import { z } from 'zod'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
 import { Product } from './products'
 
-export const PURCHASES_TABLE_NAME = 'Purchases'
+export const PURCHASES_TABLE_NAME = 'purchases'
 
 const columns = {
   ...tableBase('prch'),

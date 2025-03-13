@@ -24,7 +24,7 @@ import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 
-const TABLE_NAME = 'Discounts'
+const TABLE_NAME = 'discounts'
 
 export const discounts = pgTable(
   TABLE_NAME,
@@ -39,7 +39,7 @@ export const discounts = pgTable(
     amount: integer('amount').notNull(),
     amountType: pgEnumColumn({
       enumName: 'DiscountAmountType',
-      columnName: 'amountType',
+      columnName: 'amount_type',
       enumBase: DiscountAmountType,
     }).notNull(),
     active: boolean('active').notNull().default(true),
@@ -48,8 +48,8 @@ export const discounts = pgTable(
       columnName: 'duration',
       enumBase: DiscountDuration,
     }).notNull(),
-    numberOfPayments: integer('numberOfPayments'),
-    stripeCouponId: text('stripeCouponId'),
+    numberOfPayments: integer('number_of_payments'),
+    stripeCouponId: text('stripe_coupon_id'),
   },
   (table) => {
     return [
@@ -66,7 +66,7 @@ export const discounts = pgTable(
           as: 'permissive',
           to: 'authenticated',
           for: 'all',
-          using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
     ]

@@ -29,15 +29,15 @@ import {
   discountsSupabaseUpdatePayloadSchema,
 } from './discounts'
 
-const TABLE_NAME = 'ProperNouns'
+const TABLE_NAME = 'proper_nouns'
 
 export const properNouns = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('properNoun'),
+    ...tableBase('proper_noun'),
     name: text('name').notNull(),
-    EntityId: text('EntityId').notNull(),
-    entityType: text('entityType').notNull(),
+    entityId: text('entity_id').notNull(),
+    entityType: text('entity_type').notNull(),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
@@ -47,12 +47,12 @@ export const properNouns = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(TABLE_NAME, [
-        table.EntityId,
+        table.entityId,
         table.entityType,
       ]),
       constructIndex(TABLE_NAME, [
         table.entityType,
-        table.EntityId,
+        table.entityId,
         table.organizationId,
       ]),
       constructIndex(TABLE_NAME, [table.name]),
@@ -60,7 +60,7 @@ export const properNouns = pgTable(
         'gin',
         sql`to_tsvector('english', ${table.name})`
       ),
-      constructIndex(TABLE_NAME, [table.EntityId]),
+      constructIndex(TABLE_NAME, [table.entityId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -91,7 +91,7 @@ const createOnlyColumns = {} as const
 
 const readOnlyColumns = {
   organizationId: true,
-  EntityId: true,
+  entityId: true,
   entityType: true,
   livemode: true,
 } as const

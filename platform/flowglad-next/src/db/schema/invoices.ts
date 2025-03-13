@@ -35,7 +35,7 @@ import { organizations } from './organizations'
 import { billingPeriods } from './billingPeriods'
 import { memberships } from './memberships'
 
-export const TABLE_NAME = 'Invoices'
+export const TABLE_NAME = 'invoices'
 
 export const invoices = pgTable(
   TABLE_NAME,
@@ -70,7 +70,7 @@ export const invoices = pgTable(
       .default(InvoiceStatus.Draft),
     billingInterval: pgEnumColumn({
       enumName: 'interval',
-      columnName: 'billingInterval',
+      columnName: 'billing_interval',
       enumBase: IntervalUnit,
     }),
     billingPeriodStartDate: timestamp('billing_period_start_date'),

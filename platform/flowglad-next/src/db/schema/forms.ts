@@ -16,7 +16,7 @@ import { organizations } from '@/db/schema/organizations'
 import { products } from './products'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'Forms'
+const TABLE_NAME = 'forms'
 
 export const forms = pgTable(
   TABLE_NAME,
@@ -27,7 +27,7 @@ export const forms = pgTable(
       'organization_id',
       organizations
     ),
-    productId: nullableStringForeignKey('ProductId', products),
+    productId: nullableStringForeignKey('product_id', products),
   },
   (table) => {
     return [
@@ -37,8 +37,8 @@ export const forms = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
-        withCheck: sql`"ProductId" is null OR "ProductId" in (select "id" from "Products")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
       }),
       livemodePolicy(),
     ]

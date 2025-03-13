@@ -102,15 +102,15 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
   feeCalculation: FeeCalculation.Record
   totalDueAmount: number
 }> => {
-  const CountryId = organization.CountryId
-  if (!CountryId) {
+  const countryId = organization.countryId
+  if (!countryId) {
     throw Error(
       `Cannot run billing for a billing period with an organization that does not have a country id.` +
         `Organization: ${organization.id}; Billing Period: ${billingPeriod.id}`
     )
   }
   const organizationCountry = await selectCountryById(
-    CountryId,
+    countryId,
     transaction
   )
 

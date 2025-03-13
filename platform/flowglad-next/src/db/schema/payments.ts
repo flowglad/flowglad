@@ -41,7 +41,7 @@ import { sql } from 'drizzle-orm'
 import { paymentMethods } from './paymentMethods'
 import { billingPeriods } from './billingPeriods'
 
-export const TABLE_NAME = 'Payments'
+export const TABLE_NAME = 'payments'
 
 export const payments = pgTable(
   TABLE_NAME,
@@ -51,7 +51,7 @@ export const payments = pgTable(
     amount: integer('amount').notNull(),
     paymentMethod: pgEnumColumn({
       enumName: 'PaymentMethod',
-      columnName: 'paymentMethod',
+      columnName: 'payment_method',
       enumBase: PaymentMethodType,
     }).notNull(),
     currency: pgEnumColumn({
@@ -64,11 +64,11 @@ export const payments = pgTable(
       columnName: 'status',
       enumBase: PaymentStatus,
     }).notNull(),
-    chargeDate: timestamp('chargeDate').notNull(),
-    settlementDate: timestamp('settlementDate'),
+    chargeDate: timestamp('charge_date').notNull(),
+    settlementDate: timestamp('settlement_date'),
     description: text('description'),
-    receiptNumber: text('receiptNumber'),
-    receiptURL: text('receiptURL'),
+    receiptNumber: text('receipt_number'),
+    receiptURL: text('receipt_url'),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
@@ -77,24 +77,24 @@ export const payments = pgTable(
       'customer_profile_id',
       customerProfiles
     ),
-    purchaseId: nullableStringForeignKey('PurchaseId', purchases),
+    purchaseId: nullableStringForeignKey('purchase_id', purchases),
     paymentMethodId: nullableStringForeignKey(
-      'PaymentMethodId',
+      'payment_method_id',
       paymentMethods
     ),
     billingPeriodId: nullableStringForeignKey(
       'billing_period_id',
       billingPeriods
     ),
-    stripePaymentIntentId: text('stripePaymentIntentId').notNull(),
-    stripeChargeId: text('stripeChargeId'),
+    stripePaymentIntentId: text('stripe_payment_intent_id').notNull(),
+    stripeChargeId: text('stripe_charge_id'),
     ...taxColumns(),
     /**
      * Refund columns
      */
     refunded: boolean('refunded').notNull().default(false),
-    refundedAmount: integer('refundedAmount'),
-    refundedAt: timestamp('refundedAt'),
+    refundedAmount: integer('refunded_amount'),
+    refundedAt: timestamp('refunded_at'),
   },
   (table) => {
     return [
@@ -110,13 +110,13 @@ export const payments = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       pgPolicy('Enable update for own organization', {
         as: 'permissive',
         to: 'authenticated',
         for: 'update',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       livemodePolicy(),
     ]
