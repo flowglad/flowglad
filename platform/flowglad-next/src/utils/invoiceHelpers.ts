@@ -35,14 +35,11 @@ import { deleteIncompletePurchaseSessionsForInvoice } from '@/db/tableMethods/pu
  * @returns
  */
 export const updateInvoiceTransaction = async (
-  { invoice, invoiceLineItems }: EditInvoiceInput,
+  { invoice, invoiceLineItems, id }: EditInvoiceInput,
   livemode: boolean,
   transaction: DbTransaction
 ) => {
-  const existingInvoice = await selectInvoiceById(
-    invoice.id,
-    transaction
-  )
+  const existingInvoice = await selectInvoiceById(id, transaction)
   if (invoiceIsInTerminalState(existingInvoice)) {
     throw new Error(
       `Invoice ${existingInvoice.id} has status ${existingInvoice.status}, which is terminal. You cannot update invoices that are in a terminal state.`

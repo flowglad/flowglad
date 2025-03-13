@@ -13,7 +13,10 @@ import {
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import { idInputSchema } from '@/db/tableUtils'
-import { generateOpenApiMetas } from '@/utils/openapi'
+import {
+  createPostOpenApiMeta,
+  generateOpenApiMetas,
+} from '@/utils/openapi'
 import {
   createInvoiceSchema,
   editInvoiceSchema,
@@ -154,8 +157,17 @@ const updateInvoiceProcedure = protectedProcedure
   })
 
 const sendInvoiceReminderProcedure = protectedProcedure
-  .meta(openApiMetas.POST)
+  .meta(
+    createPostOpenApiMeta({
+      resource: 'invoices/:id',
+      routeSuffix: 'send-reminder',
+      summary: 'Send Reminder Email for an Invoice',
+      tags: ['Invoices', 'Invoice', 'Invoice Reminder'],
+      idParamOverride: 'invoiceId',
+    })
+  )
   .input(sendInvoiceReminderSchema)
+  .output(z.object({ success: z.boolean() }))
   .mutation(async ({ ctx, input }) => {
     return authenticatedTransaction(async ({ transaction }) => {
       const invoice = await selectInvoiceById(

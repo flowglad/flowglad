@@ -94,7 +94,6 @@
     "clsx": "^2.1.1",
     "date-fns": "4.1.0",
     "debounce": "^2.2.0",
-    "discord.js": "^14.16.3",
     "drizzle-orm": "0.36.4",
     "drizzle-zod": "^0.5.1",
     "html2canvas": "^1.4.1",

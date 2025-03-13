@@ -125,6 +125,7 @@ export const editInvoiceSchema = z.object({
       invoiceLineItemsClientSelectSchema,
     ])
     .array(),
+  id: z.string(),
 })
 
 export type EditInvoiceInput = z.infer<typeof editInvoiceSchema>
