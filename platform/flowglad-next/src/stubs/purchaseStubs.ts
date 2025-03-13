@@ -13,7 +13,6 @@ export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchas
     variantId: '1',
     intervalUnit: IntervalUnit.Month,
     trialPeriodDays: 0,
-    stripesubscriptionId: 'sub_123456',
     quantity: 1,
     billingCycleAnchor: new Date(),
     pricePerBillingCycle: 100,
