@@ -111,7 +111,7 @@ interface CustomerCSVRow {
 
 export const customerAndCustomerProfileInsertsFromCSV = async (
   csvContent: string,
-  OrganizationId: string,
+  organizationId: string,
   livemode: boolean
 ) => {
   // Parse CSV to JSON
@@ -153,12 +153,12 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
 
   const customerProfileInserts: Omit<
     CustomerProfile.Insert,
-    'CustomerId'
+    'customerId'
   >[] = results.map((customer) => {
     return {
       email: customer.email,
       name: customer.name,
-      OrganizationId,
+      organizationId: organizationId,
       externalId: core.nanoid(),
       livemode,
     }
@@ -175,7 +175,7 @@ export const customerAndCustomerProfileInsertsFromBulkImport = async (
   let customerUpserts: Customer.Insert[] = []
   let incompleteCustomerProfileUpserts: Omit<
     CustomerProfile.Insert,
-    'CustomerId'
+    'customerId'
   >[] = []
   if (input.format === 'csv') {
     const csvContent = input.csvContent

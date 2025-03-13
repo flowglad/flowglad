@@ -57,7 +57,7 @@ const OnboardingPage = async () => {
   const testmodeApiKeys = await adminTransaction(
     async ({ transaction }) => {
       return selectApiKeys(
-        { OrganizationId: organization.id, livemode: false },
+        { organizationId: organization.id, livemode: false },
         transaction
       )
     }

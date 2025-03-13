@@ -72,7 +72,7 @@ async function csvToJson(db: PostgresJsDatabase) {
             email: row.email,
             name: row.name,
             CustomerId: customer.id,
-            OrganizationId: ORGANIZATION_ID,
+            organizationId: ORGANIZATION_ID,
             externalId: core.nanoid(),
             livemode: true,
           }

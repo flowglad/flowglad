@@ -82,12 +82,12 @@ export const upsertPaymentForStripeCharge = async (
       transaction
     )
     const subscription = await selectSubscriptionById(
-      billingRun.SubscriptionId,
+      billingRun.subscriptionId,
       transaction
     )
     const [invoice] = await selectInvoices(
       {
-        BillingPeriodId: billingRun.BillingPeriodId,
+        BillingPeriodId: billingRun.billingPeriodId,
       },
       transaction
     )

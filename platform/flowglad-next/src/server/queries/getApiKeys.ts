@@ -13,7 +13,7 @@ export const getApiKeys = protectedProcedure
     const apiKeys = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectApiKeys(
-          { OrganizationId: ctx.OrganizationId, ...input },
+          { organizationId: ctx.OrganizationId, ...input },
           transaction
         )
       }

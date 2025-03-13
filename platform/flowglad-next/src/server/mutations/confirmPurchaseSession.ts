@@ -73,7 +73,7 @@ export const confirmPurchaseSession = publicProcedure
         const result = await selectCustomerProfiles(
           {
             email: purchaseSession.customerEmail,
-            OrganizationId: purchaseSession.OrganizationId,
+            organizationId: purchaseSession.OrganizationId,
           },
           transaction
         )
@@ -112,7 +112,7 @@ export const confirmPurchaseSession = publicProcedure
           {
             CustomerId: customer.id,
             email: purchaseSession.customerEmail,
-            OrganizationId: purchaseSession.OrganizationId,
+            organizationId: purchaseSession.OrganizationId,
             name:
               purchaseSession.customerName ||
               purchaseSession.customerEmail,

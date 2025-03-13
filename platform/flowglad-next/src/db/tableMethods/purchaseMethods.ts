@@ -174,7 +174,7 @@ export const selectPurchaseCheckoutParametersById = async (
     )
     .innerJoin(
       organizations,
-      eq(organizations.id, customerProfiles.OrganizationId)
+      eq(organizations.id, customerProfiles.organizationId)
     )
     .innerJoin(products, eq(products.id, variants.ProductId))
     .where(and(eq(purchases.id, id)))

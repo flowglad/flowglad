@@ -59,7 +59,7 @@ const CustomerPage = async ({
         )
       const variants = await selectVariantsAndProductsForOrganization(
         {},
-        result.customerProfile.OrganizationId,
+        result.customerProfile.organizationId,
         transaction
       )
       return {

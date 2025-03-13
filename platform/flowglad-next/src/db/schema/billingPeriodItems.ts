@@ -21,14 +21,14 @@ export const billingPeriodItems = pgTable(
   TABLE_NAME,
   {
     ...tableBase('billing_period_item'),
-    BillingPeriodId: notNullStringForeignKey(
+    billingPeriodId: notNullStringForeignKey(
       'billing_period_id',
       billingPeriods
     ),
     quantity: integer('quantity').notNull(),
     unitPrice: integer('unit_price').notNull(),
     name: text('name').notNull(),
-    DiscountRedemptionId: nullableStringForeignKey(
+    discountRedemptionId: nullableStringForeignKey(
       'discount_redemption_id',
       discountRedemptions
     ),
@@ -36,8 +36,8 @@ export const billingPeriodItems = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.BillingPeriodId]),
-      constructIndex(TABLE_NAME, [table.DiscountRedemptionId]),
+      constructIndex(TABLE_NAME, [table.billingPeriodId]),
+      constructIndex(TABLE_NAME, [table.discountRedemptionId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -68,8 +68,8 @@ export const billingPeriodItemsUpdateSchema = createUpdateSchema(
 )
 
 const createOnlyColumns = {
-  BillingPeriodId: true,
-  DiscountRedemptionId: true,
+  billingPeriodId: true,
+  discountRedemptionId: true,
 } as const
 
 const readOnlyColumns = {} as const

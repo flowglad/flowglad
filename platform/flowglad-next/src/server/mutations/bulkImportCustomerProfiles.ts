@@ -80,7 +80,7 @@ export const bulkImportCustomerProfiles = protectedProcedure
               email: row.email,
               name: row.name,
               CustomerId: customer.id,
-              OrganizationId: organization.id,
+              organizationId: organization.id,
               externalId: core.nanoid(),
               livemode,
             }

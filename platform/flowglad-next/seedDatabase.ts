@@ -157,7 +157,7 @@ export const setupPaymentMethod = async (params: {
 }
 
 export const setupCustomerProfile = async (params: {
-  OrganizationId: string
+  organizationId: string
   livemode?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
@@ -172,8 +172,8 @@ export const setupCustomerProfile = async (params: {
     )
     return insertCustomerProfile(
       {
-        OrganizationId: params.OrganizationId,
-        CustomerId: customer.id,
+        organizationId: params.organizationId,
+        customerId: customer.id,
         email,
         externalId: core.nanoid(),
         livemode: params.livemode ?? true,
@@ -243,13 +243,13 @@ export const setupSubscription = async (params: {
 }
 
 export const setupBillingPeriod = async ({
-  SubscriptionId,
+  subscriptionId,
   startDate,
   endDate,
   status = BillingPeriodStatus.Active,
   livemode = true,
 }: {
-  SubscriptionId: string
+  subscriptionId: string
   startDate: Date
   endDate: Date
   status?: BillingPeriodStatus
@@ -258,7 +258,7 @@ export const setupBillingPeriod = async ({
   return adminTransaction(async ({ transaction }) => {
     return insertBillingPeriod(
       {
-        SubscriptionId,
+        subscriptionId,
         startDate,
         endDate,
         status,
@@ -270,28 +270,28 @@ export const setupBillingPeriod = async ({
 }
 
 export const setupBillingRun = async ({
-  BillingPeriodId,
-  PaymentMethodId,
+  billingPeriodId,
+  paymentMethodId,
   status = BillingRunStatus.Scheduled,
   scheduledFor = new Date(),
-  SubscriptionId,
+  subscriptionId,
   livemode = true,
   stripePaymentIntentId,
   lastPaymentIntentEventTimestamp,
 }: Partial<BillingRun.Insert> & {
-  BillingPeriodId: string
-  PaymentMethodId: string
-  SubscriptionId: string
+  billingPeriodId: string
+  paymentMethodId: string
+  subscriptionId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return insertBillingRun(
       {
-        BillingPeriodId,
-        PaymentMethodId,
+        billingPeriodId,
+        paymentMethodId,
         status,
         scheduledFor,
         livemode,
-        SubscriptionId,
+        subscriptionId,
         stripePaymentIntentId,
         lastPaymentIntentEventTimestamp,
       },
@@ -301,14 +301,14 @@ export const setupBillingRun = async ({
 }
 
 export const setupBillingPeriodItems = async ({
-  BillingPeriodId,
+  billingPeriodId,
   quantity,
   unitPrice,
   name = 'Test Item',
   description = 'Test Description',
   livemode = true,
 }: {
-  BillingPeriodId: string
+  billingPeriodId: string
   quantity: number
   unitPrice: number
   name?: string
@@ -318,7 +318,7 @@ export const setupBillingPeriodItems = async ({
   return adminTransaction(async ({ transaction }) => {
     const item = await insertBillingPeriodItem(
       {
-        BillingPeriodId,
+        billingPeriodId,
         quantity,
         unitPrice,
         name,
@@ -511,27 +511,27 @@ export const setupMemberships = async ({
 }
 
 export const setupSubscriptionItem = async ({
-  SubscriptionId,
+  subscriptionId,
   name,
   quantity,
   unitPrice,
-  VariantId,
+  variantId,
   addedDate,
   removedDate,
   metadata,
 }: {
-  SubscriptionId: string
+  subscriptionId: string
   name: string
   quantity: number
   unitPrice: number
-  VariantId?: string
+  variantId?: string
   addedDate?: Date
   removedDate?: Date
   metadata?: Record<string, any>
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const subscription = await selectSubscriptionById(
-      SubscriptionId,
+      subscriptionId,
       transaction
     )
     if (!subscription) {
@@ -539,12 +539,12 @@ export const setupSubscriptionItem = async ({
     }
     return insertSubscriptionItem(
       {
-        SubscriptionId,
+        SubscriptionId: subscription.id,
         name,
         quantity,
         unitPrice,
         livemode: subscription.livemode,
-        VariantId: VariantId ?? subscription.VariantId,
+        VariantId: variantId ?? subscription.VariantId,
         addedDate: addedDate ?? new Date(),
         metadata: metadata ?? {},
       },

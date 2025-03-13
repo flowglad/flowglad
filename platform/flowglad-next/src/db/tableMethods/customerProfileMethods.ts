@@ -47,7 +47,7 @@ export const upsertCustomerProfileByCustomerIdAndOrganizationId =
     customerProfilesTable,
     [
       customerProfilesTable.CustomerId,
-      customerProfilesTable.OrganizationId,
+      customerProfilesTable.organizationId,
     ],
     config
   )
@@ -56,7 +56,7 @@ export const upsertCustomerProfileByOrganizationIdAndInvoiceNumberBase =
   createUpsertFunction(
     customerProfilesTable,
     [
-      customerProfilesTable.OrganizationId,
+      customerProfilesTable.organizationId,
       customerProfilesTable.invoiceNumberBase,
     ],
     config
@@ -212,14 +212,14 @@ export const bulkInsertOrDoNothinCustomerProfilesByCustomerIdAndOrganizationId =
       customerProfiles,
       [
         customerProfilesTable.CustomerId,
-        customerProfilesTable.OrganizationId,
+        customerProfilesTable.organizationId,
       ],
       transaction
     )
   }
 
 export const selectCustomerProfilesByOrganizationIdAndEmails = async (
-  OrganizationId: string,
+  organizationId: string,
   emails: string[],
   transaction: DbTransaction
 ) => {
@@ -228,7 +228,7 @@ export const selectCustomerProfilesByOrganizationIdAndEmails = async (
     .from(customerProfilesTable)
     .where(
       and(
-        eq(customerProfilesTable.OrganizationId, OrganizationId),
+        eq(customerProfilesTable.organizationId, organizationId),
         inArray(customerProfilesTable.email, emails)
       )
     )
