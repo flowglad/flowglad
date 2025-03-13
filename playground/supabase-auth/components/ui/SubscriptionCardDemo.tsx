@@ -17,7 +17,7 @@ const SubscribeButton = () => {
       onClick={() =>
         createPurchaseSession({
           autoRedirect: true,
-          VariantId: catalog.products[0].variants[0].id,
+          variantId: catalog.products[0].variants[0].id,
           successUrl: `${window.location.origin}/success`,
           cancelUrl: `${window.location.origin}/cancel`
         })

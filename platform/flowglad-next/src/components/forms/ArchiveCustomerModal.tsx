@@ -13,14 +13,14 @@ interface ArchiveCustomerModalProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  CustomerProfileId: string
+  customerProfileId: string
   customerArchived: boolean
 }
 
 const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
   isOpen,
   setIsOpen,
-  CustomerProfileId,
+  customerProfileId,
   customerArchived,
 }) => {
   const router = useRouter()
@@ -40,7 +40,7 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
 
   const defaultValues = {
     customerProfile: {
-      id: CustomerProfileId,
+      id: customerProfileId,
       archived: !customerArchived,
     },
   }

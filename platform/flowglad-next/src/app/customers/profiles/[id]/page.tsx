@@ -5,7 +5,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
 import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
 import { selectVariantsAndProductsForOrganization } from '@/db/tableMethods/variantMethods'
-import { selectPaymentsByCustomerProfileId } from '@/db/tableMethods/paymentMethods'
+import { selectPaymentsBycustomerProfileId } from '@/db/tableMethods/paymentMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 
 export type CustomerPageParams = {
@@ -34,7 +34,7 @@ const CustomerPage = async ({
         transaction
       )
 
-      // Then, use the OrganizationId to fetch customer profiles
+      // Then, use the organizationId to fetch customer profiles
       const [result] =
         await selectCustomerProfileAndCustomerTableRows(
           { id },
@@ -42,24 +42,24 @@ const CustomerPage = async ({
         )
       const purchases = await selectPurchases(
         {
-          CustomerProfileId: result.customerProfile.id,
+          customerProfileId: result.customerProfile.id,
         },
         transaction
       )
 
       const invoices =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { CustomerProfileId: result.customerProfile.id },
+          { customerProfileId: result.customerProfile.id },
           transaction
         )
       const paymentsForCustomer =
-        await selectPaymentsByCustomerProfileId(
+        await selectPaymentsBycustomerProfileId(
           result.customerProfile.id,
           transaction
         )
       const variants = await selectVariantsAndProductsForOrganization(
         {},
-        result.customerProfile.OrganizationId,
+        result.customerProfile.organizationId,
         transaction
       )
       return {

@@ -80,8 +80,8 @@ const transformInvoiceLineItemAndInvoiceTuplesToInvoicesWithLineItems =
       invoice: Invoice.Record
     }[]
   ): InvoiceWithLineItems[] => {
-    const invoiceLineItemsByInvoiceId = core.groupBy(
-      (item) => `${item.InvoiceId}`,
+    const invoiceLineItemsByinvoiceId = core.groupBy(
+      (item) => `${item.invoiceId}`,
       rawResult.map((row) => row.invoiceLineItem)
     )
     const uniqueInvoices = uniqBy(
@@ -91,7 +91,7 @@ const transformInvoiceLineItemAndInvoiceTuplesToInvoicesWithLineItems =
     return uniqueInvoices.map((invoice) => {
       const parsedInvoice = invoicesSelectSchema.parse(invoice)
       const invoiceLineItemsForInvoice =
-        invoiceLineItemsByInvoiceId[`${invoice.id}`]
+        invoiceLineItemsByinvoiceId[`${invoice.id}`]
       const invoiceWithLineItems: InvoiceWithLineItems = {
         ...parsedInvoice,
         invoiceLineItems: invoiceLineItemsForInvoice.map((item) =>
@@ -112,7 +112,7 @@ export const selectInvoiceLineItemsAndInvoicesByInvoiceWhere = async (
       invoice: invoices,
     })
     .from(invoiceLineItems)
-    .innerJoin(invoices, eq(invoiceLineItems.InvoiceId, invoices.id))
+    .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
     .where(whereClauseFromObject(invoices, whereConditions))
 
   return transformInvoiceLineItemAndInvoiceTuplesToInvoicesWithLineItems(
@@ -125,7 +125,7 @@ export const selectInvoiceLineItemsAndInvoicesByInvoiceWhere = async (
   )
 }
 
-export const deleteInvoiceLineItemsByInvoiceId = async (
+export const deleteInvoiceLineItemsByinvoiceId = async (
   invoiceId: string,
   transaction: DbTransaction
 ) => {
@@ -137,7 +137,7 @@ export const deleteInvoiceLineItemsByInvoiceId = async (
   }
   await transaction
     .delete(invoiceLineItems)
-    .where(eq(invoiceLineItems.InvoiceId, invoiceId))
+    .where(eq(invoiceLineItems.invoiceId, invoiceId))
 }
 
 export const deleteInvoiceLineItems = async (

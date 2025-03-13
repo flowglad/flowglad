@@ -28,8 +28,8 @@ const PayPurchasePage = async ({
       const { variant, organization, purchase, product } = result
       const purchaseSession = await findOrCreatePurchaseSession(
         {
-          ProductId: product.id,
-          OrganizationId: organization.id,
+          productId: product.id,
+          organizationId: organization.id,
           variant,
           purchase,
           type: PurchaseSessionType.Purchase,
@@ -37,9 +37,9 @@ const PayPurchasePage = async ({
         transaction
       )
 
-      const discount = purchaseSession.DiscountId
+      const discount = purchaseSession.discountId
         ? await selectDiscountById(
-            purchaseSession.DiscountId,
+            purchaseSession.discountId,
             transaction
           )
         : null
@@ -47,9 +47,9 @@ const PayPurchasePage = async ({
         { PurchaseSessionId: purchaseSession.id },
         transaction
       )
-      const maybeCustomerProfile = purchaseSession.CustomerProfileId
+      const maybeCustomerProfile = purchaseSession.customerProfileId
         ? await selectCustomerProfileById(
-            purchaseSession.CustomerProfileId,
+            purchaseSession.customerProfileId,
             transaction
           )
         : null

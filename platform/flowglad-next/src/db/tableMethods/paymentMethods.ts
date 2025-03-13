@@ -64,8 +64,8 @@ export const upsertPaymentByStripeChargeId = (
   )
 }
 
-export const selectSettledPaymentsByInvoiceId = async (
-  InvoiceId: string,
+export const selectSettledPaymentsByinvoiceId = async (
+  invoiceId: string,
   transaction: DbTransaction
 ) => {
   const result = await transaction
@@ -73,15 +73,15 @@ export const selectSettledPaymentsByInvoiceId = async (
     .from(payments)
     .where(
       and(
-        eq(payments.InvoiceId, InvoiceId),
+        eq(payments.invoiceId, invoiceId),
         eq(payments.status, PaymentStatus.Succeeded)
       )
     )
   return result.map((row) => paymentsSelectSchema.parse(row))
 }
 
-export const selectPaymentsByCustomerProfileId = async (
-  CustomerProfileId: string,
+export const selectPaymentsBycustomerProfileId = async (
+  customerProfileId: string,
   transaction: DbTransaction
 ) => {
   const result = await transaction
@@ -89,8 +89,8 @@ export const selectPaymentsByCustomerProfileId = async (
       payment: payments,
     })
     .from(payments)
-    .innerJoin(invoices, eq(payments.InvoiceId, invoices.id))
-    .where(eq(invoices.CustomerProfileId, CustomerProfileId))
+    .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
+    .where(eq(invoices.customerProfileId, customerProfileId))
 
   return result.map((row) => paymentsSelectSchema.parse(row.payment))
 }
@@ -100,7 +100,7 @@ export const selectRevenueDataForOrganization = async (
   transaction: DbTransaction
 ): Promise<RevenueDataItem[]> => {
   const {
-    OrganizationId,
+    organizationId,
     revenueChartIntervalUnit,
     fromDate,
     toDate,
@@ -125,7 +125,7 @@ export const selectRevenueDataForOrganization = async (
           }, 0)) as revenue
         FROM ${payments}
         WHERE 
-          ${payments.OrganizationId} = ${OrganizationId}
+          ${payments.organizationId} = ${organizationId}
           AND ${payments.chargeDate} >= ${fromDate.toISOString()}
           AND ${payments.chargeDate} <= ${toDate.toISOString()}
         GROUP BY 1
@@ -146,7 +146,7 @@ export const selectRevenueDataForOrganization = async (
 }
 
 export const selectPaymentsTableRowData = async (
-  OrganizationId: string,
+  organizationId: string,
   transaction: DbTransaction
 ) => {
   const paymentsRowData = await transaction
@@ -157,9 +157,9 @@ export const selectPaymentsTableRowData = async (
     .from(payments)
     .innerJoin(
       customerProfiles,
-      eq(payments.CustomerProfileId, customerProfiles.id)
+      eq(payments.customerProfileId, customerProfiles.id)
     )
-    .where(eq(payments.OrganizationId, OrganizationId))
+    .where(eq(payments.organizationId, organizationId))
     .orderBy(desc(payments.chargeDate))
 
   return paymentsRowData.map((row) =>
@@ -269,11 +269,11 @@ export const safelyUpdatePaymentForRefund = async (
 }
 
 export const sumNetTotalSettledPaymentsForBillingPeriod = async (
-  BillingPeriodId: string,
+  billingPeriodId: string,
   transaction: DbTransaction
 ) => {
   const payments = await selectPayments(
-    { BillingPeriodId },
+    { billingPeriodId },
     transaction
   )
   const total = payments.reduce((acc, payment) => {
@@ -379,7 +379,7 @@ export const selectPaymentsAndPaymentMethodsByPaymentsWhere = async (
     .from(payments)
     .leftJoin(
       paymentMethods,
-      eq(payments.PaymentMethodId, paymentMethods.id)
+      eq(payments.paymentMethodId, paymentMethods.id)
     )
     .where(whereClauseFromObject(payments, selectConditions))
 

@@ -10,7 +10,7 @@ import runScript from './scriptRunner'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { customersInsertSchema } from '@/db/schema/customers'
 import { bulkIdempotentInsertCustomersByEmail } from '@/db/tableMethods/customerMethods'
-import { bulkInsertOrDoNothinCustomerProfilesByCustomerIdAndOrganizationId } from '@/db/tableMethods/customerProfileMethods'
+import { bulkInsertOrDoNothinCustomerProfilesBycustomerIdAndorganizationId } from '@/db/tableMethods/customerProfileMethods'
 import { customerAndCustomerProfileInsertsFromCSV } from '@/utils/purchaseHelpers'
 import core from '@/utils/core'
 
@@ -71,8 +71,8 @@ async function csvToJson(db: PostgresJsDatabase) {
           const customerProfile: CustomerProfile.Insert = {
             email: row.email,
             name: row.name,
-            CustomerId: customer.id,
-            OrganizationId: ORGANIZATION_ID,
+            customerId: customer.id,
+            organizationId: ORGANIZATION_ID,
             externalId: core.nanoid(),
             livemode: true,
           }
@@ -80,7 +80,7 @@ async function csvToJson(db: PostgresJsDatabase) {
         }
       )
       const result =
-        await bulkInsertOrDoNothinCustomerProfilesByCustomerIdAndOrganizationId(
+        await bulkInsertOrDoNothinCustomerProfilesBycustomerIdAndorganizationId(
           customerProfileUpserts,
           transaction
         )

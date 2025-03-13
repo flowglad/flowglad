@@ -21,11 +21,11 @@ export const files = pgTable(
   TABLE_NAME,
   {
     ...tableBase('file'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
-    ProductId: nullableStringForeignKey('ProductId', products),
+    productId: nullableStringForeignKey('ProductId', products),
     name: text('name').notNull(),
     sizeKb: integer('sizeKb').notNull(),
     contentType: text('contentType').notNull(),
@@ -36,14 +36,14 @@ export const files = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(TABLE_NAME, [table.objectKey]),
       livemodePolicy(),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
         withCheck: sql`"ProductId" is null OR "ProductId" in (select "id" from "Products")`,
       }),
     ]
@@ -72,7 +72,7 @@ export const filesUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
   sizeKb: true,
   contentType: true,

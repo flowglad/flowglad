@@ -52,7 +52,7 @@ export const deleteOpenInvoicesForPurchase = (
     .delete(invoices)
     .where(
       and(
-        eq(invoices.PurchaseId, purchaseId),
+        eq(invoices.purchaseId, purchaseId),
         eq(invoices.status, InvoiceStatus.Open)
       )
     )
@@ -87,8 +87,8 @@ export const safelyUpdateInvoiceStatus = (
       id: invoice.id,
       status,
       type: invoice.type,
-      PurchaseId: invoice.PurchaseId,
-      BillingPeriodId: invoice.BillingPeriodId,
+      purchaseId: invoice.purchaseId,
+      billingPeriodId: invoice.billingPeriodId,
     } as Invoice.Update,
     transaction
   )

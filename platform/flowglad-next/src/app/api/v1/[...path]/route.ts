@@ -147,7 +147,7 @@ const handler = withUnkey(
       req: newReq,
       router: appRouter,
       createContext: createApiContext({
-        OrganizationId: req.unkey.ownerId!,
+        organizationId: req.unkey.ownerId!,
         environment: req.unkey.environment as ApiEnvironment,
       }) as unknown as FetchCreateContextFn<typeof appRouter>,
     })

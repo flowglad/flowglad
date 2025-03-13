@@ -51,8 +51,8 @@ export const findOrCreateCustomerProfile: SubRouteHandler<
     }
   }
   let customerProfile
-  const requestingCustomerProfileId =
-    await flowgladServer.getRequestingCustomerProfileId()
+  const requestingcustomerProfileId =
+    await flowgladServer.getRequestingcustomerProfileId()
   try {
     customerProfile = await flowgladServer.getCustomerProfile()
   } catch (error) {
@@ -61,7 +61,7 @@ export const findOrCreateCustomerProfile: SubRouteHandler<
         customerProfile: {
           email: user.email,
           name: user.name,
-          externalId: requestingCustomerProfileId,
+          externalId: requestingcustomerProfileId,
         },
       })
     }
@@ -73,7 +73,7 @@ export const findOrCreateCustomerProfile: SubRouteHandler<
       error: {
         code: '404',
         json: {
-          message: `Customer profile ${requestingCustomerProfileId} not found`,
+          message: `Customer profile ${requestingcustomerProfileId} not found`,
         },
       },
     }

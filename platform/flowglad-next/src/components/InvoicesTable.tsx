@@ -70,7 +70,7 @@ const MoreMenuCell = ({
 
   const text =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/invoice/view/${invoice.OrganizationId}/${invoice.id}`
+      ? `${window.location.origin}/invoice/view/${invoice.organizationId}/${invoice.id}`
       : ''
 
   const copyInvoiceUrlHandler = useCopyTextHandler({

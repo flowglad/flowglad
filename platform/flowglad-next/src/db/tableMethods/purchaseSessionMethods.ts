@@ -124,9 +124,9 @@ export const selectPurchaseSessionsPaginated =
 
 export const updatePurchaseSessionsForOpenPurchase = async (
   {
-    PurchaseId,
+    purchaseId,
     stripePaymentIntentId,
-  }: { PurchaseId: string; stripePaymentIntentId: string },
+  }: { purchaseId: string; stripePaymentIntentId: string },
   transaction: DbTransaction
 ) => {
   await transaction
@@ -137,7 +137,7 @@ export const updatePurchaseSessionsForOpenPurchase = async (
     })
     .where(
       and(
-        eq(purchaseSessions.PurchaseId, PurchaseId),
+        eq(purchaseSessions.purchaseId, purchaseId),
         eq(purchaseSessions.type, PurchaseSessionType.Purchase),
         eq(purchaseSessions.status, PurchaseSessionStatus.Open)
       )
@@ -159,7 +159,7 @@ export const deleteIncompletePurchaseSessionsForInvoice = async (
     .delete(purchaseSessions)
     .where(
       and(
-        eq(purchaseSessions.InvoiceId, invoiceId),
+        eq(purchaseSessions.invoiceId, invoiceId),
         inArray(purchaseSessions.status, [
           PurchaseSessionStatus.Open,
           PurchaseSessionStatus.Pending,

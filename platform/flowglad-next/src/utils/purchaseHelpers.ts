@@ -76,17 +76,17 @@ export const projectVariantFieldsOntoPurchaseFields = (
 export const createManualPurchaseInsert = ({
   customerProfile,
   variant,
-  OrganizationId,
+  organizationId,
 }: {
   customerProfile: CustomerProfile.Record
   variant: Variant.Record
-  OrganizationId: string
+  organizationId: string
 }) => {
   const enhancements = projectVariantFieldsOntoPurchaseFields(variant)
   const purchaseInsert = purchasesInsertSchema.parse({
-    CustomerProfileId: customerProfile.id,
-    VariantId: variant.id,
-    OrganizationId,
+    customerProfileId: customerProfile.id,
+    variantId: variant.id,
+    organizationId,
     status: PurchaseStatus.Paid,
     name: `${variant.name} - ${customerProfile.name}`,
     priceType: variant.priceType,
@@ -111,7 +111,7 @@ interface CustomerCSVRow {
 
 export const customerAndCustomerProfileInsertsFromCSV = async (
   csvContent: string,
-  OrganizationId: string,
+  organizationId: string,
   livemode: boolean
 ) => {
   // Parse CSV to JSON
@@ -153,12 +153,12 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
 
   const customerProfileInserts: Omit<
     CustomerProfile.Insert,
-    'CustomerId'
+    'customerId'
   >[] = results.map((customer) => {
     return {
       email: customer.email,
       name: customer.name,
-      OrganizationId,
+      organizationId: organizationId,
       externalId: core.nanoid(),
       livemode,
     }
@@ -169,19 +169,19 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
 
 export const customerAndCustomerProfileInsertsFromBulkImport = async (
   input: BulkImportCustomerProfilesInput,
-  OrganizationId: string,
+  organizationId: string,
   livemode: boolean
 ) => {
   let customerUpserts: Customer.Insert[] = []
   let incompleteCustomerProfileUpserts: Omit<
     CustomerProfile.Insert,
-    'CustomerId'
+    'customerId'
   >[] = []
   if (input.format === 'csv') {
     const csvContent = input.csvContent
     const result = await customerAndCustomerProfileInsertsFromCSV(
       csvContent,
-      OrganizationId,
+      organizationId,
       livemode
     )
     customerUpserts = result.customerInserts

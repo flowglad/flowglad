@@ -66,7 +66,7 @@ export const adjustSubscription = async (
   const { newSubscriptionItems, timing } = adjustment
   const subscription = await selectSubscriptionById(id, transaction)
   const existingSubscriptionItems = await selectSubscriptionItems(
-    { SubscriptionId: subscription.id },
+    { subscriptionId: subscription.id },
     transaction
   )
 
@@ -134,7 +134,7 @@ export const adjustSubscription = async (
 
   const removedAdjustments = existingSubscriptionItemsToRemove.map(
     (item) => ({
-      BillingPeriodId: currentBillingPeriodForSubscription.id,
+      billingPeriodId: currentBillingPeriodForSubscription.id,
       quantity: item.quantity,
       unitPrice: -Math.round(item.unitPrice * split.afterPercentage),
       name: `Proration: Removal of ${item.name ?? ''} x ${
@@ -149,7 +149,7 @@ export const adjustSubscription = async (
   const addedAdjustments = newSubscriptionItems
     .filter((item) => !('id' in item))
     .map((item) => ({
-      BillingPeriodId: currentBillingPeriodForSubscription.id,
+      billingPeriodId: currentBillingPeriodForSubscription.id,
       quantity: item.quantity,
       unitPrice: Math.round(item.unitPrice * split.afterPercentage),
       name: `Proration: Addition of ${item.name} x ${item.quantity}`,
@@ -182,7 +182,7 @@ export const adjustSubscription = async (
   await createBillingRun(
     {
       billingPeriod: currentBillingPeriodForSubscription,
-      PaymentMethodId: paymentMethodId,
+      paymentMethodId: paymentMethodId,
       scheduledFor: new Date(),
     },
     transaction

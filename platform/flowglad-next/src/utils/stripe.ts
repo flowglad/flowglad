@@ -490,7 +490,7 @@ export const upsertStripeProductFromProduct = async (
     active: product.active,
     metadata: {
       productId: product.id,
-      OrganizationId: product.OrganizationId,
+      organizationId: product.organizationId,
     },
     // url: product.url,
     // images: product.imageUrls ? [product.imageUrls] : undefined,
@@ -551,7 +551,7 @@ export const upsertStripePriceFromVariant = async ({
     ...maybeRecurringPriceData,
     metadata: {
       variantId: variant.id,
-      ProductId: variant.ProductId,
+      productId: variant.productId,
     },
   }
   if (oldVariant?.stripePriceId) {
@@ -750,7 +750,7 @@ export const createPaymentIntentForInvoice = async (params: {
   return stripe(livemode).paymentIntents.create(paymentIntentParams)
 }
 
-export const selectInvoiceIdFromMetadata = (
+export const selectinvoiceIdFromMetadata = (
   metadata: Stripe.Metadata
 ) => {
   return metadata.invoiceId

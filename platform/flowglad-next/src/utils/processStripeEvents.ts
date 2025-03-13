@@ -97,13 +97,13 @@ export const updateOrganizationOnboardingStatus = async (
       )
       const discounts = await selectDiscounts(
         {
-          OrganizationId: organization.id,
+          organizationId: organization.id,
         },
         transaction
       )
       const products = await selectProducts(
         {
-          OrganizationId: organization.id,
+          organizationId: organization.id,
         },
         transaction
       )

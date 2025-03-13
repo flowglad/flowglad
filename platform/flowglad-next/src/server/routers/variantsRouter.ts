@@ -52,7 +52,7 @@ export const createVariant = protectedProcedure
 
       // Get all variants for this product to validate default price constraint
       const existingVariants = await selectVariants(
-        { ProductId: variant.ProductId },
+        { productId: variant.productId },
         transaction
       )
 
@@ -77,7 +77,7 @@ export const createVariant = protectedProcedure
         transaction
       )
       const [product] = await selectProducts(
-        { id: variant.ProductId },
+        { id: variant.productId },
         transaction
       )
       const stripePrice = await upsertStripePriceFromVariant({

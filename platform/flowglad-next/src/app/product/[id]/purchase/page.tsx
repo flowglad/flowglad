@@ -46,7 +46,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       }
     }
     const organization = await selectOrganizationById(
-      product.OrganizationId,
+      product.organizationId,
       transaction
     )
 
@@ -57,16 +57,16 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
      */
     const purchaseSession = await findOrCreatePurchaseSession(
       {
-        ProductId: product.id,
-        OrganizationId: organization.id,
+        productId: product.id,
+        organizationId: organization.id,
         variant,
         type: PurchaseSessionType.Product,
       },
       transaction
     )
-    const discount = purchaseSession.DiscountId
+    const discount = purchaseSession.discountId
       ? await selectDiscountById(
-          purchaseSession.DiscountId,
+          purchaseSession.discountId,
           transaction
         )
       : null
@@ -76,9 +76,9 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       },
       transaction
     )
-    const maybeCustomerProfile = purchaseSession.CustomerProfileId
+    const maybeCustomerProfile = purchaseSession.customerProfileId
       ? await selectCustomerProfileById(
-          purchaseSession.CustomerProfileId,
+          purchaseSession.customerProfileId,
           transaction
         )
       : null

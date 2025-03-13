@@ -38,14 +38,14 @@ export const properNouns = pgTable(
     name: text('name').notNull(),
     EntityId: text('EntityId').notNull(),
     entityType: text('entityType').notNull(),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(TABLE_NAME, [
         table.EntityId,
         table.entityType,
@@ -53,7 +53,7 @@ export const properNouns = pgTable(
       constructIndex(TABLE_NAME, [
         table.entityType,
         table.EntityId,
-        table.OrganizationId,
+        table.organizationId,
       ]),
       constructIndex(TABLE_NAME, [table.name]),
       index('proper_noun_name_search_index').using(
@@ -65,7 +65,7 @@ export const properNouns = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships" where "UserId" = requesting_user_id())`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships" where "UserId" = requesting_user_id())`,
       }),
       livemodePolicy(),
     ]
@@ -90,7 +90,7 @@ export const properNounsUpdateSchema = createUpdateSchema(properNouns)
 const createOnlyColumns = {} as const
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   EntityId: true,
   entityType: true,
   livemode: true,

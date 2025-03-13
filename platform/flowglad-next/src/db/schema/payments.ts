@@ -47,7 +47,7 @@ export const payments = pgTable(
   TABLE_NAME,
   {
     ...tableBase('pym'),
-    InvoiceId: notNullStringForeignKey('InvoiceId', invoices),
+    invoiceId: notNullStringForeignKey('invoice_id', invoices),
     amount: integer('amount').notNull(),
     paymentMethod: pgEnumColumn({
       enumName: 'PaymentMethod',
@@ -69,21 +69,21 @@ export const payments = pgTable(
     description: text('description'),
     receiptNumber: text('receiptNumber'),
     receiptURL: text('receiptURL'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
-    CustomerProfileId: notNullStringForeignKey(
-      'CustomerProfileId',
+    customerProfileId: notNullStringForeignKey(
+      'customer_profile_id',
       customerProfiles
     ),
-    PurchaseId: nullableStringForeignKey('PurchaseId', purchases),
-    PaymentMethodId: nullableStringForeignKey(
+    purchaseId: nullableStringForeignKey('PurchaseId', purchases),
+    paymentMethodId: nullableStringForeignKey(
       'PaymentMethodId',
       paymentMethods
     ),
-    BillingPeriodId: nullableStringForeignKey(
-      'BillingPeriodId',
+    billingPeriodId: nullableStringForeignKey(
+      'billing_period_id',
       billingPeriods
     ),
     stripePaymentIntentId: text('stripePaymentIntentId').notNull(),
@@ -98,25 +98,25 @@ export const payments = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.InvoiceId]),
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.invoiceId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.paymentMethod]),
-      constructIndex(TABLE_NAME, [table.CustomerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerProfileId]),
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.currency]),
-      constructIndex(TABLE_NAME, [table.PurchaseId]),
+      constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
       }),
       pgPolicy('Enable update for own organization', {
         as: 'permissive',
         to: 'authenticated',
         for: 'update',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
       }),
       livemodePolicy(),
     ]
@@ -151,7 +151,7 @@ export const paymentsUpdateSchema = createUpdateSchema(
 )
 
 const readonlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 
@@ -191,11 +191,11 @@ export namespace Payment {
 }
 
 export const getRevenueDataInputSchema = z.object({
-  OrganizationId: z.string(),
+  organizationId: z.string(),
   revenueChartIntervalUnit: core.createSafeZodEnum(
     RevenueChartIntervalUnit
   ),
-  ProductId: z.string().nullish(),
+  productId: z.string().nullish(),
   fromDate: core.safeZodDate,
   toDate: core.safeZodDate,
 })
@@ -222,6 +222,6 @@ export const paymentsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     paymentsClientSelectSchema.pick({
       status: true,
-      CustomerProfileId: true,
+      customerProfileId: true,
     })
   )

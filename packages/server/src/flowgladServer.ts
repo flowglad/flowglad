@@ -104,7 +104,7 @@ export class FlowgladServer {
     })
   }
 
-  public getRequestingCustomerProfileId =
+  public getRequestingcustomerProfileId =
     async (): Promise<string> => {
       if (this.createHandlerParams.getRequestingCustomerProfile) {
         const profile =
@@ -196,7 +196,7 @@ export class FlowgladServer {
     }
     return this.flowgladNode.purchaseSessions.create({
       customerProfileExternalId: session.externalId,
-      VariantId: params.VariantId,
+      variantId: params.variantId,
       successUrl: params.successUrl,
       cancelUrl: params.cancelUrl,
     })

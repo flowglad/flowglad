@@ -25,7 +25,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     trpc.variants.list.useQuery({
       cursor: encodeCursor({
         parameters: {
-          ProductId: product.id,
+          productId: product.id,
         },
         createdAt: new Date(0),
         direction: 'forward',

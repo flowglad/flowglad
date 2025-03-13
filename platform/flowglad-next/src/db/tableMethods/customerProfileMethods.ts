@@ -42,21 +42,21 @@ export const selectCustomerProfileById = createSelectById(
   config
 )
 
-export const upsertCustomerProfileByCustomerIdAndOrganizationId =
+export const upsertCustomerProfileBycustomerIdAndorganizationId =
   createUpsertFunction(
     customerProfilesTable,
     [
-      customerProfilesTable.CustomerId,
-      customerProfilesTable.OrganizationId,
+      customerProfilesTable.customerId,
+      customerProfilesTable.organizationId,
     ],
     config
   )
 
-export const upsertCustomerProfileByOrganizationIdAndInvoiceNumberBase =
+export const upsertCustomerProfileByorganizationIdAndInvoiceNumberBase =
   createUpsertFunction(
     customerProfilesTable,
     [
-      customerProfilesTable.OrganizationId,
+      customerProfilesTable.organizationId,
       customerProfilesTable.invoiceNumberBase,
     ],
     config
@@ -90,7 +90,7 @@ export const selectCustomerProfileAndCustomerFromCustomerProfileWhere =
       .from(customerProfilesTable)
       .innerJoin(
         customers,
-        eq(customerProfilesTable.CustomerId, customers.id)
+        eq(customerProfilesTable.customerId, customers.id)
       )
       .where(
         whereClauseFromObject(customerProfilesTable, whereConditions)
@@ -110,9 +110,9 @@ export const selectCustomerProfileAndCustomerTableRows = async (
   /**
    * These will be used to derive the status
    */
-  const totalSpendAndCustomerProfileId = await transaction
+  const totalSpendAndcustomerProfileId = await transaction
     .select({
-      CustomerProfileId: customerProfilesTable.id,
+      customerProfileId: customerProfilesTable.id,
       totalSpend: sql<number>`SUM(${payments.amount})`,
       totalInvoices: sql<number>`COUNT(${invoices.id})`,
       earliestPurchase: sql<Date>`MIN(${purchases.purchaseDate})`,
@@ -120,16 +120,16 @@ export const selectCustomerProfileAndCustomerTableRows = async (
     .from(customerProfilesTable)
     .innerJoin(
       customers,
-      eq(customerProfilesTable.CustomerId, customers.id)
+      eq(customerProfilesTable.customerId, customers.id)
     )
     .leftJoin(
       invoices,
-      eq(customerProfilesTable.id, invoices.CustomerProfileId)
+      eq(customerProfilesTable.id, invoices.customerProfileId)
     )
-    .leftJoin(payments, eq(invoices.id, payments.InvoiceId))
+    .leftJoin(payments, eq(invoices.id, payments.invoiceId))
     .leftJoin(
       purchases,
-      eq(customerProfilesTable.id, purchases.CustomerProfileId)
+      eq(customerProfilesTable.id, purchases.customerProfileId)
     )
     .where(
       and(
@@ -150,14 +150,14 @@ export const selectCustomerProfileAndCustomerTableRows = async (
     .from(customerProfilesTable)
     .innerJoin(
       customers,
-      eq(customerProfilesTable.CustomerId, customers.id)
+      eq(customerProfilesTable.customerId, customers.id)
     )
     .where(
       whereClauseFromObject(customerProfilesTable, whereConditions)
     )
     .orderBy(desc(customerProfilesTable.createdAt))
 
-  const dataByCustomerProfileId = new Map<
+  const dataBycustomerProfileId = new Map<
     string,
     {
       totalSpend: number
@@ -165,14 +165,14 @@ export const selectCustomerProfileAndCustomerTableRows = async (
       earliestPurchase?: Date
     }
   >(
-    totalSpendAndCustomerProfileId.map((cps) => [
-      `${cps.CustomerProfileId}`,
+    totalSpendAndcustomerProfileId.map((cps) => [
+      `${cps.customerProfileId}`,
       cps,
     ])
   )
 
   return customerAndCustomerProfile.map((row) => {
-    const data = dataByCustomerProfileId.get(
+    const data = dataBycustomerProfileId.get(
       `${row.customerProfile.id}`
     )
     let status: InferredCustomerProfileStatus =
@@ -189,10 +189,10 @@ export const selectCustomerProfileAndCustomerTableRows = async (
         row.customerProfile
       ),
       customer: customersSelectSchema.parse(row.customer),
-      totalSpend: dataByCustomerProfileId.get(
+      totalSpend: dataBycustomerProfileId.get(
         `${row.customerProfile.id}`
       )?.totalSpend,
-      payments: dataByCustomerProfileId.get(
+      payments: dataBycustomerProfileId.get(
         `${row.customerProfile.id}`
       )?.totalInvoices,
       status,
@@ -203,7 +203,7 @@ export const selectCustomerProfileAndCustomerTableRows = async (
 const bulkInsertCustomerProfilesOrDoNothing =
   createBulkInsertOrDoNothingFunction(customerProfilesTable, config)
 
-export const bulkInsertOrDoNothinCustomerProfilesByCustomerIdAndOrganizationId =
+export const bulkInsertOrDoNothinCustomerProfilesBycustomerIdAndorganizationId =
   (
     customerProfiles: CustomerProfile.Insert[],
     transaction: DbTransaction
@@ -211,15 +211,15 @@ export const bulkInsertOrDoNothinCustomerProfilesByCustomerIdAndOrganizationId =
     return bulkInsertCustomerProfilesOrDoNothing(
       customerProfiles,
       [
-        customerProfilesTable.CustomerId,
-        customerProfilesTable.OrganizationId,
+        customerProfilesTable.customerId,
+        customerProfilesTable.organizationId,
       ],
       transaction
     )
   }
 
-export const selectCustomerProfilesByOrganizationIdAndEmails = async (
-  OrganizationId: string,
+export const selectCustomerProfilesByorganizationIdAndEmails = async (
+  organizationId: string,
   emails: string[],
   transaction: DbTransaction
 ) => {
@@ -228,7 +228,7 @@ export const selectCustomerProfilesByOrganizationIdAndEmails = async (
     .from(customerProfilesTable)
     .where(
       and(
-        eq(customerProfilesTable.OrganizationId, OrganizationId),
+        eq(customerProfilesTable.organizationId, organizationId),
         inArray(customerProfilesTable.email, emails)
       )
     )

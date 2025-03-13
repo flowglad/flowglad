@@ -9,7 +9,7 @@ import { Invoice } from '@/db/schema/invoices'
 import { Organization } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
+import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
   insertBillingRun,
@@ -19,7 +19,7 @@ import {
 } from '@/db/tableMethods/billingRunMethods'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
-  deleteInvoiceLineItemsByInvoiceId,
+  deleteInvoiceLineItemsByinvoiceId,
   insertInvoiceLineItems,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
@@ -59,7 +59,7 @@ import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
-  PaymentMethodId: string
+  paymentMethodId: string
   scheduledFor: Date
 }
 
@@ -68,11 +68,11 @@ export const createBillingRunInsert = (
 ): BillingRun.Insert => {
   const { billingPeriod, scheduledFor } = params
   return {
-    BillingPeriodId: billingPeriod.id,
+    billingPeriodId: billingPeriod.id,
     scheduledFor,
     status: BillingRunStatus.Scheduled,
-    SubscriptionId: billingPeriod.SubscriptionId,
-    PaymentMethodId: params.PaymentMethodId,
+    subscriptionId: billingPeriod.subscriptionId,
+    paymentMethodId: params.paymentMethodId,
     livemode: billingPeriod.livemode,
   }
 }
@@ -145,13 +145,13 @@ export const createInvoiceInsertForBillingRun = async (
   const { billingPeriod, organization, customerProfile } = params
   const invoicesForCustomerProfile = await selectInvoices(
     {
-      CustomerProfileId: customerProfile.id,
+      customerProfileId: customerProfile.id,
     },
     transaction
   )
   return {
-    CustomerProfileId: customerProfile.id,
-    OrganizationId: organization.id,
+    customerProfileId: customerProfile.id,
+    organizationId: organization.id,
     invoiceNumber: core.createInvoiceNumber(
       customerProfile.invoiceNumberBase!,
       invoicesForCustomerProfile.length
@@ -164,22 +164,22 @@ export const createInvoiceInsertForBillingRun = async (
     billingPeriodStartDate: billingPeriod.startDate,
     billingPeriodEndDate: billingPeriod.endDate,
     type: InvoiceType.Subscription,
-    BillingPeriodId: billingPeriod.id,
-    PurchaseId: null,
+    billingPeriodId: billingPeriod.id,
+    purchaseId: null,
   }
 }
 
 export const billingPeriodItemsToInvoiceLineItemInserts = ({
-  InvoiceId,
+  invoiceId,
   billingPeriodItems,
 }: {
-  InvoiceId: string
+  invoiceId: string
   billingPeriodItems: BillingPeriodItem.Record[]
 }): InvoiceLineItem.Insert[] => {
   return billingPeriodItems.map((billingPeriodItem) => {
     return {
       BillingPeriodItemId: billingPeriodItem.id,
-      InvoiceId,
+      invoiceId,
       quantity: billingPeriodItem.quantity,
       livemode: billingPeriodItem.livemode,
       price: billingPeriodItem.unitPrice,
@@ -273,13 +273,13 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     subscription,
     customerProfile,
   } =
-    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
-      billingRun.BillingPeriodId,
+    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId(
+      billingRun.billingPeriodId,
       transaction
     )
 
   const paymentMethod = await selectPaymentMethodById(
-    billingRun.PaymentMethodId,
+    billingRun.paymentMethodId,
     transaction
   )
 
@@ -302,7 +302,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   let invoice: Invoice.Record | undefined
   const [invoiceForBillingPeriod] = await selectInvoices(
     {
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
     },
     transaction
   )
@@ -374,11 +374,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
    * "Evict" the invoice line items for the invoice
    * That way we can ensure the line items inserted are "fresh".
    */
-  await deleteInvoiceLineItemsByInvoiceId(invoice.id, transaction)
+  await deleteInvoiceLineItemsByinvoiceId(invoice.id, transaction)
 
   const invoiceLineItemInserts =
     billingPeriodItemsToInvoiceLineItemInserts({
-      InvoiceId: invoice.id,
+      invoiceId: invoice.id,
       billingPeriodItems,
     })
 
@@ -425,11 +425,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     amount: totalDueAmount,
     currency: invoice.currency,
     status: PaymentStatus.Processing,
-    OrganizationId: organization.id,
+    organizationId: organization.id,
     chargeDate: new Date(),
-    CustomerProfileId: customerProfile.id,
-    InvoiceId: invoice.id,
-    PaymentMethodId: paymentMethod.id,
+    customerProfileId: customerProfile.id,
+    invoiceId: invoice.id,
+    paymentMethodId: paymentMethod.id,
     refunded: false,
     refundedAmount: 0,
     refundedAt: null,
@@ -565,7 +565,7 @@ export const executeBillingRun = async (billingRunId: string) => {
       currency: invoice.currency,
       stripeCustomerId: customerProfile.stripeCustomerId,
       stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
-      billingPeriodId: billingRun.BillingPeriodId,
+      billingPeriodId: billingRun.billingPeriodId,
       billingRunId: billingRun.id,
       feeCalculation,
       organization,
@@ -588,8 +588,8 @@ export const executeBillingRun = async (billingRunId: string) => {
           {
             id: invoice.id,
             stripePaymentIntentId: paymentIntent.id,
-            PurchaseId: invoice.PurchaseId,
-            BillingPeriodId: invoice.BillingPeriodId,
+            purchaseId: invoice.purchaseId,
+            billingPeriodId: invoice.billingPeriodId,
             type: invoice.type,
           } as Invoice.Update,
           transaction
@@ -673,13 +673,13 @@ export const constructBillingRunRetryInsert = (
     retryTimesInDays[allBillingRunsForBillingPeriod.length - 1]
 
   return {
-    BillingPeriodId: billingRun.BillingPeriodId,
+    billingPeriodId: billingRun.billingPeriodId,
     status: BillingRunStatus.Scheduled,
     scheduledFor: new Date(
       Date.now() + daysFromNowToRetry * dayInMilliseconds
     ),
-    SubscriptionId: billingRun.SubscriptionId,
-    PaymentMethodId: billingRun.PaymentMethodId,
+    subscriptionId: billingRun.subscriptionId,
+    paymentMethodId: billingRun.paymentMethodId,
     livemode: billingRun.livemode,
     /**
      * Use the same payment intent as the previous billing run.
@@ -697,7 +697,7 @@ export const scheduleBillingRunRetry = async (
 ) => {
   const allBillingRunsForBillingPeriod = await selectBillingRuns(
     {
-      BillingPeriodId: billingRun.BillingPeriodId,
+      billingPeriodId: billingRun.billingPeriodId,
     },
     transaction
   )

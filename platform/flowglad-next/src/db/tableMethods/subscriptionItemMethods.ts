@@ -84,7 +84,7 @@ export const selectSubscriptionAndItems = async (
     .from(subscriptionItems)
     .innerJoin(
       subscriptions,
-      eq(subscriptionItems.SubscriptionId, subscriptions.id)
+      eq(subscriptionItems.subscriptionId, subscriptions.id)
     )
     .where(whereClauseFromObject(subscriptions, whereClause))
 
@@ -106,7 +106,7 @@ export const selectSubscriptionAndItems = async (
   }
 }
 
-export const selectSubscriptionItemsAndSubscriptionBySubscriptionId =
+export const selectSubscriptionItemsAndSubscriptionBysubscriptionId =
   async (subscriptionId: string, transaction: DbTransaction) => {
     return selectSubscriptionAndItems(
       {
@@ -152,12 +152,12 @@ export const selectRichSubscriptions = async (
     .from(subscriptionItems)
     .innerJoin(
       subscriptions,
-      eq(subscriptionItems.SubscriptionId, subscriptions.id)
+      eq(subscriptionItems.subscriptionId, subscriptions.id)
     )
-    .innerJoin(variants, eq(subscriptionItems.VariantId, variants.id))
+    .innerJoin(variants, eq(subscriptionItems.variantId, variants.id))
     .where(whereClauseFromObject(subscriptions, whereConditions))
 
-  const subscriptionItemsBySubscriptionId = result.reduce(
+  const subscriptionItemsBysubscriptionId = result.reduce(
     (acc, row) => {
       const subscriptionId = row.subscription.id
       if (!acc.has(subscriptionId)) {
@@ -178,7 +178,7 @@ export const selectRichSubscriptions = async (
    * Typecheck before parsing so we can catch type errors before runtime ones
    */
   const richSubscriptions: RichSubscription[] = Array.from(
-    subscriptionItemsBySubscriptionId.values()
+    subscriptionItemsBysubscriptionId.values()
   )
 
   return richSubscriptions.map((item) =>

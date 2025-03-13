@@ -28,14 +28,14 @@ export const useSetPurchaseSessionCookieEffect = (
     const purchaseSessionType = purchaseSession.type
     if (purchaseSessionType === PurchaseSessionType.Invoice) {
       setPurchaseSessionCookie.mutateAsync({
-        invoiceId: purchaseSession.InvoiceId,
+        invoiceId: purchaseSession.invoiceId,
         id: purchaseSessionId,
         type: PurchaseSessionType.Invoice,
       })
     }
     if (purchaseSessionType === PurchaseSessionType.Purchase) {
       setPurchaseSessionCookie.mutateAsync({
-        purchaseId: purchaseSession.PurchaseId,
+        purchaseId: purchaseSession.purchaseId,
         type: PurchaseSessionType.Purchase,
         id: purchaseSessionId,
       })

@@ -90,7 +90,7 @@ const ProductOverviewTabView = ({
                 organization?.createdAt ?? new Date()
               }
               alignDatePicker="right"
-              ProductId={product.id}
+              productId={product.id}
             />
           </div>
         </div>

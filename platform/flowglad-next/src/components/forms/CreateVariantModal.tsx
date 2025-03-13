@@ -9,13 +9,13 @@ import { PriceType } from '@/types'
 interface CreateVariantModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  ProductId: string
+  productId: string
 }
 
 const CreateVariantModal: React.FC<CreateVariantModalProps> = ({
   isOpen,
   setIsOpen,
-  ProductId,
+  productId,
 }) => {
   const createVariant = trpc.variants.create.useMutation()
 
@@ -27,7 +27,7 @@ const CreateVariantModal: React.FC<CreateVariantModalProps> = ({
       formSchema={createVariantSchema}
       defaultValues={{
         variant: {
-          ProductId,
+          productId,
           priceType: PriceType.SinglePayment,
           isDefault: false,
           unitPrice: 0,

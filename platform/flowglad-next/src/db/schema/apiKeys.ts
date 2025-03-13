@@ -30,7 +30,7 @@ export const apiKeys = pgTable(
   TABLE_NAME,
   {
     ...tableBase('apikey'),
-    OrganizationId: notNullStringForeignKey(
+    organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
     ),
@@ -46,12 +46,12 @@ export const apiKeys = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       pgPolicy('Enable all actions for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
       }),
       livemodePolicy(),
     ]
@@ -81,7 +81,7 @@ export const apiKeysUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
   token: true,
 } as const

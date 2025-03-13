@@ -446,8 +446,8 @@ describe('fees.ts', () => {
         async ({ transaction }) => {
           return insertFeeCalculation(
             {
-              OrganizationId: organization.id,
-              VariantId: variant.id,
+              organizationId: organization.id,
+              variantId: variant.id,
               type: FeeCalculationType.PurchaseSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -458,7 +458,7 @@ describe('fees.ts', () => {
               livemode: true,
               currency: CurrencyCode.USD,
               billingAddress,
-              BillingPeriodId: null,
+              billingPeriodId: null,
               paymentMethodType: PaymentMethodType.Card,
               pretaxTotal: 1000,
             },
@@ -486,12 +486,12 @@ describe('fees.ts', () => {
       const stripeChargeId2 = `ch_${core.nanoid()}`
       const { organization, variant } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
-        OrganizationId: organization.id,
+        organizationId: organization.id,
       })
       const invoice = await setupInvoice({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
-        VariantId: variant.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        variantId: variant.id,
         livemode: true,
       })
 
@@ -500,26 +500,26 @@ describe('fees.ts', () => {
         stripeChargeId: stripeChargeId1,
         status: PaymentStatus.Processing,
         amount: 100000, // $1000
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
-        InvoiceId: invoice.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
       })
 
       await setupPayment({
         stripeChargeId: stripeChargeId2,
         status: PaymentStatus.Succeeded,
         amount: 50000, // $500
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
-        InvoiceId: invoice.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
       })
 
       const feeCalculation = await adminTransaction(
         async ({ transaction }) => {
           return insertFeeCalculation(
             {
-              OrganizationId: organization.id,
-              VariantId: variant.id,
+              organizationId: organization.id,
+              variantId: variant.id,
               type: FeeCalculationType.PurchaseSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -527,7 +527,7 @@ describe('fees.ts', () => {
               taxAmountFixed: 0,
               internationalFeePercentage: '0',
               paymentMethodFeeFixed: 59,
-              BillingPeriodId: null,
+              billingPeriodId: null,
               currency: CurrencyCode.USD,
               billingAddress,
               livemode: true,
@@ -556,12 +556,12 @@ describe('fees.ts', () => {
       const stripeChargeId = `ch_${core.nanoid()}`
       const { organization, variant } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
-        OrganizationId: organization.id,
+        organizationId: organization.id,
       })
       const invoice = await setupInvoice({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
-        VariantId: variant.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        variantId: variant.id,
         livemode: true,
       })
 
@@ -569,17 +569,17 @@ describe('fees.ts', () => {
         stripeChargeId,
         status: PaymentStatus.Succeeded,
         amount: 150000, // $1500
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
-        InvoiceId: invoice.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
       })
 
       const feeCalculation = await adminTransaction(
         async ({ transaction }) => {
           return insertFeeCalculation(
             {
-              OrganizationId: organization.id,
-              VariantId: variant.id,
+              organizationId: organization.id,
+              variantId: variant.id,
               type: FeeCalculationType.PurchaseSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -590,7 +590,7 @@ describe('fees.ts', () => {
               livemode: true,
               currency: CurrencyCode.USD,
               billingAddress,
-              BillingPeriodId: null,
+              billingPeriodId: null,
               paymentMethodType: PaymentMethodType.Card,
               pretaxTotal: 1000,
             },
@@ -617,12 +617,12 @@ describe('fees.ts', () => {
       const stripeChargeId = `ch_${core.nanoid()}`
       const { organization, variant } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
-        OrganizationId: organization.id,
+        organizationId: organization.id,
       })
       const invoice = await setupInvoice({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
-        VariantId: variant.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        variantId: variant.id,
         livemode: true,
       })
 
@@ -630,17 +630,17 @@ describe('fees.ts', () => {
         stripeChargeId,
         status: PaymentStatus.Refunded,
         amount: 150000, // $1500
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
-        InvoiceId: invoice.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
       })
       const baseFeePercentage = '10.00'
       const feeCalculation = await adminTransaction(
         async ({ transaction }) => {
           return insertFeeCalculation(
             {
-              OrganizationId: organization.id,
-              VariantId: variant.id,
+              organizationId: organization.id,
+              variantId: variant.id,
               type: FeeCalculationType.PurchaseSessionPayment,
               flowgladFeePercentage: baseFeePercentage,
               baseAmount: 1000,
@@ -651,7 +651,7 @@ describe('fees.ts', () => {
               livemode: true,
               currency: CurrencyCode.USD,
               billingAddress,
-              BillingPeriodId: null,
+              billingPeriodId: null,
               paymentMethodType: PaymentMethodType.Card,
               pretaxTotal: 1000,
             },
@@ -679,12 +679,12 @@ describe('fees.ts', () => {
       const stripeChargeId = `ch_${core.nanoid()}`
       const { organization, variant } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
-        OrganizationId: organization.id,
+        organizationId: organization.id,
       })
       const invoice = await setupInvoice({
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
-        VariantId: variant.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        variantId: variant.id,
         livemode: true,
       })
 
@@ -698,9 +698,9 @@ describe('fees.ts', () => {
             stripeChargeId,
             status: PaymentStatus.Succeeded,
             amount: 150000, // $1500
-            CustomerProfileId: customerProfile.id,
-            OrganizationId: organization.id,
-            InvoiceId: invoice.id,
+            customerProfileId: customerProfile.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
             chargeDate: lastMonth,
             currency: CurrencyCode.USD,
             paymentMethod: PaymentMethodType.Card,
@@ -719,8 +719,8 @@ describe('fees.ts', () => {
         async ({ transaction }) => {
           return insertFeeCalculation(
             {
-              OrganizationId: organization.id,
-              VariantId: variant.id,
+              organizationId: organization.id,
+              variantId: variant.id,
               type: FeeCalculationType.PurchaseSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -731,7 +731,7 @@ describe('fees.ts', () => {
               livemode: true,
               currency: CurrencyCode.USD,
               billingAddress,
-              BillingPeriodId: null,
+              billingPeriodId: null,
               paymentMethodType: PaymentMethodType.Card,
               pretaxTotal: 1000,
             },
@@ -760,22 +760,22 @@ describe('fees.ts', () => {
       const { organization: org2 } = await setupOrg()
 
       const customerProfile1 = await setupCustomerProfile({
-        OrganizationId: org1.id,
+        organizationId: org1.id,
       })
       const customerProfile2 = await setupCustomerProfile({
-        OrganizationId: org2.id,
+        organizationId: org2.id,
       })
 
       const invoice1 = await setupInvoice({
-        OrganizationId: org1.id,
-        CustomerProfileId: customerProfile1.id,
-        VariantId: variant1.id,
+        organizationId: org1.id,
+        customerProfileId: customerProfile1.id,
+        variantId: variant1.id,
         livemode: true,
       })
       const invoice2 = await setupInvoice({
-        OrganizationId: org2.id,
-        CustomerProfileId: customerProfile2.id,
-        VariantId: variant1.id,
+        organizationId: org2.id,
+        customerProfileId: customerProfile2.id,
+        variantId: variant1.id,
         livemode: true,
       })
 
@@ -784,9 +784,9 @@ describe('fees.ts', () => {
         stripeChargeId: stripeChargeId1,
         status: PaymentStatus.Succeeded,
         amount: 50000, // $500
-        CustomerProfileId: customerProfile1.id,
-        OrganizationId: org1.id,
-        InvoiceId: invoice1.id,
+        customerProfileId: customerProfile1.id,
+        organizationId: org1.id,
+        invoiceId: invoice1.id,
       })
 
       // Create payment for org2
@@ -794,17 +794,17 @@ describe('fees.ts', () => {
         stripeChargeId: stripeChargeId2,
         status: PaymentStatus.Succeeded,
         amount: 150000, // $1500
-        CustomerProfileId: customerProfile2.id,
-        OrganizationId: org2.id,
-        InvoiceId: invoice2.id,
+        customerProfileId: customerProfile2.id,
+        organizationId: org2.id,
+        invoiceId: invoice2.id,
       })
 
       const feeCalculation = await adminTransaction(
         async ({ transaction }) => {
           return insertFeeCalculation(
             {
-              OrganizationId: org1.id,
-              VariantId: variant1.id,
+              organizationId: org1.id,
+              variantId: variant1.id,
               type: FeeCalculationType.PurchaseSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -815,7 +815,7 @@ describe('fees.ts', () => {
               livemode: true,
               currency: CurrencyCode.USD,
               billingAddress,
-              BillingPeriodId: null,
+              billingPeriodId: null,
               paymentMethodType: PaymentMethodType.Card,
               pretaxTotal: 1000,
             },

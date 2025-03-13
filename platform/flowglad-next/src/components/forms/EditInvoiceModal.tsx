@@ -27,7 +27,7 @@ function EditInvoiceModal({
   }
   const { data: customerProfileData } =
     trpc.customerProfiles.get.useQuery({
-      id: invoiceAndLineItems.invoice.CustomerProfileId,
+      id: invoiceAndLineItems.invoice.customerProfileId,
     })
   if (!customerProfileData) {
     return null

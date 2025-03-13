@@ -5,11 +5,11 @@ import { RevenueChart } from './RevenueChart'
 const DateRangeRevenueChart = ({
   organizationCreatedAt,
   alignDatePicker = 'left',
-  ProductId,
+  productId,
 }: {
   organizationCreatedAt: Date
   alignDatePicker?: 'left' | 'right'
-  ProductId?: string
+  productId?: string
 }) => {
   const defaultFromDate = new Date(organizationCreatedAt)
   const [range, setRange] = useState<{
@@ -47,7 +47,7 @@ const DateRangeRevenueChart = ({
             <RevenueChart
               fromDate={range.from}
               toDate={range.to}
-              ProductId={ProductId}
+              productId={productId}
             />
           </div>
         </div>

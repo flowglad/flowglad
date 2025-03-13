@@ -48,34 +48,34 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   let subscription: Subscription.Record
   beforeEach(async () => {
     customerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
     })
 
     subscription = await setupSubscription({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
-      VariantId: variant.id,
-      PaymentMethodId: paymentMethod.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
+      variantId: variant.id,
+      paymentMethodId: paymentMethod.id,
     })
 
     billingPeriod = await setupBillingPeriod({
-      SubscriptionId: subscription.id,
+      subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart,
       endDate: subscription.currentBillingPeriodEnd,
       status: BillingPeriodStatus.Active,
     })
     billingRun = await setupBillingRun({
-      BillingPeriodId: billingPeriod.id,
-      PaymentMethodId: paymentMethod.id,
-      SubscriptionId: subscription.id,
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
     billingPeriodItems = await setupBillingPeriodItems({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,
     })
@@ -85,9 +85,9 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(0),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
-      SubscriptionId: subscription.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
       livemode: true,
     })
     const wrongStripePaymentIntentId = `pi_wrong_${new Date().getTime()}`
@@ -101,7 +101,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             metadata: {
               billingRunId: billingRun.id,
               type: 'billingRun',
-              billingPeriodId: billingRun.BillingPeriodId,
+              billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: `ch_test_${new Date().getTime()}`,
             livemode: true,
@@ -119,20 +119,20 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const stripePaymentIntentId = `pi_outoforder_${new Date().getTime()}`
     const stripeChargeId = `ch_outoforder_${new Date().getTime()}`
     const invoice = await setupInvoice({
-      BillingPeriodId: billingPeriod.id,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
+      billingPeriodId: billingPeriod.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
       status: InvoiceStatus.Open,
-      VariantId: variant.id,
+      variantId: variant.id,
     })
     // Seed a billing run whose lastPaymentIntentEventTimestamp is in the future
     const newBillingRun = await setupBillingRun({
       stripePaymentIntentId,
       // Set the last event timestamp to a time later than the event's created time.
       lastPaymentIntentEventTimestamp: new Date(200000),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
-      SubscriptionId: subscription.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
       livemode: true,
     })
 
@@ -140,9 +140,9 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      InvoiceId: invoice.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -155,7 +155,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             metadata: {
               billingRunId: newBillingRun.id,
               type: 'billingRun',
-              billingPeriodId: newBillingRun.BillingPeriodId,
+              billingPeriodId: newBillingRun.billingPeriodId,
             },
             latest_charge: stripeChargeId,
             livemode: true,
@@ -179,26 +179,26 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //   const billingRun = await setupBillingRun({
   //     stripePaymentIntentId,
   //     lastPaymentIntentEventTimestamp: new Date(0),
-  //     PaymentMethodId: paymentMethod.id,
-  //     BillingPeriodId: billingPeriod.id,
-  //     SubscriptionId: subscription.id,
+  //     paymentMethodId: paymentMethod.id,
+  //     billingPeriodId: billingPeriod.id,
+  //     subscriptionId: subscription.id,
   //     livemode: true,
   //   })
 
   //   const invoice = await setupInvoice({
-  //     BillingPeriodId: billingPeriod.id,
-  //     CustomerProfileId: customerProfile.id,
-  //     OrganizationId: organization.id,
+  //     billingPeriodId: billingPeriod.id,
+  //     customerProfileId: customerProfile.id,
+  //     organizationId: organization.id,
   //     status: InvoiceStatus.Open,
-  //     VariantId: variant.id,
+  //     variantId: variant.id,
   //   })
   //   await setupPayment({
   //     stripeChargeId,
   //     status: PaymentStatus.Processing,
   //     amount: 1000,
-  //     CustomerProfileId: customerProfile.id,
-  //     OrganizationId: organization.id,
-  //     InvoiceId: invoice.id,
+  //     customerProfileId: customerProfile.id,
+  //     organizationId: organization.id,
+  //     invoiceId: invoice.id,
   //   })
   //   await adminTransaction(async ({ transaction }) => {
   //     const event: Stripe.PaymentIntentSucceededEvent = {
@@ -210,7 +210,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //           metadata: {
   //             billingRunId: billingRun.id,
   //             type: 'billingRun',
-  //             billingPeriodId: billingRun.BillingPeriodId,
+  //             billingPeriodId: billingRun.billingPeriodId,
   //           },
   //           latest_charge: stripeChargeId,
   //           livemode: true,
@@ -255,26 +255,26 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const failedBillingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
-      SubscriptionId: subscription.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
       livemode: true,
     })
 
     const failedInvoice = await setupInvoice({
-      BillingPeriodId: billingPeriod.id,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
+      billingPeriodId: billingPeriod.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
       status: InvoiceStatus.Open,
-      VariantId: variant.id,
+      variantId: variant.id,
     })
     const payment = await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      InvoiceId: failedInvoice.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      invoiceId: failedInvoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
       const event: Stripe.PaymentIntentPaymentFailedEvent = {
@@ -286,7 +286,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             metadata: {
               billingRunId: failedBillingRun.id,
               type: 'billingRun',
-              billingPeriodId: failedBillingRun.BillingPeriodId,
+              billingPeriodId: failedBillingRun.billingPeriodId,
             },
             latest_charge: stripeChargeId,
             livemode: true,
@@ -316,39 +316,39 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(0),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
-      SubscriptionId: subscription.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
       livemode: true,
     })
     await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
     })
     const invoice = await setupInvoice({
-      BillingPeriodId: billingPeriod.id,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
+      billingPeriodId: billingPeriod.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
       status: InvoiceStatus.Open,
-      VariantId: variant.id,
+      variantId: variant.id,
     })
     const stripeChargeId = `ch_${invoice.id}___failed`
     const payment = await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      InvoiceId: invoice.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
     })
 
     await adminTransaction(async ({ transaction }) => {
       const invoice = await setupInvoice({
-        BillingPeriodId: billingPeriod.id,
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
+        billingPeriodId: billingPeriod.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
         status: InvoiceStatus.Open,
-        VariantId: variant.id,
+        variantId: variant.id,
       })
 
       const event: Stripe.PaymentIntentCanceledEvent = {
@@ -360,7 +360,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             metadata: {
               billingRunId: billingRun.id,
               type: 'billingRun',
-              billingPeriodId: billingRun.BillingPeriodId,
+              billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: stripeChargeId,
             livemode: true,
@@ -402,25 +402,25 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(0),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
-      SubscriptionId: subscription.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
       livemode: true,
     })
     const invoice = await setupInvoice({
-      BillingPeriodId: billingPeriod.id,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
+      billingPeriodId: billingPeriod.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
       status: InvoiceStatus.Open,
-      VariantId: variant.id,
+      variantId: variant.id,
     })
     const payment = await setupPayment({
       stripeChargeId: `ch_${billingRun.id}___processing`,
       status: PaymentStatus.Processing,
       amount: 1000,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      InvoiceId: invoice.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
       const event: Stripe.PaymentIntentProcessingEvent = {
@@ -432,7 +432,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             metadata: {
               billingRunId: billingRun.id,
               type: 'billingRun',
-              billingPeriodId: billingRun.BillingPeriodId,
+              billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: `ch_${billingRun.id}__processing`,
             livemode: true,
@@ -473,36 +473,36 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(0),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
       livemode: true,
-      SubscriptionId: subscription.id,
+      subscriptionId: subscription.id,
     })
     const invoice = await setupInvoice({
-      BillingPeriodId: billingPeriod.id,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
+      billingPeriodId: billingPeriod.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
       status: InvoiceStatus.Open,
-      VariantId: variant.id,
+      variantId: variant.id,
     })
     const payment = await setupPayment({
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      InvoiceId: invoice.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
     })
     await setupMemberships({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     await adminTransaction(async ({ transaction }) => {
       const invoice = await setupInvoice({
-        BillingPeriodId: billingPeriod.id,
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
+        billingPeriodId: billingPeriod.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
         status: InvoiceStatus.Open,
-        VariantId: variant.id,
+        variantId: variant.id,
       })
 
       const event: Stripe.PaymentIntentRequiresActionEvent = {
@@ -550,13 +550,13 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: paymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(0),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
-      SubscriptionId: subscription.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
       livemode: true,
     })
     await adminTransaction(async ({ transaction }) => {
-      // Do not seed any invoice for BillingPeriodId 'bp_no_invoice'
+      // Do not seed any invoice for billingPeriodId 'bp_no_invoice'
       const event: Stripe.PaymentIntentSucceededEvent = {
         created: 8000,
         data: {
@@ -566,7 +566,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             metadata: {
               billingRunId: billingRun.id,
               type: 'billingRun',
-              billingPeriodId: billingRun.BillingPeriodId,
+              billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: `ch_no_invoice_${billingRun.id}`,
             livemode: true,
@@ -577,7 +577,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       await expect(
         processPaymentIntentEventForBillingRun(event, transaction)
       ).rejects.toThrow(
-        `Invoice for billing period ${billingRun.BillingPeriodId} not found.`
+        `Invoice for billing period ${billingRun.billingPeriodId} not found.`
       )
     })
   })
@@ -586,18 +586,18 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: 'pi_no_charge',
       lastPaymentIntentEventTimestamp: new Date(0),
-      PaymentMethodId: paymentMethod.id,
-      BillingPeriodId: billingPeriod.id,
-      SubscriptionId: subscription.id,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
       livemode: true,
     })
     await adminTransaction(async ({ transaction }) => {
       const invoice = await setupInvoice({
-        BillingPeriodId: billingPeriod.id,
-        CustomerProfileId: customerProfile.id,
-        OrganizationId: organization.id,
+        billingPeriodId: billingPeriod.id,
+        customerProfileId: customerProfile.id,
+        organizationId: organization.id,
         status: InvoiceStatus.Open,
-        VariantId: variant.id,
+        variantId: variant.id,
       })
 
       const event: Stripe.PaymentIntentSucceededEvent = {
@@ -608,7 +608,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'succeeded',
             metadata: {
               billingRunId: billingRun.id,
-              billingPeriodId: billingRun.BillingPeriodId,
+              billingPeriodId: billingRun.billingPeriodId,
               type: 'billingRun',
             },
             latest_charge: null,
@@ -632,18 +632,18 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //   const billingRun = await setupBillingRun({
   //     stripePaymentIntentId: paymentIntentId,
   //     lastPaymentIntentEventTimestamp: new Date(0),
-  //     PaymentMethodId: paymentMethod.id,
-  //     BillingPeriodId: billingPeriod.id,
-  //     SubscriptionId: subscription.id,
+  //     paymentMethodId: paymentMethod.id,
+  //     billingPeriodId: billingPeriod.id,
+  //     subscriptionId: subscription.id,
   //     livemode: true,
   //   })
 
   //   await setupInvoice({
-  //     BillingPeriodId: billingRun.BillingPeriodId,
+  //     billingPeriodId: billingRun.billingPeriodId,
   //     status: InvoiceStatus.Open,
-  //     OrganizationId: organization.id,
-  //     CustomerProfileId: customerProfile.id,
-  //     VariantId: variant.id,
+  //     organizationId: organization.id,
+  //     customerProfileId: customerProfile.id,
+  //     variantId: variant.id,
   //   })
   //   await adminTransaction(async ({ transaction }) => {
   //     // Do NOT seed a payment record for stripe charge 'ch_no_payment'
@@ -655,7 +655,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //           status: 'succeeded',
   //           metadata: {
   //             billingRunId: billingRun.id,
-  //             billingPeriodId: billingRun.BillingPeriodId,
+  //             billingPeriodId: billingRun.billingPeriodId,
   //             type: 'billingRun',
   //           },
   //           latest_charge: `ch_no_payment_${billingRun.id}`,

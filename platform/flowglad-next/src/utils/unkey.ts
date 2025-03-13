@@ -23,7 +23,7 @@ export const verifyApiKey = async (apiKey: string) => {
   return {
     keyId: result.keyId,
     valid: result.valid,
-    OrganizationId: result.ownerId,
+    organizationId: result.ownerId,
     environment: result.environment as ApiEnvironment,
   }
 }
@@ -68,7 +68,7 @@ export const createApiKey = async (
     : result.key
   return {
     apiKeyInsert: {
-      OrganizationId: params.organization.id,
+      organizationId: params.organization.id,
       name: params.name,
       token,
       livemode,

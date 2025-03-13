@@ -29,7 +29,7 @@ export enum Nouns {
        EntityId: params.record.id,
        entityType: 'unicornRider',
        name: params.record.name,
-       OrganizationId: params.OrganizationId,
+       organizationId: params.organizationId,
      }
    }
    ```
@@ -38,7 +38,7 @@ export enum Nouns {
    ```ts
    export const supabasePayloadToProperNounUpsert = async (
      payload: SupabaseInsertPayload | SupabaseUpdatePayload,
-     OrganizationId: string
+     organizationId: string
    ): Promise<ProperNoun.Insert> => {
      let properNounUpsert: ProperNoun.Insert | null = null
 
@@ -47,7 +47,7 @@ export enum Nouns {
        case 'UnicornRiders':
          properNounUpsert = unicornRiderRecordToProperNounUpsert({
            record: payload.record as UnicornRider.Record,
-           OrganizationId: (payload.record as UnicornRider.Record).OrganizationId,
+           organizationId: (payload.record as UnicornRider.Record).organizationId,
          })
          break
        default:

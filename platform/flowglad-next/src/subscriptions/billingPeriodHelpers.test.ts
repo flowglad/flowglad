@@ -49,37 +49,37 @@ describe('Subscription Billing Period Transition', async () => {
   let subscription: Subscription.Record
   beforeEach(async () => {
     customerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
     })
 
     subscription = await setupSubscription({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
-      VariantId: variant.id,
-      PaymentMethodId: paymentMethod.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
+      variantId: variant.id,
+      paymentMethodId: paymentMethod.id,
       currentBillingPeriodEnd: new Date(Date.now() - 3000),
       currentBillingPeriodStart: new Date(
         Date.now() - 30 * 24 * 60 * 60 * 1000
       ),
     })
     billingPeriod = await setupBillingPeriod({
-      SubscriptionId: subscription.id,
+      subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart,
       endDate: subscription.currentBillingPeriodEnd,
       status: BillingPeriodStatus.Active,
     })
     billingRun = await setupBillingRun({
-      BillingPeriodId: billingPeriod.id,
-      PaymentMethodId: paymentMethod.id,
-      SubscriptionId: subscription.id,
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
     await setupBillingPeriodItems({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,
     })
@@ -132,20 +132,20 @@ describe('Subscription Billing Period Transition', async () => {
   // Test 3: When payment totals fully cover the billing period, mark it as Completed
   it('should mark the current billing period as Completed if fully paid', async () => {
     const invoice = await setupInvoice({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       status: InvoiceStatus.Paid,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      VariantId: variant.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      variantId: variant.id,
     })
     await setupPayment({
-      BillingPeriodId: billingPeriod.id,
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      billingPeriodId: billingPeriod.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
       stripeChargeId: `ch_123_${core.nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 100,
-      InvoiceId: invoice.id,
+      invoiceId: invoice.id,
     })
     // Create a paid invoice for the billing period (simulate full payment)
     await adminTransaction(async ({ transaction }) => {
@@ -158,7 +158,7 @@ describe('Subscription Billing Period Transition', async () => {
 
       // Verify that the current (old) billing period is now Completed
       const allBPeriods = await selectBillingPeriods(
-        { SubscriptionId: subscription.id },
+        { subscriptionId: subscription.id },
         transaction
       )
       const currentBp = allBPeriods.find(
@@ -334,21 +334,21 @@ describe('Subscription Billing Period Transition', async () => {
   it('should mark the billing period as Completed when total due exactly equals total paid', async () => {
     // Simulate full payment by creating a paid invoice
     const invoice = await setupInvoice({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       status: InvoiceStatus.Paid,
-      CustomerProfileId: customerProfile.id,
-      OrganizationId: organization.id,
-      VariantId: variant.id,
+      customerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      variantId: variant.id,
     })
 
     await setupPayment({
-      BillingPeriodId: billingPeriod.id,
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      billingPeriodId: billingPeriod.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
       stripeChargeId: `ch_123_${core.nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 100,
-      InvoiceId: invoice.id,
+      invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
       const updatedBillingPeriod = await updateBillingPeriod(
@@ -364,7 +364,7 @@ describe('Subscription Billing Period Transition', async () => {
           transaction
         )
       const allBPeriods = await selectBillingPeriods(
-        { SubscriptionId: subscription.id },
+        { subscriptionId: subscription.id },
         transaction
       )
       const currentBp = allBPeriods.find(
@@ -446,8 +446,8 @@ describe('Subscription Billing Period Transition', async () => {
           description: 'Test Description',
         },
         livemode: subscription.livemode,
-        SubscriptionId: subscription.id,
-        VariantId: variant.id,
+        subscriptionId: subscription.id,
+        variantId: variant.id,
         addedDate: new Date(),
         name: 'Test Item',
         createdAt: new Date(),

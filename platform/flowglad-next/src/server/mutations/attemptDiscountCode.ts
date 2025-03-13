@@ -35,8 +35,8 @@ export const attemptDiscountCode = publicProcedure
           return false
         }
 
-        // Check if product or purchase exists and get its OrganizationId
-        let OrganizationId: string | null = null
+        // Check if product or purchase exists and get its organizationId
+        let organizationId: string | null = null
         if ('invoiceId' in input) {
           throw new Error(
             `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
@@ -48,16 +48,16 @@ export const attemptDiscountCode = publicProcedure
             },
             transaction
           )
-          OrganizationId = products[0]?.OrganizationId
+          organizationId = products[0]?.organizationId
         } else if ('purchaseId' in input) {
           const purchase = await selectPurchaseById(
             input.purchaseId,
             transaction
           )
-          OrganizationId = purchase?.OrganizationId
+          organizationId = purchase?.organizationId
         }
 
-        if (!OrganizationId) {
+        if (!organizationId) {
           return false
         }
         if ('invoiceId' in input) {
@@ -88,14 +88,14 @@ export const attemptDiscountCode = publicProcedure
           {
             purchaseSession: {
               ...purchaseSession,
-              DiscountId: matchingDiscounts[0].id,
+              discountId: matchingDiscounts[0].id,
             },
             purchaseId: R.propOr(null, 'purchaseId', input),
           },
           transaction
         )
         // Verify organization matches
-        return matchingDiscounts[0].OrganizationId === OrganizationId
+        return matchingDiscounts[0].organizationId === organizationId
       }
     )
 

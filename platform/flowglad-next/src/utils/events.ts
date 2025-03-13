@@ -16,7 +16,7 @@ export interface CreateEventPayload {
   eventCategory: EventCategory
   source: EventNoun
   payload: Event.Record['rawPayload']
-  OrganizationId: string
+  organizationId: string
   livemode: boolean
 }
 
@@ -65,7 +65,7 @@ export const commitEvent = async (
       objectEntity: null,
       objectId: null,
       processedAt: null,
-      OrganizationId: payload.OrganizationId,
+      organizationId: payload.organizationId,
       livemode: payload.livemode,
     },
     transaction
@@ -84,7 +84,7 @@ const generateEventPayload = (input: {}) => {
  */
 // export const commitSubscriptionCreatedEvent = async (
 //   payload: {
-//     OrganizationId: string
+//     organizationId: string
 //     stripeSubscriptionCreatedEvent: Stripe.CustomerSubscriptionCreatedEvent
 //   },
 //   transaction: DbTransaction
@@ -95,7 +95,7 @@ const generateEventPayload = (input: {}) => {
 //       eventCategory: EventCategory.Financial,
 //       source: EventNoun.Purchase,
 //       payload: generateEventPayload(payload),
-//       OrganizationId: payload.OrganizationId,
+//       organizationId: payload.organizationId,
 //       livemode: payload.stripeSubscriptionCreatedEvent.livemode,
 //     },
 //     transaction
@@ -112,7 +112,7 @@ export const commitPaymentSucceededEvent = async (
       eventCategory: EventCategory.Financial,
       source: EventNoun.Payment,
       payload: generateEventPayload(payment),
-      OrganizationId: payment.OrganizationId,
+      organizationId: payment.organizationId,
       livemode: payment.livemode,
     },
     transaction
@@ -129,7 +129,7 @@ export const commitPaymentCanceledEvent = async (
       eventCategory: EventCategory.Financial,
       source: EventNoun.Payment,
       payload: generateEventPayload(payment),
-      OrganizationId: payment.OrganizationId,
+      organizationId: payment.organizationId,
       livemode: payment.livemode,
     },
     transaction
@@ -146,7 +146,7 @@ export const commitCustomerProfileCreatedEvent = async (
       eventCategory: EventCategory.Customer,
       source: EventNoun.CustomerProfile,
       payload: generateEventPayload(customerProfile),
-      OrganizationId: customerProfile.OrganizationId,
+      organizationId: customerProfile.organizationId,
       livemode: customerProfile.livemode,
     },
     transaction

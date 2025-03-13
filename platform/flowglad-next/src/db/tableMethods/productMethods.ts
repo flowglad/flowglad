@@ -66,7 +66,7 @@ export const productToProperNounUpsert = (
     name: product.name,
     EntityId: product.id,
     entityType: 'product',
-    OrganizationId: product.OrganizationId,
+    organizationId: product.organizationId,
     livemode: product.livemode,
   }
 }

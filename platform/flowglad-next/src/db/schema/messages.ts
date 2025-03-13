@@ -20,8 +20,8 @@ export const messages = pgTable(
   TABLE_NAME,
   {
     ...tableBase('msg'),
-    CustomerProfileId: nullableStringForeignKey(
-      'CustomerProfileId',
+    customerProfileId: nullableStringForeignKey(
+      'customer_profile_id',
       customerProfiles
     ),
     messageSentAt: timestamp('messageSentAt').notNull(),
@@ -81,7 +81,7 @@ export const messagesUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  CustomerProfileId: true,
+  customerProfileId: true,
   OrganizationMemberId: true,
   platformId: true,
   platformUserId: true,

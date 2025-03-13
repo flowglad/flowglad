@@ -25,7 +25,7 @@ import {
 } from '../../seedDatabase'
 
 // Helpers to query the database after adjustments
-import { selectSubscriptionItemsAndSubscriptionBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItemsAndSubscriptionBysubscriptionId } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   selectCurrentBillingPeriodForSubscription,
   updateBillingPeriod,
@@ -44,12 +44,11 @@ describe('adjustSubscription Integration Tests', async () => {
   let customerProfile: CustomerProfile.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
-  let billingRun: BillingRun.Record
   let subscription: Subscription.Record
   let subscriptionItemCore: Pick<
     SubscriptionItem.Record,
-    | 'SubscriptionId'
-    | 'VariantId'
+    | 'subscriptionId'
+    | 'variantId'
     | 'name'
     | 'quantity'
     | 'unitPrice'
@@ -61,43 +60,43 @@ describe('adjustSubscription Integration Tests', async () => {
   >
   beforeEach(async () => {
     customerProfile = await setupCustomerProfile({
-      OrganizationId: organization.id,
+      organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
     })
 
     subscription = await setupSubscription({
-      OrganizationId: organization.id,
-      CustomerProfileId: customerProfile.id,
-      VariantId: variant.id,
-      PaymentMethodId: paymentMethod.id,
+      organizationId: organization.id,
+      customerProfileId: customerProfile.id,
+      variantId: variant.id,
+      paymentMethodId: paymentMethod.id,
       currentBillingPeriodEnd: new Date(Date.now() - 3000),
       currentBillingPeriodStart: new Date(
         Date.now() - 30 * 24 * 60 * 60 * 1000
       ),
     })
     billingPeriod = await setupBillingPeriod({
-      SubscriptionId: subscription.id,
+      subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart,
       endDate: subscription.currentBillingPeriodEnd,
       status: BillingPeriodStatus.Active,
     })
-    billingRun = await setupBillingRun({
-      BillingPeriodId: billingPeriod.id,
-      PaymentMethodId: paymentMethod.id,
-      SubscriptionId: subscription.id,
+    await setupBillingRun({
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
     await setupBillingPeriodItems({
-      BillingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,
     })
     subscriptionItemCore = {
-      SubscriptionId: subscription.id,
-      VariantId: variant.id,
+      subscriptionId: subscription.id,
+      variantId: variant.id,
       name: 'Item 1',
       quantity: 1,
       unitPrice: 100,
@@ -117,10 +116,10 @@ describe('adjustSubscription Integration Tests', async () => {
       // Create a subscription already in a terminal state.
       const canceledSubscription = await setupSubscription({
         status: SubscriptionStatus.Canceled,
-        OrganizationId: organization.id,
-        CustomerProfileId: customerProfile.id,
-        PaymentMethodId: paymentMethod.id,
-        VariantId: variant.id,
+        organizationId: organization.id,
+        customerProfileId: customerProfile.id,
+        paymentMethodId: paymentMethod.id,
+        variantId: variant.id,
       })
       await adminTransaction(async ({ transaction }) => {
         // Create a billing period so that later steps have data.
@@ -152,7 +151,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should throw "Invalid timing" if an unrecognized timing value is provided', async () => {
       await setupSubscriptionItem({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
@@ -193,19 +192,19 @@ describe('adjustSubscription Integration Tests', async () => {
       it('should create proration adjustments, remove deleted items, and execute a billing run', async () => {
         // Create two existing subscription items.
         const item1 = await setupSubscriptionItem({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           name: 'Item 1',
           quantity: 1,
           unitPrice: 100,
         })
         const item2 = await setupSubscriptionItem({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           name: 'Item 2',
           quantity: 2,
           unitPrice: 200,
         })
         await setupBillingPeriod({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           status: BillingPeriodStatus.Active,
@@ -243,7 +242,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
           // Verify that subscription items were updated with addedDate/removedDate.
           const result =
-            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+            await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
               subscription.id,
               transaction
             )
@@ -259,7 +258,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
           // Verify proration adjustments were inserted.
           const bpItems = await selectBillingPeriodItems(
-            { BillingPeriodId: billingPeriod.id },
+            { billingPeriodId: billingPeriod.id },
             transaction
           )
 
@@ -270,7 +269,7 @@ describe('adjustSubscription Integration Tests', async () => {
           })
           // Verify that a billing run was executed.
           const billingRuns = await selectBillingRuns(
-            { BillingPeriodId: billingPeriod.id },
+            { billingPeriodId: billingPeriod.id },
             transaction
           )
           const approximatelyImmediateBillingRuns =
@@ -289,7 +288,7 @@ describe('adjustSubscription Integration Tests', async () => {
     describe('when prorateCurrentBillingPeriod is false', () => {
       it('should update subscription items without creating proration adjustments', async () => {
         const item1 = await setupSubscriptionItem({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           name: 'Item 1',
           quantity: 1,
           unitPrice: 100,
@@ -306,7 +305,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
           const billingPeriodItemsBeforeAdjustment =
             await selectBillingPeriodItems(
-              { BillingPeriodId: billingPeriod.id },
+              { billingPeriodId: billingPeriod.id },
               transaction
             )
 
@@ -338,7 +337,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
 
           const result =
-            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+            await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
               subscription.id,
               transaction
             )
@@ -359,7 +358,7 @@ describe('adjustSubscription Integration Tests', async () => {
           }
           const billingPeriodItemsAfterAdjustment =
             await selectBillingPeriodItems(
-              { BillingPeriodId: bp.id },
+              { billingPeriodId: bp.id },
               transaction
             )
           expect(billingPeriodItemsAfterAdjustment.length).toEqual(
@@ -397,19 +396,19 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should update subscription items with dates equal to the billing period end and not create proration adjustments', async () => {
       // Set a specific billing period end date.
       const item1 = await setupSubscriptionItem({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         name: 'Item 1',
         quantity: 1,
         unitPrice: 100,
       })
       const item2 = await setupSubscriptionItem({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         name: 'Item 2',
         quantity: 2,
         unitPrice: 200,
       })
       billingPeriod = await setupBillingPeriod({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: BillingPeriodStatus.Active,
@@ -425,13 +424,13 @@ describe('adjustSubscription Integration Tests', async () => {
           },
           {
             name: 'Item 3',
-            SubscriptionId: subscription.id,
+            subscriptionId: subscription.id,
             quantity: 3,
             unitPrice: 300,
             livemode: subscription.livemode,
             metadata: null,
             addedDate: new Date(),
-            VariantId: subscription.VariantId,
+            variantId: subscription.variantId,
           },
         ]
 
@@ -448,7 +447,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         const result =
-          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
             subscription.id,
             transaction
           )
@@ -457,7 +456,7 @@ describe('adjustSubscription Integration Tests', async () => {
           throw new Error('Result is null')
         }
         const bpItems = await selectBillingPeriodItems(
-          { BillingPeriodId: billingPeriod.id },
+          { billingPeriodId: billingPeriod.id },
           transaction
         )
         expect(bpItems.length).toEqual(0)
@@ -528,13 +527,13 @@ describe('adjustSubscription Integration Tests', async () => {
   describe('Edge Cases and Error Handling', () => {
     it('should handle a zero-duration billing period', async () => {
       const zeroDurationBillingPeriod = await setupBillingPeriod({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         startDate: new Date('2025-01-01T00:00:00Z'),
         endDate: new Date('2025-01-01T00:00:00Z'),
         status: BillingPeriodStatus.Active,
       })
       const item = await setupSubscriptionItem({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         name: 'Item Zero',
         quantity: 1,
         unitPrice: 100,
@@ -551,8 +550,8 @@ describe('adjustSubscription Integration Tests', async () => {
             updatedAt: new Date(),
             metadata: null,
             addedDate: new Date(),
-            SubscriptionId: subscription.id,
-            VariantId: subscription.VariantId,
+            subscriptionId: subscription.id,
+            variantId: subscription.variantId,
           },
         ]
 
@@ -607,7 +606,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         const result =
-          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
             subscription.id,
             transaction
           )
@@ -621,7 +620,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should throw an error when subscription items have zero quantity', async () => {
       await setupBillingPeriod({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         startDate: new Date(Date.now() - 3600000),
         endDate: new Date(Date.now() + 3600000),
         status: BillingPeriodStatus.Active,
@@ -656,7 +655,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should handle subscription items with zero unit price', async () => {
       await setupBillingPeriod({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         startDate: new Date(Date.now() - 3600000),
         endDate: new Date(Date.now() + 3600000),
         status: BillingPeriodStatus.Active,
@@ -692,7 +691,7 @@ describe('adjustSubscription Integration Tests', async () => {
           throw new Error('Billing period is null')
         }
         const bpItems = await selectBillingPeriodItems(
-          { BillingPeriodId: bp.id },
+          { billingPeriodId: bp.id },
           transaction
         )
         expect(bpItems.length).toBeGreaterThan(0)
@@ -701,7 +700,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should handle subscription items with negative unit price or quantity', async () => {
       const negativeItem = await setupSubscriptionItem({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         name: 'Negative Item',
         quantity: 1,
         unitPrice: 100,
@@ -747,7 +746,7 @@ describe('adjustSubscription Integration Tests', async () => {
         const pastBP = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            SubscriptionId: subscription.id,
+            subscriptionId: subscription.id,
             startDate: new Date(Date.now() - 7200000),
             endDate: new Date(Date.now() - 3600000),
             status: BillingPeriodStatus.Active,
@@ -755,7 +754,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         const pastItem = await setupSubscriptionItem({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           name: 'Past Item',
           quantity: 1,
           unitPrice: 100,
@@ -793,7 +792,7 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should correctly bulk update subscription items and insert proration adjustments', async () => {
       await adminTransaction(async ({ transaction }) => {
         const item1 = await setupSubscriptionItem({
-          SubscriptionId: subscription.id,
+          subscriptionId: subscription.id,
           name: 'Item 1',
           quantity: 1,
           unitPrice: 100,
@@ -833,7 +832,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         const result =
-          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
             subscription.id,
             transaction
           )
@@ -842,7 +841,7 @@ describe('adjustSubscription Integration Tests', async () => {
         }
         expect(result.subscriptionItems.length).toBe(3)
         const bpItems = await selectBillingPeriodItems(
-          { BillingPeriodId: billingPeriod.id },
+          { billingPeriodId: billingPeriod.id },
           transaction
         )
         expect(bpItems.length).toBeGreaterThan(0)
@@ -851,7 +850,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should handle errors during bulk operations gracefully and rollback', async () => {
       const item = await setupSubscriptionItem({
-        SubscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         name: 'Item',
         quantity: 1,
         unitPrice: 100,
@@ -876,7 +875,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 name: 'Item',
                 quantity: 1,
                 unitPrice: 100,
-                VariantId: 'invalid_variant_id',
+                variantId: 'invalid_variant_id',
               },
             ]
             await adjustSubscription(

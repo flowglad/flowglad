@@ -9,7 +9,7 @@ export const createContext = async (
 ) => {
   const auth = getAuth(opts.req)
   let environment: ApiEnvironment = 'live'
-  let OrganizationId: string | undefined
+  let organizationId: string | undefined
   if (auth.userId) {
     const maybeMembership = await adminTransaction(
       async ({ transaction }) => {
@@ -22,7 +22,7 @@ export const createContext = async (
     if (maybeMembership) {
       const { membership, organization } = maybeMembership
       environment = membership.livemode ? 'live' : 'test'
-      OrganizationId = organization.id
+      organizationId = organization.id
     }
   }
   return {
@@ -30,15 +30,15 @@ export const createContext = async (
     path: opts.req.url,
     environment,
     livemode: environment === 'live',
-    OrganizationId,
+    organizationId,
   }
 }
 
 export const createApiContext = ({
-  OrganizationId,
+  organizationId,
   environment,
 }: {
-  OrganizationId: string
+  organizationId: string
   environment: ApiEnvironment
 }) => {
   return async (opts: trpcNext.CreateNextContextOptions) => {
@@ -54,7 +54,7 @@ export const createApiContext = ({
       apiKey,
       isApi: true,
       path: opts.req.url,
-      OrganizationId,
+      organizationId,
       environment,
       livemode: environment === 'live',
     }

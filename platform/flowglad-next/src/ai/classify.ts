@@ -63,7 +63,7 @@ Examples:
 }, recordSelectionCriteria: { id: 'product_123456' } } // The user is editing the tagged product
 "Rename @product_123456 default variant to 'Starter Pack'" -> { noun: ${
   Nouns.Variant
-}, recordSelectionCriteria: { ProductId: 'product_123456', default: true } } // The user is editing the default variant of the tagged product
+}, recordSelectionCriteria: { productId: 'product_123456', default: true } } // The user is editing the default variant of the tagged product
 `
 
 const createNounSystemPrompt = `You are a router for an AI application, and the user just sent a new prompt describine their intent to create a new record.

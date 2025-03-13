@@ -1,5 +1,4 @@
 import {
-  date,
   pgTable,
   pgPolicy,
   timestamp,
@@ -26,7 +25,7 @@ export const billingPeriods = pgTable(
   TABLE_NAME,
   {
     ...tableBase('billing_period'),
-    SubscriptionId: notNullStringForeignKey(
+    subscriptionId: notNullStringForeignKey(
       'subscription_id',
       subscriptions
     ),
@@ -41,13 +40,13 @@ export const billingPeriods = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.SubscriptionId]),
+      constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.status]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"SubscriptionId" in (select "id" from "Subscriptions" where "OrganizationId" in (select "OrganizationId" from "Memberships"))`,
+        using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organizationId" in (select "organizationId" from "Memberships"))`,
       }),
     ]
   }
@@ -74,7 +73,7 @@ export const billingPeriodsUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  SubscriptionId: true,
+  subscriptionId: true,
 } as const
 
 const hiddenColumns = {} as const

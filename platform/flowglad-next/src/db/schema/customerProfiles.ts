@@ -21,29 +21,29 @@ import { organizations } from '@/db/schema/organizations'
 import { createInvoiceNumberBase } from '@/utils/core'
 import { z } from 'zod'
 
-const TABLE_NAME = 'CustomerProfiles'
+const TABLE_NAME = 'customer_profiles'
 
 const columns = {
   ...tableBase('cpf'),
-  CustomerId: notNullStringForeignKey('CustomerId', customers),
-  OrganizationId: notNullStringForeignKey(
-    'OrganizationId',
+  customerId: notNullStringForeignKey('customer_id', customers),
+  organizationId: notNullStringForeignKey(
+    'organization_id',
     organizations
   ),
   email: text('email').notNull(),
   name: text('name'),
-  invoiceNumberBase: text('invoiceNumberBase').$defaultFn(
+  invoiceNumberBase: text('invoice_number_base').$defaultFn(
     createInvoiceNumberBase
   ),
   archived: boolean('archived').default(false).notNull(),
-  stripeCustomerId: text('stripeCustomerId'),
-  customerTaxId: text('customerTaxId'),
-  slackId: text('slackId'),
-  logoURL: text('logoURL'),
-  iconURL: text('iconURL'),
+  stripeCustomerId: text('stripe_customer_id'),
+  customerTaxId: text('customer_tax_id'),
+  slackId: text('slack_id'),
+  logoURL: text('logo_url'),
+  iconURL: text('icon_url'),
   domain: text('domain'),
-  billingAddress: jsonb('billingAddress'),
-  externalId: text('externalId').notNull(),
+  billingAddress: jsonb('billing_address'),
+  externalId: text('external_id').notNull(),
 }
 
 export const customerProfiles = pgTable(
@@ -51,19 +51,19 @@ export const customerProfiles = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.CustomerId]),
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
-      constructIndex(TABLE_NAME, [table.email, table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.customerId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
+      constructIndex(TABLE_NAME, [table.email, table.organizationId]),
       constructUniqueIndex(TABLE_NAME, [
-        table.CustomerId,
-        table.OrganizationId,
+        table.customerId,
+        table.organizationId,
       ]),
       constructUniqueIndex(TABLE_NAME, [
-        table.OrganizationId,
+        table.organizationId,
         table.externalId,
       ]),
       constructUniqueIndex(TABLE_NAME, [
-        table.OrganizationId,
+        table.organizationId,
         table.invoiceNumberBase,
       ]),
       constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
@@ -77,7 +77,7 @@ export const customerProfiles = pgTable(
       //   as: 'permissive',
       //   to: 'authenticated',
       //   for: 'all',
-      //   using: sql`"CustomerId" = requesting_user_id()`,
+      //   using: sql`"customerId" = requesting_user_id()`,
       // }),
     ]
   }
@@ -85,10 +85,10 @@ export const customerProfiles = pgTable(
 
 const readonlyColumns = {
   livemode: true,
-  CustomerId: true,
+  customerId: true,
   billingAddress: true,
   invoiceNumberBase: true,
-  OrganizationId: true,
+  organizationId: true,
 } as const
 
 const hiddenColumns = {

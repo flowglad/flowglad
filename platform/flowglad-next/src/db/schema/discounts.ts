@@ -30,8 +30,8 @@ export const discounts = pgTable(
   TABLE_NAME,
   {
     ...tableBase('discount'),
-    OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+    organizationId: notNullStringForeignKey(
+      'organization_id',
       organizations
     ),
     name: text('name').notNull(),
@@ -53,11 +53,11 @@ export const discounts = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.OrganizationId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.code]),
       constructUniqueIndex(TABLE_NAME, [
         table.code,
-        table.OrganizationId,
+        table.organizationId,
       ]),
       livemodePolicy(),
       pgPolicy(
@@ -66,7 +66,7 @@ export const discounts = pgTable(
           as: 'permissive',
           to: 'authenticated',
           for: 'all',
-          using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+          using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
         }
       ),
     ]
@@ -201,7 +201,7 @@ const hiddenColumns = {
 } as const
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

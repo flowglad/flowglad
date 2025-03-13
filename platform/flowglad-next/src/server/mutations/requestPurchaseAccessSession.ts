@@ -36,7 +36,7 @@ export const requestPurchaseAccessSession = publicProcedure
 
       const purchaseAccessSession = await createPurchaseAccessSession(
         {
-          PurchaseId: purchase.id,
+          purchaseId: purchase.id,
           source: PurchaseAccessSessionSource.EmailVerification,
           autoGrant: false,
           livemode: purchase.livemode,
@@ -45,7 +45,7 @@ export const requestPurchaseAccessSession = publicProcedure
       )
 
       const customerProfile = await selectCustomerProfileById(
-        purchase.CustomerProfileId,
+        purchase.customerProfileId,
         transaction
       )
 

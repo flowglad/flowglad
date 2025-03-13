@@ -28,7 +28,7 @@ function CreateInvoiceModal({
   const defaultValues: CreateInvoiceInput = {
     invoice: {
       invoiceDate: new Date(),
-      CustomerProfileId: customerProfile?.id ?? '',
+      customerProfileId: customerProfile?.id ?? '',
       currency: organization!.defaultCurrency,
       invoiceNumber: core.createInvoiceNumber(
         customerProfile?.invoiceNumberBase ?? '',
@@ -36,16 +36,16 @@ function CreateInvoiceModal({
       ),
       status: InvoiceStatus.Open,
       type: InvoiceType.Standalone,
-      PurchaseId: null,
-      BillingPeriodId: null,
+      purchaseId: null,
+      billingPeriodId: null,
     },
     invoiceLineItems: [
       {
         description: '',
         quantity: 1,
         price: 0,
-        VariantId: null,
-        InvoiceId: '',
+        variantId: null,
+        invoiceId: '',
       },
     ],
   }

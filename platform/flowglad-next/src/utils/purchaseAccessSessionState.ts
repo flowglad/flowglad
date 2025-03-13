@@ -56,7 +56,7 @@ export const findPurchaseAccessSession = async (
 
 export const createPurchaseAccessSession = async (
   params: {
-    PurchaseId: string
+    purchaseId: string
     source: PurchaseAccessSessionSource
     autoGrant: boolean
     livemode: boolean
@@ -65,7 +65,7 @@ export const createPurchaseAccessSession = async (
 ) => {
   const purchaseAccessSession = await insertPurchaseAccessSession(
     {
-      PurchaseId: params.PurchaseId,
+      purchaseId: params.purchaseId,
       token: core.nanoid(),
       source: params.source,
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
@@ -75,7 +75,7 @@ export const createPurchaseAccessSession = async (
     transaction
   )
   setPurchaseAccessSessionCookie({
-    purchaseId: params.PurchaseId,
+    purchaseId: params.purchaseId,
     purchaseAccessSessionToken: purchaseAccessSession.token,
   })
   return purchaseAccessSession
@@ -111,7 +111,7 @@ export const exchangeTokenForPurchaseAccessSession = async (
     transaction
   )
   const purchase = await selectPurchaseById(
-    purchaseAccessSession.PurchaseId,
+    purchaseAccessSession.purchaseId,
     transaction
   )
 

@@ -12,7 +12,7 @@ import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
-  selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId,
+  selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId,
 } from '@/db/tableMethods/billingPeriodItemMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
@@ -38,7 +38,7 @@ interface BillingPeriodAndItemsInserts {
   billingPeriodInsert: BillingPeriod.Insert
   billingPeriodItemInserts: Omit<
     BillingPeriodItem.Insert,
-    'BillingPeriodId'
+    'billingPeriodId'
   >[]
 }
 
@@ -72,7 +72,7 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
     status = BillingPeriodStatus.Completed
   }
   const billingPeriodInsert: BillingPeriod.Insert = {
-    SubscriptionId: params.subscription.id,
+    subscriptionId: params.subscription.id,
     startDate,
     endDate,
     status,
@@ -81,7 +81,7 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   }
   let billingPeriodItemInserts: Omit<
     BillingPeriodItem.Insert,
-    'BillingPeriodId'
+    'billingPeriodId'
   >[] = []
   if (!params.trialPeriod) {
     const subscriptionItemsToPutTowardsBillingItems =
@@ -91,13 +91,13 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
       subscriptionItemsToPutTowardsBillingItems.map((item) => {
         const billingPeriodItemInsert: Omit<
           BillingPeriodItem.Insert,
-          'BillingPeriodId'
+          'billingPeriodId'
         > = {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           name:
             (item.metadata?.name as string) || 'Subscription Item',
-          DiscountRedemptionId: null, // This would need to be handled separately
+          discountRedemptionId: null, // This would need to be handled separately
           description: (item.metadata?.description as string) || '',
           livemode: params.subscription.livemode,
         }
@@ -127,7 +127,7 @@ export const createBillingPeriodAndItems = async (
     billingPeriodItems = await bulkInsertBillingPeriodItems(
       billingPeriodItemInserts.map((item) => ({
         ...item,
-        BillingPeriodId: billingPeriod.id,
+        billingPeriodId: billingPeriod.id,
       })),
       transaction
     )
@@ -152,7 +152,7 @@ export const attemptBillingPeriodClose = async (
     )
   }
   const { billingPeriodItems } =
-    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
+    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId(
       billingPeriod.id,
       transaction
     )
@@ -200,7 +200,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     transaction
   )
   let subscription = await selectSubscriptionById(
-    currentBillingPeriod.SubscriptionId,
+    currentBillingPeriod.subscriptionId,
     transaction
   )
   let billingRun: BillingRun.Record | null = null
@@ -226,7 +226,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     return { subscription, billingRun }
   }
   const allBillingPeriods = await selectBillingPeriods(
-    { SubscriptionId: subscription.id },
+    { subscriptionId: subscription.id },
     transaction
   )
   const existingFutureBillingPeriod = allBillingPeriods.find(
@@ -254,7 +254,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       billingRun = await createBillingRun(
         {
           billingPeriod: newBillingPeriod,
-          PaymentMethodId: paymentMethodId,
+          paymentMethodId: paymentMethodId,
           scheduledFor: newBillingPeriod.startDate,
         },
         transaction
@@ -295,7 +295,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
       lastBillingPeriodEndDate: billingPeriod.endDate,
     })
     const billingPeriodsForSubscription = await selectBillingPeriods(
-      { SubscriptionId: subscription.id },
+      { subscriptionId: subscription.id },
       transaction
     )
     const existingFutureBillingPeriod =
@@ -306,7 +306,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
 
     if (existingFutureBillingPeriod) {
       const billingPeriodItems = await selectBillingPeriodItems(
-        { BillingPeriodId: existingFutureBillingPeriod.id },
+        { billingPeriodId: existingFutureBillingPeriod.id },
         transaction
       )
       return {
@@ -315,7 +315,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
       }
     }
     const subscriptionItems = await selectSubscriptionItems(
-      { SubscriptionId: subscription.id },
+      { subscriptionId: subscription.id },
       transaction
     )
 
@@ -356,7 +356,7 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
       return null
     }
     const billingPeriodsForSubscription = await selectBillingPeriods(
-      { SubscriptionId: subscription.id },
+      { subscriptionId: subscription.id },
       transaction
     )
     const mostRecentBillingPeriod =

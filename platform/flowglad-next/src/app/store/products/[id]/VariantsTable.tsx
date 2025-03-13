@@ -243,7 +243,7 @@ const VariantsTable = ({
       <CreateVariantModal
         isOpen={isCreateOpen}
         setIsOpen={setIsCreateOpen}
-        ProductId={variants[0]?.ProductId} // Assuming all variants belong to same product
+        productId={variants[0]?.productId} // Assuming all variants belong to same product
       />
       <TableTitle
         title="Variants"

@@ -164,33 +164,33 @@ export const createNonInvoicePurchaseSession = async (
   {
     variant,
     purchase,
-    OrganizationId,
+    organizationId,
   }: {
     variant: Variant.Record
     purchase?: Purchase.Record
-    OrganizationId: string
+    organizationId: string
   },
   transaction: DbTransaction
 ) => {
   const purchaseSessionInsertCore = {
-    VariantId: variant.id,
+    variantId: variant.id,
     status: PurchaseSessionStatus.Open,
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
-    OrganizationId,
+    organizationId,
     livemode: variant.livemode,
-    ProductId: variant.ProductId,
+    productId: variant.productId,
   } as const
 
   const purchaseSesionInsert: PurchaseSession.Insert = purchase
     ? {
         ...purchaseSessionInsertCore,
-        PurchaseId: purchase.id,
-        InvoiceId: null,
+        purchaseId: purchase.id,
+        invoiceId: null,
         type: PurchaseSessionType.Purchase,
       }
     : {
         ...purchaseSessionInsertCore,
-        InvoiceId: null,
+        invoiceId: null,
         type: PurchaseSessionType.Product,
       }
 
@@ -199,11 +199,11 @@ export const createNonInvoicePurchaseSession = async (
     transaction
   )
   const organization = await selectOrganizationById(
-    OrganizationId,
+    organizationId,
     transaction
   )
   const product = await selectProductById(
-    variant.ProductId,
+    variant.productId,
     transaction
   )
 
@@ -251,14 +251,14 @@ export const createNonInvoicePurchaseSession = async (
 
 export const findOrCreatePurchaseSession = async (
   {
-    ProductId,
-    OrganizationId,
+    productId,
+    organizationId,
     variant,
     purchase,
     type,
   }: {
-    ProductId: string
-    OrganizationId: string
+    productId: string
+    organizationId: string
     variant: Variant.Record
     purchase?: Purchase.Record
     type: PurchaseSessionType.Product | PurchaseSessionType.Purchase
@@ -267,7 +267,7 @@ export const findOrCreatePurchaseSession = async (
 ) => {
   const purchaseSession = await findPurchaseSession(
     {
-      productId: ProductId,
+      productId: productId,
       purchaseId: purchase?.id,
       type,
     } as PurchaseSessionCookieNameParams,
@@ -275,10 +275,10 @@ export const findOrCreatePurchaseSession = async (
   )
   if (
     core.isNil(purchaseSession) ||
-    purchaseSession.VariantId !== variant.id
+    purchaseSession.variantId !== variant.id
   ) {
     return createNonInvoicePurchaseSession(
-      { variant, OrganizationId, purchase },
+      { variant, organizationId, purchase },
       transaction
     )
   }
@@ -298,26 +298,26 @@ const createInvoicePurchaseSession = async (
   transaction: DbTransaction
 ) => {
   const customerProfile = await selectCustomerProfileById(
-    invoice.CustomerProfileId,
+    invoice.customerProfileId,
     transaction
   )
   const purchaseSession = await insertPurchaseSession(
     {
       status: PurchaseSessionStatus.Open,
       type: PurchaseSessionType.Invoice,
-      InvoiceId: invoice.id,
-      OrganizationId: invoice.OrganizationId,
-      CustomerProfileId: invoice.CustomerProfileId,
+      invoiceId: invoice.id,
+      organizationId: invoice.organizationId,
+      customerProfileId: invoice.customerProfileId,
       customerEmail: customerProfile.email,
       customerName: customerProfile.name,
       livemode: invoice.livemode,
-      PurchaseId: null,
-      VariantId: null,
+      purchaseId: null,
+      variantId: null,
     },
     transaction
   )
   const organization = await selectOrganizationById(
-    invoice.OrganizationId,
+    invoice.organizationId,
     transaction
   )
   const paymentIntent =

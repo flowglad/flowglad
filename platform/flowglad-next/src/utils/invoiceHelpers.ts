@@ -54,7 +54,7 @@ export const updateInvoiceTransaction = async (
   }
   const existingInvoiceLineItems = await selectInvoiceLineItems(
     {
-      InvoiceId: updatedInvoice.id,
+      invoiceId: updatedInvoice.id,
     },
     transaction
   )
@@ -91,7 +91,7 @@ export const updateInvoiceTransaction = async (
   )
   const updatedInvoiceLineItems = await selectInvoiceLineItems(
     {
-      InvoiceId: updatedInvoice.id,
+      invoiceId: updatedInvoice.id,
     },
     transaction
   )

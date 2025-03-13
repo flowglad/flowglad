@@ -12,7 +12,7 @@ interface ArchiveVariantModalProps {
   setIsOpen: (isOpen: boolean) => void
   variant: {
     id: string
-    ProductId: string
+    productId: string
     active: boolean
   }
 }
@@ -30,7 +30,7 @@ const ArchiveVariantModal: React.FC<ArchiveVariantModalProps> = ({
     const data = {
       variant: {
         id: variant.id,
-        ProductId: variant.ProductId,
+        productId: variant.productId,
         active: !variant.active,
       },
     }
