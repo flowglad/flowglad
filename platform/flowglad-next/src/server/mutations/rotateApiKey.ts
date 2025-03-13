@@ -21,7 +21,7 @@ export const rotateApiKeyProcedure = protectedProcedure
           transaction
         )
         const organization = await selectOrganizationById(
-          existingApiKey.OrganizationId,
+          existingApiKey.organizationId,
           transaction
         )
         // Rotate the key in Unkey

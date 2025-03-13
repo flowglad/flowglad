@@ -108,7 +108,7 @@ export const selectSubscriptionsToBeCancelled = async (
 }
 
 export const selectSubscriptionsTableRowData = async (
-  OrganizationId: string,
+  organizationId: string,
   transaction: DbTransaction
 ) => {
   const subscriptionsRowData = await transaction
@@ -121,11 +121,11 @@ export const selectSubscriptionsTableRowData = async (
     .from(subscriptions)
     .innerJoin(
       customerProfiles,
-      eq(subscriptions.CustomerProfileId, customerProfiles.id)
+      eq(subscriptions.customerProfileId, customerProfiles.id)
     )
-    .innerJoin(variants, eq(subscriptions.VariantId, variants.id))
-    .innerJoin(products, eq(variants.ProductId, products.id))
-    .where(eq(subscriptions.OrganizationId, OrganizationId))
+    .innerJoin(variants, eq(subscriptions.variantId, variants.id))
+    .innerJoin(products, eq(variants.productId, products.id))
+    .where(eq(subscriptions.organizationId, organizationId))
     .orderBy(desc(subscriptions.createdAt))
 
   return subscriptionsRowData.map((row) =>

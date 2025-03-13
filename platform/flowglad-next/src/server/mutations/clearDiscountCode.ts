@@ -32,7 +32,7 @@ export const clearDiscountCode = publicProcedure
         {
           purchaseSession: {
             ...purchaseSession,
-            DiscountId: null,
+            discountId: null,
           },
           purchaseId: maybePurchaseId,
         },

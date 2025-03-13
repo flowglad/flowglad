@@ -89,7 +89,7 @@ async function migrateTestmodeProductsVariantsAndCustomersToStripeSandbox(
       variants: variants,
     })
     .from(products)
-    .innerJoin(variants, eq(products.id, variants.ProductId))
+    .innerJoin(variants, eq(products.id, variants.productId))
     .where(eq(products.livemode, false))
   const productsMap = new Map<
     string,

@@ -29,8 +29,8 @@ const columns = {
   description: text('description'),
   imageURL: text('imageURL'),
   stripeProductId: text('stripeProductId').unique(),
-  OrganizationId: notNullStringForeignKey(
-    'OrganizationId',
+  organizationId: notNullStringForeignKey(
+    'organization_id',
     organizations
   ),
   displayFeatures: jsonb('displayFeatures'),
@@ -42,14 +42,14 @@ export const products = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(PRODUCTS_TABLE_NAME, [table.OrganizationId]),
+      constructIndex(PRODUCTS_TABLE_NAME, [table.organizationId]),
       constructIndex(PRODUCTS_TABLE_NAME, [table.active]),
       constructIndex(PRODUCTS_TABLE_NAME, [table.stripeProductId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
       }),
       livemodePolicy(),
     ]
@@ -88,7 +88,7 @@ export const productsUpdateSchema = productsInsertSchema
   })
 
 const readOnlyColumns = {
-  OrganizationId: true,
+  organizationId: true,
   livemode: true,
 } as const
 

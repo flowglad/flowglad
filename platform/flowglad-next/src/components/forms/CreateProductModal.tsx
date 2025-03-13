@@ -18,7 +18,7 @@ const defaultVariant: Variant.ClientOtherInsert = {
   name: '',
   priceType: PriceType.SinglePayment,
   unitPrice: 100,
-  ProductId: '1',
+  productId: '1',
   isDefault: true,
   intervalCount: null,
   intervalUnit: null,

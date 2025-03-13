@@ -50,7 +50,7 @@ const InvoiceFormFields = ({
   const { data } = trpc.customerProfiles.list.useQuery({
     cursor: encodeCursor({
       parameters: {
-        OrganizationId: organization!.id,
+        organizationId: organization!.id,
       },
     }),
   })
@@ -68,23 +68,23 @@ const InvoiceFormFields = ({
     invoice: Invoice.Insert
     autoSend: boolean
   }>()
-  const CustomerProfileId = watch('invoice.CustomerProfileId')
+  const customerProfileId = watch('invoice.customerProfileId')
   const { data: associatedCustomerProfileData } =
     trpc.customerProfiles.internal__getById.useQuery(
-      { id: CustomerProfileId! },
-      { enabled: !!CustomerProfileId }
+      { id: customerProfileId! },
+      { enabled: !!customerProfileId }
     )
   const { data: invoicesForCustomerProfile } =
     trpc.invoices.list.useQuery(
       {
         cursor: encodeCursor({
           parameters: {
-            CustomerProfileId: CustomerProfileId,
+            customerProfileId: customerProfileId,
           },
         }),
       },
       {
-        enabled: !!CustomerProfileId,
+        enabled: !!customerProfileId,
       }
     )
   const totalInvoicesForCustomerProfile =
@@ -114,7 +114,7 @@ const InvoiceFormFields = ({
           disabled
         />
         <Controller
-          name="invoice.CustomerProfileId"
+          name="invoice.customerProfileId"
           control={control}
           render={({ field }) => (
             <Select

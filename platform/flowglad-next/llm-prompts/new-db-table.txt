@@ -13,7 +13,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
   - If the schema requires a new enum, declare and export that enum in src/types.ts, and then use that enum in the schema via pgEnumColumn.
   - Add pgPolicy to the schema to enable row level security. By default, the policy should be "permissive", and the "to" should be "authenticated". The "for" should be "all". And the policy can be:
   ```ts
-  using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships") // if there is a foreign key to a table that has an OrganizationId, you can use that instead
+  using: sql`"organizationId" in (select "organizationId" from "Memberships") // if there is a foreign key to a table that has an organizationId, you can use that instead
   ```
   - Here's a quick example of what the start of the file should look like, roughly:
   ```ts
@@ -39,8 +39,8 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     TABLE_NAME,
     {
       ...tableBase('unicornRider'),
-      OrganizationId: notNullStringForeignKey(
-        'OrganizationId',
+      organizationId: notNullStringForeignKey(
+        'organization_id',
         organizations
       ),
       superSecretColumn: text('superSecretColumn').notNull(),
@@ -55,14 +55,14 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     },
     (table) => {
       return [
-        constructIndex(TABLE_NAME, [table.OrganizationId]),
+        constructIndex(TABLE_NAME, [table.organizationId]),
         constructIndex(TABLE_NAME, [table.status]),
         constructUniquenessIndex(TABLE_NAME, [table.email]),
         pgPolicy('Enable read for own organizations', {
           as: 'permissive',
           to: 'authenticated',
           for: 'all',
-          using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+          using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
         }),
       ]
     }
@@ -122,7 +122,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
         email: true,
       }
       const readOnlyColumns = {
-        OrganizationId: true,
+        organizationId: true,
       } as const
 
       const hiddenColumns = {

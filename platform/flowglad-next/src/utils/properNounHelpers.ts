@@ -12,7 +12,7 @@ import {
 
 interface CreateProperNounUpsertParams<T> {
   record: T
-  OrganizationId: string
+  organizationId: string
 }
 
 export const databaseTablesForNoun: Record<Nouns, string> = {
@@ -30,7 +30,7 @@ export const productRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.Product,
     name: params.record.name,
-    OrganizationId: params.OrganizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -42,7 +42,7 @@ export const variantRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.Variant,
     name: params.record.name ?? '',
-    OrganizationId: params.OrganizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -54,7 +54,7 @@ export const discountRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.Discount,
     name: params.record.name,
-    OrganizationId: params.OrganizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -66,7 +66,7 @@ export const fileRecordToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.File,
     name: params.record.name,
-    OrganizationId: params.OrganizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
@@ -78,14 +78,14 @@ export const customerProfileToProperNounUpsert = (
     EntityId: params.record.id,
     entityType: Nouns.CustomerProfile,
     name: params.record.name ?? params.record.email,
-    OrganizationId: params.OrganizationId,
+    organizationId: params.organizationId,
     livemode: params.record.livemode,
   }
 }
 
 export const supabasePayloadToProperNounUpsert = async (
   payload: SupabaseInsertPayload | SupabaseUpdatePayload,
-  OrganizationId: string
+  organizationId: string
 ): Promise<ProperNoun.Insert> => {
   let properNounUpsert: ProperNoun.Insert | null = null
 
@@ -93,21 +93,21 @@ export const supabasePayloadToProperNounUpsert = async (
     case 'CustomerProfiles':
       properNounUpsert = customerProfileToProperNounUpsert({
         record: payload.record as CustomerProfile.Record,
-        OrganizationId: (payload.record as CustomerProfile.Record)
-          .OrganizationId,
+        organizationId: (payload.record as CustomerProfile.Record)
+          .organizationId,
       })
       break
     case 'Products':
       properNounUpsert = productRecordToProperNounUpsert({
         record: payload.record as Product.Record,
-        OrganizationId: (payload.record as Product.Record)
-          .OrganizationId,
+        organizationId: (payload.record as Product.Record)
+          .organizationId,
       })
       break
     case 'Variants':
       properNounUpsert = variantRecordToProperNounUpsert({
         record: payload.record as Variant.Record,
-        OrganizationId,
+        organizationId,
       })
       break
     default:

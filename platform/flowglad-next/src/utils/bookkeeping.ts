@@ -10,7 +10,7 @@ import {
   selectCustomerProfileById,
   selectCustomerProfiles,
   updateCustomerProfile,
-  upsertCustomerProfileByCustomerIdAndOrganizationId,
+  upsertCustomerProfileBycustomerIdAndorganizationId,
 } from '@/db/tableMethods/customerProfileMethods'
 import {
   deleteOpenInvoicesForPurchase,
@@ -70,10 +70,10 @@ export const updatePurchaseStatusToReflectLatestPayment = async (
   } else if (paymentStatus === PaymentStatus.Processing) {
     purchaseStatus = PurchaseStatus.Pending
   }
-  if (payment.PurchaseId) {
+  if (payment.purchaseId) {
     await updatePurchase(
       {
-        id: payment.PurchaseId,
+        id: payment.purchaseId,
         status: purchaseStatus,
         purchaseDate: payment.chargeDate,
       },
@@ -99,7 +99,7 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
   const [invoiceAndLineItems] =
     await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
       {
-        id: payment.InvoiceId,
+        id: payment.invoiceId,
       },
       transaction
     )
@@ -109,7 +109,7 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
 
   const successfulPaymentsForInvoice = await selectPayments(
     {
-      InvoiceId: payment.InvoiceId,
+      invoiceId: payment.invoiceId,
       status: PaymentStatus.Succeeded,
     },
     transaction
@@ -145,24 +145,24 @@ export const createInitialInvoiceForPurchase = async (
   const { purchase } = params
   const [existingInvoice] = await selectInvoices(
     {
-      PurchaseId: purchase.id,
+      purchaseId: purchase.id,
     },
     transaction
   )
   const customerProfile = await selectCustomerProfileById(
-    purchase.CustomerProfileId,
+    purchase.customerProfileId,
     transaction
   )
-  const { CustomerProfileId, OrganizationId, VariantId } = purchase
+  const { customerProfileId, organizationId, variantId } = purchase
   const [{ variant, organization }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: VariantId },
+      { id: variantId },
       transaction
     )
   if (existingInvoice) {
     const invoiceLineItems = await selectInvoiceLineItems(
       {
-        InvoiceId: existingInvoice.id,
+        invoiceId: existingInvoice.id,
       },
       transaction
     )
@@ -175,8 +175,8 @@ export const createInitialInvoiceForPurchase = async (
   }
 
   const invoiceLineItemInput: InvoiceLineItem.Insert = {
-    InvoiceId: '1',
-    VariantId,
+    invoiceId: '1',
+    variantId,
     description: `${purchase.name} First Invoice`,
     quantity: 1,
     price: purchase.firstInvoiceValue!,
@@ -193,9 +193,9 @@ export const createInitialInvoiceForPurchase = async (
     invoiceLineItemInput.description = `${purchase.name} - Trial Period`
     invoiceLineItemInput.price = 0
   }
-  const invoicesForCustomerProfileId = await selectInvoices(
+  const invoicesForcustomerProfileId = await selectInvoices(
     {
-      CustomerProfileId,
+      customerProfileId,
     },
     transaction
   )
@@ -207,21 +207,21 @@ export const createInitialInvoiceForPurchase = async (
   const { billingAddress, bankPaymentOnly } = purchase
   const invoiceInsert: Invoice.Insert = {
     livemode: purchase.livemode,
-    CustomerProfileId: purchase.CustomerProfileId,
-    PurchaseId: purchase.id,
+    customerProfileId: purchase.customerProfileId,
+    purchaseId: purchase.id,
     status: InvoiceStatus.Draft,
     invoiceNumber: core.createInvoiceNumber(
       customerProfile.invoiceNumberBase ?? '',
-      invoicesForCustomerProfileId.length
+      invoicesForcustomerProfileId.length
     ),
     currency: variant.currency,
     type: InvoiceType.Purchase,
-    BillingPeriodId: null,
+    billingPeriodId: null,
     subtotal,
     applicationFee: 0,
     taxRatePercentage: '0',
     bankPaymentOnly,
-    OrganizationId,
+    organizationId,
     taxCountry: billingAddress
       ? billingAddressSchema.parse(billingAddress).address.country
       : null,
@@ -234,14 +234,14 @@ export const createInitialInvoiceForPurchase = async (
   const invoiceLineItems = existingInvoice
     ? await selectInvoiceLineItems(
         {
-          InvoiceId: invoice.id,
+          invoiceId: invoice.id,
         },
         transaction
       )
     : await insertInvoiceLineItems(
         invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
           ...invoiceLineItemInsert,
-          InvoiceId: invoice.id,
+          invoiceId: invoice.id,
         })),
         transaction
       )
@@ -274,19 +274,19 @@ export const createOpenPurchase = async (
   const membershipsAndOrganization = results[0]
   const [{ variant }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: payload.VariantId },
+      { id: payload.variantId },
       transaction
     )
 
   let customerProfile = await selectCustomerProfileById(
-    payload.CustomerProfileId,
+    payload.customerProfileId,
     transaction
   )
 
   let stripePaymentIntentId: string | null = null
   const purchaseInsert: Purchase.Insert = {
     ...payload,
-    OrganizationId: membershipsAndOrganization.organization.id,
+    organizationId: membershipsAndOrganization.organization.id,
     status: PurchaseStatus.Open,
     livemode,
   }
@@ -339,8 +339,8 @@ export const createOpenPurchase = async (
         id: invoice.id,
         stripePaymentIntentId,
         type: InvoiceType.Purchase,
-        PurchaseId: purchase.id,
-        BillingPeriodId: null,
+        purchaseId: purchase.id,
+        billingPeriodId: null,
       },
       transaction
     )
@@ -352,7 +352,7 @@ export const purchaseSubscriptionFieldsUpdated = (
   purchase: Purchase.Record,
   payload: Purchase.Update
 ) => {
-  const variantUpdated = payload.VariantId !== purchase.VariantId
+  const variantUpdated = payload.variantId !== purchase.variantId
   const trialPeriodDaysUpdated =
     payload.trialPeriodDays !== purchase.trialPeriodDays
   const pricePerBillingCycleUpdated =
@@ -384,7 +384,7 @@ export const editOpenPurchase = async (
     throw new Error(`Purchase ${payload.id} not found`)
   }
   const newVariant = await selectVariantById(
-    payload.VariantId ?? oldPurchase.VariantId,
+    payload.variantId ?? oldPurchase.variantId,
     transaction
   )
   const purchase = await updatePurchase(payload, transaction)
@@ -400,7 +400,7 @@ export const editOpenPurchase = async (
 
   if (newVariant.priceType === PriceType.Subscription) {
     const oldVariant = await selectVariantById(
-      oldPurchase.VariantId,
+      oldPurchase.variantId,
       transaction
     )
     /**
@@ -418,17 +418,17 @@ export const editOpenPurchase = async (
     const [{ invoiceLineItems, ...invoice }] =
       await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
         {
-          PurchaseId: purchase.id,
+          purchaseId: purchase.id,
         },
         transaction
       )
     const customerProfile = await selectCustomerProfileById(
-      purchase.CustomerProfileId,
+      purchase.customerProfileId,
       transaction
     )
 
     const organization = await selectOrganizationById(
-      purchase.OrganizationId,
+      purchase.organizationId,
       transaction
     )
     const paymentIntent = await createPaymentIntentForInvoice({
@@ -446,8 +446,8 @@ export const editOpenPurchase = async (
         stripePaymentIntentId: paymentIntent.id,
         bankPaymentOnly,
         type: InvoiceType.Purchase,
-        PurchaseId: purchase.id,
-        BillingPeriodId: null,
+        purchaseId: purchase.id,
+        billingPeriodId: null,
       },
       transaction
     )
@@ -455,7 +455,7 @@ export const editOpenPurchase = async (
     const openPurchaseSessions =
       await selectOpenNonExpiredPurchaseSessions(
         {
-          PurchaseId: payload.id,
+          purchaseId: payload.id,
         },
         transaction
       )
@@ -463,7 +463,7 @@ export const editOpenPurchase = async (
       await updatePurchaseSessionsForOpenPurchase(
         {
           stripePaymentIntentId: paymentIntent.id,
-          PurchaseId: payload.id,
+          purchaseId: payload.id,
         },
         transaction
       )
@@ -485,10 +485,10 @@ export const createOrUpdateCustomerProfile = async (
   { transaction }: AuthenticatedTransactionParams
 ) => {
   let [customerProfile] =
-    await upsertCustomerProfileByCustomerIdAndOrganizationId(
+    await upsertCustomerProfileBycustomerIdAndorganizationId(
       {
         ...payload.customerProfile,
-        CustomerId: payload.customer.id,
+        customerId: payload.customer.id,
       },
       transaction
     )
@@ -498,8 +498,8 @@ export const createOrUpdateCustomerProfile = async (
   if (!customerProfile) {
     const findResult = await selectCustomerProfiles(
       {
-        CustomerId: payload.customerProfile.CustomerId,
-        OrganizationId: payload.customerProfile.OrganizationId,
+        customerId: payload.customerProfile.customerId,
+        organizationId: payload.customerProfile.organizationId,
       },
       transaction
     )

@@ -88,7 +88,7 @@ const PurchasesTable = ({
     []
   )
   payments.forEach((payment) => {
-    paymentsByPurchaseId.set(payment.PurchaseId ?? '-1', [payment])
+    paymentsByPurchaseId.set(payment.purchaseId ?? '-1', [payment])
   })
   const columns = useMemo(
     () =>

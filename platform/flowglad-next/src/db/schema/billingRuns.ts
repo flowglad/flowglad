@@ -29,7 +29,7 @@ export const billingRuns = pgTable(
   TABLE_NAME,
   {
     ...tableBase('billing_run'),
-    BillingPeriodId: notNullStringForeignKey(
+    billingPeriodId: notNullStringForeignKey(
       'billing_period_id',
       billingPeriods
     ),
@@ -44,11 +44,11 @@ export const billingRuns = pgTable(
     stripePaymentIntentId: text('stripe_payment_intent_id'),
     attemptNumber: integer('attempt_number').notNull().default(1),
     errorDetails: jsonb('error_details'),
-    SubscriptionId: notNullStringForeignKey(
+    subscriptionId: notNullStringForeignKey(
       'subscription_id',
       subscriptions
     ),
-    PaymentMethodId: notNullStringForeignKey(
+    paymentMethodId: notNullStringForeignKey(
       'payment_method_id',
       paymentMethods
     ),
@@ -61,13 +61,13 @@ export const billingRuns = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.BillingPeriodId]),
+      constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.status]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
-        using: sql`"BillingPeriodId" in (select "id" from "BillingPeriods" where "SubscriptionId" in (select "id" from "Subscriptions" where "OrganizationId" in (select "OrganizationId" from "Memberships")))`,
+        using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organizationId" in (select "organizationId" from "Memberships")))`,
       }),
     ]
   }
@@ -95,7 +95,7 @@ export const billingRunsUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  BillingPeriodId: true,
+  billingPeriodId: true,
 } as const
 
 const hiddenColumns = {

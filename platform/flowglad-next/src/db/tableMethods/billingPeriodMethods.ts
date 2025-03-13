@@ -73,19 +73,19 @@ export const selectBillingPeriodInvoiceSubscriptionWithCustomerProfileAndOrganiz
       .from(billingPeriods)
       .innerJoin(
         subscriptions,
-        eq(billingPeriods.SubscriptionId, subscriptions.id)
+        eq(billingPeriods.subscriptionId, subscriptions.id)
       )
       .innerJoin(
         organizations,
-        eq(subscriptions.OrganizationId, organizations.id)
+        eq(subscriptions.organizationId, organizations.id)
       )
       .innerJoin(
         customerProfiles,
-        eq(subscriptions.CustomerProfileId, customerProfiles.id)
+        eq(subscriptions.customerProfileId, customerProfiles.id)
       )
       .innerJoin(
         invoices,
-        eq(invoices.BillingPeriodId, billingPeriods.id)
+        eq(invoices.billingPeriodId, billingPeriods.id)
       )
       .where(eq(billingPeriods.id, billingPeriodId))
 
@@ -116,7 +116,7 @@ export const selectCurrentBillingPeriodForSubscription = async (
     .from(billingPeriods)
     .where(
       and(
-        eq(billingPeriods.SubscriptionId, subscriptionId),
+        eq(billingPeriods.subscriptionId, subscriptionId),
         lt(billingPeriods.startDate, new Date()),
         gte(billingPeriods.endDate, new Date())
       )
@@ -214,7 +214,7 @@ export const selectSubscriptionsAndBillingPeriodsDueForNextBillingPeriodCreation
       .from(subscriptions)
       .innerJoin(
         billingPeriods,
-        eq(subscriptions.id, billingPeriods.SubscriptionId)
+        eq(subscriptions.id, billingPeriods.subscriptionId)
       )
       .where(
         and(

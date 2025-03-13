@@ -62,11 +62,11 @@ export const InvoiceFormLineItemsField = () => {
 
   const addAnItemClickHandler = () => {
     const newItem: InvoiceLineItem.ClientInsert = {
-      InvoiceId: '1',
+      invoiceId: '1',
       description: '',
       quantity: 1,
       price: 0,
-      VariantId: null,
+      variantId: null,
     }
     append(newItem)
   }

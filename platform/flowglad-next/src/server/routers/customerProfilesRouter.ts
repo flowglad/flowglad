@@ -87,9 +87,9 @@ const createCustomerProfileProcedure = protectedProcedure
   .input(createCustomerProfileInputSchema)
   .output(createCustomerProfileOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
-      throw new Error('OrganizationId is required')
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new Error('organizationId is required')
     }
     /**
      * We can't allow an insert on to customers without
@@ -132,8 +132,8 @@ const createCustomerProfileProcedure = protectedProcedure
               customer: customerRecord,
               customerProfile: {
                 ...customerProfile,
-                OrganizationId,
-                CustomerId: customerRecord.id,
+                organizationId,
+                customerId: customerRecord.id,
                 livemode: ctx.livemode,
               },
             },
@@ -204,18 +204,18 @@ export const getCustomerProfile = protectedProcedure
     z.object({ customerProfile: customerProfileClientSelectSchema })
   )
   .query(async ({ input, ctx }) => {
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'OrganizationId is required',
+        message: 'organizationId is required',
       })
     }
 
     const customerProfiles = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectCustomerProfiles(
-          { externalId: input.externalId, OrganizationId },
+          { externalId: input.externalId, organizationId },
           transaction
         )
       },
@@ -275,9 +275,9 @@ export const getCustomerBilling = protectedProcedure
     })
   )
   .query(async ({ input, ctx }) => {
-    const OrganizationId = ctx.OrganizationId
-    if (!OrganizationId) {
-      throw new Error('OrganizationId is required')
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new Error('organizationId is required')
     }
     const {
       customerProfile,
@@ -288,24 +288,24 @@ export const getCustomerBilling = protectedProcedure
     } = await authenticatedTransaction(
       async ({ transaction }) => {
         const customerProfiles = await selectCustomerProfiles(
-          { ...input, OrganizationId },
+          { ...input, organizationId },
           transaction
         )
         const subscriptions = await selectRichSubscriptions(
-          { CustomerProfileId: customerProfiles[0].id },
+          { customerProfileId: customerProfiles[0].id },
           transaction
         )
         const catalog = await selectCatalog(
-          { OrganizationId },
+          { organizationId },
           transaction
         )
         const invoices =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-            { CustomerProfileId: customerProfiles[0].id },
+            { customerProfileId: customerProfiles[0].id },
             transaction
           )
         const paymentMethods = await selectPaymentMethods(
-          { CustomerProfileId: customerProfiles[0].id },
+          { customerProfileId: customerProfiles[0].id },
           transaction
         )
         const currentSubscriptions = subscriptions.filter((item) => {

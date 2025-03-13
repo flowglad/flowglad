@@ -78,7 +78,7 @@ export const updateVariant = createUpdateFunction(
 
 export const selectVariantsAndProductsForOrganization = async (
   whereConditions: Partial<Variant.Record>,
-  OrganizationId: string,
+  organizationId: string,
   transaction: DbTransaction
 ) => {
   let query = transaction
@@ -87,11 +87,11 @@ export const selectVariantsAndProductsForOrganization = async (
       product: products,
     })
     .from(variants)
-    .innerJoin(products, eq(products.id, variants.ProductId))
+    .innerJoin(products, eq(products.id, variants.productId))
     .$dynamic()
 
   const whereClauses: SQLWrapper[] = [
-    eq(products.OrganizationId, OrganizationId),
+    eq(products.organizationId, organizationId),
   ]
   if (Object.keys(whereConditions).length > 0) {
     const whereClause = whereClauseFromObject(
@@ -121,7 +121,7 @@ export const selectVariantsAndProductByProductId = async (
       product: products,
     })
     .from(variants)
-    .innerJoin(products, eq(products.id, variants.ProductId))
+    .innerJoin(products, eq(products.id, variants.productId))
     .where(eq(products.id, productId))
 
   const parsedResults: {
@@ -175,10 +175,10 @@ export const selectVariantProductAndOrganizationByVariantWhere =
         organization: organizations,
       })
       .from(variants)
-      .innerJoin(products, eq(products.id, variants.ProductId))
+      .innerJoin(products, eq(products.id, variants.productId))
       .innerJoin(
         organizations,
-        eq(products.OrganizationId, organizations.id)
+        eq(products.organizationId, organizations.id)
       )
       .$dynamic()
 

@@ -70,7 +70,7 @@ export const bulkInsertBillingPeriodItems = createBulkInsertFunction(
   config
 )
 
-export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId =
+export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId =
   async (billingPeriodId: string, transaction: DbTransaction) => {
     const result = await transaction
       .select({
@@ -83,21 +83,21 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
       .from(billingPeriodItems)
       .innerJoin(
         billingPeriods,
-        eq(billingPeriodItems.BillingPeriodId, billingPeriods.id)
+        eq(billingPeriodItems.billingPeriodId, billingPeriods.id)
       )
       .innerJoin(
         subscriptions,
-        eq(billingPeriods.SubscriptionId, subscriptions.id)
+        eq(billingPeriods.subscriptionId, subscriptions.id)
       )
       .innerJoin(
         organizations,
-        eq(subscriptions.OrganizationId, organizations.id)
+        eq(subscriptions.organizationId, organizations.id)
       )
       .innerJoin(
         customerProfiles,
-        eq(subscriptions.CustomerProfileId, customerProfiles.id)
+        eq(subscriptions.customerProfileId, customerProfiles.id)
       )
-      .where(eq(billingPeriodItems.BillingPeriodId, billingPeriodId))
+      .where(eq(billingPeriodItems.billingPeriodId, billingPeriodId))
 
     const {
       organization,
@@ -130,7 +130,7 @@ export const selectBillingPeriodAndItemsForDate = async (
     .from(billingPeriods)
     .innerJoin(
       billingPeriodItems,
-      eq(billingPeriods.id, billingPeriodItems.BillingPeriodId)
+      eq(billingPeriods.id, billingPeriodItems.billingPeriodId)
     )
     .where(
       and(
@@ -165,7 +165,7 @@ export const selectBillingPeriodAndItemsByBillingPeriodWhere = async (
     .from(billingPeriods)
     .innerJoin(
       billingPeriodItems,
-      eq(billingPeriods.id, billingPeriodItems.BillingPeriodId)
+      eq(billingPeriods.id, billingPeriodItems.billingPeriodId)
     )
     .where(whereClauseFromObject(billingPeriods, whereConditions))
   if (!result[0]) {

@@ -11,7 +11,7 @@ export const subscriptionDummyVariant: Variant.SubscriptionRecord = {
   priceType: PriceType.Subscription,
   unitPrice: 100,
   trialPeriodDays: null,
-  ProductId: '1',
+  productId: '1',
   setupFeeAmount: null,
   isDefault: false,
   stripePriceId: null,

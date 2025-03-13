@@ -68,8 +68,8 @@ export const events = pgTable(
     }),
     objectId: integer('objectId'),
     hash: text('hash').notNull().unique(),
-    OrganizationId: nullableStringForeignKey(
-      'OrganizationId',
+    organizationId: nullableStringForeignKey(
+      'organization_id',
       organizations
     ).notNull(),
   },
@@ -94,7 +94,7 @@ export const events = pgTable(
         as: 'permissive',
         to: 'authenticated',
         for: 'select',
-        using: sql`"OrganizationId" in (select "OrganizationId" from "Memberships")`,
+        using: sql`"organizationId" in (select "organizationId" from "Memberships")`,
       }),
     ]
   }
