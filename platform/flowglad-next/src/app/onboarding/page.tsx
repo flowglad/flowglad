@@ -26,7 +26,7 @@ const OnboardingPage = async () => {
       const membershipsAndOrganizations =
         await selectMembershipAndOrganizations(
           {
-            UserId: userId,
+            userId,
             focused: true,
           },
           transaction

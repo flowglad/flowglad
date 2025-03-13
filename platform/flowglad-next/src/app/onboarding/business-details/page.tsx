@@ -73,14 +73,14 @@ const BusinessDetails = () => {
               />
               <Controller
                 control={control}
-                name="organization.CountryId"
+                name="organization.countryId"
                 render={({ field: { value, onChange } }) => (
                   <Select
                     options={countryOptions}
                     value={value ?? undefined}
                     onValueChange={onChange}
                     placeholder="Select Country"
-                    error={errors.organization?.CountryId?.message}
+                    error={errors.organization?.countryId?.message}
                     hint="Used to determine your default currency"
                   />
                 )}

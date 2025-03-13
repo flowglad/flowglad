@@ -16,7 +16,7 @@ describe('createOrganizationTransaction', () => {
       const input: CreateOrganizationInput = {
         organization: {
           name: organizationName,
-          CountryId: country.id,
+          countryId: country.id,
         },
       }
       return createOrganizationTransaction(

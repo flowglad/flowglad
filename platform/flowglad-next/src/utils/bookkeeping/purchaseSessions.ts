@@ -85,7 +85,7 @@ export const createFeeCalculationForPurchaseSession = async (
       { id: purchaseSession.variantId! },
       transaction
     )
-  const organizationCountryId = organization.CountryId
+  const organizationCountryId = organization.countryId
   if (!organizationCountryId) {
     throw new Error('Organization country id is required')
   }

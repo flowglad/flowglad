@@ -42,7 +42,7 @@ export const selectMembershipById = createSelectById(
 export const upsertMembershipByUserIdAndorganizationId =
   createUpsertFunction(
     memberships,
-    [memberships.UserId, memberships.organizationId],
+    [memberships.userId, memberships.organizationId],
     config
   )
 
@@ -93,7 +93,7 @@ export const selectMembershipsAndUsersByMembershipWhere = async (
       user: users,
     })
     .from(memberships)
-    .innerJoin(users, eq(memberships.UserId, users.id))
+    .innerJoin(users, eq(memberships.userId, users.id))
     .$dynamic()
   if (!R.isEmpty(whereConditions)) {
     query = query.where(
@@ -108,12 +108,12 @@ export const selectMembershipsAndUsersByMembershipWhere = async (
 }
 
 export const selectFocusedMembershipAndOrganization = async (
-  UserId: string,
+  userId: string,
   transaction: DbTransaction
 ) => {
   const [focusedMembership] = await selectMembershipAndOrganizations(
     {
-      UserId,
+      userId,
       focused: true,
     },
     transaction
