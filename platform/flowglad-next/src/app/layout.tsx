@@ -37,7 +37,7 @@ export default async function RootLayout({
       async ({ transaction }) => {
         return await selectMembershipAndOrganizations(
           {
-            UserId: user.id,
+            userId: user.id,
             focused: true,
           },
           transaction

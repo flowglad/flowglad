@@ -257,7 +257,7 @@ export const purchaseToProperNounUpsert = (
   purchase: Purchase.Record
 ): ProperNoun.Insert => {
   return {
-    EntityId: purchase.id,
+    entityId: purchase.id,
     entityType: 'purchase',
     name: purchase.name,
     organizationId: purchase.organizationId,

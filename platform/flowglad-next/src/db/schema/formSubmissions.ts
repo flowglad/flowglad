@@ -15,14 +15,14 @@ import core from '@/utils/core'
 import { FormFieldType } from '@/types'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'FormSubmissions'
+const TABLE_NAME = 'form_submissions'
 
 export const formSubmissions = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('formSubmission'),
-    FormId: notNullStringForeignKey('FormId', forms),
-    UserId: notNullStringForeignKey('UserId', users),
+    ...tableBase('form_submission'),
+    FormId: notNullStringForeignKey('form_id', forms),
+    UserId: notNullStringForeignKey('user_id', users),
     response: jsonb('response').notNull(),
   },
   (table) => {

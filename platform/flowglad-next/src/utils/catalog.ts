@@ -69,7 +69,7 @@ export const createProductTransaction = async (
     },
   ] = await selectMembershipAndOrganizations(
     {
-      UserId: userId,
+      userId,
       focused: true,
     },
     transaction

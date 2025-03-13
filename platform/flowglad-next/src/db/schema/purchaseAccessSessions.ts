@@ -27,7 +27,7 @@ export const purchaseAccessSessions = pgTable(
   TABLE_NAME,
   {
     ...tableBase('pasess'),
-    purchaseId: notNullStringForeignKey('PurchaseId', purchases),
+    purchaseId: notNullStringForeignKey('purchase_id', purchases),
     token: text('token').notNull(),
     source: pgEnumColumn({
       enumName: 'PurchaseAccessSessionSource',

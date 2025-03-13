@@ -155,7 +155,7 @@ describe('fees.ts', () => {
     } as BillingAddress
 
     const organization = {
-      CountryId: '1',
+      countryId: '1',
     } as Organization.Record
 
     const organizationCountry = {

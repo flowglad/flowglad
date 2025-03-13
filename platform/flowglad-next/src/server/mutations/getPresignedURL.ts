@@ -21,7 +21,7 @@ export const getPresignedURL = protectedProcedure
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
-              UserId: userId,
+              userId,
               focused: true,
             },
             transaction
