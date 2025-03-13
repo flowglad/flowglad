@@ -23,40 +23,40 @@ import { sql } from 'drizzle-orm'
 import { subscriptions } from './subscriptions'
 import { paymentMethods } from './paymentMethods'
 
-const TABLE_NAME = 'BillingRuns'
+const TABLE_NAME = 'billing_runs'
 
 export const billingRuns = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('billingRun'),
+    ...tableBase('billing_run'),
     BillingPeriodId: notNullStringForeignKey(
-      'BillingPeriodId',
+      'billing_period_id',
       billingPeriods
     ),
-    scheduledFor: timestamp('scheduledFor').notNull(),
-    startedAt: timestamp('startedAt'),
-    completedAt: timestamp('completedAt'),
+    scheduledFor: timestamp('scheduled_for').notNull(),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
     status: pgEnumColumn({
       enumName: 'BillingRunStatus',
       columnName: 'status',
       enumBase: BillingRunStatus,
     }).notNull(),
-    stripePaymentIntentId: text('stripePaymentIntentId'),
-    attemptNumber: integer('attemptNumber').notNull().default(1),
-    errorDetails: jsonb('errorDetails'),
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
+    attemptNumber: integer('attempt_number').notNull().default(1),
+    errorDetails: jsonb('error_details'),
     SubscriptionId: notNullStringForeignKey(
-      'SubscriptionId',
+      'subscription_id',
       subscriptions
     ),
     PaymentMethodId: notNullStringForeignKey(
-      'PaymentMethodId',
+      'payment_method_id',
       paymentMethods
     ),
     /**
      * Used to deal with out-of-order event deliveries.
      */
     lastPaymentIntentEventTimestamp: timestamp(
-      'lastStripePaymentIntentEventTimestamp'
+      'last_stripe_payment_intent_event_timestamp'
     ),
   },
   (table) => {

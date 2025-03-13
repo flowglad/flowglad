@@ -24,20 +24,20 @@ import { FlowgladApiKeyType } from '@/types'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 
-const TABLE_NAME = 'ApiKeys'
+const TABLE_NAME = 'api_keys'
 
 export const apiKeys = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('apiKey'),
+    ...tableBase('apikey'),
     OrganizationId: notNullStringForeignKey(
-      'OrganizationId',
+      'organization_id',
       organizations
     ),
     name: text('name').notNull(),
     token: text('token').notNull(),
     active: boolean('active').notNull().default(true),
-    unkeyId: text('unkeyId').notNull(),
+    unkeyId: text('unkey_id').notNull(),
     type: pgEnumColumn({
       enumName: 'apiKeyType',
       columnName: 'type',

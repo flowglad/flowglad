@@ -20,24 +20,24 @@ import { createSelectSchema } from 'drizzle-zod'
 import { BillingPeriodStatus } from '@/types'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'BillingPeriods'
+const TABLE_NAME = 'billing_periods'
 
 export const billingPeriods = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('billingPeriod'),
+    ...tableBase('billing_period'),
     SubscriptionId: notNullStringForeignKey(
-      'SubscriptionId',
+      'subscription_id',
       subscriptions
     ),
-    startDate: timestamp('startDate').notNull(),
-    endDate: timestamp('endDate').notNull(),
+    startDate: timestamp('start_date').notNull(),
+    endDate: timestamp('end_date').notNull(),
     status: pgEnumColumn({
       enumName: 'BillingPeriodStatus',
       columnName: 'status',
       enumBase: BillingPeriodStatus,
     }).notNull(),
-    trialPeriod: boolean('trialPeriod').notNull().default(false),
+    trialPeriod: boolean('trial_period').notNull().default(false),
   },
   (table) => {
     return [

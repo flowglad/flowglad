@@ -15,21 +15,21 @@ import core from '@/utils/core'
 import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'BillingPeriodItems'
+const TABLE_NAME = 'billing_period_items'
 
 export const billingPeriodItems = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('billingPeriodItem'),
+    ...tableBase('billing_period_item'),
     BillingPeriodId: notNullStringForeignKey(
-      'BillingPeriodId',
+      'billing_period_id',
       billingPeriods
     ),
     quantity: integer('quantity').notNull(),
-    unitPrice: integer('unitPrice').notNull(),
+    unitPrice: integer('unit_price').notNull(),
     name: text('name').notNull(),
     DiscountRedemptionId: nullableStringForeignKey(
-      'DiscountRedemptionId',
+      'discount_redemption_id',
       discountRedemptions
     ),
     description: text('description').notNull(),

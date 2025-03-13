@@ -12,7 +12,7 @@ import { z } from 'zod'
 import { CountryCode } from '@/types'
 import core from '@/utils/core'
 
-const COUNTRIES_TABLE_NAME = 'Countries'
+const COUNTRIES_TABLE_NAME = 'countries'
 
 export const countries = pgTable(
   COUNTRIES_TABLE_NAME,
