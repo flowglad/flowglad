@@ -39,7 +39,7 @@ const TABLE_NAME = 'Subscriptions'
 const columns = {
   ...tableBase('sub'),
   customerProfileId: notNullStringForeignKey(
-    'customerProfileId',
+    'customer_profile_id',
     customerProfiles
   ),
   organizationId: notNullStringForeignKey(
@@ -70,7 +70,7 @@ const columns = {
   metadata: jsonb('metadata'),
   canceledAt: timestamp('canceledAt'),
   cancelScheduledAt: timestamp('cancelScheduledAt'),
-  variantId: notNullStringForeignKey('VariantId', variants),
+  variantId: notNullStringForeignKey('variant_id', variants),
   interval: pgEnumColumn({
     enumName: 'IntervalUnit',
     columnName: 'interval',

@@ -47,7 +47,7 @@ export const payments = pgTable(
   TABLE_NAME,
   {
     ...tableBase('pym'),
-    invoiceId: notNullStringForeignKey('invoiceId', invoices),
+    invoiceId: notNullStringForeignKey('invoice_id', invoices),
     amount: integer('amount').notNull(),
     paymentMethod: pgEnumColumn({
       enumName: 'PaymentMethod',
@@ -74,7 +74,7 @@ export const payments = pgTable(
       organizations
     ),
     customerProfileId: notNullStringForeignKey(
-      'customerProfileId',
+      'customer_profile_id',
       customerProfiles
     ),
     purchaseId: nullableStringForeignKey('PurchaseId', purchases),
@@ -83,7 +83,7 @@ export const payments = pgTable(
       paymentMethods
     ),
     billingPeriodId: nullableStringForeignKey(
-      'billingPeriodId',
+      'billing_period_id',
       billingPeriods
     ),
     stripePaymentIntentId: text('stripePaymentIntentId').notNull(),

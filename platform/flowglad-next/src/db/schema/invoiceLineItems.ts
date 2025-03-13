@@ -27,9 +27,9 @@ export const invoiceLineItems = pgTable(
   TABLE_NAME,
   {
     ...tableBase('inv_li'),
-    invoiceId: notNullStringForeignKey('invoiceId', invoices),
+    invoiceId: notNullStringForeignKey('invoice_id', invoices),
     quantity: integer('quantity').notNull(),
-    variantId: nullableStringForeignKey('VariantId', variants),
+    variantId: nullableStringForeignKey('variant_id', variants),
     description: text('description'),
     price: integer('price').notNull(),
   },

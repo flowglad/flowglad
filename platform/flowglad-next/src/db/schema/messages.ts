@@ -21,7 +21,7 @@ export const messages = pgTable(
   {
     ...tableBase('msg'),
     customerProfileId: nullableStringForeignKey(
-      'customerProfileId',
+      'customer_profile_id',
       customerProfiles
     ),
     messageSentAt: timestamp('messageSentAt').notNull(),

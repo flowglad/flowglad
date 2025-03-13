@@ -26,7 +26,7 @@ const TABLE_NAME = 'PaymentMethods'
 const columns = {
   ...tableBase('pm'),
   customerProfileId: notNullStringForeignKey(
-    'customerProfileId',
+    'customer_profile_id',
     customerProfiles
   ),
   billingDetails: jsonb('billingDetails').notNull(),

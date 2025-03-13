@@ -22,15 +22,15 @@ const TABLE_NAME = 'DiscountRedemptions'
 export const discountRedemptions = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('discountRedemption'),
-    discountId: notNullStringForeignKey('discountId', discounts),
-    purchaseId: notNullStringForeignKey('PurchaseId', purchases),
-    discountName: text('discountName').notNull(),
-    discountCode: text('discountCode').notNull(),
-    discountAmount: integer('discountAmount').notNull(),
+    ...tableBase('discount_redemption'),
+    discountId: notNullStringForeignKey('discount_id', discounts),
+    purchaseId: notNullStringForeignKey('purchase_id', purchases),
+    discountName: text('discount_name').notNull(),
+    discountCode: text('discount_code').notNull(),
+    discountAmount: integer('discount_amount').notNull(),
     discountAmountType: pgEnumColumn({
       enumName: 'DiscountAmountType',
-      columnName: 'discountAmountType',
+      columnName: 'discount_amount_type',
       enumBase: DiscountAmountType,
     }).notNull(),
     duration: pgEnumColumn({
@@ -38,7 +38,7 @@ export const discountRedemptions = pgTable(
       columnName: 'duration',
       enumBase: DiscountDuration,
     }).notNull(),
-    numberOfPayments: integer('numberOfPayments'),
+    numberOfPayments: integer('number_of_payments'),
   },
   (table) => {
     return [

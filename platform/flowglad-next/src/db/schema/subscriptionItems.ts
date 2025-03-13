@@ -24,13 +24,13 @@ const TABLE_NAME = 'SubscriptionItems'
 const columns = {
   ...tableBase('si'),
   subscriptionId: notNullStringForeignKey(
-    'subscriptionId',
+    'subscription_id',
     subscriptions
   ),
   name: text('name'),
-  addedDate: timestamp('addedDate').notNull(),
-  variantId: notNullStringForeignKey('VariantId', variants),
-  unitPrice: integer('unitPrice').notNull(),
+  addedDate: timestamp('added_date').notNull(),
+  variantId: notNullStringForeignKey('variant_id', variants),
+  unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
   metadata: jsonb('metadata'),
 }

@@ -51,8 +51,8 @@ export const feeCalculations = pgTable(
       purchaseSessions
     ),
     purchaseId: nullableStringForeignKey('PurchaseId', purchases),
-    discountId: nullableStringForeignKey('discountId', discounts),
-    variantId: nullableStringForeignKey('VariantId', variants),
+    discountId: nullableStringForeignKey('discount_id', discounts),
+    variantId: nullableStringForeignKey('variant_id', variants),
     paymentMethodType: pgEnumColumn({
       enumName: 'PaymentMethodType',
       columnName: 'paymentMethodType',
@@ -74,7 +74,7 @@ export const feeCalculations = pgTable(
     stripeTaxCalculationId: text('stripeTaxCalculationId'),
     stripeTaxTransactionId: text('stripeTaxTransactionId'),
     billingPeriodId: nullableStringForeignKey(
-      'billingPeriodId',
+      'billing_period_id',
       billingPeriods
     ),
     currency: pgEnumColumn({

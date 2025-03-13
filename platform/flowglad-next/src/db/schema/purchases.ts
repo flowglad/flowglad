@@ -41,44 +41,42 @@ const columns = {
     enumBase: PurchaseStatus,
   }).default(PurchaseStatus.Open),
   customerProfileId: notNullStringForeignKey(
-    'customerProfileId',
+    'customer_profile_id',
     customerProfiles
   ),
   organizationId: notNullStringForeignKey(
     'organization_id',
     organizations
   ),
-  billingCycleAnchor: timestamp('billingCycleAnchor'),
+  billingCycleAnchor: timestamp('billing_cycle_anchor'),
   /**
    * Billing fields
    */
-  // stripeSetupIntentId: text('stripeSetupIntentId').unique(),
-  stripesubscriptionId: text('stripesubscriptionId').unique(),
-  variantId: notNullStringForeignKey('VariantId', variants),
+  variantId: notNullStringForeignKey('variant_id', variants),
   quantity: integer('quantity').notNull(),
   priceType: pgEnumColumn({
     enumName: 'PriceType',
-    columnName: 'priceType',
+    columnName: 'price_type',
     enumBase: PriceType,
   })
     .default(PriceType.SinglePayment)
     .notNull(),
-  trialPeriodDays: integer('trialPeriodDays').default(0),
-  pricePerBillingCycle: integer('pricePerBillingCycle'),
+  trialPeriodDays: integer('trial_period_days').default(0),
+  pricePerBillingCycle: integer('price_per_billing_cycle'),
   intervalUnit: pgEnumColumn({
     enumName: 'IntervalUnit',
-    columnName: 'intervalUnit',
+    columnName: 'interval_unit',
     enumBase: IntervalUnit,
   }),
-  intervalCount: integer('intervalCount'),
-  firstInvoiceValue: integer('firstInvoiceValue'),
-  totalPurchaseValue: integer('totalPurchaseValue'),
-  bankPaymentOnly: boolean('bankPaymentOnly').default(false),
-  purchaseDate: timestamp('purchaseDate'),
-  endDate: timestamp('endDate'),
+  intervalCount: integer('interval_count'),
+  firstInvoiceValue: integer('first_invoice_value'),
+  totalPurchaseValue: integer('total_purchase_value'),
+  bankPaymentOnly: boolean('bank_payment_only').default(false),
+  purchaseDate: timestamp('purchase_date'),
+  endDate: timestamp('end_date'),
   proposal: text('proposal'),
   archived: boolean('archived').default(false),
-  billingAddress: jsonb('billingAddress'),
+  billingAddress: jsonb('billing_address'),
 }
 
 export const purchases = pgTable(
@@ -199,12 +197,9 @@ export const subscriptionPurchaseClientInsertSchema =
       billingAddress: true,
     })
 
-const clientSelectOmits = {
-  stripesubscriptionId: true,
-} as const
+const clientSelectOmits = {} as const
 
 const clientWriteOmits = {
-  stripesubscriptionId: true,
   billingAddress: true,
   organizationId: true,
   livemode: true,

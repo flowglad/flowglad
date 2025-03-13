@@ -75,7 +75,7 @@ const columns = {
     columnName: 'paymentMethodType',
     enumBase: PaymentMethodType,
   }),
-  discountId: nullableStringForeignKey('discountId', discounts),
+  discountId: nullableStringForeignKey('discount_id', discounts),
   successUrl: text('successUrl'),
   cancelUrl: text('cancelUrl'),
   type: pgEnumColumn({
