@@ -1,5 +1,18 @@
 # @flowglad/nextjs
 
+## 0.5.0
+
+### Minor Changes
+
+- Camelcasing all fkeys, refactor invoiceWithLineItems
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/server@0.5.0
+  - @flowglad/react@0.5.0
+  - @flowglad/shared@0.5.0
+
 ## 0.4.22
 
 ### Patch Changes
