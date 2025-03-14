@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
-    "@flowglad/node": "0.5.0",
+    "@flowglad/node": "0.6.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
