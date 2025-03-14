@@ -50,6 +50,7 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import { SubscriptionStatus } from '@/types'
 import { isPaymentInTerminalState } from '@/db/tableMethods/paymentMethods'
 import { isSubscriptionInTerminalState } from '@/db/tableMethods/subscriptionMethods'
+import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Customer Profile',
@@ -256,7 +257,7 @@ export const getCustomerBilling = protectedProcedure
     z.object({
       customerProfile: customerProfileClientSelectSchema,
       subscriptions: richSubscriptionClientSelectSchema.array(),
-      invoices: invoicesClientSelectSchema.array(),
+      invoices: invoiceWithLineItemsClientSchema.array(),
       paymentMethods: paymentMethodClientSelectSchema.array(),
       currentSubscriptions: richSubscriptionClientSelectSchema
         .array()

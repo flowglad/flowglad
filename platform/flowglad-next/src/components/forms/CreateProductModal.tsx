@@ -33,6 +33,8 @@ const defaultProduct: Product.ClientInsert = {
   description: '',
   imageURL: '',
   displayFeatures: [],
+  singularQuantityLabel: null,
+  pluralQuantityLabel: null,
 }
 
 export const CreateProductModal = ({

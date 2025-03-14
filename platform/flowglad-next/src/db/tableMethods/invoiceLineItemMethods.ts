@@ -93,7 +93,7 @@ const transformInvoiceLineItemAndInvoiceTuplesToInvoicesWithLineItems =
       const invoiceLineItemsForInvoice =
         invoiceLineItemsByinvoiceId[`${invoice.id}`]
       const invoiceWithLineItems: InvoiceWithLineItems = {
-        ...parsedInvoice,
+        invoice: parsedInvoice,
         invoiceLineItems: invoiceLineItemsForInvoice.map((item) =>
           invoiceLineItemsSelectSchema.parse(item)
         ),
