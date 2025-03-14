@@ -10,9 +10,6 @@ catalogs:
       specifier: 18.3.12
       version: 18.3.12
   repo:
-    '@flowglad/node':
-      specifier: 0.5.0
-      version: 0.5.0
     eslint:
       specifier: 8.57.0
       version: 8.57.0
@@ -64,7 +61,7 @@ importers:
   packages/nextjs:
     dependencies:
       '@flowglad/node':
-        specifier: catalog:repo
+        specifier: 0.5.0
         version: 0.5.0
       '@flowglad/react':
         specifier: workspace:*
