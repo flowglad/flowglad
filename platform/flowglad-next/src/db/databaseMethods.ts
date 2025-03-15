@@ -10,6 +10,7 @@ import { type Session } from '@supabase/supabase-js'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
 import core, { isNil } from '@/utils/core'
 import { memberships } from './schema/memberships'
+import { stackServerApp } from '@/stack'
 
 type SessionUser = Session['user']
 
@@ -29,37 +30,48 @@ export const authenticatedTransaction = async <T>(
     apiKey?: string
   } = {}
 ) => {
+  let userId: string | undefined
   let jwtClaim: JWTClaim | null = null
-  let userId: string | null = null
   let livemode: boolean = true
 
   if (!apiKey) {
-    const { userId: clerkUserId, getToken } = auth()
-    userId = clerkUserId
+    const user = await stackServerApp.getUser()
+    if (!user) {
+      throw new Error('No user found for a non-API key transaction')
+    }
+    userId = user.id
     if (!userId) {
       throw new Error('No userId found for a non-API key transaction')
-    }
-    const accessToken = await getToken({
-      template: 'supabase',
-    })
-    if (!accessToken) {
-      throw new Error(`No access token for user ${userId}`)
     }
     const [focusedMembership] = await db
       .select()
       .from(memberships)
       .where(
         and(
-          eq(memberships.userId, userId),
+          eq(memberships.stackAuthUserId, userId),
           eq(memberships.focused, true)
         )
       )
       .limit(1)
     livemode = focusedMembership?.livemode ?? false
-    jwtClaim = jwt.verify(
-      accessToken,
-      core.envVariable('SUPABASE_JWT_SECRET')
-    ) as JWTClaim
+    jwtClaim = {
+      role: 'authenticated',
+      sub: userId,
+      email: user?.primaryEmail ?? '',
+      session_id: (await user.getActiveSessions())?.[0]?.id ?? '',
+      user_metadata: {
+        id: userId,
+        user_metadata: {},
+        aud: 'stub',
+        email: user.primaryEmail ?? '',
+        updated_at: new Date().toISOString(),
+        role: 'authenticated',
+        app_metadata: {
+          provider: '',
+        },
+      },
+      app_metadata: { provider: 'apiKey' },
+    }
   }
 
   if (apiKey) {

@@ -1,6 +1,6 @@
 import { currentUser } from '@clerk/nextjs/server'
-import { StackProvider, StackTheme } from "@stackframe/stack";
-import { stackServerApp } from "../stack";
+import { StackProvider, StackTheme } from '@stackframe/stack'
+import { stackServerApp } from '../stack'
 import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -31,7 +31,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const user = await currentUser()
+  const user = await stackServerApp.getUser()
   let organization: Organization.Record | undefined = undefined
   let livemode: boolean = true
   if (user) {
@@ -57,17 +57,21 @@ export default async function RootLayout({
       }}
     >
       <html lang="en" className="dark h-full">
-        <body className={cn(inter.className, 'dark', 'h-full')}><StackProvider app={stackServerApp}><StackTheme>
-          {/* {!livemode && (
+        <body className={cn(inter.className, 'dark', 'h-full')}>
+          <StackProvider app={stackServerApp}>
+            <StackTheme>
+              {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
-          <PostHogPageView />
-          <Toaster />
-          {/* <ChatActionsProvider>
+              <PostHogPageView />
+              <Toaster />
+              {/* <ChatActionsProvider>
             <AIModal />
           </ChatActionsProvider> */}
-          {children}
-        </StackTheme></StackProvider></body>
+              {children}
+            </StackTheme>
+          </StackProvider>
+        </body>
       </html>
     </Providers>
   )

@@ -5,16 +5,17 @@ import {
 } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
+import { stackServerApp } from '@/stack'
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 
 export default async function Home() {
-  const user = await currentUser()
+  const user = await stackServerApp.getUser()
 
   if (!user) {
     throw new Error('User not authenticated')
   }
-  const email = user.emailAddresses[0]?.emailAddress
+  const email = user.primaryEmail
   if (!email) {
     throw new Error('User email not found')
   }
@@ -24,7 +25,7 @@ export default async function Home() {
       await upsertUserById(
         {
           id: user.id,
-          name: user.fullName ?? undefined,
+          name: user.displayName ?? undefined,
           email,
         },
         transaction
