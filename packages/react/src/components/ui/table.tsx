@@ -11,7 +11,7 @@ function Table({
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="flowglad-relative flowglad-w-full flowglad-overflow-x-auto"
     >
       <table
         data-slot="table"
@@ -32,7 +32,7 @@ function TableHeader({
   return (
     <thead
       data-slot="table-header"
-      className={cn('[&_tr]:border-b', className)}
+      className={cn('[&_tr]:flowglad-border-b', className)}
       {...props}
     />
   )
@@ -45,7 +45,7 @@ function TableBody({
   return (
     <tbody
       data-slot="table-body"
-      className={cn('[&_tr:last-child]:border-0', className)}
+      className={cn('[&_tr:last-child]:flowglad-border-0', className)}
       {...props}
     />
   )
@@ -59,7 +59,7 @@ function TableFooter({
     <tfoot
       data-slot="table-footer"
       className={cn(
-        'bg-muted/50 border-t font-medium [&>tr]:last:border-b-0',
+        'flowglad-bg-muted/50 flowglad-border-t flowglad-font-medium [&>tr]:last:flowglad-border-b-0',
         className
       )}
       {...props}
@@ -75,7 +75,7 @@ function TableRow({
     <tr
       data-slot="table-row"
       className={cn(
-        'hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors',
+        'hover:flowglad-bg-muted/50 data-[state=selected]:flowglad-bg-muted flowglad-border-b flowglad-transition-colors',
         className
       )}
       {...props}
@@ -91,7 +91,7 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        'text-muted-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'flowglad-text-muted-foreground flowglad-h-10 flowglad-px-2 flowglad-text-left flowglad-align-middle flowglad-font-medium flowglad-whitespace-nowrap [&:has([role=checkbox])]:flowglad-pr-0 [&>[role=checkbox]]:flowglad-translate-y-[2px]',
         className
       )}
       {...props}
@@ -107,7 +107,7 @@ function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        'p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'flowglad-p-2 flowglad-align-middle flowglad-whitespace-nowrap [&:has([role=checkbox])]:flowglad-pr-0 [&>[role=checkbox]]:flowglad-translate-y-[2px]',
         className
       )}
       {...props}
@@ -122,7 +122,10 @@ function TableCaption({
   return (
     <caption
       data-slot="table-caption"
-      className={cn('text-muted-foreground mt-4 text-sm', className)}
+      className={cn(
+        'flowglad-text-muted-foreground flowglad-mt-4 flowglad-text-sm',
+        className
+      )}
       {...props}
     />
   )

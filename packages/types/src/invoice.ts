@@ -9,8 +9,8 @@ export type SubscriptionInvoice =
 export type Invoice = SubscriptionInvoice | PurchaseInvoice
 
 export type InvoiceLineItem = Flowglad.InvoiceLineItemRetrieveResponse
-export type InvoiceStatus =
-  Flowglad.Invoice.InvoiceRetrieveResponse['status']
+
+export type InvoiceStatus = Invoice['status']
 
 export interface InvoiceDisplayProps {
   showTaxDetails?: boolean

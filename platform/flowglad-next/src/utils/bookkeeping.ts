@@ -96,14 +96,14 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
   if (payment.status !== PaymentStatus.Succeeded) {
     return
   }
-  const [invoiceAndLineItems] =
+  const [{ invoice, invoiceLineItems }] =
     await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
       {
         id: payment.invoiceId,
       },
       transaction
     )
-  if (invoiceAndLineItems.status === InvoiceStatus.Paid) {
+  if (invoice.status === InvoiceStatus.Paid) {
     return
   }
 
@@ -119,14 +119,13 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
       (acc, payment) => acc + payment.amount,
       0
     )
-  const invoiceTotalAmount =
-    invoiceAndLineItems.invoiceLineItems.reduce(
-      (acc: number, { price, quantity }) => acc + price * quantity,
-      0
-    )
+  const invoiceTotalAmount = invoiceLineItems.reduce(
+    (acc: number, { price, quantity }) => acc + price * quantity,
+    0
+  )
   if (amountPaidSoFarForInvoice >= invoiceTotalAmount) {
     await safelyUpdateInvoiceStatus(
-      invoiceAndLineItems,
+      invoice,
       InvoiceStatus.Paid,
       transaction
     )
@@ -415,7 +414,7 @@ export const editOpenPurchase = async (
      * in all other cases, we need to create (or update) a payment intent for the invoice
      * and then associate that payment intent with the purchase and invoice
      */
-    const [{ invoiceLineItems, ...invoice }] =
+    const [{ invoiceLineItems, invoice }] =
       await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
         {
           purchaseId: purchase.id,

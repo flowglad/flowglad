@@ -22,6 +22,7 @@ import {
   editInvoiceSchema,
   InvoiceLineItem,
   invoiceLineItemsClientSelectSchema,
+  invoiceWithLineItemsClientSchema,
   sendInvoiceReminderSchema,
 } from '@/db/schema/invoiceLineItems'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
@@ -31,6 +32,7 @@ import {
   insertInvoiceLineItem,
   insertInvoiceLineItems,
   selectInvoiceLineItems,
+  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
   updateInvoiceLineItem,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import { z } from 'zod'
@@ -63,10 +65,15 @@ const listInvoicesProcedure = protectedProcedure
 const getInvoiceProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
-  .output(invoicesClientSelectSchema)
+  .output(invoiceWithLineItemsClientSchema)
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(async ({ transaction }) => {
-      return selectInvoiceById(input.id, transaction)
+      const [invoiceAndLineItems] =
+        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+          { id: input.id },
+          transaction
+        )
+      return invoiceAndLineItems
     })
   })
 

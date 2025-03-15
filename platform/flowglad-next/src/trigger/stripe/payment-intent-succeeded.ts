@@ -79,7 +79,7 @@ export const stripePaymentIntentSucceededTask = task({
         )
 
       return {
-        invoice,
+        invoice: invoice.invoice,
         invoiceLineItems: invoice.invoiceLineItems,
         purchase,
         organization,
