@@ -3,7 +3,6 @@ import {
   AuthenticatedTransactionParams,
 } from '@/db/types'
 import { verifyKey } from '@unkey/api'
-
 import { auth } from '@clerk/nextjs/server'
 import db from './client'
 import { and, eq, sql } from 'drizzle-orm'
@@ -13,6 +12,7 @@ import core, { isNil } from '@/utils/core'
 import { memberships } from './schema/memberships'
 
 type SessionUser = Session['user']
+
 export interface JWTClaim extends JwtPayload {
   user_metadata: SessionUser
   app_metadata: SessionUser['app_metadata']

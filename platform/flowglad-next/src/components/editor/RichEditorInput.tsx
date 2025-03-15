@@ -88,7 +88,7 @@ const RichEditorInput = ({
     if (editor) {
       editor.commands.setContent('')
     }
-  }, [increment])
+  }, [increment, editor])
 
   if (!editor) {
     return null

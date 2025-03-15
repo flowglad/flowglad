@@ -31,6 +31,8 @@ export const createContext = async (
     environment,
     livemode: environment === 'live',
     organizationId,
+    isApi: false,
+    apiKey: undefined,
   }
 }
 

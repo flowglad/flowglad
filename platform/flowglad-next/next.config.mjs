@@ -1,4 +1,5 @@
 import { withSentryConfig } from '@sentry/nextjs'
+import { withLogtail } from '@logtail/next'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -61,7 +62,7 @@ const nextConfig = {
   },
 }
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withLogtail(nextConfig), {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 

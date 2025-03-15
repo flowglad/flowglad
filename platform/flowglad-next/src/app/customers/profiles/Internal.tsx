@@ -240,7 +240,7 @@ const CustomersTable = ({
           ),
         },
       ] as ColumnDef<CustomerTableRow>[],
-    []
+    [variants]
   )
 
   return (

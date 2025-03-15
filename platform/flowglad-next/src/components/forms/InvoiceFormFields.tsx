@@ -103,7 +103,7 @@ const InvoiceFormFields = ({
         )
       )
     }
-  }, [totalInvoicesForCustomerProfile, invoiceNumberBase])
+  }, [totalInvoicesForCustomerProfile, invoiceNumberBase, setValue])
   return (
     <>
       <div className="w-full flex items-start gap-2.5">

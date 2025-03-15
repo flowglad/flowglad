@@ -1,16 +1,24 @@
+// trpc.ts
 export const runtime = 'nodejs' // Force Node.js runtime
 
-import { initTRPC, TRPCError } from '@trpc/server'
-import superjson from 'superjson'
+import { TRPCError } from '@trpc/server'
 import { TRPCApiContext, TRPCContext } from './trpcContext'
-import { OpenApiMeta } from 'trpc-swagger'
+import { t } from './coreTrpcObject'
+import { createTracingMiddleware } from './tracingMiddleware'
 
-const t = initTRPC.meta<OpenApiMeta>().create({
-  transformer: superjson,
-})
+// Create tracing middleware factory
+const tracingMiddlewareFactory = createTracingMiddleware()
+
+// Create tracing middleware for this tRPC instance
+const tracingMiddleware = tracingMiddlewareFactory(t)
 
 export const router = t.router
-export const publicProcedure = t.procedure
+
+// Apply tracing middleware to base procedure
+const baseProcedure = t.procedure.use(tracingMiddleware)
+
+// Public procedure with tracing
+export const publicProcedure = baseProcedure
 
 const isAuthed = t.middleware(({ next, ctx }) => {
   const { isApi, environment, apiKey } = ctx as TRPCApiContext
@@ -42,4 +50,5 @@ const isAuthed = t.middleware(({ next, ctx }) => {
   })
 })
 
-export const protectedProcedure = t.procedure.use(isAuthed)
+// Protected procedure with tracing
+export const protectedProcedure = baseProcedure.use(isAuthed)

@@ -22,13 +22,13 @@ export const formSubmissions = pgTable(
   {
     ...tableBase('form_submission'),
     FormId: notNullStringForeignKey('form_id', forms),
-    UserId: notNullStringForeignKey('user_id', users),
+    userId: notNullStringForeignKey('user_id', users),
     response: jsonb('response').notNull(),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.FormId]),
-      constructIndex(TABLE_NAME, [table.UserId]),
+      constructIndex(TABLE_NAME, [table.userId]),
       pgPolicy('Enable all for own forms', {
         as: 'permissive',
         to: 'authenticated',

@@ -29,7 +29,7 @@ export const integrations = pgTable(
   TABLE_NAME,
   {
     ...tableBase('integration'),
-    UserId: nullableStringForeignKey('user_id', users),
+    userId: nullableStringForeignKey('user_id', users),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
@@ -55,7 +55,7 @@ export const integrations = pgTable(
   },
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.UserId]),
+      constructIndex(TABLE_NAME, [table.userId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.provider]),
       constructIndex(TABLE_NAME, [table.status]),
