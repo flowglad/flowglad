@@ -1,10 +1,7 @@
-import { NextResponse } from 'next/server'
-import {
-  clerkMiddleware,
-  createRouteMatcher,
-} from '@clerk/nextjs/server'
-import { updateSupabaseSession } from './db/supabase'
+import { NextRequest, NextResponse } from 'next/server'
+import { createRouteMatcher } from '@clerk/nextjs/server'
 import core from './utils/core'
+import { stackServerApp } from './stack'
 
 const publicRoutes = [
   '/sign-in(.*)',
@@ -42,7 +39,7 @@ if (core.IS_DEV) {
 
 const isPublicRoute = createRouteMatcher(publicRoutes)
 
-export default clerkMiddleware(async (auth, req) => {
+export default async function middleware(req: NextRequest) {
   // Handle CORS for staging
   if (
     req.method === 'OPTIONS' &&
@@ -60,20 +57,14 @@ export default clerkMiddleware(async (auth, req) => {
     )
   }
 
-  const { userId } = auth()
-  await updateSupabaseSession(req, auth().getToken)
+  const user = await stackServerApp.getUser()
   const isProtectedRoute = !isPublicRoute(req)
 
-  if (isProtectedRoute && !userId) {
-    /**
-     * TODO: figure out how to redirect to community signup page,
-     * or whatever page they were trying to access
-     */
-    return NextResponse.redirect(new URL('/sign-in', req.url))
-  } else if (isProtectedRoute) {
-    auth().protect()
+  if (!user && isProtectedRoute) {
+    return NextResponse.redirect(new URL('/handler/sign-in', req.url))
   }
-})
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [

@@ -4,7 +4,6 @@ import { createPurchase } from '@/server/mutations/createPurchase'
 import { editPurchase } from '@/server/mutations/editPurchase'
 import { getRevenueData } from './queries/getRevenueData'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
-import { initiateOAuthFlow } from '@/server/mutations/initiateOAuthFlow'
 import { createOrganization } from '@/server/mutations/createOrganization'
 import { editOrganization } from '@/server/mutations/editOrganization'
 import { setPurchaseSessionCookie } from '@/server/mutations/setPurchaseSessionCookie'
@@ -58,11 +57,6 @@ const organizationsRouter = router({
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
 })
-
-const integrationsRouter = router({
-  initiateOAuth: initiateOAuthFlow,
-})
-
 const filesRouter = router({
   create: createFile,
   update: editFile,
@@ -84,7 +78,6 @@ export const appRouter = router({
   purchases: purchasesRouter,
   customerProfiles: customerProfilesRouter,
   organizations: organizationsRouter,
-  integrations: integrationsRouter,
   discounts: discountsRouter,
   files: filesRouter,
   links: linksRouter,
