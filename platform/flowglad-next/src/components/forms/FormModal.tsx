@@ -314,7 +314,7 @@ const FormModal = <T extends FieldValues>({
       </ChatPreviewDetails>
     )
   }
-
+  console.log('form errors', form.formState.errors)
   return (
     <FormProvider {...form}>
       <form
