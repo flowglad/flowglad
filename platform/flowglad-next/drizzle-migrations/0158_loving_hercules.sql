@@ -12,4 +12,6 @@ DROP POLICY "Check mode" ON "integrations" CASCADE;--> statement-breakpoint
 DROP TABLE "integrations" CASCADE;--> statement-breakpoint
 DROP TABLE "integration_sessions" CASCADE;--> statement-breakpoint
 ALTER TABLE "Customers" ADD COLUMN "stack_auth_id" text;--> statement-breakpoint
-ALTER TABLE "memberships" ADD COLUMN "stack_auth_user_id" text;
+ALTER TABLE "memberships" ADD COLUMN "stack_auth_user_id" text;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN "stack_auth_id" text;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_stack_auth_id_unique" UNIQUE("stack_auth_id");

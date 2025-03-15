@@ -1,5 +1,5 @@
 {
-  "id": "44e36c79-5d56-470b-815d-ce098033ebe3",
+  "id": "3d3f5ca2-10af-4df2-bf9d-0007e2e64230",
   "prevId": "c692438b-1a0f-4a50-8d00-5abdc36c8134",
   "version": "7",
   "dialect": "postgresql",
@@ -5961,6 +5961,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "stack_auth_id": {
+          "name": "stack_auth_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -6003,6 +6009,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "id"
+          ]
+        },
+        "users_stack_auth_id_unique": {
+          "name": "users_stack_auth_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "stack_auth_id"
           ]
         }
       },
