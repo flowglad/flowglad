@@ -510,29 +510,6 @@ export enum TaxType {
   None = 'none',
 }
 
-export enum FormFieldType {
-  ShortAnswer = 'short_answer',
-  ParagraphAnswer = 'paragraph_answer',
-  MultipleChoice = 'multiple_choice',
-  Checkboxes = 'checkboxes',
-  Dropdown = 'dropdown',
-  FileUpload = 'file_upload',
-  Date = 'date',
-  Time = 'time',
-}
-
-export enum IntegrationMethod {
-  OAuth = 'oauth',
-  ApiKey = 'api_key',
-}
-
-export enum IntegrationStatus {
-  Live = 'live',
-  Unauthorized = 'unauthorized',
-  Expired = 'expired',
-  Incomplete = 'incomplete',
-}
-
 export enum BusinessOnboardingStatus {
   FullyOnboarded = 'fully_onboarded',
   PartiallyOnboarded = 'partially_onboarded',
@@ -579,14 +556,12 @@ export enum FlowgladEventType {
   SubscriptionCreated = 'subscription.created',
   SubscriptionUpdated = 'subscription.updated',
   SubscriptionCancelled = 'subscription.cancelled',
-  FormSubmissionCreated = 'form.submission.created',
 }
 
 export enum EventCategory {
   Financial = 'financial',
   Customer = 'customer',
   Subscription = 'subscription',
-  Integration = 'integration',
   System = 'system',
 }
 
@@ -602,9 +577,6 @@ export enum EventNoun {
   Purchase = 'Purchase',
   Invoice = 'Invoice',
   Payment = 'Payment',
-  Flow = 'Flow',
-  Form = 'Form',
-  FormSubmission = 'FormSubmission',
   Product = 'Product',
 }
 

@@ -1,4 +1,4 @@
-import { boolean, pgPolicy, pgTable } from 'drizzle-orm/pg-core'
+import { boolean, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
   notNullStringForeignKey,
@@ -22,6 +22,7 @@ export const memberships = pgTable(
   {
     ...tableBase('memb'),
     userId: notNullStringForeignKey('user_id', users),
+    stackAuthUserId: text('stack_auth_user_id'),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations

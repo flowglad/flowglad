@@ -2,7 +2,6 @@ import { router } from './trpc'
 import { pong } from '@/server/mutations/pong'
 import { createPurchase } from '@/server/mutations/createPurchase'
 import { editPurchase } from '@/server/mutations/editPurchase'
-import { createForm } from '@/server/mutations/createForm'
 import { getRevenueData } from './queries/getRevenueData'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { initiateOAuthFlow } from '@/server/mutations/initiateOAuthFlow'
@@ -12,7 +11,6 @@ import { setPurchaseSessionCookie } from '@/server/mutations/setPurchaseSessionC
 import { editPurchaseSession } from '@/server/mutations/editPurchaseSession'
 import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
 import { confirmPurchaseSession } from '@/server/mutations/confirmPurchaseSession'
-import { createFormSubmission } from '@/server/mutations/createFormSubmission'
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
 import { editFile } from '@/server/mutations/editFile'
@@ -90,11 +88,6 @@ export const appRouter = router({
   discounts: discountsRouter,
   files: filesRouter,
   links: linksRouter,
-  // These could be moved into their own routers if they grow
-  forms: router({
-    create: createForm,
-    createSubmission: createFormSubmission,
-  }),
   invoiceLineItems: invoiceLineItemsRouter,
   invoices: invoicesRouter,
   countries: countriesRouter,

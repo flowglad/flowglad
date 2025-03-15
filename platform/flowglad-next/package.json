@@ -95,7 +95,6 @@
     "ai": "^4.0.21",
     "axios": "1.8.2",
     "bcrypt": "^5.1.1",
-    "better-auth": "1.2.3",
     "change-case": "^5.4.4",
     "class-variance-authority": "^0.7.0",
     "client-only": "^0.0.1",

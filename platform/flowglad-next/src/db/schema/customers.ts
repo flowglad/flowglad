@@ -23,6 +23,7 @@ export const customers = pgTable(
     email: text('email').notNull().unique(),
     billingAddress: jsonb('billing_address'),
     userId: nullableStringForeignKey('user_id', users),
+    stackAuthUserId: text('stack_auth_id'),
   },
   (table) => {
     return [
