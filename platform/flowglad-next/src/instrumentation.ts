@@ -8,6 +8,8 @@ export async function register() {
 
   try {
     // Set our custom variables in the process.env for OpenTelemetry initialization
+    // Trigger.dev depends on these variables,
+    // so setting them will break trigger.dev builds
     if (process.env.FLOWGLAD_OTEL_ENDPOINT) {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
         process.env.FLOWGLAD_OTEL_ENDPOINT
