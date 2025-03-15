@@ -37,7 +37,7 @@ export default function PostHogPageView(): null {
         username: user.username,
       })
     }
-  }, [posthog, user])
+  }, [posthog, user, isSignedIn, userId])
 
   return null
 }

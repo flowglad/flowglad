@@ -105,7 +105,7 @@ function Datepicker({
     if (dayPickerProps.selected !== value) {
       onSelect?.(dayPickerProps.selected)
     }
-  }, [dayPickerProps.selected])
+  }, [dayPickerProps.selected, onSelect])
 
   return (
     <div className={className}>

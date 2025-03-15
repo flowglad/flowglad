@@ -49,7 +49,7 @@ const useShouldRenderContent = ({
       }, 200)
       return () => clearTimeout(timer)
     }
-  }, [isOpen])
+  }, [isOpen, hardResetFormValues])
   return shouldRenderContent
 }
 
@@ -314,7 +314,6 @@ const FormModal = <T extends FieldValues>({
       </ChatPreviewDetails>
     )
   }
-
   return (
     <FormProvider {...form}>
       <form
