@@ -4,10 +4,10 @@ import {
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
 import { customAlphabet } from 'nanoid'
-import { currentUser } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { adminTransaction } from '@/db/databaseMethods'
+import { stackServerApp } from '@/stack'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -41,12 +41,12 @@ export const createOrganization = protectedProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const user = await currentUser()
+    const user = await stackServerApp.getUser()
 
     if (!user) {
       throw new Error('User not found')
     }
-    const email = user.emailAddresses[0]?.emailAddress
+    const email = user.primaryEmail
     const userId = user.id
     if (!email) {
       throw new Error('User email not found')
@@ -58,7 +58,7 @@ export const createOrganization = protectedProcedure
         {
           id: userId,
           email,
-          fullName: user.fullName ?? undefined,
+          fullName: user.displayName ?? undefined,
         },
         transaction
       )

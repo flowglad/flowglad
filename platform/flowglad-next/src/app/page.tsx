@@ -3,32 +3,56 @@ import {
   adminTransaction,
   authenticatedTransaction,
 } from '@/db/databaseMethods'
+import { memberships } from '@/db/schema/memberships'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { upsertUserById } from '@/db/tableMethods/userMethods'
-import { currentUser } from '@clerk/nextjs/server'
+import {
+  selectUsers,
+  upsertUserById,
+} from '@/db/tableMethods/userMethods'
+import { stackServerApp } from '@/stack'
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
 export default async function Home() {
-  const user = await currentUser()
+  const user = await stackServerApp.getUser()
 
   if (!user) {
     throw new Error('User not authenticated')
   }
-  const email = user.emailAddresses[0]?.emailAddress
+  const email = user.primaryEmail
   if (!email) {
     throw new Error('User email not found')
   }
 
   const membershipsAndOrganizations = await adminTransaction(
     async ({ transaction }) => {
-      await upsertUserById(
+      const [existingUser] = await selectUsers(
         {
-          id: user.id,
-          name: user.fullName ?? undefined,
           email,
         },
         transaction
       )
+
+      await upsertUserById(
+        {
+          id: user.id,
+          name: user.displayName ?? undefined,
+          email,
+        },
+        transaction
+      )
+      /**
+       * If the user already exists (aka they signed up before the stack auth migration),
+       * update their existing memberships to point to the new user id.
+       */
+      if (existingUser) {
+        await transaction
+          .update(memberships)
+          .set({
+            userId: user.id,
+          })
+          .where(eq(memberships.userId, user.id))
+      }
       return selectMembershipAndOrganizations(
         {
           userId: user.id,

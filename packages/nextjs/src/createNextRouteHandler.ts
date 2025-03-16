@@ -15,7 +15,7 @@ export const createNextRouteHandler = (
 
   return async (
     req: NextRequest,
-    { params }: { params: { path: string[] } }
+    { params }: { params: Promise<{ path: string[] }> }
   ): Promise<NextResponse> => {
     const { path } = await params
     const result = await handler({

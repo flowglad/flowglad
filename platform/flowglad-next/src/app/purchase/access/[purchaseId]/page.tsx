@@ -39,46 +39,42 @@ const maskEmail = (email: string) => {
 }
 
 interface PostPurchasePageProps {
-  params: {
+  params: Promise<{
     purchaseId: string
-  }
+  }>
 }
 
 const PostPurchasePage = async ({
   params,
 }: PostPurchasePageProps) => {
-  const {
-    purchaseAccessSession,
-    purchase,
-    product,
-    organization,
-    customerProfile,
-  } = await adminTransaction(async ({ transaction }) => {
-    const purchaseAccessSession = await findPurchaseAccessSession(
-      params.purchaseId,
-      transaction
-    )
+  const { purchaseId } = await params
+  const { purchaseAccessSession, purchase, customerProfile } =
+    await adminTransaction(async ({ transaction }) => {
+      const purchaseAccessSession = await findPurchaseAccessSession(
+        purchaseId,
+        transaction
+      )
 
-    const {
-      purchase,
-      product,
-      variant,
-      organization,
-      customerProfile,
-    } = await selectPurchaseCheckoutParametersById(
-      params.purchaseId,
-      transaction
-    )
+      const {
+        purchase,
+        product,
+        variant,
+        organization,
+        customerProfile,
+      } = await selectPurchaseCheckoutParametersById(
+        purchaseId,
+        transaction
+      )
 
-    return {
-      purchaseAccessSession,
-      purchase,
-      product,
-      variant,
-      organization,
-      customerProfile,
-    }
-  })
+      return {
+        purchaseAccessSession,
+        purchase,
+        product,
+        variant,
+        organization,
+        customerProfile,
+      }
+    })
   const customerEmail = customerProfile.email!
 
   const emailConfirmationForm = (

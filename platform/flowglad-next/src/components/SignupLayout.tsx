@@ -13,13 +13,13 @@ const SignupLayout = ({
     <div className="bg-internal h-full w-full flex justify-between items-center">
       <SignupSideBar className="hidden md:flex h-full" />
       <div className="flex-1 h-full w-full flex flex-col justify-center items-center gap-9">
-        <div className="w-full max-w-[360px] min-w-[360px] flex flex-col rounded-radius-md">
+        <div className="w-full min-w-[360px] flex flex-col rounded-radius-md">
           <div className="flex-1 w-full flex flex-col justify-center items-center gap-6">
-            <div className="flex flex-col gap-4 justify-center items-center h-screen">
+            <div className="flex flex-col justify-center items-center w-full">
               {children}
               <Link
                 href="https://flowglad.com/privacy-policy"
-                className="text-sm text-subtle"
+                className="text-sm text-subtle mt-8"
               >
                 Privacy Policy
               </Link>

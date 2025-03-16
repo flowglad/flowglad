@@ -3,13 +3,13 @@ import {
   AuthenticatedTransactionParams,
 } from '@/db/types'
 import { verifyKey } from '@unkey/api'
-import { auth } from '@clerk/nextjs/server'
 import db from './client'
 import { and, eq, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
 import core, { isNil } from '@/utils/core'
 import { memberships } from './schema/memberships'
+import { stackServerApp } from '@/stack'
 
 type SessionUser = Session['user']
 
@@ -17,7 +17,6 @@ export interface JWTClaim extends JwtPayload {
   user_metadata: SessionUser
   app_metadata: SessionUser['app_metadata']
   email: string
-  session_id: string
   role: string
 }
 
@@ -29,21 +28,18 @@ export const authenticatedTransaction = async <T>(
     apiKey?: string
   } = {}
 ) => {
+  let userId: string | undefined
   let jwtClaim: JWTClaim | null = null
-  let userId: string | null = null
   let livemode: boolean = true
 
   if (!apiKey) {
-    const { userId: clerkUserId, getToken } = auth()
-    userId = clerkUserId
+    const user = await stackServerApp.getUser()
+    if (!user) {
+      throw new Error('No user found for a non-API key transaction')
+    }
+    userId = user.id
     if (!userId) {
       throw new Error('No userId found for a non-API key transaction')
-    }
-    const accessToken = await getToken({
-      template: 'supabase',
-    })
-    if (!accessToken) {
-      throw new Error(`No access token for user ${userId}`)
     }
     const [focusedMembership] = await db
       .select()
@@ -56,10 +52,24 @@ export const authenticatedTransaction = async <T>(
       )
       .limit(1)
     livemode = focusedMembership?.livemode ?? false
-    jwtClaim = jwt.verify(
-      accessToken,
-      core.envVariable('SUPABASE_JWT_SECRET')
-    ) as JWTClaim
+    jwtClaim = {
+      role: 'authenticated',
+      sub: userId,
+      email: user?.primaryEmail ?? '',
+      user_metadata: {
+        id: userId,
+        user_metadata: {},
+        aud: 'stub',
+        email: user.primaryEmail ?? '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        role: 'authenticated',
+        app_metadata: {
+          provider: '',
+        },
+      },
+      app_metadata: { provider: 'apiKey' },
+    }
   }
 
   if (apiKey) {

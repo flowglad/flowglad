@@ -1,4 +1,5 @@
-import { currentUser } from '@clerk/nextjs/server'
+import { StackProvider, StackTheme } from '@stackframe/stack'
+import { stackServerApp } from '../stack'
 import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -13,10 +14,6 @@ import { Organization } from '@/db/schema/organizations'
 // import AIModal from './components/forms/AIModal'
 // import { ChatActionsProvider } from './components/ChatActionsContext'
 
-const PostHogPageView = dynamic(() => import('./PostHogPageview'), {
-  ssr: false,
-})
-
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -29,7 +26,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const user = await currentUser()
+  const user = await stackServerApp.getUser()
   let organization: Organization.Record | undefined = undefined
   let livemode: boolean = true
   if (user) {
@@ -47,26 +44,31 @@ export default async function RootLayout({
     livemode = membershipData?.membership.livemode
     organization = membershipData?.organization
   }
+  const userJson = user?.toClientJson()
   return (
-    <Providers
-      authContext={{
-        organization,
-        livemode,
-      }}
-    >
-      <html lang="en" className="dark h-full">
-        <body className={cn(inter.className, 'dark', 'h-full')}>
-          {/* {!livemode && (
+    <StackProvider app={stackServerApp}>
+      <StackTheme>
+        <Providers
+          authContext={{
+            organization,
+            livemode,
+            user: userJson,
+          }}
+        >
+          <html lang="en" className="dark h-full">
+            <body className={cn(inter.className, 'dark', 'h-full')}>
+              {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
-          <PostHogPageView />
-          <Toaster />
-          {/* <ChatActionsProvider>
+              <Toaster />
+              {/* <ChatActionsProvider>
             <AIModal />
           </ChatActionsProvider> */}
-          {children}
-        </body>
-      </html>
-    </Providers>
+              {children}
+            </body>
+          </html>
+        </Providers>
+      </StackTheme>
+    </StackProvider>
   )
 }

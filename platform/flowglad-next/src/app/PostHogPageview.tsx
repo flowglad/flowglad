@@ -3,16 +3,14 @@
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { usePostHog } from 'posthog-js/react'
-import { useAuth, useUser } from '@clerk/nextjs'
+import { AuthContextValues } from '@/contexts/authContext'
 
-export default function PostHogPageView(): null {
+export default function PostHogPageView({
+  user,
+}: Pick<AuthContextValues, 'user'>): null {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const posthog = usePostHog()
-
-  // 👉 Add the hooks into the component
-  const { isSignedIn, userId } = useAuth()
-  const { user } = useUser()
 
   // Track pageviews
   useEffect(() => {
@@ -30,14 +28,14 @@ export default function PostHogPageView(): null {
   useEffect(() => {
     // 👉 Check the sign-in status and user info,
     //    and identify the user if they aren't already
-    if (isSignedIn && userId && user && !posthog._isIdentified()) {
+    if (user && !posthog._isIdentified()) {
       // 👉 Identify the user
-      posthog.identify(userId, {
-        email: user.primaryEmailAddress?.emailAddress,
-        username: user.username,
+      posthog.identify(user.id, {
+        email: user.primary_email!,
+        username: user.display_name!,
       })
     }
-  }, [posthog, user, isSignedIn, userId])
+  }, [posthog, user])
 
   return null
 }

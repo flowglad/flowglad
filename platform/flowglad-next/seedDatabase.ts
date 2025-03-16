@@ -1,7 +1,6 @@
 import db from '@/db/client'
 import { adminTransaction } from '@/db/databaseMethods'
 import { countries } from '@/db/schema/countries'
-import { organizations } from '@/db/schema/organizations'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { insertCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'

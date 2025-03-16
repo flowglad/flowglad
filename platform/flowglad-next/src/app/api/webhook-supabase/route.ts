@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import core from '@/utils/core'
-import { supabasePayloadBaseSchema } from '@/db/supabase'
 import {
   SupabasePayloadType,
   SupabaseUpdatePayload,

@@ -11,7 +11,7 @@ export function createTracingMiddleware() {
     return t.middleware<TRPCContext>(
       async ({ path, type, next, getRawInput, ctx }) => {
         const rawInput = await getRawInput()
-        const { auth, apiKey, organizationId, environment } =
+        const { user, apiKey, organizationId, environment } =
           ctx as TRPCContext
         return tracer.startActiveSpan(
           `TRPC ${type} ${path}`,
@@ -33,9 +33,9 @@ export function createTracingMiddleware() {
             })
 
             // Add auth context if available
-            if (auth?.userId) {
+            if (user) {
               span.setAttributes({
-                'enduser.id': auth.userId,
+                'enduser.id': user.id,
               })
             }
 
@@ -66,11 +66,7 @@ export function createTracingMiddleware() {
               path,
               has_input: rawInput !== undefined,
               input: rawInput,
-              auth_type: apiKey
-                ? 'api_key'
-                : auth?.userId
-                  ? 'user'
-                  : 'none',
+              auth_type: apiKey ? 'api_key' : user ? 'user' : 'none',
             })
 
             try {
