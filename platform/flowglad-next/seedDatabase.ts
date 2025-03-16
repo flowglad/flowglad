@@ -495,6 +495,7 @@ export const setupMemberships = async ({
         email: `test+${nanoid}@test.com`,
         name: `Test ${nanoid}`,
         id: core.nanoid(),
+        stackAuthId: core.nanoid(),
       },
       transaction
     )
@@ -502,6 +503,7 @@ export const setupMemberships = async ({
       {
         organizationId,
         userId: user.id,
+        stackAuthUserId: user.id,
         focused: true,
         livemode: true,
       },
