@@ -7,7 +7,7 @@ import { selectVariantsAndProductsForOrganization } from '@/db/tableMethods/vari
 const CustomersPage = async ({
   params,
 }: {
-  params: { focusedTab: string }
+  params: Promise<{ focusedTab: string }>
 }) => {
   const { customerProfiles, variants } =
     await authenticatedTransaction(
@@ -39,7 +39,7 @@ const CustomersPage = async ({
 
   return (
     <Internal
-      params={params}
+      params={await params}
       customers={customerProfiles}
       variants={variants.filter(({ product }) => product.active)}
     />

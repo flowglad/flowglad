@@ -35,13 +35,13 @@ const isAuthed = t.middleware(({ next, ctx }) => {
       },
     })
   }
-  const auth = (ctx as TRPCContext).auth
-  if (!auth.userId) {
+  const user = (ctx as TRPCContext).user
+  if (!user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
   return next({
     ctx: {
-      auth,
+      user,
       path: (ctx as TRPCContext).path,
       environment,
       organizationId: (ctx as TRPCContext).organizationId,

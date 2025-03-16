@@ -15,7 +15,7 @@ import { createSelectSchema } from 'drizzle-zod'
 import { products } from './products'
 import { sql } from 'drizzle-orm'
 
-const TABLE_NAME = 'Files'
+const TABLE_NAME = 'files'
 
 export const files = pgTable(
   TABLE_NAME,

@@ -16,11 +16,11 @@ import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { createApiKeyTransaction } from '@/utils/apiKeyHelpers'
-import { currentUser } from '@clerk/nextjs/server'
 import { ApiKey } from '@/db/schema/apiKeys'
+import { stackServerApp } from '@/stack'
 
 const OnboardingPage = async () => {
-  const user = await currentUser()
+  const user = await stackServerApp.getUser()
   const results = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       const membershipsAndOrganizations =

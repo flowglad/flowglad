@@ -12,7 +12,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
 } from '@/components/ion/Navigation'
-import { UserButton } from '@clerk/nextjs'
+import { UserButton } from '@stackframe/stack'
 import { useAuthContext } from '@/contexts/authContext'
 import { usePathname, useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -180,21 +180,16 @@ export const SideNavigation = () => {
             className="w-full h-12"
           >
             <div className="flex h-full items-center gap-3">
-              <UserButton
-                appearance={{
-                  layout: { shimmer: false },
-                  elements: { avatarBox: 'h-12 w-12' },
-                }}
-              />
+              <UserButton />
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-foreground">
-                  {user?.fullName}
+                  {user?.display_name}
                 </span>
                 <span
                   className="text-xs text-subtle truncate max-w-[16ch]"
-                  title={user?.primaryEmailAddress?.emailAddress}
+                  title={user?.primary_email ?? ''}
                 >
-                  {user?.primaryEmailAddress?.emailAddress}
+                  {user?.primary_email}
                 </span>
               </div>
             </div>

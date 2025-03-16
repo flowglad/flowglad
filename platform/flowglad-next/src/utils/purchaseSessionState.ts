@@ -103,17 +103,17 @@ const purchaseSessionName = (
  * Purchase sessions are used to manage the state
  * between the checkout and the purchase confirmation pages.
  */
-export const getPurchaseSessionCookie = (
+export const getPurchaseSessionCookie = async (
   params: PurchaseSessionCookieNameParams
 ) => {
-  return cookies().get(purchaseSessionName(params))?.value
+  return (await cookies()).get(purchaseSessionName(params))?.value
 }
 
 export const findPurchaseSession = async (
   params: PurchaseSessionCookieNameParams,
   transaction: DbTransaction
 ): Promise<PurchaseSession.Record | null> => {
-  const purchaseSessionId = getPurchaseSessionCookie(params)
+  const purchaseSessionId = await getPurchaseSessionCookie(params)
 
   if (!purchaseSessionId) {
     return null

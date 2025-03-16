@@ -8,7 +8,7 @@ import {
 export const setPurchaseSessionCookie = publicProcedure
   .input(setPurchaseSessionCookieParamsSchema)
   .mutation(async ({ input }) => {
-    const purchaseSessionId = getPurchaseSessionCookie(input)
+    const purchaseSessionId = await getPurchaseSessionCookie(input)
     /**
      * Override the purchase session only if the purchase session
      * - does not exist
