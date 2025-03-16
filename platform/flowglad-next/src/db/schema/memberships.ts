@@ -21,8 +21,9 @@ export const memberships = pgTable(
   MEMBERSHIPS_TABLE_NAME,
   {
     ...tableBase('memb'),
-    userId: notNullStringForeignKey('user_id', users),
-    stackAuthUserId: text('stack_auth_user_id').notNull(),
+    userId: text('user_id')
+      .references(() => users.id)
+      .notNull(),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations

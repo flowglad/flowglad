@@ -55,7 +55,6 @@ export const createOrganizationTransaction = async (
       id: user.id,
       name: user.fullName ?? undefined,
       email: user.email,
-      stackAuthId: user.id,
     },
     transaction
   )
@@ -100,7 +99,6 @@ export const createOrganizationTransaction = async (
     {
       organizationId: organizationRecord.id,
       userId: user.id,
-      stackAuthUserId: user.id,
       focused: true,
       /**
        * Deliberate - we need them to onboard into test mode so they can quickly see what the

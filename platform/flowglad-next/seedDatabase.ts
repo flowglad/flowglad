@@ -503,7 +503,6 @@ export const setupMemberships = async ({
       {
         organizationId,
         userId: user.id,
-        stackAuthUserId: user.id,
         focused: true,
         livemode: true,
       },
