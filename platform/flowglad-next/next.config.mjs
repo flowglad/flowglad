@@ -3,20 +3,13 @@ import { withLogtail } from '@logtail/next'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: [
-      'puppeteer-core',
-      '@sparticuz/chromium',
-      '@aws-sdk/client-s3',
-      '@aws-sdk/s3-request-presigner',
-      /**
-       * Discord.js uses zlib-sync which has weird .node files
-       * which Next.js loader doesn't like
-       */
-      'discord.js',
-      'zlib-sync',
-    ],
-  },
+  serverExternalPackages: [
+    'puppeteer-core',
+    '@sparticuz/chromium',
+    '@aws-sdk/client-s3',
+    '@aws-sdk/s3-request-presigner',
+    'zlib-sync',
+  ],
   images: {
     remotePatterns: [
       {
