@@ -2,6 +2,7 @@ DROP POLICY IF EXISTS "Enable read for own organizations" ON "memberships";--> s
 DROP POLICY IF EXISTS "Enable updates for organizations where you're a member" ON "organizations";--> statement-breakpoint
 DROP POLICY IF EXISTS "Self-Read for Organizations by Memberships" ON "organizations";
 DROP POLICY IF EXISTS "Enable read for own organizations" ON "proper_nouns";
+DROP POLICY IF EXISTS "Allow update for organizations where you're a member" ON "organizations";
 
 ALTER TABLE "customers" RENAME COLUMN "stack_auth_user_id" TO "new_user_id";--> statement-breakpoint
 ALTER TABLE "memberships" RENAME COLUMN "stack_auth_user_id" TO "new_user_id";--> statement-breakpoint
@@ -55,3 +56,11 @@ CREATE POLICY "Enable read for own organizations" ON "memberships"
 
 CREATE POLICY "Enable read for own organizations" ON "proper_nouns"
     AS PERMISSIVE FOR SELECT TO "authenticated" USING ("organization_id" in (select "organization_id" from "memberships" where "new_user_id" = requesting_user_id()));
+
+CREATE POLICY "Allow update for organizations where you're a member" ON "organizations"
+  FOR UPDATE
+  USING (id IN (
+    SELECT "organization_id"
+    FROM "memberships"
+    WHERE "new_user_id" = requesting_user_id()
+  ));
