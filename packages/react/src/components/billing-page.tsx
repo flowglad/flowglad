@@ -5,6 +5,8 @@ import { Invoices } from './invoices'
 import { cn } from '../lib/utils'
 import { PaymentMethods } from './payment-methods'
 import { CustomerBillingDetails } from './customer-billing-details'
+import { CurrentSubscriptionCard } from './current-subscription-card'
+import { PricingTable } from './pricing-table'
 
 const SectionTitle = ({
   children,
@@ -26,6 +28,53 @@ const Section = ({ children }: { children: React.ReactNode }) => {
   )
 }
 
+const CurrentSubscriptionOrPricingTable = ({
+  catalog,
+  currentSubscriptions,
+}: {
+  catalog: Flowglad.CustomerProfileRetrieveBillingResponse['catalog']
+  currentSubscriptions: Flowglad.CustomerProfileRetrieveBillingResponse['currentSubscriptions']
+}) => {
+  if (currentSubscriptions && currentSubscriptions.length > 0) {
+    const currentSubscription = currentSubscriptions[0]
+    return (
+      <>
+        <SectionTitle>Current Subscription</SectionTitle>
+        <CurrentSubscriptionCard
+          currency={
+            currentSubscription.subscriptionItems[0].variant.currency
+          }
+          subscription={currentSubscription}
+          subscriptionItems={currentSubscription.subscriptionItems}
+          product={{
+            name: 'Pro Plus',
+            pluralQuantityLabel: null,
+          }}
+        />
+      </>
+    )
+  }
+  return (
+    <PricingTable
+      products={catalog.products.map((item) => ({
+        name: item.product.name,
+        description: item.product.description,
+        displayFeatures: item.product.displayFeatures,
+        primaryButtonText: 'Subscribe',
+        secondaryButtonText: 'Learn More',
+        variants: item.variants.map((variant) => ({
+          currency: variant.currency,
+          unitPrice: variant.unitPrice,
+          intervalCount: variant.intervalCount,
+          intervalUnit: variant.intervalUnit,
+          priceType: variant.priceType,
+          trialPeriodDays: variant.trialPeriodDays,
+        })),
+      }))}
+    />
+  )
+}
+
 export function BillingPage({
   billing,
   className,
@@ -40,6 +89,12 @@ export function BillingPage({
         className
       )}
     >
+      <Section>
+        <CurrentSubscriptionOrPricingTable
+          catalog={billing.catalog}
+          currentSubscriptions={billing.currentSubscriptions}
+        />
+      </Section>
       <Section>
         <SectionTitle>Payment Methods</SectionTitle>
         <PaymentMethods paymentMethods={billing.paymentMethods} />
