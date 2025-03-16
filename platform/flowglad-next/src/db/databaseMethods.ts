@@ -18,7 +18,6 @@ export interface JWTClaim extends JwtPayload {
   user_metadata: SessionUser
   app_metadata: SessionUser['app_metadata']
   email: string
-  session_id: string
   role: string
 }
 
@@ -58,12 +57,12 @@ export const authenticatedTransaction = async <T>(
       role: 'authenticated',
       sub: userId,
       email: user?.primaryEmail ?? '',
-      session_id: (await user.getActiveSessions())?.[0]?.id ?? '',
       user_metadata: {
         id: userId,
         user_metadata: {},
         aud: 'stub',
         email: user.primaryEmail ?? '',
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         role: 'authenticated',
         app_metadata: {

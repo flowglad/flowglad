@@ -4,7 +4,7 @@ DROP TABLE "form_fields" CASCADE;--> statement-breakpoint
 DROP POLICY "Enable all for own organizations" ON "forms" CASCADE;--> statement-breakpoint
 DROP POLICY "Check mode" ON "forms" CASCADE;--> statement-breakpoint
 DROP TABLE "forms" CASCADE;--> statement-breakpoint
-DROP POLICY "Enable all for own forms" ON "form_submissions" CASCADE;--> statement-breakpoint
+DROP POLICY IF EXISTS "Enable all for own forms" ON "form_submissions" CASCADE;--> statement-breakpoint
 DROP POLICY "Check mode" ON "form_submissions" CASCADE;--> statement-breakpoint
 DROP TABLE "form_submissions" CASCADE;--> statement-breakpoint
 DROP POLICY "Enable read for own organizations" ON "integrations" CASCADE;--> statement-breakpoint

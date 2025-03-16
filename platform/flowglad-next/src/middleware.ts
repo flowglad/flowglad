@@ -6,6 +6,7 @@ import { stackServerApp } from './stack'
 const publicRoutes = [
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/handler/(.*)',
   // '/api/ping',
   '/api/webhook-stripe/(.*)',
   '/api/webhook-(.*)',
