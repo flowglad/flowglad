@@ -21,7 +21,7 @@ export default async function SignIn({
   params,
   searchParams
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
   searchParams: { disable_button: boolean };
 }) {
   const { allowOauth, allowEmail, allowPassword } = getAuthTypes();
@@ -30,10 +30,10 @@ export default async function SignIn({
 
   // Declare 'viewProp' and initialize with the default value
   let viewProp: string;
-
+  const { id } = await params;
   // Assign url id to 'viewProp' if it's a valid string and ViewTypes includes it
-  if (typeof params.id === 'string' && viewTypes.includes(params.id)) {
-    viewProp = params.id;
+  if (typeof id === 'string' && viewTypes.includes(id)) {
+    viewProp = id;
   } else {
     const preferredSignInView =
       cookies().get('preferredSignInView')?.value || null;

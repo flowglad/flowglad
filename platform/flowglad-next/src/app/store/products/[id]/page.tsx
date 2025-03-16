@@ -3,19 +3,17 @@ import { selectVariantsAndProductByProductId } from '@/db/tableMethods/variantMe
 import InternalProductDetailsPage from './InternalProductDetailsPage'
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 const ProductPage = async ({ params }: ProductPageProps) => {
+  const { id } = await params
   const { product, variants } = await authenticatedTransaction(
     async ({ transaction }) => {
       const { product, variants } =
-        await selectVariantsAndProductByProductId(
-          params.id,
-          transaction
-        )
+        await selectVariantsAndProductByProductId(id, transaction)
       return { product, variants }
     }
   )

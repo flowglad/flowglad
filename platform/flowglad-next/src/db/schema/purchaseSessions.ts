@@ -35,7 +35,7 @@ import { customerProfiles } from './customerProfiles'
 import { sql } from 'drizzle-orm'
 import { invoices } from './invoices'
 
-const TABLE_NAME = 'PurchaseSessions'
+const TABLE_NAME = 'purchase_sessions'
 
 const columns = {
   ...tableBase('pses'),

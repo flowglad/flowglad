@@ -43,9 +43,9 @@ const stripeWebhookSigningSecret = ({
  */
 export const POST = async (
   request: Request,
-  { params }: { params: { mode: WebhookMode } }
+  { params }: { params: Promise<{ mode: WebhookMode }> }
 ) => {
-  const { mode } = params
+  const { mode } = await params
   try {
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')

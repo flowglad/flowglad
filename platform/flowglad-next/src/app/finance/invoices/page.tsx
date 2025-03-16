@@ -6,7 +6,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 const InvoicesPage = async ({
   params,
 }: {
-  params: { focusedTab: string }
+  params: Promise<{ focusedTab: string }>
 }) => {
   const { invoices } = await authenticatedTransaction(
     async ({ transaction, userId }) => {

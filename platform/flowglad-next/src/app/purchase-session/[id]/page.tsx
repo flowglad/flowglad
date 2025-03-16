@@ -16,8 +16,9 @@ import { notFound, redirect } from 'next/navigation'
 const PurchaseSessionPage = async ({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) => {
+  const { id } = await params
   const {
     purchaseSession,
     product,
@@ -27,7 +28,7 @@ const PurchaseSessionPage = async ({
     maybeCustomerProfile,
   } = await adminTransaction(async ({ transaction }) => {
     const purchaseSession = await selectPurchaseSessionById(
-      params.id,
+      id,
       transaction
     )
     /**

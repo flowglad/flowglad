@@ -1,7 +1,6 @@
 import { jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
-  nullableStringForeignKey,
   enhancedCreateInsertSchema,
   createUpdateSchema,
   constructIndex,
@@ -13,7 +12,7 @@ import {
 import { users } from './users'
 import { z } from 'zod'
 
-export const TABLE_NAME = 'Customers'
+export const TABLE_NAME = 'customers'
 
 export const customers = pgTable(
   TABLE_NAME,
@@ -22,7 +21,7 @@ export const customers = pgTable(
     name: text('name').notNull(),
     email: text('email').notNull().unique(),
     billingAddress: jsonb('billing_address'),
-    userId: nullableStringForeignKey('user_id', users),
+    userId: text('user_id').references(() => users.id),
   },
   (table) => {
     return [

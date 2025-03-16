@@ -7,14 +7,15 @@ import { adminTransaction } from '@/db/databaseMethods'
 import InnerPaymentConfirmedPage from './InnerPaymentConfirmedPage'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 const PaymentConfirmedPage = async ({ params }: PageProps) => {
+  const { id } = await params
   const purchase = await adminTransaction(async ({ transaction }) => {
-    return selectPurchaseById(params.id, transaction)
+    return selectPurchaseById(id, transaction)
   })
 
   if (!purchase) {

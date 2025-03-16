@@ -13,10 +13,11 @@ export type CustomerPageParams = {
 }
 
 const CustomerPage = async ({
-  params: { id },
+  params,
 }: {
-  params: CustomerPageParams
+  params: Promise<CustomerPageParams>
 }) => {
+  const { id } = await params
   const {
     customer,
     customerProfile,

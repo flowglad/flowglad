@@ -21,7 +21,7 @@ import { PurchaseAccessSessionSource } from '@/types'
 import core from '@/utils/core'
 import { purchases } from './purchases'
 
-const TABLE_NAME = 'PurchaseAccessSessions'
+const TABLE_NAME = 'purchase_access_sessions'
 
 export const purchaseAccessSessions = pgTable(
   TABLE_NAME,

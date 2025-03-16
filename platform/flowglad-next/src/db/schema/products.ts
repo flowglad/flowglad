@@ -21,7 +21,7 @@ import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 
-const PRODUCTS_TABLE_NAME = 'Products'
+const PRODUCTS_TABLE_NAME = 'products'
 
 const columns = {
   ...tableBase('prod'),

@@ -72,10 +72,9 @@ type TRPCResponse =
     }
 
 const handler = withUnkey(
-  // @ts-expect-error - context type mismatch
   async (
     req: NextRequestWithUnkeyContext,
-    { params }: { params: { path: string[] } }
+    { params }: { params: Promise<{ path: string[] }> }
   ) => {
     if (!req.unkey) {
       return new Response('Unauthorized', { status: 401 })
@@ -83,7 +82,7 @@ const handler = withUnkey(
     if (!req.unkey.valid) {
       return new Response('Unauthorized', { status: 401 })
     }
-    const path = params.path.join('/')
+    const path = (await params).path.join('/')
     const method = req.method
     // Find matching route
     const matchingRoute = Object.entries(routes).find(

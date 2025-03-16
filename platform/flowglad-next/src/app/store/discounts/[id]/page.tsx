@@ -5,15 +5,16 @@ import {
 } from '@/db/tableMethods/discountMethods'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 const DiscountsPage = async ({ params }: PageProps) => {
+  const { id } = await params
   const discount = await authenticatedTransaction(
     async ({ transaction }) => {
-      return selectDiscountById(params.id, transaction)
+      return selectDiscountById(id, transaction)
     }
   )
 

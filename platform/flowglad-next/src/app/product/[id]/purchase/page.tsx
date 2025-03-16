@@ -19,12 +19,13 @@ import { findOrCreatePurchaseSession } from '@/utils/purchaseSessionState'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 
 interface PurchasePageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 const PurchasePage = async ({ params }: PurchasePageProps) => {
+  const { id } = await params
   const {
     product,
     variant,
@@ -35,10 +36,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
     maybeCustomerProfile,
   } = await adminTransaction(async ({ transaction }) => {
     const { product, variant } =
-      await selectDefaultVariantAndProductByProductId(
-        params.id,
-        transaction
-      )
+      await selectDefaultVariantAndProductByProductId(id, transaction)
     if (!product.active) {
       // TODO: ERROR PAGE UI
       return {

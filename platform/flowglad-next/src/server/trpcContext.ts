@@ -1,20 +1,20 @@
 import * as trpcNext from '@trpc/server/adapters/next'
-import { getAuth } from '@clerk/nextjs/server'
 import { ApiEnvironment } from '@/types'
 import { adminTransaction } from '@/db/databaseMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { stackServerApp } from '@/stack'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
 ) => {
-  const auth = getAuth(opts.req)
+  const user = await stackServerApp.getUser()
   let environment: ApiEnvironment = 'live'
   let organizationId: string | undefined
-  if (auth.userId) {
+  if (user) {
     const maybeMembership = await adminTransaction(
       async ({ transaction }) => {
         return selectFocusedMembershipAndOrganization(
-          auth.userId,
+          user.id,
           transaction
         )
       }
@@ -26,7 +26,7 @@ export const createContext = async (
     }
   }
   return {
-    auth,
+    user,
     path: opts.req.url,
     environment,
     livemode: environment === 'live',

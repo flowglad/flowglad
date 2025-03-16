@@ -17,12 +17,13 @@ import { PurchaseSessionType } from '@/types'
 const PayPurchasePage = async ({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) => {
+  const { id } = await params
   const rawContextValues = await adminTransaction(
     async ({ transaction }) => {
       const result = await selectPurchaseCheckoutParametersById(
-        params.id,
+        id,
         transaction
       )
       const { variant, organization, purchase, product } = result

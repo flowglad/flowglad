@@ -3,10 +3,8 @@ import { authenticatedTransaction } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPaymentsTableRowData } from '@/db/tableMethods/paymentMethods'
 
-const PaymentsPage = async ({
-  params,
-}: {
-  params: { focusedTab: string }
+const PaymentsPage = async ({}: {
+  params: Promise<{ focusedTab: string }>
 }) => {
   const { paymentRows } = await authenticatedTransaction(
     async ({ transaction, userId }) => {

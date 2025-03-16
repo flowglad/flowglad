@@ -12,7 +12,7 @@ export const CustomerFacingInvoicePage = (
   const InvoicePage = async ({
     params,
   }: {
-    params: { invoiceId: string; organizationId: string }
+    params: Promise<{ invoiceId: string; organizationId: string }>
   }) => {
     const { invoiceId, organizationId } = await params
     const result = await adminTransaction(async ({ transaction }) => {

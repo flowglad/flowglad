@@ -21,10 +21,11 @@ const purchaseAccessSessionName = (purchaseId: string) =>
  * Purchase access sessions are used to manage access to purchased content
  * after payment is complete.
  */
-export const getPurchaseAccessSessionCookie = (
+export const getPurchaseAccessSessionCookie = async (
   purchaseId: string
 ) => {
-  return cookies().get(purchaseAccessSessionName(purchaseId))?.value
+  const cookieStore = await cookies()
+  return cookieStore.get(purchaseAccessSessionName(purchaseId))?.value
 }
 
 export const findPurchaseAccessSession = async (
@@ -32,7 +33,7 @@ export const findPurchaseAccessSession = async (
   transaction: DbTransaction
 ): Promise<PurchaseAccessSession.Record | null> => {
   const purchaseAccessSessionToken =
-    getPurchaseAccessSessionCookie(purchaseId)
+    await getPurchaseAccessSessionCookie(purchaseId)
 
   if (!purchaseAccessSessionToken) {
     return null
@@ -74,19 +75,19 @@ export const createPurchaseAccessSession = async (
     },
     transaction
   )
-  setPurchaseAccessSessionCookie({
+  await setPurchaseAccessSessionCookie({
     purchaseId: params.purchaseId,
     purchaseAccessSessionToken: purchaseAccessSession.token,
   })
   return purchaseAccessSession
 }
 
-export const setPurchaseAccessSessionCookie = (params: {
+export const setPurchaseAccessSessionCookie = async (params: {
   purchaseId: string
   purchaseAccessSessionToken: string
 }) => {
   const { purchaseId, purchaseAccessSessionToken } = params
-  return cookies().set(
+  return (await cookies()).set(
     purchaseAccessSessionName(purchaseId),
     purchaseAccessSessionToken,
     {
@@ -115,7 +116,7 @@ export const exchangeTokenForPurchaseAccessSession = async (
     transaction
   )
 
-  setPurchaseAccessSessionCookie({
+  await setPurchaseAccessSessionCookie({
     purchaseId: purchase.id,
     purchaseAccessSessionToken: purchaseAccessSession.token,
   })
