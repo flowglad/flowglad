@@ -3,7 +3,6 @@ import {
   AuthenticatedTransactionParams,
 } from '@/db/types'
 import { verifyKey } from '@unkey/api'
-import { auth } from '@clerk/nextjs/server'
 import db from './client'
 import { and, eq, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
@@ -47,7 +46,7 @@ export const authenticatedTransaction = async <T>(
       .from(memberships)
       .where(
         and(
-          eq(memberships.stackAuthUserId, userId),
+          eq(memberships.userId, userId),
           eq(memberships.focused, true)
         )
       )

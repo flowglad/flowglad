@@ -27,7 +27,6 @@ export default async function Home() {
           id: user.id,
           name: user.displayName ?? undefined,
           email,
-          stackAuthId: user.id,
         },
         transaction
       )
