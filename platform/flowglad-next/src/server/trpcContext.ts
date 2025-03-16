@@ -1,5 +1,4 @@
 import * as trpcNext from '@trpc/server/adapters/next'
-import { getAuth } from '@clerk/nextjs/server'
 import { ApiEnvironment } from '@/types'
 import { adminTransaction } from '@/db/databaseMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'

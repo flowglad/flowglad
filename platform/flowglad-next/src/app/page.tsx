@@ -6,7 +6,6 @@ import {
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
 import { stackServerApp } from '@/stack'
-import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 
 export default async function Home() {

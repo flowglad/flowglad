@@ -1,11 +1,11 @@
 'use client'
 import { Organization } from '@/db/schema/organizations'
-import { useUser } from '@clerk/nextjs'
+import { useUser } from '@stackframe/stack'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 
 export type AuthContextValues = Partial<{
-  user: ReturnType<typeof useUser>['user']
+  user: ReturnType<typeof useUser>
   organization: Organization.ClientRecord
 }> & {
   setOrganization: (organization: Organization.ClientRecord) => void
@@ -52,7 +52,7 @@ const AuthProvider = ({
   children: React.ReactNode
   values: Omit<AuthContextValues, 'setOrganization'>
 }) => {
-  const { user } = useUser()
+  const user = useUser()
   const [organization, setOrganization] = useState<
     Organization.ClientRecord | undefined
   >(values.organization)

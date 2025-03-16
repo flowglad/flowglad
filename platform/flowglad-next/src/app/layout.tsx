@@ -1,4 +1,3 @@
-import { currentUser } from '@clerk/nextjs/server'
 import { StackProvider, StackTheme } from '@stackframe/stack'
 import { stackServerApp } from '../stack'
 import { Toaster } from 'sonner'
@@ -50,16 +49,16 @@ export default async function RootLayout({
     organization = membershipData?.organization
   }
   return (
-    <Providers
-      authContext={{
-        organization,
-        livemode,
-      }}
-    >
-      <html lang="en" className="dark h-full">
-        <body className={cn(inter.className, 'dark', 'h-full')}>
-          <StackProvider app={stackServerApp}>
-            <StackTheme>
+    <StackProvider app={stackServerApp}>
+      <StackTheme>
+        <Providers
+          authContext={{
+            organization,
+            livemode,
+          }}
+        >
+          <html lang="en" className="dark h-full">
+            <body className={cn(inter.className, 'dark', 'h-full')}>
               {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
@@ -69,10 +68,10 @@ export default async function RootLayout({
             <AIModal />
           </ChatActionsProvider> */}
               {children}
-            </StackTheme>
-          </StackProvider>
-        </body>
-      </html>
-    </Providers>
+            </body>
+          </html>
+        </Providers>
+      </StackTheme>
+    </StackProvider>
   )
 }

@@ -1,6 +1,4 @@
 'use client'
-import { ClerkProvider } from '@clerk/nextjs'
-import { dark } from '@clerk/themes'
 import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
 import type { AuthContextValues } from '../contexts/authContext'
@@ -23,25 +21,10 @@ export default function Providers({
   authContext: Omit<AuthContextValues, 'setOrganization'>
 }) {
   return (
-    <ClerkProvider
-      afterSignOutUrl="/sign-in"
-      appearance={{
-        baseTheme: dark,
-        variables: {
-          colorBackground: 'rgb(35, 35, 35)',
-          colorText: '#d2d2d2',
-          colorTextSecondary: '#939393',
-          colorInputBackground: 'rgba(255, 255, 255, 0.07)',
-        },
-      }}
-    >
-      <TrpcProvider>
-        <AuthProvider values={authContext}>
-          <PostHogProvider client={posthog}>
-            {children}
-          </PostHogProvider>
-        </AuthProvider>
-      </TrpcProvider>
-    </ClerkProvider>
+    <TrpcProvider>
+      <AuthProvider values={authContext}>
+        <PostHogProvider client={posthog}>{children}</PostHogProvider>
+      </AuthProvider>
+    </TrpcProvider>
   )
 }

@@ -4,7 +4,6 @@ import {
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
 import { customAlphabet } from 'nanoid'
-import { currentUser } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { adminTransaction } from '@/db/databaseMethods'
