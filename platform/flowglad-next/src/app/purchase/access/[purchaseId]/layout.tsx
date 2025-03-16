@@ -8,13 +8,14 @@ const PurchaseAccessLayout = async ({
   params,
 }: {
   children: React.ReactNode
-  params: { purchaseId: string }
+  params: Promise<{ purchaseId: string }>
 }) => {
+  const { purchaseId } = await params
   const { organization } = await adminTransaction(
     async ({ transaction }) => {
       const { organization } =
         await selectPurchaseCheckoutParametersById(
-          params.purchaseId,
+          purchaseId,
           transaction
         )
       return { organization }
