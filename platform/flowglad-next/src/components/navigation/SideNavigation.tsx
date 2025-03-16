@@ -183,13 +183,13 @@ export const SideNavigation = () => {
               <UserButton />
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-foreground">
-                  {user?.displayName}
+                  {user?.display_name}
                 </span>
                 <span
                   className="text-xs text-subtle truncate max-w-[16ch]"
-                  title={user?.primaryEmail ?? ''}
+                  title={user?.primary_email ?? ''}
                 >
-                  {user?.primaryEmail}
+                  {user?.primary_email}
                 </span>
               </div>
             </div>
