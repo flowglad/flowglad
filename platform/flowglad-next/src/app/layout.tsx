@@ -14,10 +14,6 @@ import { Organization } from '@/db/schema/organizations'
 // import AIModal from './components/forms/AIModal'
 // import { ChatActionsProvider } from './components/ChatActionsContext'
 
-const PostHogPageView = dynamic(() => import('./PostHogPageview'), {
-  ssr: false,
-})
-
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -48,6 +44,7 @@ export default async function RootLayout({
     livemode = membershipData?.membership.livemode
     organization = membershipData?.organization
   }
+  const userJson = user?.toClientJson()
   return (
     <StackProvider app={stackServerApp}>
       <StackTheme>
@@ -55,6 +52,7 @@ export default async function RootLayout({
           authContext={{
             organization,
             livemode,
+            user: userJson,
           }}
         >
           <html lang="en" className="dark h-full">
@@ -62,7 +60,6 @@ export default async function RootLayout({
               {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
-              <PostHogPageView />
               <Toaster />
               {/* <ChatActionsProvider>
             <AIModal />

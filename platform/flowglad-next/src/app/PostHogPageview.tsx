@@ -3,14 +3,14 @@
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { usePostHog } from 'posthog-js/react'
-import { useUser } from '@stackframe/stack'
+import { AuthContextValues } from '@/contexts/authContext'
 
-export default function PostHogPageView(): null {
+export default function PostHogPageView({
+  user,
+}: Pick<AuthContextValues, 'user'>): null {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const posthog = usePostHog()
-
-  const user = useUser()
 
   // Track pageviews
   useEffect(() => {
@@ -31,8 +31,8 @@ export default function PostHogPageView(): null {
     if (user && !posthog._isIdentified()) {
       // 👉 Identify the user
       posthog.identify(user.id, {
-        email: user.primaryEmail,
-        username: user.displayName,
+        email: user.primary_email!,
+        username: user.display_name!,
       })
     }
   }, [posthog, user])

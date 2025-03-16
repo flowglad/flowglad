@@ -4,7 +4,7 @@ import { PostHogProvider } from 'posthog-js/react'
 import type { AuthContextValues } from '../contexts/authContext'
 import AuthProvider from '../contexts/authContext'
 import TrpcProvider from '@/app/_trpc/Provider'
-
+import PostHogPageView from './PostHogPageview'
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -23,7 +23,10 @@ export default function Providers({
   return (
     <TrpcProvider>
       <AuthProvider values={authContext}>
-        <PostHogProvider client={posthog}>{children}</PostHogProvider>
+        <PostHogProvider client={posthog}>
+          <PostHogPageView user={authContext.user} />
+          {children}
+        </PostHogProvider>
       </AuthProvider>
     </TrpcProvider>
   )
