@@ -3,9 +3,14 @@ import {
   adminTransaction,
   authenticatedTransaction,
 } from '@/db/databaseMethods'
+import { memberships } from '@/db/schema/memberships'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { upsertUserById } from '@/db/tableMethods/userMethods'
+import {
+  selectUsers,
+  upsertUserById,
+} from '@/db/tableMethods/userMethods'
 import { stackServerApp } from '@/stack'
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
 export default async function Home() {
@@ -21,6 +26,13 @@ export default async function Home() {
 
   const membershipsAndOrganizations = await adminTransaction(
     async ({ transaction }) => {
+      const [existingUser] = await selectUsers(
+        {
+          email,
+        },
+        transaction
+      )
+
       await upsertUserById(
         {
           id: user.id,
@@ -29,6 +41,18 @@ export default async function Home() {
         },
         transaction
       )
+      /**
+       * If the user already exists (aka they signed up before the stack auth migration),
+       * update their existing memberships to point to the new user id.
+       */
+      if (existingUser) {
+        await transaction
+          .update(memberships)
+          .set({
+            userId: user.id,
+          })
+          .where(eq(memberships.userId, user.id))
+      }
       return selectMembershipAndOrganizations(
         {
           userId: user.id,
