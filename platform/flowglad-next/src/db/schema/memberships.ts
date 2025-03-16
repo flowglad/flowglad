@@ -22,7 +22,7 @@ export const memberships = pgTable(
   {
     ...tableBase('memb'),
     userId: notNullStringForeignKey('user_id', users),
-    stackAuthUserId: text('stack_auth_user_id'),
+    stackAuthUserId: text('stack_auth_user_id').notNull(),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations

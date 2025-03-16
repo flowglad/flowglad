@@ -13,7 +13,7 @@ import {
 import { users } from './users'
 import { z } from 'zod'
 
-export const TABLE_NAME = 'Customers'
+export const TABLE_NAME = 'customers'
 
 export const customers = pgTable(
   TABLE_NAME,
@@ -23,7 +23,7 @@ export const customers = pgTable(
     email: text('email').notNull().unique(),
     billingAddress: jsonb('billing_address'),
     userId: nullableStringForeignKey('user_id', users),
-    stackAuthUserId: text('stack_auth_id'),
+    stackAuthUserId: text('stack_auth_user_id'),
   },
   (table) => {
     return [
