@@ -16,7 +16,9 @@ import {
   Invoice,
   invoices,
   invoicesClientInsertSchema,
+  invoicesClientSelectSchema,
   invoicesClientUpdateSchema,
+  invoicesSelectSchema,
 } from './invoices'
 import { variants } from './variants'
 import core from '@/utils/core'
@@ -138,10 +140,20 @@ export const sendInvoiceReminderSchema = z.object({
 
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>
 
-export type InvoiceWithLineItems = Invoice.Record & {
-  invoiceLineItems: InvoiceLineItem.Record[]
-}
+export const invoiceWithLineItemsSchema = z.object({
+  invoice: invoicesSelectSchema,
+  invoiceLineItems: invoiceLineItemsSelectSchema.array(),
+})
 
-export type ClientInvoiceWithLineItems = Invoice.ClientRecord & {
-  invoiceLineItems: InvoiceLineItem.ClientRecord[]
-}
+export const invoiceWithLineItemsClientSchema = z.object({
+  invoice: invoicesClientSelectSchema,
+  invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
+})
+
+export type InvoiceWithLineItems = z.infer<
+  typeof invoiceWithLineItemsSchema
+>
+
+export type ClientInvoiceWithLineItems = z.infer<
+  typeof invoiceWithLineItemsClientSchema
+>

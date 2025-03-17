@@ -82,35 +82,6 @@ We need to create a webhook in the `Developers` section of Stripe. Pictured in t
 
 For the newly set environment variables to take effect and everything to work together correctly, we need to redeploy our app in Vercel. In your Vercel Dashboard, navigate to deployments, click the overflow menu button and select "Redeploy" (do NOT enable the "Use existing Build Cache" option). Once Vercel has rebuilt and redeployed your app, you're ready to set up your products and prices.
 
-#### Create product and pricing information
-
-Your application's webhook listens for product updates on Stripe and automatically propagates them to your Supabase database. So with your webhook listener running, you can now create your product and pricing information in the [Stripe Dashboard](https://dashboard.stripe.com/test/products).
-
-Stripe Checkout currently supports pricing that bills a predefined amount at a specific interval. More complex plans (e.g., different pricing tiers or seats) are not yet supported.
-
-For example, you can create business models with different pricing tiers, e.g.:
-
-- Product 1: Hobby
-  - Price 1: 10 USD per month
-  - Price 2: 100 USD per year
-- Product 2: Freelancer
-  - Price 1: 20 USD per month
-  - Price 2: 200 USD per year
-
-Optionally, to speed up the setup, we have added a [fixtures file](fixtures/stripe-fixtures.json) to bootstrap test product and pricing data in your Stripe account. The [Stripe CLI](https://stripe.com/docs/stripe-cli#install) `fixtures` command executes a series of API requests defined in this JSON file. Simply run `stripe fixtures fixtures/stripe-fixtures.json`.
-
-**Important:** Make sure that you've configured your Stripe webhook correctly and redeployed with all needed environment variables.
-
-#### Configure the Stripe customer portal
-
-1. Set your custom branding in the [settings](https://dashboard.stripe.com/settings/branding)
-1. Configure the Customer Portal [settings](https://dashboard.stripe.com/test/settings/billing/portal)
-1. Toggle on "Allow customers to update their payment methods"
-1. Toggle on "Allow customers to update subscriptions"
-1. Toggle on "Allow customers to cancel subscriptions"
-1. Add the products and prices that you want
-1. Set up the required business information and links
-
 ### That's it
 
 I know, that was quite a lot to get through, but it's worth it. You're now ready to earn recurring revenue from your customers. 🥳

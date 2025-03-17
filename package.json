@@ -32,6 +32,7 @@
     "prettier-plugin-tailwindcss": "0.6.11",
     "tsup": "8.3.6",
     "tsx": "4.17.0",
+    "turbo": "^2.4.4",
     "typescript": "^5.0.0",
     "zx": "^8.3.2"
   }

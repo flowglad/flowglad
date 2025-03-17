@@ -144,7 +144,7 @@ const InvoicesTable = ({
             <>
               <span className="font-bold text-sm">
                 {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                  cellData.currency,
+                  cellData.invoice.currency,
                   cellData.invoiceLineItems.reduce(
                     (acc, item) => acc + item.price * item.quantity,
                     0
@@ -163,7 +163,7 @@ const InvoicesTable = ({
           ),
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
-            <InvoiceStatusBadge invoice={cellData} />
+            <InvoiceStatusBadge invoice={cellData.invoice} />
           ),
         },
         {
@@ -175,7 +175,7 @@ const InvoicesTable = ({
           ),
           accessorKey: 'invoiceNumber',
           cell: ({ row: { original: cellData } }) => (
-            <>{cellData.invoiceNumber}</>
+            <>{cellData.invoice.invoiceNumber}</>
           ),
         },
         {
@@ -185,8 +185,8 @@ const InvoicesTable = ({
           accessorKey: 'due',
           cell: ({ row: { original: cellData } }) => (
             <>
-              {cellData.dueDate
-                ? core.formatDate(cellData.dueDate)
+              {cellData.invoice.dueDate
+                ? core.formatDate(cellData.invoice.dueDate)
                 : '-'}
             </>
           ),
@@ -200,7 +200,7 @@ const InvoicesTable = ({
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.createdAt)}</>
+            <>{core.formatDate(cellData.invoice.createdAt)}</>
           ),
         },
         {
@@ -211,7 +211,7 @@ const InvoicesTable = ({
               onClick={(e) => e.stopPropagation()}
             >
               <MoreMenuCell
-                invoice={cellData}
+                invoice={cellData.invoice}
                 invoiceLineItems={cellData.invoiceLineItems}
               />
             </div>

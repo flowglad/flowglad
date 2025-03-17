@@ -112,7 +112,7 @@ const calculateTotalBillingDetails = (
   const baseAmount =
     type === 'invoice'
       ? calculateInvoiceBaseAmount({
-          ...invoice,
+          invoice,
           invoiceLineItems: params.invoiceLineItems,
         })
       : calculateVariantBaseAmount({

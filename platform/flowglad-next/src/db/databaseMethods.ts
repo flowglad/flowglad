@@ -4,12 +4,13 @@ import {
 } from '@/db/types'
 import { verifyKey } from '@unkey/api'
 import db from './client'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
 import core, { isNil } from '@/utils/core'
 import { memberships } from './schema/memberships'
 import { stackServerApp } from '@/stack'
+import { users } from './schema/users'
 
 type SessionUser = Session['user']
 
@@ -83,17 +84,23 @@ export const authenticatedTransaction = async <T>(
     if (!result) {
       throw new Error('No result')
     }
+    const apiKeyMetadataUserId = result.meta?.userId
     const membershipsForOrganization = await db
       .select()
       .from(memberships)
+      .innerJoin(users, eq(memberships.userId, users.id))
       .where(
         and(
           eq(memberships.organizationId, result.ownerId!),
-          eq(memberships.userId, `${result.meta?.userId}`)
+          or(
+            eq(memberships.userId, `${apiKeyMetadataUserId}`),
+            eq(users.clerkId, `${apiKeyMetadataUserId}`)
+          )
         )
       )
     userId =
-      membershipsForOrganization[0].userId ?? `${result.meta?.userId}`
+      membershipsForOrganization[0].users.id ??
+      `${result.meta?.userId}`
     livemode = result.environment === 'live'
     jwtClaim = {
       role: 'authenticated',
