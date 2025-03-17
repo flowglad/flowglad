@@ -183,7 +183,6 @@ export const FlowgladContextProvider = ({
       ...notPresentContextValues,
     }
   } else if (billing) {
-    console.log('===========billing', billing)
     value = {
       loaded: true,
       loadBilling,
