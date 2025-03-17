@@ -18,7 +18,7 @@ const publicRoutes = [
   '/purchase/access/(.*)',
   '/product/(.*)/post-purchase/(.*)',
   '/api/trpc/public.(.*)',
-  '/purchase-session/(.*)',
+  '/checkout/(.*)',
   /**
    * Purchase session procedures need to be public,
    * otherwise anon users will hit 307 redirects.

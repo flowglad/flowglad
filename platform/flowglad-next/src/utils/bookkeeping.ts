@@ -28,7 +28,7 @@ import {
   InvoiceType,
   PaymentStatus,
   PriceType,
-  PurchaseSessionType,
+  CheckoutSessionType,
   PurchaseStatus,
 } from '@/types'
 import {
@@ -51,10 +51,10 @@ import { Payment } from '@/db/schema/payments'
 import { selectVariantById } from '@/db/tableMethods/variantMethods'
 import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
 import {
-  bulkUpdatePurchaseSessions,
-  selectOpenNonExpiredPurchaseSessions,
-  updatePurchaseSessionsForOpenPurchase,
-} from '@/db/tableMethods/purchaseSessionMethods'
+  bulkUpdateCheckoutSessions,
+  selectOpenNonExpiredCheckoutSessions,
+  updateCheckoutSessionsForOpenPurchase,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
@@ -451,15 +451,15 @@ export const editOpenPurchase = async (
       transaction
     )
 
-    const openPurchaseSessions =
-      await selectOpenNonExpiredPurchaseSessions(
+    const openCheckoutSessions =
+      await selectOpenNonExpiredCheckoutSessions(
         {
           purchaseId: payload.id,
         },
         transaction
       )
-    if (openPurchaseSessions.length > 0) {
-      await updatePurchaseSessionsForOpenPurchase(
+    if (openCheckoutSessions.length > 0) {
+      await updateCheckoutSessionsForOpenPurchase(
         {
           stripePaymentIntentId: paymentIntent.id,
           purchaseId: payload.id,

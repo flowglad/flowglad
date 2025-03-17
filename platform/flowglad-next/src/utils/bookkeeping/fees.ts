@@ -290,7 +290,7 @@ export const calculateTotalFeeAmount = (
   return Math.round(totalFee)
 }
 
-interface PurchaseSessionFeeCalculationParams {
+interface CheckoutSessionFeeCalculationParams {
   organization: Organization.Record
   product: Product.Record
   variant: Variant.Record
@@ -298,11 +298,11 @@ interface PurchaseSessionFeeCalculationParams {
   discount?: Discount.Record
   billingAddress: BillingAddress
   paymentMethodType: PaymentMethodType
-  PurchaseSessionId: string
+  checkoutSessionId: string
   organizationCountry: Country.Record
 }
 
-export const createPurchaseSessionFeeCalculationInsert = async ({
+export const createCheckoutSessionFeeCalculationInsert = async ({
   organization,
   product,
   variant,
@@ -311,8 +311,8 @@ export const createPurchaseSessionFeeCalculationInsert = async ({
   billingAddress,
   paymentMethodType,
   organizationCountry,
-  PurchaseSessionId,
-}: PurchaseSessionFeeCalculationParams) => {
+  checkoutSessionId,
+}: CheckoutSessionFeeCalculationParams) => {
   const baseAmount = calculateVariantBaseAmount({
     variant,
     purchase,
@@ -360,7 +360,7 @@ export const createPurchaseSessionFeeCalculationInsert = async ({
     baseAmount,
     discountAmountFixed: discountAmount,
     pretaxTotal: discountInclusiveAmount,
-    PurchaseSessionId,
+    checkoutSessionId,
     flowgladFeePercentage: flowgladFeePercentage.toString(),
     internationalFeePercentage: internationalFeePercentage.toString(),
     paymentMethodFeeFixed,
@@ -375,7 +375,7 @@ export const createPurchaseSessionFeeCalculationInsert = async ({
     paymentMethodType,
     billingAddress,
     billingPeriodId: null,
-    type: FeeCalculationType.PurchaseSessionPayment,
+    type: FeeCalculationType.CheckoutSessionPayment,
     livemode: variant.livemode,
   }
   return feeCalculationInsert
@@ -466,7 +466,7 @@ const createSubscriptionFeeCalculationInsert = (
     organizationId: organization.id,
     billingAddress: paymentMethod.billingDetails.address,
     variantId: null,
-    PurchaseSessionId: null,
+    checkoutSessionId: null,
     paymentMethodType: paymentMethod.type,
     discountAmountFixed: discountAmount,
     pretaxTotal: discountInclusiveAmount,
@@ -484,12 +484,12 @@ const createSubscriptionFeeCalculationInsert = (
   return feeCalculationInsert
 }
 
-export const createPurchaseSessionFeeCalculation = async (
-  params: PurchaseSessionFeeCalculationParams,
+export const createCheckoutSessionFeeCalculation = async (
+  params: CheckoutSessionFeeCalculationParams,
   transaction: DbTransaction
 ) => {
   const feeCalculationInsert =
-    await createPurchaseSessionFeeCalculationInsert(params)
+    await createCheckoutSessionFeeCalculationInsert(params)
   return insertFeeCalculation(feeCalculationInsert, transaction)
 }
 
@@ -558,7 +558,7 @@ export const finalizeFeeCalculation = async (
     type: feeCalculation.type,
     variantId: feeCalculation.variantId,
     billingPeriodId: feeCalculation.billingPeriodId,
-    PurchaseSessionId: feeCalculation.PurchaseSessionId,
+    checkoutSessionId: feeCalculation.checkoutSessionId,
     internalNotes: `Total processed month to date: ${totalProcessedMonthToDatePennies}; Calculated time: ${new Date().toISOString()}`,
   } as FeeCalculation.Update
   return updateFeeCalculation(feeCalculationUpdate, transaction)

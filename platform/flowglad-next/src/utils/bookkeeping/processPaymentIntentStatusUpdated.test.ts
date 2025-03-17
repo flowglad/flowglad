@@ -269,7 +269,7 @@ describe('Process payment intent status updated', async () => {
       ).rejects.toThrow()
     })
 
-    it('throws an error if metadata does not contain any of billingRunId, invoiceId, or purchaseSessionId', async () => {
+    it('throws an error if metadata does not contain any of billingRunId, invoiceId, or checkoutSessionId', async () => {
       const fakeCharge: any = {
         id: 'ch1',
         payment_intent: 'pi_1',
@@ -736,12 +736,12 @@ describe('Process payment intent status updated', async () => {
     // })
 
     // describe('Purchase Session Flow', () => {
-    //   // it('correctly processes a payment when metadata contains a purchaseSessionId', async () => {
+    //   // it('correctly processes a payment when metadata contains a checkoutSessionId', async () => {
     //   //   const fakePI: any = {
     //   //     id: 'pi_ps',
     //   //     metadata: {
-    //   //       purchaseSessionId: 'ps_123',
-    //   //       type: IntentMetadataType.PurchaseSession,
+    //   //       checkoutSessionId: 'ps_123',
+    //   //       type: IntentMetadataType.CheckoutSession,
     //   //     },
     //   //     latest_charge: 'ch_ps',
     //   //     status: 'succeeded',
@@ -753,8 +753,8 @@ describe('Process payment intent status updated', async () => {
     //   //     amount: 8000,
     //   //     status: 'succeeded',
     //   //     metadata: {
-    //   //       purchaseSessionId: 'ps_123',
-    //   //       type: IntentMetadataType.PurchaseSession,
+    //   //       checkoutSessionId: 'ps_123',
+    //   //       type: IntentMetadataType.CheckoutSession,
     //   //     },
     //   //     billing_details: { address: { country: 'US' } },
     //   //   }

@@ -1,10 +1,10 @@
 import { publicProcedure } from '@/server/trpc'
 import {
-  findProductPurchaseSession,
-  findPurchasePurchaseSession,
-  findInvoicePurchaseSession,
-} from '@/utils/purchaseSessionState'
-import { editPurchaseSession } from '@/utils/bookkeeping/purchaseSessions'
+  findProductCheckoutSession,
+  findPurchaseCheckoutSession,
+  findInvoiceCheckoutSession,
+} from '@/utils/checkoutSessionState'
+import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import { adminTransaction } from '@/db/databaseMethods'
 import { productIdOrPurchaseIdSchema } from '@/db/schema/discounts'
 
@@ -13,25 +13,25 @@ export const clearDiscountCode = publicProcedure
   .mutation(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
       // TODO: find a more elegant way to model this.
-      const purchaseSession =
+      const checkoutSession =
         'productId' in input
-          ? await findProductPurchaseSession(
+          ? await findProductCheckoutSession(
               input.productId,
               transaction
             )
-          : await findPurchasePurchaseSession(
+          : await findPurchaseCheckoutSession(
               input.purchaseId,
               transaction
             )
-      if (!purchaseSession) {
+      if (!checkoutSession) {
         return false
       }
       const maybePurchaseId = (input as { purchaseId: string })
         .purchaseId
-      return editPurchaseSession(
+      return editCheckoutSession(
         {
-          purchaseSession: {
-            ...purchaseSession,
+          checkoutSession: {
+            ...checkoutSession,
             discountId: null,
           },
           purchaseId: maybePurchaseId,

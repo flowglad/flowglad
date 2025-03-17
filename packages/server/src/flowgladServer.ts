@@ -1,4 +1,4 @@
-import { CreatePurchaseSessionParams } from '@flowglad/shared'
+import { CreateCheckoutSessionParams } from '@flowglad/shared'
 import {
   ClerkFlowgladServerSessionParams,
   CoreCustomerProfileUser,
@@ -185,16 +185,16 @@ export class FlowgladServer {
   ): Promise<FlowgladNode.CustomerProfiles.CustomerProfileCreateResponse> => {
     return this.flowgladNode.customerProfiles.create(params)
   }
-  public createPurchaseSession = async (
-    params: CreatePurchaseSessionParams
-  ): Promise<FlowgladNode.PurchaseSessions.PurchaseSessionCreateResponse> => {
+  public createCheckoutSession = async (
+    params: CreateCheckoutSessionParams
+  ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
       this.createHandlerParams
     )
     if (!session) {
       throw new Error('User not authenticated')
     }
-    return this.flowgladNode.purchaseSessions.create({
+    return this.flowgladNode.checkoutSessions.create({
       customerProfileExternalId: session.externalId,
       variantId: params.variantId,
       successUrl: params.successUrl,

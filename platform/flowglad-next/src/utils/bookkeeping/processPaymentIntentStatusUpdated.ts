@@ -1,7 +1,7 @@
 import {
   CurrencyCode,
   PaymentStatus,
-  PurchaseSessionType,
+  CheckoutSessionType,
 } from '@/types'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { CountryCode } from '@/types'
@@ -21,7 +21,7 @@ import Stripe from 'stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { isNil } from '@/utils/core'
-import { processStripeChargeForPurchaseSession } from './purchaseSessions'
+import { processStripeChargeForCheckoutSession } from './checkoutSessions'
 import { dateFromStripeTimestamp } from '@/utils/stripe'
 import { Payment } from '@/db/schema/payments'
 import { updateInvoiceStatusToReflectLatestPayment } from '../bookkeeping'
@@ -122,19 +122,19 @@ export const upsertPaymentForStripeCharge = async (
     taxCountry = invoice.taxCountry
     customerProfileId = invoice.customerProfileId
     livemode = invoice.livemode
-  } else if ('purchaseSessionId' in paymentIntentMetadata) {
+  } else if ('checkoutSessionId' in paymentIntentMetadata) {
     const {
-      purchaseSession,
+      checkoutSession,
       purchase: updatedPurchase,
       invoice,
-    } = await processStripeChargeForPurchaseSession(
+    } = await processStripeChargeForCheckoutSession(
       {
-        purchaseSessionId: paymentIntentMetadata.purchaseSessionId,
+        checkoutSessionId: paymentIntentMetadata.checkoutSessionId,
         charge,
       },
       transaction
     )
-    if (purchaseSession.type === PurchaseSessionType.Invoice) {
+    if (checkoutSession.type === CheckoutSessionType.Invoice) {
       throw new Error(
         'Invoice checkout flow does not support charges'
       )
@@ -145,7 +145,7 @@ export const upsertPaymentForStripeCharge = async (
     taxCountry = invoice?.taxCountry ?? null
     purchase = updatedPurchase
     purchaseId = purchase?.id ?? null
-    livemode = purchaseSession.livemode
+    livemode = checkoutSession.livemode
     customerProfileId =
       purchase?.customerProfileId ||
       invoice?.customerProfileId ||

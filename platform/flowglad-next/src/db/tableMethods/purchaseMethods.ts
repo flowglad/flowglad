@@ -45,9 +45,9 @@ import {
 import { products, productsSelectSchema } from '../schema/products'
 import { z } from 'zod'
 import {
-  purchaseSessionClientSelectSchema,
-  purchaseSessionsSelectSchema,
-} from '../schema/purchaseSessions'
+  checkoutSessionClientSelectSchema,
+  checkoutSessionsSelectSchema,
+} from '../schema/checkoutSessions'
 import { payments, paymentsSelectSchema } from '../schema/payments'
 import { discountClientSelectSchema } from '../schema/discounts'
 import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
@@ -224,7 +224,7 @@ export const billingInfoSchema = z
   ])
   .and(
     z.object({
-      purchaseSession: purchaseSessionClientSelectSchema,
+      checkoutSession: checkoutSessionClientSelectSchema,
       /**
        * Only present for open purchases
        */
@@ -235,7 +235,7 @@ export const billingInfoSchema = z
       clientSecret: z.string().nullable(),
       discount: discountClientSelectSchema.nullish(),
       /**
-       * Only present when purchaseSession.customerProfileId is not null
+       * Only present when checkoutSession.customerProfileId is not null
        */
       readonlyCustomerEmail: z.string().email().nullish(),
       feeCalculation:

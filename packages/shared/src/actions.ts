@@ -9,14 +9,14 @@ export type FlowgladActionValidatorMap = Record<
   }
 >
 
-export const createPurchaseSessionSchema = z.object({
+export const createCheckoutSessionSchema = z.object({
   variantId: z.string(),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
 })
 
-export type CreatePurchaseSessionParams = z.infer<
-  typeof createPurchaseSessionSchema
+export type CreateCheckoutSessionParams = z.infer<
+  typeof createCheckoutSessionSchema
 >
 
 export const flowgladActionValidators: FlowgladActionValidatorMap = {
@@ -32,8 +32,8 @@ export const flowgladActionValidators: FlowgladActionValidatorMap = {
       externalId: z.string(),
     }),
   },
-  [FlowgladActionKey.CreatePurchaseSession]: {
+  [FlowgladActionKey.CreateCheckoutSession]: {
     method: HTTPMethod.POST,
-    inputValidator: createPurchaseSessionSchema,
+    inputValidator: createCheckoutSessionSchema,
   },
 }

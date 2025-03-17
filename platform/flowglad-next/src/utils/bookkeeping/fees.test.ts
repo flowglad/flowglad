@@ -21,12 +21,12 @@ import {
   calculatePaymentMethodFeeAmount,
   calculateTotalFeeAmount,
   calculateTotalDueAmount,
-  createPurchaseSessionFeeCalculationInsert,
+  createCheckoutSessionFeeCalculationInsert,
   finalizeFeeCalculation,
 } from '@/utils/bookkeeping/fees'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
-import { PurchaseSession } from '@/db/schema/purchaseSessions'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Country } from '@/db/schema/countries'
 import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
 import {
@@ -377,7 +377,7 @@ describe('fees.ts', () => {
     })
   })
 
-  describe('createPurchaseSessionFeeCalculationInsert', () => {
+  describe('createCheckoutSessionFeeCalculationInsert', () => {
     it('returns taxAmount = 0 and stripeTaxCalculationId null when calculating fee for organization with StripeConnectContractType Platform', async () => {
       const organization = {
         id: 'org_1',
@@ -393,28 +393,28 @@ describe('fees.ts', () => {
         unitPrice: 1000,
       } as Variant.Record
 
-      const purchaseSession = {
+      const checkoutSession = {
         id: 'sess_1',
         paymentMethodType: PaymentMethodType.Card,
         billingAddress: {
           address: { country: 'US' },
         } as BillingAddress,
-      } as PurchaseSession.FeeReadyRecord
+      } as CheckoutSession.FeeReadyRecord
 
       const organizationCountry = {
         code: 'US',
       } as Country.Record
 
       const feeCalculationInsert =
-        await createPurchaseSessionFeeCalculationInsert({
+        await createCheckoutSessionFeeCalculationInsert({
           organization,
           product,
           variant,
           purchase: undefined,
           discount: undefined,
-          PurchaseSessionId: purchaseSession.id,
-          billingAddress: purchaseSession.billingAddress,
-          paymentMethodType: purchaseSession.paymentMethodType,
+          checkoutSessionId: checkoutSession.id,
+          billingAddress: checkoutSession.billingAddress,
+          paymentMethodType: checkoutSession.paymentMethodType,
           organizationCountry,
         })
 
@@ -448,7 +448,7 @@ describe('fees.ts', () => {
             {
               organizationId: organization.id,
               variantId: variant.id,
-              type: FeeCalculationType.PurchaseSessionPayment,
+              type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
               discountAmountFixed: 0,
@@ -520,7 +520,7 @@ describe('fees.ts', () => {
             {
               organizationId: organization.id,
               variantId: variant.id,
-              type: FeeCalculationType.PurchaseSessionPayment,
+              type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
               discountAmountFixed: 0,
@@ -580,7 +580,7 @@ describe('fees.ts', () => {
             {
               organizationId: organization.id,
               variantId: variant.id,
-              type: FeeCalculationType.PurchaseSessionPayment,
+              type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
               discountAmountFixed: 0,
@@ -641,7 +641,7 @@ describe('fees.ts', () => {
             {
               organizationId: organization.id,
               variantId: variant.id,
-              type: FeeCalculationType.PurchaseSessionPayment,
+              type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: baseFeePercentage,
               baseAmount: 1000,
               discountAmountFixed: 0,
@@ -721,7 +721,7 @@ describe('fees.ts', () => {
             {
               organizationId: organization.id,
               variantId: variant.id,
-              type: FeeCalculationType.PurchaseSessionPayment,
+              type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
               discountAmountFixed: 0,
@@ -805,7 +805,7 @@ describe('fees.ts', () => {
             {
               organizationId: org1.id,
               variantId: variant1.id,
-              type: FeeCalculationType.PurchaseSessionPayment,
+              type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
               discountAmountFixed: 0,

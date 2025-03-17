@@ -37,12 +37,12 @@ const PurchasSessionDependentLine = ({
   label,
   amount,
   currency,
-  editPurchaseSessionLoading,
+  editCheckoutSessionLoading,
 }: {
   label: string
   amount: number
   currency: CurrencyCode
-  editPurchaseSessionLoading?: boolean
+  editCheckoutSessionLoading?: boolean
 }) => {
   return (
     <div className="w-full relative flex justify-between">
@@ -53,7 +53,7 @@ const PurchasSessionDependentLine = ({
           </span>
         </div>
       </div>
-      <FallbackSkeleton showSkeleton={editPurchaseSessionLoading}>
+      <FallbackSkeleton showSkeleton={editCheckoutSessionLoading}>
         <p className="text-sm leading-tight text-white">
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
             currency,
@@ -153,7 +153,7 @@ const TotalBillingDetails = React.forwardRef<
     // variant,
     discount,
     currency,
-    editPurchaseSessionLoading,
+    editCheckoutSessionLoading,
     subscriptionDetails,
     feeCalculation,
     flowType,
@@ -215,7 +215,7 @@ const TotalBillingDetails = React.forwardRef<
           label="Discount"
           amount={discountAmount ?? 0}
           currency={currency}
-          editPurchaseSessionLoading={editPurchaseSessionLoading}
+          editCheckoutSessionLoading={editCheckoutSessionLoading}
         />
       ) : null}
       {taxAmount ? (
@@ -223,7 +223,7 @@ const TotalBillingDetails = React.forwardRef<
           label="Tax"
           amount={taxAmount ?? 0}
           currency={currency}
-          editPurchaseSessionLoading={editPurchaseSessionLoading}
+          editCheckoutSessionLoading={editCheckoutSessionLoading}
         />
       ) : null}
       {afterwardsTotal && (
@@ -249,7 +249,7 @@ const TotalBillingDetails = React.forwardRef<
             flowType === CheckoutFlowType.Subscription ? ' Today' : ''
           }`}
         </div>
-        <FallbackSkeleton showSkeleton={editPurchaseSessionLoading}>
+        <FallbackSkeleton showSkeleton={editCheckoutSessionLoading}>
           <div
             className="text-base leading-5 font-bold"
             data-testid="billing-info-total-due-amount"

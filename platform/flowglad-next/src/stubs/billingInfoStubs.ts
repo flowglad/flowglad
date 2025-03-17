@@ -7,13 +7,13 @@ import { dummyOrganization } from '@/stubs/organizationStubs'
 import { subscriptionDummyVariant } from '@/stubs/variantStubs'
 import {
   CheckoutFlowType,
-  PurchaseSessionStatus,
-  PurchaseSessionType,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
 } from '@/types'
 import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
-import { PurchaseSession } from '@/db/schema/purchaseSessions'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
-const purchaseSession: PurchaseSession.Record = {
+const checkoutSession: CheckoutSession.Record = {
   id: '1',
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -23,7 +23,7 @@ const purchaseSession: PurchaseSession.Record = {
   customerEmail: 'test@test.com',
   stripeSetupIntentId: null,
   stripePaymentIntentId: null,
-  status: PurchaseSessionStatus.Pending,
+  status: CheckoutSessionStatus.Pending,
   expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
   purchaseId: null,
   billingAddress: null,
@@ -35,13 +35,13 @@ const purchaseSession: PurchaseSession.Record = {
   cancelUrl: null,
   quantity: 1,
   invoiceId: null,
-  type: PurchaseSessionType.Product,
+  type: CheckoutSessionType.Product,
 }
 
 const billingInfoDefaults = {
   redirectUrl: '',
   clientSecret: '',
-  purchaseSession,
+  checkoutSession,
   totalDueAmount: 100,
   subtotalAmount: 100,
   discountAmount: 0,

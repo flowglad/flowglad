@@ -17,7 +17,7 @@ import { Variant } from '@/db/schema/variants'
 import core from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
 import { useRouter } from 'next/navigation'
-import { PurchaseSession } from '@/db/schema/purchaseSessions'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 export type SubscriptionCheckoutDetails = Pick<
   Variant.SubscriptionRecord,
@@ -51,8 +51,8 @@ export type CheckoutPageContextValues = {
   sellerOrganization?: Pick<Organization.Record, 'logoURL' | 'name'>
   product?: Nullish<Product.ClientRecord>
   flowType: CheckoutFlowType
-  editPurchaseSessionLoading?: boolean
-  editPurchaseSession: ReturnType<
+  editCheckoutSessionLoading?: boolean
+  editCheckoutSession: ReturnType<
     typeof trpc.purchases.updateSession.useMutation
   >['mutateAsync']
   attemptDiscountCode: ReturnType<
@@ -64,7 +64,7 @@ export type CheckoutPageContextValues = {
   discountCode?: string
   checkoutBlocked?: boolean
   currency: CurrencyCode
-  purchaseSession?: PurchaseSession.ClientRecord
+  checkoutSession?: CheckoutSession.ClientRecord
 } & SubscriptionOnlyCheckoutDetails &
   BillingInfoCore
 
@@ -114,12 +114,12 @@ export const useCheckoutPageContext =
   (): CheckoutPageContextValues => {
     const checkoutInfo = useContext(CheckoutPageContext)
     const billingInfo = billingInfoSchema.parse(checkoutInfo)
-    const editPurchaseSession =
+    const editCheckoutSession =
       trpc.purchases.updateSession.useMutation()
     const attemptDiscountCode = trpc.discounts.attempt.useMutation()
     const clearDiscountCode = trpc.discounts.clear.useMutation()
     const router = useRouter()
-    const checkoutBlocked = editPurchaseSession.isPending ?? false
+    const checkoutBlocked = editCheckoutSession.isPending ?? false
     const currency: CurrencyCode =
       billingInfo.flowType === CheckoutFlowType.Invoice
         ? billingInfo.invoice.currency
@@ -135,8 +135,8 @@ export const useCheckoutPageContext =
       },
       checkoutBlocked,
       currency,
-      editPurchaseSession: debounce(async (input) => {
-        const result = await editPurchaseSession.mutateAsync(input)
+      editCheckoutSession: debounce(async (input) => {
+        const result = await editCheckoutSession.mutateAsync(input)
         router.refresh()
         return result
       }, 500),

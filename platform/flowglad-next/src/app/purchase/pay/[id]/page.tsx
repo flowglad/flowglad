@@ -6,13 +6,13 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
 import core from '@/utils/core'
-import { findOrCreatePurchaseSession } from '@/utils/purchaseSessionState'
+import { findOrCreateCheckoutSession } from '@/utils/checkoutSessionState'
 import CheckoutPage from '@/components/CheckoutPage'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
-import { PurchaseSessionType } from '@/types'
+import { CheckoutSessionType } from '@/types'
 
 const PayPurchasePage = async ({
   params,
@@ -27,30 +27,30 @@ const PayPurchasePage = async ({
         transaction
       )
       const { variant, organization, purchase, product } = result
-      const purchaseSession = await findOrCreatePurchaseSession(
+      const checkoutSession = await findOrCreateCheckoutSession(
         {
           productId: product.id,
           organizationId: organization.id,
           variant,
           purchase,
-          type: PurchaseSessionType.Purchase,
+          type: CheckoutSessionType.Purchase,
         },
         transaction
       )
 
-      const discount = purchaseSession.discountId
+      const discount = checkoutSession.discountId
         ? await selectDiscountById(
-            purchaseSession.discountId,
+            checkoutSession.discountId,
             transaction
           )
         : null
       const feeCalculation = await selectLatestFeeCalculation(
-        { PurchaseSessionId: purchaseSession.id },
+        { checkoutSessionId: checkoutSession.id },
         transaction
       )
-      const maybeCustomerProfile = purchaseSession.customerProfileId
+      const maybeCustomerProfile = checkoutSession.customerProfileId
         ? await selectCustomerProfileById(
-            purchaseSession.customerProfileId,
+            checkoutSession.customerProfileId,
             transaction
           )
         : null
@@ -64,10 +64,10 @@ const PayPurchasePage = async ({
         priceType: variant.priceType,
         feeCalculation,
         billingAddress:
-          purchaseSession.billingAddress ??
+          checkoutSession.billingAddress ??
           result.customer.billingAddress ??
           result.purchase.billingAddress,
-        purchaseSession,
+        checkoutSession,
         readonlyCustomerEmail: maybeCustomerProfile?.email,
         discount,
       }
@@ -75,16 +75,16 @@ const PayPurchasePage = async ({
   )
 
   let purchase = rawContextValues.purchase
-  const purchaseSession = rawContextValues.purchaseSession
+  const checkoutSession = rawContextValues.checkoutSession
   if (
-    !purchaseSession.stripePaymentIntentId &&
-    !purchaseSession.stripeSetupIntentId
+    !checkoutSession.stripePaymentIntentId &&
+    !checkoutSession.stripeSetupIntentId
   ) {
     notFound()
   }
-  const stripeIntent = purchaseSession.stripeSetupIntentId
-    ? await getSetupIntent(purchaseSession.stripeSetupIntentId)
-    : await getPaymentIntent(purchaseSession.stripePaymentIntentId!)
+  const stripeIntent = checkoutSession.stripeSetupIntentId
+    ? await getSetupIntent(checkoutSession.stripeSetupIntentId)
+    : await getPaymentIntent(checkoutSession.stripePaymentIntentId!)
   /**
    * TODO: more helpful error screen
    */

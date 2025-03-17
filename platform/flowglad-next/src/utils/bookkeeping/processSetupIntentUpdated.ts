@@ -1,6 +1,6 @@
 import { Organization } from '@/db/schema/organizations'
 import { updateCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
-import { PurchaseSessionType, PurchaseStatus } from '@/types'
+import { CheckoutSessionType, PurchaseStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   StripeIntentMetadata,
@@ -12,14 +12,14 @@ import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { selectPurchaseSessionById } from '@/db/tableMethods/purchaseSessionMethods'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
 import { Variant } from '@/db/schema/variants'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
-import { processPurchaseBookkeepingForPurchaseSession } from './purchaseSessions'
+import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 
-const processPurchaseSessionSetupIntent = async (
+const processCheckoutSessionSetupIntent = async (
   setupIntent: Stripe.SetupIntent,
   transaction: DbTransaction
 ) => {
@@ -29,20 +29,20 @@ const processPurchaseSessionSetupIntent = async (
   if (!metadata) {
     throw new Error('No metadata found')
   }
-  if (metadata.type !== IntentMetadataType.PurchaseSession) {
+  if (metadata.type !== IntentMetadataType.CheckoutSession) {
     throw new Error(
-      `Metadata type is not purchase_session for setup intent ${setupIntent.id}`
+      `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
     )
   }
-  const purchaseSessionId = metadata.purchaseSessionId
-  const purchaseSession = await selectPurchaseSessionById(
-    purchaseSessionId,
+  const checkoutSessionId = metadata.checkoutSessionId
+  const checkoutSession = await selectCheckoutSessionById(
+    checkoutSessionId,
     transaction
   )
-  if (!purchaseSession) {
+  if (!checkoutSession) {
     throw new Error('Purchase session not found')
   }
-  if (purchaseSession.type === PurchaseSessionType.Invoice) {
+  if (checkoutSession.type === CheckoutSessionType.Invoice) {
     throw new Error(
       'Invoice checkout flow does not support setup intents'
     )
@@ -50,7 +50,7 @@ const processPurchaseSessionSetupIntent = async (
 
   const [{ variant, product, organization }] =
     await selectVariantProductAndOrganizationByVariantWhere(
-      { id: purchaseSession.variantId },
+      { id: checkoutSession.variantId },
       transaction
     )
 
@@ -60,9 +60,9 @@ const processPurchaseSessionSetupIntent = async (
     discount,
     feeCalculation,
     discountRedemption,
-  } = await processPurchaseBookkeepingForPurchaseSession(
+  } = await processPurchaseBookkeepingForCheckoutSession(
     {
-      purchaseSession,
+      checkoutSession,
       stripeCustomerId: setupIntent.customer
         ? stripeIdFromObjectOrId(setupIntent.customer)
         : null,
@@ -71,7 +71,7 @@ const processPurchaseSessionSetupIntent = async (
   )
   return {
     purchase,
-    purchaseSession,
+    checkoutSession,
     variant,
     organization,
     product,
@@ -97,20 +97,20 @@ export const processSetupIntentUpdated = async (
       `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`
     )
   }
-  if (metadata.type !== IntentMetadataType.PurchaseSession) {
+  if (metadata.type !== IntentMetadataType.CheckoutSession) {
     throw new Error(
-      `Metadata type is not purchase_session for setup intent ${setupIntent.id}`
+      `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
     )
   }
   let organization: Organization.Record | null = null
   let variant: Variant.Record | null = null
   let purchase: Purchase.Record | null = null
   let customerProfile: CustomerProfile.Record | null = null
-  const result = await processPurchaseSessionSetupIntent(
+  const result = await processCheckoutSessionSetupIntent(
     setupIntent,
     transaction
   )
-  const { product, purchaseSession } = result
+  const { product, checkoutSession } = result
   organization = result.organization
   variant = result.variant
   purchase = result.purchase
@@ -165,7 +165,7 @@ export const processSetupIntentUpdated = async (
           )
         : undefined,
       startDate: new Date(),
-      quantity: purchaseSession.quantity,
+      quantity: checkoutSession.quantity,
       product,
       livemode: purchase.livemode,
     },
@@ -181,5 +181,5 @@ export const processSetupIntentUpdated = async (
     transaction
   )
 
-  return { purchase: updatedPurchase, purchaseSession }
+  return { purchase: updatedPurchase, checkoutSession }
 }

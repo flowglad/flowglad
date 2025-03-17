@@ -11,11 +11,11 @@ const SubscribeButton = () => {
       </div>
     );
   }
-  const { createPurchaseSession, catalog } = billing;
+  const { createCheckoutSession, catalog } = billing;
   return (
     <button
       onClick={() =>
-        createPurchaseSession({
+        createCheckoutSession({
           autoRedirect: true,
           variantId: catalog.products[0].variants[0].id,
           successUrl: `${window.location.origin}/success`,

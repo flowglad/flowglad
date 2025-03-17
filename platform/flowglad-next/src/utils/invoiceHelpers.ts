@@ -11,7 +11,7 @@ import {
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import { DbTransaction } from '@/db/types'
-import { deleteIncompletePurchaseSessionsForInvoice } from '@/db/tableMethods/purchaseSessionMethods'
+import { deleteIncompleteCheckoutSessionsForInvoice } from '@/db/tableMethods/checkoutSessionMethods'
 
 /**
  * This function updates an invoice and its line items.
@@ -99,7 +99,7 @@ export const updateInvoiceTransaction = async (
    * It's too hard to determine whether the update has billing impacts,
    * and it's better to err on the side of caution.
    */
-  await deleteIncompletePurchaseSessionsForInvoice(
+  await deleteIncompleteCheckoutSessionsForInvoice(
     updatedInvoice.id,
     transaction
   )

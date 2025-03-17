@@ -19,7 +19,7 @@ import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
 import { BillingAddress } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
-import { PurchaseSession } from '@/db/schema/purchaseSessions'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Discount } from '@/db/schema/discounts'
 import { calculateTotalFeeAmount } from './bookkeeping/fees'
 import { calculateTotalDueAmount } from './bookkeeping/fees'
@@ -607,8 +607,8 @@ export type StripeIntent = Stripe.PaymentIntent | Stripe.SetupIntent
 
 export enum IntentMetadataType {
   Invoice = 'invoice',
-  PurchaseSession = 'purchaseSession',
-  BillingRun = 'billingRun',
+  CheckoutSession = 'checkout_session',
+  BillingRun = 'billing_run',
 }
 
 export const invoiceIntentMetadataSchema = z.object({
@@ -616,9 +616,9 @@ export const invoiceIntentMetadataSchema = z.object({
   type: z.literal(IntentMetadataType.Invoice),
 })
 
-export const purchaseSessionIntentMetadataSchema = z.object({
-  purchaseSessionId: z.string(),
-  type: z.literal(IntentMetadataType.PurchaseSession),
+export const checkoutSessionIntentMetadataSchema = z.object({
+  checkoutSessionId: z.string(),
+  type: z.literal(IntentMetadataType.CheckoutSession),
 })
 
 export const billingRunIntentMetadataSchema = z.object({
@@ -630,7 +630,7 @@ export const billingRunIntentMetadataSchema = z.object({
 export const stripeIntentMetadataSchema = z
   .discriminatedUnion('type', [
     invoiceIntentMetadataSchema,
-    purchaseSessionIntentMetadataSchema,
+    checkoutSessionIntentMetadataSchema,
     billingRunIntentMetadataSchema,
   ])
   .or(z.undefined())
@@ -643,8 +643,8 @@ export type StripeIntentMetadata = z.infer<
   typeof stripeIntentMetadataSchema
 >
 
-export type PurchaseSessionStripeIntentMetadata = z.infer<
-  typeof purchaseSessionIntentMetadataSchema
+export type CheckoutSessionStripeIntentMetadata = z.infer<
+  typeof checkoutSessionIntentMetadataSchema
 >
 
 export type BillingRunStripeIntentMetadata = z.infer<
@@ -936,20 +936,20 @@ export type StripeAccountOnboardingStatus = Awaited<
   ReturnType<typeof getConnectedAccountOnboardingStatus>
 > | null
 
-export const createPaymentIntentForInvoicePurchaseSession =
+export const createPaymentIntentForInvoiceCheckoutSession =
   async (params: {
     invoice: Invoice.Record
     invoiceLineItems: InvoiceLineItem.Record[]
     organization: Organization.Record
     stripeCustomerId: string
-    purchaseSession: PurchaseSession.Record
+    checkoutSession: CheckoutSession.Record
     feeCalculation?: FeeCalculation.Record
   }) => {
     const {
       invoice,
       organization,
       stripeCustomerId,
-      purchaseSession,
+      checkoutSession,
       invoiceLineItems,
       feeCalculation,
     } = params
@@ -962,9 +962,9 @@ export const createPaymentIntentForInvoicePurchaseSession =
         organization,
         livemode,
       })
-    const metadata: PurchaseSessionStripeIntentMetadata = {
-      purchaseSessionId: purchaseSession.id,
-      type: IntentMetadataType.PurchaseSession,
+    const metadata: CheckoutSessionStripeIntentMetadata = {
+      checkoutSessionId: checkoutSession.id,
+      type: IntentMetadataType.CheckoutSession,
     }
     const totalDue = feeCalculation
       ? await calculateTotalDueAmount(feeCalculation)
@@ -992,29 +992,29 @@ export const createPaymentIntentForInvoicePurchaseSession =
     })
   }
 
-export const createPaymentIntentForPurchaseSession = async (params: {
+export const createPaymentIntentForCheckoutSession = async (params: {
   variant: Variant.Record
   organization: Organization.Record
   product: Product.Record
   purchase?: Purchase.Record
-  purchaseSession: PurchaseSession.Record
+  checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
 }) => {
-  const { variant, organization, purchaseSession, feeCalculation } =
+  const { variant, organization, checkoutSession, feeCalculation } =
     params
-  const livemode = purchaseSession.livemode
+  const livemode = checkoutSession.livemode
   const { on_behalf_of, transfer_data } =
     stripeConnectTransferDataForOrganization({
       organization,
       livemode,
     })
-  const metadata: PurchaseSessionStripeIntentMetadata = {
-    purchaseSessionId: purchaseSession.id,
-    type: IntentMetadataType.PurchaseSession,
+  const metadata: CheckoutSessionStripeIntentMetadata = {
+    checkoutSessionId: checkoutSession.id,
+    type: IntentMetadataType.CheckoutSession,
   }
   const totalDue = feeCalculation
     ? await calculateTotalDueAmount(feeCalculation)
-    : variant.unitPrice * purchaseSession.quantity
+    : variant.unitPrice * checkoutSession.quantity
   const totalFeeAmount = feeCalculation
     ? calculateTotalFeeAmount(feeCalculation)
     : calculatePlatformApplicationFee({
@@ -1298,17 +1298,17 @@ export const getStripePrice = async (
  * Used to create a setup intent for a purchase session,
  * meaning to create an intent for an anonymized customer to create a subscription.
  */
-export const createSetupIntentForPurchaseSession = async (params: {
+export const createSetupIntentForCheckoutSession = async (params: {
   variant: Variant.SubscriptionRecord
   product: Product.Record
   organization: Organization.Record
-  purchaseSession: PurchaseSession.Record
+  checkoutSession: CheckoutSession.Record
   purchase?: Purchase.Record
 }) => {
-  const { purchaseSession } = params
-  const metadata: PurchaseSessionStripeIntentMetadata = {
-    purchaseSessionId: purchaseSession.id,
-    type: IntentMetadataType.PurchaseSession,
+  const { checkoutSession } = params
+  const metadata: CheckoutSessionStripeIntentMetadata = {
+    checkoutSessionId: checkoutSession.id,
+    type: IntentMetadataType.CheckoutSession,
   }
   const bankOnly = params.purchase?.bankPaymentOnly
   const bankOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
@@ -1324,11 +1324,11 @@ export const createSetupIntentForPurchaseSession = async (params: {
   /**
    * On behalf of required to comply with SCA
    */
-  const onBehalfOf = params.purchaseSession.livemode
+  const onBehalfOf = params.checkoutSession.livemode
     ? params.organization.stripeAccountId!
     : undefined
 
-  return stripe(params.purchaseSession.livemode).setupIntents.create({
+  return stripe(params.checkoutSession.livemode).setupIntents.create({
     ...bankPaymentOnlyParams,
     metadata,
     on_behalf_of: onBehalfOf,

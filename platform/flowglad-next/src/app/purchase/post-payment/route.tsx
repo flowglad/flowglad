@@ -11,16 +11,16 @@ import {
 import { NextRequest } from 'next/server'
 import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
 import { Purchase } from '@/db/schema/purchases'
-import { deletePurchaseSessionCookie } from '@/utils/purchaseSessionState'
+import { deleteCheckoutSessionCookie } from '@/utils/checkoutSessionState'
 import {
-  selectPurchaseSessionById,
-  selectPurchaseSessions,
-} from '@/db/tableMethods/purchaseSessionMethods'
+  selectCheckoutSessionById,
+  selectCheckoutSessions,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { processNonPaymentPurchaseSession } from '@/utils/bookkeeping/processNonPaymentPurchaseSession'
+import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNonPaymentCheckoutSession'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { isNil } from '@/utils/core'
-import { PurchaseSession } from '@/db/schema/purchaseSessions'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Invoice } from '@/db/schema/invoices'
@@ -59,45 +59,45 @@ const processPaymentIntent = async (
     const metadata = stripeIntentMetadataSchema.parse(
       paymentIntent.metadata
     )
-    let purchaseSession: PurchaseSession.Record | null = null
-    if (metadata?.type === IntentMetadataType.PurchaseSession) {
-      purchaseSession = await selectPurchaseSessionById(
-        metadata.purchaseSessionId,
+    let checkoutSession: CheckoutSession.Record | null = null
+    if (metadata?.type === IntentMetadataType.CheckoutSession) {
+      checkoutSession = await selectCheckoutSessionById(
+        metadata.checkoutSessionId,
         transaction
       )
     }
-    return { payment, purchase, purchaseSession, invoice }
+    return { payment, purchase, checkoutSession, invoice }
   })
   return {
     purchase: result.purchase,
     invoice: result.invoice,
-    url: result.purchaseSession?.successUrl
-      ? new URL(result.purchaseSession.successUrl)
+    url: result.checkoutSession?.successUrl
+      ? new URL(result.checkoutSession.successUrl)
       : null,
   }
 }
 
-const processPurchaseSession = async (
-  purchaseSessionId: string
+const processCheckoutSession = async (
+  checkoutSessionId: string
 ): Promise<ProcessPostPaymentResult> => {
   const result = await adminTransaction(async ({ transaction }) => {
-    const [purchaseSession] = await selectPurchaseSessions(
+    const [checkoutSession] = await selectCheckoutSessions(
       {
-        id: purchaseSessionId,
+        id: checkoutSessionId,
       },
       transaction
     )
-    if (!purchaseSession) {
+    if (!checkoutSession) {
       throw new Error(
-        `Purchase session not found: ${purchaseSessionId}`
+        `Purchase session not found: ${checkoutSessionId}`
       )
     }
-    const result = await processNonPaymentPurchaseSession(
-      purchaseSession,
+    const result = await processNonPaymentCheckoutSession(
+      checkoutSession,
       transaction
     )
     return {
-      purchaseSession,
+      checkoutSession,
       purchase: result.purchase,
       invoice: result.invoice,
     }
@@ -107,8 +107,8 @@ const processPurchaseSession = async (
    * If the purchase session has a success url, redirect to it.
    * Otherwise, redirect to the purchase access page.
    */
-  const url = result.purchaseSession.successUrl
-    ? new URL(result.purchaseSession.successUrl)
+  const url = result.checkoutSession.successUrl
+    ? new URL(result.checkoutSession.successUrl)
     : null
 
   return { purchase: result.purchase, url, invoice: result.invoice }
@@ -121,13 +121,13 @@ const processSetupIntent = async (
   url: string | URL | null
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
-  const { purchase, purchaseSession } = await adminTransaction(
+  const { purchase, checkoutSession } = await adminTransaction(
     async ({ transaction }) => {
       return processSetupIntentUpdated(setupIntent, transaction)
     }
   )
-  const url = purchaseSession.successUrl
-    ? new URL(purchaseSession.successUrl)
+  const url = checkoutSession.successUrl
+    ? new URL(checkoutSession.successUrl)
     : null
   return { purchase, url }
 }
@@ -137,11 +137,11 @@ export const GET = async (request: NextRequest) => {
     const searchParams = request.nextUrl.searchParams
     const paymentIntentId = searchParams.get('payment_intent')
     const setupIntentId = searchParams.get('setup_intent')
-    const purchaseSessionId = searchParams.get('purchase_session')
+    const checkoutSessionId = searchParams.get('checkout_session')
 
-    if (!paymentIntentId && !setupIntentId && !purchaseSessionId) {
+    if (!paymentIntentId && !setupIntentId && !checkoutSessionId) {
       return new Response(
-        'Either payment_intent, setup_intent, or purchase_session is required',
+        'Either payment_intent, setup_intent, or checkout_session is required',
         {
           status: 400,
         }
@@ -153,11 +153,11 @@ export const GET = async (request: NextRequest) => {
       url: string | URL | null
     }
 
-    if (purchaseSessionId) {
-      const purchaseSessionResult =
-        await processPurchaseSession(purchaseSessionId)
-      const { invoice } = purchaseSessionResult
-      result = purchaseSessionResult
+    if (checkoutSessionId) {
+      const checkoutSessionResult =
+        await processCheckoutSession(checkoutSessionId)
+      const { invoice } = checkoutSessionResult
+      result = checkoutSessionResult
       await generateInvoicePdfTask.trigger({
         invoiceId: invoice.id,
       })
@@ -209,7 +209,7 @@ export const GET = async (request: NextRequest) => {
         await createPurchaseAccessSession(
           {
             purchaseId,
-            source: PurchaseAccessSessionSource.PurchaseSession,
+            source: PurchaseAccessSessionSource.CheckoutSession,
             autoGrant: true,
             livemode: product.livemode,
           },
@@ -222,7 +222,7 @@ export const GET = async (request: NextRequest) => {
     /**
      * As the purchase session cookie is no longer needed, delete it.
      */
-    await deletePurchaseSessionCookie({
+    await deleteCheckoutSessionCookie({
       purchaseId: purchase.id,
       productId: product.id,
     })

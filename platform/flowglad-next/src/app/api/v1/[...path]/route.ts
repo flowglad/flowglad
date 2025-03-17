@@ -11,7 +11,7 @@ import { trpcToRest, RouteConfig } from './trpcToRest'
 import { customerProfilesRouteConfigs } from '@/server/routers/customerProfilesRouter'
 import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
-import { purchaseSessionsRouteConfigs } from '@/server/routers/purchaseSessionsRouter'
+import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
 import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { variantsRouteConfigs } from '@/server/routers/variantsRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
@@ -28,7 +28,7 @@ const parseErrorMessage = (rawMessage: string) => {
 
 const routeConfigs = [
   ...subscriptionsRouteConfigs,
-  ...purchaseSessionsRouteConfigs,
+  ...checkoutSessionsRouteConfigs,
   ...variantsRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
