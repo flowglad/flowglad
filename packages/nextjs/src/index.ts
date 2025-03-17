@@ -7,6 +7,7 @@ import {
   FlowgladProvider,
   useBilling,
   BillingPage,
+  PricingTable,
 } from '@flowglad/react'
 
-export { FlowgladProvider, useBilling, BillingPage }
+export { FlowgladProvider, useBilling, BillingPage, PricingTable }
