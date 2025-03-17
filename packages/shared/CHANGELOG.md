@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.6.0
+
+### Minor Changes
+
+- Use the new SDK generator for better esm support
+
 ## 0.5.0
 
 ### Minor Changes
