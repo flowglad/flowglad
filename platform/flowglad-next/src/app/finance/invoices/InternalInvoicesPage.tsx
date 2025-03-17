@@ -32,8 +32,8 @@ export default function InternalInvoicesPage({
                 Component: () => (
                   <InvoicesTable
                     invoicesAndLineItems={invoices.filter(
-                      (invoice) =>
-                        invoice.status === InvoiceStatus.Open
+                      (item) =>
+                        item.invoice.status === InvoiceStatus.Open
                     )}
                   />
                 ),
@@ -44,8 +44,20 @@ export default function InternalInvoicesPage({
                 Component: () => (
                   <InvoicesTable
                     invoicesAndLineItems={invoices.filter(
-                      (invoice) =>
-                        invoice.status === InvoiceStatus.Paid
+                      (item) =>
+                        item.invoice.status === InvoiceStatus.Paid
+                    )}
+                  />
+                ),
+              },
+              {
+                label: 'Void',
+                subPath: 'void',
+                Component: () => (
+                  <InvoicesTable
+                    invoicesAndLineItems={invoices.filter(
+                      (item) =>
+                        item.invoice.status === InvoiceStatus.Void
                     )}
                   />
                 ),

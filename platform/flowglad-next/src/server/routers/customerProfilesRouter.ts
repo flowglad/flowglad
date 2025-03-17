@@ -43,13 +43,11 @@ import { variantsClientSelectSchema } from '@/db/schema/variants'
 import { productsClientSelectSchema } from '@/db/schema/products'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
-import { invoicesClientSelectSchema } from '@/db/schema/invoices'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { SubscriptionStatus } from '@/types'
-import { isPaymentInTerminalState } from '@/db/tableMethods/paymentMethods'
 import { isSubscriptionInTerminalState } from '@/db/tableMethods/subscriptionMethods'
+import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Customer Profile',
@@ -256,7 +254,7 @@ export const getCustomerBilling = protectedProcedure
     z.object({
       customerProfile: customerProfileClientSelectSchema,
       subscriptions: richSubscriptionClientSelectSchema.array(),
-      invoices: invoicesClientSelectSchema.array(),
+      invoices: invoiceWithLineItemsClientSchema.array(),
       paymentMethods: paymentMethodClientSelectSchema.array(),
       currentSubscriptions: richSubscriptionClientSelectSchema
         .array()

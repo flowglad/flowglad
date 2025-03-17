@@ -15,8 +15,8 @@ importers:
         specifier: file:.yalc/@flowglad/nextjs
         version: file:.yalc/@flowglad/nextjs(next@14.2.21(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@flowglad/node':
-        specifier: 0.4.1
-        version: 0.4.1
+        specifier: 0.5.0
+        version: 0.5.0
       '@flowglad/react':
         specifier: file:.yalc/@flowglad/react
         version: file:.yalc/@flowglad/react(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.17)
@@ -223,8 +223,8 @@ packages:
   '@flowglad/node@0.1.0-alpha.3':
     resolution: {integrity: sha512-aTeuQlsosUwmX960kEU+VMjnq7oOttzIhmCxN1E8u4kGQTCZSTOGgHkemzuAM+es01eoVrliDZoY3YcWaxKENA==}
 
-  '@flowglad/node@0.4.1':
-    resolution: {integrity: sha512-bB+uaur91O9VhG/rem54uuHcOhaykp6JOtXk0+TnQ2OWED/5WnurEWiimoIRkX4UDwGUfaugyI6hKfeWz7HY+Q==}
+  '@flowglad/node@0.5.0':
+    resolution: {integrity: sha512-Wsv4yufObwZQ8hSLcuESoqptWSv3OhQ99eaxQ7lidjZRkT8VWD4TQVAC+bPQHDrj1aZ05H+2hxTNsN+fSu8bCQ==}
 
   '@flowglad/react@0.2.4':
     resolution: {integrity: sha512-5Tq2Ol4T5iKe1ZSkLsFP1JdNAzzrb7jKnApDHEblDZZkFfNvbm5y7pcAiDvls+VGMZAzeazCO98nASp43/8WlQ==}
@@ -2603,6 +2603,7 @@ snapshots:
 
   '@flowglad/nextjs@file:.yalc/@flowglad/nextjs(next@14.2.21(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
     dependencies:
+      '@flowglad/node': 0.5.0
       '@flowglad/react': 0.2.4(react@18.3.1)
       '@flowglad/server': 0.2.4
       '@flowglad/shared': 0.2.4
@@ -2624,7 +2625,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@flowglad/node@0.4.1':
+  '@flowglad/node@0.5.0':
     dependencies:
       '@types/node': 18.19.76
       '@types/node-fetch': 2.6.12
@@ -2648,7 +2649,7 @@ snapshots:
 
   '@flowglad/react@file:.yalc/@flowglad/react(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.17)':
     dependencies:
-      '@flowglad/node': 0.4.1
+      '@flowglad/node': 0.5.0
       '@flowglad/shared': 0.2.4
       '@radix-ui/react-slot': 1.1.2(@types/react@18.3.18)(react@18.3.1)
       '@radix-ui/react-tooltip': 1.1.8(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2678,7 +2679,7 @@ snapshots:
 
   '@flowglad/server@file:.yalc/@flowglad/server':
     dependencies:
-      '@flowglad/node': 0.4.1
+      '@flowglad/node': 0.5.0
       '@flowglad/shared': 0.2.4
       zod: 3.23.8
     transitivePeerDependencies:
@@ -2694,7 +2695,7 @@ snapshots:
 
   '@flowglad/types@file:.yalc/@flowglad/types':
     dependencies:
-      '@flowglad/node': 0.4.1
+      '@flowglad/node': 0.5.0
     transitivePeerDependencies:
       - encoding
 

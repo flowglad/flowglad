@@ -35,6 +35,26 @@ const columns = {
   ),
   displayFeatures: jsonb('display_features'),
   active: boolean('active').notNull().default(true),
+  /**
+   * The label to display for the unit of the product in singular form.
+   *
+   * E.g.
+   * "1 seat" => "seat"
+   * "1 license" => "license"
+   * "1 user" => "user"
+   * "1 bot" => "bot"
+   */
+  singularQuantityLabel: text('singular_quantity_label'),
+  /**
+   * The label to display for the unit of the product in plural form.
+   *
+   * E.g.
+   * "4 seats" => "seats"
+   * "10 licenses" => "licenses"
+   * "20 users" => "users"
+   * "10 bots" => "bots"
+   */
+  pluralQuantityLabel: text('plural_quantity_label'),
 }
 
 export const products = pgTable(

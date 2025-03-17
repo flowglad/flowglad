@@ -92,6 +92,8 @@ export const setupOrg = async () => {
         stripeProductId: `prod_${core.nanoid()}`,
         active: true,
         displayFeatures: [],
+        singularQuantityLabel: 'seat',
+        pluralQuantityLabel: 'seats',
       },
       transaction
     )

@@ -26,11 +26,11 @@ export const CustomerFacingInvoicePage = (
         return null
       }
       const customerProfile = await selectCustomerProfileById(
-        invoicesWithLineItems[0].customerProfileId,
+        invoicesWithLineItems[0].invoice.customerProfileId,
         transaction
       )
       const organization = await selectOrganizationById(
-        invoicesWithLineItems[0].organizationId,
+        invoicesWithLineItems[0].invoice.organizationId,
         transaction
       )
       const payments =
@@ -39,7 +39,7 @@ export const CustomerFacingInvoicePage = (
           transaction
         )
       return {
-        invoice: invoicesWithLineItems[0],
+        invoice: invoicesWithLineItems[0].invoice,
         invoiceLineItems: invoicesWithLineItems[0].invoiceLineItems,
         customerProfile: customerProfile,
         organization: organization,
@@ -57,7 +57,7 @@ export const CustomerFacingInvoicePage = (
       organization,
       payments,
     } = result
-    if (result.invoice.organizationId !== organizationId) {
+    if (invoice.organizationId !== organizationId) {
       return notFound()
     }
     return (

@@ -130,6 +130,7 @@ export class FlowgladServer {
   public getBilling =
     async (): Promise<FlowgladNode.CustomerProfiles.CustomerProfileRetrieveBillingResponse> => {
       const customerProfile = await this.findOrCreateCustomerProfile()
+      console.log('getBilling: ====customerProfile', customerProfile)
       return this.flowgladNode.customerProfiles.retrieveBilling(
         customerProfile.externalId
       )
@@ -141,10 +142,13 @@ export class FlowgladServer {
     let customerProfile:
       | FlowgladNode.CustomerProfiles.CustomerProfileRetrieveResponse['customerProfile']
       | null = null
+    console.log('====findOrCreateCustomerProfile....')
     try {
       const getResult = await this.getCustomerProfile()
+      console.log('====getResult', getResult)
       customerProfile = getResult.customerProfile
     } catch (error) {
+      console.log('====error', error)
       if ((error as any).error.code === 'NOT_FOUND') {
         const session = await getSessionFromParams(
           this.createHandlerParams
@@ -159,6 +163,7 @@ export class FlowgladServer {
             externalId: session.externalId,
           },
         })
+        console.log('====createResult', createResult)
         customerProfile = createResult.data.customerProfile
       }
     }

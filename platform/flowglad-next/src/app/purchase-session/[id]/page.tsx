@@ -8,7 +8,7 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import { selectPurchaseSessionById } from '@/db/tableMethods/purchaseSessionMethods'
 import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
-import { PurchaseSessionStatus } from '@/types'
+import { PriceType, PurchaseSessionStatus } from '@/types'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { notFound, redirect } from 'next/navigation'
@@ -114,6 +114,10 @@ const PurchaseSessionPage = async ({
     readonlyCustomerEmail: maybeCustomerProfile?.email,
     feeCalculation,
     clientSecret,
+    flowType:
+      variant.priceType === PriceType.Subscription
+        ? 'subscription'
+        : 'single_payment',
   })
 
   return <CheckoutPage billingInfo={billingInfo} />

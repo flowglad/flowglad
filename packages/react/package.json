@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.4.22",
+  "version": "0.5.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -17,7 +17,7 @@
     "build:css": "tsx scripts/build-css.ts"
   },
   "dependencies": {
-    "@flowglad/node": "0.5.0",
+    "@flowglad/node": "0.6.0",
     "@flowglad/shared": "workspace:*",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",

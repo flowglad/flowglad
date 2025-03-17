@@ -114,14 +114,14 @@ export const upsertPaymentForStripeCharge = async (
         },
         transaction
       )
-    const invoiceAndLineItems = maybeInvoiceAndLineItems
-    currency = invoiceAndLineItems.currency
-    invoiceId = invoiceAndLineItems.id
-    organizationId = invoiceAndLineItems.organizationId!
-    purchaseId = invoiceAndLineItems.purchaseId
-    taxCountry = invoiceAndLineItems.taxCountry
-    customerProfileId = invoiceAndLineItems.customerProfileId
-    livemode = invoiceAndLineItems.livemode
+    const { invoice } = maybeInvoiceAndLineItems
+    currency = invoice.currency
+    invoiceId = invoice.id
+    organizationId = invoice.organizationId!
+    purchaseId = invoice.purchaseId
+    taxCountry = invoice.taxCountry
+    customerProfileId = invoice.customerProfileId
+    livemode = invoice.livemode
   } else if ('purchaseSessionId' in paymentIntentMetadata) {
     const {
       purchaseSession,

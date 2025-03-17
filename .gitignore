@@ -19,3 +19,4 @@ yalc.lock
 dist
 
 generated/styles.ts
+.turbo
