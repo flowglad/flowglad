@@ -2,24 +2,32 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Next.js: debug server-side",
+      "name": "Debug server-side",
       "type": "node-terminal",
       "request": "launch",
-      "command": "npm run dev"
+      "command": "cd platform/flowglad-next && pnpm dev"
     },
     {
-      "name": "Next.js: debug client-side",
+      "name": "Debug client-side",
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:3000"
     },
     {
-      "name": "Next.js: debug full stack",
-      "type": "node-terminal",
+      "name": "Debug Platform",
+      "type": "node",
       "request": "launch",
-      "command": "npm run dev",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/platform/flowglad-next/node_modules/next/dist/bin/next",
+      "args": ["dev"],
+      "cwd": "${workspaceFolder}/platform/flowglad-next",
+      "env": {
+        "NODE_OPTIONS": "--inspect"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
       "serverReadyAction": {
-        "pattern": "started server on .+, url: (https?://.+)",
+        "pattern": "- Local:.+(https?://.+)",
         "uriFormat": "%s",
         "action": "debugWithChrome"
       }
