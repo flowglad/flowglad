@@ -72,14 +72,9 @@ export default async function Home() {
           },
           transaction
         )
-      console.log(
-        '===========membershipsAndOrganizations',
-        membershipsAndOrganizations
-      )
       const focusedMembership = membershipsAndOrganizations.find(
         (item) => item.membership.focused
       )
-      console.log('===========focusedMembership', focusedMembership)
       if (focusedMembership) {
         return focusedMembership
       } else if (membershipsAndOrganizations.length > 0) {
