@@ -62,7 +62,7 @@ export default async function middleware(req: NextRequest) {
   const isProtectedRoute = !isPublicRoute(req)
 
   if (!user && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/handler/sign-in', req.url))
+    return NextResponse.redirect(new URL('/sign-in', req.url))
   }
   return NextResponse.next()
 }
