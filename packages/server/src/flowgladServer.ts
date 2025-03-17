@@ -130,6 +130,7 @@ export class FlowgladServer {
   public getBilling =
     async (): Promise<FlowgladNode.CustomerProfiles.CustomerProfileRetrieveBillingResponse> => {
       const customerProfile = await this.findOrCreateCustomerProfile()
+      console.log('getBilling: ====customerProfile', customerProfile)
       return this.flowgladNode.customerProfiles.retrieveBilling(
         customerProfile.externalId
       )
