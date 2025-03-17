@@ -1,0 +1,12 @@
+import { publicProcedure } from '@/server/trpc'
+import { adminTransaction } from '@/db/databaseMethods'
+import { editCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
+import { editCheckoutSession as editCheckoutSessionFn } from '@/utils/bookkeeping/checkoutSessions'
+
+export const editCheckoutSession = publicProcedure
+  .input(editCheckoutSessionInputSchema)
+  .mutation(async ({ input }) => {
+    return adminTransaction(async ({ transaction }) => {
+      return editCheckoutSessionFn(input, transaction)
+    })
+  })
