@@ -37,7 +37,7 @@ const example = async (db: PostgresJsDatabase) => {
         true
       )
 
-    const variant = await selectPriceById(VARIANT_ID, transaction)
+    const price = await selectPriceById(VARIANT_ID, transaction)
     const customerProfiles =
       await selectCustomerProfilesByorganizationIdAndEmails(
         ORGANIZATION_ID,
@@ -47,7 +47,7 @@ const example = async (db: PostgresJsDatabase) => {
     const purchaseInserts = customerProfiles.map((profile) => {
       return createManualPurchaseInsert({
         customerProfile: profile,
-        variant,
+        price,
         organizationId: ORGANIZATION_ID,
       })
     })
