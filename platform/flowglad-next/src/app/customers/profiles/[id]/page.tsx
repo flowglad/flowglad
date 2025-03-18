@@ -19,7 +19,6 @@ const CustomerPage = async ({
 }) => {
   const { id } = await params
   const {
-    customer,
     customerProfile,
     purchases,
     invoices,
@@ -64,7 +63,6 @@ const CustomerPage = async ({
         transaction
       )
       return {
-        customer: result.customer,
         customerProfile: result.customerProfile,
         purchases,
         invoices,
@@ -74,13 +72,12 @@ const CustomerPage = async ({
     }
   )
 
-  if (!customer) {
+  if (!customerProfile) {
     notFound()
   }
 
   return (
     <InternalCustomerDetailsScreen
-      customer={customer}
       customerProfile={customerProfile}
       purchases={purchases}
       invoices={invoices}

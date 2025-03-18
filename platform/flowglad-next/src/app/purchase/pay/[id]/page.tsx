@@ -58,14 +58,13 @@ const PayPurchasePage = async ({
         purchase,
         price,
         customerProfile: result.customerProfile,
-        customer: result.customer,
         sellerOrganization: organization,
         product: result.product,
         type: price.type,
         feeCalculation,
         billingAddress:
           checkoutSession.billingAddress ??
-          result.customer.billingAddress ??
+          result.customerProfile.billingAddress ??
           result.purchase.billingAddress,
         checkoutSession,
         readonlyCustomerEmail: maybeCustomerProfile?.email,

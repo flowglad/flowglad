@@ -1,4 +1,4 @@
-import { BillingAddress } from '@/db/schema/customers'
+import { BillingAddress } from '@/db/schema/organizations'
 import { Discount } from '@/db/schema/discounts'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Organization } from '@/db/schema/organizations'

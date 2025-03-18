@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Price } from '@/db/schema/prices'
 import { Purchase } from '@/db/schema/purchases'
 import { Discount } from '@/db/schema/discounts'
-import { BillingAddress } from '@/db/schema/customers'
+import { BillingAddress } from '@/db/schema/organizations'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import {
   PriceType,

@@ -18,7 +18,6 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
-import { billingAddressSchema } from './customers'
 
 const TABLE_NAME = 'organizations'
 
@@ -66,6 +65,27 @@ export const organizations = pgTable(
     ]
   }
 ).enableRLS()
+
+const billingAddressSchemaColumns = {
+  name: z.string(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  address: z.object({
+    line1: z.string(),
+    line2: z.string().nullable(),
+    city: z.string(),
+    state: z.string(),
+    postal_code: z.string(),
+    country: z.string(),
+  }),
+  phone: z.string().optional(),
+}
+
+export const billingAddressSchema = z.object(
+  billingAddressSchemaColumns
+)
+
+export type BillingAddress = z.infer<typeof billingAddressSchema>
 
 const columnRefinements = {
   onboardingStatus: core.createSafeZodEnum(BusinessOnboardingStatus),

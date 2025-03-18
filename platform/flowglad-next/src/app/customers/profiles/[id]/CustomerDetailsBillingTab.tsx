@@ -1,4 +1,3 @@
-import { Customer } from '@/db/schema/customers'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
@@ -10,7 +9,6 @@ import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export interface CustomerBillingSubPageProps {
-  customer: Customer.ClientRecord
   customerProfile: CustomerProfile.ClientRecord
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
@@ -18,7 +16,6 @@ export interface CustomerBillingSubPageProps {
 }
 
 export const CustomerBillingSubPage = ({
-  customer,
   customerProfile,
   purchases,
   invoices,

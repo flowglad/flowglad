@@ -7,10 +7,8 @@ import {
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
   insertInvoice,
-  invoiceIsInTerminalState,
   selectInvoiceById,
   selectInvoicesPaginated,
-  updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import {
@@ -20,20 +18,15 @@ import {
 import {
   createInvoiceSchema,
   editInvoiceSchema,
-  InvoiceLineItem,
   invoiceLineItemsClientSelectSchema,
   invoiceWithLineItemsClientSchema,
   sendInvoiceReminderSchema,
 } from '@/db/schema/invoiceLineItems'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
-  deleteInvoiceLineItems,
-  insertInvoiceLineItem,
   insertInvoiceLineItems,
   selectInvoiceLineItems,
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
-  updateInvoiceLineItem,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import { z } from 'zod'
 import {
@@ -41,8 +34,6 @@ import {
   sendInvoiceNotificationEmail,
 } from '@/utils/email'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { update } from 'ramda'
-import { updatePaymentIntent } from '@/utils/stripe'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -183,10 +174,6 @@ const sendInvoiceReminderProcedure = protectedProcedure
       )
       const customerProfile = await selectCustomerProfileById(
         invoice.customerProfileId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        customerProfile.customerId,
         transaction
       )
       const organization = await selectOrganizationById(

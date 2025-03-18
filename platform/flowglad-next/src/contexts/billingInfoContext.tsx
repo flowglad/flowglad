@@ -7,7 +7,7 @@ import {
   BillingInfoCore,
   billingInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { BillingAddress } from '@/db/schema/customers'
+import { BillingAddress } from '@/db/schema/organizations'
 
 export type BillingInfoContextValues = {
   taxAmount?: Nullish<number>

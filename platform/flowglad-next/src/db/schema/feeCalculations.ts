@@ -24,7 +24,7 @@ import {
 import { purchases } from '@/db/schema/purchases'
 import { discounts } from '@/db/schema/discounts'
 import { organizations } from '@/db/schema/organizations'
-import { billingAddressSchema } from '@/db/schema/customers'
+import { billingAddressSchema } from '@/db/schema/organizations'
 import {
   CurrencyCode,
   FeeCalculationType,

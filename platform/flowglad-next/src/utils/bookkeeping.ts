@@ -1,6 +1,5 @@
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
-import { Organization } from '@/db/schema/organizations'
 import {
   insertInvoiceLineItems,
   selectInvoiceLineItems,
@@ -10,7 +9,7 @@ import {
   selectCustomerProfileById,
   selectCustomerProfiles,
   updateCustomerProfile,
-  upsertCustomerProfileBycustomerIdAndorganizationId,
+  upsertCustomerProfileByEmailAndOrganizationId,
 } from '@/db/tableMethods/customerProfileMethods'
 import {
   deleteOpenInvoicesForPurchase,
@@ -28,7 +27,6 @@ import {
   InvoiceType,
   PaymentStatus,
   PriceType,
-  CheckoutSessionType,
   PurchaseStatus,
 } from '@/types'
 import {
@@ -40,18 +38,17 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import core from './core'
 import {
   insertPurchase,
-  selectPurchasesCustomerProfileAndCustomer,
+  selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { billingAddressSchema, Customer } from '@/db/schema/customers'
+import { billingAddressSchema } from '@/db/schema/organizations'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
-  bulkUpdateCheckoutSessions,
   selectOpenNonExpiredCheckoutSessions,
   updateCheckoutSessionsForOpenPurchase,
 } from '@/db/tableMethods/checkoutSessionMethods'
@@ -374,14 +371,10 @@ export const editOpenPurchase = async (
   payload: Purchase.Update,
   { transaction }: AuthenticatedTransactionParams
 ) => {
-  const [{ customerProfile, purchase: oldPurchase }] =
-    await selectPurchasesCustomerProfileAndCustomer(
-      { id: payload.id },
-      transaction
-    )
-  if (!oldPurchase) {
-    throw new Error(`Purchase ${payload.id} not found`)
-  }
+  const oldPurchase = await selectPurchaseById(
+    payload.id,
+    transaction
+  )
   const newPrice = await selectPriceById(
     payload.priceId ?? oldPurchase.priceId,
     transaction
@@ -478,17 +471,13 @@ export const editOpenPurchase = async (
 
 export const createOrUpdateCustomerProfile = async (
   payload: {
-    customer: Customer.Record
     customerProfile: CustomerProfile.Insert
   },
   { transaction }: AuthenticatedTransactionParams
 ) => {
   let [customerProfile] =
-    await upsertCustomerProfileBycustomerIdAndorganizationId(
-      {
-        ...payload.customerProfile,
-        customerId: payload.customer.id,
-      },
+    await upsertCustomerProfileByEmailAndOrganizationId(
+      payload.customerProfile,
       transaction
     )
   /**
@@ -497,7 +486,7 @@ export const createOrUpdateCustomerProfile = async (
   if (!customerProfile) {
     const findResult = await selectCustomerProfiles(
       {
-        customerId: payload.customerProfile.customerId,
+        email: payload.customerProfile.email,
         organizationId: payload.customerProfile.organizationId,
       },
       transaction
@@ -506,7 +495,7 @@ export const createOrUpdateCustomerProfile = async (
   }
   if (!customerProfile.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
-      payload.customer
+      payload.customerProfile
     )
     customerProfile = await updateCustomerProfile(
       {

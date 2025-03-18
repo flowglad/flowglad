@@ -39,7 +39,7 @@ export const invoiceUpdatedTask = task({
     if (invoiceStatusChangedToPaid({ oldRecord, newRecord })) {
       const {
         invoiceLineItems,
-        customer,
+        customerProfile,
         organization,
         paymentForInvoice,
       } = await adminTransaction(async ({ transaction }) => {
@@ -48,14 +48,14 @@ export const invoiceUpdatedTask = task({
           transaction
         )
 
-        const [{ customer, customerProfile }] =
+        const [{ customerProfile }] =
           await selectCustomerProfileAndCustomerTableRows(
             {
               id: newRecord.customerProfileId,
             },
             transaction
           )
-        if (!customer) {
+        if (!customerProfile) {
           throw new Error(
             `Customer not found for invoice ${newRecord.id}`
           )
@@ -70,7 +70,9 @@ export const invoiceUpdatedTask = task({
             `Organization not found for invoice ${newRecord.id}`
           )
         }
-        logger.info(`Sending receipt email to ${customer.email}`)
+        logger.info(
+          `Sending receipt email to ${customerProfile.email}`
+        )
         const [paymentForInvoice] = await selectPayments(
           { invoiceId: newRecord.id },
           transaction
@@ -78,7 +80,7 @@ export const invoiceUpdatedTask = task({
         return {
           invoice: newRecord,
           invoiceLineItems,
-          customer,
+          customerProfile,
           organization,
           paymentForInvoice,
           message: 'Receipt email sent successfully',
@@ -88,7 +90,7 @@ export const invoiceUpdatedTask = task({
         paymentId: paymentForInvoice.id,
       })
       await sendReceiptEmail({
-        to: [customer.email],
+        to: [customerProfile.email],
         invoice: newRecord,
         invoiceLineItems,
         organizationName: organization.name,

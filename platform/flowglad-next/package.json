@@ -13,7 +13,7 @@
     "test:teardown": "docker-compose -f docker-compose.test.yml down --volumes",
     "test:local": "npm run test:setup && DATABASE_URL=postgresql://test:test@localhost:5432/test_db ./src/scripts/run_subscription_tests.sh && npm run test:teardown",
     "stripe:webhook-dev": "stripe listen --forward-to localhost:3000/api/webhook-stripe",
-    "trigger:deploy": "export TRIGGER_ENV=staging && npx trigger.dev@3.3.16 deploy --env $TRIGGER_ENV",
+    "trigger:deploy": "npx trigger.dev@3.3.16 deploy --env $TRIGGER_ENV",
     "vercel:env-pull": "vercel env pull .env.local && chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.local",
     "vercel:env-rm": "rm -rf .env.local",
     "trigger:dev": "dotenvx run -f .env.local -- npx trigger.dev@3.3.16 dev",

@@ -19,7 +19,7 @@ import { customerProfiles } from '@/db/schema/customerProfiles'
 import { PaymentMethodType } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
-import { billingAddressSchema } from './customers'
+import { billingAddressSchema } from './organizations'
 
 const TABLE_NAME = 'payment_methods'
 

@@ -1,10 +1,7 @@
 import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/databaseMethods'
 import { z } from 'zod'
-import {
-  selectCheckoutSessionById,
-  selectCheckoutSessions,
-} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   selectCustomerProfiles,
   insertCustomerProfile,
@@ -15,10 +12,9 @@ import {
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
-import { upsertCustomerByEmail } from '@/db/tableMethods/customerMethods'
 import { CheckoutSessionStatus } from '@/types'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { selectPurchasesCustomerProfileAndCustomer } from '@/db/tableMethods/purchaseMethods'
+import { selectPurchaseAndCustomerProfilesByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
@@ -80,7 +76,7 @@ export const confirmCheckoutSession = publicProcedure
         customerProfile = result[0]
       } else if (checkoutSession.purchaseId) {
         const purchaseAndCustomerProfile =
-          await selectPurchasesCustomerProfileAndCustomer(
+          await selectPurchaseAndCustomerProfilesByPurchaseWhere(
             {
               id: checkoutSession.purchaseId!,
             },
@@ -96,21 +92,9 @@ export const confirmCheckoutSession = publicProcedure
             `Purchase session has no customer email, and no purchase: ${input.id}`
           )
         }
-        const [customer] = await upsertCustomerByEmail(
-          {
-            email: checkoutSession.customerEmail,
-            name:
-              checkoutSession.customerName ||
-              checkoutSession.customerEmail,
-            billingAddress: null,
-            livemode: checkoutSession.livemode,
-          },
-          transaction
-        )
         // Create new customer profile
         customerProfile = await insertCustomerProfile(
           {
-            customerId: customer.id,
             email: checkoutSession.customerEmail,
             organizationId: checkoutSession.organizationId,
             name:
