@@ -73,21 +73,21 @@ export const projectPriceFieldsOntoPurchaseFields = (
 
 export const createManualPurchaseInsert = ({
   customerProfile,
-  variant,
+  price,
   organizationId,
 }: {
   customerProfile: CustomerProfile.Record
-  variant: Price.Record
+  price: Price.Record
   organizationId: string
 }) => {
-  const enhancements = projectPriceFieldsOntoPurchaseFields(variant)
+  const enhancements = projectPriceFieldsOntoPurchaseFields(price)
   const purchaseInsert = purchasesInsertSchema.parse({
     customerProfileId: customerProfile.id,
-    priceId: variant.id,
+    priceId: price.id,
     organizationId,
     status: PurchaseStatus.Paid,
-    name: `${variant.name} - ${customerProfile.name}`,
-    type: variant.type,
+    name: `${price.name} - ${customerProfile.name}`,
+    priceType: price.type,
     quantity: 1,
     firstInvoiceValue: 0,
     totalPurchaseValue: 0,

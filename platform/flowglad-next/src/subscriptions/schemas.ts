@@ -46,7 +46,7 @@ export type AdjustSubscriptionParams = z.infer<
 
 export const richSubscriptionItemClientSelectSchema =
   subscriptionItemClientSelectSchema.extend({
-    variant: subscriptionPriceClientSelectSchema,
+    price: subscriptionPriceClientSelectSchema,
   })
 
 export const richSubscriptionClientSelectSchema =
