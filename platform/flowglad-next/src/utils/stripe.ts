@@ -716,11 +716,10 @@ export const createPaymentIntentForInvoice = async (params: {
     return acc + item.price * item.quantity
   }, 0)
   const livemode = invoice.livemode
-  const { on_behalf_of, transfer_data } =
-    stripeConnectTransferDataForOrganization({
-      organization,
-      livemode,
-    })
+  const transferData = stripeConnectTransferDataForOrganization({
+    organization,
+    livemode,
+  })
 
   const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
     invoice.bankPaymentOnly
@@ -741,8 +740,7 @@ export const createPaymentIntentForInvoice = async (params: {
     currency: invoice.currency,
     customer: stripeCustomerId,
     application_fee_amount: applicationFeeAmount,
-    on_behalf_of,
-    transfer_data,
+    ...transferData,
     ...achOnlyParams,
     metadata,
   }
@@ -957,11 +955,10 @@ export const createPaymentIntentForInvoiceCheckoutSession =
     const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
       invoice.bankPaymentOnly
     ) as Partial<Stripe.PaymentIntentCreateParams>
-    const { on_behalf_of, transfer_data } =
-      stripeConnectTransferDataForOrganization({
-        organization,
-        livemode,
-      })
+    const transferData = stripeConnectTransferDataForOrganization({
+      organization,
+      livemode,
+    })
     const metadata: CheckoutSessionStripeIntentMetadata = {
       checkoutSessionId: checkoutSession.id,
       type: IntentMetadataType.CheckoutSession,
@@ -984,8 +981,7 @@ export const createPaymentIntentForInvoiceCheckoutSession =
       amount: totalDue,
       currency: invoice.currency,
       application_fee_amount: livemode ? totalFeeAmount : undefined,
-      on_behalf_of,
-      transfer_data,
+      ...transferData,
       metadata,
       customer: stripeCustomerId,
       ...achOnlyParams,
@@ -1003,11 +999,10 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   const { price, organization, checkoutSession, feeCalculation } =
     params
   const livemode = checkoutSession.livemode
-  const { on_behalf_of, transfer_data } =
-    stripeConnectTransferDataForOrganization({
-      organization,
-      livemode,
-    })
+  const transferData = stripeConnectTransferDataForOrganization({
+    organization,
+    livemode,
+  })
   const metadata: CheckoutSessionStripeIntentMetadata = {
     checkoutSessionId: checkoutSession.id,
     type: IntentMetadataType.CheckoutSession,
@@ -1027,8 +1022,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     amount: totalDue,
     currency: price.currency,
     application_fee_amount: livemode ? totalFeeAmount : undefined,
-    on_behalf_of,
-    transfer_data,
+    ...transferData,
     metadata,
   })
 }
@@ -1248,16 +1242,10 @@ export const createAndConfirmPaymentIntent = async ({
     type: IntentMetadataType.BillingRun,
     billingPeriodId,
   }
-
-  const transferData = organization.stripeAccountId
-    ? {
-        destination: organization.stripeAccountId,
-      }
-    : undefined
-  const onBehalfOf =
-    livemode && organization.stripeAccountId
-      ? organization.stripeAccountId
-      : undefined
+  const transferData = stripeConnectTransferDataForOrganization({
+    organization,
+    livemode,
+  })
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
   return stripe(livemode).paymentIntents.create({
     amount,
@@ -1268,8 +1256,7 @@ export const createAndConfirmPaymentIntent = async ({
     off_session: true,
     application_fee_amount: applicationFeeAmount,
     metadata,
-    on_behalf_of: onBehalfOf,
-    transfer_data: transferData,
+    ...transferData,
   })
 }
 

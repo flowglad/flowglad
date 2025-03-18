@@ -55,7 +55,6 @@ import {
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
-import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
