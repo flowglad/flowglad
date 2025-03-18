@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.7.0
+
+### Minor Changes
+
+- Migrate variants -> prices, migrate purchase sessions -> checkout sessions
+
 ## 0.6.0
 
 ### Minor Changes

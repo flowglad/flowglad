@@ -1,5 +1,16 @@
 # @flowglad/react
 
+## 0.7.0
+
+### Minor Changes
+
+- Migrate variants -> prices, migrate purchase sessions -> checkout sessions
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/shared@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
