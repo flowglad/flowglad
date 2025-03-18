@@ -2,21 +2,22 @@ import { logger, task } from '@trigger.dev/sdk/v3'
 import { SupabaseInsertPayload } from '@/types'
 import { supabaseInsertPayloadSchema } from '@/db/supabase'
 import {
-  CustomerProfile,
-  customerProfilesSelectSchema,
-} from '@/db/schema/customerProfiles'
+  Customer,
+  customersSelectSchema,
+} from '@/db/schema/customers'
 
-const customerProfileInsertPayloadSchema =
-  supabaseInsertPayloadSchema(customerProfilesSelectSchema)
+const customerInsertPayloadSchema = supabaseInsertPayloadSchema(
+  customersSelectSchema
+)
 
-export const customerProfileCreatedTask = task({
-  id: 'customer-profile-inserted',
+export const customerCreatedTask = task({
+  id: 'customer-inserted',
   run: async (
-    payload: SupabaseInsertPayload<CustomerProfile.Record>,
+    payload: SupabaseInsertPayload<Customer.Record>,
     { ctx }
   ) => {
     const parsedPayload =
-      customerProfileInsertPayloadSchema.safeParse(payload)
+      customerInsertPayloadSchema.safeParse(payload)
     if (!parsedPayload.success) {
       logger.error(parsedPayload.error.message)
       parsedPayload.error.issues.forEach((issue) => {

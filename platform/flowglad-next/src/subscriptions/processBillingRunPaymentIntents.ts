@@ -26,7 +26,7 @@ import {
   processOutstandingBalanceForBillingPeriod,
   scheduleBillingRunRetry,
 } from './billingRunHelpers'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { Organization } from '@/db/schema/organizations'
 import { Subscription } from '@/db/schema/subscriptions'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/db/tableMethods/paymentMethods'
@@ -85,7 +85,7 @@ const billingRunStatusToInvoiceStatus: Record<
 
 interface BillingRunNotificationParams {
   invoice: Invoice.Record
-  customerProfile: CustomerProfile.Record
+  customer: Customer.Record
   organization: Organization.Record
   subscription: Subscription.Record
   payment: Payment.Record
@@ -99,7 +99,7 @@ const processSucceededNotifications = async (
   await sendOrganizationPaymentNotificationEmail({
     organizationName: params.organization.name,
     amount: params.payment.amount,
-    customerProfileId: params.customerProfile.id,
+    customerId: params.customer.id,
     to: params.organizationMemberUsers
       .filter((user) => user.email)
       .map((user) => user.email!),
@@ -109,7 +109,7 @@ const processSucceededNotifications = async (
     invoice: params.invoice,
     invoiceLineItems: params.invoiceLineItems,
     organizationName: params.organization.name,
-    to: [params.customerProfile.email],
+    to: [params.customer.email],
   })
 }
 
@@ -123,7 +123,7 @@ const processFailedNotifications = async (
 ) => {
   await sendPaymentFailedEmail({
     organizationName: params.organization.name,
-    to: [params.customerProfile.email],
+    to: [params.customer.email],
     invoiceNumber: params.invoice.invoiceNumber,
     orderDate: params.invoice.invoiceDate,
     lineItems: params.invoiceLineItems.map((item) => ({
@@ -146,8 +146,8 @@ const processAwaitingPaymentConfirmationNotifications = async (
   await sendAwaitingPaymentConfirmationEmail({
     organizationName: params.organization.name,
     amount: params.payment.amount,
-    customerProfileId: params.customerProfile.id,
-    to: [params.customerProfile.email],
+    customerId: params.customer.id,
+    to: [params.customer.email],
     orderDate: params.invoice.invoiceDate,
     invoiceNumber: params.invoice.invoiceNumber,
     currency: params.invoice.currency,
@@ -196,7 +196,7 @@ export const processPaymentIntentEventForBillingRun = async (
     organization,
     billingPeriod,
     subscription,
-    customerProfile,
+    customer,
   } =
     await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId(
       billingRun.billingPeriodId,
@@ -294,7 +294,7 @@ export const processPaymentIntentEventForBillingRun = async (
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,
-    customerProfile,
+    customer,
     organization,
     subscription,
     payment,

@@ -18,7 +18,7 @@ import { formatDate } from '@/utils/core'
 
 const MoreMenuCell = ({
   payment,
-  customerProfile,
+  customer,
 }: Payment.TableRowData) => {
   const [isRefundOpen, setIsRefundOpen] = useState(false)
   const items: PopoverMenuItem[] = [
@@ -112,13 +112,13 @@ const PaymentsTable = ({
               column={column}
             />
           ),
-          accessorKey: 'customerProfile.name',
+          accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
             <Link
-              href={`/customers/profiles/${cellData.customerProfile.id}`}
+              href={`/customers/${cellData.customer.id}`}
               className="text-sm"
             >
-              {cellData.customerProfile.name}
+              {cellData.customer.name}
             </Link>
           ),
         },
@@ -139,7 +139,7 @@ const PaymentsTable = ({
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               payment={cellData.payment}
-              customerProfile={cellData.customerProfile}
+              customer={cellData.customer}
             />
           ),
         },

@@ -203,7 +203,7 @@ const PaymentForm = () => {
     product,
     flowType,
     subscriptionDetails,
-    customerProfile,
+    customer,
     editCheckoutSession,
     checkoutBlocked,
     feeCalculation,
@@ -281,7 +281,7 @@ const PaymentForm = () => {
           flowType === CheckoutFlowType.Subscription
             ? stripe.confirmSetup
             : stripe.confirmPayment
-        const hasEmail = customerProfile?.email
+        const hasEmail = customer?.email
         // Create the ConfirmationToken using the details collected by the Payment Element
         // and additional shipping information
         const { error: confirmationError } =
@@ -290,13 +290,13 @@ const PaymentForm = () => {
             confirmParams: {
               return_url: redirectUrl,
               /**
-               * If we have a customer profile (which only happens when there's an open purchase),
-               * we want to use the customer profile email.
+               * If we have a customer (which only happens when there's an open purchase),
+               * we want to use the customer email.
                * Otherwise, we want to use the email collected from the email element.
                */
               payment_method_data: {
                 billing_details: {
-                  email: hasEmail ? customerProfile.email : undefined,
+                  email: hasEmail ? customer.email : undefined,
                 },
               },
             },

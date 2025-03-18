@@ -74,7 +74,7 @@ export const upsertPaymentForStripeCharge = async (
   let purchase: Purchase.Record | null = null
   let taxCountry: CountryCode | null = null
   let livemode: boolean | null = null
-  let customerProfileId: string | null = null
+  let customerId: string | null = null
   let currency: CurrencyCode | null = null
   if ('billingRunId' in paymentIntentMetadata) {
     const billingRun = await selectBillingRunById(
@@ -99,7 +99,7 @@ export const upsertPaymentForStripeCharge = async (
     }
     invoiceId = invoice.id
     currency = invoice.currency
-    customerProfileId = subscription.customerProfileId
+    customerId = subscription.customerId
     organizationId = subscription.organizationId
     livemode = subscription.livemode
   } else if ('invoiceId' in paymentIntentMetadata) {
@@ -120,7 +120,7 @@ export const upsertPaymentForStripeCharge = async (
     organizationId = invoice.organizationId!
     purchaseId = invoice.purchaseId
     taxCountry = invoice.taxCountry
-    customerProfileId = invoice.customerProfileId
+    customerId = invoice.customerId
     livemode = invoice.livemode
   } else if ('checkoutSessionId' in paymentIntentMetadata) {
     const {
@@ -146,10 +146,7 @@ export const upsertPaymentForStripeCharge = async (
     purchase = updatedPurchase
     purchaseId = purchase?.id ?? null
     livemode = checkoutSession.livemode
-    customerProfileId =
-      purchase?.customerProfileId ||
-      invoice?.customerProfileId ||
-      null
+    customerId = purchase?.customerId || invoice?.customerId || null
   } else {
     throw new Error(
       'No invoice, purchase, or subscription found for payment intent'
@@ -166,9 +163,9 @@ export const upsertPaymentForStripeCharge = async (
       `No invoice found for payment intent ${paymentIntentId}`
     )
   }
-  if (!customerProfileId) {
+  if (!customerId) {
     throw new Error(
-      `No customer profile id found for payment intent ${paymentIntentId} with metadata: ${JSON.stringify(
+      `No customer id found for payment intent ${paymentIntentId} with metadata: ${JSON.stringify(
         paymentIntentMetadata
       )}`
     )
@@ -208,7 +205,7 @@ export const upsertPaymentForStripeCharge = async (
     refundedAt: null,
     taxCountry,
     stripeChargeId: stripeIdFromObjectOrId(charge),
-    customerProfileId,
+    customerId,
     livemode,
   }
   const [payment] = await upsertPaymentByStripeChargeId(

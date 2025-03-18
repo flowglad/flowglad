@@ -3,7 +3,7 @@ import { Price } from '@/db/schema/prices'
 import { Discount } from '@/db/schema/discounts'
 import { File } from '@/db/schema/files'
 import { ProperNoun } from '@/db/schema/properNouns'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import {
   Nouns,
   SupabaseInsertPayload,
@@ -18,7 +18,7 @@ interface CreateProperNounUpsertParams<T> {
 export const databaseTablesForNoun: Record<Nouns, string> = {
   [Nouns.Product]: 'Products',
   [Nouns.Price]: 'Prices',
-  [Nouns.CustomerProfile]: 'CustomerProfiles',
+  [Nouns.Customer]: 'Customers',
   [Nouns.Discount]: 'Discounts',
   [Nouns.File]: 'Files',
 }
@@ -71,12 +71,12 @@ export const fileRecordToProperNounUpsert = (
   }
 }
 
-export const customerProfileToProperNounUpsert = (
-  params: CreateProperNounUpsertParams<CustomerProfile.Record>
+export const customerToProperNounUpsert = (
+  params: CreateProperNounUpsertParams<Customer.Record>
 ): ProperNoun.Insert => {
   return {
     entityId: params.record.id,
-    entityType: Nouns.CustomerProfile,
+    entityType: Nouns.Customer,
     name: params.record.name ?? params.record.email,
     organizationId: params.organizationId,
     livemode: params.record.livemode,
@@ -90,10 +90,10 @@ export const supabasePayloadToProperNounUpsert = async (
   let properNounUpsert: ProperNoun.Insert | null = null
 
   switch (payload.table) {
-    case 'CustomerProfiles':
-      properNounUpsert = customerProfileToProperNounUpsert({
-        record: payload.record as CustomerProfile.Record,
-        organizationId: (payload.record as CustomerProfile.Record)
+    case 'Customers':
+      properNounUpsert = customerToProperNounUpsert({
+        record: payload.record as Customer.Record,
+        organizationId: (payload.record as Customer.Record)
           .organizationId,
       })
       break

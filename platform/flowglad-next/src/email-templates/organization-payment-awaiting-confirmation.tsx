@@ -21,14 +21,14 @@ export interface OrganizationPaymentConfirmationEmailProps {
   organizationName: string
   amount: number
   invoiceNumber?: string
-  customerProfileId: string
+  customerId: string
   currency: CurrencyCode
 }
 export const OrganizationPaymentConfirmationEmail = ({
   organizationName,
   amount,
   invoiceNumber,
-  customerProfileId,
+  customerId,
   currency,
 }: OrganizationPaymentConfirmationEmailProps) => {
   const humanReadableAmount =
@@ -69,7 +69,7 @@ export const OrganizationPaymentConfirmationEmail = ({
           <Section style={buttonContainer}>
             <Link
               style={button}
-              href={`https://app.flowglad.com/customers/profiles/${customerProfileId}`}
+              href={`https://app.flowglad.com/customers/${customerId}`}
             >
               View in Dashboard
             </Link>

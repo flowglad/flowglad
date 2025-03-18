@@ -28,10 +28,7 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
-import {
-  customerProfiles,
-  customerProfilesSelectSchema,
-} from '../schema/customerProfiles'
+import { customers, customersSelectSchema } from '../schema/customers'
 import { Bai_Jamjuree } from 'next/font/google'
 
 const config: ORMMethodCreatorConfig<
@@ -78,7 +75,7 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByb
         subscription: subscriptions,
         organization: organizations,
         billingPeriodItem: billingPeriodItems,
-        customerProfile: customerProfiles,
+        customer: customers,
       })
       .from(billingPeriodItems)
       .innerJoin(
@@ -94,17 +91,13 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByb
         eq(subscriptions.organizationId, organizations.id)
       )
       .innerJoin(
-        customerProfiles,
-        eq(subscriptions.customerProfileId, customerProfiles.id)
+        customers,
+        eq(subscriptions.customerId, customers.id)
       )
       .where(eq(billingPeriodItems.billingPeriodId, billingPeriodId))
 
-    const {
-      organization,
-      subscription,
-      billingPeriod,
-      customerProfile,
-    } = result[0]
+    const { organization, subscription, billingPeriod, customer } =
+      result[0]
     return {
       organization: organizationsSelectSchema.parse(organization),
       subscription: subscriptionsSelectSchema.parse(subscription),
@@ -112,8 +105,7 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByb
       billingPeriodItems: result.map((item) =>
         billingPeriodItemsSelectSchema.parse(item.billingPeriodItem)
       ),
-      customerProfile:
-        customerProfilesSelectSchema.parse(customerProfile),
+      customer: customersSelectSchema.parse(customer),
     }
   }
 

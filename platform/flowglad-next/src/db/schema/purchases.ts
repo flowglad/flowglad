@@ -18,11 +18,11 @@ import {
   livemodePolicy,
 } from '@/db/tableUtils'
 import {
-  CustomerProfile,
-  customerProfileClientSelectSchema,
-  customerProfiles,
-  customerProfilesSelectSchema,
-} from '@/db/schema/customerProfiles'
+  Customer,
+  customerClientSelectSchema,
+  customers,
+  customersSelectSchema,
+} from '@/db/schema/customers'
 import { organizations } from '@/db/schema/organizations'
 import { prices } from '@/db/schema/prices'
 import core from '@/utils/core'
@@ -40,10 +40,7 @@ const columns = {
     columnName: 'status',
     enumBase: PurchaseStatus,
   }).default(PurchaseStatus.Open),
-  customerProfileId: notNullStringForeignKey(
-    'customer_profile_id',
-    customerProfiles
-  ),
+  customerId: notNullStringForeignKey('customer_id', customers),
   organizationId: notNullStringForeignKey(
     'organization_id',
     organizations
@@ -84,7 +81,7 @@ export const purchases = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(PURCHASES_TABLE_NAME, [table.customerProfileId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.customerId]),
       constructIndex(PURCHASES_TABLE_NAME, [table.organizationId]),
       constructIndex(PURCHASES_TABLE_NAME, [table.priceId]),
       livemodePolicy(),
@@ -312,7 +309,7 @@ export namespace Purchase {
   export interface PurchaseTableRowData {
     purchase: Purchase.ClientRecord
     product: Product.ClientRecord
-    customerProfile: CustomerProfile.ClientRecord
+    customer: Customer.ClientRecord
   }
 }
 
@@ -325,12 +322,12 @@ export const editPurchaseFormSchema = z.object({
   purchase: purchaseClientUpdateSchema,
 })
 
-export const createCustomerProfileOutputSchema = z.object({
+export const createCustomerOutputSchema = z.object({
   data: z.object({
-    customerProfile: customerProfileClientSelectSchema,
+    customer: customerClientSelectSchema,
   }),
 })
 
-export type CreateCustomerProfileOutputSchema = z.infer<
-  typeof createCustomerProfileOutputSchema
+export type CreateCustomerOutputSchema = z.infer<
+  typeof createCustomerOutputSchema
 >

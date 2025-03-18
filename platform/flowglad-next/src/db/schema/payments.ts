@@ -33,10 +33,7 @@ import {
 } from '@/types'
 import core from '@/utils/core'
 import { purchases } from './purchases'
-import {
-  customerProfileClientSelectSchema,
-  customerProfiles,
-} from './customerProfiles'
+import { customerClientSelectSchema, customers } from './customers'
 import { sql } from 'drizzle-orm'
 import { paymentMethods } from './paymentMethods'
 import { billingPeriods } from './billingPeriods'
@@ -73,10 +70,7 @@ export const payments = pgTable(
       'organization_id',
       organizations
     ),
-    customerProfileId: notNullStringForeignKey(
-      'customer_profile_id',
-      customerProfiles
-    ),
+    customerId: notNullStringForeignKey('customer_id', customers),
     purchaseId: nullableStringForeignKey('purchase_id', purchases),
     paymentMethodId: nullableStringForeignKey(
       'payment_method_id',
@@ -101,7 +95,7 @@ export const payments = pgTable(
       constructIndex(TABLE_NAME, [table.invoiceId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.paymentMethod]),
-      constructIndex(TABLE_NAME, [table.customerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerId]),
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.currency]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
@@ -167,7 +161,7 @@ export const paymentsClientSelectSchema = paymentsSelectSchema
 
 export const paymentsTableRowDataSchema = z.object({
   payment: paymentsClientSelectSchema,
-  customerProfile: customerProfileClientSelectSchema,
+  customer: customerClientSelectSchema,
 })
 
 export const paymentsPaginatedListSchema =
@@ -222,6 +216,6 @@ export const paymentsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     paymentsClientSelectSchema.pick({
       status: true,
-      customerProfileId: true,
+      customerId: true,
     })
   )

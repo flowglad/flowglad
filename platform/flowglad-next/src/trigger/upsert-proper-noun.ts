@@ -1,5 +1,5 @@
 import { adminTransaction } from '@/db/databaseMethods'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { Product } from '@/db/schema/products'
 import {
   ProperNoun,
@@ -15,7 +15,7 @@ import {
   SupabaseUpdatePayload,
 } from '@/types'
 import {
-  customerProfileToProperNounUpsert,
+  customerToProperNounUpsert,
   productRecordToProperNounUpsert,
   supabasePayloadToProperNounUpsert,
   variantRecordToProperNounUpsert,

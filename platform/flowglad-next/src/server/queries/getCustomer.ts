@@ -1,17 +1,17 @@
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { z } from 'zod'
-import { selectCustomerProfiles } from '@/db/tableMethods/customerProfileMethods'
-import { customerProfileClientSelectSchema } from '@/db/schema/customerProfiles'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { customerClientSelectSchema } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 
-export const getCustomerProfile = protectedProcedure
+export const getCustomer = protectedProcedure
   .meta({
     openapi: {
       method: 'GET',
-      path: '/api/v1/customer-profiles/{externalId}',
-      summary: 'Get a customer profile',
-      tags: ['Customer', 'Customer Profiles'],
+      path: '/api/v1/customers/{externalId}',
+      summary: 'Get a customer',
+      tags: ['Customer'],
       protect: true,
     },
   })
@@ -26,7 +26,7 @@ export const getCustomerProfile = protectedProcedure
   )
   .output(
     z.object({
-      customerProfile: customerProfileClientSelectSchema,
+      customer: customerClientSelectSchema,
     })
   )
   .query(async ({ input, ctx }) => {
@@ -38,9 +38,9 @@ export const getCustomerProfile = protectedProcedure
       })
     }
 
-    const customerProfiles = await authenticatedTransaction(
+    const customers = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCustomerProfiles(
+        return selectCustomers(
           { ...input, organizationId },
           transaction
         )
@@ -50,14 +50,14 @@ export const getCustomerProfile = protectedProcedure
       }
     )
 
-    if (!customerProfiles.length) {
+    if (!customers.length) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `Customer profile with externalId ${input.externalId} not found`,
+        message: `Customer with externalId ${input.externalId} not found`,
       })
     }
 
     return {
-      customerProfile: customerProfiles[0],
+      customer: customers[0],
     }
   })

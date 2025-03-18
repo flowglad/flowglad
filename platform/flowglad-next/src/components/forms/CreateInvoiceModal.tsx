@@ -8,17 +8,17 @@ import {
   createInvoiceSchema,
 } from '@/db/schema/invoiceLineItems'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { InvoiceStatus, InvoiceType } from '@/types'
 
 function CreateInvoiceModal({
   isOpen,
   setIsOpen,
-  customerProfile,
+  customer,
 }: {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  customerProfile?: CustomerProfile.ClientRecord
+  customer?: Customer.ClientRecord
 }) {
   const { organization } = useAuthenticatedContext()
   const createInvoice = trpc.invoices.create.useMutation()
@@ -28,10 +28,10 @@ function CreateInvoiceModal({
   const defaultValues: CreateInvoiceInput = {
     invoice: {
       invoiceDate: new Date(),
-      customerProfileId: customerProfile?.id ?? '',
+      customerId: customer?.id ?? '',
       currency: organization!.defaultCurrency,
       invoiceNumber: core.createInvoiceNumber(
-        customerProfile?.invoiceNumberBase ?? '',
+        customer?.invoiceNumberBase ?? '',
         1
       ),
       status: InvoiceStatus.Open,
@@ -60,7 +60,7 @@ function CreateInvoiceModal({
       defaultValues={defaultValues}
       wide
     >
-      <InvoiceFormFields customerProfile={customerProfile} />
+      <InvoiceFormFields customer={customer} />
     </FormModal>
   )
 }

@@ -30,7 +30,7 @@ const checkoutSession: CheckoutSession.Record = {
   discountId: null,
   paymentMethodType: null,
   livemode: false,
-  customerProfileId: null,
+  customerId: null,
   successUrl: null,
   cancelUrl: null,
   quantity: 1,

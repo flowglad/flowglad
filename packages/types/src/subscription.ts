@@ -4,7 +4,7 @@ export type Subscription =
   Flowglad.Subscriptions.SubscriptionRetrieveResponse
 
 export type SubscriptionItem =
-  Flowglad.CustomerProfileRetrieveBillingResponse.Subscription.SubscriptionItem
+  Flowglad.CustomerRetrieveBillingResponse.Subscription.SubscriptionItem
 
 export type SubscriptionStatus =
   Flowglad.Subscriptions.SubscriptionRetrieveResponse.Subscription['status']

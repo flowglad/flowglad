@@ -40,9 +40,9 @@ export const SubscriptionDemoCard = () => {
       </div>
     );
   }
-  const { customerProfile, subscriptions } = billing;
-  if (!customerProfile) {
-    return <div>No customer profile found</div>;
+  const { customer, subscriptions } = billing;
+  if (!customer) {
+    return <div>No customer found</div>;
   }
   if (!subscriptions[0]) {
     return <SubscribeButton />;

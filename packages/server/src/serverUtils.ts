@@ -1,5 +1,5 @@
 import {
-  CoreCustomerProfileUser,
+  CoreCustomerUser,
   FlowgladServerSessionParams,
   NextjsAuthFlowgladServerSessionParams,
   SupabaseFlowgladServerSessionParams,
@@ -8,56 +8,56 @@ import {
 export const getSessionFromNextAuth = async (
   params: NextjsAuthFlowgladServerSessionParams
 ) => {
-  let coreCustomerProfileUser: CoreCustomerProfileUser | null = null
+  let coreCustomerUser: CoreCustomerUser | null = null
   const session = await params.nextAuth.auth()
   if (session?.user) {
-    if (params.nextAuth.customerProfileFromAuth) {
-      coreCustomerProfileUser =
-        await params.nextAuth.customerProfileFromAuth(session)
+    if (params.nextAuth.customerFromAuth) {
+      coreCustomerUser =
+        await params.nextAuth.customerFromAuth(session)
     } else if (!session.user.email) {
       throw new Error(
         'FlowgladError: NextAuth session has no email. Please provide an extractUserIdFromSession function to extract the userId from the session, or include email on your sessions.'
       )
     } else {
-      coreCustomerProfileUser = {
+      coreCustomerUser = {
         externalId: session.user.email,
         name: session.user.name || '',
         email: session.user.email || '',
       }
     }
   }
-  return coreCustomerProfileUser
+  return coreCustomerUser
 }
 
 export const sessionFromSupabaseAuth = async (
   params: SupabaseFlowgladServerSessionParams
 ) => {
-  let coreCustomerProfileUser: CoreCustomerProfileUser | null = null
+  let coreCustomerUser: CoreCustomerUser | null = null
   const {
     data: { user },
   } = await (await params.supabaseAuth.client()).auth.getUser()
   if (user) {
-    coreCustomerProfileUser = {
+    coreCustomerUser = {
       externalId: user.id,
       name: user.user_metadata.name || '',
       email: user.email || '',
     }
   }
-  return coreCustomerProfileUser
+  return coreCustomerUser
 }
 
 export const getSessionFromParams = async (
   params: FlowgladServerSessionParams
 ) => {
-  let coreCustomerProfileUser: CoreCustomerProfileUser | null = null
+  let coreCustomerUser: CoreCustomerUser | null = null
   if ('nextAuth' in params) {
-    coreCustomerProfileUser = await getSessionFromNextAuth(params)
+    coreCustomerUser = await getSessionFromNextAuth(params)
   }
 
   if ('supabaseAuth' in params) {
-    coreCustomerProfileUser = await sessionFromSupabaseAuth(params)
+    coreCustomerUser = await sessionFromSupabaseAuth(params)
   }
-  return coreCustomerProfileUser
+  return coreCustomerUser
 }
 
 export const parseErrorStringToErrorObject = (

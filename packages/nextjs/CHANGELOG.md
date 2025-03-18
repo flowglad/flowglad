@@ -183,7 +183,7 @@
 
 ### Patch Changes
 
-- Add getRequestingCustomerProfile as fallback for getSessionFromParams
+- Add getRequestingCustomer as fallback for getSessionFromParams
 - Updated dependencies
   - @flowglad/server@0.4.8
   - @flowglad/react@0.4.8

@@ -1,4 +1,4 @@
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Subscription } from '@/db/schema/subscriptions'
@@ -30,7 +30,7 @@ import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
-  customerProfile: CustomerProfile.Record
+  customer: Customer.Record
   product: Product.Record
   price: Price.Record
   quantity: number
@@ -47,7 +47,7 @@ export interface CreateSubscriptionParams {
 export const insertSubscriptionAndItems = async (
   {
     organization,
-    customerProfile,
+    customer,
     price,
     product,
     quantity,
@@ -72,7 +72,7 @@ export const insertSubscriptionAndItems = async (
 
   const subscriptionInsert: Subscription.Insert = {
     organizationId: organization.id,
-    customerProfileId: customerProfile.id,
+    customerId: customer.id,
     priceId: price.id,
     livemode,
     status: SubscriptionStatus.Incomplete,
@@ -185,35 +185,29 @@ export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
-  const {
-    customerProfile,
-    defaultPaymentMethod,
-    backupPaymentMethod,
-  } = params
-  const activeSubscriptionsForCustomerProfile =
-    await selectSubscriptions(
-      {
-        customerProfileId: customerProfile.id,
-        status: SubscriptionStatus.Active,
-      },
-      transaction
-    )
-  if (activeSubscriptionsForCustomerProfile.length > 0) {
-    throw new Error(
-      'Customer profile already has an active subscription'
-    )
+  const { customer, defaultPaymentMethod, backupPaymentMethod } =
+    params
+  const activeSubscriptionsForCustomer = await selectSubscriptions(
+    {
+      customerId: customer.id,
+      status: SubscriptionStatus.Active,
+    },
+    transaction
+  )
+  if (activeSubscriptionsForCustomer.length > 0) {
+    throw new Error('Customer already has an active subscription')
   }
-  if (customerProfile.id !== defaultPaymentMethod.customerProfileId) {
+  if (customer.id !== defaultPaymentMethod.customerId) {
     throw new Error(
-      `Customer profile ${customerProfile.id} does not match default payment method ${defaultPaymentMethod.customerProfileId}`
+      `Customer ${customer.id} does not match default payment method ${defaultPaymentMethod.customerId}`
     )
   }
   if (
     backupPaymentMethod &&
-    customerProfile.id !== backupPaymentMethod.customerProfileId
+    customer.id !== backupPaymentMethod.customerId
   ) {
     throw new Error(
-      `Customer profile ${customerProfile.id} does not match backup payment method ${backupPaymentMethod.customerProfileId}`
+      `Customer ${customer.id} does not match backup payment method ${backupPaymentMethod.customerId}`
     )
   }
 

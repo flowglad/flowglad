@@ -6,11 +6,11 @@ import {
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
-  selectCustomerProfileById,
-  selectCustomerProfiles,
-  updateCustomerProfile,
-  upsertCustomerProfileByEmailAndOrganizationId,
-} from '@/db/tableMethods/customerProfileMethods'
+  selectCustomerById,
+  selectCustomers,
+  updateCustomer,
+  upsertCustomerByEmailAndOrganizationId,
+} from '@/db/tableMethods/customerMethods'
 import {
   deleteOpenInvoicesForPurchase,
   insertInvoice,
@@ -42,7 +42,7 @@ import {
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
@@ -145,11 +145,11 @@ export const createInitialInvoiceForPurchase = async (
     },
     transaction
   )
-  const customerProfile = await selectCustomerProfileById(
-    purchase.customerProfileId,
+  const customer = await selectCustomerById(
+    purchase.customerId,
     transaction
   )
-  const { customerProfileId, organizationId, priceId } = purchase
+  const { customerId, organizationId, priceId } = purchase
   const [{ price, organization }] =
     await selectPriceProductAndOrganizationByPriceWhere(
       { id: priceId },
@@ -166,7 +166,7 @@ export const createInitialInvoiceForPurchase = async (
       invoice: existingInvoice,
       invoiceLineItems,
       organization,
-      customerProfile,
+      customer,
     }
   }
 
@@ -189,9 +189,9 @@ export const createInitialInvoiceForPurchase = async (
     invoiceLineItemInput.description = `${purchase.name} - Trial Period`
     invoiceLineItemInput.price = 0
   }
-  const invoicesForcustomerProfileId = await selectInvoices(
+  const invoicesForcustomerId = await selectInvoices(
     {
-      customerProfileId,
+      customerId,
     },
     transaction
   )
@@ -203,12 +203,12 @@ export const createInitialInvoiceForPurchase = async (
   const { billingAddress, bankPaymentOnly } = purchase
   const invoiceInsert: Invoice.Insert = {
     livemode: purchase.livemode,
-    customerProfileId: purchase.customerProfileId,
+    customerId: purchase.customerId,
     purchaseId: purchase.id,
     status: InvoiceStatus.Draft,
     invoiceNumber: core.createInvoiceNumber(
-      customerProfile.invoiceNumberBase ?? '',
-      invoicesForcustomerProfileId.length
+      customer.invoiceNumberBase ?? '',
+      invoicesForcustomerId.length
     ),
     currency: price.currency,
     type: InvoiceType.Purchase,
@@ -246,7 +246,7 @@ export const createInitialInvoiceForPurchase = async (
     invoice,
     invoiceLineItems,
     organization,
-    customerProfile,
+    customer,
   }
 }
 
@@ -274,8 +274,8 @@ export const createOpenPurchase = async (
       transaction
     )
 
-  let customerProfile = await selectCustomerProfileById(
-    payload.customerProfileId,
+  let customer = await selectCustomerById(
+    payload.customerId,
     transaction
   )
 
@@ -293,15 +293,15 @@ export const createOpenPurchase = async (
    * and then create an invoice for the payment.
    */
   if (price.type === PriceType.Subscription) {
-    if (!customerProfile.stripeCustomerId) {
+    if (!customer.stripeCustomerId) {
       const stripeCustomer = await createStripeCustomer({
-        email: customerProfile.email!,
-        name: customerProfile.name!,
+        email: customer.email!,
+        name: customer.name!,
         livemode,
       })
-      customerProfile = await updateCustomerProfile(
+      customer = await updateCustomer(
         {
-          id: customerProfile.id,
+          id: customer.id,
           stripeCustomerId: stripeCustomer.id,
         },
         transaction
@@ -327,7 +327,7 @@ export const createOpenPurchase = async (
       invoice,
       invoiceLineItems: invoiceLineItems,
       organization: membershipsAndOrganization.organization,
-      stripeCustomerId: customerProfile.stripeCustomerId!,
+      stripeCustomerId: customer.stripeCustomerId!,
     })
     stripePaymentIntentId = paymentIntent.id
     await updateInvoice(
@@ -414,8 +414,8 @@ export const editOpenPurchase = async (
         },
         transaction
       )
-    const customerProfile = await selectCustomerProfileById(
-      purchase.customerProfileId,
+    const customer = await selectCustomerById(
+      purchase.customerId,
       transaction
     )
 
@@ -430,7 +430,7 @@ export const editOpenPurchase = async (
       },
       invoiceLineItems,
       organization,
-      stripeCustomerId: customerProfile.stripeCustomerId!,
+      stripeCustomerId: customer.stripeCustomerId!,
     })
     await updateInvoice(
       {
@@ -469,41 +469,40 @@ export const editOpenPurchase = async (
   )
 }
 
-export const createOrUpdateCustomerProfile = async (
+export const createOrUpdateCustomer = async (
   payload: {
-    customerProfile: CustomerProfile.Insert
+    customer: Customer.Insert
   },
   { transaction }: AuthenticatedTransactionParams
 ) => {
-  let [customerProfile] =
-    await upsertCustomerProfileByEmailAndOrganizationId(
-      payload.customerProfile,
-      transaction
-    )
+  let [customer] = await upsertCustomerByEmailAndOrganizationId(
+    payload.customer,
+    transaction
+  )
   /**
-   * Find or create a customer profile
+   * Find or create a customer
    */
-  if (!customerProfile) {
-    const findResult = await selectCustomerProfiles(
+  if (!customer) {
+    const findResult = await selectCustomers(
       {
-        email: payload.customerProfile.email,
-        organizationId: payload.customerProfile.organizationId,
+        email: payload.customer.email,
+        organizationId: payload.customer.organizationId,
       },
       transaction
     )
-    customerProfile = findResult[0]
+    customer = findResult[0]
   }
-  if (!customerProfile.stripeCustomerId) {
+  if (!customer.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
-      payload.customerProfile
+      payload.customer
     )
-    customerProfile = await updateCustomerProfile(
+    customer = await updateCustomer(
       {
-        id: customerProfile.id,
+        id: customer.id,
         stripeCustomerId: stripeCustomer.id,
       },
       transaction
     )
   }
-  return { customerProfile }
+  return { customer }
 }

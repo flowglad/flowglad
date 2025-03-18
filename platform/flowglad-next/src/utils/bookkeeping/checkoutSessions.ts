@@ -46,11 +46,11 @@ import {
 } from '@/db/tableMethods/feeCalculationMethods'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
-  selectCustomerProfiles,
-  upsertCustomerProfileByEmailAndOrganizationId,
-} from '@/db/tableMethods/customerProfileMethods'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+  selectCustomers,
+  upsertCustomerByEmailAndOrganizationId,
+} from '@/db/tableMethods/customerMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { Customer } from '@/db/schema/customers'
 import { core } from '../core'
 import { projectPriceFieldsOntoPurchaseFields } from '../purchaseHelpers'
 import { Discount } from '@/db/schema/discounts'
@@ -209,18 +209,18 @@ export const editCheckoutSession = async (
  * Handles the bookkeeping operations for a purchase session, managing customer, purchase, and fee records.
  *
  * @param checkoutSession - The purchase session record to process
- * @param providedStripecustomerId - Optional Stripe customer ID to link with the customer profile
+ * @param providedStripecustomerId - Optional Stripe customer ID to link with the customer
  * @param transaction - Database transaction for ensuring data consistency
  *
  * Operations performed:
  * 1. Fetches product and variant details for the purchase
- * 2. Resolves customer profile:
- *    - Uses existing profile if purchase exists
- *    - Finds profile by email/org
- *    - Creates new customer and profile if needed
+ * 2. Resolves customer:
+ *    - Uses existing customer if purchase exists
+ *    - Finds customer by email/org
+ *    - Creates new customer if needed
  * 3. Links Stripe customer:
  *    - Uses provided Stripe ID
- *    - Falls back to existing profile's Stripe ID
+ *    - Falls back to existing customer's Stripe ID
  *    - Creates new Stripe customer if needed
  * 4. Creates/updates purchase record with variant and product details
  * 5. Processes fee calculations for the purchase session
@@ -228,7 +228,7 @@ export const editCheckoutSession = async (
  *
  * @returns Object containing:
  *  - purchase: The created/updated purchase record
- *  - customerProfile: The resolved customer profile
+ *  - customer: The resolved customer
  *  - discount: The applied discount if any
  *  - feeCalculation: The updated fee calculation
  *  - discountRedemption: The created discount redemption if applicable
@@ -248,31 +248,31 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       { id: checkoutSession.priceId! },
       transaction
     )
-  let customerProfile: CustomerProfile.Record | null = null
+  let customer: Customer.Record | null = null
   let purchase: Purchase.Record | null = null
   if (checkoutSession.purchaseId) {
     purchase = await selectPurchaseById(
       checkoutSession.purchaseId,
       transaction
     )
-    customerProfile = await selectCustomerProfileById(
-      purchase.customerProfileId!,
+    customer = await selectCustomerById(
+      purchase.customerId!,
       transaction
     )
   } else {
-    // First try to find existing customer profile
-    const result = await selectCustomerProfiles(
+    // First try to find existing customer
+    const result = await selectCustomers(
       {
         email: checkoutSession.customerEmail!,
         organizationId: product.organizationId,
       },
       transaction
     )
-    customerProfile = result[0]
+    customer = result[0]
   }
-  if (!customerProfile) {
-    const customerProfileUpsert =
-      await upsertCustomerProfileByEmailAndOrganizationId(
+  if (!customer) {
+    const customerUpsert =
+      await upsertCustomerByEmailAndOrganizationId(
         {
           email: checkoutSession.customerEmail!,
           name: checkoutSession.customerName!,
@@ -283,12 +283,12 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
         },
         transaction
       )
-    customerProfile = customerProfileUpsert[0]
+    customer = customerUpsert[0]
     let stripeCustomerId: string | null = providedStripecustomerId
     if (!stripeCustomerId) {
-      stripeCustomerId = customerProfile.stripeCustomerId
+      stripeCustomerId = customer.stripeCustomerId
     }
-    // If no existing customer, create new customer and profile
+    // If no existing customer, create new customer
     if (!stripeCustomerId) {
       const stripeCustomer = await createStripeCustomer({
         email: checkoutSession.customerEmail!,
@@ -297,20 +297,19 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       })
       stripeCustomerId = stripeCustomer.id
     }
-    const upsertResult =
-      await upsertCustomerProfileByEmailAndOrganizationId(
-        {
-          email: checkoutSession.customerEmail!,
-          name: checkoutSession.customerName!,
-          organizationId: product.organizationId,
-          billingAddress: checkoutSession.billingAddress,
-          stripeCustomerId,
-          externalId: core.nanoid(),
-          livemode: checkoutSession.livemode,
-        },
-        transaction
-      )
-    customerProfile = upsertResult[0]
+    const upsertResult = await upsertCustomerByEmailAndOrganizationId(
+      {
+        email: checkoutSession.customerEmail!,
+        name: checkoutSession.customerName!,
+        organizationId: product.organizationId,
+        billingAddress: checkoutSession.billingAddress,
+        stripeCustomerId,
+        externalId: core.nanoid(),
+        livemode: checkoutSession.livemode,
+      },
+      transaction
+    )
+    customer = upsertResult[0]
   }
   if (!purchase) {
     const purchasePriceFields =
@@ -319,7 +318,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       ...purchasePriceFields,
       name: product.name,
       organizationId: product.organizationId,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       priceId: price.id,
       quantity: 1,
       billingAddress: checkoutSession.billingAddress,
@@ -369,7 +368,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
   }
   return {
     purchase,
-    customerProfile,
+    customer,
     discount,
     feeCalculation,
     discountRedemption,

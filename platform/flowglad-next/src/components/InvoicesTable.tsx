@@ -1,7 +1,7 @@
 import Table from '@/components/ion/Table'
 import TableTitle from '@/components/ion/TableTitle'
 import { Invoice } from '@/db/schema/invoices'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { useMemo, useState } from 'react'
 import Badge, { BadgeProps } from './ion/Badge'
 import { ColumnDef } from '@tanstack/react-table'
@@ -120,10 +120,10 @@ const MoreMenuCell = ({
 
 const InvoicesTable = ({
   invoicesAndLineItems,
-  customerProfile,
+  customer,
 }: {
   invoicesAndLineItems: ClientInvoiceWithLineItems[]
-  customerProfile?: CustomerProfile.ClientRecord
+  customer?: Customer.ClientRecord
   showOwners?: boolean
 }) => {
   const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
@@ -240,7 +240,7 @@ const InvoicesTable = ({
       <CreateInvoiceModal
         isOpen={createInvoiceModalOpen}
         setIsOpen={setCreateInvoiceModalOpen}
-        customerProfile={customerProfile}
+        customer={customer}
       />
     </div>
   )

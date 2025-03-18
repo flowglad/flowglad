@@ -59,8 +59,7 @@ const CustomerInvoicePaidView = (props: InvoiceTemplateProps) => {
 const CustomerInvoiceOpenView = async (
   props: InvoiceTemplateProps
 ) => {
-  const { invoice, invoiceLineItems, customerProfile, organization } =
-    props
+  const { invoice, invoiceLineItems, customer, organization } = props
   const checkoutSession = await adminTransaction(
     async ({ transaction }) => {
       return findOrCreateInvoiceCheckoutSession(
@@ -82,14 +81,14 @@ const CustomerInvoiceOpenView = async (
   }
 
   const billingInfo: BillingInfoCore = {
-    customerProfile,
+    customer,
     sellerOrganization: organization,
     flowType: CheckoutFlowType.Invoice,
     invoice,
     invoiceLineItems,
     feeCalculation: null,
     clientSecret,
-    readonlyCustomerEmail: customerProfile.email,
+    readonlyCustomerEmail: customer.email,
     redirectUrl: core.safeUrl(
       `/invoice/view/${organization.id}/${invoice.id}`,
       core.envVariable('NEXT_PUBLIC_APP_URL')
@@ -118,9 +117,7 @@ const CustomerInvoiceOpenView = async (
         <div className="space-y-4 mb-8">
           <div className="flex flex-col">
             <span className="text-subtle text-sm">To</span>
-            <span className="font-medium">
-              {customerProfile.name}
-            </span>
+            <span className="font-medium">{customer.name}</span>
           </div>
           <div className="flex flex-col">
             <span className="text-subtle text-sm">From</span>
@@ -150,7 +147,7 @@ const CustomerInvoiceView = (props: InvoiceTemplateProps) => {
       <CustomerInvoicePaidView
         invoice={invoice}
         invoiceLineItems={invoiceLineItems}
-        customerProfile={props.customerProfile}
+        customer={props.customer}
         organization={props.organization}
       />
     )
@@ -161,7 +158,7 @@ const CustomerInvoiceView = (props: InvoiceTemplateProps) => {
     <CustomerInvoiceOpenView
       invoice={invoice}
       invoiceLineItems={invoiceLineItems}
-      customerProfile={props.customerProfile}
+      customer={props.customer}
       organization={props.organization}
     />
   )

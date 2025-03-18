@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=727:33232
 'use client'
 import { PageHeader } from '@/components/ion/PageHeader'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
@@ -10,12 +10,12 @@ import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 import { Price } from '@/db/schema/prices'
 
 function InternalCustomerDetailsScreen({
-  customerProfile,
+  customer,
   purchases,
   invoices,
   payments,
 }: {
-  customerProfile: CustomerProfile.ClientRecord
+  customer: Customer.ClientRecord
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
@@ -25,14 +25,14 @@ function InternalCustomerDetailsScreen({
     <div className="h-full flex justify-between items-center gap-2.5">
       <div className="bg-internal flex-1 h-full w-full flex flex-col p-6">
         <PageHeader
-          title={customerProfile.name ?? ''}
+          title={customer.name ?? ''}
           tabs={[
             {
               label: 'Billing',
               subPath: 'billing',
               Component: () => (
                 <CustomerBillingSubPage
-                  customerProfile={customerProfile}
+                  customer={customer}
                   purchases={purchases}
                   invoices={invoices}
                   payments={payments}

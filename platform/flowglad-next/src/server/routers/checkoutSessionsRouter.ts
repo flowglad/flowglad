@@ -8,7 +8,7 @@ import {
   selectCheckoutSessionsPaginated,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectCustomerProfiles } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
 import { PriceType } from '@/types'
 import { TRPCError } from '@trpc/server'
@@ -35,10 +35,10 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 export const checkoutSessionsRouteConfigs = routeConfigs
 
 const createCheckoutSessionSchema = z.object({
-  customerProfileExternalId: z
+  customerExternalId: z
     .string()
     .describe(
-      'The id of the CustomerProfile for this purchase session, as defined in your system'
+      'The id of the Customer for this purchase session, as defined in your system'
     ),
   priceId: z
     .string()
@@ -73,16 +73,16 @@ export const createCheckoutSession = protectedProcedure
         if (!organizationId) {
           throw new Error('organizationId is required')
         }
-        const [customerProfile] = await selectCustomerProfiles(
+        const [customer] = await selectCustomers(
           {
-            externalId: input.customerProfileExternalId,
+            externalId: input.customerExternalId,
           },
           transaction
         )
-        if (!customerProfile) {
+        if (!customer) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: `Customer profile not found for externalId: ${input.customerProfileExternalId}`,
+            message: `Customer not found for externalId: ${input.customerExternalId}`,
           })
         }
         const [{ price, product, organization }] =
@@ -94,11 +94,11 @@ export const createCheckoutSession = protectedProcedure
         // are not supported by API yet.
         const checkoutSession = await insertCheckoutSession(
           {
-            customerProfileId: customerProfile.id,
+            customerId: customer.id,
             priceId: input.priceId,
             organizationId,
-            customerEmail: customerProfile.email,
-            customerName: customerProfile.name,
+            customerEmail: customer.email,
+            customerName: customer.name,
             status: CheckoutSessionStatus.Open,
             livemode,
             successUrl: input.successUrl,

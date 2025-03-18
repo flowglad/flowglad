@@ -1,6 +1,6 @@
 import CheckoutPage from '@/components/CheckoutPage'
 import { adminTransaction } from '@/db/databaseMethods'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -33,7 +33,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
     checkoutSession,
     discount,
     feeCalculation,
-    maybeCustomerProfile,
+    maybeCustomer,
   } = await adminTransaction(async ({ transaction }) => {
     const { product, price } =
       await selectDefaultPriceAndProductByProductId(id, transaction)
@@ -74,9 +74,9 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       },
       transaction
     )
-    const maybeCustomerProfile = checkoutSession.customerProfileId
-      ? await selectCustomerProfileById(
-          checkoutSession.customerProfileId,
+    const maybeCustomer = checkoutSession.customerId
+      ? await selectCustomerById(
+          checkoutSession.customerId,
           transaction
         )
       : null
@@ -87,7 +87,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       checkoutSession,
       discount,
       feeCalculation: feeCalculation ?? null,
-      maybeCustomerProfile,
+      maybeCustomer,
     }
   })
 
@@ -127,7 +127,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
     ),
     clientSecret,
     billingAddress: checkoutSession.billingAddress,
-    readonlyCustomerEmail: maybeCustomerProfile?.email,
+    readonlyCustomerEmail: maybeCustomer?.email,
     discount,
     feeCalculation,
   })

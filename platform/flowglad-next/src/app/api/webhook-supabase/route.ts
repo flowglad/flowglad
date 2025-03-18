@@ -7,9 +7,9 @@ import {
 } from '@/types'
 import { invoiceUpdatedTask } from '@/trigger/supabase/invoice-updated'
 import { productUpdatedTask } from '@/trigger/supabase/product-updated'
-import { customerProfileCreatedTask } from '@/trigger/supabase/customer-profile-inserted'
+import { customerCreatedTask } from '@/trigger/supabase/customer-inserted'
 import { Invoice } from '@/db/schema/invoices'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { Product } from '@/db/schema/products'
 import { upsertProperNounTask } from '@/trigger/upsert-proper-noun'
 import { databaseTablesForNoun } from '@/utils/properNounHelpers'
@@ -45,9 +45,9 @@ export async function POST(request: Request) {
         payload as SupabaseUpdatePayload<Product.Record>
       )
       break
-    case `CustomerProfiles:${SupabasePayloadType.INSERT}`:
-      await customerProfileCreatedTask.trigger(
-        payload as SupabaseInsertPayload<CustomerProfile.Record>
+    case `Customers:${SupabasePayloadType.INSERT}`:
+      await customerCreatedTask.trigger(
+        payload as SupabaseInsertPayload<Customer.Record>
       )
       break
     default:

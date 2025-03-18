@@ -1,7 +1,7 @@
 import db from '@/db/client'
 import { adminTransaction } from '@/db/databaseMethods'
 import { countries } from '@/db/schema/countries'
-import { insertCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
+import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import {
@@ -120,7 +120,7 @@ export const setupOrg = async () => {
 
 export const setupPaymentMethod = async (params: {
   organizationId: string
-  customerProfileId: string
+  customerId: string
   livemode?: boolean
   paymentMethodData?: Record<string, any>
   type?: PaymentMethodType
@@ -128,7 +128,7 @@ export const setupPaymentMethod = async (params: {
   return adminTransaction(async ({ transaction }) => {
     return safelyInsertPaymentMethod(
       {
-        customerProfileId: params.customerProfileId,
+        customerId: params.customerId,
         type: params.type ?? PaymentMethodType.Card,
         livemode: params.livemode ?? true,
         default: true,
@@ -156,13 +156,13 @@ export const setupPaymentMethod = async (params: {
   })
 }
 
-export const setupCustomerProfile = async (params: {
+export const setupCustomer = async (params: {
   organizationId: string
   livemode?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const email = `test+${core.nanoid()}@test.com`
-    return insertCustomerProfile(
+    return insertCustomer(
       {
         organizationId: params.organizationId,
         email,
@@ -186,7 +186,7 @@ export const teardownOrg = async ({
   await sql`DELETE FROM "SubscriptionItems" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId})`
   await sql`DELETE FROM "BillingPeriods" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId})`
   await sql`DELETE FROM "Subscriptions" WHERE organizationId = ${organizationId}`
-  await sql`DELETE FROM "CustomerProfiles" WHERE organizationId = ${organizationId}`
+  await sql`DELETE FROM "Customers" WHERE organizationId = ${organizationId}`
   await sql`DELETE FROM "Prices" WHERE organizationId = ${organizationId}`
   await sql`DELETE FROM "Products" WHERE organizationId = ${organizationId}`
   await sql`DELETE FROM "Organizations" WHERE id = ${organizationId} CASCADE`
@@ -194,7 +194,7 @@ export const teardownOrg = async ({
 
 export const setupSubscription = async (params: {
   organizationId: string
-  customerProfileId: string
+  customerId: string
   paymentMethodId: string
   priceId: string
   interval?: IntervalUnit
@@ -209,7 +209,7 @@ export const setupSubscription = async (params: {
     return insertSubscription(
       {
         organizationId: params.organizationId,
-        customerProfileId: params.customerProfileId,
+        customerId: params.customerId,
         defaultPaymentMethodId: params.paymentMethodId,
         status: params.status ?? SubscriptionStatus.Active,
         livemode: params.livemode ?? true,
@@ -325,12 +325,12 @@ export const setupBillingPeriodItems = async ({
 }
 
 export const setupPurchase = async ({
-  customerProfileId,
+  customerId,
   organizationId,
   livemode,
   priceId,
 }: {
-  customerProfileId: string
+  customerId: string
   organizationId: string
   livemode?: boolean
   priceId: string
@@ -340,7 +340,7 @@ export const setupPurchase = async ({
     const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
     return insertPurchase(
       {
-        customerProfileId,
+        customerId,
         organizationId,
         livemode: livemode ?? price.livemode,
         name: 'Test Purchase',
@@ -358,14 +358,14 @@ export const setupPurchase = async ({
 
 export const setupInvoice = async ({
   billingPeriodId,
-  customerProfileId,
+  customerId,
   organizationId,
   status = InvoiceStatus.Draft,
   livemode = true,
   priceId,
 }: {
   billingPeriodId?: string
-  customerProfileId: string
+  customerId: string
   organizationId: string
   status?: InvoiceStatus
   livemode?: boolean
@@ -382,7 +382,7 @@ export const setupInvoice = async ({
       )
     } else {
       const purchase = await setupPurchase({
-        customerProfileId,
+        customerId,
         organizationId,
         livemode,
         priceId,
@@ -394,7 +394,7 @@ export const setupInvoice = async ({
       // @ts-expect-error
       {
         billingPeriodId: billingPeriod?.id ?? null,
-        customerProfileId,
+        customerId,
         organizationId,
         status,
         livemode,
@@ -431,7 +431,7 @@ export const setupPayment = async ({
   status,
   amount,
   livemode = true,
-  customerProfileId,
+  customerId,
   organizationId,
   stripePaymentIntentId,
   invoiceId,
@@ -442,7 +442,7 @@ export const setupPayment = async ({
   status: PaymentStatus
   amount: number
   livemode?: boolean
-  customerProfileId: string
+  customerId: string
   organizationId: string
   stripePaymentIntentId?: string
   paymentMethod?: PaymentMethodType
@@ -456,7 +456,7 @@ export const setupPayment = async ({
         status,
         amount,
         livemode,
-        customerProfileId,
+        customerId,
         organizationId,
         stripePaymentIntentId: stripePaymentIntentId ?? core.nanoid(),
         invoiceId,

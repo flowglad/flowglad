@@ -106,7 +106,7 @@
 
 ### Patch Changes
 
-- Add getRequestingCustomerProfile as fallback for getSessionFromParams
+- Add getRequestingCustomer as fallback for getSessionFromParams
 
 ## 0.4.7
 
@@ -118,7 +118,7 @@
 
 ### Patch Changes
 
-- No more find or create customer profile calls on the FlowgladContext, billing now includes a find or create
+- No more find or create customer calls on the FlowgladContext, billing now includes a find or create
 
 ## 0.4.5
 

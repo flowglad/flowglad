@@ -15,7 +15,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
 } from '@/db/tableUtils'
-import { customerProfiles } from '@/db/schema/customerProfiles'
+import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
@@ -25,10 +25,7 @@ const TABLE_NAME = 'payment_methods'
 
 const columns = {
   ...tableBase('pm'),
-  customerProfileId: notNullStringForeignKey(
-    'customer_profile_id',
-    customerProfiles
-  ),
+  customerId: notNullStringForeignKey('customer_id', customers),
   billingDetails: jsonb('billing_details').notNull(),
   type: pgEnumColumn({
     enumName: 'PaymentMethodType',
@@ -46,17 +43,14 @@ export const paymentMethods = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.customerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerId]),
       constructIndex(TABLE_NAME, [table.type]),
-      pgPolicy(
-        'Enable read for own organizations via customer profiles',
-        {
-          as: 'permissive',
-          to: 'authenticated',
-          for: 'all',
-          using: sql`"customerProfileId" in (select "id" from "CustomerProfiles")`,
-        }
-      ),
+      pgPolicy('Enable read for own organizations via customer', {
+        as: 'permissive',
+        to: 'authenticated',
+        for: 'all',
+        using: sql`"customerId" in (select "id" from "customers")`,
+      }),
       livemodePolicy(),
     ]
   }
@@ -109,7 +103,7 @@ export const paymentMethodsUpdateSchema = createSelectSchema(
   })
 
 const createOnlyColumns = {
-  customerProfileId: true,
+  customerId: true,
 } as const
 
 const readOnlyColumns = {

@@ -1,5 +1,5 @@
 import { Organization } from '@/db/schema/organizations'
-import { updateCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
+import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { CheckoutSessionType, PurchaseStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -11,7 +11,7 @@ import {
 import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { Price } from '@/db/schema/prices'
@@ -56,7 +56,7 @@ const processCheckoutSessionSetupIntent = async (
 
   const {
     purchase,
-    customerProfile,
+    customer,
     discount,
     feeCalculation,
     discountRedemption,
@@ -75,7 +75,7 @@ const processCheckoutSessionSetupIntent = async (
     price,
     organization,
     product,
-    customerProfile,
+    customer,
     discount,
     feeCalculation,
     discountRedemption,
@@ -105,7 +105,7 @@ export const processSetupIntentUpdated = async (
   let organization: Organization.Record | null = null
   let price: Price.Record | null = null
   let purchase: Purchase.Record | null = null
-  let customerProfile: CustomerProfile.Record | null = null
+  let customer: Customer.Record | null = null
   const result = await processCheckoutSessionSetupIntent(
     setupIntent,
     transaction
@@ -114,14 +114,14 @@ export const processSetupIntentUpdated = async (
   organization = result.organization
   price = result.price
   purchase = result.purchase
-  customerProfile = result.customerProfile
+  customer = result.customer
   const stripeCustomerId = setupIntent.customer
     ? stripeIdFromObjectOrId(setupIntent.customer)
     : null
-  if (stripeCustomerId !== customerProfile.stripeCustomerId) {
-    customerProfile = await updateCustomerProfile(
+  if (stripeCustomerId !== customer.stripeCustomerId) {
+    customer = await updateCustomer(
       {
-        id: customerProfile.id,
+        id: customer.id,
         stripeCustomerId,
       },
       transaction
@@ -135,7 +135,7 @@ export const processSetupIntentUpdated = async (
     {
       stripePaymentMethodId,
       livemode: purchase.livemode,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     },
     transaction
   )
@@ -151,7 +151,7 @@ export const processSetupIntentUpdated = async (
       defaultPaymentMethod: paymentMethod,
       organization,
       price,
-      customerProfile,
+      customer,
       interval: price.intervalUnit,
       intervalCount: price.intervalCount,
       /**

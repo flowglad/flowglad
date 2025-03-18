@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { selectCustomerProfileAndCustomerTableRows } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
 import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
-import { selectPaymentsBycustomerProfileId } from '@/db/tableMethods/paymentMethods'
+import { selectPaymentsBycustomerId } from '@/db/tableMethods/paymentMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 
 export type CustomerPageParams = {
@@ -19,7 +19,7 @@ const CustomerPage = async ({
 }) => {
   const { id } = await params
   const {
-    customerProfile,
+    customer,
     purchases,
     invoices,
     prices,
@@ -34,36 +34,34 @@ const CustomerPage = async ({
         transaction
       )
 
-      // Then, use the organizationId to fetch customer profiles
-      const [result] =
-        await selectCustomerProfileAndCustomerTableRows(
-          { id },
-          transaction
-        )
+      // Then, use the organizationId to fetch customer
+      const [result] = await selectCustomerAndCustomerTableRows(
+        { id },
+        transaction
+      )
       const purchases = await selectPurchases(
         {
-          customerProfileId: result.customerProfile.id,
+          customerId: result.customer.id,
         },
         transaction
       )
 
       const invoices =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { customerProfileId: result.customerProfile.id },
+          { customerId: result.customer.id },
           transaction
         )
-      const paymentsForCustomer =
-        await selectPaymentsBycustomerProfileId(
-          result.customerProfile.id,
-          transaction
-        )
+      const paymentsForCustomer = await selectPaymentsBycustomerId(
+        result.customer.id,
+        transaction
+      )
       const prices = await selectPricesAndProductsForOrganization(
         {},
-        result.customerProfile.organizationId,
+        result.customer.organizationId,
         transaction
       )
       return {
-        customerProfile: result.customerProfile,
+        customer: result.customer,
         purchases,
         invoices,
         prices,
@@ -72,13 +70,13 @@ const CustomerPage = async ({
     }
   )
 
-  if (!customerProfile) {
+  if (!customer) {
     notFound()
   }
 
   return (
     <InternalCustomerDetailsScreen
-      customerProfile={customerProfile}
+      customer={customer}
       purchases={purchases}
       invoices={invoices}
       prices={prices

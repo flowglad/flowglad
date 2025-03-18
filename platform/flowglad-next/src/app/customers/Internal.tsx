@@ -9,10 +9,10 @@ import { useMemo, useState } from 'react'
 import Table from '@/components/ion/Table'
 import { PageHeader } from '@/components/ion/PageHeader'
 import {
-  CustomerProfile,
+  Customer,
   CustomerTableRowData,
-  InferredCustomerProfileStatus,
-} from '@/db/schema/customerProfiles'
+  InferredCustomerStatus,
+} from '@/db/schema/customers'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import core from '@/utils/core'
 import { useRouter } from 'next/navigation'
@@ -36,15 +36,15 @@ type CustomerTableRow = {
   email: string
   totalSpend: number
   payments: number
-  status: InferredCustomerProfileStatus
-  customerProfile: CustomerProfile.ClientRecord
+  status: InferredCustomerStatus
+  customer: Customer.ClientRecord
 }
 
 const MoreMenuCell = ({
-  customerProfile,
+  customer,
   prices,
 }: {
-  customerProfile: CustomerProfile.ClientRecord
+  customer: Customer.ClientRecord
   prices: {
     price: Price.Record
     product: Product.ClientRecord
@@ -80,15 +80,15 @@ const MoreMenuCell = ({
   return (
     <>
       <EditCustomerModal
-        customerProfile={customerProfile}
+        customer={customer}
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
       />
       <ArchiveCustomerModal
         isOpen={isArchiveCustomerOpen}
         setIsOpen={setIsArchiveCustomerOpen}
-        customerProfileId={customerProfile.id}
-        customerArchived={customerProfile.archived ?? false}
+        customerId={customer.id}
+        customerArchived={customer.archived ?? false}
       />
       <TableRowPopoverMenu
         items={[...maybeNewInvoiceItem, ...basePopoverMenuItems]}
@@ -100,14 +100,14 @@ const MoreMenuCell = ({
 const CustomerStatusBadge = ({
   status,
 }: {
-  status: InferredCustomerProfileStatus
+  status: InferredCustomerStatus
 }) => {
   let color: BadgeProps['color'] = 'green'
   let label = 'Active'
-  if (status === InferredCustomerProfileStatus.Archived) {
+  if (status === InferredCustomerStatus.Archived) {
     color = 'grey'
     label = 'Archived'
-  } else if (status === InferredCustomerProfileStatus.Pending) {
+  } else if (status === InferredCustomerStatus.Pending) {
     color = 'yellow'
     label = 'Pending'
   }
@@ -129,16 +129,16 @@ const CustomersTable = ({
   const router = useRouter()
   const customerData: CustomerTableRow[] = customers
     .map((item) => ({
-      name: item.customerProfile.name,
-      email: item.customerProfile.email,
+      name: item.customer.name,
+      email: item.customer.email,
       totalSpend: item.totalSpend ?? 0,
       payments: item.payments ?? 0,
-      customerProfile: item.customerProfile,
+      customer: item.customer,
       status: item.status,
     }))
     .filter((customerItem) => {
       if (focusedTab === 'archived') {
-        return customerItem.customerProfile.archived
+        return customerItem.customer.archived
       }
       return true
     })
@@ -209,11 +209,9 @@ const CustomersTable = ({
               column={column}
             />
           ),
-          accessorKey: 'customerProfile.createdAt',
+          accessorKey: 'customer.createdAt',
           cell: ({ row: { original: cellData } }) => (
-            <>
-              {core.formatDate(cellData.customerProfile.createdAt!)}
-            </>
+            <>{core.formatDate(cellData.customer.createdAt!)}</>
           ),
         },
         {
@@ -224,7 +222,7 @@ const CustomersTable = ({
               onClick={(e) => e.stopPropagation()}
             >
               <MoreMenuCell
-                customerProfile={cellData.customerProfile}
+                customer={cellData.customer}
                 prices={prices}
               />
             </div>
@@ -241,9 +239,7 @@ const CustomersTable = ({
           columns={columns}
           data={customerData}
           onClickRow={(row) => {
-            router.push(
-              `/customers/profiles/${row.customerProfile.id}`
-            )
+            router.push(`/customers/${row.customer.id}`)
           }}
           bordered
         />

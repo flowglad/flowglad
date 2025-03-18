@@ -14,7 +14,7 @@ import {
 export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
   invoice,
   invoiceLineItems,
-  customerProfile,
+  customer,
   organization,
   paymentDataItems = [],
 }) => {
@@ -26,7 +26,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
   const subtotal = invoice.subtotal ?? 0
   const taxAmount = invoice.taxAmount || 0
   const total = subtotal + taxAmount
-  const billingAddress = customerProfile.billingAddress
+  const billingAddress = customer.billingAddress
 
   return (
     <Html>
@@ -94,7 +94,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
           {billingAddress && (
             <BillingInfo
               organization={organization}
-              customerProfile={customerProfile}
+              customer={customer}
               billingAddress={billingAddress}
             />
           )}

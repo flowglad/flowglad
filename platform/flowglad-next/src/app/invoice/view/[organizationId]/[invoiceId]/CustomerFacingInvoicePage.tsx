@@ -1,5 +1,5 @@
 import { adminTransaction } from '@/db/databaseMethods'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { notFound } from 'next/navigation'
@@ -25,8 +25,8 @@ export const CustomerFacingInvoicePage = (
       if (invoicesWithLineItems.length === 0) {
         return null
       }
-      const customerProfile = await selectCustomerProfileById(
-        invoicesWithLineItems[0].invoice.customerProfileId,
+      const customer = await selectCustomerById(
+        invoicesWithLineItems[0].invoice.customerId,
         transaction
       )
       const organization = await selectOrganizationById(
@@ -41,7 +41,7 @@ export const CustomerFacingInvoicePage = (
       return {
         invoice: invoicesWithLineItems[0].invoice,
         invoiceLineItems: invoicesWithLineItems[0].invoiceLineItems,
-        customerProfile: customerProfile,
+        customer: customer,
         organization: organization,
         payments,
       }
@@ -53,7 +53,7 @@ export const CustomerFacingInvoicePage = (
     const {
       invoice,
       invoiceLineItems,
-      customerProfile,
+      customer,
       organization,
       payments,
     } = result
@@ -64,7 +64,7 @@ export const CustomerFacingInvoicePage = (
       <InnerComponent
         invoice={invoice}
         invoiceLineItems={invoiceLineItems}
-        customerProfile={customerProfile}
+        customer={customer}
         organization={organization}
         paymentDataItems={payments}
       />

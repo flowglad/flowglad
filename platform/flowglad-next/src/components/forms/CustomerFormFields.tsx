@@ -1,20 +1,20 @@
 import { useFormContext } from 'react-hook-form'
 import Input from '../ion/Input'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 
-const CustomerProfileFormFields = () => {
+const CustomerFormFields = () => {
   const {
     register,
     formState: { errors },
   } = useFormContext<{
-    customerProfile: CustomerProfile.ClientInsert
+    customer: Customer.ClientInsert
   }>()
   return (
     <>
       {' '}
       <Input
         label="Customer Name"
-        {...register('customerProfile.name', {
+        {...register('customer.name', {
           required: true,
           validate: (value) => {
             if (value && value.length < 2) {
@@ -23,11 +23,11 @@ const CustomerProfileFormFields = () => {
           },
         })}
         placeholder="Apple Inc."
-        error={errors.customerProfile?.name?.message}
+        error={errors.customer?.name?.message}
       />
       <Input
         label="Customer Email"
-        {...register('customerProfile.email', {
+        {...register('customer.email', {
           required: true,
           validate: (value) => {
             if (
@@ -41,10 +41,10 @@ const CustomerProfileFormFields = () => {
           },
         })}
         placeholder="steve@apple.com"
-        error={errors.customerProfile?.email?.message}
+        error={errors.customer?.email?.message}
       />
     </>
   )
 }
 
-export default CustomerProfileFormFields
+export default CustomerFormFields

@@ -4,7 +4,7 @@ import OrderReceiptEmail from '@/email-templates/customer-order-receipt'
 import PaymentFailedEmail from '@/email-templates/customer-payment-failed'
 import { trpc } from '../_trpc/client'
 
-type RichCustomerProfile = {
+type RichCustomer = {
   subscription: {
     name: string
     price: string
@@ -14,9 +14,9 @@ type RichCustomerProfile = {
 } | null
 
 const InternalDemoPage = () => {
-  let customerProfile: RichCustomerProfile = null
+  let customer: RichCustomer = null
   if (1 > 0) {
-    customerProfile = {
+    customer = {
       subscription: {
         name: 'Pro',
         price: '100',

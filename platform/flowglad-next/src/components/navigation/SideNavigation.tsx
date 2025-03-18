@@ -82,6 +82,12 @@ export const SideNavigation = () => {
               icon={<Gauge size={16} />}
               basePath="/dashboard"
             />
+            <StandaloneNavigationItem
+              title="Customers"
+              href="/customers"
+              icon={<Users size={16} />}
+              basePath="/customers"
+            />
             <ParentChildNavigationItem
               parentLabel="Store"
               parentLeadingIcon={<Store size={16} />}
@@ -104,17 +110,6 @@ export const SideNavigation = () => {
                 // },
               ]}
               basePath="/store"
-            />
-            <ParentChildNavigationItem
-              parentLabel="Customers"
-              parentLeadingIcon={<Users size={16} />}
-              childItems={[
-                {
-                  label: 'Profiles',
-                  href: '/customers/profiles',
-                },
-              ]}
-              basePath="/customer"
             />
             <ParentChildNavigationItem
               parentLabel="Finance"

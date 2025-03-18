@@ -18,7 +18,7 @@ import {
   setupSubscriptionItem,
   setupBillingPeriod,
   setupOrg,
-  setupCustomerProfile,
+  setupCustomer,
   setupBillingRun,
   setupBillingPeriodItems,
   setupPaymentMethod,
@@ -32,7 +32,7 @@ import {
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
@@ -41,7 +41,7 @@ import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 
 describe('adjustSubscription Integration Tests', async () => {
   const { organization, price } = await setupOrg()
-  let customerProfile: CustomerProfile.Record
+  let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let subscription: Subscription.Record
@@ -59,17 +59,17 @@ describe('adjustSubscription Integration Tests', async () => {
     | 'addedDate'
   >
   beforeEach(async () => {
-    customerProfile = await setupCustomerProfile({
+    customer = await setupCustomer({
       organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     })
 
     subscription = await setupSubscription({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
       currentBillingPeriodEnd: new Date(Date.now() - 3000),
@@ -117,7 +117,7 @@ describe('adjustSubscription Integration Tests', async () => {
       const canceledSubscription = await setupSubscription({
         status: SubscriptionStatus.Canceled,
         organizationId: organization.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         paymentMethodId: paymentMethod.id,
         priceId: price.id,
       })

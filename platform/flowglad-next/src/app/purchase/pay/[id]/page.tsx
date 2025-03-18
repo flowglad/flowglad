@@ -11,7 +11,7 @@ import CheckoutPage from '@/components/CheckoutPage'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { CheckoutSessionType } from '@/types'
 
 const PayPurchasePage = async ({
@@ -48,26 +48,26 @@ const PayPurchasePage = async ({
         { checkoutSessionId: checkoutSession.id },
         transaction
       )
-      const maybeCustomerProfile = checkoutSession.customerProfileId
-        ? await selectCustomerProfileById(
-            checkoutSession.customerProfileId,
+      const maybeCustomer = checkoutSession.customerId
+        ? await selectCustomerById(
+            checkoutSession.customerId,
             transaction
           )
         : null
       return {
         purchase,
         price,
-        customerProfile: result.customerProfile,
+        customer: result.customer,
         sellerOrganization: organization,
         product: result.product,
         type: price.type,
         feeCalculation,
         billingAddress:
           checkoutSession.billingAddress ??
-          result.customerProfile.billingAddress ??
+          result.customer.billingAddress ??
           result.purchase.billingAddress,
         checkoutSession,
-        readonlyCustomerEmail: maybeCustomerProfile?.email,
+        readonlyCustomerEmail: maybeCustomer?.email,
         discount,
       }
     }

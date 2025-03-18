@@ -17,7 +17,7 @@ import {
 import { and, lte, gte, eq, desc } from 'drizzle-orm'
 import { SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { customerProfiles } from '../schema/customerProfiles'
+import { customers } from '../schema/customers'
 import { prices } from '../schema/prices'
 import { products } from '../schema/products'
 
@@ -114,15 +114,12 @@ export const selectSubscriptionsTableRowData = async (
   const subscriptionsRowData = await transaction
     .select({
       subscription: subscriptions,
-      customerProfile: customerProfiles,
+      customer: customers,
       price: prices,
       product: products,
     })
     .from(subscriptions)
-    .innerJoin(
-      customerProfiles,
-      eq(subscriptions.customerProfileId, customerProfiles.id)
-    )
+    .innerJoin(customers, eq(subscriptions.customerId, customers.id))
     .innerJoin(prices, eq(subscriptions.priceId, prices.id))
     .innerJoin(products, eq(prices.productId, products.id))
     .where(eq(subscriptions.organizationId, organizationId))

@@ -127,7 +127,7 @@ export const sendAwaitingPaymentConfirmationEmail = async (params: {
   invoiceNumber: string
   orderDate: Date
   amount: number
-  customerProfileId: string
+  customerId: string
   currency: CurrencyCode
 }) => {
   return safeSend({
@@ -138,7 +138,7 @@ export const sendAwaitingPaymentConfirmationEmail = async (params: {
       organizationName: params.organizationName,
       amount: params.amount,
       invoiceNumber: params.invoiceNumber,
-      customerProfileId: params.customerProfileId,
+      customerId: params.customerId,
       currency: params.currency,
     }),
   })

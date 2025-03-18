@@ -1,4 +1,4 @@
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
@@ -9,14 +9,14 @@ import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export interface CustomerBillingSubPageProps {
-  customerProfile: CustomerProfile.ClientRecord
+  customer: Customer.ClientRecord
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
 }
 
 export const CustomerBillingSubPage = ({
-  customerProfile,
+  customer,
   purchases,
   invoices,
   payments,
@@ -35,7 +35,7 @@ export const CustomerBillingSubPage = ({
                   Customer Since
                 </div>
                 <div className="text-sm font-semibold text-on-primary-hover">
-                  {core.formatDate(customerProfile.createdAt)}
+                  {core.formatDate(customer.createdAt)}
                 </div>
               </div>
               <div className="w-fit flex flex-col gap-0.5">
@@ -58,7 +58,7 @@ export const CustomerBillingSubPage = ({
           <PurchasesTable purchases={purchases} payments={payments} />
           <InvoicesTable
             invoicesAndLineItems={invoices}
-            customerProfile={customerProfile}
+            customer={customer}
           />
         </div>
       </div>

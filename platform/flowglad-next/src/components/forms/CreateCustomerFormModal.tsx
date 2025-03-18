@@ -2,10 +2,10 @@
 import FormModal from '@/components/forms/FormModal'
 import { trpc } from '@/app/_trpc/client'
 import {
-  CreateCustomerProfileInputSchema,
-  createCustomerProfileInputSchema,
+  CreateCustomerInputSchema,
+  createCustomerInputSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import CustomerProfileFormFields from './CustomerProfileFormFields'
+import CustomerFormFields from './CustomerFormFields'
 import core from '@/utils/core'
 
 const CreateCustomerFormModal = ({
@@ -15,11 +15,10 @@ const CreateCustomerFormModal = ({
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
 }) => {
-  const createCustomerProfile =
-    trpc.customerProfiles.create.useMutation()
+  const createCustomer = trpc.customers.create.useMutation()
 
-  const defaultValues: CreateCustomerProfileInputSchema = {
-    customerProfile: {
+  const defaultValues: CreateCustomerInputSchema = {
+    customer: {
       name: '',
       email: '',
       externalId: core.nanoid(),
@@ -29,14 +28,14 @@ const CreateCustomerFormModal = ({
   return (
     <FormModal
       title="Create Customer"
-      formSchema={createCustomerProfileInputSchema}
+      formSchema={createCustomerInputSchema}
       defaultValues={defaultValues}
-      onSubmit={createCustomerProfile.mutateAsync}
+      onSubmit={createCustomer.mutateAsync}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
     >
       <div className="flex flex-col gap-6">
-        <CustomerProfileFormFields />
+        <CustomerFormFields />
       </div>
     </FormModal>
   )

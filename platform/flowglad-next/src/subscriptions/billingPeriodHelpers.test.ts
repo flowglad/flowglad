@@ -20,7 +20,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
-  setupCustomerProfile,
+  setupCustomer,
   setupInvoice,
   setupOrg,
   setupPayment,
@@ -31,7 +31,7 @@ import {
   setupBillingPeriod,
 } from '../../seedDatabase'
 import { adminTransaction } from '@/db/databaseMethods'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
@@ -42,23 +42,23 @@ import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 
 describe('Subscription Billing Period Transition', async () => {
   const { organization, price } = await setupOrg()
-  let customerProfile: CustomerProfile.Record
+  let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
   let subscription: Subscription.Record
   beforeEach(async () => {
-    customerProfile = await setupCustomerProfile({
+    customer = await setupCustomer({
       organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     })
 
     subscription = await setupSubscription({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
       currentBillingPeriodEnd: new Date(Date.now() - 3000),
@@ -134,14 +134,14 @@ describe('Subscription Billing Period Transition', async () => {
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
       status: InvoiceStatus.Paid,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       priceId: price.id,
     })
     await setupPayment({
       billingPeriodId: billingPeriod.id,
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       stripeChargeId: `ch_123_${core.nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 100,
@@ -336,7 +336,7 @@ describe('Subscription Billing Period Transition', async () => {
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
       status: InvoiceStatus.Paid,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       priceId: price.id,
     })
@@ -344,7 +344,7 @@ describe('Subscription Billing Period Transition', async () => {
     await setupPayment({
       billingPeriodId: billingPeriod.id,
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       stripeChargeId: `ch_123_${core.nanoid()}`,
       status: PaymentStatus.Succeeded,
       amount: 100,

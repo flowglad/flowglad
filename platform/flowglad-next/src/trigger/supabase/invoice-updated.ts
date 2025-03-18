@@ -7,7 +7,7 @@ import {
 } from '@/types'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import { sendReceiptEmail } from '@/utils/email'
-import { selectCustomerProfileAndCustomerTableRows } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { adminTransaction } from '@/db/databaseMethods'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
@@ -39,7 +39,7 @@ export const invoiceUpdatedTask = task({
     if (invoiceStatusChangedToPaid({ oldRecord, newRecord })) {
       const {
         invoiceLineItems,
-        customerProfile,
+        customer,
         organization,
         paymentForInvoice,
       } = await adminTransaction(async ({ transaction }) => {
@@ -48,21 +48,21 @@ export const invoiceUpdatedTask = task({
           transaction
         )
 
-        const [{ customerProfile }] =
-          await selectCustomerProfileAndCustomerTableRows(
+        const [{ customer }] =
+          await selectCustomerAndCustomerTableRows(
             {
-              id: newRecord.customerProfileId,
+              id: newRecord.customerId,
             },
             transaction
           )
-        if (!customerProfile) {
+        if (!customer) {
           throw new Error(
             `Customer not found for invoice ${newRecord.id}`
           )
         }
 
         const organization = await selectOrganizationById(
-          customerProfile.organizationId,
+          customer.organizationId,
           transaction
         )
         if (!organization) {
@@ -70,9 +70,7 @@ export const invoiceUpdatedTask = task({
             `Organization not found for invoice ${newRecord.id}`
           )
         }
-        logger.info(
-          `Sending receipt email to ${customerProfile.email}`
-        )
+        logger.info(`Sending receipt email to ${customer.email}`)
         const [paymentForInvoice] = await selectPayments(
           { invoiceId: newRecord.id },
           transaction
@@ -80,7 +78,7 @@ export const invoiceUpdatedTask = task({
         return {
           invoice: newRecord,
           invoiceLineItems,
-          customerProfile,
+          customer,
           organization,
           paymentForInvoice,
           message: 'Receipt email sent successfully',
@@ -90,7 +88,7 @@ export const invoiceUpdatedTask = task({
         paymentId: paymentForInvoice.id,
       })
       await sendReceiptEmail({
-        to: [customerProfile.email],
+        to: [customer.email],
         invoice: newRecord,
         invoiceLineItems,
         organizationName: organization.name,

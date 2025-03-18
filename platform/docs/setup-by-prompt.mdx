@@ -157,10 +157,10 @@ return (
 </div>
 ) }
 
-const { customerProfile, subscriptions } = billing
+const { customer, subscriptions } = billing
 
-if (!customerProfile) {
-return <div>No customer profile found</div>
+if (!customer) {
+return <div>No customer found</div>
 }
 
 const subscription = subscriptions[0]
@@ -184,9 +184,9 @@ return (
 
 <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
   <Label bold>Flowglad Customer Profile:</Label>
-  <Label>Email: {customerProfile.email}</Label>
-  <Label>Name: {customerProfile.name}</Label>
-  <Label>id: {customerProfile.id}</Label>
+  <Label>Email: {customer.email}</Label>
+  <Label>Name: {customer.name}</Label>
+  <Label>id: {customer.id}</Label>
   {subscriptionView}
 </div>
 ) }`
@@ -314,10 +314,10 @@ return (
 </div>
 ) }
 
-const { customerProfile, subscriptions } = billing
+const { customer, subscriptions } = billing
 
-if (!customerProfile) {
-return <div>No customer profile found</div>
+if (!customer) {
+return <div>No customer found</div>
 }
 
 const subscription = subscriptions[0]
@@ -341,9 +341,9 @@ return (
 
 <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
   <Label bold>Flowglad Customer Profile:</Label>
-  <Label>Email: {customerProfile.email}</Label>
-  <Label>Name: {customerProfile.name}</Label>
-  <Label>id: {customerProfile.id}</Label>
+  <Label>Email: {customer.email}</Label>
+  <Label>Name: {customer.name}</Label>
+  <Label>id: {customer.id}</Label>
   {subscriptionView}
 </div>
 ) }`
@@ -476,10 +476,10 @@ return (
 </div>
 ) }
 
-const { customerProfile, subscriptions } = billing
+const { customer, subscriptions } = billing
 
-if (!customerProfile) {
-return <div>No customer profile found</div>
+if (!customer) {
+return <div>No customer found</div>
 }
 
 const subscription = subscriptions[0]
@@ -503,9 +503,9 @@ return (
 
 <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
   <Label bold>Flowglad Customer Profile:</Label>
-  <Label>Email: {customerProfile.email}</Label>
-  <Label>Name: {customerProfile.name}</Label>
-  <Label>id: {customerProfile.id}</Label>
+  <Label>Email: {customer.email}</Label>
+  <Label>Name: {customer.name}</Label>
+  <Label>id: {customer.id}</Label>
   {subscriptionView}
 </div>
 ) }`

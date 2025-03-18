@@ -22,7 +22,7 @@ import {
   invoiceWithLineItemsClientSchema,
   sendInvoiceReminderSchema,
 } from '@/db/schema/invoiceLineItems'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   insertInvoiceLineItems,
   selectInvoiceLineItems,
@@ -85,8 +85,8 @@ const createInvoiceProcedure = protectedProcedure
         invoiceLineItems: invoiceLineItemInserts,
         autoSend,
       } = input
-      const customerProfile = await selectCustomerProfileById(
-        invoiceInsert.customerProfileId,
+      const customer = await selectCustomerById(
+        invoiceInsert.customerId,
         transaction
       )
 
@@ -109,9 +109,9 @@ const createInvoiceProcedure = protectedProcedure
         transaction
       )
 
-      if (!customerProfile.stripeCustomerId) {
+      if (!customer.stripeCustomerId) {
         throw new Error(
-          `Customer profile ${customerProfile.id} does not have a stripeCustomerId`
+          `Customer ${customer.id} does not have a stripeCustomerId`
         )
       }
 
@@ -121,7 +121,7 @@ const createInvoiceProcedure = protectedProcedure
           transaction
         )
         await sendInvoiceNotificationEmail({
-          to: [customerProfile.email],
+          to: [customer.email],
           invoice,
           invoiceLineItems,
           organizationName: organization.name,
@@ -172,8 +172,8 @@ const sendInvoiceReminderProcedure = protectedProcedure
         input.invoiceId,
         transaction
       )
-      const customerProfile = await selectCustomerProfileById(
-        invoice.customerProfileId,
+      const customer = await selectCustomerById(
+        invoice.customerId,
         transaction
       )
       const organization = await selectOrganizationById(

@@ -3,18 +3,18 @@ import { adminTransaction } from '@/db/databaseMethods'
 import { z } from 'zod'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import {
-  selectCustomerProfiles,
-  insertCustomerProfile,
-  updateCustomerProfile,
-} from '@/db/tableMethods/customerProfileMethods'
+  selectCustomers,
+  insertCustomer,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import {
   createStripeCustomer,
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
 import { CheckoutSessionStatus } from '@/types'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { selectPurchaseAndCustomerProfilesByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
+import { Customer } from '@/db/schema/customers'
+import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
@@ -28,7 +28,7 @@ import {
 } from '@/utils/bookkeeping/fees'
 
 /**
- * Idempotently creates a stripe customer and customer profile for a purchase session,
+ * Idempotently creates a stripe customer and customer for a purchase session,
  * if they don't already exist.
  */
 export const confirmCheckoutSession = publicProcedure
@@ -63,37 +63,36 @@ export const confirmCheckoutSession = publicProcedure
           )
       }
 
-      let customerProfile: CustomerProfile.Record | null = null
+      let customer: Customer.Record | null = null
       if (checkoutSession.customerEmail) {
-        // Find customer profile
-        const result = await selectCustomerProfiles(
+        // Find customer
+        const result = await selectCustomers(
           {
             email: checkoutSession.customerEmail,
             organizationId: checkoutSession.organizationId,
           },
           transaction
         )
-        customerProfile = result[0]
+        customer = result[0]
       } else if (checkoutSession.purchaseId) {
-        const purchaseAndCustomerProfile =
-          await selectPurchaseAndCustomerProfilesByPurchaseWhere(
+        const purchaseAndCustomer =
+          await selectPurchaseAndCustomersByPurchaseWhere(
             {
               id: checkoutSession.purchaseId!,
             },
             transaction
           )
-        customerProfile =
-          purchaseAndCustomerProfile[0].customerProfile
+        customer = purchaseAndCustomer[0].customer
       }
 
-      if (!customerProfile) {
+      if (!customer) {
         if (!checkoutSession.customerEmail) {
           throw new Error(
             `Purchase session has no customer email, and no purchase: ${input.id}`
           )
         }
-        // Create new customer profile
-        customerProfile = await insertCustomerProfile(
+        // Create new customer
+        customer = await insertCustomer(
           {
             email: checkoutSession.customerEmail,
             organizationId: checkoutSession.organizationId,
@@ -108,15 +107,14 @@ export const confirmCheckoutSession = publicProcedure
         )
       }
 
-      let stripeCustomerId: string | null =
-        customerProfile.stripeCustomerId
+      let stripeCustomerId: string | null = customer.stripeCustomerId
       if (!stripeCustomerId) {
         if (!checkoutSession.customerEmail) {
           throw new Error(
             `Purchase session has no customer email: ${input.id}`
           )
         }
-        // Create stripe customer if profile exists but has no stripe ID
+        // Create stripe customer if customer exists but has no stripe ID
         const stripeCustomer = await createStripeCustomer({
           email: checkoutSession.customerEmail,
           name:
@@ -126,10 +124,10 @@ export const confirmCheckoutSession = publicProcedure
         })
         stripeCustomerId = stripeCustomer.id
 
-        // Update existing profile with stripe ID
-        customerProfile = await updateCustomerProfile(
+        // Update existing customer with stripe ID
+        customer = await updateCustomer(
           {
-            id: customerProfile.id,
+            id: customer.id,
             stripeCustomerId,
           },
           transaction
@@ -172,7 +170,7 @@ export const confirmCheckoutSession = publicProcedure
       }
 
       return {
-        customerProfile,
+        customer,
       }
     })
   })

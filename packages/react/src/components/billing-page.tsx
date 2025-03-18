@@ -32,8 +32,8 @@ const CurrentSubscriptionOrPricingTable = ({
   catalog,
   currentSubscriptions,
 }: {
-  catalog: Flowglad.CustomerProfileRetrieveBillingResponse['catalog']
-  currentSubscriptions: Flowglad.CustomerProfileRetrieveBillingResponse['currentSubscriptions']
+  catalog: Flowglad.CustomerRetrieveBillingResponse['catalog']
+  currentSubscriptions: Flowglad.CustomerRetrieveBillingResponse['currentSubscriptions']
 }) => {
   if (currentSubscriptions && currentSubscriptions.length > 0) {
     const currentSubscription = currentSubscriptions[0]
@@ -79,7 +79,7 @@ export function BillingPage({
   billing,
   className,
 }: {
-  billing: Flowglad.CustomerProfileRetrieveBillingResponse
+  billing: Flowglad.CustomerRetrieveBillingResponse
   className?: string
 }) {
   return (
@@ -102,29 +102,25 @@ export function BillingPage({
       <Section>
         <SectionTitle>Billing Details</SectionTitle>
         <CustomerBillingDetails
-          name={billing.customerProfile.name ?? ''}
-          email={billing.customerProfile.email}
+          name={billing.customer.name ?? ''}
+          email={billing.customer.email}
           billingAddress={
-            !billing.customerProfile.billingAddress
+            !billing.customer.billingAddress
               ? undefined
               : {
                   line1:
-                    billing.customerProfile.billingAddress.address
-                      .line1,
+                    billing.customer.billingAddress.address.line1,
                   line2:
-                    billing.customerProfile.billingAddress.address
-                      .line2 ?? undefined,
-                  city: billing.customerProfile.billingAddress.address
-                    .city,
+                    billing.customer.billingAddress.address.line2 ??
+                    undefined,
+                  city: billing.customer.billingAddress.address.city,
                   state:
-                    billing.customerProfile.billingAddress.address
-                      .state,
+                    billing.customer.billingAddress.address.state,
                   postalCode:
-                    billing.customerProfile.billingAddress.address
+                    billing.customer.billingAddress.address
                       .postal_code,
                   country:
-                    billing.customerProfile.billingAddress.address
-                      .country,
+                    billing.customer.billingAddress.address.country,
                 }
           }
         />

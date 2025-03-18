@@ -31,7 +31,7 @@ import {
 import { organizations } from './organizations'
 import { purchases } from './purchases'
 import { discounts } from './discounts'
-import { customerProfiles } from './customerProfiles'
+import { customers } from './customers'
 import { sql } from 'drizzle-orm'
 import { invoices } from './invoices'
 
@@ -60,10 +60,7 @@ const columns = {
   customerEmail: text('customer_email'),
   stripeSetupIntentId: text('stripe_setup_intent_id'),
   stripePaymentIntentId: text('stripe_payment_intent_id'),
-  customerProfileId: nullableStringForeignKey(
-    'customer_profile_id',
-    customerProfiles
-  ),
+  customerId: nullableStringForeignKey('customer_id', customers),
   /**
    * Default to 24 hours from now
    */
@@ -97,7 +94,7 @@ export const checkoutSessions = pgTable(
       constructIndex(TABLE_NAME, [table.stripeSetupIntentId]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
-      constructIndex(TABLE_NAME, [table.customerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerId]),
       livemodePolicy(),
       pgPolicy(
         'Enable all actions for discounts in own organization',
