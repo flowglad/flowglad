@@ -4,61 +4,60 @@ import Modal from '@/components/ion/Modal'
 import Button from '@/components/ion/Button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
-import { editVariantSchema } from '@/db/schema/variants'
+import { editPriceSchema } from '@/db/schema/prices'
 
-interface ArchiveVariantModalProps {
+interface ArchivePriceModalProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  variant: {
+  price: {
     id: string
     productId: string
     active: boolean
   }
 }
 
-const ArchiveVariantModal: React.FC<ArchiveVariantModalProps> = ({
+const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   trigger,
   isOpen,
   setIsOpen,
-  variant,
+  price,
 }) => {
   const router = useRouter()
-  const editVariant = trpc.variants.edit.useMutation()
+  const editPrice = trpc.prices.edit.useMutation()
 
   const handleArchive = async () => {
     const data = {
-      variant: {
-        id: variant.id,
-        productId: variant.productId,
-        active: !variant.active,
+      price: {
+        id: price.id,
+        productId: price.productId,
+        active: !price.active,
       },
     }
 
-    const parsed = editVariantSchema.safeParse(data)
+    const parsed = editPriceSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
       return
     }
 
-    await editVariant.mutateAsync(parsed.data)
+    await editPrice.mutateAsync(parsed.data)
     router.refresh()
     setIsOpen(false)
   }
 
-  const modalText = variant.active ? (
+  const modalText = price.active ? (
     <div className="text-secondary gap-4">
-      <p>Archiving will hide this variant from new purchases.</p>
-      <p>Are you sure you want to archive this variant?</p>
+      <p>Archiving will hide this price from new purchases.</p>
+      <p>Are you sure you want to archive this price?</p>
     </div>
   ) : (
     <div className="text-secondary gap-4">
       <p className="text-secondary pb-4">
-        Unarchiving will make this variant available for new
-        purchases.
+        Unarchiving will make this price available for new purchases.
       </p>
       <p className="text-secondary pb-4">
-        Are you sure you want to unarchive this variant?
+        Are you sure you want to unarchive this price?
       </p>
     </div>
   )
@@ -66,7 +65,7 @@ const ArchiveVariantModal: React.FC<ArchiveVariantModalProps> = ({
   return (
     <Modal
       trigger={trigger}
-      title={variant.active ? 'Archive variant' : 'Unarchive variant'}
+      title={price.active ? 'Archive price' : 'Unarchive price'}
       open={isOpen}
       onOpenChange={setIsOpen}
       footer={
@@ -80,9 +79,9 @@ const ArchiveVariantModal: React.FC<ArchiveVariantModalProps> = ({
           </Button>
           <Button
             onClick={handleArchive}
-            disabled={editVariant.isPending}
+            disabled={editPrice.isPending}
           >
-            {variant.active ? 'Archive variant' : 'Unarchive variant'}
+            {price.active ? 'Archive price' : 'Unarchive price'}
           </Button>
         </div>
       }
@@ -93,4 +92,4 @@ const ArchiveVariantModal: React.FC<ArchiveVariantModalProps> = ({
   )
 }
 
-export default ArchiveVariantModal
+export default ArchivePriceModal

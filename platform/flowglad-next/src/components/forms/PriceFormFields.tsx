@@ -10,7 +10,7 @@ import Switch from '@/components/ion/Switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import Select from '@/components/ion/Select'
 import NumberInput from '@/components/ion/NumberInput'
-import { CreateProductSchema } from '@/db/schema/variants'
+import { CreateProductSchema } from '@/db/schema/prices'
 import {
   Controller,
   FieldError,
@@ -20,8 +20,8 @@ import Input from '@/components/ion/Input'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import Hint from '../ion/Hint'
 
-const useVariantFormContext = () => {
-  return useFormContext<Pick<CreateProductSchema, 'variant'>>()
+const usePriceFormContext = () => {
+  return useFormContext<Pick<CreateProductSchema, 'price'>>()
 }
 
 const SubscriptionFields = () => {
@@ -31,8 +31,8 @@ const SubscriptionFields = () => {
     control,
     watch,
     setValue,
-  } = useVariantFormContext()
-  const trialPeriodDays = watch('variant.trialPeriodDays')
+  } = usePriceFormContext()
+  const trialPeriodDays = watch('price.trialPeriodDays')
   const [offerTrial, setOfferTrial] = useState(
     Boolean(trialPeriodDays && trialPeriodDays > 0)
   )
@@ -43,13 +43,13 @@ const SubscriptionFields = () => {
     <>
       <div className="flex items-end gap-2.5">
         <ControlledCurrencyInput
-          name="variant.unitPrice"
+          name="price.unitPrice"
           control={control}
           label="Amount"
           className="flex-1"
         />
         <Controller
-          name="variant.intervalUnit"
+          name="price.intervalUnit"
           control={control}
           render={({ field }) => (
             <Select
@@ -65,7 +65,7 @@ const SubscriptionFields = () => {
               value={field.value ?? ''}
               onValueChange={field.onChange}
               error={
-                (errors.variant?.intervalUnit as FieldError)?.message
+                (errors.price?.intervalUnit as FieldError)?.message
               }
             />
           )}
@@ -77,13 +77,13 @@ const SubscriptionFields = () => {
         onCheckedChange={(checked) => {
           setOfferTrial(checked)
           if (!checked) {
-            setValue('variant.trialPeriodDays', 0)
+            setValue('price.trialPeriodDays', 0)
           }
         }}
       />
       {offerTrial && (
         <Controller
-          name="variant.trialPeriodDays"
+          name="price.trialPeriodDays"
           control={control}
           render={({ field }) => (
             <NumberInput
@@ -93,8 +93,7 @@ const SubscriptionFields = () => {
               max={365}
               step={1}
               error={
-                (errors.variant?.trialPeriodDays as FieldError)
-                  ?.message
+                (errors.price?.trialPeriodDays as FieldError)?.message
               }
             />
           )}
@@ -108,23 +107,23 @@ const SubscriptionFields = () => {
 //   const {
 //     formState: { errors },
 //     control,
-//   } = useVariantFormContext()
+//   } = usePriceFormContext()
 //   return (
 //     <div className="flex items-end gap-2.5">
 //       <Controller
-//         name="variant.totalInstallmentsAmount"
+//         name="price.totalInstallmentsAmount"
 //         control={control}
 //         render={({ field }) => (
 //           <CurrencyInput
 //             {...field}
 //             label="Total Amount"
 //             className="flex-1"
-//             error={(errors.variant?.unitPrice as FieldError)?.message}
+//             error={(errors.price?.unitPrice as FieldError)?.message}
 //           />
 //         )}
 //       />
 //       <Controller
-//         name="variant.firstInstallmentAmount"
+//         name="price.firstInstallmentAmount"
 //         control={control}
 //         render={({ field }) => (
 //           <CurrencyInput
@@ -132,7 +131,7 @@ const SubscriptionFields = () => {
 //             label="First Installment Amount"
 //             className="flex-1"
 //             error={
-//               (errors.variant?.firstInstallmentAmount as FieldError)
+//               (errors.price?.firstInstallmentAmount as FieldError)
 //                 ?.message
 //             }
 //           />
@@ -143,10 +142,10 @@ const SubscriptionFields = () => {
 // }
 
 const SinglePaymentFields = () => {
-  const { control } = useVariantFormContext()
+  const { control } = usePriceFormContext()
   return (
     <Controller
-      name="variant.unitPrice"
+      name="price.unitPrice"
       control={control}
       render={({ field }) => (
         <CurrencyInput {...field} label="Amount" defaultValue={0} />
@@ -154,11 +153,11 @@ const SinglePaymentFields = () => {
     />
   )
 }
-const VariantFormFields = ({
-  variantOnly,
+const PriceFormFields = ({
+  priceOnly,
   edit,
 }: {
-  variantOnly?: boolean
+  priceOnly?: boolean
   edit?: boolean
 }) => {
   const {
@@ -167,33 +166,33 @@ const VariantFormFields = ({
     setValue,
     register,
     formState: { errors },
-  } = useVariantFormContext()
-  const variant = watch('variant')
-  const priceType = watch('variant.priceType')
-  let priceTypeFields = <></>
+  } = usePriceFormContext()
+  const price = watch('price')
+  const type = watch('price.type')
+  let typeFields = <></>
 
-  switch (priceType) {
+  switch (type) {
     case PriceType.Subscription:
-      priceTypeFields = <SubscriptionFields />
+      typeFields = <SubscriptionFields />
       break
     case PriceType.SinglePayment:
-      priceTypeFields = <SinglePaymentFields />
+      typeFields = <SinglePaymentFields />
       break
   }
   return (
     <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
-      {variantOnly && (
+      {priceOnly && (
         <Input
-          label="Variant Name"
-          {...register('variant.name')}
-          error={errors.variant?.name?.message}
+          label="Price Name"
+          {...register('price.name')}
+          error={errors.price?.name?.message}
         />
       )}
 
       <div className="w-full relative flex flex-col gap-3">
         <Label>Price Type</Label>
         <Controller
-          name="variant.priceType"
+          name="price.type"
           control={control}
           render={({ field }) => (
             <RadioGroup
@@ -201,17 +200,17 @@ const VariantFormFields = ({
               orientation="horizontal"
               onValueChange={(value) => {
                 if (value === PriceType.Subscription) {
-                  setValue('variant.intervalCount', 1)
-                  setValue('variant.intervalUnit', IntervalUnit.Month)
+                  setValue('price.intervalCount', 1)
+                  setValue('price.intervalUnit', IntervalUnit.Month)
                 }
                 if (value === PriceType.SinglePayment) {
-                  setValue('variant.intervalCount', null)
-                  setValue('variant.intervalUnit', null)
+                  setValue('price.intervalCount', null)
+                  setValue('price.intervalUnit', null)
                 }
                 field.onChange(value)
               }}
               disabled={edit}
-              disabledTooltip="You can't change price type after creating a variant"
+              disabledTooltip="You can't change price type after creating a price"
             >
               <div className="w-full relative flex items-start gap-5">
                 <Radio
@@ -233,11 +232,11 @@ const VariantFormFields = ({
           </p>
         </Hint>
       </div>
-      {priceTypeFields}
-      {variantOnly && (
+      {typeFields}
+      {priceOnly && (
         <div className="w-full relative flex flex-col gap-3">
           <Controller
-            name="variant.isDefault"
+            name="price.isDefault"
             control={control}
             render={({ field }) => (
               <Switch
@@ -252,4 +251,4 @@ const VariantFormFields = ({
     </div>
   )
 }
-export default VariantFormFields
+export default PriceFormFields

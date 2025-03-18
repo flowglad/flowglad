@@ -1,10 +1,10 @@
 import { type Flowglad } from '@flowglad/node'
 
 export type PurchaseInvoice =
-  Flowglad.Invoice.InvoiceRetrieveResponse.PurchaseInvoice
+  Flowglad.Invoices.InvoiceRetrieveResponse.PurchaseInvoice
 
 export type SubscriptionInvoice =
-  Flowglad.Invoice.InvoiceRetrieveResponse.SubscriptionInvoice
+  Flowglad.Invoices.InvoiceRetrieveResponse.SubscriptionInvoice
 
 export type Invoice = SubscriptionInvoice | PurchaseInvoice
 

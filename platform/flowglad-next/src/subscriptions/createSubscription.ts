@@ -2,7 +2,7 @@ import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Subscription } from '@/db/schema/subscriptions'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import {
   insertSubscription,
   selectSubscriptions,
@@ -32,7 +32,7 @@ export interface CreateSubscriptionParams {
   organization: Organization.Record
   customerProfile: CustomerProfile.Record
   product: Product.Record
-  variant: Variant.Record
+  price: Price.Record
   quantity: number
   livemode: boolean
   startDate: Date
@@ -48,7 +48,8 @@ export const insertSubscriptionAndItems = async (
   {
     organization,
     customerProfile,
-    variant,
+    price,
+    product,
     quantity,
     livemode,
     startDate,
@@ -72,7 +73,7 @@ export const insertSubscriptionAndItems = async (
   const subscriptionInsert: Subscription.Insert = {
     organizationId: organization.id,
     customerProfileId: customerProfile.id,
-    variantId: variant.id,
+    priceId: price.id,
     livemode,
     status: SubscriptionStatus.Incomplete,
     defaultPaymentMethodId: defaultPaymentMethod.id,
@@ -81,6 +82,7 @@ export const insertSubscriptionAndItems = async (
     canceledAt: null,
     metadata: {},
     trialEnd: trialEnd ?? null,
+    planName: `${product.name}${price.name ? ` - ${price.name}` : ''}`,
     currentBillingPeriodStart: currentBillingPeriod.startDate,
     currentBillingPeriodEnd: currentBillingPeriod.endDate,
     billingCycleAnchorDate: startDate,
@@ -95,13 +97,13 @@ export const insertSubscriptionAndItems = async (
   )
 
   const subscriptionItemInsert: SubscriptionItem.Insert = {
-    name: `${variant.name} x ${quantity}`,
+    name: `${price.name} x ${quantity}`,
     subscriptionId: subscription.id,
-    variantId: variant.id,
+    priceId: price.id,
     addedDate: startDate,
     quantity,
     livemode,
-    unitPrice: variant.unitPrice,
+    unitPrice: price.unitPrice,
     metadata: null,
   }
 

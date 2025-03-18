@@ -19,7 +19,7 @@ import core from '@/utils/core'
 import { useRouter } from 'next/navigation'
 import Button from '@/components/ion/Button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import {
   PopoverMenuItem,
@@ -45,12 +45,12 @@ type CustomerTableRow = {
 const MoreMenuCell = ({
   customerProfile,
   customer,
-  variants,
+  prices,
 }: {
   customerProfile: CustomerProfile.ClientRecord
   customer: Customer.ClientRecord
-  variants: {
-    variant: Variant.Record
+  prices: {
+    price: Price.Record
     product: Product.ClientRecord
   }[]
 }) => {
@@ -121,12 +121,12 @@ const CustomerStatusBadge = ({
 const CustomersTable = ({
   customers,
   focusedTab,
-  variants,
+  prices,
 }: {
   customers: CustomerTableRowData[]
   focusedTab: string
-  variants: {
-    variant: Variant.Record
+  prices: {
+    price: Price.Record
     product: Product.ClientRecord
   }[]
 }) => {
@@ -234,13 +234,13 @@ const CustomersTable = ({
               <MoreMenuCell
                 customer={cellData.customer}
                 customerProfile={cellData.customerProfile}
-                variants={variants}
+                prices={prices}
               />
             </div>
           ),
         },
       ] as ColumnDef<CustomerTableRow>[],
-    [variants]
+    [prices]
   )
 
   return (
@@ -264,12 +264,12 @@ const CustomersTable = ({
 function Internal({
   params,
   customers,
-  variants,
+  prices,
 }: {
   params: { focusedTab: string }
   customers: CustomerTableRowData[]
-  variants: {
-    variant: Variant.Record
+  prices: {
+    price: Price.Record
     product: Product.ClientRecord
   }[]
 }) {
@@ -288,7 +288,7 @@ function Internal({
         <CustomersTable
           customers={customers}
           focusedTab={focusedTab}
-          variants={variants}
+          prices={prices}
         />
       ),
     },
@@ -300,7 +300,7 @@ function Internal({
         <CustomersTable
           customers={customers}
           focusedTab={focusedTab}
-          variants={variants}
+          prices={prices}
         />
       ),
     },
@@ -312,7 +312,7 @@ function Internal({
         <CustomersTable
           customers={customers}
           focusedTab={focusedTab}
-          variants={variants}
+          prices={prices}
         />
       ),
     },
@@ -324,7 +324,7 @@ function Internal({
         <CustomersTable
           customers={customers}
           focusedTab={focusedTab}
-          variants={variants}
+          prices={prices}
         />
       ),
     },

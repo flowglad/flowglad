@@ -1,7 +1,7 @@
 export enum FlowgladActionKey {
   GetCustomerProfileBilling = 'customer-profiles/billing',
   FindOrCreateCustomerProfile = 'customer-profiles/find-or-create',
-  CreatePurchaseSession = 'purchase-sessions/create',
+  CreateCheckoutSession = 'checkout-sessions/create',
 }
 
 export enum HTTPMethod {

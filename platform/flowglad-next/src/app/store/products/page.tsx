@@ -1,12 +1,12 @@
 import * as R from 'ramda'
 import Internal from './Internal'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { selectVariantsAndProductsForOrganization } from '@/db/tableMethods/variantMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 
 const ProductsPage = async () => {
-  const { productsAndVariants: productsResult } =
+  const { productsAndPrices: productsResult } =
     await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const [membership] = await selectMembershipAndOrganizations(
@@ -17,24 +17,21 @@ const ProductsPage = async () => {
           transaction
         )
         const productsResult =
-          await selectVariantsAndProductsForOrganization(
+          await selectPricesAndProductsForOrganization(
             {},
             membership.organization.id,
             transaction
           )
         return {
-          productsAndVariants: productsResult,
+          productsAndPrices: productsResult,
         }
       }
     )
-  const variantsByProductId = new Map<
-    string,
-    Variant.ClientRecord[]
-  >()
+  const pricesByProductId = new Map<string, Price.ClientRecord[]>()
   productsResult.forEach((p) => {
-    variantsByProductId.set(p.product.id, [
-      ...(variantsByProductId.get(p.product.id) ?? []),
-      p.variant,
+    pricesByProductId.set(p.product.id, [
+      ...(pricesByProductId.get(p.product.id) ?? []),
+      p.price,
     ])
   })
   const uniqueProducts = R.uniqBy(
@@ -44,7 +41,7 @@ const ProductsPage = async () => {
 
   const products = uniqueProducts.map((product) => ({
     product,
-    variants: variantsByProductId.get(product.id) ?? [],
+    prices: pricesByProductId.get(product.id) ?? [],
   }))
 
   products.sort(

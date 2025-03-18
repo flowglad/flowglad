@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/types",
-  "version": "0.5.0",
+  "version": "0.7.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -19,7 +19,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@flowglad/node": "0.6.0"
+    "@flowglad/node": "0.8.0"
   },
   "devDependencies": {
     "eslint": "catalog:repo",

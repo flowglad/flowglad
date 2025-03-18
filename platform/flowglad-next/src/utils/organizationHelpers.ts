@@ -14,7 +14,7 @@ import { DbTransaction } from '@/db/types'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
 import { createProductTransaction } from '@/utils/catalog'
 import { dummyProduct } from '@/stubs/productStubs'
-import { subscriptionDummyVariant } from '@/stubs/variantStubs'
+import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import { createApiKeyTransaction } from '@/utils/apiKeyHelpers'
@@ -111,9 +111,9 @@ export const createOrganizationTransaction = async (
   await createProductTransaction(
     {
       product: dummyProduct,
-      variants: [
+      prices: [
         {
-          ...subscriptionDummyVariant,
+          ...subscriptionDummyPrice,
           isDefault: true,
         },
       ],

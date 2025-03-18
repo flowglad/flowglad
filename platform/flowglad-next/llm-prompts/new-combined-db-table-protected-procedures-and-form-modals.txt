@@ -74,7 +74,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       - If there are any enum columns, make database indexes of them
   - Export Zod Schema and types for: Insert, Select, Update, and Mutation Inputs
     - Delcare a columnRefinments object that has all of the zod schemas for each column that needs to be refined
-    - You will need to make the following zod schema for each table. In the case that each table has unique subtypes (e.g. subscription variants and one-time variants), you will need to declare the subtypes accordingly:
+    - You will need to make the following zod schema for each table. In the case that each table has unique subtypes (e.g. subscription prices and one-time prices), you will need to declare the subtypes accordingly:
       - columnRefinements (not a schema, but an object that contains the zod schema for each column that needs to be refined, to be used when creating the schema below)
       - insert schema
       - select schema

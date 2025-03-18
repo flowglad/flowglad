@@ -6,10 +6,10 @@ import { getRevenueData } from './queries/getRevenueData'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { createOrganization } from '@/server/mutations/createOrganization'
 import { editOrganization } from '@/server/mutations/editOrganization'
-import { setPurchaseSessionCookie } from '@/server/mutations/setPurchaseSessionCookie'
-import { editPurchaseSession } from '@/server/mutations/editPurchaseSession'
+import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
+import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
 import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
-import { confirmPurchaseSession } from '@/server/mutations/confirmPurchaseSession'
+import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
 import { editFile } from '@/server/mutations/editFile'
@@ -28,8 +28,8 @@ import { toggleTestMode } from './mutations/toggleTestMode'
 import { getApiKeys } from './queries/getApiKeys'
 import { customerProfilesRouter } from './routers/customerProfilesRouter'
 import { productsRouter } from './routers/productsRouter'
-import { variantsRouter } from './routers/variantsRouter'
-import { purchaseSessionsRouter } from './routers/purchaseSessionsRouter'
+import { pricesRouter } from './routers/pricesRouter'
+import { checkoutSessionsRouter } from './routers/checkoutSessionsRouter'
 import { subscriptionsRouter } from './routers/subscriptionsRouter'
 import { paymentsRouter } from './routers/paymentsRouter'
 import { discountsRouter } from './routers/discountsRouter'
@@ -43,9 +43,9 @@ const purchasesRouter = router({
   create: createPurchase,
   update: editPurchase,
   // Purchase session management
-  createSession: setPurchaseSessionCookie,
-  updateSession: editPurchaseSession,
-  confirmSession: confirmPurchaseSession,
+  createSession: setCheckoutSessionCookie,
+  updateSession: editCheckoutSession,
+  confirmSession: confirmCheckoutSession,
   requestAccess: requestPurchaseAccessSession,
 })
 
@@ -72,9 +72,9 @@ const linksRouter = router({
 // Main router with resource-based structure
 export const appRouter = router({
   payments: paymentsRouter,
-  purchaseSessions: purchaseSessionsRouter,
+  checkoutSessions: checkoutSessionsRouter,
   products: productsRouter,
-  variants: variantsRouter,
+  prices: pricesRouter,
   purchases: purchasesRouter,
   customerProfiles: customerProfilesRouter,
   organizations: organizationsRouter,

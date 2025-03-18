@@ -47,7 +47,7 @@ import {
 } from '@/db/tableMethods/paymentMethodMethods'
 
 describe('billingRunHelpers', async () => {
-  const { organization, variant } = await setupOrg()
+  const { organization, price } = await setupOrg()
   let customerProfile: CustomerProfile.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -66,7 +66,7 @@ describe('billingRunHelpers', async () => {
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerProfileId: customerProfile.id,
-      variantId: variant.id,
+      priceId: price.id,
       paymentMethodId: paymentMethod.id,
     })
     billingPeriod = await setupBillingPeriod({
@@ -120,7 +120,7 @@ describe('billingRunHelpers', async () => {
         status: InvoiceStatus.Paid,
         customerProfileId: customerProfile.id,
         organizationId: organization.id,
-        variantId: variant.id,
+        priceId: price.id,
       })
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -170,7 +170,7 @@ describe('billingRunHelpers', async () => {
         status: InvoiceStatus.Paid,
         customerProfileId: customerProfile.id,
         organizationId: organization.id,
-        variantId: variant.id,
+        priceId: price.id,
       })
       const result = await adminTransaction(({ transaction }) =>
         executeBillingRunCalculationAndBookkeepingSteps(
@@ -245,7 +245,7 @@ describe('billingRunHelpers', async () => {
               billingPeriod,
               organization,
               customerProfile,
-              currency: variant.currency,
+              currency: price.currency,
             },
             transaction
           )
@@ -258,7 +258,7 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         customerProfileId: customerProfile.id,
         organizationId: organization.id,
-        variantId: variant.id,
+        priceId: price.id,
       })
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,

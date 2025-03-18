@@ -106,7 +106,7 @@ import TableTitleRow from '@/components/TableTitleRow'
           <div className="w-full flex flex-col gap-5">
             <Table
               columns={columns_1}
-              data={variants}
+              data={unicornRiders}
               className="bg-nav"
               bordered
             />

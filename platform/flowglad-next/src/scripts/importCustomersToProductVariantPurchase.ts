@@ -1,6 +1,6 @@
 /* Example script with targeted environment
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/importCustomersToProductVariantPurchase.ts
+NODE_ENV=production pnpm tsx src/scripts/importCustomersToProductPricePurchase.ts
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -11,7 +11,7 @@ import {
   createManualPurchaseInsert,
   customerAndCustomerProfileInsertsFromCSV,
 } from '@/utils/purchaseHelpers'
-import { selectVariantById } from '@/db/tableMethods/variantMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { bulkInsertPurchases } from '@/db/tableMethods/purchaseMethods'
 import path from 'path'
 import fs from 'fs/promises'
@@ -37,7 +37,7 @@ const example = async (db: PostgresJsDatabase) => {
         true
       )
 
-    const variant = await selectVariantById(VARIANT_ID, transaction)
+    const price = await selectPriceById(VARIANT_ID, transaction)
     const customerProfiles =
       await selectCustomerProfilesByorganizationIdAndEmails(
         ORGANIZATION_ID,
@@ -47,7 +47,7 @@ const example = async (db: PostgresJsDatabase) => {
     const purchaseInserts = customerProfiles.map((profile) => {
       return createManualPurchaseInsert({
         customerProfile: profile,
-        variant,
+        price,
         organizationId: ORGANIZATION_ID,
       })
     })

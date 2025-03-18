@@ -5,7 +5,7 @@ import { trpc } from '@/app/_trpc/client'
 import {
   EditProductInput,
   editProductSchema,
-} from '@/db/schema/variants'
+} from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { ZodType } from 'zod'
 

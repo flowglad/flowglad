@@ -26,7 +26,7 @@ import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMet
 import { core } from '@/utils/core'
 
 describe('createSubscription', async () => {
-  const { organization, product, variant } = await setupOrg()
+  const { organization, product, price } = await setupOrg()
   const customerProfile = await setupCustomerProfile({
     organizationId: organization.id,
   })
@@ -45,7 +45,7 @@ describe('createSubscription', async () => {
       {
         organization,
         product,
-        variant,
+        price,
         quantity: 1,
         livemode: true,
         startDate: new Date(),
@@ -63,7 +63,7 @@ describe('createSubscription', async () => {
     expect(subscription).toBeDefined()
     expect(
       subscriptionItems[0].unitPrice * subscriptionItems[0].quantity
-    ).toBe(variant.unitPrice * 1)
+    ).toBe(price.unitPrice * 1)
     expect(billingPeriod.status).toBe(BillingPeriodStatus.Active)
     expect(billingRun.status).toBe(BillingRunStatus.Scheduled)
   })
@@ -84,7 +84,7 @@ describe('createSubscription', async () => {
           {
             organization,
             product,
-            variant,
+            price,
             quantity: 1,
             livemode: true,
             startDate: new Date(),
@@ -114,7 +114,7 @@ describe('createSubscription', async () => {
         {
           organization,
           product,
-          variant,
+          price,
           quantity: 1,
           livemode: true,
           startDate: new Date('2023-01-01'),
@@ -146,7 +146,7 @@ describe('createSubscription', async () => {
           {
             organization,
             product,
-            variant,
+            price,
             quantity: 1,
             livemode: true,
             startDate: new Date(),
@@ -162,7 +162,7 @@ describe('createSubscription', async () => {
     ).resolves.toBeDefined()
   })
   it('creates billing periods correctly for trial subscriptions', async () => {
-    const { organization, product, variant } = await setupOrg()
+    const { organization, product, price } = await setupOrg()
     const newCustomerProfile = await setupCustomerProfile({
       organizationId: organization.id,
     })
@@ -181,7 +181,7 @@ describe('createSubscription', async () => {
           {
             organization,
             product,
-            variant,
+            price,
             quantity: 1,
             livemode: true,
             startDate,
@@ -232,7 +232,7 @@ describe('createSubscription', async () => {
       organizationId: organization.id,
       customerProfileId: newCustomerProfile.id,
       paymentMethodId: newPaymentMethod.id,
-      variantId: variant.id,
+      priceId: price.id,
       interval: IntervalUnit.Month,
       intervalCount: 1,
       trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -242,7 +242,7 @@ describe('createSubscription', async () => {
       subscriptionId: firstSubscription.id,
       name: 'Test Item',
       quantity: 1,
-      unitPrice: variant.unitPrice,
+      unitPrice: price.unitPrice,
     })
     const billingPeriod = await setupBillingPeriod({
       subscriptionId: firstSubscription.id,
@@ -252,7 +252,7 @@ describe('createSubscription', async () => {
     await setupBillingPeriodItems({
       billingPeriodId: billingPeriod.id,
       quantity: 1,
-      unitPrice: variant.unitPrice,
+      unitPrice: price.unitPrice,
     })
     // Attempt to create subscription with same setup intent
     const secondResult = await adminTransaction(
@@ -261,7 +261,7 @@ describe('createSubscription', async () => {
           {
             organization,
             product,
-            variant,
+            price,
             quantity: 1,
             livemode: true,
             startDate,

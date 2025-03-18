@@ -8,14 +8,14 @@ import {
   BillingInfoCore,
   billingInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { selectDefaultVariantAndProductByProductId } from '@/db/tableMethods/variantMethods'
+import { selectDefaultPriceAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import {
   CheckoutFlowType,
   PriceType,
-  PurchaseSessionType,
+  CheckoutSessionType,
 } from '@/types'
 import core from '@/utils/core'
-import { findOrCreatePurchaseSession } from '@/utils/purchaseSessionState'
+import { findOrCreateCheckoutSession } from '@/utils/checkoutSessionState'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 
 interface PurchasePageProps {
@@ -28,15 +28,15 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
   const { id } = await params
   const {
     product,
-    variant,
+    price,
     organization,
-    purchaseSession,
+    checkoutSession,
     discount,
     feeCalculation,
     maybeCustomerProfile,
   } = await adminTransaction(async ({ transaction }) => {
-    const { product, variant } =
-      await selectDefaultVariantAndProductByProductId(id, transaction)
+    const { product, price } =
+      await selectDefaultPriceAndProductByProductId(id, transaction)
     if (!product.active) {
       // TODO: ERROR PAGE UI
       return {
@@ -50,41 +50,41 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
 
     /**
      * Attempt to get the saved purchase session (from cookies).
-     * If not found, or the variant id does not match, create a new purchase session
+     * If not found, or the price id does not match, create a new purchase session
      * and save it to cookies.
      */
-    const purchaseSession = await findOrCreatePurchaseSession(
+    const checkoutSession = await findOrCreateCheckoutSession(
       {
         productId: product.id,
         organizationId: organization.id,
-        variant,
-        type: PurchaseSessionType.Product,
+        price,
+        type: CheckoutSessionType.Product,
       },
       transaction
     )
-    const discount = purchaseSession.discountId
+    const discount = checkoutSession.discountId
       ? await selectDiscountById(
-          purchaseSession.discountId,
+          checkoutSession.discountId,
           transaction
         )
       : null
     const feeCalculation = await selectLatestFeeCalculation(
       {
-        PurchaseSessionId: purchaseSession.id,
+        checkoutSessionId: checkoutSession.id,
       },
       transaction
     )
-    const maybeCustomerProfile = purchaseSession.customerProfileId
+    const maybeCustomerProfile = checkoutSession.customerProfileId
       ? await selectCustomerProfileById(
-          purchaseSession.customerProfileId,
+          checkoutSession.customerProfileId,
           transaction
         )
       : null
     return {
       product,
-      variant,
+      price,
       organization,
-      purchaseSession,
+      checkoutSession,
       discount,
       feeCalculation: feeCalculation ?? null,
       maybeCustomerProfile,
@@ -96,29 +96,29 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
     return <div>Product is not active</div>
   }
 
-  if (!purchaseSession) {
+  if (!checkoutSession) {
     return <div>Purchase session not found</div>
   }
 
   let clientSecret: string | null = null
-  if (purchaseSession.stripePaymentIntentId) {
+  if (checkoutSession.stripePaymentIntentId) {
     const paymentIntent = await getPaymentIntent(
-      purchaseSession.stripePaymentIntentId
+      checkoutSession.stripePaymentIntentId
     )
     clientSecret = paymentIntent.client_secret
-  } else if (purchaseSession.stripeSetupIntentId) {
+  } else if (checkoutSession.stripeSetupIntentId) {
     const setupIntent = await getSetupIntent(
-      purchaseSession.stripeSetupIntentId
+      checkoutSession.stripeSetupIntentId
     )
     clientSecret = setupIntent.client_secret
   }
   const billingInfo = billingInfoSchema.parse({
-    purchaseSession,
+    checkoutSession,
     product,
-    variant,
+    price,
     sellerOrganization: organization,
     flowType:
-      variant.priceType === PriceType.SinglePayment
+      price.type === PriceType.SinglePayment
         ? CheckoutFlowType.SinglePayment
         : CheckoutFlowType.Subscription,
     redirectUrl: core.safeUrl(
@@ -126,7 +126,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       core.envVariable('NEXT_PUBLIC_APP_URL')
     ),
     clientSecret,
-    billingAddress: purchaseSession.billingAddress,
+    billingAddress: checkoutSession.billingAddress,
     readonlyCustomerEmail: maybeCustomerProfile?.email,
     discount,
     feeCalculation,

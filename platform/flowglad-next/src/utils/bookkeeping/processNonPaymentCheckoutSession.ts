@@ -1,62 +1,62 @@
 import {
   PriceType,
-  PurchaseSessionStatus,
-  PurchaseSessionType,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { PurchaseSession } from '@/db/schema/purchaseSessions'
-import { updatePurchaseSession } from '@/db/tableMethods/purchaseSessionMethods'
-import { selectVariantById } from '@/db/tableMethods/variantMethods'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { createInitialInvoiceForPurchase } from '@/utils/bookkeeping'
 import { isNil } from '../core'
-import { processPurchaseBookkeepingForPurchaseSession } from './purchaseSessions'
+import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 
-export const processNonPaymentPurchaseSession = async (
-  purchaseSession: PurchaseSession.Record,
+export const processNonPaymentCheckoutSession = async (
+  checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
 ) => {
-  purchaseSession = await updatePurchaseSession(
+  checkoutSession = await updateCheckoutSession(
     {
-      ...purchaseSession,
-      status: PurchaseSessionStatus.Succeeded,
+      ...checkoutSession,
+      status: CheckoutSessionStatus.Succeeded,
     },
     transaction
   )
-  if (purchaseSession.type === PurchaseSessionType.Invoice) {
+  if (checkoutSession.type === CheckoutSessionType.Invoice) {
     throw new Error(
       'Invoice checkout flow does not support non-payment purchase sessions. If the invoice had 0 balance due, the invoice should have been paid automatically.'
     )
   }
 
-  const variant = await selectVariantById(
-    purchaseSession.variantId,
+  const price = await selectPriceById(
+    checkoutSession.priceId,
     transaction
   )
 
-  let purchase = purchaseSession.purchaseId
+  let purchase = checkoutSession.purchaseId
     ? await selectPurchaseById(
-        purchaseSession.purchaseId,
+        checkoutSession.purchaseId,
         transaction
       )
     : null
-  const priceType = purchase?.priceType ?? variant.priceType
+  const priceType = purchase?.priceType ?? price.type
   if (priceType === PriceType.Subscription) {
     throw new Error(
-      `Attempted to process a non-payment purchase session ${purchaseSession.id} for a subscription, which is currently not supported`
+      `Attempted to process a non-payment purchase session ${checkoutSession.id} for a subscription, which is currently not supported`
     )
   }
   const feeCalculation = await selectLatestFeeCalculation(
     {
-      PurchaseSessionId: purchaseSession.id,
+      checkoutSessionId: checkoutSession.id,
     },
     transaction
   )
   if (!feeCalculation) {
     throw new Error(
-      `No fee calculation found for purchase session ${purchaseSession.id}`
+      `No fee calculation found for purchase session ${checkoutSession.id}`
     )
   }
 
@@ -64,19 +64,19 @@ export const processNonPaymentPurchaseSession = async (
 
   if (isNil(totalDue)) {
     throw new Error(
-      `Total due for purchase session ${purchaseSession.id} was not calculated`
+      `Total due for purchase session ${checkoutSession.id} was not calculated`
     )
   }
 
   if (totalDue !== 0) {
     throw new Error(
-      `Total due for purchase session ${purchaseSession.id} is not 0, it's: ${totalDue}`
+      `Total due for purchase session ${checkoutSession.id} is not 0, it's: ${totalDue}`
     )
   }
 
   const upsertPurchaseResult =
-    await processPurchaseBookkeepingForPurchaseSession(
-      { purchaseSession, stripeCustomerId: null },
+    await processPurchaseBookkeepingForCheckoutSession(
+      { checkoutSession, stripeCustomerId: null },
       transaction
     )
   purchase = upsertPurchaseResult.purchase

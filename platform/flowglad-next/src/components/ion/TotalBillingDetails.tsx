@@ -13,7 +13,7 @@ import {
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { FallbackSkeleton } from './Skeleton'
 import {
-  calculateVariantBaseAmount,
+  calculatePriceBaseAmount,
   calculateDiscountAmount,
   calculateTotalDueAmount,
   calculateInvoiceBaseAmount,
@@ -21,7 +21,7 @@ import {
 import { isNil } from '@/utils/core'
 import { Purchase } from '@/db/schema/purchases'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { Discount } from '@/db/schema/discounts'
 import {
   ClientInvoiceWithLineItems,
@@ -37,12 +37,12 @@ const PurchasSessionDependentLine = ({
   label,
   amount,
   currency,
-  editPurchaseSessionLoading,
+  editCheckoutSessionLoading,
 }: {
   label: string
   amount: number
   currency: CurrencyCode
-  editPurchaseSessionLoading?: boolean
+  editCheckoutSessionLoading?: boolean
 }) => {
   return (
     <div className="w-full relative flex justify-between">
@@ -53,7 +53,7 @@ const PurchasSessionDependentLine = ({
           </span>
         </div>
       </div>
-      <FallbackSkeleton showSkeleton={editPurchaseSessionLoading}>
+      <FallbackSkeleton showSkeleton={editCheckoutSessionLoading}>
         <p className="text-sm leading-tight text-white">
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
             currency,
@@ -69,43 +69,38 @@ interface CoreTotalBillingDetailsParams {
   feeCalculation?: Nullish<FeeCalculation.CustomerRecord>
   discount?: Nullish<Discount.ClientRecord>
 }
-interface VariantTotalBillingDetailsParams
+
+interface PriceTotalBillingDetailsParams
   extends CoreTotalBillingDetailsParams {
   purchase?: Purchase.ClientRecord
-  variant: Variant.ClientRecord
+  price: Price.ClientRecord
   invoice: undefined
-  type: 'variant'
+  type: 'price'
 }
 
 interface InvoiceTotalBillingDetailsParams
   extends CoreTotalBillingDetailsParams {
   invoice: Invoice.ClientRecord
   invoiceLineItems: InvoiceLineItem.ClientRecord[]
-  variant: undefined
+  price: undefined
   purchase: undefined
   type: 'invoice'
 }
 
 type TotalBillingDetailsParams =
-  | VariantTotalBillingDetailsParams
+  | PriceTotalBillingDetailsParams
   | InvoiceTotalBillingDetailsParams
 const calculateTotalBillingDetails = (
   params: TotalBillingDetailsParams
 ) => {
-  const {
-    purchase,
-    feeCalculation,
-    variant,
-    discount,
-    invoice,
-    type,
-  } = params
-  if (!variant && !invoice) {
-    throw new Error('Either variant or invoice is required')
+  const { purchase, feeCalculation, price, discount, invoice, type } =
+    params
+  if (!price && !invoice) {
+    throw new Error('Either price or invoice is required')
   }
-  if (variant && invoice) {
+  if (price && invoice) {
     throw new Error(
-      'Only one of variant or invoice is permitted. Received both'
+      'Only one of price or invoice is permitted. Received both'
     )
   }
 
@@ -115,8 +110,8 @@ const calculateTotalBillingDetails = (
           invoice,
           invoiceLineItems: params.invoiceLineItems,
         })
-      : calculateVariantBaseAmount({
-          variant,
+      : calculatePriceBaseAmount({
+          price,
           purchase,
         })
   let subtotalAmount: number = baseAmount
@@ -150,10 +145,10 @@ const TotalBillingDetails = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const checkoutPageContext = useCheckoutPageContext()
   const {
-    // variant,
+    // price,
     discount,
     currency,
-    editPurchaseSessionLoading,
+    editCheckoutSessionLoading,
     subscriptionDetails,
     feeCalculation,
     flowType,
@@ -173,13 +168,13 @@ const TotalBillingDetails = React.forwardRef<
           type: 'invoice',
           purchase: undefined,
           feeCalculation,
-          variant: undefined,
+          price: undefined,
           discount,
         }
       : {
           purchase: checkoutPageContext.purchase ?? undefined,
-          variant: checkoutPageContext.variant,
-          type: 'variant',
+          price: checkoutPageContext.price,
+          type: 'price',
           discount,
           invoice: undefined,
           feeCalculation,
@@ -215,7 +210,7 @@ const TotalBillingDetails = React.forwardRef<
           label="Discount"
           amount={discountAmount ?? 0}
           currency={currency}
-          editPurchaseSessionLoading={editPurchaseSessionLoading}
+          editCheckoutSessionLoading={editCheckoutSessionLoading}
         />
       ) : null}
       {taxAmount ? (
@@ -223,7 +218,7 @@ const TotalBillingDetails = React.forwardRef<
           label="Tax"
           amount={taxAmount ?? 0}
           currency={currency}
-          editPurchaseSessionLoading={editPurchaseSessionLoading}
+          editCheckoutSessionLoading={editCheckoutSessionLoading}
         />
       ) : null}
       {afterwardsTotal && (
@@ -249,7 +244,7 @@ const TotalBillingDetails = React.forwardRef<
             flowType === CheckoutFlowType.Subscription ? ' Today' : ''
           }`}
         </div>
-        <FallbackSkeleton showSkeleton={editPurchaseSessionLoading}>
+        <FallbackSkeleton showSkeleton={editCheckoutSessionLoading}>
           <div
             className="text-base leading-5 font-bold"
             data-testid="billing-info-total-due-amount"

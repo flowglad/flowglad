@@ -3,14 +3,14 @@ import { SubRouteHandler, SubRouteHandlerResultData } from './types'
 import { FlowgladServer } from '../flowgladServer'
 import { parseErrorStringToErrorObject } from '../serverUtils'
 
-const createPurchaseSession: SubRouteHandler<
-  FlowgladActionKey.CreatePurchaseSession
+const createCheckoutSession: SubRouteHandler<
+  FlowgladActionKey.CreateCheckoutSession
 > = async (params, flowgladServer: FlowgladServer) => {
   let error:
     | { code: string; json: Record<string, unknown> }
     | undefined
   let status: number
-  let data: SubRouteHandlerResultData<FlowgladActionKey.CreatePurchaseSession> =
+  let data: SubRouteHandlerResultData<FlowgladActionKey.CreateCheckoutSession> =
     {}
   if (params.method !== HTTPMethod.POST) {
     error = {
@@ -25,9 +25,9 @@ const createPurchaseSession: SubRouteHandler<
     }
   }
   try {
-    const purchaseSession =
-      await flowgladServer.createPurchaseSession(params.data)
-    data = purchaseSession
+    const checkoutSession =
+      await flowgladServer.createCheckoutSession(params.data)
+    data = checkoutSession
     status = 200
   } catch (e) {
     if (e instanceof Error) {
@@ -47,4 +47,4 @@ const createPurchaseSession: SubRouteHandler<
   }
 }
 
-export { createPurchaseSession }
+export { createCheckoutSession }

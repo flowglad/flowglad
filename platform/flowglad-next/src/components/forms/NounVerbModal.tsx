@@ -1,7 +1,7 @@
 import { Nouns, Verbs } from '@/types'
 import CreateDiscountModal from './CreateDiscountModal'
 import CreateProductModal from './CreateProductModal'
-import CreateVariantModal from './CreateVariantModal'
+import CreatePriceModal from './CreatePriceModal'
 import CreateCustomerFormModal from './CreateCustomerFormModal'
 import CreatePostPurchaseFileModal from './EditFileModal'
 
@@ -12,9 +12,9 @@ const NounVerbModalMap = {
   [Nouns.Product]: {
     [Verbs.Create]: { Component: CreateProductModal },
   },
-  [Nouns.Variant]: {
+  [Nouns.Price]: {
     [Verbs.Create]: {
-      Component: CreateVariantModal,
+      Component: CreatePriceModal,
       parentIdToModalProp: (productId: string) => ({ productId }),
     },
   },

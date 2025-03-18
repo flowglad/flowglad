@@ -1,6 +1,6 @@
 import { Organization } from '@/db/schema/organizations'
 import { updateCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
-import { PurchaseSessionType, PurchaseStatus } from '@/types'
+import { CheckoutSessionType, PurchaseStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   StripeIntentMetadata,
@@ -12,14 +12,14 @@ import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { selectPurchaseSessionById } from '@/db/tableMethods/purchaseSessionMethods'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
-import { Variant } from '@/db/schema/variants'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { Price } from '@/db/schema/prices'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
-import { processPurchaseBookkeepingForPurchaseSession } from './purchaseSessions'
+import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 
-const processPurchaseSessionSetupIntent = async (
+const processCheckoutSessionSetupIntent = async (
   setupIntent: Stripe.SetupIntent,
   transaction: DbTransaction
 ) => {
@@ -29,28 +29,28 @@ const processPurchaseSessionSetupIntent = async (
   if (!metadata) {
     throw new Error('No metadata found')
   }
-  if (metadata.type !== IntentMetadataType.PurchaseSession) {
+  if (metadata.type !== IntentMetadataType.CheckoutSession) {
     throw new Error(
-      `Metadata type is not purchase_session for setup intent ${setupIntent.id}`
+      `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
     )
   }
-  const purchaseSessionId = metadata.purchaseSessionId
-  const purchaseSession = await selectPurchaseSessionById(
-    purchaseSessionId,
+  const checkoutSessionId = metadata.checkoutSessionId
+  const checkoutSession = await selectCheckoutSessionById(
+    checkoutSessionId,
     transaction
   )
-  if (!purchaseSession) {
+  if (!checkoutSession) {
     throw new Error('Purchase session not found')
   }
-  if (purchaseSession.type === PurchaseSessionType.Invoice) {
+  if (checkoutSession.type === CheckoutSessionType.Invoice) {
     throw new Error(
       'Invoice checkout flow does not support setup intents'
     )
   }
 
-  const [{ variant, product, organization }] =
-    await selectVariantProductAndOrganizationByVariantWhere(
-      { id: purchaseSession.variantId },
+  const [{ price, product, organization }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: checkoutSession.priceId },
       transaction
     )
 
@@ -60,9 +60,9 @@ const processPurchaseSessionSetupIntent = async (
     discount,
     feeCalculation,
     discountRedemption,
-  } = await processPurchaseBookkeepingForPurchaseSession(
+  } = await processPurchaseBookkeepingForCheckoutSession(
     {
-      purchaseSession,
+      checkoutSession,
       stripeCustomerId: setupIntent.customer
         ? stripeIdFromObjectOrId(setupIntent.customer)
         : null,
@@ -71,8 +71,8 @@ const processPurchaseSessionSetupIntent = async (
   )
   return {
     purchase,
-    purchaseSession,
-    variant,
+    checkoutSession,
+    price,
     organization,
     product,
     customerProfile,
@@ -97,22 +97,22 @@ export const processSetupIntentUpdated = async (
       `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`
     )
   }
-  if (metadata.type !== IntentMetadataType.PurchaseSession) {
+  if (metadata.type !== IntentMetadataType.CheckoutSession) {
     throw new Error(
-      `Metadata type is not purchase_session for setup intent ${setupIntent.id}`
+      `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
     )
   }
   let organization: Organization.Record | null = null
-  let variant: Variant.Record | null = null
+  let price: Price.Record | null = null
   let purchase: Purchase.Record | null = null
   let customerProfile: CustomerProfile.Record | null = null
-  const result = await processPurchaseSessionSetupIntent(
+  const result = await processCheckoutSessionSetupIntent(
     setupIntent,
     transaction
   )
-  const { product, purchaseSession } = result
+  const { product, checkoutSession } = result
   organization = result.organization
-  variant = result.variant
+  price = result.price
   purchase = result.purchase
   customerProfile = result.customerProfile
   const stripeCustomerId = setupIntent.customer
@@ -139,33 +139,33 @@ export const processSetupIntentUpdated = async (
     },
     transaction
   )
-  if (!variant.intervalUnit) {
-    throw new Error('Variant interval unit is required')
+  if (!price.intervalUnit) {
+    throw new Error('Price interval unit is required')
   }
-  if (!variant.intervalCount) {
-    throw new Error('Variant interval count is required')
+  if (!price.intervalCount) {
+    throw new Error('Price interval count is required')
   }
   await createSubscriptionWorkflow(
     {
       stripeSetupIntentId: setupIntent.id,
       defaultPaymentMethod: paymentMethod,
       organization,
-      variant,
+      price,
       customerProfile,
-      interval: variant.intervalUnit,
-      intervalCount: variant.intervalCount,
+      interval: price.intervalUnit,
+      intervalCount: price.intervalCount,
       /**
-       * If the variant has a trial period, set the trial end date to the
+       * If the price has a trial period, set the trial end date to the
        * end of the period.
        */
-      trialEnd: variant.trialPeriodDays
+      trialEnd: price.trialPeriodDays
         ? new Date(
             new Date().getTime() +
-              variant.trialPeriodDays * 24 * 60 * 60 * 1000
+              price.trialPeriodDays * 24 * 60 * 60 * 1000
           )
         : undefined,
       startDate: new Date(),
-      quantity: purchaseSession.quantity,
+      quantity: checkoutSession.quantity,
       product,
       livemode: purchase.livemode,
     },
@@ -181,5 +181,5 @@ export const processSetupIntentUpdated = async (
     transaction
   )
 
-  return { purchase: updatedPurchase, purchaseSession }
+  return { purchase: updatedPurchase, checkoutSession }
 }

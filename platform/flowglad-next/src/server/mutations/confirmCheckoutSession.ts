@@ -2,9 +2,9 @@ import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/databaseMethods'
 import { z } from 'zod'
 import {
-  selectPurchaseSessionById,
-  selectPurchaseSessions,
-} from '@/db/tableMethods/purchaseSessionMethods'
+  selectCheckoutSessionById,
+  selectCheckoutSessions,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import {
   selectCustomerProfiles,
   insertCustomerProfile,
@@ -16,15 +16,15 @@ import {
   updateSetupIntent,
 } from '@/utils/stripe'
 import { upsertCustomerByEmail } from '@/db/tableMethods/customerMethods'
-import { PurchaseSessionStatus } from '@/types'
+import { CheckoutSessionStatus } from '@/types'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { selectPurchasesCustomerProfileAndCustomer } from '@/db/tableMethods/purchaseMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { createFeeCalculationForPurchaseSession } from '@/utils/bookkeeping/purchaseSessions'
-import { feeReadyPurchaseSessionSelectSchema } from '@/db/schema/purchaseSessions'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
 import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
@@ -35,54 +35,54 @@ import {
  * Idempotently creates a stripe customer and customer profile for a purchase session,
  * if they don't already exist.
  */
-export const confirmPurchaseSession = publicProcedure
+export const confirmCheckoutSession = publicProcedure
   .input(idInputSchema)
   .mutation(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
       // Find purchase session
-      const purchaseSession = await selectPurchaseSessionById(
+      const checkoutSession = await selectCheckoutSessionById(
         input.id,
         transaction
       )
-      if (!purchaseSession) {
+      if (!checkoutSession) {
         throw new Error(`Purchase session not found: ${input.id}`)
       }
-      if (purchaseSession.status !== PurchaseSessionStatus.Open) {
+      if (checkoutSession.status !== CheckoutSessionStatus.Open) {
         throw new Error(`Purchase session is not open: ${input.id}`)
       }
       let finalFeeCalculation: FeeCalculation.Record | null =
         await selectLatestFeeCalculation(
           {
-            PurchaseSessionId: purchaseSession.id,
+            checkoutSessionId: checkoutSession.id,
           },
           transaction
         )
       if (!finalFeeCalculation) {
         const feeReadySession =
-          feeReadyPurchaseSessionSelectSchema.parse(purchaseSession)
+          feeReadyCheckoutSessionSelectSchema.parse(checkoutSession)
         finalFeeCalculation =
-          await createFeeCalculationForPurchaseSession(
+          await createFeeCalculationForCheckoutSession(
             feeReadySession,
             transaction
           )
       }
 
       let customerProfile: CustomerProfile.Record | null = null
-      if (purchaseSession.customerEmail) {
+      if (checkoutSession.customerEmail) {
         // Find customer profile
         const result = await selectCustomerProfiles(
           {
-            email: purchaseSession.customerEmail,
-            organizationId: purchaseSession.organizationId,
+            email: checkoutSession.customerEmail,
+            organizationId: checkoutSession.organizationId,
           },
           transaction
         )
         customerProfile = result[0]
-      } else if (purchaseSession.purchaseId) {
+      } else if (checkoutSession.purchaseId) {
         const purchaseAndCustomerProfile =
           await selectPurchasesCustomerProfileAndCustomer(
             {
-              id: purchaseSession.purchaseId!,
+              id: checkoutSession.purchaseId!,
             },
             transaction
           )
@@ -91,19 +91,19 @@ export const confirmPurchaseSession = publicProcedure
       }
 
       if (!customerProfile) {
-        if (!purchaseSession.customerEmail) {
+        if (!checkoutSession.customerEmail) {
           throw new Error(
             `Purchase session has no customer email, and no purchase: ${input.id}`
           )
         }
         const [customer] = await upsertCustomerByEmail(
           {
-            email: purchaseSession.customerEmail,
+            email: checkoutSession.customerEmail,
             name:
-              purchaseSession.customerName ||
-              purchaseSession.customerEmail,
+              checkoutSession.customerName ||
+              checkoutSession.customerEmail,
             billingAddress: null,
-            livemode: purchaseSession.livemode,
+            livemode: checkoutSession.livemode,
           },
           transaction
         )
@@ -111,14 +111,14 @@ export const confirmPurchaseSession = publicProcedure
         customerProfile = await insertCustomerProfile(
           {
             customerId: customer.id,
-            email: purchaseSession.customerEmail,
-            organizationId: purchaseSession.organizationId,
+            email: checkoutSession.customerEmail,
+            organizationId: checkoutSession.organizationId,
             name:
-              purchaseSession.customerName ||
-              purchaseSession.customerEmail,
-            billingAddress: purchaseSession.billingAddress,
+              checkoutSession.customerName ||
+              checkoutSession.customerEmail,
+            billingAddress: checkoutSession.billingAddress,
             externalId: core.nanoid(),
-            livemode: purchaseSession.livemode,
+            livemode: checkoutSession.livemode,
           },
           transaction
         )
@@ -127,18 +127,18 @@ export const confirmPurchaseSession = publicProcedure
       let stripeCustomerId: string | null =
         customerProfile.stripeCustomerId
       if (!stripeCustomerId) {
-        if (!purchaseSession.customerEmail) {
+        if (!checkoutSession.customerEmail) {
           throw new Error(
             `Purchase session has no customer email: ${input.id}`
           )
         }
         // Create stripe customer if profile exists but has no stripe ID
         const stripeCustomer = await createStripeCustomer({
-          email: purchaseSession.customerEmail,
+          email: checkoutSession.customerEmail,
           name:
-            purchaseSession.customerName ||
-            purchaseSession.customerEmail,
-          livemode: purchaseSession.livemode,
+            checkoutSession.customerName ||
+            checkoutSession.customerEmail,
+          livemode: checkoutSession.livemode,
         })
         stripeCustomerId = stripeCustomer.id
 
@@ -153,15 +153,15 @@ export const confirmPurchaseSession = publicProcedure
       }
 
       // Update setup intent if it exists
-      if (purchaseSession.stripeSetupIntentId) {
+      if (checkoutSession.stripeSetupIntentId) {
         await updateSetupIntent(
-          purchaseSession.stripeSetupIntentId,
+          checkoutSession.stripeSetupIntentId,
           {
             customer: stripeCustomerId,
           },
-          purchaseSession.livemode
+          checkoutSession.livemode
         )
-      } else if (purchaseSession.stripePaymentIntentId) {
+      } else if (checkoutSession.stripePaymentIntentId) {
         const finalizedFeeCalculation = await finalizeFeeCalculation(
           finalFeeCalculation,
           transaction
@@ -176,14 +176,14 @@ export const confirmPurchaseSession = publicProcedure
         )
 
         await updatePaymentIntent(
-          purchaseSession.stripePaymentIntentId,
+          checkoutSession.stripePaymentIntentId,
           {
             customer: stripeCustomerId,
             amount: totalAmountDue,
             application_fee_amount:
               totalAmountDue > 0 ? finalFeeAmount : undefined,
           },
-          purchaseSession.livemode
+          checkoutSession.livemode
         )
       }
 

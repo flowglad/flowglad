@@ -4,10 +4,7 @@ import {
   subscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
-import {
-  subscriptionVariantClientSelectSchema,
-  variantsClientSelectSchema,
-} from '@/db/schema/variants'
+import { subscriptionPriceClientSelectSchema } from '@/db/schema/prices'
 import { SubscriptionAdjustmentTiming } from '@/types'
 import { z } from 'zod'
 
@@ -49,7 +46,7 @@ export type AdjustSubscriptionParams = z.infer<
 
 export const richSubscriptionItemClientSelectSchema =
   subscriptionItemClientSelectSchema.extend({
-    variant: subscriptionVariantClientSelectSchema,
+    price: subscriptionPriceClientSelectSchema,
   })
 
 export const richSubscriptionClientSelectSchema =

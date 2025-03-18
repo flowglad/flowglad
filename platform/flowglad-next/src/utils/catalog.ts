@@ -5,32 +5,32 @@ import {
   updateProduct,
 } from '@/db/tableMethods/productMethods'
 import {
-  insertVariant,
-  selectVariants,
-  selectVariantsAndProductsForOrganization,
-  updateVariant,
-} from '@/db/tableMethods/variantMethods'
+  insertPrice,
+  selectPrices,
+  selectPricesAndProductsForOrganization,
+  updatePrice,
+} from '@/db/tableMethods/priceMethods'
 import {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
 import {
-  upsertStripePriceFromVariant,
+  upsertStripePriceFromPrice,
   upsertStripeProductFromProduct,
 } from './stripe'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Product } from '@/db/schema/products'
 
-export const createVariant = async (
-  payload: Variant.Insert,
+export const createPrice = async (
+  payload: Price.Insert,
   transaction: DbTransaction
 ) => {
-  const createdVariant = await insertVariant(payload, transaction)
+  const createdPrice = await insertPrice(payload, transaction)
 
   // Fetch the associated product to get its Stripe ID
   const product = await selectProductById(
-    createdVariant.productId,
+    createdPrice.productId,
     transaction
   )
   if (!product) {
@@ -41,25 +41,25 @@ export const createVariant = async (
   }
 
   // Create or update Stripe price
-  const stripePrice = await upsertStripePriceFromVariant({
-    variant: createdVariant,
+  const stripePrice = await upsertStripePriceFromPrice({
+    price: createdPrice,
     productStripeId: product.stripeProductId!,
     livemode: product.livemode,
   })
-  createdVariant.stripePriceId = stripePrice.id
+  createdPrice.stripePriceId = stripePrice.id
 
-  // Update the variant with the Stripe price ID
-  const updatedVariant = await updateVariant(
-    { ...createdVariant, stripePriceId: stripePrice.id },
+  // Update the price with the Stripe price ID
+  const updatedPrice = await updatePrice(
+    { ...createdPrice, stripePriceId: stripePrice.id },
     transaction
   )
-  return updatedVariant
+  return updatedPrice
 }
 
 export const createProductTransaction = async (
   payload: {
     product: Product.ClientInsert
-    variants: Variant.ClientInsert[]
+    prices: Price.ClientInsert[]
   },
   { userId, transaction, livemode }: AuthenticatedTransactionParams
 ) => {
@@ -99,11 +99,11 @@ export const createProductTransaction = async (
     transaction
   )
 
-  const createdVariants = await Promise.all(
-    payload.variants.map(async (variant) => {
-      return createVariant(
+  const createdPrices = await Promise.all(
+    payload.prices.map(async (price) => {
+      return createPrice(
         {
-          ...variant,
+          ...price,
           productId: createdProduct.id,
           livemode,
           currency: defaultCurrency,
@@ -114,7 +114,7 @@ export const createProductTransaction = async (
   )
   return {
     product: updatedProduct,
-    variants: createdVariants,
+    prices: createdPrices,
   }
 }
 
@@ -133,29 +133,27 @@ export const editProduct = async (
   return updatedProduct
 }
 
-export const editVariantTransaction = async (
-  params: { variant: Variant.Update },
+export const editPriceTransaction = async (
+  params: { price: Price.Update },
   transaction: DbTransaction
 ) => {
-  const { variant } = params
-  // Get all variants for this product to validate default price constraint
-  const existingVariants = await selectVariants(
-    { productId: variant.productId },
+  const { price } = params
+  // Get all prices for this product to validate default price constraint
+  const existingPrices = await selectPrices(
+    { productId: price.productId },
     transaction
   )
-  const previousVariant = existingVariants.find(
-    (v) => v.id === variant.id
-  )
+  const previousPrice = existingPrices.find((v) => v.id === price.id)
   const pricingDetailsChanged =
-    previousVariant?.unitPrice !== variant.unitPrice ||
-    previousVariant?.intervalUnit !== variant.intervalUnit ||
-    previousVariant?.intervalCount !== variant.intervalCount
+    previousPrice?.unitPrice !== price.unitPrice ||
+    previousPrice?.intervalUnit !== price.intervalUnit ||
+    previousPrice?.intervalCount !== price.intervalCount
 
-  // If we're setting this variant as default, update the previous default variant
-  if (variant.isDefault) {
-    const previousDefault = existingVariants.find((v) => v.isDefault)
-    if (previousDefault && previousDefault.id !== variant.id) {
-      await updateVariant(
+  // If we're setting this price as default, update the previous default price
+  if (price.isDefault) {
+    const previousDefault = existingPrices.find((v) => v.isDefault)
+    if (previousDefault && previousDefault.id !== price.id) {
+      await updatePrice(
         {
           ...previousDefault,
           isDefault: false,
@@ -164,68 +162,68 @@ export const editVariantTransaction = async (
       )
     }
   } else {
-    // If we're unsetting default, ensure there will still be a default variant
-    const updatedVariants = existingVariants.map((v) =>
-      v.id === variant.id ? { ...v, ...variant } : v
+    // If we're unsetting default, ensure there will still be a default price
+    const updatedPrices = existingPrices.map((v) =>
+      v.id === price.id ? { ...v, ...price } : v
     )
 
-    const defaultVariants = updatedVariants.filter((v) => v.isDefault)
+    const defaultPrices = updatedPrices.filter((v) => v.isDefault)
 
-    if (defaultVariants.length === 0) {
+    if (defaultPrices.length === 0) {
       throw new Error(
-        'There must be at least one default variant per product'
+        'There must be at least one default price per product'
       )
     }
   }
 
-  let updatedVariant = await updateVariant(
-    variant as Variant.Update,
+  let updatedPrice = await updatePrice(
+    price as Price.Update,
     transaction
   )
 
-  if (variant.stripePriceId && pricingDetailsChanged) {
+  if (price.stripePriceId && pricingDetailsChanged) {
     const [product] = await selectProducts(
-      { id: variant.productId },
+      { id: price.productId },
       transaction
     )
-    const newStripePrice = await upsertStripePriceFromVariant({
-      variant: updatedVariant,
+    const newStripePrice = await upsertStripePriceFromPrice({
+      price: updatedPrice,
       productStripeId: product.stripeProductId!,
-      oldVariant: previousVariant,
+      oldPrice: previousPrice,
       livemode: product.livemode,
     })
-    updatedVariant = await updateVariant(
-      { ...updatedVariant, stripePriceId: newStripePrice.id },
+    updatedPrice = await updatePrice(
+      { ...updatedPrice, stripePriceId: newStripePrice.id },
       transaction
     )
   }
 
-  return updatedVariant
+  return updatedPrice
 }
 
 export const selectCatalog = async (
   { organizationId }: { organizationId: string },
   transaction: DbTransaction
 ) => {
-  const result = await selectVariantsAndProductsForOrganization(
+  const result = await selectPricesAndProductsForOrganization(
     { active: true },
     organizationId,
     transaction
   )
-  // Group variants by product
+  // Group prices by product
   const productMap = new Map<
     string,
-    { product: Product.Record; variants: Variant.Record[] }
+    { product: Product.Record; prices: Price.Record[] }
   >()
 
-  for (const { product, variant } of result) {
+  for (const { product, price } of result) {
     if (!productMap.has(product.id)) {
       productMap.set(product.id, {
         product,
-        variants: [],
+        prices: [],
       })
     }
-    productMap.get(product.id)!.variants.push(variant)
+    productMap.get(product.id)!.prices.push(price)
   }
 
   return Array.from(productMap.values())

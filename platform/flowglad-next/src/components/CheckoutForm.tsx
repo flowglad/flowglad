@@ -57,8 +57,8 @@ const CheckoutFormDisabled = () => {
  * @returns
  */
 function CheckoutForm() {
-  const { clientSecret, purchaseSession } = useCheckoutPageContext()
-  const livemode = purchaseSession.livemode
+  const { clientSecret, checkoutSession } = useCheckoutPageContext()
+  const livemode = checkoutSession.livemode
 
   /**
    * Calling loadStripe promise outside of render to avoid calling it every render.

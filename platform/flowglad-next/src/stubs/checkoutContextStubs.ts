@@ -4,17 +4,17 @@ import {
 } from '@/stubs/purchaseStubs'
 import { dummyProduct } from '@/stubs/productStubs'
 import { dummyOrganization } from '@/stubs/organizationStubs'
-import { subscriptionDummyVariant } from '@/stubs/variantStubs'
+import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import {
   CheckoutFlowType,
   CurrencyCode,
   IntervalUnit,
   PriceType,
-  PurchaseSessionStatus,
-  PurchaseSessionType,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
 } from '@/types'
 import { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
-import { PurchaseSession } from '@/db/schema/purchaseSessions'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 const subscriptionDetails = {
   trialPeriodDays: 30,
@@ -24,13 +24,13 @@ const subscriptionDetails = {
   currency: CurrencyCode.USD,
 }
 
-export const stubbedPurchaseSession: PurchaseSession.Record = {
+export const stubbedCheckoutSession: CheckoutSession.Record = {
   id: '1',
   createdAt: new Date(),
   updatedAt: new Date(),
-  variantId: '1',
+  priceId: '1',
   invoiceId: null,
-  status: PurchaseSessionStatus.Pending,
+  status: CheckoutSessionStatus.Pending,
   organizationId: '1',
   customerName: 'Test Customer',
   customerEmail: 'test@test.com',
@@ -46,15 +46,15 @@ export const stubbedPurchaseSession: PurchaseSession.Record = {
   quantity: 1,
   successUrl: null,
   cancelUrl: null,
-  type: PurchaseSessionType.Product,
+  type: CheckoutSessionType.Product,
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =
   async () => false
 
 const functionStubs = {
-  editPurchaseSession: async () =>
-    Promise.resolve({ purchaseSession: stubbedPurchaseSession }),
+  editCheckoutSession: async () =>
+    Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
   attemptDiscountCode: async () => ({ isValid: true }),
   clearDiscountCode,
   feeCalculation: null,
@@ -65,12 +65,12 @@ export const subscriptionCheckoutPageContextValuesWithTrial: CheckoutPageContext
     currency: CurrencyCode.USD,
     product: dummyProduct,
     purchase: subscriptionWithTrialDummyPurchase,
-    variant: subscriptionDummyVariant,
+    price: subscriptionDummyPrice,
     sellerOrganization: dummyOrganization,
     flowType: CheckoutFlowType.Subscription,
     redirectUrl: 'https://google.com',
     clientSecret: '123',
-    purchaseSession: stubbedPurchaseSession,
+    checkoutSession: stubbedCheckoutSession,
     subscriptionDetails,
     ...functionStubs,
   }
@@ -80,12 +80,12 @@ export const subscriptionCheckoutPageContextValuesWithoutTrial: CheckoutPageCont
     currency: CurrencyCode.USD,
     product: dummyProduct,
     purchase: subscriptionWithoutTrialDummyPurchase,
-    variant: subscriptionDummyVariant,
+    price: subscriptionDummyPrice,
     sellerOrganization: dummyOrganization,
     flowType: CheckoutFlowType.Subscription,
     redirectUrl: 'https://google.com',
     clientSecret: '123',
-    purchaseSession: stubbedPurchaseSession,
+    checkoutSession: stubbedCheckoutSession,
     subscriptionDetails,
     ...functionStubs,
   }

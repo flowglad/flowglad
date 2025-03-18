@@ -30,7 +30,7 @@ import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 
 describe('Subscription Cancellation Test Suite', async () => {
-  const { organization, variant } = await setupOrg()
+  const { organization, price } = await setupOrg()
   let customerProfile: CustomerProfile.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -49,7 +49,7 @@ describe('Subscription Cancellation Test Suite', async () => {
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerProfileId: customerProfile.id,
-      variantId: variant.id,
+      priceId: price.id,
       paymentMethodId: paymentMethod.id,
     })
 
@@ -83,7 +83,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         const activeBP = await setupBillingPeriod({
           subscriptionId: subscription.id,
@@ -135,7 +135,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Simulate a terminal state.
         subscription.status = SubscriptionStatus.Canceled
@@ -156,7 +156,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         await setupBillingPeriod({
           subscriptionId: subscription.id,
@@ -179,7 +179,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Depending on your design, the function may update the subscription even if there
         // are no billing periods. Here we verify that no error is thrown.
@@ -204,7 +204,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Create a billing period that starts exactly at fixedNow.
         const bp = await setupBillingPeriod({
@@ -252,7 +252,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Create a current billing period.
         const currentBP = await setupBillingPeriod({
@@ -303,7 +303,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Create a billing period that is active now.
         await setupBillingPeriod({
@@ -349,7 +349,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Mark the subscription as terminal.
         await safelyUpdateSubscriptionStatus(
@@ -378,7 +378,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Do not create any billing period so that the helper returns null.
         const params: ScheduleSubscriptionCancellationParams = {
@@ -402,7 +402,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Create a billing period that starts in the future.
         await setupBillingPeriod({
@@ -433,7 +433,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Create a billing period that starts exactly at fixedNow.
         const bp = await setupBillingPeriod({
@@ -479,7 +479,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         let result
         try {
@@ -501,7 +501,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         // Create two billing periods that overlap.
         const bp1 = await setupBillingPeriod({
@@ -548,7 +548,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         await setupBillingPeriod({
           subscriptionId: subscription.id,
@@ -586,7 +586,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           organizationId: organization.id,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         await setupBillingPeriod({
           subscriptionId: subscription.id,

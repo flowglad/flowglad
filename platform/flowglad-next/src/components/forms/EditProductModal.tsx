@@ -2,17 +2,17 @@
 
 import FormModal from '@/components/forms/FormModal'
 import { Product } from '@/db/schema/products'
-import { editProductSchema } from '@/db/schema/variants'
+import { editProductSchema } from '@/db/schema/prices'
 import { ProductFormFields } from '@/components/forms/ProductFormFieldsV2'
 import { trpc } from '@/app/_trpc/client'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'
 
 interface EditProductModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   product: Product.ClientRecord
-  variants: Variant.ClientRecord[]
+  prices: Price.ClientRecord[]
 }
 
 const EditProductModal: React.FC<EditProductModalProps> = ({
@@ -21,8 +21,8 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   product,
 }) => {
   const editProduct = trpc.products.edit.useMutation()
-  const { data: variantsData, isLoading: variantsLoading } =
-    trpc.variants.list.useQuery({
+  const { data: pricesData, isLoading: pricesLoading } =
+    trpc.prices.list.useQuery({
       cursor: encodeCursor({
         parameters: {
           productId: product.id,
@@ -31,7 +31,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         direction: 'forward',
       }),
     })
-  const variants = variantsData?.data
+  const prices = pricesData?.data
   return (
     <FormModal
       isOpen={isOpen}
@@ -40,13 +40,13 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       formSchema={editProductSchema}
       defaultValues={{
         product,
-        variant: variants?.[0],
+        price: prices?.[0],
         id: product.id,
       }}
       onSubmit={async (item) => {
         await editProduct.mutateAsync(item)
       }}
-      key={`${product.id}-${variantsLoading}`}
+      key={`${product.id}-${pricesLoading}`}
     >
       <ProductFormFields editProduct />
     </FormModal>

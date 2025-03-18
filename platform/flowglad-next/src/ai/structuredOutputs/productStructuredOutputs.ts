@@ -8,7 +8,7 @@ import {
   createProductSchema,
   EditProductInput,
   editProductSchema,
-} from '@/db/schema/variants'
+} from '@/db/schema/prices'
 import { Verbs } from '@/types'
 import { CoreMessage } from 'ai'
 
