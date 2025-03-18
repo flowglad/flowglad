@@ -174,8 +174,8 @@ export const setupCustomerProfile = async (params: {
     return insertCustomerProfile(
       {
         organizationId: params.organizationId,
-        customerId: customer.id,
         email,
+        name: email,
         externalId: core.nanoid(),
         livemode: params.livemode ?? true,
       },

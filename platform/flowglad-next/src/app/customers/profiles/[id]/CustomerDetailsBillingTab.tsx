@@ -10,7 +10,6 @@ import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export interface CustomerBillingSubPageProps {
-  customer: Customer.ClientRecord
   customerProfile: CustomerProfile.ClientRecord
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
@@ -18,7 +17,6 @@ export interface CustomerBillingSubPageProps {
 }
 
 export const CustomerBillingSubPage = ({
-  customer,
   customerProfile,
   purchases,
   invoices,

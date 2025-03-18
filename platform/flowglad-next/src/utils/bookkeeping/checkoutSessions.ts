@@ -47,7 +47,7 @@ import {
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
   selectCustomerProfiles,
-  upsertCustomerProfileBycustomerIdAndorganizationId,
+  upsertCustomerProfileByEmailAndOrganizationId,
 } from '@/db/tableMethods/customerProfileMethods'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
@@ -281,25 +281,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       transaction
     )
 
-    // If customer exists, use that customer's ID
-    if (!customer) {
-      const customerUpsertResult = await upsertCustomerByEmail(
-        {
-          email: checkoutSession.customerEmail!,
-          name:
-            checkoutSession.customerName! ??
-            `Customer ${new Date().getTime()}`,
-          billingAddress: checkoutSession.billingAddress,
-          livemode: checkoutSession.livemode,
-        },
-        transaction
-      )
-      customer = customerUpsertResult[0]
-    }
     const customerProfileUpsert =
-      await upsertCustomerProfileBycustomerIdAndorganizationId(
+      await upsertCustomerProfileByEmailAndOrganizationId(
         {
-          customerId: customer.id,
           email: checkoutSession.customerEmail!,
           name: checkoutSession.customerName!,
           organizationId: product.organizationId,
@@ -324,9 +308,8 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       stripeCustomerId = stripeCustomer.id
     }
     const upsertResult =
-      await upsertCustomerProfileBycustomerIdAndorganizationId(
+      await upsertCustomerProfileByEmailAndOrganizationId(
         {
-          customerId: customer.id,
           email: checkoutSession.customerEmail!,
           name: checkoutSession.customerName!,
           organizationId: product.organizationId,

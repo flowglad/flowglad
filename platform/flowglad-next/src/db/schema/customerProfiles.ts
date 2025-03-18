@@ -11,6 +11,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  nullableStringForeignKey,
 } from '@/db/tableUtils'
 import {
   Customer,
@@ -20,18 +21,18 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { createInvoiceNumberBase } from '@/utils/core'
 import { z } from 'zod'
+import { users } from './users'
 
 const TABLE_NAME = 'customer_profiles'
 
 const columns = {
   ...tableBase('cpf'),
-  customerId: notNullStringForeignKey('customer_id', customers),
   organizationId: notNullStringForeignKey(
     'organization_id',
     organizations
   ),
   email: text('email').notNull(),
-  name: text('name'),
+  name: text('name').notNull(),
   invoiceNumberBase: text('invoice_number_base').$defaultFn(
     createInvoiceNumberBase
   ),
@@ -44,6 +45,7 @@ const columns = {
   domain: text('domain'),
   billingAddress: jsonb('billing_address'),
   externalId: text('external_id').notNull(),
+  userId: nullableStringForeignKey('user_id', users),
 }
 
 export const customerProfiles = pgTable(
@@ -51,12 +53,12 @@ export const customerProfiles = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.customerId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.email, table.organizationId]),
+      constructIndex(TABLE_NAME, [table.userId]),
       constructUniqueIndex(TABLE_NAME, [
-        table.customerId,
         table.organizationId,
+        table.email,
       ]),
       constructUniqueIndex(TABLE_NAME, [
         table.organizationId,
@@ -69,23 +71,12 @@ export const customerProfiles = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
       constructIndex(TABLE_NAME, [table.slackId]),
       livemodePolicy(),
-      /**
-       * Todo: think  through this policy:
-       * - do we want to allow deletes?
-       */
-      // pgPolicy('Enable read for own customer profiles', {
-      //   as: 'permissive',
-      //   to: 'authenticated',
-      //   for: 'all',
-      //   using: sql`"customerId" = requesting_user_id()`,
-      // }),
     ]
   }
 )
 
 const readonlyColumns = {
   livemode: true,
-  customerId: true,
   billingAddress: true,
   invoiceNumberBase: true,
   organizationId: true,
@@ -193,31 +184,6 @@ export namespace CustomerProfile {
   >
 }
 
-export const bulkImportCustomerProfilesObjectSchema = z.object({
-  format: z.literal('object'),
-  data: z.array(
-    z.object({
-      name: z.string(),
-      email: z.string().email(),
-    })
-  ),
-})
-
-export const bulkImportCustomerProfilesCSVSchema = z.object({
-  format: z.literal('csv'),
-  csvContent: z.string(),
-})
-
-export const bulkImportCustomerProfilesInputSchema =
-  z.discriminatedUnion('format', [
-    bulkImportCustomerProfilesObjectSchema,
-    bulkImportCustomerProfilesCSVSchema,
-  ])
-
-export type BulkImportCustomerProfilesInput = z.infer<
-  typeof bulkImportCustomerProfilesInputSchema
->
-
 export enum InferredCustomerProfileStatus {
   Active = 'active',
   Archived = 'archived',
@@ -228,7 +194,6 @@ export enum InferredCustomerProfileStatus {
 
 export interface CustomerTableRowData {
   customerProfile: CustomerProfile.ClientRecord
-  customer: Customer.ClientRecord
   totalSpend?: number
   payments?: number
   status: InferredCustomerProfileStatus

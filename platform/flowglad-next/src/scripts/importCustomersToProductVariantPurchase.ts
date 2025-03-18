@@ -5,7 +5,7 @@ NODE_ENV=production pnpm tsx src/scripts/importCustomersToProductPricePurchase.t
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
-import { selectCustomerProfilesByorganizationIdAndEmails } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerProfilesByOrganizationIdAndEmails } from '@/db/tableMethods/customerProfileMethods'
 import { purchasesInsertSchema } from '@/db/schema/purchases'
 import {
   createManualPurchaseInsert,
@@ -39,7 +39,7 @@ const example = async (db: PostgresJsDatabase) => {
 
     const price = await selectPriceById(VARIANT_ID, transaction)
     const customerProfiles =
-      await selectCustomerProfilesByorganizationIdAndEmails(
+      await selectCustomerProfilesByOrganizationIdAndEmails(
         ORGANIZATION_ID,
         customerInserts.map((customer) => customer.email),
         transaction

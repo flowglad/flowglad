@@ -127,11 +127,9 @@ const createCustomerProfileProcedure = protectedProcedure
         const createdCustomer =
           await createCustomerProfileBookkeeping(
             {
-              customer: customerRecord,
               customerProfile: {
                 ...customerProfile,
                 organizationId,
-                customerId: customerRecord.id,
                 livemode: ctx.livemode,
               },
             },

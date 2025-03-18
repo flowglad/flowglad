@@ -11,13 +11,11 @@ import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 import { Price } from '@/db/schema/prices'
 
 function InternalCustomerDetailsScreen({
-  customer,
   customerProfile,
   purchases,
   invoices,
   payments,
 }: {
-  customer: Customer.ClientRecord
   customerProfile: CustomerProfile.ClientRecord
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
@@ -28,14 +26,13 @@ function InternalCustomerDetailsScreen({
     <div className="h-full flex justify-between items-center gap-2.5">
       <div className="bg-internal flex-1 h-full w-full flex flex-col p-6">
         <PageHeader
-          title={customer.name}
+          title={customerProfile.name ?? ''}
           tabs={[
             {
               label: 'Billing',
               subPath: 'billing',
               Component: () => (
                 <CustomerBillingSubPage
-                  customer={customer}
                   customerProfile={customerProfile}
                   purchases={purchases}
                   invoices={invoices}

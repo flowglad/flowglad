@@ -5,10 +5,7 @@ import {
 } from '@/db/schema/purchases'
 import { Price } from '@/db/schema/prices'
 import { PriceType, PurchaseStatus } from '@/types'
-import {
-  BulkImportCustomerProfilesInput,
-  CustomerProfile,
-} from '@/db/schema/customerProfiles'
+import { CustomerProfile } from '@/db/schema/customerProfiles'
 import {
   Customer,
   customersInsertSchema,
@@ -149,61 +146,16 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
     }
   )
 
-  const customerProfileInserts: Omit<
-    CustomerProfile.Insert,
-    'customerId'
-  >[] = results.map((customer) => {
-    return {
-      email: customer.email,
-      name: customer.name,
-      organizationId: organizationId,
-      externalId: core.nanoid(),
-      livemode,
-    }
-  })
+  const customerProfileInserts: CustomerProfile.Insert[] =
+    results.map((customer) => {
+      return {
+        email: customer.email,
+        name: customer.name ?? customer.email,
+        organizationId: organizationId,
+        externalId: core.nanoid(),
+        livemode,
+      }
+    })
 
   return { customerInserts, customerProfileInserts }
-}
-
-export const customerAndCustomerProfileInsertsFromBulkImport = async (
-  input: BulkImportCustomerProfilesInput,
-  organizationId: string,
-  livemode: boolean
-) => {
-  let customerUpserts: Customer.Insert[] = []
-  let incompleteCustomerProfileUpserts: Omit<
-    CustomerProfile.Insert,
-    'customerId'
-  >[] = []
-  if (input.format === 'csv') {
-    const csvContent = input.csvContent
-    const result = await customerAndCustomerProfileInsertsFromCSV(
-      csvContent,
-      organizationId,
-      livemode
-    )
-    customerUpserts = result.customerInserts
-    incompleteCustomerProfileUpserts = result.customerProfileInserts
-  }
-
-  if (input.format === 'object') {
-    customerUpserts = input.data.map((row) => {
-      const customerUpsert = customersInsertSchema.safeParse({
-        email: row.email,
-        name: row.name,
-      })
-      if (!customerUpsert.success) {
-        console.error(
-          'Invalid customer data:',
-          customerUpsert.error,
-          'For row:',
-          row
-        )
-        throw new Error('Invalid customer data')
-      }
-      return customerUpsert.data
-    })
-  }
-
-  return { customerUpserts, incompleteCustomerProfileUpserts }
 }
