@@ -31,9 +31,9 @@ Sometimes the user might "tag" or @ mention a specific record in their prompt.
 If they do you must first identify whether the @ mentioned record is the record the user wishes to act on, or a parent or child of the record they wish to act on.
 
 For example:
-"Create a new variant for @product_123456" -> { verb: ${
+"Create a new price for @product_123456" -> { verb: ${
   Verbs.Create
-} } // The user is creating a new variant for the tagged product
+} } // The user is creating a new price for the tagged product
 "Rename @product_123456 to 'New Name'" -> { verb: ${
   Verbs.Edit
 } } // The user is editing the tagged product
@@ -61,9 +61,9 @@ Examples:
 "Archive @product_123456" -> { noun: ${
   Nouns.Product
 }, recordSelectionCriteria: { id: 'product_123456' } } // The user is editing the tagged product
-"Rename @product_123456 default variant to 'Starter Pack'" -> { noun: ${
-  Nouns.Variant
-}, recordSelectionCriteria: { productId: 'product_123456', default: true } } // The user is editing the default variant of the tagged product
+"Rename @product_123456 default price to 'Starter Pack'" -> { noun: ${
+  Nouns.Price
+}, recordSelectionCriteria: { productId: 'product_123456', default: true } } // The user is editing the default price of the tagged product
 `
 
 const createNounSystemPrompt = `You are a router for an AI application, and the user just sent a new prompt describine their intent to create a new record.
@@ -78,9 +78,9 @@ IMPORTANT:
 The user may tag or @ mention a specific record in their prompt. If they do, you must determine whether that record is the one they want to act on, or a child or parent of the record they want to act on. If it is a child or parent of the actual record, you must remember that.
 
 Examples:
-"Create a new variant for @product_123456" -> { noun: ${
-  Nouns.Variant
-} } // The user is creating a new variant for the tagged product
+"Create a new price for @product_123456" -> { noun: ${
+  Nouns.Price
+} } // The user is creating a new price for the tagged product
 "New file for @product_123456" -> { noun: ${
   Nouns.File
 } } // The user is creating a new file for the tagged product

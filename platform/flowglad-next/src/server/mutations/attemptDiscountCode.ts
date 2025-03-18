@@ -6,11 +6,11 @@ import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import {
-  findPurchaseSession,
-  PurchaseSessionCookieNameParams,
-} from '@/utils/purchaseSessionState'
-import { editPurchaseSession } from '@/utils/bookkeeping/purchaseSessions'
-import { PurchaseSessionType } from '@/types'
+  findCheckoutSession,
+  CheckoutSessionCookieNameParams,
+} from '@/utils/checkoutSessionState'
+import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import { CheckoutSessionType } from '@/types'
 
 export const attemptDiscountCode = publicProcedure
   .input(attemptDiscountCodeInputSchema)
@@ -65,29 +65,29 @@ export const attemptDiscountCode = publicProcedure
             `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
           )
         }
-        const findInput: PurchaseSessionCookieNameParams =
+        const findInput: CheckoutSessionCookieNameParams =
           'productId' in input
             ? {
                 productId: input.productId,
-                type: PurchaseSessionType.Product,
+                type: CheckoutSessionType.Product,
               }
             : {
                 purchaseId: input.purchaseId,
-                type: PurchaseSessionType.Purchase,
+                type: CheckoutSessionType.Purchase,
               }
-        const purchaseSession = await findPurchaseSession(
+        const checkoutSession = await findCheckoutSession(
           findInput,
           transaction
         )
 
-        if (!purchaseSession) {
+        if (!checkoutSession) {
           return false
         }
 
-        await editPurchaseSession(
+        await editCheckoutSession(
           {
-            purchaseSession: {
-              ...purchaseSession,
+            checkoutSession: {
+              ...checkoutSession,
               discountId: matchingDiscounts[0].id,
             },
             purchaseId: R.propOr(null, 'purchaseId', input),

@@ -4,7 +4,7 @@ import CheckoutForm from '@/components/CheckoutForm'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import Modal from '@/components/ion/Modal'
 import { cn } from '@/utils/core'
-import { useSetPurchaseSessionCookieEffect } from '@/app/hooks/useSetPurchaseSessionCookieEffect'
+import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -19,7 +19,7 @@ const CheckoutModal = ({
   billingInfo,
   title,
 }: CheckoutModalProps) => {
-  useSetPurchaseSessionCookieEffect(billingInfo)
+  useSetCheckoutSessionCookieEffect(billingInfo)
 
   const checkoutFormContainer = cn(
     'bg-internal',

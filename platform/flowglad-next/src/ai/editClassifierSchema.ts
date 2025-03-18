@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { Nouns, Verbs } from '@/types'
 import { productsClientSelectSchema } from '@/db/schema/products'
-import { variantsClientSelectSchema } from '@/db/schema/variants'
+import { pricesClientSelectSchema } from '@/db/schema/prices'
 import { classifierSelectionCriteriaFromClientSelectSchema } from '@/db/agentUtils'
 
 const editClassifierSchemaCore = z.object({
@@ -16,17 +16,17 @@ const editProductClassifierSchema = editClassifierSchemaCore.extend({
     >(productsClientSelectSchema),
 })
 
-const editVariantClassifierSchema = editClassifierSchemaCore.extend({
-  noun: z.literal(Nouns.Variant),
+const editPriceClassifierSchema = editClassifierSchemaCore.extend({
+  noun: z.literal(Nouns.Price),
   recordSelectionCriteria:
     classifierSelectionCriteriaFromClientSelectSchema<
-      typeof variantsClientSelectSchema
-    >(variantsClientSelectSchema),
+      typeof pricesClientSelectSchema
+    >(pricesClientSelectSchema),
 })
 
 export const editSchema = z.discriminatedUnion('noun', [
   editProductClassifierSchema,
-  editVariantClassifierSchema,
+  editPriceClassifierSchema,
 ])
 
 export type EditClassification = z.infer<typeof editSchema>

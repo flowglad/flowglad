@@ -5,17 +5,17 @@ import { RotateCw, Check } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import Table from '@/components/ion/Table'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import core from '@/utils/core'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import {
   PopoverMenuItem,
   PopoverMenuItemState,
 } from '@/components/PopoverMenu'
-import CreateVariantModal from '@/components/forms/CreateVariantModal'
-import EditVariantModal from '@/components/forms/EditVariantModal'
-import ArchiveVariantModal from '@/components/forms/ArchiveVariantModal'
-import SetVariantAsDefaultModal from '@/components/forms/SetVariantAsDefaultModal'
+import CreatePriceModal from '@/components/forms/CreatePriceModal'
+import EditPriceModal from '@/components/forms/EditPriceModal'
+import ArchivePriceModal from '@/components/forms/ArchivePriceModal'
+import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
 import { Product } from '@/db/schema/products'
 import PricingCellView from '@/components/PricingCellView'
 import { PriceType } from '@/types'
@@ -23,82 +23,82 @@ import TableTitle from '@/components/ion/TableTitle'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 
 const MoreMenuCell = ({
-  variant,
-  otherVariants,
+  price,
+  otherPrices,
 }: {
-  variant: Variant.Record
-  otherVariants: Variant.Record[]
+  price: Price.Record
+  otherPrices: Price.Record[]
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
   const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const items: PopoverMenuItem[] = [
     {
-      label: 'Edit variant',
+      label: 'Edit price',
       handler: () => setIsEditOpen(true),
     },
   ]
   /**
-   * Case 1: Variant is archived - show unarchive option
-   * Case 2: Variant is not default AND it's active - show make default option
+   * Case 1: Price is archived - show unarchive option
+   * Case 2: Price is not default AND it's active - show make default option
    */
-  if (!variant.active) {
+  if (!price.active) {
     items.push({
-      label: 'Unarchive variant',
+      label: 'Unarchive price',
       handler: () => setIsArchiveOpen(true),
     })
   }
-  if (!variant.isDefault && otherVariants.some((v) => v.isDefault)) {
+  if (!price.isDefault && otherPrices.some((p) => p.isDefault)) {
     items.push({
       label: 'Make default',
       handler: () => setIsSetDefaultOpen(true),
     })
   }
 
-  const canDelist = !variant.isDefault && otherVariants.length > 0
+  const canDelist = !price.isDefault && otherPrices.length > 0
   /**
-   * Only show archive option if variant is active,
-   * but only have it enabled if there are other variants
+   * Only show archive option if price is active,
+   * but only have it enabled if there are other prices
    */
-  if (variant.active) {
+  if (price.active) {
     let helperText: string | undefined = undefined
-    if (variant.isDefault) {
-      helperText = 'Make another variant default to archive this.'
-    } else if (otherVariants.length === 0) {
+    if (price.isDefault) {
+      helperText = 'Make another price default to archive this.'
+    } else if (otherPrices.length === 0) {
       helperText =
-        'Every product must have at least one active variant.'
+        'Every product must have at least one active price.'
     }
     items.push({
-      label: 'Archive variant',
+      label: 'Archive price',
       handler: () => setIsArchiveOpen(true),
       disabled: !canDelist,
       helperText,
     })
   }
   items.push({
-    label: 'Delete variant',
+    label: 'Delete price',
     state: PopoverMenuItemState.Danger,
     disabled: !canDelist,
     handler: () => {
-      // TODO: Implement delete variant functionality
+      // TODO: Implement delete price functionality
     },
   })
   return (
     <>
-      <EditVariantModal
+      <EditPriceModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
-        variant={variant}
+        price={price}
       />
-      <ArchiveVariantModal
+      <ArchivePriceModal
         isOpen={isArchiveOpen}
         setIsOpen={setIsArchiveOpen}
-        variant={variant}
+        price={price}
       />
-      <SetVariantAsDefaultModal
+      <SetPriceAsDefaultModal
         isOpen={isSetDefaultOpen}
         setIsOpen={setIsSetDefaultOpen}
-        variant={variant}
+        price={price}
       />
       <div className="w-fit" onClick={(e) => e.stopPropagation()}>
         <TableRowPopoverMenu items={items} />
@@ -107,12 +107,8 @@ const MoreMenuCell = ({
   )
 }
 
-const PriceTypeCellView = ({
-  priceType,
-}: {
-  priceType: PriceType
-}) => {
-  switch (priceType) {
+const PriceTypeCellView = ({ type }: { type: PriceType }) => {
+  switch (type) {
     case PriceType.Subscription:
       return (
         <div className="flex items-center gap-3">
@@ -135,12 +131,12 @@ const PriceTypeCellView = ({
   }
 }
 
-const VariantsTable = ({
-  variants,
+const PricesTable = ({
+  prices,
   product,
 }: {
   product: Product.ClientRecord
-  variants: Variant.Record[]
+  prices: Price.Record[]
 }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
@@ -149,12 +145,9 @@ const VariantsTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Variant"
-              column={column}
-            />
+            <SortableColumnHeaderCell title="Price" column={column} />
           ),
-          accessorKey: 'variant',
+          accessorKey: 'price',
           cell: ({ row: { original: cellData } }) => (
             <>{cellData.name}</>
           ),
@@ -165,7 +158,7 @@ const VariantsTable = ({
           ),
           accessorKey: 'type',
           cell: ({ row: { original: cellData } }) => (
-            <PriceTypeCellView priceType={cellData.priceType} />
+            <PriceTypeCellView type={cellData.type} />
           ),
         },
         {
@@ -177,7 +170,7 @@ const VariantsTable = ({
           ),
           accessorKey: 'pricing',
           cell: ({ row: { original: cellData } }) => (
-            <PricingCellView variants={[cellData]} />
+            <PricingCellView prices={[cellData]} />
           ),
         },
         {
@@ -227,27 +220,25 @@ const VariantsTable = ({
           id: '_',
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
-              variant={cellData}
-              otherVariants={variants.filter(
-                (v) => v.id !== cellData.id
-              )}
+              price={cellData}
+              otherPrices={prices.filter((p) => p.id !== cellData.id)}
             />
           ),
         },
-      ] as ColumnDef<Variant.Record>[],
-    [variants]
+      ] as ColumnDef<Price.Record>[],
+    [prices]
   )
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
-      <CreateVariantModal
+      <CreatePriceModal
         isOpen={isCreateOpen}
         setIsOpen={setIsCreateOpen}
-        productId={variants[0]?.productId} // Assuming all variants belong to same product
+        productId={prices[0]?.productId} // Assuming all prices belong to same product
       />
       <TableTitle
-        title="Variants"
-        buttonLabel="Create Variant"
+        title="Prices"
+        buttonLabel="Create Price"
         buttonIcon={<Plus size={8} strokeWidth={2} />}
         buttonOnClick={() => setIsCreateOpen(true)}
         buttonDisabled={!product.active}
@@ -258,7 +249,7 @@ const VariantsTable = ({
           <div className="w-full flex flex-col gap-5">
             <Table
               columns={columns_1}
-              data={variants}
+              data={prices}
               className="bg-nav"
               bordered
             />
@@ -269,4 +260,4 @@ const VariantsTable = ({
   )
 }
 
-export default VariantsTable
+export default PricesTable

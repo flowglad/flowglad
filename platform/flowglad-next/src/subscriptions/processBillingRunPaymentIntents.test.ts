@@ -39,7 +39,7 @@ import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
  * it returns a charge object with a predictable amount (for example, 1000 for 'ch_success', 500 for 'ch_failed', etc.).
  */
 describe('processPaymentIntentEventForBillingRun integration tests', async () => {
-  const { organization, variant } = await setupOrg()
+  const { organization, price } = await setupOrg()
   let customerProfile: CustomerProfile.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -58,7 +58,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerProfileId: customerProfile.id,
-      variantId: variant.id,
+      priceId: price.id,
       paymentMethodId: paymentMethod.id,
     })
 
@@ -123,7 +123,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
-      variantId: variant.id,
+      priceId: price.id,
     })
     // Seed a billing run whose lastPaymentIntentEventTimestamp is in the future
     const newBillingRun = await setupBillingRun({
@@ -190,7 +190,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //     customerProfileId: customerProfile.id,
   //     organizationId: organization.id,
   //     status: InvoiceStatus.Open,
-  //     variantId: variant.id,
+  //     priceId: price.id,
   //   })
   //   await setupPayment({
   //     stripeChargeId,
@@ -266,7 +266,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
-      variantId: variant.id,
+      priceId: price.id,
     })
     const payment = await setupPayment({
       stripeChargeId,
@@ -330,7 +330,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
-      variantId: variant.id,
+      priceId: price.id,
     })
     const stripeChargeId = `ch_${invoice.id}___failed`
     const payment = await setupPayment({
@@ -348,7 +348,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         customerProfileId: customerProfile.id,
         organizationId: organization.id,
         status: InvoiceStatus.Open,
-        variantId: variant.id,
+        priceId: price.id,
       })
 
       const event: Stripe.PaymentIntentCanceledEvent = {
@@ -412,7 +412,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
-      variantId: variant.id,
+      priceId: price.id,
     })
     const payment = await setupPayment({
       stripeChargeId: `ch_${billingRun.id}___processing`,
@@ -483,7 +483,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
-      variantId: variant.id,
+      priceId: price.id,
     })
     const payment = await setupPayment({
       stripeChargeId,
@@ -502,7 +502,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         customerProfileId: customerProfile.id,
         organizationId: organization.id,
         status: InvoiceStatus.Open,
-        variantId: variant.id,
+        priceId: price.id,
       })
 
       const event: Stripe.PaymentIntentRequiresActionEvent = {
@@ -597,7 +597,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         customerProfileId: customerProfile.id,
         organizationId: organization.id,
         status: InvoiceStatus.Open,
-        variantId: variant.id,
+        priceId: price.id,
       })
 
       const event: Stripe.PaymentIntentSucceededEvent = {
@@ -643,7 +643,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //     status: InvoiceStatus.Open,
   //     organizationId: organization.id,
   //     customerProfileId: customerProfile.id,
-  //     variantId: variant.id,
+  //     priceId: price.id,
   //   })
   //   await adminTransaction(async ({ transaction }) => {
   //     // Do NOT seed a payment record for stripe charge 'ch_no_payment'

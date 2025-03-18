@@ -7,18 +7,18 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import { Product } from '@/db/schema/products'
 import TableTitle from '@/components/ion/TableTitle'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import Label from '@/components/ion/Label'
 import PricingCellView from '@/components/PricingCellView'
 
 interface ProductDetailsOverviewProps {
   product: Product.ClientRecord
-  variants: Variant.Record[]
+  prices: Price.Record[]
 }
 
 const ProductDetailsRow = ({
   product,
-  variants,
+  prices,
 }: ProductDetailsOverviewProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   return (
@@ -49,7 +49,7 @@ const ProductDetailsRow = ({
               </div>
               <Label>Pricing</Label>
               <div className="text-sm font-medium">
-                <PricingCellView variants={variants} />
+                <PricingCellView prices={prices} />
               </div>
               <Label>Description</Label>
               <div className="text-sm font-medium">
@@ -66,7 +66,7 @@ const ProductDetailsRow = ({
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
         product={product}
-        variants={variants}
+        prices={prices}
       />
     </>
   )
@@ -74,14 +74,14 @@ const ProductDetailsRow = ({
 
 const ProductOverviewTabView = ({
   product,
-  variants,
+  prices,
 }: ProductDetailsOverviewProps) => {
   const { organization } = useAuthenticatedContext()
   return (
     <>
       <div className="w-full flex flex-row gap-4">
         <div className="w-full flex flex-col gap-5">
-          <ProductDetailsRow product={product} variants={variants} />
+          <ProductDetailsRow product={product} prices={prices} />
         </div>
         <div className="w-full min-w-40 flex flex-col gap-4">
           <div className="min-w-40 flex flex-col gap-5 pb-5">
@@ -95,7 +95,7 @@ const ProductOverviewTabView = ({
           </div>
         </div>
       </div>
-      {/* <VariantsTable variants={variants} product={product} /> */}
+      {/* <PricesTable prices={prices} product={product} /> */}
     </>
   )
 }

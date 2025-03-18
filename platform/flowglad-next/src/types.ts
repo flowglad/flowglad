@@ -517,7 +517,7 @@ export enum BusinessOnboardingStatus {
   Expired = 'expired',
 }
 
-export enum PurchaseSessionStatus {
+export enum CheckoutSessionStatus {
   Open = 'open',
   Pending = 'pending',
   Succeeded = 'succeeded',
@@ -537,7 +537,7 @@ export enum PurchaseStatus {
 
 export enum PurchaseAccessSessionSource {
   EmailVerification = 'email_verification',
-  PurchaseSession = 'purchase_session',
+  CheckoutSession = 'checkout_session',
 }
 
 export enum FlowRunStatus {
@@ -623,7 +623,7 @@ export type FileUploadData = {
 
 export enum Nouns {
   Product = 'product',
-  Variant = 'variant',
+  Price = 'price',
   CustomerProfile = 'customerProfile',
   Discount = 'discount',
   File = 'file',
@@ -688,7 +688,7 @@ export enum BillingRunStatus {
 
 export enum FeeCalculationType {
   SubscriptionPayment = 'subscription_payment',
-  PurchaseSessionPayment = 'purchase_session_payment',
+  CheckoutSessionPayment = 'checkout_session_payment',
 }
 
 export enum InvoiceType {
@@ -716,7 +716,7 @@ export enum SubscriptionAdjustmentTiming {
   // AtFutureDate = 'at_future_date',
 }
 
-export enum PurchaseSessionType {
+export enum CheckoutSessionType {
   Product = 'product',
   Purchase = 'purchase',
   Invoice = 'invoice',

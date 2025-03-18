@@ -1,10 +1,10 @@
 export { FlowgladActionKey, HTTPMethod } from './types'
 export {
-  createPurchaseSessionSchema,
+  createCheckoutSessionSchema,
   flowgladActionValidators,
 } from './actions'
 export type {
   FlowgladActionValidatorMap,
-  CreatePurchaseSessionParams,
+  CreateCheckoutSessionParams,
 } from './actions'
 export { getBaseURL } from './utils'

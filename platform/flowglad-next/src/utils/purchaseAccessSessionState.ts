@@ -61,6 +61,7 @@ export const createPurchaseAccessSession = async (
     source: PurchaseAccessSessionSource
     autoGrant: boolean
     livemode: boolean
+    metadata?: {}
   },
   transaction: DbTransaction
 ) => {
@@ -72,6 +73,7 @@ export const createPurchaseAccessSession = async (
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
       granted: params.autoGrant,
       livemode: params.livemode,
+      metadata: params.metadata,
     },
     transaction
   )

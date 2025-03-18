@@ -112,10 +112,10 @@ export const CurrentSubscriptionCard = ({
       </CardHeader>
       <CardContent className="flowglad-flex flowglad-items-center flowglad-justify-between">
         <PriceLabel
-          variant={{
+          price={{
             currency,
             unitPrice: subscriptionItems[0].unitPrice,
-            priceType: 'subscription',
+            type: 'subscription',
             intervalUnit: subscription.interval,
             intervalCount: subscription.intervalCount,
           }}

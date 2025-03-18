@@ -18,9 +18,9 @@ import {
   idInputSchema,
 } from '@/db/tableUtils'
 import {
-  PurchaseSession,
-  purchaseSessions,
-} from '@/db/schema/purchaseSessions'
+  CheckoutSession,
+  checkoutSessions,
+} from '@/db/schema/checkoutSessions'
 import { purchases } from '@/db/schema/purchases'
 import { discounts } from '@/db/schema/discounts'
 import { organizations } from '@/db/schema/organizations'
@@ -33,7 +33,7 @@ import {
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
 import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
-import { variants } from './variants'
+import { prices } from './prices'
 import { billingPeriods } from './billingPeriods'
 
 const TABLE_NAME = 'fee_calculations'
@@ -46,13 +46,13 @@ export const feeCalculations = pgTable(
       'organization_id',
       organizations
     ),
-    PurchaseSessionId: nullableStringForeignKey(
-      'purchase_session_id',
-      purchaseSessions
+    checkoutSessionId: nullableStringForeignKey(
+      'checkout_session_id',
+      checkoutSessions
     ),
     purchaseId: nullableStringForeignKey('purchase_id', purchases),
     discountId: nullableStringForeignKey('discount_id', discounts),
-    variantId: nullableStringForeignKey('variant_id', variants),
+    priceId: nullableStringForeignKey('price_id', prices),
     paymentMethodType: pgEnumColumn({
       enumName: 'PaymentMethodType',
       columnName: 'payment_method_type',
@@ -94,7 +94,7 @@ export const feeCalculations = pgTable(
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.PurchaseSessionId]),
+      constructIndex(TABLE_NAME, [table.checkoutSessionId]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
       livemodePolicy(),
@@ -127,14 +127,14 @@ export const coreFeeCalculationsSelectSchema =
 
 const subscriptionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.SubscriptionPayment),
-  PurchaseSessionId: z.null(),
-  variantId: z.null(),
+  checkoutSessionId: z.null(),
+  priceId: z.null(),
 }
 
-const purchaseSessionFeeCalculationExtension = {
-  type: z.literal(FeeCalculationType.PurchaseSessionPayment),
+const checkoutSessionFeeCalculationExtension = {
+  type: z.literal(FeeCalculationType.CheckoutSessionPayment),
   billingPeriodId: z.null(),
-  variantId: z.string(),
+  priceId: z.string(),
 }
 
 export const subscriptionPaymentFeeCalculationInsertSchema =
@@ -142,16 +142,16 @@ export const subscriptionPaymentFeeCalculationInsertSchema =
     subscriptionFeeCalculationExtension
   )
 
-export const purchaseSessionPaymentFeeCalculationInsertSchema =
+export const checkoutSessionPaymentFeeCalculationInsertSchema =
   coreFeeCalculationsInsertSchema.extend(
-    purchaseSessionFeeCalculationExtension
+    checkoutSessionFeeCalculationExtension
   )
 
 export const feeCalculationsInsertSchema = z.discriminatedUnion(
   'type',
   [
     subscriptionPaymentFeeCalculationInsertSchema,
-    purchaseSessionPaymentFeeCalculationInsertSchema,
+    checkoutSessionPaymentFeeCalculationInsertSchema,
   ]
 )
 
@@ -160,16 +160,16 @@ export const subscriptionPaymentFeeCalculationSelectSchema =
     subscriptionFeeCalculationExtension
   )
 
-export const purchaseSessionPaymentFeeCalculationSelectSchema =
+export const checkoutSessionPaymentFeeCalculationSelectSchema =
   coreFeeCalculationsSelectSchema.extend(
-    purchaseSessionFeeCalculationExtension
+    checkoutSessionFeeCalculationExtension
   )
 
 export const feeCalculationsSelectSchema = z.discriminatedUnion(
   'type',
   [
     subscriptionPaymentFeeCalculationSelectSchema,
-    purchaseSessionPaymentFeeCalculationSelectSchema,
+    checkoutSessionPaymentFeeCalculationSelectSchema,
   ]
 )
 
@@ -179,23 +179,23 @@ export const subscriptionPaymentFeeCalculationUpdateSchema =
     .extend(idInputSchema.shape)
     .extend(subscriptionFeeCalculationExtension)
 
-export const purchaseSessionPaymentFeeCalculationUpdateSchema =
-  purchaseSessionPaymentFeeCalculationInsertSchema
+export const checkoutSessionPaymentFeeCalculationUpdateSchema =
+  checkoutSessionPaymentFeeCalculationInsertSchema
     .partial()
-    .extend(purchaseSessionFeeCalculationExtension)
+    .extend(checkoutSessionFeeCalculationExtension)
     .extend(idInputSchema.shape)
 
 export const feeCalculationsUpdateSchema = z.discriminatedUnion(
   'type',
   [
     subscriptionPaymentFeeCalculationUpdateSchema,
-    purchaseSessionPaymentFeeCalculationUpdateSchema,
+    checkoutSessionPaymentFeeCalculationUpdateSchema,
   ]
 )
 
 const readOnlyColumns = {
   organizationId: true,
-  PurchaseSessionId: true,
+  checkoutSessionId: true,
   purchaseId: true,
   livemode: true,
 } as const
@@ -209,14 +209,14 @@ const hiddenColumns = {
 export const subscriptionFeeCalculationClientSelectSchema =
   subscriptionPaymentFeeCalculationSelectSchema.omit(hiddenColumns)
 
-export const purchaseSessionFeeCalculationClientSelectSchema =
-  purchaseSessionPaymentFeeCalculationSelectSchema.omit(hiddenColumns)
+export const checkoutSessionFeeCalculationClientSelectSchema =
+  checkoutSessionPaymentFeeCalculationSelectSchema.omit(hiddenColumns)
 
 export const feeCalculationClientSelectSchema = z.discriminatedUnion(
   'type',
   [
     subscriptionFeeCalculationClientSelectSchema,
-    purchaseSessionFeeCalculationClientSelectSchema,
+    checkoutSessionFeeCalculationClientSelectSchema,
   ]
 )
 
@@ -225,8 +225,8 @@ const customerHiddenColumns = {
   internationalFeePercentage: true,
 } as const
 
-export const customerFacingPurchaseSessionFeeCalculationSelectSchema =
-  purchaseSessionFeeCalculationClientSelectSchema.omit(
+export const customerFacingCheckoutSessionFeeCalculationSelectSchema =
+  checkoutSessionFeeCalculationClientSelectSchema.omit(
     customerHiddenColumns
   )
 
@@ -238,7 +238,7 @@ export const customerFacingSubscriptionFeeCalculationSelectSchema =
 export const customerFacingFeeCalculationSelectSchema =
   z.discriminatedUnion('type', [
     customerFacingSubscriptionFeeCalculationSelectSchema,
-    customerFacingPurchaseSessionFeeCalculationSelectSchema,
+    customerFacingCheckoutSessionFeeCalculationSelectSchema,
   ])
 
 export namespace FeeCalculation {
@@ -253,17 +253,17 @@ export namespace FeeCalculation {
   >
 }
 
-export const purchaseSessionFeeCalculationParametersChanged = ({
+export const checkoutSessionFeeCalculationParametersChanged = ({
   previousSession,
   currentSession,
 }: {
-  previousSession: PurchaseSession.Record
-  currentSession: PurchaseSession.FeeReadyRecord
+  previousSession: CheckoutSession.Record
+  currentSession: CheckoutSession.FeeReadyRecord
 }) => {
   const keys = [
     'billingAddress',
     'discountId',
-    'variantId',
+    'priceId',
     'paymentMethodType',
     'quantity',
   ] as const

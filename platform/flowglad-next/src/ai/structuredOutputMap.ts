@@ -1,8 +1,8 @@
 import { Nouns } from '@/types'
 import { productStructuredOutputs } from './structuredOutputs/productStructuredOutputs'
-import { variantStructuredOutputs } from './structuredOutputs/variantStructuredOutput'
+import { priceStructuredOutputs } from './structuredOutputs/priceStructuredOutput'
 
 export const structuredOutputMap = {
   [Nouns.Product]: productStructuredOutputs,
-  [Nouns.Variant]: variantStructuredOutputs,
+  [Nouns.Price]: priceStructuredOutputs,
 } as const

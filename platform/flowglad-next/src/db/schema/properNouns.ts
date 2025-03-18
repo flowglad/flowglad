@@ -17,9 +17,9 @@ import {
   productsSupabaseInsertPayloadSchema,
 } from './products'
 import {
-  variantsSupabaseUpdatePayloadSchema,
-  variantsSupabaseInsertPayloadSchema,
-} from './variants'
+  pricesSupabaseUpdatePayloadSchema,
+  pricesSupabaseInsertPayloadSchema,
+} from './prices'
 import {
   customerProfilesSupabaseInsertPayloadSchema,
   customerProfilesSupabaseUpdatePayloadSchema,
@@ -113,7 +113,7 @@ export const properNounClientSelectSchema = properNounsSelectSchema
 export const properNounSupabaseWebhookInsertPayloadSchema =
   z.discriminatedUnion('table', [
     productsSupabaseInsertPayloadSchema,
-    variantsSupabaseInsertPayloadSchema,
+    pricesSupabaseInsertPayloadSchema,
     customerProfilesSupabaseInsertPayloadSchema,
     discountsSupabaseInsertPayloadSchema,
   ])
@@ -121,7 +121,7 @@ export const properNounSupabaseWebhookInsertPayloadSchema =
 export const properNounSupabaseWebhookUpdatePayloadSchema =
   z.discriminatedUnion('table', [
     productsSupabaseUpdatePayloadSchema,
-    variantsSupabaseUpdatePayloadSchema,
+    pricesSupabaseUpdatePayloadSchema,
     customerProfilesSupabaseUpdatePayloadSchema,
     discountsSupabaseUpdatePayloadSchema,
   ])

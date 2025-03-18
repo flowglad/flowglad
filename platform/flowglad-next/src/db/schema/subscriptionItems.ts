@@ -14,7 +14,7 @@ import {
   livemodePolicy,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { variants } from '@/db/schema/variants'
+import { prices } from '@/db/schema/prices'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
@@ -29,7 +29,7 @@ const columns = {
   ),
   name: text('name'),
   addedDate: timestamp('added_date').notNull(),
-  variantId: notNullStringForeignKey('variant_id', variants),
+  priceId: notNullStringForeignKey('price_id', prices),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
   metadata: jsonb('metadata'),
@@ -41,7 +41,7 @@ export const subscriptionItems = pgTable(
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.variantId]),
+      constructIndex(TABLE_NAME, [table.priceId]),
       pgPolicy(
         'Enable actions for own organizations via subscriptions',
         {
@@ -88,7 +88,7 @@ export const subscriptionItemsUpdateSchema = createSelectSchema(
 
 const createOnlyColumns = {
   subscriptionId: true,
-  variantId: true,
+  priceId: true,
 } as const
 
 const readOnlyColumns = {

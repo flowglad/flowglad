@@ -2,7 +2,7 @@ import Internal from './Internal'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectCustomerProfileAndCustomerTableRows } from '@/db/tableMethods/customerProfileMethods'
-import { selectVariantsAndProductsForOrganization } from '@/db/tableMethods/variantMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 
 const CustomersPage = async ({
   params,
@@ -27,12 +27,11 @@ const CustomersPage = async ({
             { organizationId: organization.id },
             transaction
           )
-        const variants =
-          await selectVariantsAndProductsForOrganization(
-            {},
-            organization.id,
-            transaction
-          )
+        const variants = await selectPricesAndProductsForOrganization(
+          {},
+          organization.id,
+          transaction
+        )
         return { customerProfiles, variants }
       }
     )
@@ -41,7 +40,7 @@ const CustomersPage = async ({
     <Internal
       params={await params}
       customers={customerProfiles}
-      variants={variants.filter(({ product }) => product.active)}
+      prices={variants.filter(({ product }) => product.active)}
     />
   )
 }

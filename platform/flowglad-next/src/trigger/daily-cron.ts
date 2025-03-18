@@ -1,5 +1,5 @@
 import { adminTransaction } from '@/db/databaseMethods'
-import { deleteExpiredPurchaseSessionsAndFeeCalculations } from '@/db/tableMethods/purchaseSessionMethods'
+import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
 import { schedules } from '@trigger.dev/sdk/v3'
 
 export const dailyCron = schedules.task({
@@ -7,7 +7,7 @@ export const dailyCron = schedules.task({
   cron: '0 0 * * *',
   run: async () => {
     return adminTransaction(async ({ transaction }) => {
-      return deleteExpiredPurchaseSessionsAndFeeCalculations(
+      return deleteExpiredCheckoutSessionsAndFeeCalculations(
         transaction
       )
     })

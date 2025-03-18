@@ -11,7 +11,7 @@ import {
 import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
 import { selectAllCountries } from '@/db/tableMethods/countryMethods'
 import OnboardingStatusTable from './OnboardingStatusTable'
-import { selectVariantsAndProductsForOrganization } from '@/db/tableMethods/variantMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
@@ -36,7 +36,7 @@ const OnboardingPage = async () => {
         return { countries }
       }
       const organization = membershipsAndOrganizations[0].organization
-      const products = await selectVariantsAndProductsForOrganization(
+      const products = await selectPricesAndProductsForOrganization(
         {},
         organization.id,
         transaction

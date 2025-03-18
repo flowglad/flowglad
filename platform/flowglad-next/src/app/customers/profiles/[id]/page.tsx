@@ -4,7 +4,7 @@ import { selectCustomerProfileAndCustomerTableRows } from '@/db/tableMethods/cus
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
 import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
-import { selectVariantsAndProductsForOrganization } from '@/db/tableMethods/variantMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 import { selectPaymentsBycustomerProfileId } from '@/db/tableMethods/paymentMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 
@@ -23,7 +23,7 @@ const CustomerPage = async ({
     customerProfile,
     purchases,
     invoices,
-    variants,
+    prices,
     paymentsForCustomer,
   } = await authenticatedTransaction(
     async ({ transaction, userId }) => {
@@ -58,7 +58,7 @@ const CustomerPage = async ({
           result.customerProfile.id,
           transaction
         )
-      const variants = await selectVariantsAndProductsForOrganization(
+      const prices = await selectPricesAndProductsForOrganization(
         {},
         result.customerProfile.organizationId,
         transaction
@@ -68,7 +68,7 @@ const CustomerPage = async ({
         customerProfile: result.customerProfile,
         purchases,
         invoices,
-        variants,
+        prices,
         paymentsForCustomer,
       }
     }
@@ -84,9 +84,9 @@ const CustomerPage = async ({
       customerProfile={customerProfile}
       purchases={purchases}
       invoices={invoices}
-      variants={variants
+      prices={prices
         .filter(({ product }) => product.active)
-        .map(({ variant }) => variant)}
+        .map(({ price }) => price)}
       payments={paymentsForCustomer}
     />
   )

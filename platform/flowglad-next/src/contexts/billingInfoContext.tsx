@@ -13,14 +13,14 @@ export type BillingInfoContextValues = {
   taxAmount?: Nullish<number>
   sellerOrganization?: Pick<Organization.Record, 'logoURL' | 'name'>
   product?: Product.ClientRecord
-  priceType: PriceType
+  type: PriceType
   billingAddress?: Nullish<BillingAddress>
 } & BillingInfoCore
 
 const BillingInfoContext = createContext<
   Partial<BillingInfoContextValues>
 >({
-  priceType: PriceType.SinglePayment,
+  type: PriceType.SinglePayment,
   billingAddress: null,
 })
 

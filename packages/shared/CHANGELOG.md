@@ -1,5 +1,17 @@
 # @flowglad/shared
 
+## 0.7.0
+
+### Minor Changes
+
+- Migrate variants -> prices, migrate purchase sessions -> checkout sessions
+
+## 0.6.0
+
+### Minor Changes
+
+- Use the new SDK generator for better esm support
+
 ## 0.5.0
 
 ### Minor Changes

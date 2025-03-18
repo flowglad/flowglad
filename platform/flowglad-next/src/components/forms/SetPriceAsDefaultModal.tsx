@@ -4,40 +4,40 @@ import Modal from '@/components/ion/Modal'
 import Button from '@/components/ion/Button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
-import { editVariantSchema, Variant } from '@/db/schema/variants'
+import { editPriceSchema, Price } from '@/db/schema/prices'
 
-interface SetVariantAsDefaultProps {
+interface SetPriceAsDefaultProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  variant: Variant.Record
+  price: Price.Record
 }
 
-const SetVariantAsDefault: React.FC<SetVariantAsDefaultProps> = ({
+const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
   trigger,
   isOpen,
   setIsOpen,
-  variant,
+  price,
 }) => {
   const router = useRouter()
-  const editVariant = trpc.variants.edit.useMutation()
+  const editPrice = trpc.prices.edit.useMutation()
 
   const handleMakeDefault = async () => {
     const data = {
-      variant: {
-        id: variant.id,
-        productId: variant.productId,
+      price: {
+        id: price.id,
+        productId: price.productId,
         isDefault: true,
       },
     }
 
-    const parsed = editVariantSchema.safeParse(data)
+    const parsed = editPriceSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
       return
     }
 
-    await editVariant.mutateAsync(parsed.data)
+    await editPrice.mutateAsync(parsed.data)
     router.refresh()
     setIsOpen(false)
   }
@@ -45,7 +45,7 @@ const SetVariantAsDefault: React.FC<SetVariantAsDefaultProps> = ({
   return (
     <Modal
       trigger={trigger}
-      title="Set Default Variant"
+      title="Set Default Price"
       open={isOpen}
       onOpenChange={setIsOpen}
       footer={
@@ -59,7 +59,7 @@ const SetVariantAsDefault: React.FC<SetVariantAsDefaultProps> = ({
           </Button>
           <Button
             onClick={handleMakeDefault}
-            disabled={editVariant.isPending}
+            disabled={editPrice.isPending}
           >
             Set as Default
           </Button>
@@ -69,12 +69,12 @@ const SetVariantAsDefault: React.FC<SetVariantAsDefaultProps> = ({
     >
       <div className="text-secondary">
         <p>
-          Set {variant.name} to default? This will be the default
-          price customers will see for this product moving forward.
+          Set {price.name} to default? This will be the default price
+          customers will see for this product moving forward.
         </p>
       </div>
     </Modal>
   )
 }
 
-export default SetVariantAsDefault
+export default SetPriceAsDefault

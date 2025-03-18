@@ -1,5 +1,31 @@
 # @flowglad/nextjs
 
+## 0.7.0
+
+### Minor Changes
+
+- Migrate variants -> prices, migrate purchase sessions -> checkout sessions
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/server@0.7.0
+  - @flowglad/shared@0.7.0
+  - @flowglad/react@0.7.0
+
+## 0.6.0
+
+### Minor Changes
+
+- Use the new SDK generator for better esm support
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/server@0.6.0
+  - @flowglad/react@0.6.0
+  - @flowglad/shared@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes

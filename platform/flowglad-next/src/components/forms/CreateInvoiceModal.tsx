@@ -44,7 +44,7 @@ function CreateInvoiceModal({
         description: '',
         quantity: 1,
         price: 0,
-        variantId: null,
+        priceId: null,
         invoiceId: '',
       },
     ],

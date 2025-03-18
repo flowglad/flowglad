@@ -1,5 +1,5 @@
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { selectVariantsAndProductByProductId } from '@/db/tableMethods/variantMethods'
+import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import InternalProductDetailsPage from './InternalProductDetailsPage'
 
 interface ProductPageProps {
@@ -10,18 +10,15 @@ interface ProductPageProps {
 
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params
-  const { product, variants } = await authenticatedTransaction(
+  const { product, prices } = await authenticatedTransaction(
     async ({ transaction }) => {
-      const { product, variants } =
-        await selectVariantsAndProductByProductId(id, transaction)
-      return { product, variants }
+      const { product, prices } =
+        await selectPricesAndProductByProductId(id, transaction)
+      return { product, prices }
     }
   )
   return (
-    <InternalProductDetailsPage
-      product={product}
-      variants={variants}
-    />
+    <InternalProductDetailsPage product={product} prices={prices} />
   )
 }
 

@@ -2,47 +2,47 @@ import { z } from 'zod'
 import { protectedProcedure, router } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
-  insertPurchaseSession,
-  selectPurchaseSessionById,
-  selectPurchaseSessions,
-  selectPurchaseSessionsPaginated,
-  updatePurchaseSession,
-} from '@/db/tableMethods/purchaseSessionMethods'
+  insertCheckoutSession,
+  selectCheckoutSessionById,
+  selectCheckoutSessions,
+  selectCheckoutSessionsPaginated,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomerProfiles } from '@/db/tableMethods/customerProfileMethods'
-import { PurchaseSessionStatus, PurchaseSessionType } from '@/types'
+import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
 import { PriceType } from '@/types'
 import { TRPCError } from '@trpc/server'
 import {
-  editPurchaseSessionInputSchema,
-  PurchaseSession,
-  purchaseSessionClientSelectSchema,
-  purchaseSessionsPaginatedListSchema,
-  purchaseSessionsPaginatedSelectSchema,
-} from '@/db/schema/purchaseSessions'
+  editCheckoutSessionInputSchema,
+  CheckoutSession,
+  checkoutSessionClientSelectSchema,
+  checkoutSessionsPaginatedListSchema,
+  checkoutSessionsPaginatedSelectSchema,
+} from '@/db/schema/checkoutSessions'
 import { generateOpenApiMetas } from '@/utils/openapi'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
-  createPaymentIntentForPurchaseSession,
-  createSetupIntentForPurchaseSession,
+  createPaymentIntentForCheckoutSession,
+  createSetupIntentForCheckoutSession,
 } from '@/utils/stripe'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
-  resource: 'purchaseSession',
-  pluralResource: 'purchaseSessions',
+  resource: 'checkoutSession',
+  pluralResource: 'checkoutSessions',
   tags: ['Purchase Sessions', 'Purchases', 'Customer Profiles'],
 })
 
-export const purchaseSessionsRouteConfigs = routeConfigs
+export const checkoutSessionsRouteConfigs = routeConfigs
 
-const createPurchaseSessionSchema = z.object({
+const createCheckoutSessionSchema = z.object({
   customerProfileExternalId: z
     .string()
     .describe(
       'The id of the CustomerProfile for this purchase session, as defined in your system'
     ),
-  variantId: z
+  priceId: z
     .string()
-    .describe('The ID of the variant the customer shall purchase'),
+    .describe('The ID of the price the customer shall purchase'),
   successUrl: z
     .string()
     .describe(
@@ -55,17 +55,17 @@ const createPurchaseSessionSchema = z.object({
     ),
 })
 
-const singlePurchaseSessionOutputSchema = z.object({
-  purchaseSession: purchaseSessionClientSelectSchema,
+const singleCheckoutSessionOutputSchema = z.object({
+  checkoutSession: checkoutSessionClientSelectSchema,
   url: z
     .string()
     .describe('The URL to redirect to complete the purchase'),
 })
 
-export const createPurchaseSession = protectedProcedure
+export const createCheckoutSession = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(createPurchaseSessionSchema)
-  .output(singlePurchaseSessionOutputSchema)
+  .input(createCheckoutSessionSchema)
+  .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, livemode }) => {
@@ -85,75 +85,75 @@ export const createPurchaseSession = protectedProcedure
             message: `Customer profile not found for externalId: ${input.customerProfileExternalId}`,
           })
         }
-        const [{ variant, product, organization }] =
-          await selectVariantProductAndOrganizationByVariantWhere(
-            { id: input.variantId },
+        const [{ price, product, organization }] =
+          await selectPriceProductAndOrganizationByPriceWhere(
+            { id: input.priceId },
             transaction
           )
         // NOTE: invoice and purchase purchase sessions
         // are not supported by API yet.
-        const purchaseSession = await insertPurchaseSession(
+        const checkoutSession = await insertCheckoutSession(
           {
             customerProfileId: customerProfile.id,
-            variantId: input.variantId,
+            priceId: input.priceId,
             organizationId,
             customerEmail: customerProfile.email,
             customerName: customerProfile.name,
-            status: PurchaseSessionStatus.Open,
+            status: CheckoutSessionStatus.Open,
             livemode,
             successUrl: input.successUrl,
             cancelUrl: input.cancelUrl,
             invoiceId: null,
-            type: PurchaseSessionType.Product,
+            type: CheckoutSessionType.Product,
           } as const,
           transaction
         )
 
         let stripeSetupIntentId: string | null = null
         let stripePaymentIntentId: string | null = null
-        if (variant.priceType === PriceType.Subscription) {
+        if (price.type === PriceType.Subscription) {
           const stripeSetupIntent =
-            await createSetupIntentForPurchaseSession({
-              variant,
+            await createSetupIntentForCheckoutSession({
+              price,
               product,
               organization,
-              purchaseSession,
+              checkoutSession,
             })
           stripeSetupIntentId = stripeSetupIntent.id
-        } else if (variant.priceType === PriceType.SinglePayment) {
+        } else if (price.type === PriceType.SinglePayment) {
           const stripePaymentIntent =
-            await createPaymentIntentForPurchaseSession({
-              variant,
+            await createPaymentIntentForCheckoutSession({
+              price,
               product,
               organization,
-              purchaseSession,
+              checkoutSession,
             })
           stripePaymentIntentId = stripePaymentIntent.id
         }
-        const updatedPurchaseSession = await updatePurchaseSession(
+        const updatedCheckoutSession = await updateCheckoutSession(
           {
-            id: purchaseSession.id,
+            id: checkoutSession.id,
             stripeSetupIntentId,
             stripePaymentIntentId,
             invoiceId: null,
-            variantId: input.variantId,
-            type: PurchaseSessionType.Product,
+            priceId: input.priceId,
+            type: CheckoutSessionType.Product,
           },
           transaction
         )
         return {
-          purchaseSession: updatedPurchaseSession,
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/purchase-session/${purchaseSession.id}`,
+          checkoutSession: updatedCheckoutSession,
+          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
         }
       },
       { apiKey: ctx.apiKey }
     )
   })
 
-export const editPurchaseSession = protectedProcedure
+export const editCheckoutSession = protectedProcedure
   //   .meta(openApiMetas.PUT)
-  .input(editPurchaseSessionInputSchema)
-  .output(singlePurchaseSessionOutputSchema)
+  .input(editCheckoutSessionInputSchema)
+  .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
@@ -161,78 +161,78 @@ export const editPurchaseSession = protectedProcedure
         if (!organizationId) {
           throw new Error('organizationId is required')
         }
-        const [purchaseSession] = await selectPurchaseSessions(
+        const [checkoutSession] = await selectCheckoutSessions(
           {
-            id: input.purchaseSession.id,
+            id: input.checkoutSession.id,
           },
           transaction
         )
-        if (!purchaseSession) {
+        if (!checkoutSession) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: `Purchase session not found for id: ${input.purchaseSession.id}`,
+            message: `Purchase session not found for id: ${input.checkoutSession.id}`,
           })
         }
 
-        if (purchaseSession.status !== PurchaseSessionStatus.Open) {
+        if (checkoutSession.status !== CheckoutSessionStatus.Open) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: `Purchase session ${input.purchaseSession.id} is in status ${purchaseSession.status}. Purchase sessions can only be edited while in status ${PurchaseSessionStatus.Open}.`,
+            message: `Purchase session ${input.checkoutSession.id} is in status ${checkoutSession.status}. Purchase sessions can only be edited while in status ${CheckoutSessionStatus.Open}.`,
           })
         }
 
-        const updatedPurchaseSession = await updatePurchaseSession(
+        const updatedCheckoutSession = await updateCheckoutSession(
           {
-            ...purchaseSession,
-            ...input.purchaseSession,
-          } as PurchaseSession.Update,
+            ...checkoutSession,
+            ...input.checkoutSession,
+          } as CheckoutSession.Update,
           transaction
         )
-        if (!updatedPurchaseSession) {
+        if (!updatedCheckoutSession) {
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
-            message: `Failed to update purchase session for id: ${input.purchaseSession.id}`,
+            message: `Failed to update purchase session for id: ${input.checkoutSession.id}`,
           })
         }
         return {
-          purchaseSession: updatedPurchaseSession,
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/purchase-session/${updatedPurchaseSession.id}`,
+          checkoutSession: updatedCheckoutSession,
+          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
         }
       },
       { apiKey: ctx.apiKey }
     )
   })
 
-const getPurchaseSessionProcedure = protectedProcedure
+const getCheckoutSessionProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(z.object({ id: z.string() }))
-  .output(singlePurchaseSessionOutputSchema)
+  .output(singleCheckoutSessionOutputSchema)
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(async ({ transaction }) => {
-      const purchaseSession = await selectPurchaseSessionById(
+      const checkoutSession = await selectCheckoutSessionById(
         input.id,
         transaction
       )
       return {
-        purchaseSession,
-        url: `${process.env.NEXT_PUBLIC_APP_URL}/purchase-session/${purchaseSession.id}`,
+        checkoutSession,
+        url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
       }
     })
   })
 
-const listPurchaseSessionsProcedure = protectedProcedure
+const listCheckoutSessionsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
-  .input(purchaseSessionsPaginatedSelectSchema)
-  .output(purchaseSessionsPaginatedListSchema)
+  .input(checkoutSessionsPaginatedSelectSchema)
+  .output(checkoutSessionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(async ({ transaction }) => {
-      return selectPurchaseSessionsPaginated(input, transaction)
+      return selectCheckoutSessionsPaginated(input, transaction)
     })
   })
 
-export const purchaseSessionsRouter = router({
-  create: createPurchaseSession,
-  edit: editPurchaseSession,
-  get: getPurchaseSessionProcedure,
-  list: listPurchaseSessionsProcedure,
+export const checkoutSessionsRouter = router({
+  create: createCheckoutSession,
+  edit: editCheckoutSession,
+  get: getCheckoutSessionProcedure,
+  list: listCheckoutSessionsProcedure,
 })

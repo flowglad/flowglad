@@ -1,4 +1,4 @@
-import { CreatePurchaseSessionParams } from '@flowglad/shared'
+import { CreateCheckoutSessionParams } from '@flowglad/shared'
 import {
   ClerkFlowgladServerSessionParams,
   CoreCustomerProfileUser,
@@ -130,7 +130,6 @@ export class FlowgladServer {
   public getBilling =
     async (): Promise<FlowgladNode.CustomerProfiles.CustomerProfileRetrieveBillingResponse> => {
       const customerProfile = await this.findOrCreateCustomerProfile()
-      console.log('getBilling: ====customerProfile', customerProfile)
       return this.flowgladNode.customerProfiles.retrieveBilling(
         customerProfile.externalId
       )
@@ -142,13 +141,10 @@ export class FlowgladServer {
     let customerProfile:
       | FlowgladNode.CustomerProfiles.CustomerProfileRetrieveResponse['customerProfile']
       | null = null
-    console.log('====findOrCreateCustomerProfile....')
     try {
       const getResult = await this.getCustomerProfile()
-      console.log('====getResult', getResult)
       customerProfile = getResult.customerProfile
     } catch (error) {
-      console.log('====error', error)
       if ((error as any).error.code === 'NOT_FOUND') {
         const session = await getSessionFromParams(
           this.createHandlerParams
@@ -163,7 +159,6 @@ export class FlowgladServer {
             externalId: session.externalId,
           },
         })
-        console.log('====createResult', createResult)
         customerProfile = createResult.data.customerProfile
       }
     }
@@ -190,18 +185,18 @@ export class FlowgladServer {
   ): Promise<FlowgladNode.CustomerProfiles.CustomerProfileCreateResponse> => {
     return this.flowgladNode.customerProfiles.create(params)
   }
-  public createPurchaseSession = async (
-    params: CreatePurchaseSessionParams
-  ): Promise<FlowgladNode.PurchaseSessions.PurchaseSessionCreateResponse> => {
+  public createCheckoutSession = async (
+    params: CreateCheckoutSessionParams
+  ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
       this.createHandlerParams
     )
     if (!session) {
       throw new Error('User not authenticated')
     }
-    return this.flowgladNode.purchaseSessions.create({
+    return this.flowgladNode.checkoutSessions.create({
       customerProfileExternalId: session.externalId,
-      variantId: params.variantId,
+      priceId: params.priceId,
       successUrl: params.successUrl,
       cancelUrl: params.cancelUrl,
     })

@@ -1,8 +1,8 @@
 import { cn, humanReadableCurrencyAmount } from '../lib/utils'
 import {
   CurrencyCode,
-  SubscriptionVariant,
-  Variant,
+  SubscriptionPrice,
+  Price,
 } from '@flowglad/types'
 
 export const CurrencyLabel = ({
@@ -22,10 +22,7 @@ export const CurrencyLabel = ({
 }
 
 export const intervalLabel = (
-  purchase: Pick<
-    SubscriptionVariant,
-    'intervalCount' | 'intervalUnit'
-  >
+  purchase: Pick<SubscriptionPrice, 'intervalCount' | 'intervalUnit'>
 ) => {
   const intervalCount = purchase?.intervalCount ?? 1
   const intervalUnit = purchase?.intervalUnit ?? 'month'
@@ -37,37 +34,31 @@ export const intervalLabel = (
 }
 
 export const PriceLabel = ({
-  variant,
+  price,
   className,
 }: {
-  variant: Pick<
-    Variant,
+  price: Pick<
+    Price,
     | 'currency'
     | 'unitPrice'
     | 'intervalCount'
     | 'intervalUnit'
-    | 'priceType'
+    | 'type'
   >
   className?: string
 }) => {
-  if (variant.priceType === 'subscription') {
+  if (price.type === 'subscription') {
     return (
       <div className={cn(className)} id="lol">
-        {humanReadableCurrencyAmount(
-          variant.currency,
-          variant.unitPrice
-        )}{' '}
-        per {(variant as SubscriptionVariant).intervalUnit}
+        {humanReadableCurrencyAmount(price.currency, price.unitPrice)}{' '}
+        per {(price as SubscriptionPrice).intervalUnit}
       </div>
     )
   }
 
   return (
     <div className={cn(className)} id="lol2">
-      {humanReadableCurrencyAmount(
-        variant.currency,
-        variant.unitPrice
-      )}
+      {humanReadableCurrencyAmount(price.currency, price.unitPrice)}
     </div>
   )
 }

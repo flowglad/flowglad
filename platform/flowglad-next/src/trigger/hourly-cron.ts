@@ -1,5 +1,5 @@
 import { adminTransaction } from '@/db/databaseMethods'
-import { deleteExpiredPurchaseSessionsAndFeeCalculations } from '@/db/tableMethods/purchaseSessionMethods'
+import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
 import { schedules } from '@trigger.dev/sdk/v3'
 import { attemptBillingRunsTask } from './attempt-run-all-billings'
 import { attemptCancelScheduledSubscriptionsTask } from './attempt-cancel-scheduled-subscriptions'
@@ -9,7 +9,7 @@ export const hourlyCron = schedules.task({
   cron: '0 * * * *',
   run: async ({ lastTimestamp, timestamp }) => {
     return adminTransaction(async ({ transaction }) => {
-      await deleteExpiredPurchaseSessionsAndFeeCalculations(
+      await deleteExpiredCheckoutSessionsAndFeeCalculations(
         transaction
       )
       await attemptBillingRunsTask.trigger(

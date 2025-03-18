@@ -1,4 +1,4 @@
-import { Product, Variant } from '@flowglad/types'
+import { Product, Price } from '@flowglad/types'
 import { Button, ButtonProps } from './ui/button'
 import { FeatureList } from './feature-list'
 import { cn } from '../lib/utils'
@@ -8,13 +8,13 @@ interface PricingTableProduct
   extends Pick<Product, 'name' | 'description' | 'displayFeatures'> {
   primaryButtonText: string
   secondaryButtonText?: string
-  variants: Pick<
-    Variant,
+  prices: Pick<
+    Price,
     | 'currency'
     | 'unitPrice'
     | 'intervalCount'
     | 'intervalUnit'
-    | 'priceType'
+    | 'type'
     | 'intervalUnit'
     | 'trialPeriodDays'
   >[]
@@ -93,7 +93,7 @@ function PricingTableProductColumn({
           {product.name}
         </h3>
         <PriceLabel
-          variant={product.variants[0]}
+          price={product.prices[0]}
           className="flowglad-text-lg flowglad-text-muted-foreground"
         />
         {product.description && (

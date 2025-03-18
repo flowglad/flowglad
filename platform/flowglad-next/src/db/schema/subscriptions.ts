@@ -22,10 +22,7 @@ import {
   customerProfileClientSelectSchema,
   customerProfiles,
 } from '@/db/schema/customerProfiles'
-import {
-  variants,
-  variantsClientSelectSchema,
-} from '@/db/schema/variants'
+import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import { IntervalUnit, SubscriptionStatus } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
@@ -70,7 +67,7 @@ const columns = {
   metadata: jsonb('metadata'),
   canceledAt: timestamp('canceled_at'),
   cancelScheduledAt: timestamp('cancel_scheduled_at'),
-  variantId: notNullStringForeignKey('variant_id', variants),
+  priceId: notNullStringForeignKey('price_id', prices),
   interval: pgEnumColumn({
     enumName: 'IntervalUnit',
     columnName: 'interval',
@@ -86,7 +83,7 @@ const columns = {
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
   return [
     constructIndex(TABLE_NAME, [table.customerProfileId]),
-    constructIndex(TABLE_NAME, [table.variantId]),
+    constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
     pgPolicy(
@@ -177,7 +174,7 @@ export const subscriptionClientSelectSchema =
 export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,
   customerProfile: customerProfileClientSelectSchema,
-  variant: variantsClientSelectSchema,
+  price: pricesClientSelectSchema,
   product: productsClientSelectSchema,
 })
 
@@ -185,7 +182,7 @@ export const subscriptionsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     subscriptionClientSelectSchema.pick({
       status: true,
-      variantId: true,
+      priceId: true,
       customerProfileId: true,
       organizationId: true,
     })

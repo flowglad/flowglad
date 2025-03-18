@@ -402,7 +402,7 @@ export const intervalLabel = (
   {
     interval,
     intervalCount,
-    stripeVariantMode,
+    stripePriceMode,
   }: {
     interval: Nullish<string>
     intervalCount: Nullish<number>
@@ -410,11 +410,11 @@ export const intervalLabel = (
      * StripePriceMode is an enum, but it's stringified in the database
      * so we need to cast to string
      */
-    stripeVariantMode: Nullish<StripePriceMode | string>
+    stripePriceMode: Nullish<StripePriceMode | string>
   },
   prefix: Nullish<'/' | 'every'>
 ) => {
-  if (stripeVariantMode === StripePriceMode.Payment) {
+  if (stripePriceMode === StripePriceMode.Payment) {
     return ``
   }
   if (intervalCount === 1) {

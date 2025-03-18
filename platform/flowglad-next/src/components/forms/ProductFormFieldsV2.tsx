@@ -2,9 +2,9 @@ import Input from '@/components/ion/Input'
 import Label from '@/components/ion/Label'
 import Textarea from '@/components/ion/Textarea'
 import FileInput from '@/components/FileInput'
-import VariantFormFields from '@/components/forms/VariantFormFields'
+import PriceFormFields from '@/components/forms/PriceFormFields'
 import { Controller, useFormContext } from 'react-hook-form'
-import { CreateProductSchema } from '@/db/schema/variants'
+import { CreateProductSchema } from '@/db/schema/prices'
 import Switch from '../ion/Switch'
 import StatusBadge from '../StatusBadge'
 import { Accordion } from '../ion/Accordion'
@@ -93,7 +93,7 @@ export const ProductFormFields = ({
               {
                 value: 'pricing',
                 header: <div>Pricing</div>,
-                content: <VariantFormFields edit={editProduct} />,
+                content: <PriceFormFields edit={editProduct} />,
               },
               {
                 value: 'thumbnail',

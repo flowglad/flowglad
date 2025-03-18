@@ -3,7 +3,7 @@ import React, { createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import {
-  createPurchaseSessionSchema,
+  createCheckoutSessionSchema,
   FlowgladActionKey,
   flowgladActionValidators,
 } from '@flowglad/shared'
@@ -16,8 +16,8 @@ type LoadedFlowgladContextValues = {
   loadBilling: true
   customerProfile: Flowglad.CustomerProfiles.CustomerProfileRetrieveBillingResponse.CustomerProfile
   subscriptions: Flowglad.CustomerProfiles.CustomerProfileRetrieveBillingResponse.Subscription[]
-  createPurchaseSession: (
-    params: z.infer<typeof createPurchaseSessionSchema> & {
+  createCheckoutSession: (
+    params: z.infer<typeof createCheckoutSessionSchema> & {
       autoRedirect?: boolean
     }
   ) => Promise<
@@ -34,7 +34,7 @@ type LoadedFlowgladContextValues = {
 interface NonPresentContextValues {
   customerProfile: null
   subscriptions: null
-  createPurchaseSession: null
+  createCheckoutSession: null
   catalog: null
 }
 interface NotLoadedFlowgladContextValues
@@ -66,7 +66,7 @@ type FlowgladContextValues =
 const notPresentContextValues = {
   customerProfile: null,
   subscriptions: null,
-  createPurchaseSession: null,
+  createCheckoutSession: null,
   catalog: null,
 } as const
 const FlowgladContext = createContext<FlowgladContextValues>({
@@ -76,11 +76,11 @@ const FlowgladContext = createContext<FlowgladContextValues>({
   ...notPresentContextValues,
 })
 
-const constructCreatePurchaseSession =
+const constructCreateCheckoutSession =
   (flowgladRoute: string) =>
   async (
     params: Parameters<
-      LoadedFlowgladContextValues['createPurchaseSession']
+      LoadedFlowgladContextValues['createCheckoutSession']
     >[0]
   ): Promise<
     | {
@@ -92,17 +92,17 @@ const constructCreatePurchaseSession =
     validateUrl(params.successUrl, 'successUrl')
     validateUrl(params.cancelUrl, 'cancelUrl')
     const response = await fetch(
-      `${flowgladRoute}/${FlowgladActionKey.CreatePurchaseSession}`,
+      `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
       {
         method:
           flowgladActionValidators[
-            FlowgladActionKey.CreatePurchaseSession
+            FlowgladActionKey.CreateCheckoutSession
           ].method,
         body: JSON.stringify(params),
       }
     )
     const json: {
-      data: Flowglad.PurchaseSessions.PurchaseSessionCreateResponse
+      data: Flowglad.CheckoutSessions.CheckoutSessionCreateResponse
       error?: { code: string; json: Record<string, unknown> }
     } = await response.json()
     const data = json.data
@@ -119,7 +119,7 @@ const constructCreatePurchaseSession =
       window.location.href = data.url
     }
     return {
-      id: data.purchaseSession.id,
+      id: data.checkoutSession.id,
       url: data.url,
     }
   }
@@ -170,8 +170,8 @@ export const FlowgladContextProvider = ({
       return data
     },
   })
-  const createPurchaseSession =
-    constructCreatePurchaseSession(serverRoute)
+  const createCheckoutSession =
+    constructCreateCheckoutSession(serverRoute)
 
   let value: FlowgladContextValues
 
@@ -187,7 +187,7 @@ export const FlowgladContextProvider = ({
       loaded: true,
       loadBilling,
       customerProfile: billing.data.customerProfile,
-      createPurchaseSession,
+      createCheckoutSession,
       catalog: billing.data.catalog,
       subscriptions: billing.data.subscriptions,
       errors: null,

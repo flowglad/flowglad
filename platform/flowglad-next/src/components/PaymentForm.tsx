@@ -199,12 +199,12 @@ const PaymentForm = () => {
   const {
     redirectUrl,
     currency,
-    purchaseSession,
+    checkoutSession,
     product,
     flowType,
     subscriptionDetails,
     customerProfile,
-    editPurchaseSession,
+    editCheckoutSession,
     checkoutBlocked,
     feeCalculation,
     readonlyCustomerEmail,
@@ -223,7 +223,7 @@ const PaymentForm = () => {
     string | undefined
   >(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const confirmPurchaseSession =
+  const confirmCheckoutSession =
     trpc.purchases.confirmSession.useMutation()
 
   const totalDueAmount: number | null = feeCalculation
@@ -255,8 +255,8 @@ const PaymentForm = () => {
 
         setIsSubmitting(true)
 
-        await confirmPurchaseSession.mutateAsync({
-          id: purchaseSession.id,
+        await confirmCheckoutSession.mutateAsync({
+          id: checkoutSession.id,
         })
         /**
          * If the total due amount is 0, and the price type is a single payment,
@@ -266,7 +266,7 @@ const PaymentForm = () => {
           totalDueAmount === 0 &&
           flowType === CheckoutFlowType.SinglePayment
         ) {
-          window.location.href = `${redirectUrl}?purchase_session=${checkoutPageContext.purchaseSession.id}`
+          window.location.href = `${redirectUrl}?checkout_session=${checkoutPageContext.checkoutSession.id}`
           return
         }
 
@@ -340,9 +340,9 @@ const PaymentForm = () => {
               return
             }
             if (event.complete) {
-              await editPurchaseSession({
-                purchaseSession: {
-                  ...purchaseSession,
+              await editCheckoutSession({
+                checkoutSession: {
+                  ...checkoutSession,
                   customerEmail: event.value.email,
                 },
               })
@@ -373,9 +373,9 @@ const PaymentForm = () => {
             setPaymentInfoComplete(e.complete)
 
             if (e.complete) {
-              editPurchaseSession({
-                purchaseSession: {
-                  ...purchaseSession,
+              editCheckoutSession({
+                checkoutSession: {
+                  ...checkoutSession,
                   paymentMethodType: e.value
                     .type as PaymentMethodType,
                 },
@@ -388,7 +388,7 @@ const PaymentForm = () => {
           options={{
             mode: 'billing',
             defaultValues:
-              purchaseSession?.billingAddress ?? undefined,
+              checkoutSession?.billingAddress ?? undefined,
           }}
           onReady={() => {
             // setTimeout(() => {
@@ -397,9 +397,9 @@ const PaymentForm = () => {
           }}
           onChange={async (event) => {
             if (event.complete) {
-              await editPurchaseSession({
-                purchaseSession: {
-                  ...purchaseSession,
+              await editCheckoutSession({
+                checkoutSession: {
+                  ...checkoutSession,
                   billingAddress: event.value,
                 },
               })

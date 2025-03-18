@@ -6,9 +6,9 @@ import {
   properNounSupabaseWebhookInsertPayloadSchema,
   properNounSupabaseWebhookUpdatePayloadSchema,
 } from '@/db/schema/properNouns'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { upsertProperNounByEntityId } from '@/db/tableMethods/properNounMethods'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
   SupabaseInsertPayload,
   SupabasePayloadType,
@@ -52,7 +52,7 @@ export const upsertProperNounTask = task({
 
     await adminTransaction(async ({ transaction }) => {
       const [{ organization }] =
-        await selectVariantProductAndOrganizationByVariantWhere(
+        await selectPriceProductAndOrganizationByPriceWhere(
           {
             id: data.record.id,
           },

@@ -21,11 +21,11 @@ import { CheckoutFlowType, PriceType } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq } from 'drizzle-orm'
 import {
-  otherVariantSelectSchema,
-  subscriptionVariantSelectSchema,
-  variants,
-  variantsSelectSchema,
-} from '../schema/variants'
+  otherPriceSelectSchema,
+  subscriptionPriceSelectSchema,
+  prices,
+  pricesSelectSchema,
+} from '../schema/prices'
 import {
   customerProfileClientInsertSchema,
   customerProfiles,
@@ -45,9 +45,9 @@ import {
 import { products, productsSelectSchema } from '../schema/products'
 import { z } from 'zod'
 import {
-  purchaseSessionClientSelectSchema,
-  purchaseSessionsSelectSchema,
-} from '../schema/purchaseSessions'
+  checkoutSessionClientSelectSchema,
+  checkoutSessionsSelectSchema,
+} from '../schema/checkoutSessions'
 import { payments, paymentsSelectSchema } from '../schema/payments'
 import { discountClientSelectSchema } from '../schema/discounts'
 import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
@@ -156,14 +156,14 @@ export const selectPurchaseCheckoutParametersById = async (
   const [result] = await transaction
     .select({
       purchase: purchases,
-      variant: variants,
+      price: prices,
       customerProfile: customerProfiles,
       customer: customers,
       organization: organizations,
       product: products,
     })
     .from(purchases)
-    .innerJoin(variants, eq(purchases.variantId, variants.id))
+    .innerJoin(prices, eq(purchases.priceId, prices.id))
     .innerJoin(
       customerProfiles,
       eq(customerProfiles.id, purchases.customerProfileId)
@@ -176,11 +176,11 @@ export const selectPurchaseCheckoutParametersById = async (
       organizations,
       eq(organizations.id, customerProfiles.organizationId)
     )
-    .innerJoin(products, eq(products.id, variants.productId))
+    .innerJoin(products, eq(products.id, prices.productId))
     .where(and(eq(purchases.id, id)))
   return {
     purchase: purchasesSelectSchema.parse(result.purchase),
-    variant: variantsSelectSchema.parse(result.variant),
+    price: pricesSelectSchema.parse(result.price),
     product: productsSelectSchema.parse(result.product),
     customerProfile: customerProfilesSelectSchema.parse(
       result.customerProfile
@@ -194,7 +194,7 @@ export const selectPurchaseCheckoutParametersById = async (
 
 const subscriptionBillingInfoSchema = z.object({
   purchase: subscriptionPurchaseSelectSchema.nullish(),
-  variant: subscriptionVariantSelectSchema,
+  price: subscriptionPriceSelectSchema,
   flowType: z.literal(CheckoutFlowType.Subscription),
   product: productsSelectSchema,
 })
@@ -205,7 +205,7 @@ export type SubscriptionBillingInfoCore = z.infer<
 
 const singlePaymentBillingInfoSchema = z.object({
   purchase: singlePaymentPurchaseSelectSchema.nullish(),
-  variant: otherVariantSelectSchema,
+  price: otherPriceSelectSchema,
   flowType: z.literal(CheckoutFlowType.SinglePayment),
   product: productsSelectSchema,
 })
@@ -224,7 +224,7 @@ export const billingInfoSchema = z
   ])
   .and(
     z.object({
-      purchaseSession: purchaseSessionClientSelectSchema,
+      checkoutSession: checkoutSessionClientSelectSchema,
       /**
        * Only present for open purchases
        */
@@ -235,7 +235,7 @@ export const billingInfoSchema = z
       clientSecret: z.string().nullable(),
       discount: discountClientSelectSchema.nullish(),
       /**
-       * Only present when purchaseSession.customerProfileId is not null
+       * Only present when checkoutSession.customerProfileId is not null
        */
       readonlyCustomerEmail: z.string().email().nullish(),
       feeCalculation:
@@ -286,8 +286,8 @@ export const selectPurchaseRowDataForOrganization = async (
       customerProfile: customerProfiles,
     })
     .from(purchases)
-    .innerJoin(variants, eq(purchases.variantId, variants.id))
-    .innerJoin(products, eq(variants.productId, products.id))
+    .innerJoin(prices, eq(purchases.priceId, prices.id))
+    .innerJoin(products, eq(prices.productId, products.id))
     .innerJoin(
       customerProfiles,
       eq(purchases.customerProfileId, customerProfiles.id)

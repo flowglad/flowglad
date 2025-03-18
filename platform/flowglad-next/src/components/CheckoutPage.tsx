@@ -7,7 +7,7 @@ import { trpc } from '@/app/_trpc/client'
 import { useEffect, useRef } from 'react'
 import core, { cn } from '@/utils/core'
 import { CheckoutFlowType } from '@/types'
-import { useSetPurchaseSessionCookieEffect } from '@/app/hooks/useSetPurchaseSessionCookieEffect'
+import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 
 const CheckoutPage = ({
   billingInfo,
@@ -19,7 +19,7 @@ const CheckoutPage = ({
       'Invoice checkout flow cannot be rendered as a Checkout Page'
     )
   }
-  useSetPurchaseSessionCookieEffect(billingInfo)
+  useSetCheckoutSessionCookieEffect(billingInfo)
 
   /** Background split overlay for left side of checkout page */
   const leftBackgroundOverlay = core.cn(

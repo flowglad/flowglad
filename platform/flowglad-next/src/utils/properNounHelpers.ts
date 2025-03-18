@@ -1,5 +1,5 @@
 import { Product } from '@/db/schema/products'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { Discount } from '@/db/schema/discounts'
 import { File } from '@/db/schema/files'
 import { ProperNoun } from '@/db/schema/properNouns'
@@ -17,7 +17,7 @@ interface CreateProperNounUpsertParams<T> {
 
 export const databaseTablesForNoun: Record<Nouns, string> = {
   [Nouns.Product]: 'Products',
-  [Nouns.Variant]: 'Variants',
+  [Nouns.Price]: 'Prices',
   [Nouns.CustomerProfile]: 'CustomerProfiles',
   [Nouns.Discount]: 'Discounts',
   [Nouns.File]: 'Files',
@@ -36,11 +36,11 @@ export const productRecordToProperNounUpsert = (
 }
 
 export const variantRecordToProperNounUpsert = (
-  params: CreateProperNounUpsertParams<Variant.Record>
+  params: CreateProperNounUpsertParams<Price.Record>
 ): ProperNoun.Insert => {
   return {
     entityId: params.record.id,
-    entityType: Nouns.Variant,
+    entityType: Nouns.Price,
     name: params.record.name ?? '',
     organizationId: params.organizationId,
     livemode: params.record.livemode,
@@ -104,9 +104,9 @@ export const supabasePayloadToProperNounUpsert = async (
           .organizationId,
       })
       break
-    case 'Variants':
+    case 'Prices':
       properNounUpsert = variantRecordToProperNounUpsert({
-        record: payload.record as Variant.Record,
+        record: payload.record as Price.Record,
         organizationId,
       })
       break

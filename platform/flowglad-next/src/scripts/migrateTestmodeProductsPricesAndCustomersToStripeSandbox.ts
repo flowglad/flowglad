@@ -1,23 +1,23 @@
 /* Example script with targeted environment
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/migrateTestmodeProductsVariantsAndCustomersToStripeSandbox.ts
+NODE_ENV=production pnpm tsx src/scripts/migrateTestmodeProductsPricesAndCustomersToStripeSandbox.ts
 */
 import * as R from 'ramda'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 import { Product, products } from '@/db/schema/products'
-import { Variant, variants } from '@/db/schema/variants'
+import { Price, prices } from '@/db/schema/prices'
 import { eq } from 'drizzle-orm'
 import {
   getStripePrice,
   getStripeProduct,
-  upsertStripePriceFromVariant,
+  upsertStripePriceFromPrice,
   upsertStripeProductFromProduct,
 } from '@/utils/stripe'
 import Stripe from 'stripe'
 
-const migrateProductAndVariantsToStripeSandbox = async (
-  params: { product: Product.Record; variants: Variant.Record[] },
+const migrateProductAndPricesToStripeSandbox = async (
+  params: { product: Product.Record; prices: Price.Record[] },
   db: PostgresJsDatabase
 ) => {
   const product = params.product
@@ -47,22 +47,19 @@ const migrateProductAndVariantsToStripeSandbox = async (
       stripeProductId: stripeProduct.id,
     })
     .where(eq(products.id, product.id))
-  for (const variant of params.variants) {
+  for (const price of params.prices) {
     let stripePrice: Stripe.Price | null = null
     try {
-      if (variant.stripePriceId) {
-        stripePrice = await getStripePrice(
-          variant.stripePriceId,
-          false
-        )
+      if (price.stripePriceId) {
+        stripePrice = await getStripePrice(price.stripePriceId, false)
       }
     } catch (e) {
       console.log('Error getting stripe price', e)
     }
     if (!stripePrice) {
-      stripePrice = await upsertStripePriceFromVariant({
-        variant: {
-          ...variant,
+      stripePrice = await upsertStripePriceFromPrice({
+        price: {
+          ...price,
           stripePriceId: null,
         },
         productStripeId: stripeProduct.id,
@@ -71,54 +68,54 @@ const migrateProductAndVariantsToStripeSandbox = async (
     }
     await db.transaction(async (tx) => {
       await tx
-        .update(variants)
+        .update(prices)
         .set({
           stripePriceId: stripePrice.id,
         })
-        .where(eq(variants.id, variant.id))
+        .where(eq(prices.id, price.id))
     })
   }
 }
 
-async function migrateTestmodeProductsVariantsAndCustomersToStripeSandbox(
+async function migrateTestmodeProductsPricesAndCustomersToStripeSandbox(
   db: PostgresJsDatabase
 ) {
   const allProducts = await db
     .select({
       product: products,
-      variants: variants,
+      prices: prices,
     })
     .from(products)
-    .innerJoin(variants, eq(products.id, variants.productId))
+    .innerJoin(prices, eq(products.id, prices.productId))
     .where(eq(products.livemode, false))
   const productsMap = new Map<
     string,
     (typeof allProducts)[number]['product']
   >()
-  const variantsByProductId = new Map<
+  const pricesByProductId = new Map<
     string,
-    (typeof allProducts)[number]['variants'][]
+    (typeof allProducts)[number]['prices'][]
   >()
 
-  for (const { product, variants: variant } of allProducts) {
+  for (const { product, prices: price } of allProducts) {
     if (!productsMap.has(product.id)) {
       productsMap.set(product.id, product)
-      variantsByProductId.set(product.id, [])
+      pricesByProductId.set(product.id, [])
     }
-    variantsByProductId.get(product.id)?.push(variant)
+    pricesByProductId.get(product.id)?.push(price)
   }
 
   const groupedProducts = Array.from(productsMap.values()).map(
     (product) => ({
       product: product as Product.Record,
-      variants: (variantsByProductId.get(product.id) ??
-        []) as Variant.Record[],
+      prices: (pricesByProductId.get(product.id) ??
+        []) as Price.Record[],
     })
   )
 
   for (const product of groupedProducts) {
-    await migrateProductAndVariantsToStripeSandbox(product, db)
+    await migrateProductAndPricesToStripeSandbox(product, db)
   }
 }
 
-runScript(migrateTestmodeProductsVariantsAndCustomersToStripeSandbox)
+runScript(migrateTestmodeProductsPricesAndCustomersToStripeSandbox)

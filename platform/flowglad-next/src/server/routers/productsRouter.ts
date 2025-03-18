@@ -8,14 +8,14 @@ import {
 import { upsertStripeProductFromProduct } from '@/utils/stripe'
 import {
   createProductTransaction,
-  createVariant,
+  createPrice,
   editProduct as editProductCatalog,
-  editVariantTransaction,
+  editPriceTransaction,
 } from '@/utils/catalog'
 import {
   createProductSchema,
   editProductSchema,
-} from '@/db/schema/variants'
+} from '@/db/schema/prices'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
@@ -48,11 +48,11 @@ export const createProduct = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
-        const { product, variant } = input
+        const { product, price } = input
         return createProductTransaction(
           {
             product,
-            variants: [variant],
+            prices: [price],
           },
           { transaction, userId, livemode }
         )
@@ -80,8 +80,8 @@ export const editProduct = protectedProcedure
         if (!updatedProduct) {
           throw new Error('Product not found or update failed')
         }
-        await editVariantTransaction(
-          { variant: input.variant },
+        await editPriceTransaction(
+          { price: input.price },
           transaction
         )
         return {

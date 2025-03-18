@@ -1,14 +1,14 @@
 import { publicProcedure } from '@/server/trpc'
 import {
-  getPurchaseSessionCookie,
-  setPurchaseSessionCookie as setPurchaseSessionCookieFn,
-  setPurchaseSessionCookieParamsSchema,
-} from '@/utils/purchaseSessionState'
+  getCheckoutSessionCookie,
+  setCheckoutSessionCookie as setCheckoutSessionCookieFn,
+  setCheckoutSessionCookieParamsSchema,
+} from '@/utils/checkoutSessionState'
 
-export const setPurchaseSessionCookie = publicProcedure
-  .input(setPurchaseSessionCookieParamsSchema)
+export const setCheckoutSessionCookie = publicProcedure
+  .input(setCheckoutSessionCookieParamsSchema)
   .mutation(async ({ input }) => {
-    const purchaseSessionId = await getPurchaseSessionCookie(input)
+    const checkoutSessionId = await getCheckoutSessionCookie(input)
     /**
      * Override the purchase session only if the purchase session
      * - does not exist
@@ -16,15 +16,15 @@ export const setPurchaseSessionCookie = publicProcedure
      *   provided by the client
      *
      * Otherwise, respect the existing purchase session cookie,
-     * namely to allow it to expire naturally - as `setPurchaseSessionCookieFn`
+     * namely to allow it to expire naturally - as `setCheckoutSessionCookieFn`
      * will also set a new expiration date, pushing it further into the future.
      */
-    if (purchaseSessionId === input.id) {
+    if (checkoutSessionId === input.id) {
       return {
         data: { success: true },
       }
     }
-    await setPurchaseSessionCookieFn(input)
+    await setCheckoutSessionCookieFn(input)
     return {
       data: { success: true },
     }

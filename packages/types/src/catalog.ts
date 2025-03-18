@@ -6,10 +6,10 @@ export type Catalog =
 export type Product =
   Flowglad.CustomerProfileRetrieveBillingResponse.Catalog.Product.Product
 
-export type SinglePaymentVariant =
-  Flowglad.CustomerProfileRetrieveBillingResponse.Catalog.Product.SinglePaymentVariant
+export type SinglePaymentPrice =
+  Flowglad.CustomerProfileRetrieveBillingResponse.Catalog.Product.SinglePaymentPrice
 
-export type SubscriptionVariant =
-  Flowglad.CustomerProfileRetrieveBillingResponse.Catalog.Product.SubscriptionVariant
+export type SubscriptionPrice =
+  Flowglad.CustomerProfileRetrieveBillingResponse.Catalog.Product.SubscriptionPrice
 
-export type Variant = SinglePaymentVariant | SubscriptionVariant
+export type Price = SinglePaymentPrice | SubscriptionPrice

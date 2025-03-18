@@ -12,7 +12,7 @@ import {
 } from './CustomerInvoiceButtonBanner'
 import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { adminTransaction } from '@/db/databaseMethods'
-import { findOrCreateInvoicePurchaseSession } from '@/utils/purchaseSessionState'
+import { findOrCreateInvoiceCheckoutSession } from '@/utils/checkoutSessionState'
 
 const CustomerInvoicePaidView = (props: InvoiceTemplateProps) => {
   const { invoice, invoiceLineItems } = props
@@ -61,9 +61,9 @@ const CustomerInvoiceOpenView = async (
 ) => {
   const { invoice, invoiceLineItems, customerProfile, organization } =
     props
-  const purchaseSession = await adminTransaction(
+  const checkoutSession = await adminTransaction(
     async ({ transaction }) => {
-      return findOrCreateInvoicePurchaseSession(
+      return findOrCreateInvoiceCheckoutSession(
         {
           invoice,
           invoiceLineItems,
@@ -74,9 +74,9 @@ const CustomerInvoiceOpenView = async (
   )
 
   let clientSecret: string | null = null
-  if (purchaseSession.stripePaymentIntentId) {
+  if (checkoutSession.stripePaymentIntentId) {
     const paymentIntent = await getPaymentIntent(
-      purchaseSession.stripePaymentIntentId
+      checkoutSession.stripePaymentIntentId
     )
     clientSecret = paymentIntent.client_secret
   }
@@ -94,7 +94,7 @@ const CustomerInvoiceOpenView = async (
       `/invoice/view/${organization.id}/${invoice.id}`,
       core.envVariable('NEXT_PUBLIC_APP_URL')
     ),
-    purchaseSession,
+    checkoutSession,
   }
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-primary-container p-4">

@@ -24,7 +24,7 @@ import {
   customerProfilesSelectSchema,
 } from '@/db/schema/customerProfiles'
 import { organizations } from '@/db/schema/organizations'
-import { variants } from '@/db/schema/variants'
+import { prices } from '@/db/schema/prices'
 import core from '@/utils/core'
 import { z } from 'zod'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
@@ -52,7 +52,7 @@ const columns = {
   /**
    * Billing fields
    */
-  variantId: notNullStringForeignKey('variant_id', variants),
+  priceId: notNullStringForeignKey('price_id', prices),
   quantity: integer('quantity').notNull(),
   priceType: pgEnumColumn({
     enumName: 'PriceType',
@@ -86,7 +86,7 @@ export const purchases = pgTable(
     return [
       constructIndex(PURCHASES_TABLE_NAME, [table.customerProfileId]),
       constructIndex(PURCHASES_TABLE_NAME, [table.organizationId]),
-      constructIndex(PURCHASES_TABLE_NAME, [table.variantId]),
+      constructIndex(PURCHASES_TABLE_NAME, [table.priceId]),
       livemodePolicy(),
       // constructIndex(PURCHASES_TABLE_NAME, [
       //   table.stripeSetupIntentId,

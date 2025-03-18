@@ -21,4 +21,4 @@ catalogs:
     typescript: 5.6.3
     zx: 8.3.0
     eslint: 8.57.0
-    # '@flowglad/node': 0.5.0
+    # '@flowglad/node': 0.7.0

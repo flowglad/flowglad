@@ -6,95 +6,95 @@ import {
   BillingInfoCore,
   billingInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { selectPurchaseSessionById } from '@/db/tableMethods/purchaseSessionMethods'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
-import { PriceType, PurchaseSessionStatus } from '@/types'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { PriceType, CheckoutSessionStatus } from '@/types'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { notFound, redirect } from 'next/navigation'
 
-const PurchaseSessionPage = async ({
+const CheckoutSessionPage = async ({
   params,
 }: {
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
   const {
-    purchaseSession,
+    checkoutSession,
     product,
-    variant,
+    price,
     sellerOrganization,
     feeCalculation,
     maybeCustomerProfile,
   } = await adminTransaction(async ({ transaction }) => {
-    const purchaseSession = await selectPurchaseSessionById(
+    const checkoutSession = await selectCheckoutSessionById(
       id,
       transaction
     )
     /**
-     * Currently, only variant / product checkout flows
+     * Currently, only price / product checkout flows
      * are supported on this page.
      * For invoice or purchase flows, those should go through their respective
      * pages.
      */
-    if (!purchaseSession.variantId) {
+    if (!checkoutSession.priceId) {
       throw new Error(
-        `No variant id found for purchase session ${purchaseSession.id}. Currently, only variant / product checkout flows are supported on this page.`
+        `No price id found for purchase session ${checkoutSession.id}. Currently, only price / product checkout flows are supported on this page.`
       )
     }
-    const [{ product, variant, organization }] =
-      await selectVariantProductAndOrganizationByVariantWhere(
-        { id: purchaseSession.variantId },
+    const [{ product, price, organization }] =
+      await selectPriceProductAndOrganizationByPriceWhere(
+        { id: checkoutSession.priceId },
         transaction
       )
     const feeCalculation = await selectLatestFeeCalculation(
-      { PurchaseSessionId: purchaseSession.id },
+      { checkoutSessionId: checkoutSession.id },
       transaction
     )
-    const maybeCustomerProfile = purchaseSession.customerProfileId
+    const maybeCustomerProfile = checkoutSession.customerProfileId
       ? await selectCustomerProfileById(
-          purchaseSession.customerProfileId,
+          checkoutSession.customerProfileId,
           transaction
         )
       : null
     return {
-      purchaseSession,
+      checkoutSession,
       product,
-      variant,
+      price,
       sellerOrganization: organization,
       feeCalculation,
       maybeCustomerProfile,
     }
   })
 
-  if (!purchaseSession) {
+  if (!checkoutSession) {
     notFound()
   }
 
-  if (purchaseSession.status !== PurchaseSessionStatus.Open) {
-    if (purchaseSession.stripePaymentIntentId) {
+  if (checkoutSession.status !== CheckoutSessionStatus.Open) {
+    if (checkoutSession.stripePaymentIntentId) {
       redirect(
-        `/purchase/post-payment?payment_intent=${purchaseSession.stripePaymentIntentId}`
+        `/purchase/post-payment?payment_intent=${checkoutSession.stripePaymentIntentId}`
       )
-    } else if (purchaseSession.stripeSetupIntentId) {
+    } else if (checkoutSession.stripeSetupIntentId) {
       redirect(
-        `/purchase/post-payment?setup_intent=${purchaseSession.stripeSetupIntentId}`
+        `/purchase/post-payment?setup_intent=${checkoutSession.stripeSetupIntentId}`
       )
     } else {
       redirect(
-        `/purchase/post-payment?purchase_session=${purchaseSession.id}`
+        `/purchase/post-payment?checkout_session=${checkoutSession.id}`
       )
     }
   }
   let clientSecret: string | null = null
-  if (purchaseSession.stripePaymentIntentId) {
+  if (checkoutSession.stripePaymentIntentId) {
     const paymentIntent = await getPaymentIntent(
-      purchaseSession.stripePaymentIntentId
+      checkoutSession.stripePaymentIntentId
     )
     clientSecret = paymentIntent.client_secret
-  } else if (purchaseSession.stripeSetupIntentId) {
+  } else if (checkoutSession.stripeSetupIntentId) {
     const setupIntent = await getSetupIntent(
-      purchaseSession.stripeSetupIntentId
+      checkoutSession.stripeSetupIntentId
     )
     clientSecret = setupIntent.client_secret
   } else {
@@ -102,11 +102,11 @@ const PurchaseSessionPage = async ({
   }
 
   const billingInfo: BillingInfoCore = billingInfoSchema.parse({
-    purchaseSession,
+    checkoutSession,
     product,
-    variant,
+    price,
     sellerOrganization,
-    priceType: variant.priceType,
+    type: price.type,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
       core.envVariable('NEXT_PUBLIC_APP_URL')
@@ -115,7 +115,7 @@ const PurchaseSessionPage = async ({
     feeCalculation,
     clientSecret,
     flowType:
-      variant.priceType === PriceType.Subscription
+      price.type === PriceType.Subscription
         ? 'subscription'
         : 'single_payment',
   })
@@ -123,4 +123,4 @@ const PurchaseSessionPage = async ({
   return <CheckoutPage billingInfo={billingInfo} />
 }
 
-export default PurchaseSessionPage
+export default CheckoutSessionPage

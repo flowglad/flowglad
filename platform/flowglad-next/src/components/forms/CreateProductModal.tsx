@@ -3,20 +3,20 @@
 'use client'
 import { PriceType } from '@/types'
 import { ProductFormFields } from '@/components/forms/ProductFormFieldsV2'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import {
   CreateProductSchema,
   createProductSchema,
-} from '@/db/schema/variants'
+} from '@/db/schema/prices'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { toast } from 'sonner'
 import { Product } from '@/db/schema/products'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 
-const defaultVariant: Variant.ClientOtherInsert = {
+const defaultPrice: Price.ClientOtherInsert = {
   name: '',
-  priceType: PriceType.SinglePayment,
+  type: PriceType.SinglePayment,
   unitPrice: 100,
   productId: '1',
   isDefault: true,
@@ -63,8 +63,8 @@ export const CreateProductModal = ({
       product: {
         ...defaultProduct,
       },
-      variant: {
-        ...defaultVariant,
+      price: {
+        ...defaultPrice,
         currency: organization.defaultCurrency,
       },
       offerings: [],
