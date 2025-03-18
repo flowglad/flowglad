@@ -1,7 +1,6 @@
 import db from '@/db/client'
 import { adminTransaction } from '@/db/databaseMethods'
 import { countries } from '@/db/schema/countries'
-import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { insertCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
@@ -163,14 +162,6 @@ export const setupCustomerProfile = async (params: {
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const email = `test+${core.nanoid()}@test.com`
-    const customer = await insertCustomer(
-      {
-        name: 'Test',
-        email,
-        livemode: params.livemode ?? true,
-      },
-      transaction
-    )
     return insertCustomerProfile(
       {
         organizationId: params.organizationId,

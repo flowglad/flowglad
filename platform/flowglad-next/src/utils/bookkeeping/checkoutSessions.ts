@@ -51,10 +51,6 @@ import {
 } from '@/db/tableMethods/customerProfileMethods'
 import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import {
-  selectCustomers,
-  upsertCustomerByEmail,
-} from '@/db/tableMethods/customerMethods'
 import { core } from '../core'
 import { projectPriceFieldsOntoPurchaseFields } from '../purchaseHelpers'
 import { Discount } from '@/db/schema/discounts'
@@ -275,12 +271,6 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     customerProfile = result[0]
   }
   if (!customerProfile) {
-    // First find if customer exists
-    let [customer] = await selectCustomers(
-      { email: checkoutSession.customerEmail! },
-      transaction
-    )
-
     const customerProfileUpsert =
       await upsertCustomerProfileByEmailAndOrganizationId(
         {

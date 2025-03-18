@@ -1,10 +1,7 @@
 import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/databaseMethods'
 import { z } from 'zod'
-import {
-  selectCheckoutSessionById,
-  selectCheckoutSessions,
-} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   selectCustomerProfiles,
   insertCustomerProfile,
@@ -15,7 +12,6 @@ import {
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
-import { upsertCustomerByEmail } from '@/db/tableMethods/customerMethods'
 import { CheckoutSessionStatus } from '@/types'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { selectPurchaseAndCustomerProfilesByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
@@ -96,17 +92,6 @@ export const confirmCheckoutSession = publicProcedure
             `Purchase session has no customer email, and no purchase: ${input.id}`
           )
         }
-        const [customer] = await upsertCustomerByEmail(
-          {
-            email: checkoutSession.customerEmail,
-            name:
-              checkoutSession.customerName ||
-              checkoutSession.customerEmail,
-            billingAddress: null,
-            livemode: checkoutSession.livemode,
-          },
-          transaction
-        )
         // Create new customer profile
         customerProfile = await insertCustomerProfile(
           {
