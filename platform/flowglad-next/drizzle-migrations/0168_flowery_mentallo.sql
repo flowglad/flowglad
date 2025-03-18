@@ -82,3 +82,9 @@ CREATE INDEX IF NOT EXISTS "prices_product_id_idx" ON "prices" USING btree ("pro
 CREATE UNIQUE INDEX IF NOT EXISTS "prices_stripe_price_id_unique_idx" ON "prices" USING btree ("stripe_price_id");--> statement-breakpoint
 ALTER TABLE "prices" ADD CONSTRAINT "prices_id_unique" UNIQUE("id");--> statement-breakpoint
 ALTER TABLE "prices" ADD CONSTRAINT "prices_stripe_price_id_unique" UNIQUE("stripe_price_id");
+
+DO $$ BEGIN
+  ALTER TYPE "FeeCalculationType" ADD VALUE 'checkout_session_payment';
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
