@@ -88,3 +88,9 @@ DO $$ BEGIN
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
+
+DO $$ BEGIN
+  ALTER TYPE "PurchaseAccessSessionSource" ADD VALUE 'checkout_session';
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
