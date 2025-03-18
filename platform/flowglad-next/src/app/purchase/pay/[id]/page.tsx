@@ -26,12 +26,12 @@ const PayPurchasePage = async ({
         id,
         transaction
       )
-      const { variant, organization, purchase, product } = result
+      const { price, organization, purchase, product } = result
       const checkoutSession = await findOrCreateCheckoutSession(
         {
           productId: product.id,
           organizationId: organization.id,
-          variant,
+          price,
           purchase,
           type: CheckoutSessionType.Purchase,
         },
@@ -56,12 +56,12 @@ const PayPurchasePage = async ({
         : null
       return {
         purchase,
-        variant,
+        price,
         customerProfile: result.customerProfile,
         customer: result.customer,
         sellerOrganization: organization,
         product: result.product,
-        priceType: variant.priceType,
+        type: price.type,
         feeCalculation,
         billingAddress:
           checkoutSession.billingAddress ??

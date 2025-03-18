@@ -13,14 +13,14 @@ import {
   BillingInfoCore,
   billingInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import core from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
 import { useRouter } from 'next/navigation'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 export type SubscriptionCheckoutDetails = Pick<
-  Variant.SubscriptionRecord,
+  Price.SubscriptionRecord,
   'trialPeriodDays' | 'intervalUnit' | 'intervalCount' | 'currency'
 > & {
   pricePerBillingCycle: number
@@ -80,30 +80,30 @@ const subscriptionDetailsFromBillingInfoCore = (
   if (billingInfo.flowType !== CheckoutFlowType.Subscription) {
     return undefined
   }
-  const { purchase, variant } = billingInfo
+  const { purchase, price } = billingInfo
   /**
    * For each subscription detail field:
-   * Default to variant values if purchase values are not present,
+   * Default to price values if purchase values are not present,
    * but if purchase values are present (including literally 0),
    * use purchase values.
    */
   const subscriptionDetails: SubscriptionCheckoutDetails | undefined =
     billingInfo.flowType === CheckoutFlowType.Subscription
       ? {
-          currency: variant.currency,
+          currency: price.currency,
           trialPeriodDays: core.isNil(purchase?.trialPeriodDays)
-            ? variant.trialPeriodDays!
+            ? price.trialPeriodDays!
             : purchase.trialPeriodDays,
           intervalUnit: core.isNil(purchase?.intervalUnit)
-            ? variant.intervalUnit!
+            ? price.intervalUnit!
             : purchase.intervalUnit,
           intervalCount: core.isNil(purchase?.intervalCount)
-            ? variant.intervalCount!
+            ? price.intervalCount!
             : purchase.intervalCount,
           pricePerBillingCycle: core.isNil(
             purchase?.pricePerBillingCycle
           )
-            ? variant.unitPrice!
+            ? price.unitPrice!
             : purchase.pricePerBillingCycle,
         }
       : undefined
@@ -123,7 +123,7 @@ export const useCheckoutPageContext =
     const currency: CurrencyCode =
       billingInfo.flowType === CheckoutFlowType.Invoice
         ? billingInfo.invoice.currency
-        : billingInfo.variant.currency
+        : billingInfo.price.currency
     return {
       ...billingInfo,
       subscriptionDetails:

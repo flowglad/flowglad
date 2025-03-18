@@ -7,7 +7,7 @@ import {
   billingInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { PriceType, CheckoutSessionStatus } from '@/types'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
@@ -22,7 +22,7 @@ const CheckoutSessionPage = async ({
   const {
     checkoutSession,
     product,
-    variant,
+    price,
     sellerOrganization,
     feeCalculation,
     maybeCustomerProfile,
@@ -32,19 +32,19 @@ const CheckoutSessionPage = async ({
       transaction
     )
     /**
-     * Currently, only variant / product checkout flows
+     * Currently, only price / product checkout flows
      * are supported on this page.
      * For invoice or purchase flows, those should go through their respective
      * pages.
      */
-    if (!checkoutSession.variantId) {
+    if (!checkoutSession.priceId) {
       throw new Error(
-        `No variant id found for purchase session ${checkoutSession.id}. Currently, only variant / product checkout flows are supported on this page.`
+        `No price id found for purchase session ${checkoutSession.id}. Currently, only price / product checkout flows are supported on this page.`
       )
     }
-    const [{ product, variant, organization }] =
-      await selectVariantProductAndOrganizationByVariantWhere(
-        { id: checkoutSession.variantId },
+    const [{ product, price, organization }] =
+      await selectPriceProductAndOrganizationByPriceWhere(
+        { id: checkoutSession.priceId },
         transaction
       )
     const feeCalculation = await selectLatestFeeCalculation(
@@ -60,7 +60,7 @@ const CheckoutSessionPage = async ({
     return {
       checkoutSession,
       product,
-      variant,
+      price,
       sellerOrganization: organization,
       feeCalculation,
       maybeCustomerProfile,
@@ -104,9 +104,9 @@ const CheckoutSessionPage = async ({
   const billingInfo: BillingInfoCore = billingInfoSchema.parse({
     checkoutSession,
     product,
-    variant,
+    price,
     sellerOrganization,
-    priceType: variant.priceType,
+    type: price.type,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
       core.envVariable('NEXT_PUBLIC_APP_URL')
@@ -115,7 +115,7 @@ const CheckoutSessionPage = async ({
     feeCalculation,
     clientSecret,
     flowType:
-      variant.priceType === PriceType.Subscription
+      price.type === PriceType.Subscription
         ? 'subscription'
         : 'single_payment',
   })

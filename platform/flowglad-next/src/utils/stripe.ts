@@ -13,7 +13,7 @@ import {
 import core from './core'
 import Stripe from 'stripe'
 import { Product } from '@/db/schema/products'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
@@ -511,51 +511,51 @@ export const upsertStripeProductFromProduct = async (
 }
 
 /**
- * Creates a Stripe price from a variant.
- * If the variant already has a Stripe price, it will:
+ * Creates a Stripe price from a price.
+ * If the price already has a Stripe price, it will:
  * - Create a new price with the same product and new unit_amount.
  * - Deactivate the old price.
  *
- * If the variant does not have a Stripe price, it will be created.
+ * If the price does not have a Stripe price, it will be created.
  * @param params
  * @returns
  */
-export const upsertStripePriceFromVariant = async ({
-  variant,
+export const upsertStripePriceFromPrice = async ({
+  price,
   productStripeId,
-  oldVariant,
+  oldPrice,
   livemode,
 }: {
-  variant: Variant.Record
+  price: Price.Record
   productStripeId: string
-  oldVariant?: Variant.Record
+  oldPrice?: Price.Record
   livemode: boolean
 }): Promise<Stripe.Price> => {
   const maybeRecurringPriceData: Pick<
     Stripe.PriceCreateParams,
     'recurring'
   > =
-    variant.priceType === PriceType.Subscription
+    price.type === PriceType.Subscription
       ? {
           recurring: {
             interval:
-              variant.intervalUnit as Stripe.PriceCreateParams.Recurring['interval'],
-            interval_count: variant.intervalCount || undefined,
+              price.intervalUnit as Stripe.PriceCreateParams.Recurring['interval'],
+            interval_count: price.intervalCount || undefined,
           },
         }
       : {}
   const stripePriceData: Stripe.PriceCreateParams = {
     product: productStripeId,
-    unit_amount: variant.unitPrice,
-    currency: variant.currency,
+    unit_amount: price.unitPrice,
+    currency: price.currency,
     ...maybeRecurringPriceData,
     metadata: {
-      variantId: variant.id,
-      productId: variant.productId,
+      priceId: price.id,
+      productId: price.productId,
     },
   }
-  if (oldVariant?.stripePriceId) {
-    return stripe(livemode).prices.update(oldVariant.stripePriceId, {
+  if (oldPrice?.stripePriceId) {
+    return stripe(livemode).prices.update(oldPrice.stripePriceId, {
       active: false,
     })
   }
@@ -826,14 +826,14 @@ export const createStripeCustomer = async (params: {
   })
 }
 
-export const createStripeTaxCalculationByVariant = async ({
-  variant,
+export const createStripeTaxCalculationByPrice = async ({
+  price,
   billingAddress,
   discountInclusiveAmount,
   product,
   livemode,
 }: {
-  variant: Variant.Record
+  price: Price.Record
   billingAddress: BillingAddress
   discountInclusiveAmount: number
   product: Product.Record
@@ -843,7 +843,7 @@ export const createStripeTaxCalculationByVariant = async ({
     {
       quantity: 1,
       amount: discountInclusiveAmount,
-      reference: `${variant.id}`,
+      reference: `${price.id}`,
       tax_code: DIGITAL_TAX_CODE,
     },
   ]
@@ -853,7 +853,7 @@ export const createStripeTaxCalculationByVariant = async ({
       address: billingAddress.address,
       address_source: 'billing',
     },
-    currency: variant.currency,
+    currency: price.currency,
     line_items: lineItems,
   })
 }
@@ -862,13 +862,13 @@ export const createStripeTaxCalculationByPurchase = async ({
   purchase,
   billingAddress,
   discountInclusiveAmount,
-  variant,
+  price,
   livemode,
 }: {
   purchase: Purchase.Record
   billingAddress: BillingAddress
   discountInclusiveAmount: number
-  variant: Variant.Record
+  price: Price.Record
   product: Product.Record
   livemode: boolean
 }) => {
@@ -885,7 +885,7 @@ export const createStripeTaxCalculationByPurchase = async ({
       address: billingAddress.address,
       address_source: 'billing',
     },
-    currency: variant.currency,
+    currency: price.currency,
     line_items: lineItems,
   })
 }
@@ -993,14 +993,14 @@ export const createPaymentIntentForInvoiceCheckoutSession =
   }
 
 export const createPaymentIntentForCheckoutSession = async (params: {
-  variant: Variant.Record
+  price: Price.Record
   organization: Organization.Record
   product: Product.Record
   purchase?: Purchase.Record
   checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
 }) => {
-  const { variant, organization, checkoutSession, feeCalculation } =
+  const { price, organization, checkoutSession, feeCalculation } =
     params
   const livemode = checkoutSession.livemode
   const { on_behalf_of, transfer_data } =
@@ -1014,18 +1014,18 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   }
   const totalDue = feeCalculation
     ? await calculateTotalDueAmount(feeCalculation)
-    : variant.unitPrice * checkoutSession.quantity
+    : price.unitPrice * checkoutSession.quantity
   const totalFeeAmount = feeCalculation
     ? calculateTotalFeeAmount(feeCalculation)
     : calculatePlatformApplicationFee({
         organization,
-        subtotal: variant.unitPrice,
-        currency: variant.currency,
+        subtotal: price.unitPrice,
+        currency: price.currency,
       })
 
   return stripe(livemode).paymentIntents.create({
     amount: totalDue,
-    currency: variant.currency,
+    currency: price.currency,
     application_fee_amount: livemode ? totalFeeAmount : undefined,
     on_behalf_of,
     transfer_data,
@@ -1299,7 +1299,7 @@ export const getStripePrice = async (
  * meaning to create an intent for an anonymized customer to create a subscription.
  */
 export const createSetupIntentForCheckoutSession = async (params: {
-  variant: Variant.SubscriptionRecord
+  price: Price.SubscriptionRecord
   product: Product.Record
   organization: Organization.Record
   checkoutSession: CheckoutSession.Record

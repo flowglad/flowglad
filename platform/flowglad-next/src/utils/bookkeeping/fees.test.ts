@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { Purchase } from '@/db/schema/purchases'
 import { Discount } from '@/db/schema/discounts'
 import { BillingAddress } from '@/db/schema/customers'
@@ -15,7 +15,7 @@ import {
   CurrencyCode,
 } from '@/types'
 import {
-  calculateVariantBaseAmount,
+  calculatePriceBaseAmount,
   calculateDiscountAmount,
   calculateInternationalFeePercentage,
   calculatePaymentMethodFeeAmount,
@@ -41,41 +41,37 @@ import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from '../core'
 
 describe('fees.ts', () => {
-  describe('calculateVariantBaseAmount', () => {
-    it('returns variant unit price when no purchase exists', () => {
-      const variant = { unitPrice: 1000 } as Variant.Record
+  describe('calculatePriceBaseAmount', () => {
+    it('returns price unit price when no purchase exists', () => {
+      const price = { unitPrice: 1000 } as Price.Record
       expect(
-        calculateVariantBaseAmount({ variant, purchase: null })
+        calculatePriceBaseAmount({ price, purchase: null })
       ).toBe(1000)
     })
 
     it('returns firstInvoiceValue for single payment purchases', () => {
-      const variant = { unitPrice: 1000 } as Variant.Record
+      const price = { unitPrice: 1000 } as Price.Record
       const purchase = {
         priceType: PriceType.SinglePayment,
         firstInvoiceValue: 800,
       } as Purchase.Record
-      expect(calculateVariantBaseAmount({ variant, purchase })).toBe(
-        800
-      )
+      expect(calculatePriceBaseAmount({ price, purchase })).toBe(800)
     })
 
     it('returns pricePerBillingCycle for subscription purchases', () => {
-      const variant = { unitPrice: 1000 } as Variant.Record
+      const price = { unitPrice: 1000 } as Price.Record
       const purchase = {
         priceType: PriceType.Subscription,
         pricePerBillingCycle: 900,
       } as Purchase.Record
-      expect(calculateVariantBaseAmount({ variant, purchase })).toBe(
-        900
-      )
+      expect(calculatePriceBaseAmount({ price, purchase })).toBe(900)
     })
 
     it('falls back to unitPrice when purchase is provided but firstInvoiceValue or pricePerBillingCycle is missing', () => {
-      const variant = { unitPrice: 1000 } as Variant.Record
+      const price = { unitPrice: 1000 } as Price.Record
       expect(
-        calculateVariantBaseAmount({
-          variant,
+        calculatePriceBaseAmount({
+          price,
           // @ts-expect-error - we are testing the fallback behavior
           purchase: {
             ...subscriptionWithoutTrialDummyPurchase,
@@ -86,15 +82,13 @@ describe('fees.ts', () => {
       ).toBe(1000)
     })
 
-    it('handles invalid priceType by falling back to unitPrice', () => {
-      const variant = { unitPrice: 1000 } as Variant.Record
+    it('handles invalid type by falling back to unitPrice', () => {
+      const price = { unitPrice: 1000 } as Price.Record
       const purchase = {
         priceType: 'InvalidType' as PriceType, // Invalid price type
         firstInvoiceValue: 800,
       } as Purchase.Record
-      expect(calculateVariantBaseAmount({ variant, purchase })).toBe(
-        1000
-      )
+      expect(calculatePriceBaseAmount({ price, purchase })).toBe(1000)
     })
   })
 
@@ -388,10 +382,10 @@ describe('fees.ts', () => {
         id: 'prod_1',
       } as Product.Record
 
-      const variant = {
-        id: 'var_1',
+      const price = {
+        id: 'price_1',
         unitPrice: 1000,
-      } as Variant.Record
+      } as Price.Record
 
       const checkoutSession = {
         id: 'sess_1',
@@ -409,7 +403,7 @@ describe('fees.ts', () => {
         await createCheckoutSessionFeeCalculationInsert({
           organization,
           product,
-          variant,
+          price,
           purchase: undefined,
           discount: undefined,
           checkoutSessionId: checkoutSession.id,
@@ -440,14 +434,14 @@ describe('fees.ts', () => {
     }
 
     it('sets flowgladFeePercentage to 0 when no payments exist in current month', async () => {
-      const { organization, variant } = await setupOrg()
+      const { organization, price } = await setupOrg()
 
       const feeCalculation = await adminTransaction(
         async ({ transaction }) => {
           return insertFeeCalculation(
             {
               organizationId: organization.id,
-              variantId: variant.id,
+              priceId: price.id,
               type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -484,14 +478,14 @@ describe('fees.ts', () => {
       const stripePaymentIntentId2 = `pi_${core.nanoid()}`
       const stripeChargeId1 = `ch_${core.nanoid()}`
       const stripeChargeId2 = `ch_${core.nanoid()}`
-      const { organization, variant } = await setupOrg()
+      const { organization, price } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
         customerProfileId: customerProfile.id,
-        variantId: variant.id,
+        priceId: price.id,
         livemode: true,
       })
 
@@ -519,7 +513,7 @@ describe('fees.ts', () => {
           return insertFeeCalculation(
             {
               organizationId: organization.id,
-              variantId: variant.id,
+              priceId: price.id,
               type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -554,14 +548,14 @@ describe('fees.ts', () => {
     it('keeps original flowgladFeePercentage when resolved payments exceed $1000', async () => {
       const stripePaymentIntentId = `pi_${core.nanoid()}`
       const stripeChargeId = `ch_${core.nanoid()}`
-      const { organization, variant } = await setupOrg()
+      const { organization, price } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
         customerProfileId: customerProfile.id,
-        variantId: variant.id,
+        priceId: price.id,
         livemode: true,
       })
 
@@ -579,7 +573,7 @@ describe('fees.ts', () => {
           return insertFeeCalculation(
             {
               organizationId: organization.id,
-              variantId: variant.id,
+              priceId: price.id,
               type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -615,14 +609,14 @@ describe('fees.ts', () => {
 
     it('does not exclude refunded payments from fee calculation', async () => {
       const stripeChargeId = `ch_${core.nanoid()}`
-      const { organization, variant } = await setupOrg()
+      const { organization, price } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
         customerProfileId: customerProfile.id,
-        variantId: variant.id,
+        priceId: price.id,
         livemode: true,
       })
 
@@ -640,7 +634,7 @@ describe('fees.ts', () => {
           return insertFeeCalculation(
             {
               organizationId: organization.id,
-              variantId: variant.id,
+              priceId: price.id,
               type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: baseFeePercentage,
               baseAmount: 1000,
@@ -677,14 +671,14 @@ describe('fees.ts', () => {
     it('ignores payments from previous months', async () => {
       const stripePaymentIntentId = `pi_${core.nanoid()}`
       const stripeChargeId = `ch_${core.nanoid()}`
-      const { organization, variant } = await setupOrg()
+      const { organization, price } = await setupOrg()
       const customerProfile = await setupCustomerProfile({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
         customerProfileId: customerProfile.id,
-        variantId: variant.id,
+        priceId: price.id,
         livemode: true,
       })
 
@@ -720,7 +714,7 @@ describe('fees.ts', () => {
           return insertFeeCalculation(
             {
               organizationId: organization.id,
-              variantId: variant.id,
+              priceId: price.id,
               type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,
@@ -755,8 +749,7 @@ describe('fees.ts', () => {
     it('only considers payments from the same organization', async () => {
       const stripeChargeId1 = `ch_${core.nanoid()}`
       const stripeChargeId2 = `ch_${core.nanoid()}`
-      const { organization: org1, variant: variant1 } =
-        await setupOrg()
+      const { organization: org1, price: price1 } = await setupOrg()
       const { organization: org2 } = await setupOrg()
 
       const customerProfile1 = await setupCustomerProfile({
@@ -769,13 +762,13 @@ describe('fees.ts', () => {
       const invoice1 = await setupInvoice({
         organizationId: org1.id,
         customerProfileId: customerProfile1.id,
-        variantId: variant1.id,
+        priceId: price1.id,
         livemode: true,
       })
       const invoice2 = await setupInvoice({
         organizationId: org2.id,
         customerProfileId: customerProfile2.id,
-        variantId: variant1.id,
+        priceId: price1.id,
         livemode: true,
       })
 
@@ -804,7 +797,7 @@ describe('fees.ts', () => {
           return insertFeeCalculation(
             {
               organizationId: org1.id,
-              variantId: variant1.id,
+              priceId: price1.id,
               type: FeeCalculationType.CheckoutSessionPayment,
               flowgladFeePercentage: '10.00',
               baseAmount: 1000,

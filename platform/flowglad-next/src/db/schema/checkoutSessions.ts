@@ -22,7 +22,7 @@ import {
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/customers'
 import core from '@/utils/core'
-import { variants } from './variants'
+import { prices } from './prices'
 import {
   PaymentMethodType,
   CheckoutSessionStatus,
@@ -45,11 +45,11 @@ const columns = {
     enumBase: CheckoutSessionStatus,
   }).notNull(),
   billingAddress: jsonb('billing_address'),
-  variantId: nullableStringForeignKey('variant_id', variants),
+  priceId: nullableStringForeignKey('price_id', prices),
   purchaseId: nullableStringForeignKey('purchase_id', purchases),
   invoiceId: nullableStringForeignKey('invoice_id', invoices),
   /**
-   * Should only be non-1 in the case of variantId is not null.
+   * Should only be non-1 in the case of priceId is not null.
    */
   quantity: integer('quantity').notNull().default(1),
   organizationId: notNullStringForeignKey(
@@ -90,7 +90,7 @@ export const checkoutSessions = pgTable(
   columns,
   (table) => {
     return [
-      constructIndex(TABLE_NAME, [table.variantId]),
+      constructIndex(TABLE_NAME, [table.priceId]),
       constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.status]),
@@ -125,19 +125,19 @@ const refinement = {
 
 const purchaseCheckoutSessionRefinement = {
   purchaseId: z.string(),
-  variantId: z.string(),
+  priceId: z.string(),
   type: z.literal(CheckoutSessionType.Purchase),
 }
 
 const invoiceCheckoutSessionRefinement = {
   invoiceId: z.string(),
-  variantId: z.null(),
+  priceId: z.null(),
   purchaseId: z.null(),
   type: z.literal(CheckoutSessionType.Invoice),
 }
 
 const productCheckoutSessionRefinement = {
-  variantId: z.string(),
+  priceId: z.string(),
   invoiceId: z.null(),
   type: z.literal(CheckoutSessionType.Product),
 }

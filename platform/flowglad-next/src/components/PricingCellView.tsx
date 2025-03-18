@@ -1,33 +1,29 @@
 import { RotateCw } from 'lucide-react'
 import { PriceType } from '@/types'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
-const PricingCellView = ({
-  variants,
-}: {
-  variants: Variant.Record[]
-}) => {
-  if (variants.length === 0) {
+const PricingCellView = ({ prices }: { prices: Price.Record[] }) => {
+  if (prices.length === 0) {
     return <div>-</div>
   }
 
-  if (variants.length === 1) {
-    const variant = variants[0]
+  if (prices.length === 1) {
+    const price = prices[0]
     return (
       <div className="flex items-center gap-3">
-        {variant.priceType === PriceType.Subscription ? (
+        {price.type === PriceType.Subscription ? (
           <RotateCw size={16} strokeWidth={2} />
         ) : (
           <></>
         )}
         <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-            variant.currency,
-            variant.unitPrice
+            price.currency,
+            price.unitPrice
           )}{' '}
-          {variant.priceType === PriceType.Subscription
-            ? `/ ${variant.intervalUnit}`
+          {price.type === PriceType.Subscription
+            ? `/ ${price.intervalUnit}`
             : null}
         </div>
       </div>
@@ -35,7 +31,7 @@ const PricingCellView = ({
   }
   return (
     <div className="flex items-center gap-3">
-      {variants.length} Prices
+      {prices.length} Prices
     </div>
   )
 }

@@ -9,7 +9,7 @@ import {
   stripeIntentMetadataSchema,
 } from '@/utils/stripe'
 import { NextRequest } from 'next/server'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { Purchase } from '@/db/schema/purchases'
 import { deleteCheckoutSessionCookie } from '@/utils/checkoutSessionState'
 import {
@@ -196,13 +196,13 @@ export const GET = async (request: NextRequest) => {
     }
 
     const purchaseId = purchase.id
-    const variantId = purchase.variantId
+    const priceId = purchase.priceId
     const { product } = await adminTransaction(
       async ({ transaction }) => {
         const [{ product }] =
-          await selectVariantProductAndOrganizationByVariantWhere(
+          await selectPriceProductAndOrganizationByPriceWhere(
             {
-              id: variantId,
+              id: priceId,
             },
             transaction
           )

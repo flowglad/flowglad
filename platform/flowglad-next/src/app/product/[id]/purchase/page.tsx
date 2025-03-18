@@ -8,7 +8,7 @@ import {
   BillingInfoCore,
   billingInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { selectDefaultVariantAndProductByProductId } from '@/db/tableMethods/variantMethods'
+import { selectDefaultPriceAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import {
   CheckoutFlowType,
   PriceType,
@@ -28,15 +28,15 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
   const { id } = await params
   const {
     product,
-    variant,
+    price,
     organization,
     checkoutSession,
     discount,
     feeCalculation,
     maybeCustomerProfile,
   } = await adminTransaction(async ({ transaction }) => {
-    const { product, variant } =
-      await selectDefaultVariantAndProductByProductId(id, transaction)
+    const { product, price } =
+      await selectDefaultPriceAndProductByProductId(id, transaction)
     if (!product.active) {
       // TODO: ERROR PAGE UI
       return {
@@ -50,14 +50,14 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
 
     /**
      * Attempt to get the saved purchase session (from cookies).
-     * If not found, or the variant id does not match, create a new purchase session
+     * If not found, or the price id does not match, create a new purchase session
      * and save it to cookies.
      */
     const checkoutSession = await findOrCreateCheckoutSession(
       {
         productId: product.id,
         organizationId: organization.id,
-        variant,
+        price,
         type: CheckoutSessionType.Product,
       },
       transaction
@@ -82,7 +82,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       : null
     return {
       product,
-      variant,
+      price,
       organization,
       checkoutSession,
       discount,
@@ -115,10 +115,10 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
   const billingInfo = billingInfoSchema.parse({
     checkoutSession,
     product,
-    variant,
+    price,
     sellerOrganization: organization,
     flowType:
-      variant.priceType === PriceType.SinglePayment
+      price.type === PriceType.SinglePayment
         ? CheckoutFlowType.SinglePayment
         : CheckoutFlowType.Subscription,
     redirectUrl: core.safeUrl(

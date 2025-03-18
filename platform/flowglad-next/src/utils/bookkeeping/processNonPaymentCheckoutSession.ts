@@ -7,7 +7,7 @@ import { DbTransaction } from '@/db/types'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectVariantById } from '@/db/tableMethods/variantMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { createInitialInvoiceForPurchase } from '@/utils/bookkeeping'
@@ -31,8 +31,8 @@ export const processNonPaymentCheckoutSession = async (
     )
   }
 
-  const variant = await selectVariantById(
-    checkoutSession.variantId,
+  const price = await selectPriceById(
+    checkoutSession.priceId,
     transaction
   )
 
@@ -42,7 +42,7 @@ export const processNonPaymentCheckoutSession = async (
         transaction
       )
     : null
-  const priceType = purchase?.priceType ?? variant.priceType
+  const priceType = purchase?.priceType ?? price.type
   if (priceType === PriceType.Subscription) {
     throw new Error(
       `Attempted to process a non-payment purchase session ${checkoutSession.id} for a subscription, which is currently not supported`

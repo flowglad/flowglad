@@ -17,7 +17,7 @@ const SubscribeButton = () => {
       onClick={() =>
         createCheckoutSession({
           autoRedirect: true,
-          variantId: catalog.products[0].variants[0].id,
+          priceId: catalog.products[0].variants[0].id,
           successUrl: `${window.location.origin}/success`,
           cancelUrl: `${window.location.origin}/cancel`
         })

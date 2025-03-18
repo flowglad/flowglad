@@ -39,7 +39,7 @@ import {
   SelectConditions,
 } from '@/db/tableUtils'
 import { selectCatalog } from '@/utils/catalog'
-import { variantsClientSelectSchema } from '@/db/schema/variants'
+import { pricesClientSelectSchema } from '@/db/schema/prices'
 import { productsClientSelectSchema } from '@/db/schema/products'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
@@ -266,7 +266,7 @@ export const getCustomerBilling = protectedProcedure
         products: z
           .object({
             product: productsClientSelectSchema,
-            variants: variantsClientSelectSchema.array(),
+            prices: pricesClientSelectSchema.array(),
           })
           .array(),
       }),

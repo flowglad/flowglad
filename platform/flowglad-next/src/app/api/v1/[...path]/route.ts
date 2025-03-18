@@ -13,7 +13,7 @@ import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
 import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
 import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
-import { variantsRouteConfigs } from '@/server/routers/variantsRouter'
+import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
 const parseErrorMessage = (rawMessage: string) => {
@@ -29,7 +29,7 @@ const parseErrorMessage = (rawMessage: string) => {
 const routeConfigs = [
   ...subscriptionsRouteConfigs,
   ...checkoutSessionsRouteConfigs,
-  ...variantsRouteConfigs,
+  ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
 ]

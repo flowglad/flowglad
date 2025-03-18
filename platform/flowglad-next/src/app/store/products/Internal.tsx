@@ -7,7 +7,7 @@ import Button from '@/components/ion/Button'
 import { PageHeader } from '@/components/ion/PageHeader'
 import { Product } from '@/db/schema/products'
 import { CreateProductModal } from '@/components/forms/CreateProductModal'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { ProductsTable } from './ProductsTable'
 
 export enum FocusedTab {
@@ -19,7 +19,7 @@ export enum FocusedTab {
 type Props = {
   products: {
     product: Product.ClientRecord
-    variants: Variant.ClientRecord[]
+    prices: Price.ClientRecord[]
   }[]
 }
 

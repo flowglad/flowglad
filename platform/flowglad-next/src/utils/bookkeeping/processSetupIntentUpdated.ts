@@ -13,8 +13,8 @@ import Stripe from 'stripe'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
-import { Variant } from '@/db/schema/variants'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { Price } from '@/db/schema/prices'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
@@ -48,9 +48,9 @@ const processCheckoutSessionSetupIntent = async (
     )
   }
 
-  const [{ variant, product, organization }] =
-    await selectVariantProductAndOrganizationByVariantWhere(
-      { id: checkoutSession.variantId },
+  const [{ price, product, organization }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: checkoutSession.priceId },
       transaction
     )
 
@@ -72,7 +72,7 @@ const processCheckoutSessionSetupIntent = async (
   return {
     purchase,
     checkoutSession,
-    variant,
+    price,
     organization,
     product,
     customerProfile,
@@ -103,7 +103,7 @@ export const processSetupIntentUpdated = async (
     )
   }
   let organization: Organization.Record | null = null
-  let variant: Variant.Record | null = null
+  let price: Price.Record | null = null
   let purchase: Purchase.Record | null = null
   let customerProfile: CustomerProfile.Record | null = null
   const result = await processCheckoutSessionSetupIntent(
@@ -112,7 +112,7 @@ export const processSetupIntentUpdated = async (
   )
   const { product, checkoutSession } = result
   organization = result.organization
-  variant = result.variant
+  price = result.price
   purchase = result.purchase
   customerProfile = result.customerProfile
   const stripeCustomerId = setupIntent.customer
@@ -139,29 +139,29 @@ export const processSetupIntentUpdated = async (
     },
     transaction
   )
-  if (!variant.intervalUnit) {
-    throw new Error('Variant interval unit is required')
+  if (!price.intervalUnit) {
+    throw new Error('Price interval unit is required')
   }
-  if (!variant.intervalCount) {
-    throw new Error('Variant interval count is required')
+  if (!price.intervalCount) {
+    throw new Error('Price interval count is required')
   }
   await createSubscriptionWorkflow(
     {
       stripeSetupIntentId: setupIntent.id,
       defaultPaymentMethod: paymentMethod,
       organization,
-      variant,
+      price,
       customerProfile,
-      interval: variant.intervalUnit,
-      intervalCount: variant.intervalCount,
+      interval: price.intervalUnit,
+      intervalCount: price.intervalCount,
       /**
-       * If the variant has a trial period, set the trial end date to the
+       * If the price has a trial period, set the trial end date to the
        * end of the period.
        */
-      trialEnd: variant.trialPeriodDays
+      trialEnd: price.trialPeriodDays
         ? new Date(
             new Date().getTime() +
-              variant.trialPeriodDays * 24 * 60 * 60 * 1000
+              price.trialPeriodDays * 24 * 60 * 60 * 1000
           )
         : undefined,
       startDate: new Date(),

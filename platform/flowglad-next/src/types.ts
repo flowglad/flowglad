@@ -623,7 +623,7 @@ export type FileUploadData = {
 
 export enum Nouns {
   Product = 'product',
-  Variant = 'variant',
+  Price = 'price',
   CustomerProfile = 'customerProfile',
   Discount = 'discount',
   File = 'file',

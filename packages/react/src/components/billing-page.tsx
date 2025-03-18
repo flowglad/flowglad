@@ -42,7 +42,7 @@ const CurrentSubscriptionOrPricingTable = ({
         <SectionTitle>Current Subscription</SectionTitle>
         <CurrentSubscriptionCard
           currency={
-            currentSubscription.subscriptionItems[0].variant.currency
+            currentSubscription.subscriptionItems[0].price.currency
           }
           subscription={currentSubscription}
           subscriptionItems={currentSubscription.subscriptionItems}
@@ -62,13 +62,13 @@ const CurrentSubscriptionOrPricingTable = ({
         displayFeatures: item.product.displayFeatures,
         primaryButtonText: 'Subscribe',
         secondaryButtonText: 'Learn More',
-        variants: item.variants.map((variant) => ({
-          currency: variant.currency,
-          unitPrice: variant.unitPrice,
-          intervalCount: variant.intervalCount,
-          intervalUnit: variant.intervalUnit,
-          priceType: variant.priceType,
-          trialPeriodDays: variant.trialPeriodDays,
+        prices: item.prices.map((price) => ({
+          currency: price.currency,
+          unitPrice: price.unitPrice,
+          intervalCount: price.intervalCount,
+          intervalUnit: price.intervalUnit,
+          type: price.type,
+          trialPeriodDays: price.trialPeriodDays,
         })),
       }))}
     />

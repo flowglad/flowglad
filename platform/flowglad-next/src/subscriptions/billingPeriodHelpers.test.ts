@@ -41,7 +41,7 @@ import core from '@/utils/core'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 
 describe('Subscription Billing Period Transition', async () => {
-  const { organization, variant } = await setupOrg()
+  const { organization, price } = await setupOrg()
   let customerProfile: CustomerProfile.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -59,7 +59,7 @@ describe('Subscription Billing Period Transition', async () => {
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerProfileId: customerProfile.id,
-      variantId: variant.id,
+      priceId: price.id,
       paymentMethodId: paymentMethod.id,
       currentBillingPeriodEnd: new Date(Date.now() - 3000),
       currentBillingPeriodStart: new Date(
@@ -136,7 +136,7 @@ describe('Subscription Billing Period Transition', async () => {
       status: InvoiceStatus.Paid,
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
-      variantId: variant.id,
+      priceId: price.id,
     })
     await setupPayment({
       billingPeriodId: billingPeriod.id,
@@ -338,7 +338,7 @@ describe('Subscription Billing Period Transition', async () => {
       status: InvoiceStatus.Paid,
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
-      variantId: variant.id,
+      priceId: price.id,
     })
 
     await setupPayment({
@@ -447,7 +447,7 @@ describe('Subscription Billing Period Transition', async () => {
         },
         livemode: subscription.livemode,
         subscriptionId: subscription.id,
-        variantId: variant.id,
+        priceId: price.id,
         addedDate: new Date(),
         name: 'Test Item',
         createdAt: new Date(),

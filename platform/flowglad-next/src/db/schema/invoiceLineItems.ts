@@ -20,7 +20,7 @@ import {
   invoicesClientUpdateSchema,
   invoicesSelectSchema,
 } from './invoices'
-import { variants } from './variants'
+import { prices } from './prices'
 import core from '@/utils/core'
 
 export const TABLE_NAME = 'invoice_line_items'
@@ -31,14 +31,14 @@ export const invoiceLineItems = pgTable(
     ...tableBase('inv_li'),
     invoiceId: notNullStringForeignKey('invoice_id', invoices),
     quantity: integer('quantity').notNull(),
-    variantId: nullableStringForeignKey('variant_id', variants),
+    priceId: nullableStringForeignKey('price_id', prices),
     description: text('description'),
     price: integer('price').notNull(),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.invoiceId]),
-      constructIndex(TABLE_NAME, [table.variantId]),
+      constructIndex(TABLE_NAME, [table.priceId]),
       livemodePolicy(),
     ]
   }
@@ -64,7 +64,7 @@ export const invoiceLineItemsUpdateSchema = createUpdateSchema(
 const createOnlyColumns = {
   id: true,
   invoiceId: true,
-  variantId: true,
+  priceId: true,
 } as const
 const readonlyColumns = {
   livemode: true,

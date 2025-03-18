@@ -4,7 +4,7 @@ import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Purchase } from '@/db/schema/purchases'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import {
   CountryCode,
   CurrencyCode,
@@ -18,7 +18,7 @@ import { DbTransaction } from '@/db/types'
 import Stripe from 'stripe'
 import {
   createStripeTaxCalculationByPurchase,
-  createStripeTaxCalculationByVariant,
+  createStripeTaxCalculationByPrice,
 } from '../stripe'
 import { isNil, nanoid } from '../core'
 import {
@@ -44,23 +44,23 @@ export const calculateInvoiceBaseAmount = (
   }, 0)
 }
 
-export const calculateVariantBaseAmount = ({
-  variant,
+export const calculatePriceBaseAmount = ({
+  price,
   invoice,
   purchase,
 }: {
-  variant: Variant.Record
+  price: Price.Record
   invoice?: InvoiceWithLineItems | null
   purchase?: Purchase.ClientRecord | null
 }) => {
   if (!purchase && !invoice) {
-    return variant.unitPrice
+    return price.unitPrice
   }
   if (
     isNil(purchase?.firstInvoiceValue) &&
     isNil(purchase?.pricePerBillingCycle)
   ) {
-    return variant.unitPrice
+    return price.unitPrice
   }
   if (
     purchase.priceType === PriceType.SinglePayment &&
@@ -74,7 +74,7 @@ export const calculateVariantBaseAmount = ({
     return purchase.pricePerBillingCycle
   }
 
-  return variant.unitPrice
+  return price.unitPrice
 }
 
 export const calculateDiscountAmount = (
@@ -199,13 +199,13 @@ export const calculateTaxes = async ({
   discountInclusiveAmount,
   product,
   billingAddress,
-  variant,
+  price,
   purchase,
 }: {
   discountInclusiveAmount: number
   product: Product.Record
   billingAddress: BillingAddress
-  variant: Variant.Record
+  price: Price.Record
   purchase?: Purchase.Record
 }): Promise<
   Pick<
@@ -228,13 +228,13 @@ export const calculateTaxes = async ({
       purchase,
       billingAddress,
       discountInclusiveAmount,
-      variant,
+      price,
       product,
       livemode: product.livemode,
     })
   } else {
-    taxCalculation = await createStripeTaxCalculationByVariant({
-      variant,
+    taxCalculation = await createStripeTaxCalculationByPrice({
+      price,
       billingAddress,
       discountInclusiveAmount,
       product,
@@ -293,7 +293,7 @@ export const calculateTotalFeeAmount = (
 interface CheckoutSessionFeeCalculationParams {
   organization: Organization.Record
   product: Product.Record
-  variant: Variant.Record
+  price: Price.Record
   purchase?: Purchase.Record
   discount?: Discount.Record
   billingAddress: BillingAddress
@@ -305,7 +305,7 @@ interface CheckoutSessionFeeCalculationParams {
 export const createCheckoutSessionFeeCalculationInsert = async ({
   organization,
   product,
-  variant,
+  price,
   purchase,
   discount,
   billingAddress,
@@ -313,8 +313,8 @@ export const createCheckoutSessionFeeCalculationInsert = async ({
   organizationCountry,
   checkoutSessionId,
 }: CheckoutSessionFeeCalculationParams) => {
-  const baseAmount = calculateVariantBaseAmount({
-    variant,
+  const baseAmount = calculatePriceBaseAmount({
+    price,
     purchase,
   })
   const discountAmount = calculateDiscountAmount(baseAmount, discount)
@@ -349,7 +349,7 @@ export const createCheckoutSessionFeeCalculationInsert = async ({
       discountInclusiveAmount,
       product,
       billingAddress,
-      variant,
+      price,
       purchase,
     })
     taxAmountFixed = taxCalculation.taxAmountFixed
@@ -365,18 +365,18 @@ export const createCheckoutSessionFeeCalculationInsert = async ({
     internationalFeePercentage: internationalFeePercentage.toString(),
     paymentMethodFeeFixed,
     taxAmountFixed,
-    currency: variant.currency,
+    currency: price.currency,
     stripeTaxCalculationId,
     stripeTaxTransactionId,
     organizationId: organization.id,
     purchaseId: purchase?.id,
-    variantId: variant.id,
+    priceId: price.id,
     discountId: discount?.id,
     paymentMethodType,
     billingAddress,
     billingPeriodId: null,
     type: FeeCalculationType.CheckoutSessionPayment,
-    livemode: variant.livemode,
+    livemode: price.livemode,
   }
   return feeCalculationInsert
 }
@@ -453,7 +453,7 @@ const createSubscriptionFeeCalculationInsert = (
     //   discountInclusiveAmount,
     //   product,
     //   billingAddress,
-    //   variant,
+    //   price,
     //   purchase,
     // })
     taxAmountFixed = 0
@@ -465,7 +465,7 @@ const createSubscriptionFeeCalculationInsert = (
     type: FeeCalculationType.SubscriptionPayment,
     organizationId: organization.id,
     billingAddress: paymentMethod.billingDetails.address,
-    variantId: null,
+    priceId: null,
     checkoutSessionId: null,
     paymentMethodType: paymentMethod.type,
     discountAmountFixed: discountAmount,
@@ -556,7 +556,7 @@ export const finalizeFeeCalculation = async (
     id: feeCalculation.id,
     flowgladFeePercentage,
     type: feeCalculation.type,
-    variantId: feeCalculation.variantId,
+    priceId: feeCalculation.priceId,
     billingPeriodId: feeCalculation.billingPeriodId,
     checkoutSessionId: feeCalculation.checkoutSessionId,
     internalNotes: `Total processed month to date: ${totalProcessedMonthToDatePennies}; Calculated time: ${new Date().toISOString()}`,

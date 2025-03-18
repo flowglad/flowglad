@@ -10,7 +10,7 @@ export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchas
     intervalCount: 1,
     customerProfileId: '1',
     organizationId: '1',
-    variantId: '1',
+    priceId: '1',
     intervalUnit: IntervalUnit.Month,
     trialPeriodDays: 0,
     quantity: 1,

@@ -28,7 +28,7 @@ import {
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import {
   FeeCalculation,
@@ -56,7 +56,7 @@ import {
   upsertCustomerByEmail,
 } from '@/db/tableMethods/customerMethods'
 import { core } from '../core'
-import { projectVariantFieldsOntoPurchaseFields } from '../purchaseHelpers'
+import { projectPriceFieldsOntoPurchaseFields } from '../purchaseHelpers'
 import { Discount } from '@/db/schema/discounts'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { createInitialInvoiceForPurchase } from '../bookkeeping'
@@ -80,9 +80,9 @@ export const createFeeCalculationForCheckoutSession = async (
         transaction
       )
     : undefined
-  const [{ variant, product, organization }] =
-    await selectVariantProductAndOrganizationByVariantWhere(
-      { id: checkoutSession.variantId! },
+  const [{ price, product, organization }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: checkoutSession.priceId! },
       transaction
     )
   const organizationCountryId = organization.countryId
@@ -97,7 +97,7 @@ export const createFeeCalculationForCheckoutSession = async (
     {
       organization,
       product,
-      variant,
+      price,
       discount,
       checkoutSessionId: checkoutSession.id,
       billingAddress: checkoutSession.billingAddress,
@@ -247,9 +247,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
   },
   transaction: DbTransaction
 ) => {
-  const [{ variant, product }] =
-    await selectVariantProductAndOrganizationByVariantWhere(
-      { id: checkoutSession.variantId! },
+  const [{ price, product }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: checkoutSession.priceId! },
       transaction
     )
   let customerProfile: CustomerProfile.Record | null = null
@@ -340,14 +340,14 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     customerProfile = upsertResult[0]
   }
   if (!purchase) {
-    const purchaseVariantFields =
-      projectVariantFieldsOntoPurchaseFields(variant)
+    const purchasePriceFields =
+      projectPriceFieldsOntoPurchaseFields(price)
     const purchaseInsert = {
-      ...purchaseVariantFields,
+      ...purchasePriceFields,
       name: product.name,
       organizationId: product.organizationId,
       customerProfileId: customerProfile.id,
-      variantId: variant.id,
+      priceId: price.id,
       quantity: 1,
       billingAddress: checkoutSession.billingAddress,
       livemode: checkoutSession.livemode,
@@ -378,7 +378,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       id: feeCalculation.id,
       purchaseId: purchase.id,
       type: FeeCalculationType.CheckoutSessionPayment,
-      variantId: variant.id,
+      priceId: price.id,
       billingPeriodId: null,
     },
     transaction

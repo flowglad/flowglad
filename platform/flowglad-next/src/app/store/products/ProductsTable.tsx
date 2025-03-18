@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react'
 import Table from '@/components/ion/Table'
 import { Product } from '@/db/schema/products'
 import core from '@/utils/core'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
@@ -16,10 +16,9 @@ import EditProductModal from '@/components/forms/EditProductModal'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
-import CreateVariantModal from '@/components/forms/CreateVariantModal'
+import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import PricingCellView from '@/components/PricingCellView'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
-import { sentenceCase } from 'change-case'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 
 export enum FocusedTab {
@@ -31,14 +30,14 @@ export enum FocusedTab {
 type Props = {
   products: {
     product: Product.ClientRecord
-    variants: Variant.ClientRecord[]
+    prices: Price.ClientRecord[]
   }[]
 }
 
 interface ProductRow {
   totalRevenue: string
   monthToDateRevenue: string
-  variants: Variant.Record[]
+  prices: Price.Record[]
   product: Product.ClientRecord
 }
 
@@ -50,8 +49,7 @@ const MoreMenuCell = ({
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isCreateVariantOpen, setIsCreateVariantOpen] =
-    useState(false)
+  const [isCreatePriceOpen, setIsCreatePriceOpen] = useState(false)
   const text =
     typeof window !== 'undefined'
       ? `${window.location.origin}/product/${product.id}/purchase`
@@ -71,8 +69,8 @@ const MoreMenuCell = ({
   ]
   if (product.active) {
     items.push({
-      label: 'Create variant',
-      handler: () => setIsCreateVariantOpen(true),
+      label: 'Create price',
+      handler: () => setIsCreatePriceOpen(true),
     })
     items.push({
       label: 'Archive product',
@@ -95,16 +93,16 @@ const MoreMenuCell = ({
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
         product={product}
-        variants={[]}
+        prices={[]}
       />
       <DeleteProductModal
         onDelete={async () => {}}
         isOpen={isDeleteOpen}
         setIsOpen={setIsDeleteOpen}
       />
-      <CreateVariantModal
-        isOpen={isCreateVariantOpen}
-        setIsOpen={setIsCreateVariantOpen}
+      <CreatePriceModal
+        isOpen={isCreatePriceOpen}
+        setIsOpen={setIsCreatePriceOpen}
         productId={product.id}
       />
       <TableRowPopoverMenu items={items} />
@@ -157,9 +155,9 @@ export const ProductsTable = ({
               column={column}
             />
           ),
-          accessorKey: 'variants',
+          accessorKey: 'prices',
           cell: ({ row: { original: cellData } }) => (
-            <PricingCellView variants={cellData.variants} />
+            <PricingCellView prices={cellData.prices} />
           ),
         },
         {
@@ -212,7 +210,7 @@ export const ProductsTable = ({
             product: product.product,
             totalRevenue: '',
             monthToDateRevenue: '',
-            variants: product.variants,
+            prices: product.prices,
           }))}
           onClickRow={(row) => {
             router.push(`/store/products/${row.product.id}`)

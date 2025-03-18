@@ -28,7 +28,7 @@ import { toggleTestMode } from './mutations/toggleTestMode'
 import { getApiKeys } from './queries/getApiKeys'
 import { customerProfilesRouter } from './routers/customerProfilesRouter'
 import { productsRouter } from './routers/productsRouter'
-import { variantsRouter } from './routers/variantsRouter'
+import { pricesRouter } from './routers/pricesRouter'
 import { checkoutSessionsRouter } from './routers/checkoutSessionsRouter'
 import { subscriptionsRouter } from './routers/subscriptionsRouter'
 import { paymentsRouter } from './routers/paymentsRouter'
@@ -74,7 +74,7 @@ export const appRouter = router({
   payments: paymentsRouter,
   checkoutSessions: checkoutSessionsRouter,
   products: productsRouter,
-  variants: variantsRouter,
+  prices: pricesRouter,
   purchases: purchasesRouter,
   customerProfiles: customerProfilesRouter,
   organizations: organizationsRouter,

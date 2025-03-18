@@ -58,7 +58,7 @@ const PostPurchasePage = async ({
       const {
         purchase,
         product,
-        variant,
+        price,
         organization,
         customerProfile,
       } = await selectPurchaseCheckoutParametersById(
@@ -70,7 +70,7 @@ const PostPurchasePage = async ({
         purchaseAccessSession,
         purchase,
         product,
-        variant,
+        price,
         organization,
         customerProfile,
       }

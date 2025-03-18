@@ -1,39 +1,39 @@
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { createVariantSchema } from '@/db/schema/variants'
+import { createPriceSchema } from '@/db/schema/prices'
 import {
-  insertVariant,
-  selectVariants,
-  updateVariant,
-} from '@/db/tableMethods/variantMethods'
+  insertPrice,
+  selectPrices,
+  updatePrice,
+} from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { upsertStripePriceFromVariant } from '@/utils/stripe'
+import { upsertStripePriceFromPrice } from '@/utils/stripe'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 
-export const createVariant = protectedProcedure
-  .input(createVariantSchema)
+export const createPrice = protectedProcedure
+  .input(createPriceSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, userId }) => {
-        const { variant } = input
+        const { price } = input
 
-        // Get all variants for this product to validate default price constraint
-        const existingVariants = await selectVariants(
-          { productId: variant.productId },
+        // Get all prices for this product to validate default price constraint
+        const existingPrices = await selectPrices(
+          { productId: price.productId },
           transaction
         )
 
-        // If we're setting this variant as default, ensure no other variants are default
-        const defaultVariants = [...existingVariants, variant].filter(
+        // If we're setting this price as default, ensure no other prices are default
+        const defaultPrices = [...existingPrices, price].filter(
           (v) => v.isDefault
         )
 
-        if (defaultVariants.length !== 1) {
+        if (defaultPrices.length !== 1) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
-              'There must be exactly one default variant per product',
+              'There must be exactly one default price per product',
           })
         }
         const focusedMembership =
@@ -41,29 +41,29 @@ export const createVariant = protectedProcedure
             userId,
             transaction
           )
-        const newVariant = await insertVariant(
+        const newPrice = await insertPrice(
           {
-            ...variant,
+            ...price,
             currency: focusedMembership.organization.defaultCurrency,
             stripePriceId: null,
           },
           transaction
         )
         const [product] = await selectProducts(
-          { id: variant.productId },
+          { id: price.productId },
           transaction
         )
-        const stripePrice = await upsertStripePriceFromVariant({
-          variant: newVariant,
+        const stripePrice = await upsertStripePriceFromPrice({
+          price: newPrice,
           productStripeId: product.stripeProductId!,
           livemode: product.livemode,
         })
-        await updateVariant(
-          { ...newVariant, stripePriceId: stripePrice.id },
+        await updatePrice(
+          { ...newPrice, stripePriceId: stripePrice.id },
           transaction
         )
         return {
-          data: newVariant,
+          data: newPrice,
         }
       }
     )

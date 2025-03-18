@@ -40,7 +40,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 
 describe('adjustSubscription Integration Tests', async () => {
-  const { organization, variant } = await setupOrg()
+  const { organization, price } = await setupOrg()
   let customerProfile: CustomerProfile.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -48,7 +48,7 @@ describe('adjustSubscription Integration Tests', async () => {
   let subscriptionItemCore: Pick<
     SubscriptionItem.Record,
     | 'subscriptionId'
-    | 'variantId'
+    | 'priceId'
     | 'name'
     | 'quantity'
     | 'unitPrice'
@@ -70,7 +70,7 @@ describe('adjustSubscription Integration Tests', async () => {
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerProfileId: customerProfile.id,
-      variantId: variant.id,
+      priceId: price.id,
       paymentMethodId: paymentMethod.id,
       currentBillingPeriodEnd: new Date(Date.now() - 3000),
       currentBillingPeriodStart: new Date(
@@ -96,7 +96,7 @@ describe('adjustSubscription Integration Tests', async () => {
     })
     subscriptionItemCore = {
       subscriptionId: subscription.id,
-      variantId: variant.id,
+      priceId: price.id,
       name: 'Item 1',
       quantity: 1,
       unitPrice: 100,
@@ -119,7 +119,7 @@ describe('adjustSubscription Integration Tests', async () => {
         organizationId: organization.id,
         customerProfileId: customerProfile.id,
         paymentMethodId: paymentMethod.id,
-        variantId: variant.id,
+        priceId: price.id,
       })
       await adminTransaction(async ({ transaction }) => {
         // Create a billing period so that later steps have data.
@@ -430,7 +430,7 @@ describe('adjustSubscription Integration Tests', async () => {
             livemode: subscription.livemode,
             metadata: null,
             addedDate: new Date(),
-            variantId: subscription.variantId,
+            priceId: subscription.priceId,
           },
         ]
 
@@ -551,7 +551,7 @@ describe('adjustSubscription Integration Tests', async () => {
             metadata: null,
             addedDate: new Date(),
             subscriptionId: subscription.id,
-            variantId: subscription.variantId,
+            priceId: subscription.priceId,
           },
         ]
 
@@ -875,7 +875,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 name: 'Item',
                 quantity: 1,
                 unitPrice: 100,
-                variantId: 'invalid_variant_id',
+                priceId: 'invalid_price_id',
               },
             ]
             await adjustSubscription(

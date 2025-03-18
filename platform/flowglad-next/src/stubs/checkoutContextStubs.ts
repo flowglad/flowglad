@@ -4,7 +4,7 @@ import {
 } from '@/stubs/purchaseStubs'
 import { dummyProduct } from '@/stubs/productStubs'
 import { dummyOrganization } from '@/stubs/organizationStubs'
-import { subscriptionDummyVariant } from '@/stubs/variantStubs'
+import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import {
   CheckoutFlowType,
   CurrencyCode,
@@ -28,7 +28,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   id: '1',
   createdAt: new Date(),
   updatedAt: new Date(),
-  variantId: '1',
+  priceId: '1',
   invoiceId: null,
   status: CheckoutSessionStatus.Pending,
   organizationId: '1',
@@ -65,7 +65,7 @@ export const subscriptionCheckoutPageContextValuesWithTrial: CheckoutPageContext
     currency: CurrencyCode.USD,
     product: dummyProduct,
     purchase: subscriptionWithTrialDummyPurchase,
-    variant: subscriptionDummyVariant,
+    price: subscriptionDummyPrice,
     sellerOrganization: dummyOrganization,
     flowType: CheckoutFlowType.Subscription,
     redirectUrl: 'https://google.com',
@@ -80,7 +80,7 @@ export const subscriptionCheckoutPageContextValuesWithoutTrial: CheckoutPageCont
     currency: CurrencyCode.USD,
     product: dummyProduct,
     purchase: subscriptionWithoutTrialDummyPurchase,
-    variant: subscriptionDummyVariant,
+    price: subscriptionDummyPrice,
     sellerOrganization: dummyOrganization,
     flowType: CheckoutFlowType.Subscription,
     redirectUrl: 'https://google.com',

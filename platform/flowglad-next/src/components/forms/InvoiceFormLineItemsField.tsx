@@ -66,7 +66,7 @@ export const InvoiceFormLineItemsField = () => {
       description: '',
       quantity: 1,
       price: 0,
-      variantId: null,
+      priceId: null,
     }
     append(newItem)
   }

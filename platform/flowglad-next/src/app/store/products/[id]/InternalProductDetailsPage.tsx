@@ -3,7 +3,7 @@
 'use client'
 import Button from '@/components/ion/Button'
 import { PageHeader } from '@/components/ion/PageHeader'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { Clipboard, Eye } from 'lucide-react'
 import ProductOverviewTabView from './ProductOverviewTabView'
 import { Product } from '@/db/schema/products'
@@ -11,13 +11,13 @@ import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 
 export type InternalProductDetailsPageProps = {
   product: Product.Record
-  variants: Variant.Record[]
+  prices: Price.Record[]
 }
 
 function InternalProductDetailsPage(
   props: InternalProductDetailsPageProps
 ) {
-  const { product, variants } = props
+  const { product, prices } = props
   const productURL = `${
     window ? window.location.origin : 'https://app.flowglad.com'
   }/product/${product.id}/purchase`
@@ -58,7 +58,7 @@ function InternalProductDetailsPage(
                   Component: () => (
                     <ProductOverviewTabView
                       product={product}
-                      variants={variants}
+                      prices={prices}
                     />
                   ),
                 },

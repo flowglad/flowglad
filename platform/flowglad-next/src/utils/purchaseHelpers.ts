@@ -3,7 +3,7 @@ import {
   Purchase,
   purchasesInsertSchema,
 } from '@/db/schema/purchases'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { PriceType, PurchaseStatus } from '@/types'
 import {
   BulkImportCustomerProfilesInput,
@@ -15,8 +15,8 @@ import {
 } from '@/db/schema/customers'
 import core from './core'
 
-export const projectVariantFieldsOntoPurchaseFields = (
-  variant: Variant.Record
+export const projectPriceFieldsOntoPurchaseFields = (
+  price: Price.Record
 ): Pick<
   Purchase.Insert,
   | 'intervalUnit'
@@ -49,22 +49,20 @@ export const projectVariantFieldsOntoPurchaseFields = (
     pricePerBillingCycle: null,
     trialPeriodDays: null,
   }
-  if (variant?.priceType == PriceType.Subscription) {
+  if (price?.type == PriceType.Subscription) {
     enhancements = {
-      intervalUnit: variant.intervalUnit,
-      intervalCount: variant.intervalCount,
-      pricePerBillingCycle: variant.unitPrice,
-      trialPeriodDays: variant.trialPeriodDays ?? 0,
-      firstInvoiceValue: variant.trialPeriodDays
-        ? 0
-        : variant.unitPrice,
+      intervalUnit: price.intervalUnit,
+      intervalCount: price.intervalCount,
+      pricePerBillingCycle: price.unitPrice,
+      trialPeriodDays: price.trialPeriodDays ?? 0,
+      firstInvoiceValue: price.trialPeriodDays ? 0 : price.unitPrice,
       totalPurchaseValue: null,
       priceType: PriceType.Subscription,
     } as const
-  } else if (variant?.priceType == PriceType.SinglePayment) {
+  } else if (price?.type == PriceType.SinglePayment) {
     enhancements = {
-      firstInvoiceValue: variant.unitPrice,
-      totalPurchaseValue: variant.unitPrice,
+      firstInvoiceValue: price.unitPrice,
+      totalPurchaseValue: price.unitPrice,
       ...nulledSubsriptionFields,
       priceType: PriceType.SinglePayment,
     } as const
@@ -79,17 +77,17 @@ export const createManualPurchaseInsert = ({
   organizationId,
 }: {
   customerProfile: CustomerProfile.Record
-  variant: Variant.Record
+  variant: Price.Record
   organizationId: string
 }) => {
-  const enhancements = projectVariantFieldsOntoPurchaseFields(variant)
+  const enhancements = projectPriceFieldsOntoPurchaseFields(variant)
   const purchaseInsert = purchasesInsertSchema.parse({
     customerProfileId: customerProfile.id,
-    variantId: variant.id,
+    priceId: variant.id,
     organizationId,
     status: PurchaseStatus.Paid,
     name: `${variant.name} - ${customerProfile.name}`,
-    priceType: variant.priceType,
+    type: variant.type,
     quantity: 1,
     firstInvoiceValue: 0,
     totalPurchaseValue: 0,

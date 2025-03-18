@@ -28,8 +28,8 @@ import {
   richSubscriptionClientSelectSchema,
   RichSubscriptionItem,
 } from '@/subscriptions/schemas'
-import { variantsClientSelectSchema } from '../schema/variants'
-import { variants } from '../schema/variants'
+import { pricesClientSelectSchema } from '../schema/prices'
+import { prices } from '../schema/prices'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItems,
@@ -147,14 +147,14 @@ export const selectRichSubscriptions = async (
     .select({
       subscriptionItems: subscriptionItems,
       subscription: subscriptions,
-      variant: variants,
+      price: prices,
     })
     .from(subscriptionItems)
     .innerJoin(
       subscriptions,
       eq(subscriptionItems.subscriptionId, subscriptions.id)
     )
-    .innerJoin(variants, eq(subscriptionItems.variantId, variants.id))
+    .innerJoin(prices, eq(subscriptionItems.priceId, prices.id))
     .where(whereClauseFromObject(subscriptions, whereConditions))
 
   const subscriptionItemsBysubscriptionId = result.reduce(
@@ -168,7 +168,7 @@ export const selectRichSubscriptions = async (
       }
       acc.get(subscriptionId)?.subscriptionItems.push({
         ...subscriptionItemsSelectSchema.parse(row.subscriptionItems),
-        variant: variantsClientSelectSchema.parse(row.variant),
+        price: pricesClientSelectSchema.parse(row.price),
       })
       return acc
     },

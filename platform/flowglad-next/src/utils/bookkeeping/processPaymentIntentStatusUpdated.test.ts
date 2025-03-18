@@ -41,7 +41,7 @@ import core from '../core'
  */
 describe('Process payment intent status updated', async () => {
   let payment: Payment.Record
-  const { organization, variant } = await setupOrg()
+  const { organization, price } = await setupOrg()
   let customerProfile: CustomerProfile.Record
   let invoice: Invoice.Record
   beforeEach(async () => {
@@ -51,7 +51,7 @@ describe('Process payment intent status updated', async () => {
     invoice = await setupInvoice({
       customerProfileId: customerProfile.id,
       organizationId: organization.id,
-      variantId: variant.id,
+      priceId: price.id,
     })
     payment = await setupPayment({
       stripeChargeId: `ch123_${invoice.id}`,
@@ -150,7 +150,7 @@ describe('Process payment intent status updated', async () => {
         customerProfileId: customerProfile.id,
         organizationId: organization.id,
         livemode: true,
-        variantId: variant.id,
+        priceId: price.id,
       })
       const updatedPayment = {
         ...fakePayment,
@@ -507,7 +507,7 @@ describe('Process payment intent status updated', async () => {
       const invoice = await setupInvoice({
         organizationId: organization.id,
         customerProfileId: customerProfile.id,
-        variantId: variant.id,
+        priceId: price.id,
       })
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
@@ -588,7 +588,7 @@ describe('Process payment intent status updated', async () => {
           livemode: true,
           customerProfileId: customerProfile.id,
           paymentMethodId: paymentMethod.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         const billingPeriod = await setupBillingPeriod({
           subscriptionId: subscription.id,
@@ -609,7 +609,7 @@ describe('Process payment intent status updated', async () => {
           billingPeriodId: billingPeriod.id,
           livemode: true,
           customerProfileId: customerProfile.id,
-          variantId: variant.id,
+          priceId: price.id,
         })
         const fakePI: any = {
           id: 'pi_br',

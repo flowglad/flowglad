@@ -8,7 +8,7 @@ import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 
 function InternalCustomerDetailsScreen({
   customer,
@@ -22,7 +22,7 @@ function InternalCustomerDetailsScreen({
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
-  variants: Variant.ClientRecord[]
+  prices: Price.ClientRecord[]
 }) {
   return (
     <div className="h-full flex justify-between items-center gap-2.5">

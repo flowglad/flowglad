@@ -18,7 +18,7 @@ import { and, lte, gte, eq, desc } from 'drizzle-orm'
 import { SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { customerProfiles } from '../schema/customerProfiles'
-import { variants } from '../schema/variants'
+import { prices } from '../schema/prices'
 import { products } from '../schema/products'
 
 const config: ORMMethodCreatorConfig<
@@ -115,7 +115,7 @@ export const selectSubscriptionsTableRowData = async (
     .select({
       subscription: subscriptions,
       customerProfile: customerProfiles,
-      variant: variants,
+      price: prices,
       product: products,
     })
     .from(subscriptions)
@@ -123,8 +123,8 @@ export const selectSubscriptionsTableRowData = async (
       customerProfiles,
       eq(subscriptions.customerProfileId, customerProfiles.id)
     )
-    .innerJoin(variants, eq(subscriptions.variantId, variants.id))
-    .innerJoin(products, eq(variants.productId, products.id))
+    .innerJoin(prices, eq(subscriptions.priceId, prices.id))
+    .innerJoin(products, eq(prices.productId, products.id))
     .where(eq(subscriptions.organizationId, organizationId))
     .orderBy(desc(subscriptions.createdAt))
 

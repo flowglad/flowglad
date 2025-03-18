@@ -20,7 +20,7 @@ import {
   checkoutSessionsPaginatedSelectSchema,
 } from '@/db/schema/checkoutSessions'
 import { generateOpenApiMetas } from '@/utils/openapi'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
   createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,
@@ -40,9 +40,9 @@ const createCheckoutSessionSchema = z.object({
     .describe(
       'The id of the CustomerProfile for this purchase session, as defined in your system'
     ),
-  variantId: z
+  priceId: z
     .string()
-    .describe('The ID of the variant the customer shall purchase'),
+    .describe('The ID of the price the customer shall purchase'),
   successUrl: z
     .string()
     .describe(
@@ -85,9 +85,9 @@ export const createCheckoutSession = protectedProcedure
             message: `Customer profile not found for externalId: ${input.customerProfileExternalId}`,
           })
         }
-        const [{ variant, product, organization }] =
-          await selectVariantProductAndOrganizationByVariantWhere(
-            { id: input.variantId },
+        const [{ price, product, organization }] =
+          await selectPriceProductAndOrganizationByPriceWhere(
+            { id: input.priceId },
             transaction
           )
         // NOTE: invoice and purchase purchase sessions
@@ -95,7 +95,7 @@ export const createCheckoutSession = protectedProcedure
         const checkoutSession = await insertCheckoutSession(
           {
             customerProfileId: customerProfile.id,
-            variantId: input.variantId,
+            priceId: input.priceId,
             organizationId,
             customerEmail: customerProfile.email,
             customerName: customerProfile.name,
@@ -111,19 +111,19 @@ export const createCheckoutSession = protectedProcedure
 
         let stripeSetupIntentId: string | null = null
         let stripePaymentIntentId: string | null = null
-        if (variant.priceType === PriceType.Subscription) {
+        if (price.type === PriceType.Subscription) {
           const stripeSetupIntent =
             await createSetupIntentForCheckoutSession({
-              variant,
+              price,
               product,
               organization,
               checkoutSession,
             })
           stripeSetupIntentId = stripeSetupIntent.id
-        } else if (variant.priceType === PriceType.SinglePayment) {
+        } else if (price.type === PriceType.SinglePayment) {
           const stripePaymentIntent =
             await createPaymentIntentForCheckoutSession({
-              variant,
+              price,
               product,
               organization,
               checkoutSession,
@@ -136,7 +136,7 @@ export const createCheckoutSession = protectedProcedure
             stripeSetupIntentId,
             stripePaymentIntentId,
             invoiceId: null,
-            variantId: input.variantId,
+            priceId: input.priceId,
             type: CheckoutSessionType.Product,
           },
           transaction

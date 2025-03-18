@@ -196,7 +196,7 @@ export class FlowgladServer {
     }
     return this.flowgladNode.checkoutSessions.create({
       customerProfileExternalId: session.externalId,
-      variantId: params.variantId,
+      priceId: params.priceId,
       successUrl: params.successUrl,
       cancelUrl: params.cancelUrl,
     })

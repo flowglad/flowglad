@@ -48,8 +48,8 @@ import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { billingAddressSchema, Customer } from '@/db/schema/customers'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import { selectVariantById } from '@/db/tableMethods/variantMethods'
-import { selectVariantProductAndOrganizationByVariantWhere } from '@/db/tableMethods/variantMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
   bulkUpdateCheckoutSessions,
   selectOpenNonExpiredCheckoutSessions,
@@ -152,10 +152,10 @@ export const createInitialInvoiceForPurchase = async (
     purchase.customerProfileId,
     transaction
   )
-  const { customerProfileId, organizationId, variantId } = purchase
-  const [{ variant, organization }] =
-    await selectVariantProductAndOrganizationByVariantWhere(
-      { id: variantId },
+  const { customerProfileId, organizationId, priceId } = purchase
+  const [{ price, organization }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: priceId },
       transaction
     )
   if (existingInvoice) {
@@ -175,18 +175,18 @@ export const createInitialInvoiceForPurchase = async (
 
   const invoiceLineItemInput: InvoiceLineItem.Insert = {
     invoiceId: '1',
-    variantId,
+    priceId,
     description: `${purchase.name} First Invoice`,
     quantity: 1,
     price: purchase.firstInvoiceValue!,
     livemode: purchase.livemode,
   }
-  if ([PriceType.SinglePayment].includes(variant.priceType)) {
+  if ([PriceType.SinglePayment].includes(price.type)) {
     invoiceLineItemInput.quantity = 1
     invoiceLineItemInput.price = purchase.firstInvoiceValue!
   }
   const trialPeriodDays = core.isNil(purchase.trialPeriodDays)
-    ? variant.trialPeriodDays
+    ? price.trialPeriodDays
     : purchase.trialPeriodDays
   if (trialPeriodDays) {
     invoiceLineItemInput.description = `${purchase.name} - Trial Period`
@@ -213,7 +213,7 @@ export const createInitialInvoiceForPurchase = async (
       customerProfile.invoiceNumberBase ?? '',
       invoicesForcustomerProfileId.length
     ),
-    currency: variant.currency,
+    currency: price.currency,
     type: InvoiceType.Purchase,
     billingPeriodId: null,
     subtotal,
@@ -271,9 +271,9 @@ export const createOpenPurchase = async (
     transaction
   )
   const membershipsAndOrganization = results[0]
-  const [{ variant }] =
-    await selectVariantProductAndOrganizationByVariantWhere(
-      { id: payload.variantId },
+  const [{ price }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: payload.priceId },
       transaction
     )
 
@@ -295,7 +295,7 @@ export const createOpenPurchase = async (
    * For subscription purchases, we need to create a Stripe subscription
    * and then create an invoice for the payment.
    */
-  if (variant.priceType === PriceType.Subscription) {
+  if (price.type === PriceType.Subscription) {
     if (!customerProfile.stripeCustomerId) {
       const stripeCustomer = await createStripeCustomer({
         email: customerProfile.email!,
@@ -318,7 +318,7 @@ export const createOpenPurchase = async (
    * that invoice's payment intent id the purchase's payment intent id
    * Subscriptions need to have their invoices created AFTER the subscription is created
    */
-  if (variant.priceType === PriceType.SinglePayment) {
+  if (price.type === PriceType.SinglePayment) {
     const { invoice, invoiceLineItems } =
       await createInitialInvoiceForPurchase(
         {
@@ -351,7 +351,7 @@ export const purchaseSubscriptionFieldsUpdated = (
   purchase: Purchase.Record,
   payload: Purchase.Update
 ) => {
-  const variantUpdated = payload.variantId !== purchase.variantId
+  const priceUpdated = payload.priceId !== purchase.priceId
   const trialPeriodDaysUpdated =
     payload.trialPeriodDays !== purchase.trialPeriodDays
   const pricePerBillingCycleUpdated =
@@ -362,7 +362,7 @@ export const purchaseSubscriptionFieldsUpdated = (
     payload.intervalCount !== purchase.intervalCount
 
   return (
-    variantUpdated ||
+    priceUpdated ||
     trialPeriodDaysUpdated ||
     pricePerBillingCycleUpdated ||
     intervalUnitUpdated ||
@@ -382,8 +382,8 @@ export const editOpenPurchase = async (
   if (!oldPurchase) {
     throw new Error(`Purchase ${payload.id} not found`)
   }
-  const newVariant = await selectVariantById(
-    payload.variantId ?? oldPurchase.variantId,
+  const newPrice = await selectPriceById(
+    payload.priceId ?? oldPurchase.priceId,
     transaction
   )
   const purchase = await updatePurchase(payload, transaction)
@@ -397,16 +397,16 @@ export const editOpenPurchase = async (
     ? oldPurchase.bankPaymentOnly
     : payload.bankPaymentOnly
 
-  if (newVariant.priceType === PriceType.Subscription) {
-    const oldVariant = await selectVariantById(
-      oldPurchase.variantId,
+  if (newPrice.type === PriceType.Subscription) {
+    const oldPrice = await selectPriceById(
+      oldPurchase.priceId,
       transaction
     )
     /**
-     * If the old variant was not a subscription, we need to delete the open invoices
+     * If the old price was not a subscription, we need to delete the open invoices
      * because they are no longer valid.
      */
-    if (oldVariant.priceType !== PriceType.Subscription) {
+    if (oldPrice.type !== PriceType.Subscription) {
       await deleteOpenInvoicesForPurchase(oldPurchase.id, transaction)
     }
   } else {

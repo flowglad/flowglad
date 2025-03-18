@@ -1,4 +1,4 @@
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { cookies } from 'next/headers'
 import {
   selectCheckoutSessions,
@@ -47,13 +47,13 @@ const invoiceCheckoutSessionCookieNameParamsSchema = z.object({
  * SUBTLE CODE ALERT:
  * The order of z.union matters here!
  *
- * We want to prioritize the purchase id over the variant id,
+ * We want to prioritize the purchase id over the price id,
  * so that we can delete the purchase session cookie when the purchase is confirmed.
  * z.union is like "or" in natural language:
- * If you pass it an object with both a purchaseId and a variantId,
- * it will choose the purchaseId and OMIT the variantId.
+ * If you pass it an object with both a purchaseId and a priceId,
+ * it will choose the purchaseId and OMIT the priceId.
  *
- * We actually want this because open purchases are more strict versions than variants
+ * We actually want this because open purchases are more strict versions than prices
  *
  */
 export const checkoutSessionCookieNameParamsSchema =
@@ -97,8 +97,8 @@ const checkoutSessionName = (
 
 /**
  * We must support multiple purchase session cookies on the client,
- * one for each variant. Otherwise, the client will not be able to
- * tell which purchase session corresponds to which variant.
+ * one for each price. Otherwise, the client will not be able to
+ * tell which purchase session corresponds to which price.
  *
  * Purchase sessions are used to manage the state
  * between the checkout and the purchase confirmation pages.
@@ -162,23 +162,23 @@ export const findInvoiceCheckoutSession = async (
 
 export const createNonInvoiceCheckoutSession = async (
   {
-    variant,
+    price,
     purchase,
     organizationId,
   }: {
-    variant: Variant.Record
+    price: Price.Record
     purchase?: Purchase.Record
     organizationId: string
   },
   transaction: DbTransaction
 ) => {
   const checkoutSessionInsertCore = {
-    variantId: variant.id,
+    priceId: price.id,
     status: CheckoutSessionStatus.Open,
     expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
     organizationId,
-    livemode: variant.livemode,
-    productId: variant.productId,
+    livemode: price.livemode,
+    productId: price.productId,
   } as const
 
   const purchaseSesionInsert: CheckoutSession.Insert = purchase
@@ -203,7 +203,7 @@ export const createNonInvoiceCheckoutSession = async (
     transaction
   )
   const product = await selectProductById(
-    variant.productId,
+    price.productId,
     transaction
   )
 
@@ -215,9 +215,9 @@ export const createNonInvoiceCheckoutSession = async (
    * - It's livemode AND payouts are enabled
    */
   if (!checkoutSession.livemode || organization.payoutsEnabled) {
-    if (variant.priceType === PriceType.Subscription) {
+    if (price.type === PriceType.Subscription) {
       const setupIntent = await createSetupIntentForCheckoutSession({
-        variant,
+        price,
         product,
         organization,
         checkoutSession,
@@ -227,7 +227,7 @@ export const createNonInvoiceCheckoutSession = async (
     } else {
       const paymentIntent =
         await createPaymentIntentForCheckoutSession({
-          variant,
+          price,
           product,
           purchase,
           checkoutSession,
@@ -253,13 +253,13 @@ export const findOrCreateCheckoutSession = async (
   {
     productId,
     organizationId,
-    variant,
+    price,
     purchase,
     type,
   }: {
     productId: string
     organizationId: string
-    variant: Variant.Record
+    price: Price.Record
     purchase?: Purchase.Record
     type: CheckoutSessionType.Product | CheckoutSessionType.Purchase
   },
@@ -275,10 +275,10 @@ export const findOrCreateCheckoutSession = async (
   )
   if (
     core.isNil(checkoutSession) ||
-    checkoutSession.variantId !== variant.id
+    checkoutSession.priceId !== price.id
   ) {
     return createNonInvoiceCheckoutSession(
-      { variant, organizationId, purchase },
+      { price, organizationId, purchase },
       transaction
     )
   }
@@ -312,7 +312,7 @@ const createInvoiceCheckoutSession = async (
       customerName: customerProfile.name,
       livemode: invoice.livemode,
       purchaseId: null,
-      variantId: null,
+      priceId: null,
     },
     transaction
   )
@@ -383,7 +383,7 @@ export const setCheckoutSessionCookie = async (
 
 /**
  * Attempt to delete the purchase session cookie for each of the given params.
- * This strategy ensures we delete variant id
+ * This strategy ensures we delete price id
  * @param params
  */
 export const deleteCheckoutSessionCookie = async (params: {

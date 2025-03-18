@@ -4,7 +4,7 @@ import {
 } from '@/stubs/purchaseStubs'
 import { dummyProduct } from '@/stubs/productStubs'
 import { dummyOrganization } from '@/stubs/organizationStubs'
-import { subscriptionDummyVariant } from '@/stubs/variantStubs'
+import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import {
   CheckoutFlowType,
   CheckoutSessionStatus,
@@ -17,7 +17,7 @@ const checkoutSession: CheckoutSession.Record = {
   id: '1',
   createdAt: new Date(),
   updatedAt: new Date(),
-  variantId: '1',
+  priceId: '1',
   organizationId: '1',
   customerName: 'Test Customer',
   customerEmail: 'test@test.com',
@@ -52,7 +52,7 @@ const billingInfoDefaults = {
 export const subscriptionBillingInfoCoreWithTrial: BillingInfoCore = {
   product: dummyProduct,
   purchase: subscriptionWithTrialDummyPurchase,
-  variant: subscriptionDummyVariant,
+  price: subscriptionDummyPrice,
   sellerOrganization: dummyOrganization,
   flowType: CheckoutFlowType.Subscription,
   ...billingInfoDefaults,
@@ -62,7 +62,7 @@ export const subscriptionBillingInfoCoreWithoutTrial: BillingInfoCore =
   {
     product: dummyProduct,
     purchase: subscriptionWithoutTrialDummyPurchase,
-    variant: subscriptionDummyVariant,
+    price: subscriptionDummyPrice,
     sellerOrganization: dummyOrganization,
     flowType: CheckoutFlowType.Subscription,
     ...billingInfoDefaults,

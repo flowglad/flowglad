@@ -33,7 +33,7 @@ import {
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
 import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
-import { variants } from './variants'
+import { prices } from './prices'
 import { billingPeriods } from './billingPeriods'
 
 const TABLE_NAME = 'fee_calculations'
@@ -52,7 +52,7 @@ export const feeCalculations = pgTable(
     ),
     purchaseId: nullableStringForeignKey('purchase_id', purchases),
     discountId: nullableStringForeignKey('discount_id', discounts),
-    variantId: nullableStringForeignKey('variant_id', variants),
+    priceId: nullableStringForeignKey('price_id', prices),
     paymentMethodType: pgEnumColumn({
       enumName: 'PaymentMethodType',
       columnName: 'payment_method_type',
@@ -128,13 +128,13 @@ export const coreFeeCalculationsSelectSchema =
 const subscriptionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.SubscriptionPayment),
   checkoutSessionId: z.null(),
-  variantId: z.null(),
+  priceId: z.null(),
 }
 
 const checkoutSessionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.CheckoutSessionPayment),
   billingPeriodId: z.null(),
-  variantId: z.string(),
+  priceId: z.string(),
 }
 
 export const subscriptionPaymentFeeCalculationInsertSchema =
@@ -263,7 +263,7 @@ export const checkoutSessionFeeCalculationParametersChanged = ({
   const keys = [
     'billingAddress',
     'discountId',
-    'variantId',
+    'priceId',
     'paymentMethodType',
     'quantity',
   ] as const

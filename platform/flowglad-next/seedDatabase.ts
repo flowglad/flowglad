@@ -10,9 +10,9 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
-  insertVariant,
-  selectVariantById,
-} from '@/db/tableMethods/variantMethods'
+  insertPrice,
+  selectPriceById,
+} from '@/db/tableMethods/priceMethods'
 import { insertBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -41,9 +41,9 @@ import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
-import { Variant } from '@/db/schema/variants'
+import { Price } from '@/db/schema/prices'
 import { Purchase } from '@/db/schema/purchases'
-import { projectVariantFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
+import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
 import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
 import { Payment } from '@/db/schema/payments'
 import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
@@ -97,11 +97,11 @@ export const setupOrg = async () => {
       },
       transaction
     )
-    const variant = await insertVariant(
+    const price = await insertPrice(
       {
         productId: product.id,
-        name: 'Flowglad Test Product Variant',
-        priceType: PriceType.Subscription,
+        name: 'Flowglad Test Product Price',
+        type: PriceType.Subscription,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         livemode: true,
@@ -115,7 +115,7 @@ export const setupOrg = async () => {
       },
       transaction
     )
-    return { organization, product, variant }
+    return { organization, product, price }
   })
 }
 
@@ -196,7 +196,7 @@ export const teardownOrg = async ({
   await sql`DELETE FROM "BillingPeriods" WHERE subscriptionId IN (SELECT id FROM "Subscriptions" WHERE organizationId = ${organizationId})`
   await sql`DELETE FROM "Subscriptions" WHERE organizationId = ${organizationId}`
   await sql`DELETE FROM "CustomerProfiles" WHERE organizationId = ${organizationId}`
-  await sql`DELETE FROM "Variants" WHERE organizationId = ${organizationId}`
+  await sql`DELETE FROM "Prices" WHERE organizationId = ${organizationId}`
   await sql`DELETE FROM "Products" WHERE organizationId = ${organizationId}`
   await sql`DELETE FROM "Organizations" WHERE id = ${organizationId} CASCADE`
 }
@@ -205,7 +205,7 @@ export const setupSubscription = async (params: {
   organizationId: string
   customerProfileId: string
   paymentMethodId: string
-  variantId: string
+  priceId: string
   interval?: IntervalUnit
   intervalCount?: number
   livemode?: boolean
@@ -232,7 +232,7 @@ export const setupSubscription = async (params: {
         cancelScheduledAt: null,
         trialEnd: params.trialEnd ?? null,
         backupPaymentMethodId: null,
-        variantId: params.variantId,
+        priceId: params.priceId,
         interval: params.interval ?? IntervalUnit.Month,
         intervalCount: params.intervalCount ?? 1,
         metadata: {},
@@ -337,28 +337,27 @@ export const setupPurchase = async ({
   customerProfileId,
   organizationId,
   livemode,
-  variantId,
+  priceId,
 }: {
   customerProfileId: string
   organizationId: string
   livemode?: boolean
-  variantId: string
+  priceId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const variant = await selectVariantById(variantId, transaction)
-    const purchaseFields =
-      projectVariantFieldsOntoPurchaseFields(variant)
+    const price = await selectPriceById(priceId, transaction)
+    const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
     return insertPurchase(
       {
         customerProfileId,
         organizationId,
-        livemode: livemode ?? variant.livemode,
+        livemode: livemode ?? price.livemode,
         name: 'Test Purchase',
-        variantId: variant.id,
-        priceType: variant.priceType,
-        totalPurchaseValue: variant.unitPrice,
+        priceId: price.id,
+        priceType: price.type,
+        totalPurchaseValue: price.unitPrice,
         quantity: 1,
-        firstInvoiceValue: 1000,
+        firstInvoiceValue: price.unitPrice,
         ...purchaseFields,
       } as Purchase.Insert,
       transaction
@@ -372,7 +371,7 @@ export const setupInvoice = async ({
   organizationId,
   status = InvoiceStatus.Draft,
   livemode = true,
-  variantId,
+  priceId,
 }: {
   billingPeriodId?: string
   customerProfileId: string
@@ -380,7 +379,7 @@ export const setupInvoice = async ({
   status?: InvoiceStatus
   livemode?: boolean
   type?: InvoiceType
-  variantId: string
+  priceId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let billingPeriod: BillingPeriod.Record | null = null
@@ -395,7 +394,7 @@ export const setupInvoice = async ({
         customerProfileId,
         organizationId,
         livemode,
-        variantId,
+        priceId,
       })
       purchaseId = purchase.id
     }
@@ -517,7 +516,7 @@ export const setupSubscriptionItem = async ({
   name,
   quantity,
   unitPrice,
-  variantId,
+  priceId,
   addedDate,
   metadata,
 }: {
@@ -525,7 +524,7 @@ export const setupSubscriptionItem = async ({
   name: string
   quantity: number
   unitPrice: number
-  variantId?: string
+  priceId?: string
   addedDate?: Date
   removedDate?: Date
   metadata?: Record<string, any>
@@ -545,7 +544,7 @@ export const setupSubscriptionItem = async ({
         quantity,
         unitPrice,
         livemode: subscription.livemode,
-        variantId: variantId ?? subscription.variantId,
+        priceId: priceId ?? subscription.priceId,
         addedDate: addedDate ?? new Date(),
         metadata: metadata ?? {},
       },

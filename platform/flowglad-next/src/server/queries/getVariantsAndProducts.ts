@@ -1,9 +1,9 @@
 import { protectedProcedure } from '../trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { selectVariantsAndProductsForOrganization } from '@/db/tableMethods/variantMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 
-export const getVariantsAndProducts = protectedProcedure.query(
+export const getPricesAndProducts = protectedProcedure.query(
   async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, userId }) => {
@@ -15,7 +15,7 @@ export const getVariantsAndProducts = protectedProcedure.query(
             },
             transaction
           )
-        return selectVariantsAndProductsForOrganization(
+        return selectPricesAndProductsForOrganization(
           {
             active: true,
           },
