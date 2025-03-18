@@ -1,4 +1,3 @@
-import { Customer } from '@/db/schema/customers'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'

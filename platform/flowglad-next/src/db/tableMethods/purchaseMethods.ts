@@ -29,15 +29,8 @@ import {
 import {
   customerProfileClientInsertSchema,
   customerProfiles,
-  customerProfilesInsertSchema,
   customerProfilesSelectSchema,
 } from '../schema/customerProfiles'
-import {
-  billingAddressSchema,
-  customers,
-  customersInsertSchema,
-  customersSelectSchema,
-} from '../schema/customers'
 import {
   organizations,
   organizationsSelectSchema,

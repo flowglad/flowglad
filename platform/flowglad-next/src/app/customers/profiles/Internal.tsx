@@ -13,7 +13,6 @@ import {
   CustomerTableRowData,
   InferredCustomerProfileStatus,
 } from '@/db/schema/customerProfiles'
-import { Customer } from '@/db/schema/customers'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import core from '@/utils/core'
 import { useRouter } from 'next/navigation'

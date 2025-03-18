@@ -19,7 +19,6 @@ import {
   createPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
-import { customers, customersSelectSchema } from '../schema/customers'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { invoices } from '../schema/invoices'

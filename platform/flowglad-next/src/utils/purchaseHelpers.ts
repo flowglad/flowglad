@@ -6,10 +6,6 @@ import {
 import { Price } from '@/db/schema/prices'
 import { PriceType, PurchaseStatus } from '@/types'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import {
-  Customer,
-  customersInsertSchema,
-} from '@/db/schema/customers'
 import core from './core'
 
 export const projectPriceFieldsOntoPurchaseFields = (
@@ -104,7 +100,7 @@ interface CustomerCSVRow {
   last_name?: string
 }
 
-export const customerAndCustomerProfileInsertsFromCSV = async (
+export const customerProfileInsertsFromCSV = async (
   csvContent: string,
   organizationId: string,
   livemode: boolean
@@ -121,31 +117,6 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
     })
   })
 
-  const customerInserts: Customer.Insert[] = results.map(
-    (customer) => {
-      let name = customer.name
-      if (!name && customer.fullName) {
-        name = customer.fullName
-      }
-      if (!name && customer.firstName && customer.lastName) {
-        name = `${customer.firstName} ${customer.lastName}`
-      }
-      if (!name && customer.full_name) {
-        name = customer.full_name
-      }
-      if (!name && customer.first_name && customer.last_name) {
-        name = `${customer.first_name} ${customer.last_name}`
-      }
-      if (!name) {
-        name = ''
-      }
-      return customersInsertSchema.parse({
-        email: customer.email,
-        name,
-      })
-    }
-  )
-
   const customerProfileInserts: CustomerProfile.Insert[] =
     results.map((customer) => {
       return {
@@ -157,5 +128,5 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
       }
     })
 
-  return { customerInserts, customerProfileInserts }
+  return { customerProfileInserts }
 }

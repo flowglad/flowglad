@@ -13,7 +13,10 @@ import {
   createPaginatedListQuerySchema,
   nullableStringForeignKey,
 } from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
+import {
+  organizations,
+  billingAddressSchema,
+} from '@/db/schema/organizations'
 import { createInvoiceNumberBase } from '@/utils/core'
 import { z } from 'zod'
 import { users } from './users'
@@ -87,27 +90,6 @@ const nonClientEditableColumns = {
   ...hiddenColumns,
   ...readonlyColumns,
 } as const
-
-const billingAddressSchemaColumns = {
-  name: z.string(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  address: z.object({
-    line1: z.string(),
-    line2: z.string().nullable(),
-    city: z.string(),
-    state: z.string(),
-    postal_code: z.string(),
-    country: z.string(),
-  }),
-  phone: z.string().optional(),
-}
-
-export const billingAddressSchema = z.object(
-  billingAddressSchemaColumns
-)
-
-export type BillingAddress = z.infer<typeof billingAddressSchema>
 
 const zodSchemaEnhancementColumns = {
   billingAddress: billingAddressSchema.nullable(),

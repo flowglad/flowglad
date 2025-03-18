@@ -43,7 +43,7 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { CustomerProfile } from '@/db/schema/customerProfiles'
-import { billingAddressSchema, Customer } from '@/db/schema/customers'
+import { billingAddressSchema } from '@/db/schema/organizations'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
