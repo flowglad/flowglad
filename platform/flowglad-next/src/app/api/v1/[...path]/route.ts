@@ -8,7 +8,7 @@ import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs'
 import { ApiEnvironment } from '@/types'
 import { NextResponse } from 'next/server'
 import { trpcToRest, RouteConfig } from './trpcToRest'
-import { customerProfilesRouteConfigs } from '@/server/routers/customerProfilesRouter'
+import { customersRouteConfigs } from '@/server/routers/customersRouter'
 import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
 import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
@@ -43,7 +43,7 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 
 const routes: Record<string, RouteConfig> = {
   ...arrayRoutes,
-  ...customerProfilesRouteConfigs,
+  ...customersRouteConfigs,
   ...productsRouteConfigs,
   ...discountsRouteConfigs,
   ...trpcToRest('utils.ping'),

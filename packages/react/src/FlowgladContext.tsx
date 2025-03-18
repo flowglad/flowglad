@@ -14,8 +14,8 @@ import { FlowgladTheme } from './FlowgladTheme'
 type LoadedFlowgladContextValues = {
   loaded: true
   loadBilling: true
-  customerProfile: Flowglad.CustomerProfiles.CustomerProfileRetrieveBillingResponse.CustomerProfile
-  subscriptions: Flowglad.CustomerProfiles.CustomerProfileRetrieveBillingResponse.Subscription[]
+  customer: Flowglad.Customers.CustomerRetrieveBillingResponse.Customer
+  subscriptions: Flowglad.Customers.CustomerRetrieveBillingResponse.Subscription[]
   createCheckoutSession: (
     params: z.infer<typeof createCheckoutSessionSchema> & {
       autoRedirect?: boolean
@@ -27,12 +27,12 @@ type LoadedFlowgladContextValues = {
       }
     | { error: { code: string; json: Record<string, unknown> } }
   >
-  catalog: Flowglad.CustomerProfiles.CustomerProfileRetrieveBillingResponse.Catalog
+  catalog: Flowglad.Customers.CustomerRetrieveBillingResponse.Catalog
   errors: null
 }
 
 interface NonPresentContextValues {
-  customerProfile: null
+  customer: null
   subscriptions: null
   createCheckoutSession: null
   catalog: null
@@ -64,7 +64,7 @@ type FlowgladContextValues =
   | ErrorFlowgladContextValues
 
 const notPresentContextValues = {
-  customerProfile: null,
+  customer: null,
   subscriptions: null,
   createCheckoutSession: null,
   catalog: null,
@@ -134,7 +134,7 @@ export const FlowgladContextProvider = ({
 }: {
   loadBilling?: boolean
   darkMode?: boolean
-  customerProfile?: {
+  customer?: {
     externalId: string
     email: string
     name: string
@@ -146,22 +146,22 @@ export const FlowgladContextProvider = ({
 }) => {
   // In a perfect world, this would be a useMutation hook rather than useQuery.
   // Because technically, billing fetch requests run a "find or create" operation on
-  // the customer profile. But useQuery allows us to execute the call using `enabled`
+  // the customer. But useQuery allows us to execute the call using `enabled`
   // which allows us to avoid maintaining a useEffect hook.
   const {
     isPending: isPendingBilling,
     error: errorBilling,
     data: billing,
   } = useQuery({
-    queryKey: [FlowgladActionKey.GetCustomerProfileBilling],
+    queryKey: [FlowgladActionKey.GetCustomerBilling],
     enabled: loadBilling,
     queryFn: async () => {
       const response = await fetch(
-        `${serverRoute}/${FlowgladActionKey.GetCustomerProfileBilling}`,
+        `${serverRoute}/${FlowgladActionKey.GetCustomerBilling}`,
         {
           method:
             flowgladActionValidators[
-              FlowgladActionKey.GetCustomerProfileBilling
+              FlowgladActionKey.GetCustomerBilling
             ].method,
           body: JSON.stringify({}),
         }
@@ -186,7 +186,7 @@ export const FlowgladContextProvider = ({
     value = {
       loaded: true,
       loadBilling,
-      customerProfile: billing.data.customerProfile,
+      customer: billing.data.customer,
       createCheckoutSession,
       catalog: billing.data.catalog,
       subscriptions: billing.data.subscriptions,

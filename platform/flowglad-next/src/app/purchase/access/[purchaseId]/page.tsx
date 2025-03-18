@@ -48,23 +48,18 @@ const PostPurchasePage = async ({
   params,
 }: PostPurchasePageProps) => {
   const { purchaseId } = await params
-  const { purchaseAccessSession, purchase, customerProfile } =
+  const { purchaseAccessSession, purchase, customer } =
     await adminTransaction(async ({ transaction }) => {
       const purchaseAccessSession = await findPurchaseAccessSession(
         purchaseId,
         transaction
       )
 
-      const {
-        purchase,
-        product,
-        price,
-        organization,
-        customerProfile,
-      } = await selectPurchaseCheckoutParametersById(
-        purchaseId,
-        transaction
-      )
+      const { purchase, product, price, organization, customer } =
+        await selectPurchaseCheckoutParametersById(
+          purchaseId,
+          transaction
+        )
 
       return {
         purchaseAccessSession,
@@ -72,10 +67,10 @@ const PostPurchasePage = async ({
         product,
         price,
         organization,
-        customerProfile,
+        customer,
       }
     })
-  const customerEmail = customerProfile.email!
+  const customerEmail = customer.email!
 
   const emailConfirmationForm = (
     <PostPurchaseEmailConfirmationForm

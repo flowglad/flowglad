@@ -14,7 +14,7 @@ import {
 import { Organization } from '@/db/schema/organizations'
 import { Invoice } from '@/db/schema/invoices'
 import { Payment } from '@/db/schema/payments'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { formatCurrency, formatDate, titleCase } from '@/utils/core'
 import { BillingAddress } from '@/db/schema/organizations'
@@ -146,7 +146,7 @@ export const DocumentDetails: React.FC<DocumentDetailsProps> = ({
 
 interface BillingInfoProps {
   organization: Organization.Record
-  customerProfile: CustomerProfile.Record
+  customer: Customer.Record
   billingAddress?: BillingAddress
 }
 
@@ -193,7 +193,7 @@ const OrganizationContactInfo: React.FC<{
 
 export const BillingInfo: React.FC<BillingInfoProps> = ({
   organization,
-  customerProfile,
+  customer,
   billingAddress,
 }) => {
   return (
@@ -218,7 +218,7 @@ export const BillingInfo: React.FC<BillingInfoProps> = ({
         <Text style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>
           Bill to
         </Text>
-        <Text style={{ margin: '0' }}>{customerProfile.name}</Text>
+        <Text style={{ margin: '0' }}>{customer.name}</Text>
         {billingAddress && (
           <>
             <Text style={{ margin: '0' }}>
@@ -239,9 +239,7 @@ export const BillingInfo: React.FC<BillingInfoProps> = ({
             </Text>
           </>
         )}
-        <Text style={{ margin: '5px 0 0 0' }}>
-          {customerProfile.email}
-        </Text>
+        <Text style={{ margin: '5px 0 0 0' }}>{customer.email}</Text>
       </Column>
     </Row>
   )
@@ -545,7 +543,7 @@ export const InvoiceFooter: React.FC<InvoiceFooterProps> = ({
 export interface InvoiceTemplateProps {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
-  customerProfile: CustomerProfile.Record
+  customer: Customer.Record
   organization: Organization.Record
   paymentLink?: string
   paymentDataItems?: PaymentAndPaymentMethod[]
@@ -554,14 +552,14 @@ export interface InvoiceTemplateProps {
 export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   invoice,
   invoiceLineItems,
-  customerProfile,
+  customer,
   organization,
   paymentLink,
 }) => {
   const subtotal = invoice.subtotal ?? 0
   const taxAmount = invoice.taxAmount || 0
   const total = subtotal + taxAmount
-  const billingAddress = customerProfile.billingAddress
+  const billingAddress = customer.billingAddress
 
   return (
     <Html>
@@ -625,7 +623,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           {billingAddress && (
             <BillingInfo
               organization={organization}
-              customerProfile={customerProfile}
+              customer={customer}
               billingAddress={billingAddress}
             />
           )}

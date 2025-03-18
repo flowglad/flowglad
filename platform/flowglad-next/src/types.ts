@@ -547,8 +547,8 @@ export enum FlowRunStatus {
 
 export enum FlowgladEventType {
   SchedulerEventCreated = 'scheduler.event.created',
-  CustomerProfileCreated = 'customer_profile.created',
-  CustomerProfileUpdated = 'customer_profile.updated',
+  CustomerCreated = 'customer.created',
+  CustomerUpdated = 'customer.updated',
   OpenPurchaseCreated = 'purchase.open.created',
   PurchaseCompleted = 'purchase.completed',
   PaymentFailed = 'payment.failed',
@@ -572,7 +572,7 @@ export enum EventRetentionPolicy {
 }
 
 export enum EventNoun {
-  CustomerProfile = 'CustomerProfile',
+  Customer = 'Customer',
   User = 'User',
   Purchase = 'Purchase',
   Invoice = 'Invoice',
@@ -624,7 +624,7 @@ export type FileUploadData = {
 export enum Nouns {
   Product = 'product',
   Price = 'price',
-  CustomerProfile = 'customerProfile',
+  Customer = 'customer',
   Discount = 'discount',
   File = 'file',
 }

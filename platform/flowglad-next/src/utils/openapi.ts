@@ -6,7 +6,7 @@ export type CreateOpenApiMetaParams = {
   /***
    * Used to override the default id param for the resource.
    * so, e.g. idParamOverride: 'externalId' =>
-   *  customer-profile/:id -> customer-profile/:externalId
+   *  customer/:id -> customer/:externalId
    */
   idParamOverride?: string
   routeSuffix?: string

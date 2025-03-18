@@ -4,43 +4,43 @@ import FormModal from '@/components/forms/FormModal'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import {
-  CustomerProfile,
-  editCustomerProfileInputSchema,
-} from '@/db/schema/customerProfiles'
+  Customer,
+  editCustomerInputSchema,
+} from '@/db/schema/customers'
 import { z } from 'zod'
 
 interface ArchiveCustomerModalProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  customerProfileId: string
+  customerId: string
   customerArchived: boolean
 }
 
 const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
   isOpen,
   setIsOpen,
-  customerProfileId,
+  customerId,
   customerArchived,
 }) => {
   const router = useRouter()
-  const editCustomerProfile = trpc.customerProfiles.edit.useMutation()
+  const editCustomer = trpc.customers.edit.useMutation()
 
-  const handleSubmit = async (data: CustomerProfile.EditInput) => {
-    await editCustomerProfile.mutateAsync(data)
+  const handleSubmit = async (data: Customer.EditInput) => {
+    await editCustomer.mutateAsync(data)
     router.refresh()
   }
 
   const formSchema = z.object({
-    customerProfile: z.object({
+    customer: z.object({
       id: z.string(),
       archived: z.boolean(),
     }),
   })
 
   const defaultValues = {
-    customerProfile: {
-      id: customerProfileId,
+    customer: {
+      id: customerId,
       archived: !customerArchived,
     },
   }
@@ -79,7 +79,7 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       onSubmit={handleSubmit}
-      formSchema={editCustomerProfileInputSchema}
+      formSchema={editCustomerInputSchema}
       defaultValues={defaultValues}
     >
       {modalText}

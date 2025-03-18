@@ -7,8 +7,7 @@ import { revalidatePath } from 'next/cache'
 export const createPurchase = protectedProcedure
   .input(createPurchaseFormSchema)
   .meta({
-    description:
-      'Create an open purchase record for known customer profile',
+    description: 'Create an open purchase record for known customer',
     examples: [
       'Create an open purchase',
       'Create a payment link',

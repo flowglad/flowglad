@@ -20,9 +20,9 @@ const PurchasesTable = ({
               column={column}
             />
           ),
-          id: 'customerProfile',
+          id: 'customer',
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{`${cellData.customerProfile.name} (${cellData.customerProfile.email})`}</span>
+            <span className="text-sm">{`${cellData.customer.name} (${cellData.customer.email})`}</span>
           ),
         },
         {

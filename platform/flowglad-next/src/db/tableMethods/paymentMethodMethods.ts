@@ -51,14 +51,14 @@ export const selectPaymentMethods = createSelectFunction(
 export const selectPaymentMethodsPaginated =
   createPaginatedSelectFunction(paymentMethods, config)
 
-const setPaymentMethodsForCustomerProfileToNonDefault = async (
-  customerProfileId: string,
+const setPaymentMethodsForCustomerToNonDefault = async (
+  customerId: string,
   transaction: DbTransaction
 ) => {
   await transaction
     .update(paymentMethods)
     .set({ default: false })
-    .where(eq(paymentMethods.customerProfileId, customerProfileId))
+    .where(eq(paymentMethods.customerId, customerId))
 }
 
 export const safelyUpdatePaymentMethod = async (
@@ -73,8 +73,8 @@ export const safelyUpdatePaymentMethod = async (
       paymentMethod.id,
       transaction
     )
-    await setPaymentMethodsForCustomerProfileToNonDefault(
-      existingPaymentMethod.customerProfileId,
+    await setPaymentMethodsForCustomerToNonDefault(
+      existingPaymentMethod.customerId,
       transaction
     )
   }
@@ -86,8 +86,8 @@ export const safelyInsertPaymentMethod = async (
   transaction: DbTransaction
 ) => {
   if (paymentMethod.default) {
-    await setPaymentMethodsForCustomerProfileToNonDefault(
-      paymentMethod.customerProfileId,
+    await setPaymentMethodsForCustomerToNonDefault(
+      paymentMethod.customerId,
       transaction
     )
   }

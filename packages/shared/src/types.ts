@@ -1,6 +1,6 @@
 export enum FlowgladActionKey {
-  GetCustomerProfileBilling = 'customer-profiles/billing',
-  FindOrCreateCustomerProfile = 'customer-profiles/find-or-create',
+  GetCustomerBilling = 'customers/billing',
+  FindOrCreateCustomer = 'customers/find-or-create',
   CreateCheckoutSession = 'checkout-sessions/create',
 }
 

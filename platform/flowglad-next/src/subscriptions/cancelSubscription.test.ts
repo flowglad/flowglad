@@ -16,7 +16,7 @@ import {
   setupBillingRun,
   setupBillingPeriod,
   setupBillingPeriodItems,
-  setupCustomerProfile,
+  setupCustomer,
   setupPaymentMethod,
   setupOrg,
 } from '../../seedDatabase'
@@ -26,29 +26,29 @@ import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 
 describe('Subscription Cancellation Test Suite', async () => {
   const { organization, price } = await setupOrg()
-  let customerProfile: CustomerProfile.Record
+  let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
   let billingPeriodItems: BillingPeriodItem.Record[]
   let subscription: Subscription.Record
   beforeEach(async () => {
-    customerProfile = await setupCustomerProfile({
+    customer = await setupCustomer({
       organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     })
 
     subscription = await setupSubscription({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
     })
@@ -81,7 +81,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -133,7 +133,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Set up a subscription that is already canceled.
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -154,7 +154,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const futureStart = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour later
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -177,7 +177,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Create a subscription without billing periods.
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -202,7 +202,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const fixedNow = new Date('2025-02-02T12:00:00Z')
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -250,7 +250,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -301,7 +301,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -347,7 +347,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -376,7 +376,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -400,7 +400,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const futureStart = new Date(now.getTime() + 60 * 60 * 1000)
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -431,7 +431,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const fixedNow = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -477,7 +477,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Test with a subscription that has no billing periods.
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -499,7 +499,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -546,7 +546,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })
@@ -584,7 +584,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Simulate an activation phase followed by an immediate cancellation.
         const subscription = await setupSubscription({
           organizationId: organization.id,
-          customerProfileId: customerProfile.id,
+          customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
         })

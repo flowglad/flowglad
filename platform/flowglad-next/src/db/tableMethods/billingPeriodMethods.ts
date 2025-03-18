@@ -14,10 +14,7 @@ import {
   billingPeriodsSelectSchema,
   billingPeriodsUpdateSchema,
 } from '@/db/schema/billingPeriods'
-import {
-  customerProfiles,
-  customerProfilesSelectSchema,
-} from '../schema/customerProfiles'
+import { customers, customersSelectSchema } from '../schema/customers'
 import { subscriptionsSelectSchema } from '../schema/subscriptions'
 import { and, eq, gte, lt, lte } from 'drizzle-orm'
 import { BillingPeriodStatus } from '@/types'
@@ -60,13 +57,13 @@ export const selectBillingPeriods = createSelectFunction(
   config
 )
 
-export const selectBillingPeriodInvoiceSubscriptionWithCustomerProfileAndOrganization =
+export const selectBillingPeriodInvoiceSubscriptionWithCustomerAndOrganization =
   async (billingPeriodId: string, transaction: DbTransaction) => {
     const result = await transaction
       .select({
         subscription: subscriptions,
         organization: organizations,
-        customerProfile: customerProfiles,
+        customer: customers,
         billingPeriod: billingPeriods,
         invoice: invoices,
       })
@@ -80,8 +77,8 @@ export const selectBillingPeriodInvoiceSubscriptionWithCustomerProfileAndOrganiz
         eq(subscriptions.organizationId, organizations.id)
       )
       .innerJoin(
-        customerProfiles,
-        eq(subscriptions.customerProfileId, customerProfiles.id)
+        customers,
+        eq(subscriptions.customerId, customers.id)
       )
       .innerJoin(
         invoices,
@@ -93,15 +90,14 @@ export const selectBillingPeriodInvoiceSubscriptionWithCustomerProfileAndOrganiz
     const {
       subscription,
       organization,
-      customerProfile,
+      customer,
       billingPeriod,
       invoice,
     } = result[0]
     return {
       subscription: subscriptionsSelectSchema.parse(subscription),
       organization: organizationsSelectSchema.parse(organization),
-      customerProfile:
-        customerProfilesSelectSchema.parse(customerProfile),
+      customer: customersSelectSchema.parse(customer),
       billingPeriod: billingPeriodsSelectSchema.parse(billingPeriod),
       invoice: invoicesSelectSchema.parse(invoice),
     }

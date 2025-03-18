@@ -25,11 +25,11 @@ function EditInvoiceModal({
     invoice: invoiceAndLineItems.invoice,
     invoiceLineItems: invoiceAndLineItems.invoiceLineItems,
   }
-  const { data: customerProfileData } =
-    trpc.customerProfiles.internal__getById.useQuery({
-      id: invoiceAndLineItems.invoice.customerProfileId,
+  const { data: customerData } =
+    trpc.customers.internal__getById.useQuery({
+      id: invoiceAndLineItems.invoice.customerId,
     })
-  if (!customerProfileData) {
+  if (!customerData) {
     return null
   }
   return (
@@ -42,10 +42,7 @@ function EditInvoiceModal({
       defaultValues={defaultValues}
       wide
     >
-      <InvoiceFormFields
-        customerProfile={customerProfileData.customerProfile}
-        editMode
-      />
+      <InvoiceFormFields customer={customerData.customer} editMode />
     </FormModal>
   )
 }

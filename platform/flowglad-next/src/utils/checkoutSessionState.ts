@@ -27,7 +27,7 @@ import core from './core'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 const productCheckoutSessionCookieNameParamsSchema = z.object({
   type: z.literal('product'),
@@ -297,8 +297,8 @@ const createInvoiceCheckoutSession = async (
   },
   transaction: DbTransaction
 ) => {
-  const customerProfile = await selectCustomerProfileById(
-    invoice.customerProfileId,
+  const customer = await selectCustomerById(
+    invoice.customerId,
     transaction
   )
   const checkoutSession = await insertCheckoutSession(
@@ -307,9 +307,9 @@ const createInvoiceCheckoutSession = async (
       type: CheckoutSessionType.Invoice,
       invoiceId: invoice.id,
       organizationId: invoice.organizationId,
-      customerProfileId: invoice.customerProfileId,
-      customerEmail: customerProfile.email,
-      customerName: customerProfile.name,
+      customerId: invoice.customerId,
+      customerEmail: customer.email,
+      customerName: customer.name,
       livemode: invoice.livemode,
       purchaseId: null,
       priceId: null,
@@ -327,7 +327,7 @@ const createInvoiceCheckoutSession = async (
       checkoutSession,
       invoiceLineItems: invoiceLineItems,
       feeCalculation: feeCalculation,
-      stripeCustomerId: customerProfile.stripeCustomerId!,
+      stripeCustomerId: customer.stripeCustomerId!,
     })
   const updatedCheckoutSession = await updateCheckoutSession(
     {

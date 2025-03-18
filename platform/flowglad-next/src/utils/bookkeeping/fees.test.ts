@@ -30,7 +30,7 @@ import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Country } from '@/db/schema/countries'
 import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
 import {
-  setupCustomerProfile,
+  setupCustomer,
   setupOrg,
   setupPayment,
   setupInvoice,
@@ -479,12 +479,12 @@ describe('fees.ts', () => {
       const stripeChargeId1 = `ch_${core.nanoid()}`
       const stripeChargeId2 = `ch_${core.nanoid()}`
       const { organization, price } = await setupOrg()
-      const customerProfile = await setupCustomerProfile({
+      const customer = await setupCustomer({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         priceId: price.id,
         livemode: true,
       })
@@ -494,7 +494,7 @@ describe('fees.ts', () => {
         stripeChargeId: stripeChargeId1,
         status: PaymentStatus.Processing,
         amount: 100000, // $1000
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
       })
@@ -503,7 +503,7 @@ describe('fees.ts', () => {
         stripeChargeId: stripeChargeId2,
         status: PaymentStatus.Succeeded,
         amount: 50000, // $500
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
       })
@@ -549,12 +549,12 @@ describe('fees.ts', () => {
       const stripePaymentIntentId = `pi_${core.nanoid()}`
       const stripeChargeId = `ch_${core.nanoid()}`
       const { organization, price } = await setupOrg()
-      const customerProfile = await setupCustomerProfile({
+      const customer = await setupCustomer({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         priceId: price.id,
         livemode: true,
       })
@@ -563,7 +563,7 @@ describe('fees.ts', () => {
         stripeChargeId,
         status: PaymentStatus.Succeeded,
         amount: 150000, // $1500
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
       })
@@ -610,12 +610,12 @@ describe('fees.ts', () => {
     it('does not exclude refunded payments from fee calculation', async () => {
       const stripeChargeId = `ch_${core.nanoid()}`
       const { organization, price } = await setupOrg()
-      const customerProfile = await setupCustomerProfile({
+      const customer = await setupCustomer({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         priceId: price.id,
         livemode: true,
       })
@@ -624,7 +624,7 @@ describe('fees.ts', () => {
         stripeChargeId,
         status: PaymentStatus.Refunded,
         amount: 150000, // $1500
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
       })
@@ -672,12 +672,12 @@ describe('fees.ts', () => {
       const stripePaymentIntentId = `pi_${core.nanoid()}`
       const stripeChargeId = `ch_${core.nanoid()}`
       const { organization, price } = await setupOrg()
-      const customerProfile = await setupCustomerProfile({
+      const customer = await setupCustomer({
         organizationId: organization.id,
       })
       const invoice = await setupInvoice({
         organizationId: organization.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         priceId: price.id,
         livemode: true,
       })
@@ -692,7 +692,7 @@ describe('fees.ts', () => {
             stripeChargeId,
             status: PaymentStatus.Succeeded,
             amount: 150000, // $1500
-            customerProfileId: customerProfile.id,
+            customerId: customer.id,
             organizationId: organization.id,
             invoiceId: invoice.id,
             chargeDate: lastMonth,
@@ -752,22 +752,22 @@ describe('fees.ts', () => {
       const { organization: org1, price: price1 } = await setupOrg()
       const { organization: org2 } = await setupOrg()
 
-      const customerProfile1 = await setupCustomerProfile({
+      const customer1 = await setupCustomer({
         organizationId: org1.id,
       })
-      const customerProfile2 = await setupCustomerProfile({
+      const customer2 = await setupCustomer({
         organizationId: org2.id,
       })
 
       const invoice1 = await setupInvoice({
         organizationId: org1.id,
-        customerProfileId: customerProfile1.id,
+        customerId: customer1.id,
         priceId: price1.id,
         livemode: true,
       })
       const invoice2 = await setupInvoice({
         organizationId: org2.id,
-        customerProfileId: customerProfile2.id,
+        customerId: customer2.id,
         priceId: price1.id,
         livemode: true,
       })
@@ -777,7 +777,7 @@ describe('fees.ts', () => {
         stripeChargeId: stripeChargeId1,
         status: PaymentStatus.Succeeded,
         amount: 50000, // $500
-        customerProfileId: customerProfile1.id,
+        customerId: customer1.id,
         organizationId: org1.id,
         invoiceId: invoice1.id,
       })
@@ -787,7 +787,7 @@ describe('fees.ts', () => {
         stripeChargeId: stripeChargeId2,
         status: PaymentStatus.Succeeded,
         amount: 150000, // $1500
-        customerProfileId: customerProfile2.id,
+        customerId: customer2.id,
         organizationId: org2.id,
         invoiceId: invoice2.id,
       })

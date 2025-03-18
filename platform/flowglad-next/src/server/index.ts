@@ -26,7 +26,7 @@ import { createApiKey } from './mutations/createApiKey'
 import { rotateApiKeyProcedure } from './mutations/rotateApiKey'
 import { toggleTestMode } from './mutations/toggleTestMode'
 import { getApiKeys } from './queries/getApiKeys'
-import { customerProfilesRouter } from './routers/customerProfilesRouter'
+import { customersRouter } from './routers/customersRouter'
 import { productsRouter } from './routers/productsRouter'
 import { pricesRouter } from './routers/pricesRouter'
 import { checkoutSessionsRouter } from './routers/checkoutSessionsRouter'
@@ -76,7 +76,7 @@ export const appRouter = router({
   products: productsRouter,
   prices: pricesRouter,
   purchases: purchasesRouter,
-  customerProfiles: customerProfilesRouter,
+  customers: customersRouter,
   organizations: organizationsRouter,
   discounts: discountsRouter,
   files: filesRouter,

@@ -19,9 +19,9 @@ import {
   constructUniqueIndex,
 } from '@/db/tableUtils'
 import {
-  customerProfileClientSelectSchema,
-  customerProfiles,
-} from '@/db/schema/customerProfiles'
+  customerClientSelectSchema,
+  customers,
+} from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import { IntervalUnit, SubscriptionStatus } from '@/types'
 import { z } from 'zod'
@@ -35,10 +35,7 @@ const TABLE_NAME = 'subscriptions'
 
 const columns = {
   ...tableBase('sub'),
-  customerProfileId: notNullStringForeignKey(
-    'customer_profile_id',
-    customerProfiles
-  ),
+  customerId: notNullStringForeignKey('customer_id', customers),
   organizationId: notNullStringForeignKey(
     'organization_id',
     organizations
@@ -82,19 +79,16 @@ const columns = {
 
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
   return [
-    constructIndex(TABLE_NAME, [table.customerProfileId]),
+    constructIndex(TABLE_NAME, [table.customerId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
-    pgPolicy(
-      'Enable actions for own organizations via customer profiles',
-      {
-        as: 'permissive',
-        to: 'authenticated',
-        for: 'all',
-        using: sql`"customer_profile_id" in (select "id" from "customer_profiles")`,
-      }
-    ),
+    pgPolicy('Enable actions for own organizations via customer', {
+      as: 'permissive',
+      to: 'authenticated',
+      for: 'all',
+      using: sql`"customer_id" in (select "id" from "customers")`,
+    }),
     pgPolicy('Forbid deletion', {
       as: 'restrictive',
       to: 'authenticated',
@@ -142,7 +136,7 @@ export const subscriptionsUpdateSchema = createSelectSchema(
   })
 
 const createOnlyColumns = {
-  customerProfileId: true,
+  customerId: true,
 } as const
 
 const readOnlyColumns = {
@@ -173,7 +167,7 @@ export const subscriptionClientSelectSchema =
 
 export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,
-  customerProfile: customerProfileClientSelectSchema,
+  customer: customerClientSelectSchema,
   price: pricesClientSelectSchema,
   product: productsClientSelectSchema,
 })
@@ -183,7 +177,7 @@ export const subscriptionsPaginatedSelectSchema =
     subscriptionClientSelectSchema.pick({
       status: true,
       priceId: true,
-      customerProfileId: true,
+      customerId: true,
       organizationId: true,
     })
   )

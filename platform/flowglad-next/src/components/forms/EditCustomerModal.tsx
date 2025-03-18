@@ -1,40 +1,40 @@
 'use client'
 
 import FormModal from '@/components/forms/FormModal'
-import { editCustomerProfileInputSchema } from '@/db/schema/customerProfiles'
+import { editCustomerInputSchema } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
-import CustomerProfileFormFields from './CustomerProfileFormFields'
+import { Customer } from '@/db/schema/customers'
+import CustomerFormFields from './CustomerFormFields'
 
 interface EditCustomerModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  customerProfile: CustomerProfile.ClientRecord
+  customer: Customer.ClientRecord
 }
 
 const EditCustomerModal = ({
   isOpen,
   setIsOpen,
-  customerProfile,
+  customer,
 }: EditCustomerModalProps) => {
-  const editCustomerProfile = trpc.customerProfiles.edit.useMutation()
+  const editCustomer = trpc.customers.edit.useMutation()
 
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Edit Customer"
-      formSchema={editCustomerProfileInputSchema}
+      formSchema={editCustomerInputSchema}
       defaultValues={{
-        customerProfile: {
-          ...customerProfile,
+        customer: {
+          ...customer,
         },
       }}
       onSubmit={async (data) => {
-        await editCustomerProfile.mutateAsync(data)
+        await editCustomer.mutateAsync(data)
       }}
     >
-      <CustomerProfileFormFields />
+      <CustomerFormFields />
     </FormModal>
   )
 }

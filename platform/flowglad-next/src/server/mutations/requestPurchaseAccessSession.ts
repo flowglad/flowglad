@@ -7,7 +7,7 @@ import {
   selectPurchases,
 } from '@/db/tableMethods/purchaseMethods'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import core from '@/utils/core'
 import { PurchaseAccessSessionSource } from '@/types'
 import { sendPurchaseAccessSessionTokenEmail } from '@/utils/email'
@@ -44,8 +44,8 @@ export const requestPurchaseAccessSession = publicProcedure
         transaction
       )
 
-      const customerProfile = await selectCustomerProfileById(
-        purchase.customerProfileId,
+      const customer = await selectCustomerById(
+        purchase.customerId,
         transaction
       )
 
@@ -56,7 +56,7 @@ export const requestPurchaseAccessSession = publicProcedure
         ) + `?token=${purchaseAccessSession.token}`
 
       await sendPurchaseAccessSessionTokenEmail({
-        to: [customerProfile.email!],
+        to: [customer.email!],
         magicLink: verificationURL,
       })
 
