@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { BillingPeriodStatus } from '@/types'
@@ -9,7 +9,7 @@ import {
   setupBillingPeriod,
   setupBillingPeriodItems,
   setupBillingRun,
-  setupCustomerProfile,
+  setupCustomer,
   setupPaymentMethod,
   setupSubscription,
   setupInvoice,
@@ -40,24 +40,24 @@ import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
  */
 describe('processPaymentIntentEventForBillingRun integration tests', async () => {
   const { organization, price } = await setupOrg()
-  let customerProfile: CustomerProfile.Record
+  let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
   let billingPeriodItems: BillingPeriodItem.Record[]
   let subscription: Subscription.Record
   beforeEach(async () => {
-    customerProfile = await setupCustomerProfile({
+    customer = await setupCustomer({
       organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     })
 
     subscription = await setupSubscription({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
     })
@@ -120,7 +120,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const stripeChargeId = `ch_outoforder_${new Date().getTime()}`
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
       priceId: price.id,
@@ -140,7 +140,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       invoiceId: invoice.id,
     })
@@ -187,7 +187,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
 
   //   const invoice = await setupInvoice({
   //     billingPeriodId: billingPeriod.id,
-  //     customerProfileId: customerProfile.id,
+  //     customerId: customer.id,
   //     organizationId: organization.id,
   //     status: InvoiceStatus.Open,
   //     priceId: price.id,
@@ -196,7 +196,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //     stripeChargeId,
   //     status: PaymentStatus.Processing,
   //     amount: 1000,
-  //     customerProfileId: customerProfile.id,
+  //     customerId: customer.id,
   //     organizationId: organization.id,
   //     invoiceId: invoice.id,
   //   })
@@ -263,7 +263,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
 
     const failedInvoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
       priceId: price.id,
@@ -272,7 +272,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       invoiceId: failedInvoice.id,
     })
@@ -323,11 +323,11 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
     await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     })
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
       priceId: price.id,
@@ -337,7 +337,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       invoiceId: invoice.id,
     })
@@ -345,7 +345,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     await adminTransaction(async ({ transaction }) => {
       const invoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Open,
         priceId: price.id,
@@ -409,7 +409,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
       priceId: price.id,
@@ -418,7 +418,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       stripeChargeId: `ch_${billingRun.id}___processing`,
       status: PaymentStatus.Processing,
       amount: 1000,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       invoiceId: invoice.id,
     })
@@ -480,7 +480,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       status: InvoiceStatus.Open,
       priceId: price.id,
@@ -489,7 +489,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 1000,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       organizationId: organization.id,
       invoiceId: invoice.id,
     })
@@ -499,7 +499,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     await adminTransaction(async ({ transaction }) => {
       const invoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Open,
         priceId: price.id,
@@ -594,7 +594,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     await adminTransaction(async ({ transaction }) => {
       const invoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Open,
         priceId: price.id,
@@ -642,7 +642,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //     billingPeriodId: billingRun.billingPeriodId,
   //     status: InvoiceStatus.Open,
   //     organizationId: organization.id,
-  //     customerProfileId: customerProfile.id,
+  //     customerId: customer.id,
   //     priceId: price.id,
   //   })
   //   await adminTransaction(async ({ transaction }) => {

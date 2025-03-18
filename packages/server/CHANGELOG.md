@@ -149,7 +149,7 @@
 
 ### Patch Changes
 
-- Add getRequestingCustomerProfile as fallback for getSessionFromParams
+- Add getRequestingCustomer as fallback for getSessionFromParams
 - Updated dependencies
   - @flowglad/shared@0.4.8
 

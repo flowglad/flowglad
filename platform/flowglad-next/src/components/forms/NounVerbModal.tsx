@@ -18,7 +18,7 @@ const NounVerbModalMap = {
       parentIdToModalProp: (productId: string) => ({ productId }),
     },
   },
-  [Nouns.CustomerProfile]: {
+  [Nouns.Customer]: {
     [Verbs.Create]: { Component: CreateCustomerFormModal },
   },
   [Nouns.File]: {

@@ -23,7 +23,7 @@ export interface OrganizationPaymentNotificationEmailProps {
   amount: number
   invoiceNumber?: string
   currency: CurrencyCode
-  customerProfileId: string
+  customerId: string
 }
 
 export const OrganizationPaymentNotificationEmail = ({
@@ -31,7 +31,7 @@ export const OrganizationPaymentNotificationEmail = ({
   amount,
   invoiceNumber,
   currency,
-  customerProfileId,
+  customerId,
 }: OrganizationPaymentNotificationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -70,7 +70,7 @@ export const OrganizationPaymentNotificationEmail = ({
           <Section style={buttonContainer}>
             <Link
               style={button}
-              href={`https://app.flowglad.com/customers/profiles/${customerProfileId}`}
+              href={`https://app.flowglad.com/customers/${customerId}`}
             >
               View in Dashboard
             </Link>

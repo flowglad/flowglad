@@ -1,5 +1,5 @@
 import { adminTransaction } from '@/db/databaseMethods'
-import { selectCustomerProfileAndCustomerFromCustomerProfileWhere } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerAndCustomerFromCustomerWhere } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -40,7 +40,7 @@ export const stripePaymentIntentSucceededTask = task({
       invoice,
       membersForOrganization,
       organization,
-      customerProfileAndCustomer,
+      customerAndCustomer,
       payment,
     } = await adminTransaction(async ({ transaction }) => {
       const { payment } = await processPaymentIntentStatusUpdated(
@@ -59,10 +59,10 @@ export const stripePaymentIntentSucceededTask = task({
           transaction
         )
 
-      const [customerProfileAndCustomer] =
-        await selectCustomerProfileAndCustomerFromCustomerProfileWhere(
+      const [customerAndCustomer] =
+        await selectCustomerAndCustomerFromCustomerWhere(
           {
-            id: purchase.customerProfileId,
+            id: purchase.customerId,
           },
           transaction
         )
@@ -83,7 +83,7 @@ export const stripePaymentIntentSucceededTask = task({
         invoiceLineItems: invoice.invoiceLineItems,
         purchase,
         organization,
-        customerProfileAndCustomer,
+        customerAndCustomer,
         membersForOrganization,
         payment,
       }
@@ -110,8 +110,7 @@ export const stripePaymentIntentSucceededTask = task({
       to: membersForOrganization.map(({ user }) => user.email ?? ''),
       amount: payload.data.object.amount,
       invoiceNumber: invoice.invoiceNumber,
-      customerProfileId:
-        customerProfileAndCustomer.customerProfile.id!,
+      customerId: customerAndCustomer.customer.id!,
       organizationName: organization.name!,
       currency: invoice.currency,
     })

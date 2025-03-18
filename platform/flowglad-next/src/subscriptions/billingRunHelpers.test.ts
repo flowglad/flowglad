@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { adminTransaction } from '@/db/databaseMethods'
 import {
   setupOrg,
-  setupCustomerProfile,
+  setupCustomer,
   setupPaymentMethod,
   setupBillingPeriod,
   setupBillingRun,
@@ -31,7 +31,7 @@ import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import {
   selectBillingRunById,
   selectBillingRuns,
@@ -40,7 +40,7 @@ import {
 import { Subscription } from '@/db/schema/subscriptions'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import { Payment } from '@/db/schema/payments'
-import { updateCustomerProfile } from '@/db/tableMethods/customerProfileMethods'
+import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import {
   safelyUpdatePaymentMethod,
   updatePaymentMethod,
@@ -48,24 +48,24 @@ import {
 
 describe('billingRunHelpers', async () => {
   const { organization, price } = await setupOrg()
-  let customerProfile: CustomerProfile.Record
+  let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
   let billingPeriodItems: BillingPeriodItem.Record[]
   let subscription: Subscription.Record
   beforeEach(async () => {
-    customerProfile = await setupCustomerProfile({
+    customer = await setupCustomer({
       organizationId: organization.id,
     })
     paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     })
 
     subscription = await setupSubscription({
       organizationId: organization.id,
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
     })
@@ -118,7 +118,7 @@ describe('billingRunHelpers', async () => {
       const invoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
         status: InvoiceStatus.Paid,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         priceId: price.id,
       })
@@ -168,7 +168,7 @@ describe('billingRunHelpers', async () => {
       await setupInvoice({
         billingPeriodId: billingPeriod.id,
         status: InvoiceStatus.Paid,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         priceId: price.id,
       })
@@ -244,7 +244,7 @@ describe('billingRunHelpers', async () => {
             {
               billingPeriod,
               organization,
-              customerProfile,
+              customer,
               currency: price.currency,
             },
             transaction
@@ -256,7 +256,7 @@ describe('billingRunHelpers', async () => {
     it('should generate invoice line items from billing period items', async () => {
       const invoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
-        customerProfileId: customerProfile.id,
+        customerId: customer.id,
         organizationId: organization.id,
         priceId: price.id,
       })
@@ -299,11 +299,11 @@ describe('billingRunHelpers', async () => {
   })
 
   describe('Edge Cases and Error Handling', () => {
-    it('should throw an error if the customer profile does not have a Stripe customer ID', async () => {
+    it('should throw an error if the customer does not have a Stripe customer ID', async () => {
       await adminTransaction(async ({ transaction }) => {
-        await updateCustomerProfile(
+        await updateCustomer(
           {
-            id: customerProfile.id,
+            id: customer.id,
             stripeCustomerId: null,
           },
           transaction

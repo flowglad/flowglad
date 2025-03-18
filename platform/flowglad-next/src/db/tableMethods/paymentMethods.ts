@@ -24,7 +24,7 @@ import { DbTransaction } from '@/db/types'
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm'
 import { invoices } from '../schema/invoices'
 import { GetRevenueDataInput } from '../schema/payments'
-import { customerProfiles } from '../schema/customerProfiles'
+import { customers } from '../schema/customers'
 import { getCurrentMonthStartTimestamp } from '@/utils/core'
 import {
   PaymentMethod,
@@ -80,8 +80,8 @@ export const selectSettledPaymentsByinvoiceId = async (
   return result.map((row) => paymentsSelectSchema.parse(row))
 }
 
-export const selectPaymentsBycustomerProfileId = async (
-  customerProfileId: string,
+export const selectPaymentsBycustomerId = async (
+  customerId: string,
   transaction: DbTransaction
 ) => {
   const result = await transaction
@@ -90,7 +90,7 @@ export const selectPaymentsBycustomerProfileId = async (
     })
     .from(payments)
     .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
-    .where(eq(invoices.customerProfileId, customerProfileId))
+    .where(eq(invoices.customerId, customerId))
 
   return result.map((row) => paymentsSelectSchema.parse(row.payment))
 }
@@ -152,13 +152,10 @@ export const selectPaymentsTableRowData = async (
   const paymentsRowData = await transaction
     .select({
       payment: payments,
-      customerProfile: customerProfiles,
+      customer: customers,
     })
     .from(payments)
-    .innerJoin(
-      customerProfiles,
-      eq(payments.customerProfileId, customerProfiles.id)
-    )
+    .innerJoin(customers, eq(payments.customerId, customers.id))
     .where(eq(payments.organizationId, organizationId))
     .orderBy(desc(payments.chargeDate))
 

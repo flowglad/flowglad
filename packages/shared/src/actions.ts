@@ -20,13 +20,13 @@ export type CreateCheckoutSessionParams = z.infer<
 >
 
 export const flowgladActionValidators: FlowgladActionValidatorMap = {
-  [FlowgladActionKey.GetCustomerProfileBilling]: {
+  [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
     inputValidator: z.object({
       externalId: z.string(),
     }),
   },
-  [FlowgladActionKey.FindOrCreateCustomerProfile]: {
+  [FlowgladActionKey.FindOrCreateCustomer]: {
     method: HTTPMethod.POST,
     inputValidator: z.object({
       externalId: z.string(),

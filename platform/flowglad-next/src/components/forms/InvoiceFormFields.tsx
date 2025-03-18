@@ -11,7 +11,7 @@ import { useAuthenticatedContext } from '../../contexts/authContext'
 import Datepicker from '../ion/Datepicker'
 import clsx from 'clsx'
 import { useEffect, useState } from 'react'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
 import Switch from '@/components/ion/Switch'
 import Label from '../ion/Label'
@@ -19,35 +19,35 @@ import Badge from '../ion/Badge'
 import ConnectedSelect from './ConnectedSelect'
 import core from '@/utils/core'
 
-const customerProfileOptions = (
-  customerProfile?: CustomerProfile.ClientRecord,
-  data?: CustomerProfile.PaginatedList
+const selectOptionsFromCustomers = (
+  customer?: Customer.ClientRecord,
+  data?: Customer.PaginatedList
 ) => {
-  if (customerProfile) {
+  if (customer) {
     return [
       {
-        label: customerProfile.name as string,
-        value: customerProfile.id,
+        label: customer.name as string,
+        value: customer.id,
       },
     ]
   }
   return (
-    data?.data.map((customerProfile) => ({
-      label: customerProfile.name as string,
-      value: customerProfile.id as string,
+    data?.data.map((customer) => ({
+      label: customer.name as string,
+      value: customer.id as string,
     })) ?? []
   )
 }
 
 const InvoiceFormFields = ({
-  customerProfile,
+  customer,
   editMode = false,
 }: {
-  customerProfile?: CustomerProfile.ClientRecord
+  customer?: Customer.ClientRecord
   editMode?: boolean
 }) => {
   const { organization } = useAuthenticatedContext()
-  const { data } = trpc.customerProfiles.list.useQuery({
+  const { data } = trpc.customers.list.useQuery({
     cursor: encodeCursor({
       parameters: {
         organizationId: organization!.id,
@@ -60,50 +60,44 @@ const InvoiceFormFields = ({
       enabled: false,
     }
   )
-  const customerOptions = customerProfileOptions(
-    customerProfile,
-    data
-  )
+  const customerOptions = selectOptionsFromCustomers(customer, data)
   const { control, register, watch, setValue } = useFormContext<{
     invoice: Invoice.Insert
     autoSend: boolean
   }>()
-  const customerProfileId = watch('invoice.customerProfileId')
-  const { data: associatedCustomerProfileData } =
-    trpc.customerProfiles.internal__getById.useQuery(
-      { id: customerProfileId! },
-      { enabled: !!customerProfileId }
+  const customerId = watch('invoice.customerId')
+  const { data: associatedCustomerData } =
+    trpc.customers.internal__getById.useQuery(
+      { id: customerId! },
+      { enabled: !!customerId }
     )
-  const { data: invoicesForCustomerProfile } =
-    trpc.invoices.list.useQuery(
-      {
-        cursor: encodeCursor({
-          parameters: {
-            customerProfileId: customerProfileId,
-          },
-        }),
-      },
-      {
-        enabled: !!customerProfileId,
-      }
-    )
-  const totalInvoicesForCustomerProfile =
-    invoicesForCustomerProfile?.total ?? 0
+  const { data: invoicesForCustomer } = trpc.invoices.list.useQuery(
+    {
+      cursor: encodeCursor({
+        parameters: {
+          customerId: customerId,
+        },
+      }),
+    },
+    {
+      enabled: !!customerId,
+    }
+  )
+  const totalInvoicesForCustomer = invoicesForCustomer?.total ?? 0
   const invoiceNumberBase =
-    associatedCustomerProfileData?.customerProfile
-      .invoiceNumberBase ?? ''
+    associatedCustomerData?.customer.invoiceNumberBase ?? ''
   const [dueOption, setDueOption] = useState('On Receipt')
   useEffect(() => {
-    if (totalInvoicesForCustomerProfile > 0 && invoiceNumberBase) {
+    if (totalInvoicesForCustomer > 0 && invoiceNumberBase) {
       setValue(
         'invoice.invoiceNumber',
         core.createInvoiceNumber(
           invoiceNumberBase,
-          totalInvoicesForCustomerProfile + 1
+          totalInvoicesForCustomer + 1
         )
       )
     }
-  }, [totalInvoicesForCustomerProfile, invoiceNumberBase, setValue])
+  }, [totalInvoicesForCustomer, invoiceNumberBase, setValue])
   return (
     <>
       <div className="w-full flex items-start gap-2.5">
@@ -114,7 +108,7 @@ const InvoiceFormFields = ({
           disabled
         />
         <Controller
-          name="invoice.customerProfileId"
+          name="invoice.customerId"
           control={control}
           render={({ field }) => (
             <Select
@@ -123,8 +117,8 @@ const InvoiceFormFields = ({
               options={customerOptions}
               label="Bill To"
               className="flex-1"
-              defaultValue={customerProfile?.id}
-              disabled={!!customerProfile}
+              defaultValue={customer?.id}
+              disabled={!!customer}
               value={field.value?.toString()}
               onValueChange={(value) => field.onChange(Number(value))}
             />

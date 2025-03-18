@@ -1,14 +1,13 @@
-export interface CoreCustomerProfileUser {
+export interface CoreCustomerUser {
   externalId: string
   name: string
   email: string
 }
 
-export type GetRequestingCustomerProfile =
-  () => Promise<CoreCustomerProfileUser>
+export type GetRequestingCustomer = () => Promise<CoreCustomerUser>
 
 export interface FlowgladServerSessionParamsCore {
-  getRequestingCustomerProfile?: GetRequestingCustomerProfile
+  getRequestingCustomer?: GetRequestingCustomer
   baseURL?: string
   apiKey?: string
 }
@@ -57,9 +56,9 @@ export interface NextjsAuthFlowgladServerSessionParams
   extends FlowgladServerSessionParamsCore {
   nextAuth: {
     auth: () => Promise<NextAuthSession | null>
-    customerProfileFromAuth?: (
+    customerFromAuth?: (
       session: NextAuthSession
-    ) => Promise<CoreCustomerProfileUser | null>
+    ) => Promise<CoreCustomerUser | null>
   }
 }
 
@@ -79,17 +78,17 @@ export interface BetterAuthFlowgladServerSessionParams
      */
     getSession: () => Promise<BetterAuthSession | null>
     /**
-     * Extracts the customer profile parameters from the session object.
+     * Extracts the customer parameters from the session object.
      */
-    customerProfileFromSession?: (
+    customerFromSession?: (
       session: BetterAuthSession
-    ) => Promise<CoreCustomerProfileUser | null>
+    ) => Promise<CoreCustomerUser | null>
   }
 }
 
 export interface BaseFlowgladServerSessionParams
   extends FlowgladServerSessionParamsCore {
-  getRequestingCustomerProfile: GetRequestingCustomerProfile
+  getRequestingCustomer: GetRequestingCustomer
 }
 
 interface ClerkEmailAddress {
@@ -108,9 +107,9 @@ export interface ClerkFlowgladServerSessionParams
   extends FlowgladServerSessionParamsCore {
   clerk: {
     currentUser: () => Promise<ClerkUser | null>
-    customerProfileFromCurrentUser?: (
+    customerFromCurrentUser?: (
       currentUser: ClerkUser
-    ) => Promise<CoreCustomerProfileUser | null>
+    ) => Promise<CoreCustomerUser | null>
   }
 }
 

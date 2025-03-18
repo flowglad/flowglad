@@ -2,8 +2,8 @@ import { FlowgladServer } from '../flowgladServer'
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
 import type { SubRouteHandler } from './types'
 
-export const getCustomerProfileBilling: SubRouteHandler<
-  FlowgladActionKey.GetCustomerProfileBilling
+export const getCustomerBilling: SubRouteHandler<
+  FlowgladActionKey.GetCustomerBilling
 > = async (params, flowgladServer: FlowgladServer) => {
   if (params.method !== HTTPMethod.POST) {
     return {
@@ -15,15 +15,15 @@ export const getCustomerProfileBilling: SubRouteHandler<
       },
     }
   }
-  const customerProfileBilling = await flowgladServer.getBilling()
+  const customerBilling = await flowgladServer.getBilling()
   return {
-    data: customerProfileBilling,
+    data: customerBilling,
     status: 200,
   }
 }
 
-export const findOrCreateCustomerProfile: SubRouteHandler<
-  FlowgladActionKey.FindOrCreateCustomerProfile
+export const findOrCreateCustomer: SubRouteHandler<
+  FlowgladActionKey.FindOrCreateCustomer
 > = async (params, flowgladServer: FlowgladServer) => {
   if (params.method !== HTTPMethod.POST) {
     return {
@@ -50,36 +50,36 @@ export const findOrCreateCustomerProfile: SubRouteHandler<
       },
     }
   }
-  let customerProfile
-  const requestingcustomerProfileId =
-    await flowgladServer.getRequestingcustomerProfileId()
+  let customer
+  const requestingcustomerId =
+    await flowgladServer.getRequestingcustomerId()
   try {
-    customerProfile = await flowgladServer.getCustomerProfile()
+    customer = await flowgladServer.getCustomer()
   } catch (error) {
     if ((error as any).error.code === 'NOT_FOUND') {
-      customerProfile = await flowgladServer.createCustomerProfile({
-        customerProfile: {
+      customer = await flowgladServer.createCustomer({
+        customer: {
           email: user.email,
           name: user.name,
-          externalId: requestingcustomerProfileId,
+          externalId: requestingcustomerId,
         },
       })
     }
   }
-  if (!customerProfile) {
+  if (!customer) {
     return {
       data: {},
       status: 404,
       error: {
         code: '404',
         json: {
-          message: `Customer profile ${requestingcustomerProfileId} not found`,
+          message: `Customer ${requestingcustomerId} not found`,
         },
       },
     }
   }
   return {
-    data: customerProfile,
+    data: customer,
     status: 200,
   }
 }

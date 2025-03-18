@@ -1,6 +1,6 @@
 import CheckoutPage from '@/components/CheckoutPage'
 import { adminTransaction } from '@/db/databaseMethods'
-import { selectCustomerProfileById } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import {
   BillingInfoCore,
@@ -25,7 +25,7 @@ const CheckoutSessionPage = async ({
     price,
     sellerOrganization,
     feeCalculation,
-    maybeCustomerProfile,
+    maybeCustomer,
   } = await adminTransaction(async ({ transaction }) => {
     const checkoutSession = await selectCheckoutSessionById(
       id,
@@ -51,9 +51,9 @@ const CheckoutSessionPage = async ({
       { checkoutSessionId: checkoutSession.id },
       transaction
     )
-    const maybeCustomerProfile = checkoutSession.customerProfileId
-      ? await selectCustomerProfileById(
-          checkoutSession.customerProfileId,
+    const maybeCustomer = checkoutSession.customerId
+      ? await selectCustomerById(
+          checkoutSession.customerId,
           transaction
         )
       : null
@@ -63,7 +63,7 @@ const CheckoutSessionPage = async ({
       price,
       sellerOrganization: organization,
       feeCalculation,
-      maybeCustomerProfile,
+      maybeCustomer,
     }
   })
 
@@ -111,7 +111,7 @@ const CheckoutSessionPage = async ({
       `/purchase/post-payment`,
       core.envVariable('NEXT_PUBLIC_APP_URL')
     ),
-    readonlyCustomerEmail: maybeCustomerProfile?.email,
+    readonlyCustomerEmail: maybeCustomer?.email,
     feeCalculation,
     clientSecret,
     flowType:

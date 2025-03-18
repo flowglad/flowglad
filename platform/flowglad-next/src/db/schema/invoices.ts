@@ -30,7 +30,7 @@ import {
   CurrencyCode,
 } from '@/types'
 import core from '@/utils/core'
-import { customerProfiles } from './customerProfiles'
+import { customers } from './customers'
 import { organizations } from './organizations'
 import { billingPeriods } from './billingPeriods'
 import { memberships } from './memberships'
@@ -53,9 +53,9 @@ export const invoices = pgTable(
      */
     dueDate: timestamp('due_date'),
     stripePaymentIntentId: text('stripe_payment_intent_id'),
-    customerProfileId: notNullStringForeignKey(
-      'customer_profile_id',
-      customerProfiles
+    customerId: notNullStringForeignKey(
+      'customer_id',
+      customers
     ).notNull(),
     organizationId: notNullStringForeignKey(
       'organization_id',
@@ -102,7 +102,7 @@ export const invoices = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.invoiceNumber]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.customerProfileId]),
+      constructIndex(TABLE_NAME, [table.customerId]),
       constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       livemodePolicy(),
@@ -206,7 +206,7 @@ const hiddenColumns = {
 } as const
 
 const createOnlyColumns = {
-  customerProfileId: true,
+  customerId: true,
   purchaseId: true,
 } as const
 

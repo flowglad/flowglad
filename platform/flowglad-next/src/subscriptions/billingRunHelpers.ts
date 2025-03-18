@@ -2,7 +2,7 @@ import { adminTransaction } from '@/db/databaseMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
@@ -134,7 +134,7 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
 interface CreateInvoiceInsertForBillingRunParams {
   billingPeriod: BillingPeriod.Record
   organization: Organization.Record
-  customerProfile: CustomerProfile.Record
+  customer: Customer.Record
   currency: CurrencyCode
 }
 
@@ -142,19 +142,19 @@ export const createInvoiceInsertForBillingRun = async (
   params: CreateInvoiceInsertForBillingRunParams,
   transaction: DbTransaction
 ): Promise<Invoice.Insert> => {
-  const { billingPeriod, organization, customerProfile } = params
-  const invoicesForCustomerProfile = await selectInvoices(
+  const { billingPeriod, organization, customer } = params
+  const invoicesForCustomer = await selectInvoices(
     {
-      customerProfileId: customerProfile.id,
+      customerId: customer.id,
     },
     transaction
   )
   return {
-    customerProfileId: customerProfile.id,
+    customerId: customer.id,
     organizationId: organization.id,
     invoiceNumber: core.createInvoiceNumber(
-      customerProfile.invoiceNumberBase!,
-      invoicesForCustomerProfile.length
+      customer.invoiceNumberBase!,
+      invoicesForCustomer.length
     ),
     currency: params.currency,
     livemode: billingPeriod.livemode,
@@ -271,7 +271,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     organization,
     billingPeriod,
     subscription,
-    customerProfile,
+    customer,
   } =
     await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId(
       billingRun.billingPeriodId,
@@ -314,7 +314,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       {
         billingPeriod,
         organization,
-        customerProfile,
+        customer,
         currency: feeCalculation.currency,
       },
       transaction
@@ -359,7 +359,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     return {
       invoice,
       feeCalculation,
-      customerProfile,
+      customer,
       organization,
       billingPeriod: updatedBillingPeriod,
       subscription,
@@ -396,7 +396,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     return {
       invoice: processBillingPeriodResult.invoice,
       feeCalculation,
-      customerProfile,
+      customer,
       organization,
       billingPeriod: processBillingPeriodResult.billingPeriod,
       subscription,
@@ -406,12 +406,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       payments,
     }
   }
-  const stripeCustomerId = customerProfile.stripeCustomerId
+  const stripeCustomerId = customer.stripeCustomerId
   const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
   if (!stripeCustomerId) {
     throw new Error(
-      `Cannot run billing for a billing period with a customer profile that does not have a stripe customer id.` +
-        ` Customer Profile: ${customerProfile.id}; Billing Period: ${billingPeriod.id}`
+      `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
+        ` Customer: ${customer.id}; Billing Period: ${billingPeriod.id}`
     )
   }
   if (!stripePaymentMethodId) {
@@ -427,7 +427,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     status: PaymentStatus.Processing,
     organizationId: organization.id,
     chargeDate: new Date(),
-    customerProfileId: customerProfile.id,
+    customerId: customer.id,
     invoiceId: invoice.id,
     paymentMethodId: paymentMethod.id,
     refunded: false,
@@ -458,7 +458,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     invoice,
     payment,
     feeCalculation,
-    customerProfile,
+    customer,
     organization,
     billingPeriod,
     subscription,
@@ -494,7 +494,7 @@ export const executeBillingRun = async (billingRunId: string) => {
       invoice,
       payment,
       feeCalculation,
-      customerProfile,
+      customer,
       billingPeriod,
       paymentMethod,
       totalDueAmount,
@@ -511,10 +511,10 @@ export const executeBillingRun = async (billingRunId: string) => {
         livemode: billingRun.livemode,
       }
     )
-    if (!customerProfile.stripeCustomerId) {
+    if (!customer.stripeCustomerId) {
       throw new Error(
-        `Cannot run billing for a billing period with a customer profile that does not have a stripe customer id.` +
-          ` Customer Profile: ${customerProfile.id}; Billing Period: ${billingPeriod.id}`
+        `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
+          ` Customer: ${customer.id}; Billing Period: ${billingPeriod.id}`
       )
     }
     if (!paymentMethod.stripePaymentMethodId) {
@@ -563,7 +563,7 @@ export const executeBillingRun = async (billingRunId: string) => {
     const paymentIntent = await createAndConfirmPaymentIntent({
       amount: totalAmountToCharge,
       currency: invoice.currency,
-      stripeCustomerId: customerProfile.stripeCustomerId,
+      stripeCustomerId: customer.stripeCustomerId,
       stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
       billingPeriodId: billingRun.billingPeriodId,
       billingRunId: billingRun.id,
@@ -610,7 +610,7 @@ export const executeBillingRun = async (billingRunId: string) => {
           invoice,
           payment,
           feeCalculation,
-          customerProfile,
+          customer,
           billingPeriod,
           paymentMethod,
           totalDueAmount,

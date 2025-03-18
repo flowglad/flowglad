@@ -79,11 +79,9 @@ const SubscriptionsTable = ({
               column={column}
             />
           ),
-          accessorKey: 'customerProfile.name',
+          accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">
-              {cellData.customerProfile.name}
-            </span>
+            <span className="text-sm">{cellData.customer.name}</span>
           ),
         },
         {

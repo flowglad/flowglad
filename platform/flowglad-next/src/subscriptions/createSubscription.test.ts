@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { adminTransaction } from '@/db/databaseMethods'
 import {
   setupOrg,
-  setupCustomerProfile,
+  setupCustomer,
   setupPaymentMethod,
   setupSubscription,
   setupSubscriptionItem,
@@ -27,12 +27,12 @@ import { core } from '@/utils/core'
 
 describe('createSubscription', async () => {
   const { organization, product, price } = await setupOrg()
-  const customerProfile = await setupCustomerProfile({
+  const customer = await setupCustomer({
     organizationId: organization.id,
   })
   const paymentMethod = await setupPaymentMethod({
     organizationId: organization.id,
-    customerProfileId: customerProfile.id,
+    customerId: customer.id,
   })
   const {
     subscription,
@@ -52,7 +52,7 @@ describe('createSubscription', async () => {
         interval: IntervalUnit.Month,
         intervalCount: 1,
         defaultPaymentMethod: paymentMethod,
-        customerProfile,
+        customer,
         stripeSetupIntentId,
       },
       transaction
@@ -67,7 +67,7 @@ describe('createSubscription', async () => {
     expect(billingPeriod.status).toBe(BillingPeriodStatus.Active)
     expect(billingRun.status).toBe(BillingRunStatus.Scheduled)
   })
-  it('throws an error if the customer profile already has an active subscription', async () => {
+  it('throws an error if the customer already has an active subscription', async () => {
     await adminTransaction(async ({ transaction }) => {
       await updateSubscription(
         {
@@ -91,7 +91,7 @@ describe('createSubscription', async () => {
             interval: IntervalUnit.Month,
             intervalCount: 1,
             defaultPaymentMethod: paymentMethod,
-            customerProfile,
+            customer,
             stripeSetupIntentId,
           },
           transaction
@@ -100,12 +100,12 @@ describe('createSubscription', async () => {
     ).rejects.toThrow()
   })
   it('does not throw an error if creating a subscription for a customer with no active subscriptions, but past non-active subscriptions', async () => {
-    const newCustomerProfile = await setupCustomerProfile({
+    const newCustomer = await setupCustomer({
       organizationId: organization.id,
     })
     const newPaymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: newCustomerProfile.id,
+      customerId: newCustomer.id,
     })
     // Create a past subscription that is now cancelled
     await adminTransaction(async ({ transaction }) => {
@@ -121,7 +121,7 @@ describe('createSubscription', async () => {
           interval: IntervalUnit.Month,
           intervalCount: 1,
           defaultPaymentMethod: newPaymentMethod,
-          customerProfile: newCustomerProfile,
+          customer: newCustomer,
           stripeSetupIntentId,
         },
         transaction
@@ -153,7 +153,7 @@ describe('createSubscription', async () => {
             interval: IntervalUnit.Month,
             intervalCount: 1,
             defaultPaymentMethod: newPaymentMethod,
-            customerProfile: newCustomerProfile,
+            customer: newCustomer,
             stripeSetupIntentId: 'test-intent-id',
           },
           transaction
@@ -163,12 +163,12 @@ describe('createSubscription', async () => {
   })
   it('creates billing periods correctly for trial subscriptions', async () => {
     const { organization, product, price } = await setupOrg()
-    const newCustomerProfile = await setupCustomerProfile({
+    const newCustomer = await setupCustomer({
       organizationId: organization.id,
     })
     const newPaymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: newCustomerProfile.id,
+      customerId: newCustomer.id,
     })
 
     const startDate = new Date()
@@ -188,7 +188,7 @@ describe('createSubscription', async () => {
             interval: IntervalUnit.Month,
             intervalCount: 1,
             defaultPaymentMethod: newPaymentMethod,
-            customerProfile: newCustomerProfile,
+            customer: newCustomer,
             trialEnd,
             stripeSetupIntentId,
           },
@@ -220,17 +220,17 @@ describe('createSubscription', async () => {
   })
   it("doesn't recreate subscriptions, billing periods, or billing period items for the same setup intent", async () => {
     const startDate = new Date()
-    const newCustomerProfile = await setupCustomerProfile({
+    const newCustomer = await setupCustomer({
       organizationId: organization.id,
     })
     const newPaymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
-      customerProfileId: newCustomerProfile.id,
+      customerId: newCustomer.id,
     })
     // Create initial subscription
     const firstSubscription = await setupSubscription({
       organizationId: organization.id,
-      customerProfileId: newCustomerProfile.id,
+      customerId: newCustomer.id,
       paymentMethodId: newPaymentMethod.id,
       priceId: price.id,
       interval: IntervalUnit.Month,
@@ -268,7 +268,7 @@ describe('createSubscription', async () => {
             interval: IntervalUnit.Month,
             intervalCount: 1,
             defaultPaymentMethod: newPaymentMethod,
-            customerProfile: newCustomerProfile,
+            customer: newCustomer,
             stripeSetupIntentId:
               firstSubscription.stripeSetupIntentId!,
           },

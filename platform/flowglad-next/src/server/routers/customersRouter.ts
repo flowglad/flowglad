@@ -3,24 +3,24 @@ import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { z } from 'zod'
 import {
-  selectCustomerProfileById,
-  selectCustomerProfiles,
-  selectCustomerProfilesPaginated,
-  updateCustomerProfile,
-} from '@/db/tableMethods/customerProfileMethods'
+  selectCustomerById,
+  selectCustomers,
+  selectCustomersPaginated,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import {
-  customerProfileClientSelectSchema,
-  editCustomerProfileOutputSchema,
-  editCustomerProfileInputSchema,
-  customerProfilesPaginatedSelectSchema,
-  customerProfilesPaginatedListSchema,
-} from '@/db/schema/customerProfiles'
+  customerClientSelectSchema,
+  editCustomerOutputSchema,
+  editCustomerInputSchema,
+  customersPaginatedSelectSchema,
+  customersPaginatedListSchema,
+} from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
-import { createOrUpdateCustomerProfile as createCustomerProfileBookkeeping } from '@/utils/bookkeeping'
+import { createOrUpdateCustomer as createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
-import { createCustomerProfileInputSchema } from '@/db/tableMethods/purchaseMethods'
-import { createCustomerProfileOutputSchema } from '@/db/schema/purchases'
+import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
+import { createCustomerOutputSchema } from '@/db/schema/purchases'
 import {
   createGetOpenApiMeta,
   generateOpenApiMetas,
@@ -45,35 +45,32 @@ const { openApiMetas } = generateOpenApiMetas({
   idParamOverride: 'externalId',
 })
 
-export const customerProfilesRouteConfigs: Record<
-  string,
-  RouteConfig
-> = {
-  ...trpcToRest('customerProfiles.create', {
+export const customersRouteConfigs: Record<string, RouteConfig> = {
+  ...trpcToRest('customers.create', {
     routeParams: ['externalId'],
   }),
-  ...trpcToRest('customerProfiles.edit', {
+  ...trpcToRest('customers.edit', {
     routeParams: ['externalId'],
   }),
-  ...trpcToRest('customerProfiles.get', {
+  ...trpcToRest('customers.get', {
     routeParams: ['externalId'],
   }),
-  'GET /customer-profiles/:externalId/billing': {
-    procedure: 'customerProfiles.getBilling',
-    pattern: new RegExp(`^customer-profiles\/([^\\/]+)\/billing$`),
+  'GET /customers/:externalId/billing': {
+    procedure: 'customers.getBilling',
+    pattern: new RegExp(`^customers\/([^\\/]+)\/billing$`),
     mapParams: (matches) => ({
       externalId: matches[0],
     }),
   },
-  ...trpcToRest('customerProfiles.list', {
+  ...trpcToRest('customers.list', {
     routeParams: [],
   }),
 }
 
-const createCustomerProfileProcedure = protectedProcedure
+const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(createCustomerProfileInputSchema)
-  .output(createCustomerProfileOutputSchema)
+  .input(createCustomerInputSchema)
+  .output(createCustomerOutputSchema)
   .mutation(async ({ input, ctx }) => {
     const organizationId = ctx.organizationId
     if (!organizationId) {
@@ -81,21 +78,20 @@ const createCustomerProfileProcedure = protectedProcedure
     }
     return authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
-        const { customerProfile } = input
+        const { customer } = input
         /**
          * We have to parse the customer record here because of the billingAddress json
          */
-        const createdCustomer =
-          await createCustomerProfileBookkeeping(
-            {
-              customerProfile: {
-                ...customerProfile,
-                organizationId,
-                livemode: ctx.livemode,
-              },
+        const createdCustomer = await createCustomerBookkeeping(
+          {
+            customer: {
+              ...customer,
+              organizationId,
+              livemode: ctx.livemode,
             },
-            { transaction, userId, livemode }
-          )
+          },
+          { transaction, userId, livemode }
+        )
 
         if (ctx.path) {
           await revalidatePath(ctx.path)
@@ -103,7 +99,7 @@ const createCustomerProfileProcedure = protectedProcedure
 
         return {
           data: {
-            customerProfile: createdCustomer.customerProfile,
+            customer: createdCustomer.customer,
           },
         }
       },
@@ -113,40 +109,35 @@ const createCustomerProfileProcedure = protectedProcedure
     )
   })
 
-export const editCustomerProfile = protectedProcedure
+export const editCustomer = protectedProcedure
   .meta(openApiMetas.PUT)
-  .input(editCustomerProfileInputSchema)
-  .output(editCustomerProfileOutputSchema)
+  .input(editCustomerInputSchema)
+  .output(editCustomerOutputSchema)
   .mutation(async ({ input }) => {
     return authenticatedTransaction(async ({ transaction }) => {
-      const { customerProfile } = input
+      const { customer } = input
 
-      const updatedCustomerProfile = await updateCustomerProfile(
-        customerProfile,
+      const updatedCustomer = await updateCustomer(
+        customer,
         transaction
       )
       return {
-        customerProfile: updatedCustomerProfile,
+        customer: updatedCustomer,
       }
     })
   })
 
-export const getCustomerProfileById = protectedProcedure
+export const getCustomerById = protectedProcedure
   .input(z.object({ id: z.string() }))
-  .output(
-    z.object({ customerProfile: customerProfileClientSelectSchema })
-  )
+  .output(z.object({ customer: customerClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(async ({ transaction }) => {
-      const customerProfile = await selectCustomerProfileById(
-        input.id,
-        transaction
-      )
-      return { customerProfile }
+      const customer = await selectCustomerById(input.id, transaction)
+      return { customer }
     })
   })
 
-export const getCustomerProfile = protectedProcedure
+export const getCustomer = protectedProcedure
   .meta(openApiMetas.GET)
   .input(
     z.object({
@@ -157,9 +148,7 @@ export const getCustomerProfile = protectedProcedure
         ),
     })
   )
-  .output(
-    z.object({ customerProfile: customerProfileClientSelectSchema })
-  )
+  .output(z.object({ customer: customerClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     const organizationId = ctx.organizationId
     if (!organizationId) {
@@ -169,9 +158,9 @@ export const getCustomerProfile = protectedProcedure
       })
     }
 
-    const customerProfiles = await authenticatedTransaction(
+    const customers = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCustomerProfiles(
+        return selectCustomers(
           { externalId: input.externalId, organizationId },
           transaction
         )
@@ -181,37 +170,37 @@ export const getCustomerProfile = protectedProcedure
       }
     )
 
-    if (!customerProfiles.length) {
+    if (!customers.length) {
       if ('id' in input) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: `Customer profile with id ${input.id} not found`,
+          message: `Customer with id ${input.id} not found`,
         })
       } else {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: `Customer profile with externalId ${input.externalId} not found`,
+          message: `Customer with externalId ${input.externalId} not found`,
         })
       }
     }
 
-    return { customerProfile: customerProfiles[0] }
+    return { customer: customers[0] }
   })
 
 export const getCustomerBilling = protectedProcedure
   .meta(
     createGetOpenApiMeta({
-      resource: 'customer-profiles',
+      resource: 'customers',
       routeSuffix: 'billing',
       summary: 'Get Billing Details',
-      tags: ['Customer Profiles', 'Customer', 'Customer Profile'],
+      tags: ['Customer', 'Customer Billing'],
       idParamOverride: 'externalId',
     })
   )
   .input(externalIdInputSchema)
   .output(
     z.object({
-      customerProfile: customerProfileClientSelectSchema,
+      customer: customerClientSelectSchema,
       subscriptions: richSubscriptionClientSelectSchema.array(),
       invoices: invoiceWithLineItemsClientSchema.array(),
       paymentMethods: paymentMethodClientSelectSchema.array(),
@@ -237,19 +226,19 @@ export const getCustomerBilling = protectedProcedure
       throw new Error('organizationId is required')
     }
     const {
-      customerProfile,
+      customer,
       catalog,
       invoices,
       paymentMethods,
       currentSubscriptions,
     } = await authenticatedTransaction(
       async ({ transaction }) => {
-        const customerProfiles = await selectCustomerProfiles(
+        const customers = await selectCustomers(
           { ...input, organizationId },
           transaction
         )
         const subscriptions = await selectRichSubscriptions(
-          { customerProfileId: customerProfiles[0].id },
+          { customerId: customers[0].id },
           transaction
         )
         const catalog = await selectCatalog(
@@ -258,19 +247,19 @@ export const getCustomerBilling = protectedProcedure
         )
         const invoices =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-            { customerProfileId: customerProfiles[0].id },
+            { customerId: customers[0].id },
             transaction
           )
         const paymentMethods = await selectPaymentMethods(
-          { customerProfileId: customerProfiles[0].id },
+          { customerId: customers[0].id },
           transaction
         )
         const currentSubscriptions = subscriptions.filter((item) => {
           return isSubscriptionInTerminalState(item.status)
         })
         return {
-          customerProfile: {
-            ...customerProfiles[0],
+          customer: {
+            ...customers[0],
             subscriptions,
           },
           invoices,
@@ -284,32 +273,32 @@ export const getCustomerBilling = protectedProcedure
       }
     )
     return {
-      customerProfile,
+      customer,
       invoices,
       paymentMethods,
       currentSubscriptions,
-      subscriptions: customerProfile.subscriptions,
+      subscriptions: customer.subscriptions,
       catalog: {
         products: catalog,
       },
     }
   })
 
-const listCustomerProfilesProcedure = protectedProcedure
+const listCustomersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
-  .input(customerProfilesPaginatedSelectSchema)
-  .output(customerProfilesPaginatedListSchema)
+  .input(customersPaginatedSelectSchema)
+  .output(customersPaginatedListSchema)
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(async ({ transaction }) => {
-      return selectCustomerProfilesPaginated(input, transaction)
+      return selectCustomersPaginated(input, transaction)
     })
   })
 
-export const customerProfilesRouter = router({
-  create: createCustomerProfileProcedure,
-  edit: editCustomerProfile,
+export const customersRouter = router({
+  create: createCustomerProcedure,
+  edit: editCustomer,
   getBilling: getCustomerBilling,
-  get: getCustomerProfile,
-  internal__getById: getCustomerProfileById,
-  list: listCustomerProfilesProcedure,
+  get: getCustomer,
+  internal__getById: getCustomerById,
+  list: listCustomersProcedure,
 })

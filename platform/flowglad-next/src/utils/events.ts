@@ -9,7 +9,7 @@ import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
 import core from './core'
 import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 
 export interface CreateEventPayload {
   type: FlowgladEventType
@@ -26,10 +26,8 @@ const eventTypeToRetentionPolicy: Record<
 > = {
   [FlowgladEventType.SchedulerEventCreated]:
     EventRetentionPolicy.Short,
-  [FlowgladEventType.CustomerProfileCreated]:
-    EventRetentionPolicy.Short,
-  [FlowgladEventType.CustomerProfileUpdated]:
-    EventRetentionPolicy.Short,
+  [FlowgladEventType.CustomerCreated]: EventRetentionPolicy.Short,
+  [FlowgladEventType.CustomerUpdated]: EventRetentionPolicy.Short,
   [FlowgladEventType.OpenPurchaseCreated]: EventRetentionPolicy.Short,
   [FlowgladEventType.PurchaseCompleted]: EventRetentionPolicy.Short,
   [FlowgladEventType.PaymentFailed]: EventRetentionPolicy.Short,
@@ -134,18 +132,18 @@ export const commitPaymentCanceledEvent = async (
   )
 }
 
-export const commitCustomerProfileCreatedEvent = async (
-  customerProfile: CustomerProfile.Record,
+export const commitCustomerCreatedEvent = async (
+  customer: Customer.Record,
   transaction: DbTransaction
 ) => {
   return commitEvent(
     {
-      type: FlowgladEventType.CustomerProfileCreated,
+      type: FlowgladEventType.CustomerCreated,
       eventCategory: EventCategory.Customer,
-      source: EventNoun.CustomerProfile,
-      payload: generateEventPayload(customerProfile),
-      organizationId: customerProfile.organizationId,
-      livemode: customerProfile.livemode,
+      source: EventNoun.Customer,
+      payload: generateEventPayload(customer),
+      organizationId: customer.organizationId,
+      livemode: customer.livemode,
     },
     transaction
   )

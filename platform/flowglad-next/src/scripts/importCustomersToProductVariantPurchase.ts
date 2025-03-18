@@ -5,11 +5,11 @@ NODE_ENV=production pnpm tsx src/scripts/importCustomersToProductPricePurchase.t
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
-import { selectCustomerProfilesByOrganizationIdAndEmails } from '@/db/tableMethods/customerProfileMethods'
+import { selectCustomersByOrganizationIdAndEmails } from '@/db/tableMethods/customerMethods'
 import { purchasesInsertSchema } from '@/db/schema/purchases'
 import {
   createManualPurchaseInsert,
-  customerProfileInsertsFromCSV,
+  customerInsertsFromCSV,
 } from '@/utils/purchaseHelpers'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { bulkInsertPurchases } from '@/db/tableMethods/purchaseMethods'
@@ -30,23 +30,21 @@ const example = async (db: PostgresJsDatabase) => {
   )
   const csvContent = await fs.readFile(csvPath, 'utf-8')
   await db.transaction(async (transaction) => {
-    const { customerProfileInserts } =
-      await customerProfileInsertsFromCSV(
-        csvContent,
-        ORGANIZATION_ID,
-        true
-      )
+    const { customerInserts } = await customerInsertsFromCSV(
+      csvContent,
+      ORGANIZATION_ID,
+      true
+    )
 
     const price = await selectPriceById(VARIANT_ID, transaction)
-    const customerProfiles =
-      await selectCustomerProfilesByOrganizationIdAndEmails(
-        ORGANIZATION_ID,
-        customerProfileInserts.map((customer) => customer.email),
-        transaction
-      )
-    const purchaseInserts = customerProfiles.map((profile) => {
+    const customers = await selectCustomersByOrganizationIdAndEmails(
+      ORGANIZATION_ID,
+      customerInserts.map((customer) => customer.email),
+      transaction
+    )
+    const purchaseInserts = customers.map((customer) => {
       return createManualPurchaseInsert({
-        customerProfile: profile,
+        customer,
         price,
         organizationId: ORGANIZATION_ID,
       })

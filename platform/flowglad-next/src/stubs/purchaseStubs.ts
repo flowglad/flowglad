@@ -8,7 +8,7 @@ export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchas
     updatedAt: new Date(),
     name: 'Test Purchase',
     intervalCount: 1,
-    customerProfileId: '1',
+    customerId: '1',
     organizationId: '1',
     priceId: '1',
     intervalUnit: IntervalUnit.Month,

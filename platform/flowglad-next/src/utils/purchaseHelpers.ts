@@ -5,7 +5,7 @@ import {
 } from '@/db/schema/purchases'
 import { Price } from '@/db/schema/prices'
 import { PriceType, PurchaseStatus } from '@/types'
-import { CustomerProfile } from '@/db/schema/customerProfiles'
+import { Customer } from '@/db/schema/customers'
 import core from './core'
 
 export const projectPriceFieldsOntoPurchaseFields = (
@@ -65,21 +65,21 @@ export const projectPriceFieldsOntoPurchaseFields = (
 }
 
 export const createManualPurchaseInsert = ({
-  customerProfile,
+  customer,
   price,
   organizationId,
 }: {
-  customerProfile: CustomerProfile.Record
+  customer: Customer.Record
   price: Price.Record
   organizationId: string
 }) => {
   const enhancements = projectPriceFieldsOntoPurchaseFields(price)
   const purchaseInsert = purchasesInsertSchema.parse({
-    customerProfileId: customerProfile.id,
+    customerId: customer.id,
     priceId: price.id,
     organizationId,
     status: PurchaseStatus.Paid,
-    name: `${price.name} - ${customerProfile.name}`,
+    name: `${price.name} - ${customer.name}`,
     priceType: price.type,
     quantity: 1,
     firstInvoiceValue: 0,
@@ -100,7 +100,7 @@ interface CustomerCSVRow {
   last_name?: string
 }
 
-export const customerProfileInsertsFromCSV = async (
+export const customerInsertsFromCSV = async (
   csvContent: string,
   organizationId: string,
   livemode: boolean
@@ -117,8 +117,8 @@ export const customerProfileInsertsFromCSV = async (
     })
   })
 
-  const customerProfileInserts: CustomerProfile.Insert[] =
-    results.map((customer) => {
+  const customerInserts: Customer.Insert[] = results.map(
+    (customer) => {
       return {
         email: customer.email,
         name: customer.name ?? customer.email,
@@ -126,7 +126,8 @@ export const customerProfileInsertsFromCSV = async (
         externalId: core.nanoid(),
         livemode,
       }
-    })
+    }
+  )
 
-  return { customerProfileInserts }
+  return { customerInserts }
 }

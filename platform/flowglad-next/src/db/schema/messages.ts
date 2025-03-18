@@ -12,7 +12,7 @@ import {
 import core from '@/utils/core'
 import { z } from 'zod'
 import { pgTable, text, timestamp, jsonb } from 'drizzle-orm/pg-core'
-import { customerProfiles } from './customerProfiles'
+import { customers } from './customers'
 import { memberships } from './memberships'
 
 const TABLE_NAME = 'messages'
@@ -20,10 +20,7 @@ export const messages = pgTable(
   TABLE_NAME,
   {
     ...tableBase('msg'),
-    customerProfileId: nullableStringForeignKey(
-      'customer_profile_id',
-      customerProfiles
-    ),
+    customerId: nullableStringForeignKey('customer_id', customers),
     messageSentAt: timestamp('message_sent_at').notNull(),
     organizationMemberId: nullableStringForeignKey(
       'organization_member_id',
@@ -81,7 +78,7 @@ export const messagesUpdateSchema = createUpdateSchema(
 )
 
 const readOnlyColumns = {
-  customerProfileId: true,
+  customerId: true,
   organizationMemberId: true,
   platformId: true,
   platformUserId: true,
