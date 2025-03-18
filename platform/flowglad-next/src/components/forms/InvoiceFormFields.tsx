@@ -19,7 +19,7 @@ import Badge from '../ion/Badge'
 import ConnectedSelect from './ConnectedSelect'
 import core from '@/utils/core'
 
-const customerOptions = (
+const selectOptionsFromCustomers = (
   customer?: Customer.ClientRecord,
   data?: Customer.PaginatedList
 ) => {
@@ -60,7 +60,7 @@ const InvoiceFormFields = ({
       enabled: false,
     }
   )
-  const customerOptions = customerOptions(customer, data)
+  const customerOptions = selectOptionsFromCustomers(customer, data)
   const { control, register, watch, setValue } = useFormContext<{
     invoice: Invoice.Insert
     autoSend: boolean
