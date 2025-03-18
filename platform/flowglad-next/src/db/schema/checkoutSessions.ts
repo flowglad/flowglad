@@ -20,7 +20,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
 } from '@/db/tableUtils'
-import { billingAddressSchema } from '@/db/schema/customers'
+import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
 import { prices } from './prices'
 import {

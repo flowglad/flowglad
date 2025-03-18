@@ -29,15 +29,8 @@ import {
 import {
   customerProfileClientInsertSchema,
   customerProfiles,
-  customerProfilesInsertSchema,
   customerProfilesSelectSchema,
 } from '../schema/customerProfiles'
-import {
-  billingAddressSchema,
-  customers,
-  customersInsertSchema,
-  customersSelectSchema,
-} from '../schema/customers'
 import {
   organizations,
   organizationsSelectSchema,
@@ -118,36 +111,31 @@ export const selectPurchasesAndAssociatedPaymentsByPurchaseWhere =
     })
   }
 
-export const selectPurchasesCustomerProfileAndCustomer = async (
-  selectConditions: Partial<Purchase.Record>,
-  transaction: DbTransaction
-) => {
-  const result = await transaction
-    .select({
-      purchase: purchases,
-      customerProfile: customerProfiles,
-      customer: customers,
+export const selectPurchaseAndCustomerProfilesByPurchaseWhere =
+  async (
+    selectConditions: Partial<Purchase.Record>,
+    transaction: DbTransaction
+  ) => {
+    const result = await transaction
+      .select({
+        purchase: purchases,
+        customerProfile: customerProfiles,
+      })
+      .from(purchases)
+      .innerJoin(
+        customerProfiles,
+        eq(customerProfiles.id, purchases.customerProfileId)
+      )
+      .where(whereClauseFromObject(purchases, selectConditions))
+    return result.map((item) => {
+      return {
+        purchase: purchasesSelectSchema.parse(item.purchase),
+        customerProfile: customerProfilesSelectSchema.parse(
+          item.customerProfile
+        ),
+      }
     })
-    .from(purchases)
-    .innerJoin(
-      customerProfiles,
-      eq(customerProfiles.id, purchases.customerProfileId)
-    )
-    .innerJoin(
-      customers,
-      eq(customers.id, customerProfiles.customerId)
-    )
-    .where(whereClauseFromObject(purchases, selectConditions))
-  return result.map((item) => {
-    return {
-      purchase: purchasesSelectSchema.parse(item.purchase),
-      customerProfile: customerProfilesSelectSchema.parse(
-        item.customerProfile
-      ),
-      customer: customersSelectSchema.parse(item.customer),
-    }
-  })
-}
+  }
 
 export const selectPurchaseCheckoutParametersById = async (
   id: string,
@@ -158,7 +146,6 @@ export const selectPurchaseCheckoutParametersById = async (
       purchase: purchases,
       price: prices,
       customerProfile: customerProfiles,
-      customer: customers,
       organization: organizations,
       product: products,
     })
@@ -167,10 +154,6 @@ export const selectPurchaseCheckoutParametersById = async (
     .innerJoin(
       customerProfiles,
       eq(customerProfiles.id, purchases.customerProfileId)
-    )
-    .innerJoin(
-      customers,
-      eq(customers.id, customerProfiles.customerId)
     )
     .innerJoin(
       organizations,
@@ -185,7 +168,6 @@ export const selectPurchaseCheckoutParametersById = async (
     customerProfile: customerProfilesSelectSchema.parse(
       result.customerProfile
     ),
-    customer: customersSelectSchema.parse(result.customer),
     organization: organizationsSelectSchema.parse(
       result.organization
     ),

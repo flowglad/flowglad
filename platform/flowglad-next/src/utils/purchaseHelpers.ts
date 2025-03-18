@@ -5,14 +5,7 @@ import {
 } from '@/db/schema/purchases'
 import { Price } from '@/db/schema/prices'
 import { PriceType, PurchaseStatus } from '@/types'
-import {
-  BulkImportCustomerProfilesInput,
-  CustomerProfile,
-} from '@/db/schema/customerProfiles'
-import {
-  Customer,
-  customersInsertSchema,
-} from '@/db/schema/customers'
+import { CustomerProfile } from '@/db/schema/customerProfiles'
 import core from './core'
 
 export const projectPriceFieldsOntoPurchaseFields = (
@@ -107,7 +100,7 @@ interface CustomerCSVRow {
   last_name?: string
 }
 
-export const customerAndCustomerProfileInsertsFromCSV = async (
+export const customerProfileInsertsFromCSV = async (
   csvContent: string,
   organizationId: string,
   livemode: boolean
@@ -124,86 +117,16 @@ export const customerAndCustomerProfileInsertsFromCSV = async (
     })
   })
 
-  const customerInserts: Customer.Insert[] = results.map(
-    (customer) => {
-      let name = customer.name
-      if (!name && customer.fullName) {
-        name = customer.fullName
-      }
-      if (!name && customer.firstName && customer.lastName) {
-        name = `${customer.firstName} ${customer.lastName}`
-      }
-      if (!name && customer.full_name) {
-        name = customer.full_name
-      }
-      if (!name && customer.first_name && customer.last_name) {
-        name = `${customer.first_name} ${customer.last_name}`
-      }
-      if (!name) {
-        name = ''
-      }
-      return customersInsertSchema.parse({
+  const customerProfileInserts: CustomerProfile.Insert[] =
+    results.map((customer) => {
+      return {
         email: customer.email,
-        name,
-      })
-    }
-  )
-
-  const customerProfileInserts: Omit<
-    CustomerProfile.Insert,
-    'customerId'
-  >[] = results.map((customer) => {
-    return {
-      email: customer.email,
-      name: customer.name,
-      organizationId: organizationId,
-      externalId: core.nanoid(),
-      livemode,
-    }
-  })
-
-  return { customerInserts, customerProfileInserts }
-}
-
-export const customerAndCustomerProfileInsertsFromBulkImport = async (
-  input: BulkImportCustomerProfilesInput,
-  organizationId: string,
-  livemode: boolean
-) => {
-  let customerUpserts: Customer.Insert[] = []
-  let incompleteCustomerProfileUpserts: Omit<
-    CustomerProfile.Insert,
-    'customerId'
-  >[] = []
-  if (input.format === 'csv') {
-    const csvContent = input.csvContent
-    const result = await customerAndCustomerProfileInsertsFromCSV(
-      csvContent,
-      organizationId,
-      livemode
-    )
-    customerUpserts = result.customerInserts
-    incompleteCustomerProfileUpserts = result.customerProfileInserts
-  }
-
-  if (input.format === 'object') {
-    customerUpserts = input.data.map((row) => {
-      const customerUpsert = customersInsertSchema.safeParse({
-        email: row.email,
-        name: row.name,
-      })
-      if (!customerUpsert.success) {
-        console.error(
-          'Invalid customer data:',
-          customerUpsert.error,
-          'For row:',
-          row
-        )
-        throw new Error('Invalid customer data')
+        name: customer.name ?? customer.email,
+        organizationId: organizationId,
+        externalId: core.nanoid(),
+        livemode,
       }
-      return customerUpsert.data
     })
-  }
 
-  return { customerUpserts, incompleteCustomerProfileUpserts }
+  return { customerProfileInserts }
 }

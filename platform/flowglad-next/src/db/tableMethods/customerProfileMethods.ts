@@ -19,7 +19,6 @@ import {
   createPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
-import { customers, customersSelectSchema } from '../schema/customers'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { invoices } from '../schema/invoices'
@@ -41,16 +40,6 @@ export const selectCustomerProfileById = createSelectById(
   customerProfilesTable,
   config
 )
-
-export const upsertCustomerProfileBycustomerIdAndorganizationId =
-  createUpsertFunction(
-    customerProfilesTable,
-    [
-      customerProfilesTable.customerId,
-      customerProfilesTable.organizationId,
-    ],
-    config
-  )
 
 export const upsertCustomerProfileByorganizationIdAndInvoiceNumberBase =
   createUpsertFunction(
@@ -85,13 +74,8 @@ export const selectCustomerProfileAndCustomerFromCustomerProfileWhere =
     const result = await transaction
       .select({
         customerProfile: customerProfilesTable,
-        customer: customers,
       })
       .from(customerProfilesTable)
-      .innerJoin(
-        customers,
-        eq(customerProfilesTable.customerId, customers.id)
-      )
       .where(
         whereClauseFromObject(customerProfilesTable, whereConditions)
       )
@@ -99,7 +83,6 @@ export const selectCustomerProfileAndCustomerFromCustomerProfileWhere =
       customerProfile: customerProfilesSelectSchema.parse(
         row.customerProfile
       ),
-      customer: customersSelectSchema.parse(row.customer),
     }))
   }
 
@@ -118,10 +101,6 @@ export const selectCustomerProfileAndCustomerTableRows = async (
       earliestPurchase: sql<Date>`MIN(${purchases.purchaseDate})`,
     })
     .from(customerProfilesTable)
-    .innerJoin(
-      customers,
-      eq(customerProfilesTable.customerId, customers.id)
-    )
     .leftJoin(
       invoices,
       eq(customerProfilesTable.id, invoices.customerProfileId)
@@ -145,13 +124,8 @@ export const selectCustomerProfileAndCustomerTableRows = async (
   const customerAndCustomerProfile = await transaction
     .select({
       customerProfile: customerProfilesTable,
-      customer: customers,
     })
     .from(customerProfilesTable)
-    .innerJoin(
-      customers,
-      eq(customerProfilesTable.customerId, customers.id)
-    )
     .where(
       whereClauseFromObject(customerProfilesTable, whereConditions)
     )
@@ -188,7 +162,6 @@ export const selectCustomerProfileAndCustomerTableRows = async (
       customerProfile: customerProfilesSelectSchema.parse(
         row.customerProfile
       ),
-      customer: customersSelectSchema.parse(row.customer),
       totalSpend: dataBycustomerProfileId.get(
         `${row.customerProfile.id}`
       )?.totalSpend,
@@ -200,25 +173,32 @@ export const selectCustomerProfileAndCustomerTableRows = async (
   })
 }
 
+export const upsertCustomerProfileByEmailAndOrganizationId =
+  createUpsertFunction(
+    customerProfilesTable,
+    [
+      customerProfilesTable.email,
+      customerProfilesTable.organizationId,
+    ],
+    config
+  )
+
 const bulkInsertCustomerProfilesOrDoNothing =
   createBulkInsertOrDoNothingFunction(customerProfilesTable, config)
 
-export const bulkInsertOrDoNothinCustomerProfilesBycustomerIdAndorganizationId =
+export const bulkInsertOrDoNothingCustomerProfilesByCustomerIdAndOrganizationId =
   (
     customerProfiles: CustomerProfile.Insert[],
     transaction: DbTransaction
   ) => {
     return bulkInsertCustomerProfilesOrDoNothing(
       customerProfiles,
-      [
-        customerProfilesTable.customerId,
-        customerProfilesTable.organizationId,
-      ],
+      [customerProfilesTable.organizationId],
       transaction
     )
   }
 
-export const selectCustomerProfilesByorganizationIdAndEmails = async (
+export const selectCustomerProfilesByOrganizationIdAndEmails = async (
   organizationId: string,
   emails: string[],
   transaction: DbTransaction

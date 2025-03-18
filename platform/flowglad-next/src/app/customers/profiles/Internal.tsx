@@ -13,7 +13,6 @@ import {
   CustomerTableRowData,
   InferredCustomerProfileStatus,
 } from '@/db/schema/customerProfiles'
-import { Customer } from '@/db/schema/customers'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import core from '@/utils/core'
 import { useRouter } from 'next/navigation'
@@ -39,16 +38,13 @@ type CustomerTableRow = {
   payments: number
   status: InferredCustomerProfileStatus
   customerProfile: CustomerProfile.ClientRecord
-  customer: Customer.ClientRecord
 }
 
 const MoreMenuCell = ({
   customerProfile,
-  customer,
   prices,
 }: {
   customerProfile: CustomerProfile.ClientRecord
-  customer: Customer.ClientRecord
   prices: {
     price: Price.Record
     product: Product.ClientRecord
@@ -133,15 +129,11 @@ const CustomersTable = ({
   const router = useRouter()
   const customerData: CustomerTableRow[] = customers
     .map((item) => ({
-      name: item.customer.name,
-      email: item.customer.email,
+      name: item.customerProfile.name,
+      email: item.customerProfile.email,
       totalSpend: item.totalSpend ?? 0,
       payments: item.payments ?? 0,
       customerProfile: item.customerProfile,
-      customer: {
-        ...item.customer,
-        billingAddress: item.customerProfile.billingAddress,
-      },
       status: item.status,
     }))
     .filter((customerItem) => {
@@ -232,7 +224,6 @@ const CustomersTable = ({
               onClick={(e) => e.stopPropagation()}
             >
               <MoreMenuCell
-                customer={cellData.customer}
                 customerProfile={cellData.customerProfile}
                 prices={prices}
               />
