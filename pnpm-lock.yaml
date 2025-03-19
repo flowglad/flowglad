@@ -64,8 +64,8 @@ importers:
   packages/nextjs:
     dependencies:
       '@flowglad/node':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.10.0
+        version: 0.10.0
       '@flowglad/react':
         specifier: workspace:*
         version: link:../react
@@ -98,8 +98,8 @@ importers:
   packages/react:
     dependencies:
       '@flowglad/node':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.10.0
+        version: 0.10.0
       '@flowglad/shared':
         specifier: workspace:*
         version: link:../shared
@@ -168,8 +168,8 @@ importers:
   packages/server:
     dependencies:
       '@flowglad/node':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.10.0
+        version: 0.10.0
       '@flowglad/shared':
         specifier: workspace:*
         version: link:../shared
@@ -200,8 +200,8 @@ importers:
   packages/types:
     dependencies:
       '@flowglad/node':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.10.0
+        version: 0.10.0
     devDependencies:
       eslint:
         specifier: catalog:repo
@@ -609,8 +609,8 @@ packages:
   '@floating-ui/utils@0.2.9':
     resolution: {integrity: sha512-MDWhGtE+eHw5JW7lq4qhc5yRLS11ERl1c7Z6Xd0a58DozHES6EnNNwUWbMiG4J9Cgj053Bhk8zvlhFYKVhULwg==}
 
-  '@flowglad/node@0.8.0':
-    resolution: {integrity: sha512-+lN7n/6hQ/q5CILrHOzBtUsl4V/MkRzZsFJDxlPmiwX7TOMirMAqN1LwtliGijlRTmnd+ZKx4qcsROATteyamw==}
+  '@flowglad/node@0.10.0':
+    resolution: {integrity: sha512-Opli078TMhrRo19vsXxg5MN85n8yzNGrDArs6mtb8aaypWSlrbPKagzyVajlkugVBunnoP262UCCF5AtepqHpg==}
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -2828,7 +2828,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.9': {}
 
-  '@flowglad/node@0.8.0': {}
+  '@flowglad/node@0.10.0': {}
 
   '@humanwhocodes/config-array@0.11.14':
     dependencies:

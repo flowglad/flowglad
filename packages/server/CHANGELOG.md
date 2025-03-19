@@ -1,5 +1,16 @@
 # @flowglad/server
 
+## 0.8.0
+
+### Minor Changes
+
+- Bump to @flowglad/node 0.10.0 with customer instead of customer profile
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/shared@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes
