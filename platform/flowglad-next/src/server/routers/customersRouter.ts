@@ -40,8 +40,8 @@ import { isSubscriptionInTerminalState } from '@/db/tableMethods/subscriptionMet
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 
 const { openApiMetas } = generateOpenApiMetas({
-  resource: 'Customer Profile',
-  tags: ['Customer Profiles', 'Customer', 'Customer Profile'],
+  resource: 'customer',
+  tags: ['Customer'],
   idParamOverride: 'externalId',
 })
 

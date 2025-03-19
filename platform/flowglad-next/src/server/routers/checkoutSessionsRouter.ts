@@ -29,7 +29,7 @@ import {
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
   pluralResource: 'checkoutSessions',
-  tags: ['Purchase Sessions', 'Purchases', 'Customer Profiles'],
+  tags: ['Checkout Sessions', 'Purchases'],
 })
 
 export const checkoutSessionsRouteConfigs = routeConfigs
