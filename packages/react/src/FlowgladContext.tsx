@@ -76,8 +76,13 @@ const FlowgladContext = createContext<FlowgladContextValues>({
   ...notPresentContextValues,
 })
 
+interface ConstructCreateCheckoutSessionParams {
+  flowgladRoute: string
+  requestConfig?: RequestConfig
+}
+
 const constructCreateCheckoutSession =
-  (flowgladRoute: string) =>
+  (constructParams: ConstructCreateCheckoutSessionParams) =>
   async (
     params: Parameters<
       LoadedFlowgladContextValues['createCheckoutSession']
@@ -89,8 +94,11 @@ const constructCreateCheckoutSession =
       }
     | { error: { code: string; json: Record<string, unknown> } }
   > => {
+    const { flowgladRoute, requestConfig } = constructParams
     validateUrl(params.successUrl, 'successUrl')
     validateUrl(params.cancelUrl, 'cancelUrl')
+    validateUrl(flowgladRoute, 'flowgladRoute')
+    const headers = requestConfig?.headers
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
       {
@@ -99,6 +107,7 @@ const constructCreateCheckoutSession =
             FlowgladActionKey.CreateCheckoutSession
           ].method,
         body: JSON.stringify(params),
+        headers,
       }
     )
     const json: {
@@ -124,12 +133,21 @@ const constructCreateCheckoutSession =
     }
   }
 
+/**
+ *
+ */
+export interface RequestConfig {
+  serverRoute?: string
+  headers?: Record<string, string>
+}
+
 export const FlowgladContextProvider = ({
   children,
   serverRoute = '/api/flowglad',
   cancelUrl,
   successUrl,
   loadBilling,
+  requestConfig,
   darkMode,
 }: {
   loadBilling?: boolean
@@ -142,6 +160,7 @@ export const FlowgladContextProvider = ({
   serverRoute?: string
   cancelUrl?: string
   successUrl?: string
+  requestConfig?: RequestConfig
   children: React.ReactNode
 }) => {
   // In a perfect world, this would be a useMutation hook rather than useQuery.
@@ -164,14 +183,18 @@ export const FlowgladContextProvider = ({
               FlowgladActionKey.GetCustomerBilling
             ].method,
           body: JSON.stringify({}),
+          headers: requestConfig?.headers,
         }
       )
       const data = await response.json()
       return data
     },
   })
-  const createCheckoutSession =
-    constructCreateCheckoutSession(serverRoute)
+
+  const createCheckoutSession = constructCreateCheckoutSession({
+    flowgladRoute: serverRoute,
+    requestConfig,
+  })
 
   let value: FlowgladContextValues
 

@@ -56,10 +56,10 @@ export default function Pricing({ user }: Props) {
           enabled: true
         }
       ],
-      variants: item.variants.map((variant) => {
+      prices: item.prices.map((price) => {
         return {
-          ...variant,
-          currency: 'USD'
+          ...price,
+          currency: 'USD' as const
         };
       })
     };
