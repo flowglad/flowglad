@@ -16,7 +16,7 @@
     ·
     <a href="https://github.com/flowglad/flowglad/issues">Issues</a>
     ·
-    <a href="https://discord.gg/zsvkVtTXge">Discord</a>
+    <a href="https://app.flowglad.com/invite-discord">Discord</a>
   </p>
 </p>
 
