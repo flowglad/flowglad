@@ -1,15 +1,12 @@
 # @flowglad/server
 
-## 0.9.0
-
-### Minor Changes
-
-- useBilling always returns, add useCatalog, add requestConfig type
+## 0.8.1
 
 ### Patch Changes
 
+- Version bump
 - Updated dependencies
-  - @flowglad/shared@0.9.0
+  - @flowglad/shared@0.8.1
 
 ## 0.8.0
 
