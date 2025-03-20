@@ -1,0 +1,49 @@
+{
+  "name": "@flowglad/express",
+  "version": "0.8.1",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist",
+    "server"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "dev": "tsup --watch --onSuccess 'yalc push'",
+    "yalc:publish": "yalc publish && yalc link",
+    "lint": "eslint && tsc --noEmit",
+    "build:declarations": "tsc -p tsconfig.declarations.json"
+  },
+  "dependencies": {
+    "@flowglad/shared": "workspace:*",
+    "@flowglad/react": "workspace:*",
+    "@flowglad/server": "workspace:*",
+    "@flowglad/node": "0.10.0",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:react",
+    "eslint": "catalog:repo",
+    "typescript": "catalog:repo"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./server": {
+      "types": "./dist/types/server.d.ts",
+      "import": "./dist/esm/server.js",
+      "require": "./dist/cjs/server.js"
+    }
+  },
+  "peerDependencies": {
+    "express": "^4.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

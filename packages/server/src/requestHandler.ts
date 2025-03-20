@@ -124,9 +124,14 @@ export const createRequestHandler = (
           error: { message: error.message },
         }
       }
-
+      if ((error as any).message) {
+        return {
+          status: (error as any).status,
+          error: { message: (error as any).message },
+        }
+      }
       return {
-        status: 500,
+        status: 400,
         error: { message: 'Internal server error' },
       }
     }
