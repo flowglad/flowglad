@@ -134,7 +134,8 @@ const constructCreateCheckoutSession =
   }
 
 /**
- *
+ * Configuration for all requests made to the Flowglad API
+ * route.
  */
 export interface RequestConfig {
   serverRoute?: string
@@ -150,11 +151,6 @@ export const FlowgladContextProvider = ({
 }: {
   loadBilling?: boolean
   darkMode?: boolean
-  customer?: {
-    externalId: string
-    email: string
-    name: string
-  }
   serverRoute?: string
   requestConfig?: RequestConfig
   children: React.ReactNode

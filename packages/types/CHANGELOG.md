@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.9.0
+
+### Minor Changes
+
+- useBilling always returns, add useCatalog, add requestConfig type
+
 ## 0.8.0
 
 ### Minor Changes
