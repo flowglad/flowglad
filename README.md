@@ -16,6 +16,7 @@
     ·
     <a href="https://github.com/flowglad/flowglad/issues">Issues</a>
     ·
+    <a href="https://discord.gg/zsvkVtTXge">Discord</a>
   </p>
 </p>
 
@@ -40,6 +41,31 @@ Achieving this mission will take time. It will be hard. It might even make some 
 ## Demo: Integrating Flowglad in <40 seconds
 
 https://github.com/user-attachments/assets/6480c847-4f59-482e-8549-8833c2e182fb
+
+## Language & Framework SDK Coverage
+
+Flowglad aims to have first class support for every language and framework that developers build in. If we haven't gotten to your tool of choice yet, we have a [REST API](https://docs.flowglad.com/api-reference/introduction) that anyone can integrate as a fallback.
+
+Here's our progress thus far. If you don't see your framework or language on here, please let us know in [our Discord](https://discord.gg/zsvkVtTXge)!
+
+| Framework   | Support |
+|-------------|---------|
+| Next.js     | ✅      |
+| Express     | ✅      |
+| React       | ✅      |
+| Remix       | 🟡      |
+| Astro       | 🟡      |
+| Hono        | 🟡      |
+| Vue         | 🟡      |
+| Deno        | 🟡      |
+| Sveltekit   | 🟡      |
+| Nuxt        | 🟡      |
+| Fastify     | 🟡      |
+| Python      | 🟡      |
+| Django      | 🟡      |
+| Golang      | 🟡      |
+| React Native| 🟡      |
+
 
 ## Built With
 
