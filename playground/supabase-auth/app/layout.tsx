@@ -22,12 +22,20 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: PropsWithChildren) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
   return (
-    <FlowgladProvider loadBilling={!!user} darkMode={true}>
+    <FlowgladProvider
+      loadBilling={!!user}
+      darkMode={true}
+      requestConfig={{
+        headers: {
+          test: 'lol'
+        }
+      }}
+    >
       <html lang="en">
         <body className="bg-black">
           <Navbar />

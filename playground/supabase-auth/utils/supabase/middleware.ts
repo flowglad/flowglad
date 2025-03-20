@@ -64,7 +64,7 @@ export const updateSession = async (request: NextRequest) => {
   try {
     // This `try/catch` block is only here for the interactive tutorial.
     // Feel free to remove once you have Supabase connected.
-    const { supabase, response } = createClient(request);
+    const { supabase, response } = await createClient(request);
 
     // This will refresh session if expired - required for Server Components
     // https://supabase.com/docs/guides/auth/server-side/nextjs
