@@ -1,5 +1,15 @@
 # @flowglad/nextjs
 
+## 0.8.1
+
+### Patch Changes
+
+- Version bump
+- Updated dependencies
+  - @flowglad/react@0.8.1
+  - @flowglad/server@0.8.1
+  - @flowglad/shared@0.8.1
+
 ## 0.8.0
 
 ### Minor Changes

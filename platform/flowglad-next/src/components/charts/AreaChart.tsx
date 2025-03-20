@@ -4,7 +4,6 @@ import React from 'react'
 import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react'
 import {
   Area,
-  CartesianGrid,
   Dot,
   Label,
   Line,

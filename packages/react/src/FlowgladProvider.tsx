@@ -4,7 +4,10 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { FlowgladContextProvider } from './FlowgladContext'
+import {
+  FlowgladContextProvider,
+  RequestConfig,
+} from './FlowgladContext'
 import { validateUrl } from './utils'
 const queryClient = new QueryClient()
 
@@ -14,36 +17,26 @@ export interface Appearance {
 
 export const FlowgladProvider = ({
   children,
-  cancelUrl,
-  successUrl,
-  authenticated,
   loadBilling,
   serverRoute,
+  requestConfig,
   darkMode,
 }: {
   children: React.ReactNode
   appearance?: Appearance
+  requestConfig?: RequestConfig
   serverRoute?: string
-  cancelUrl?: string
-  successUrl?: string
   loadBilling: boolean
-  /** @deprecated use loadBilling instead */
-  authenticated?: boolean
   darkMode?: boolean
 }) => {
   validateUrl(serverRoute, 'serverRoute', true)
-  validateUrl(cancelUrl, 'cancelUrl')
-  validateUrl(successUrl, 'successUrl')
-  const shouldLoad =
-    typeof loadBilling === 'undefined' ? authenticated : loadBilling
   return (
     <QueryClientProvider client={queryClient}>
       <FlowgladContextProvider
         serverRoute={serverRoute}
-        cancelUrl={cancelUrl}
-        successUrl={successUrl}
-        loadBilling={shouldLoad}
+        loadBilling={loadBilling}
         darkMode={darkMode}
+        requestConfig={requestConfig}
       >
         {children}
       </FlowgladContextProvider>

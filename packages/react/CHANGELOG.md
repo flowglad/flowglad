@@ -1,5 +1,13 @@
 # @flowglad/react
 
+## 0.8.1
+
+### Patch Changes
+
+- Version bump
+- Updated dependencies
+  - @flowglad/shared@0.8.1
+
 ## 0.8.0
 
 ### Minor Changes
