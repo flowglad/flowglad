@@ -27,7 +27,15 @@ export default async function RootLayout({ children }: PropsWithChildren) {
     data: { user }
   } = await supabase.auth.getUser();
   return (
-    <FlowgladProvider loadBilling={!!user} darkMode={true}>
+    <FlowgladProvider
+      loadBilling={!!user}
+      darkMode={true}
+      requestConfig={{
+        headers: {
+          test: 'lol'
+        }
+      }}
+    >
       <html lang="en">
         <body className="bg-black">
           <Navbar />

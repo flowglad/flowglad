@@ -144,8 +144,6 @@ export interface RequestConfig {
 export const FlowgladContextProvider = ({
   children,
   serverRoute = '/api/flowglad',
-  cancelUrl,
-  successUrl,
   loadBilling,
   requestConfig,
   darkMode,
@@ -158,8 +156,6 @@ export const FlowgladContextProvider = ({
     name: string
   }
   serverRoute?: string
-  cancelUrl?: string
-  successUrl?: string
   requestConfig?: RequestConfig
   children: React.ReactNode
 }) => {
