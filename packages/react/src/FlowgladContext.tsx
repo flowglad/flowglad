@@ -237,12 +237,9 @@ export const FlowgladContextProvider = ({
   )
 }
 
-export const useBilling = () => {
-  const billing = useContext(FlowgladContext)
-  if (!billing.loadBilling) {
-    throw new Error(
-      'Flowglad: Attempted to access billing data while `loadBilling` property is not `true`. Ensure that the FlowgladProvider `loadBilling` property is set to true.'
-    )
-  }
-  return billing
+export const useBilling = () => useContext(FlowgladContext)
+
+export const useCatalog = () => {
+  const { catalog } = useBilling()
+  return catalog
 }
