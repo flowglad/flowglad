@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.8.2
+
+### Patch Changes
+
+- Flowglad express initial release
+
 ## 0.8.1
 
 ### Patch Changes

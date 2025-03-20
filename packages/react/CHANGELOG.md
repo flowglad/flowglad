@@ -1,5 +1,13 @@
 # @flowglad/react
 
+## 0.8.2
+
+### Patch Changes
+
+- Flowglad express initial release
+- Updated dependencies
+  - @flowglad/shared@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes

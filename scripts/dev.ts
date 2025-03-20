@@ -36,6 +36,7 @@ const dependencyGraph: Record<string, string[]> = {
   '@flowglad/react': ['@flowglad/shared'],
   '@flowglad/server': ['@flowglad/shared'],
   '@flowglad/nextjs': ['@flowglad/react', '@flowglad/server'],
+  '@flowglad/express': ['@flowglad/server'],
   '@flowglad/types': [],
 }
 
