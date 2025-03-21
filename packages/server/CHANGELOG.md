@@ -1,5 +1,21 @@
 # @flowglad/server
 
+## 0.8.4
+
+### Patch Changes
+
+- Fix customer not found error
+- Updated dependencies
+  - @flowglad/shared@0.8.4
+
+## 0.8.3
+
+### Patch Changes
+
+- Fix customer not found issue
+- Updated dependencies
+  - @flowglad/shared@0.8.3
+
 ## 0.8.2
 
 ### Patch Changes
