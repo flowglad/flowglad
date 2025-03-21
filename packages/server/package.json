@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/server",
-  "version": "0.8.2",
+  "version": "0.8.4",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
