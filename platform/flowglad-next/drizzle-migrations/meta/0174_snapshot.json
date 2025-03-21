@@ -1,6 +1,6 @@
 {
-  "id": "7daa6b2f-129b-4684-9ba6-f7d4a6d541da",
-  "prevId": "f2415e8c-bdf0-4c92-a49e-42fca1327f17",
+  "id": "b19ceeb3-d2de-4138-ac3b-e213cbb24e31",
+  "prevId": "7daa6b2f-129b-4684-9ba6-f7d4a6d541da",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1676,12 +1676,6 @@
         "number_of_payments": {
           "name": "number_of_payments",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stripe_coupon_id": {
-          "name": "stripe_coupon_id",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
