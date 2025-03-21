@@ -3,7 +3,7 @@
 import FormModal from '@/components/forms/FormModal'
 import {
   Discount,
-  discountClientSelectSchema,
+  EditDiscountInput,
   editDiscountInputSchema,
 } from '@/db/schema/discounts'
 import DiscountFormFields from '@/components/forms/DiscountFormFields'
@@ -21,13 +21,17 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   discount,
 }) => {
   const editDiscount = trpc.discounts.update.useMutation()
+  const defaultValues: EditDiscountInput = {
+    discount,
+    id: discount.id,
+  }
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Edit Discount"
       formSchema={editDiscountInputSchema}
-      defaultValues={editDiscountInputSchema.parse({ discount })}
+      defaultValues={defaultValues}
       onSubmit={editDiscount.mutateAsync}
     >
       <DiscountFormFields edit />
