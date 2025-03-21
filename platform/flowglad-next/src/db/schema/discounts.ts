@@ -49,7 +49,6 @@ export const discounts = pgTable(
       enumBase: DiscountDuration,
     }).notNull(),
     numberOfPayments: integer('number_of_payments'),
-    stripeCouponId: text('stripe_coupon_id'),
   },
   (table) => {
     return [
@@ -196,9 +195,7 @@ export const discountsUpdateSchema = z.discriminatedUnion(
   ]
 )
 
-const hiddenColumns = {
-  stripeCouponId: true,
-} as const
+const hiddenColumns = {} as const
 
 const readOnlyColumns = {
   organizationId: true,

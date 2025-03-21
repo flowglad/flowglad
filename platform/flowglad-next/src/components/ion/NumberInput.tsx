@@ -322,6 +322,12 @@ const NumberInput = React.forwardRef<
     }, [])
 
     const handleValueChange: OnValueChange = (payload, event) => {
+      console.log('-----payload.floatValue', payload.floatValue)
+      console.log('payload', payload.value)
+      console.log(
+        'isValidNumber(payload.floatValue)',
+        isValidNumber(payload.floatValue)
+      )
       if (event.source === 'event') {
         _setValue(
           isValidNumber(payload.floatValue) &&
