@@ -55,6 +55,9 @@ export const organizations = pgTable(
     })
       .notNull()
       .default(StripeConnectContractType.Platform),
+    allowMultipleSubscriptionsPerCustomer: boolean(
+      'allow_multiple_subscriptions_per_customer'
+    ).default(false),
   },
   (table) => {
     return [
