@@ -157,6 +157,8 @@ export class FlowgladServer {
           },
         })
         customer = createResult.data.customer
+      } else {
+        throw error
       }
     }
     if (!customer) {

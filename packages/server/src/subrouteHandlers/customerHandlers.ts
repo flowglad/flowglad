@@ -65,16 +65,6 @@ export const findOrCreateCustomer: SubRouteHandler<
         },
       })
     }
-    return {
-      data: {},
-      status: 400,
-      error: {
-        code: '400',
-        json: {
-          message: (error as any).error.message,
-        },
-      },
-    }
   }
   if (!customer) {
     return {

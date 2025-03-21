@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "allow_multiple_subscriptions_per_customer" boolean DEFAULT false;
