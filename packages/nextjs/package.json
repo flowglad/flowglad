@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/nextjs",
-  "version": "0.8.4",
+  "version": "0.8.6",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -41,7 +41,7 @@
     }
   },
   "peerDependencies": {
-    "react": "^19.0.0",
+    "react": "^19.0.0 || ^18.0.0",
     "next": "^14.0.3 || ^15.0.0"
   },
   "publishConfig": {

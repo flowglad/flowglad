@@ -7,27 +7,30 @@ import { createExpressRouteHandler } from './createFlowgladExpressRouteHandler'
 
 interface CreateFlowgladExpressRouterOptions
   extends Omit<RequestHandlerOptions, 'flowgladServer'> {
-  flowgladServerConstructor: (req: Request) => FlowgladServer
+  flowgladServerConstructor: (
+    req: Request
+  ) => Promise<FlowgladServer> | FlowgladServer
 }
 
 export const createFlowgladExpressRouter = (
   options: CreateFlowgladExpressRouterOptions
 ): Router => {
   const flowgladRouter = Router()
-  const routeHandlerFromReq = (req: Request) =>
+  const routeHandlerFromReq = async (req: Request) =>
     createExpressRouteHandler({
       ...options,
-      flowgladServer: options.flowgladServerConstructor(req),
+      flowgladServer: await options.flowgladServerConstructor(req),
     })
 
-  flowgladRouter.get('*', (req, res) => {
-    const handler = routeHandlerFromReq(req)
+  flowgladRouter.get('*', async (req, res) => {
+    const handler = await routeHandlerFromReq(req)
     handler(req, res)
   })
 
-  flowgladRouter.post('*', (req, res) => {
-    const handler = routeHandlerFromReq(req)
+  flowgladRouter.post('*', async (req, res) => {
+    const handler = await routeHandlerFromReq(req)
     handler(req, res)
   })
+
   return flowgladRouter as Router
 }

@@ -1,5 +1,17 @@
 # @flowglad/types
 
+## 0.8.6
+
+### Patch Changes
+
+- Cleaner types and export for FlowgladContext
+
+## 0.8.5
+
+### Patch Changes
+
+- Support async flowglad server client construction for express
+
 ## 0.8.4
 
 ### Patch Changes
