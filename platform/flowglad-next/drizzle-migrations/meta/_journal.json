@@ -1212,6 +1212,13 @@
       "when": 1742321482798,
       "tag": "0172_modern_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 173,
+      "version": "7",
+      "when": 1742573819920,
+      "tag": "0173_pale_amazoness",
+      "breakpoints": true
     }
   ]
 }
