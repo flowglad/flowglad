@@ -11,64 +11,69 @@ import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
 import { FlowgladTheme } from './FlowgladTheme'
 
-type LoadedFlowgladContextValues = {
-  loaded: true
-  loadBilling: true
-  customer: Flowglad.Customers.CustomerRetrieveBillingResponse.Customer
-  subscriptions: Flowglad.Customers.CustomerRetrieveBillingResponse.Subscription[]
-  createCheckoutSession: (
-    params: z.infer<typeof createCheckoutSessionSchema> & {
-      autoRedirect?: boolean
-    }
-  ) => Promise<
-    | {
-        id: string
-        url: string
+export type LoadedFlowgladContextValues =
+  Flowglad.CustomerRetrieveBillingResponse & {
+    loaded: true
+    loadBilling: true
+    createCheckoutSession: (
+      params: z.infer<typeof createCheckoutSessionSchema> & {
+        autoRedirect?: boolean
       }
-    | { error: { code: string; json: Record<string, unknown> } }
-  >
-  catalog: Flowglad.Customers.CustomerRetrieveBillingResponse.Catalog
-  errors: null
-}
+    ) => Promise<
+      | {
+          id: string
+          url: string
+        }
+      | { error: { code: string; json: Record<string, unknown> } }
+    >
+    errors: null
+  }
 
-interface NonPresentContextValues {
+export interface NonPresentContextValues {
   customer: null
   subscriptions: null
   createCheckoutSession: null
   catalog: null
+  invoices: []
+  paymentMethods: []
 }
-interface NotLoadedFlowgladContextValues
+
+export interface NotLoadedFlowgladContextValues
   extends NonPresentContextValues {
   loaded: false
   loadBilling: boolean
   errors: null
 }
 
-interface NotAuthenticatedFlowgladContextValues
+export interface NotAuthenticatedFlowgladContextValues
   extends NonPresentContextValues {
   loaded: true
   loadBilling: false
   errors: null
 }
 
-interface ErrorFlowgladContextValues extends NonPresentContextValues {
+export interface ErrorFlowgladContextValues
+  extends NonPresentContextValues {
   loaded: true
   loadBilling: boolean
   errors: Error[]
 }
 
-type FlowgladContextValues =
+export type FlowgladContextValues =
   | LoadedFlowgladContextValues
   | NotLoadedFlowgladContextValues
   | NotAuthenticatedFlowgladContextValues
   | ErrorFlowgladContextValues
 
-const notPresentContextValues = {
+const notPresentContextValues: NonPresentContextValues = {
   customer: null,
   subscriptions: null,
   createCheckoutSession: null,
   catalog: null,
-} as const
+  invoices: [],
+  paymentMethods: [],
+}
+
 const FlowgladContext = createContext<FlowgladContextValues>({
   loaded: false,
   loadBilling: false,
@@ -206,6 +211,8 @@ export const FlowgladContextProvider = ({
       catalog: billing.data.catalog,
       subscriptions: billing.data.subscriptions,
       errors: null,
+      invoices: billing.data.invoices,
+      paymentMethods: billing.data.paymentMethods,
     }
   } else if (isPendingBilling) {
     value = {

@@ -1,5 +1,21 @@
 # @flowglad/react
 
+## 0.8.6
+
+### Patch Changes
+
+- Cleaner types and export for FlowgladContext
+- Updated dependencies
+  - @flowglad/shared@0.8.6
+
+## 0.8.5
+
+### Patch Changes
+
+- Support async flowglad server client construction for express
+- Updated dependencies
+  - @flowglad/shared@0.8.5
+
 ## 0.8.4
 
 ### Patch Changes
