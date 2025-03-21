@@ -1128,50 +1128,6 @@ export const getStripeSubscription = async (
   return stripe(livemode).subscriptions.retrieve(subscriptionId)
 }
 
-const discountInsertToCouponParams = (
-  discountInsert: Discount.ClientInsert
-): Stripe.CouponCreateParams => {
-  const duration =
-    discountInsert.duration === DiscountDuration.NumberOfPayments
-      ? 'repeating'
-      : discountInsert.duration
-
-  const amountOrPercentOff =
-    discountInsert.amountType === DiscountAmountType.Percent
-      ? { percent_off: discountInsert.amount }
-      : { amount_off: discountInsert.amount }
-
-  return {
-    currency: CurrencyCode.USD,
-    name: discountInsert.name,
-    duration,
-    ...amountOrPercentOff,
-  }
-}
-
-export const createStripeCouponFromDiscountInsert = (
-  discountInsert: Discount.ClientInsert,
-  livemode: boolean
-) => {
-  return stripe(livemode).coupons.create(
-    discountInsertToCouponParams(discountInsert)
-  )
-}
-
-export const updateStripeCouponFromDiscountRecord = async (
-  discount: Discount.Record,
-  livemode: boolean
-) => {
-  if (!discount.stripeCouponId) {
-    throw new Error('Discount does not have a Stripe coupon ID')
-  }
-
-  return stripe(livemode).coupons.update(
-    discount.stripeCouponId,
-    discountInsertToCouponParams(discount)
-  )
-}
-
 export const refundPayment = async (
   stripePaymentIntentId: string,
   partialAmount: number | null,

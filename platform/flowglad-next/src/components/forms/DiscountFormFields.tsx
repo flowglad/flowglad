@@ -26,6 +26,9 @@ export default function DiscountFormFields({
   } = form
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
+  const discount = watch('discount')
+  console.log('===discount', discount)
+  console.log('===errors', errors)
   return (
     <div className="space-y-4">
       <Input
@@ -127,15 +130,26 @@ export default function DiscountFormFields({
         )}
       />
       {duration === DiscountDuration.NumberOfPayments && (
-        <NumberInput
-          label="Number of Payments"
-          placeholder="10"
-          {...register('discount.numberOfPayments')}
-          max={10000000000}
-          min={1}
-          step={1}
-          showControls={false}
-          error={errors.discount?.numberOfPayments?.message}
+        <Controller
+          control={control}
+          name="discount.numberOfPayments"
+          render={({ field }) => {
+            return (
+              <NumberInput
+                label="Number of Payments"
+                placeholder="10"
+                onValueChange={(value) => {
+                  field.onChange(value.floatValue)
+                }}
+                defaultValue={1}
+                max={10000000000}
+                min={1}
+                step={1}
+                showControls={false}
+                error={errors.discount?.numberOfPayments?.message}
+              />
+            )
+          }}
         />
       )}
       {edit && (

@@ -4,7 +4,6 @@ import {
   selectDiscountById,
   updateDiscount,
 } from '@/db/tableMethods/discountMethods'
-import { updateStripeCouponFromDiscountRecord } from '@/utils/stripe'
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
@@ -24,7 +23,6 @@ import {
 import { idInputSchema } from '@/db/tableUtils'
 import { deleteDiscount as deleteDiscountMethod } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { createStripeCouponFromDiscountInsert } from '@/utils/stripe'
 import { z } from 'zod'
 
 const { openApiMetas } = generateOpenApiMetas({
@@ -47,16 +45,10 @@ export const createDiscount = protectedProcedure
             },
             transaction
           )
-        const stripeCoupon =
-          await createStripeCouponFromDiscountInsert(
-            input.discount,
-            ctx.environment === 'live'
-          )
         return insertDiscount(
           {
             ...input.discount,
             organizationId: organization.id,
-            stripeCouponId: stripeCoupon.id,
             livemode,
           },
           transaction
@@ -104,10 +96,6 @@ export const editDiscount = protectedProcedure
             id: input.id,
           },
           transaction
-        )
-        await updateStripeCouponFromDiscountRecord(
-          updatedDiscount,
-          ctx.livemode
         )
         return updatedDiscount
       },
