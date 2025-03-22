@@ -14,9 +14,7 @@ import { customAlphabet } from 'nanoid'
 import * as Sentry from '@sentry/nextjs'
 import type { Readable } from 'node:stream'
 import { camelCase } from 'change-case'
-import { createHash, createHmac } from 'crypto'
 import latinMap from './latinMap'
-import { BinaryLike } from 'node:crypto'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
 import { Nullish, StripePriceMode } from '@/types'
@@ -130,18 +128,6 @@ export const firstDotLastFromName = (nameToSplit: string) => {
   }
 }
 
-export async function getRawBody(
-  readable: Readable
-): Promise<Buffer> {
-  const chunks = []
-  for await (const chunk of readable) {
-    chunks.push(
-      typeof chunk === 'string' ? Buffer.from(chunk) : chunk
-    )
-  }
-  return Buffer.concat(chunks)
-}
-
 export const sliceIntoChunks = <T>(arr: T[], chunkSize: number) =>
   Array.from({ length: Math.ceil(arr.length / chunkSize) }, (_, i) =>
     arr.slice(i * chunkSize, (i + 1) * chunkSize)
@@ -242,9 +228,6 @@ export const chunkArray = <T>(arr: T[], chunkSize: number): T[][] =>
   Array.from({ length: Math.ceil(arr.length / chunkSize) }, (_, i) =>
     arr.slice(i * chunkSize, (i + 1) * chunkSize)
   )
-
-export const hashData = (data: BinaryLike) =>
-  createHash('md5').update(data).digest('hex')
 
 /**
  * Used to generate cache keys for trigger.dev events created dynamically
@@ -476,16 +459,6 @@ export const getCurrentMonthStartTimestamp = (
   return utcStart
 }
 
-export const verifyLogDrainSignature = async (req: Request) => {
-  const signature = createHmac(
-    'sha1',
-    envVariable('LOG_DRAIN_SECRET')
-  )
-    .update(JSON.stringify(req.body))
-    .digest('hex')
-  return signature === req.headers.get('x-vercel-signature')
-}
-
 /**
  * Converts a string to title case
  * @param str
@@ -508,7 +481,6 @@ export const core = {
   safeUrl,
   fetch: middlewareFetch,
   post,
-  getRawBody,
   sliceIntoChunks,
   localizedEnvVariable,
   formatDate,
@@ -521,7 +493,6 @@ export const core = {
   isNil,
   groupBy,
   chunkArray,
-  hashData,
   has,
   generateCacheKeys,
   cosineSimilarity,

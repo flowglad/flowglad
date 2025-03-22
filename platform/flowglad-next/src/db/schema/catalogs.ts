@@ -80,6 +80,10 @@ export namespace Catalog {
   export type ClientUpdate = z.infer<
     typeof catalogsClientUpdateSchema
   >
+  export interface TableRow {
+    catalog: ClientRecord
+    productsCount: number
+  }
 }
 
 export const createCatalogSchema = z.object({

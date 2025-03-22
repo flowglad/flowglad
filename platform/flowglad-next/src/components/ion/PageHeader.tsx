@@ -55,7 +55,10 @@ export const PageHeader = ({
     <>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <PageTitle>{title}</PageTitle>
+        <div className="flex flex-row justify-between">
+          <PageTitle>{title}</PageTitle>
+          {primaryButton}
+        </div>
         {!hideTabs && (
           <Tabs className="w-full flex border-b border-stroke-subtle text-sm font-semibold">
             <TabsList className="gap-8">
@@ -64,7 +67,7 @@ export const PageHeader = ({
                   state={
                     activeTab === tab.subPath ? 'selected' : 'default'
                   }
-                  className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-sm"
+                  className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-lg"
                   title={tab.label}
                   value={tab.subPath}
                   key={tab.subPath}
@@ -77,9 +80,6 @@ export const PageHeader = ({
             </TabsList>
           </Tabs>
         )}
-        <div className="right-0 top-0.5 absolute">
-          {primaryButton}
-        </div>
       </div>
       <ActiveTabComponent />
     </>
