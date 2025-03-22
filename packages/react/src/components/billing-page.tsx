@@ -1,8 +1,8 @@
 'use client'
 
 import { Flowglad } from '@flowglad/node'
-import { Invoices } from './invoices'
 import { cn } from '../lib/utils'
+import { Invoices } from './invoices'
 import { PaymentMethods } from './payment-methods'
 import { CustomerBillingDetails } from './customer-billing-details'
 import { CurrentSubscriptionCard } from './current-subscription-card'

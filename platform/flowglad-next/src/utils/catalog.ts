@@ -6,6 +6,7 @@ import {
 } from '@/db/tableMethods/productMethods'
 import {
   insertPrice,
+  makePriceDefault,
   selectPrices,
   selectPricesAndProductsForOrganization,
   updatePrice,
@@ -151,29 +152,7 @@ export const editPriceTransaction = async (
 
   // If we're setting this price as default, update the previous default price
   if (price.isDefault) {
-    const previousDefault = existingPrices.find((v) => v.isDefault)
-    if (previousDefault && previousDefault.id !== price.id) {
-      await updatePrice(
-        {
-          ...previousDefault,
-          isDefault: false,
-        },
-        transaction
-      )
-    }
-  } else {
-    // If we're unsetting default, ensure there will still be a default price
-    const updatedPrices = existingPrices.map((v) =>
-      v.id === price.id ? { ...v, ...price } : v
-    )
-
-    const defaultPrices = updatedPrices.filter((v) => v.isDefault)
-
-    if (defaultPrices.length === 0) {
-      throw new Error(
-        'There must be at least one default price per product'
-      )
-    }
+    await makePriceDefault(price.id, transaction)
   }
 
   let updatedPrice = await updatePrice(

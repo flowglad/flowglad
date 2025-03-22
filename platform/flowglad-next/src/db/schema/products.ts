@@ -16,10 +16,12 @@ import {
   ommittedColumnsForInsertSchema,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  nullableStringForeignKey,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
+import { catalogs } from './catalogs'
 
 const PRODUCTS_TABLE_NAME = 'products'
 
@@ -55,6 +57,7 @@ const columns = {
    * "10 bots" => "bots"
    */
   pluralQuantityLabel: text('plural_quantity_label'),
+  catalogId: nullableStringForeignKey('catalog_id', catalogs),
 }
 
 export const products = pgTable(

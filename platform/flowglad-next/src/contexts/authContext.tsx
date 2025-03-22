@@ -59,7 +59,7 @@ const AuthProvider = ({
   const {
     data: focusedMembership,
     refetch: refetchFocusedMembership,
-  } = trpc.utils.getFocusedMembership.useQuery()
+  } = trpc.organizations.getFocusedMembership.useQuery()
   /**
    * A race condition happens where sometimes the layout renders
    * before the user is fetched when first logging in.

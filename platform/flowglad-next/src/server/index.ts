@@ -2,10 +2,6 @@ import { router } from './trpc'
 import { pong } from '@/server/mutations/pong'
 import { createPurchase } from '@/server/mutations/createPurchase'
 import { editPurchase } from '@/server/mutations/editPurchase'
-import { getRevenueData } from './queries/getRevenueData'
-import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
-import { createOrganization } from '@/server/mutations/createOrganization'
-import { editOrganization } from '@/server/mutations/editOrganization'
 import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
 import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
 import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
@@ -20,7 +16,6 @@ import { deleteFileProcedure } from '@/server/mutations/deleteFile'
 import { sendAIChat } from '@/server/mutations/sendAIChat'
 import { getProperNouns } from '@/server/queries/getProperNouns'
 import { ping } from './queries/ping'
-import { getFocusedMembership } from './queries/getFocusedMembership'
 import { createFile } from './mutations/createFile'
 import { createApiKey } from './mutations/createApiKey'
 import { rotateApiKeyProcedure } from './mutations/rotateApiKey'
@@ -37,7 +32,9 @@ import { invoiceLineItemsRouter } from './routers/invoiceLineItemsRouter'
 import { invoicesRouter } from './routers/invoicesRouter'
 import { countriesRouter } from './routers/countriesRouter'
 import { paymentMethodsRouter } from './routers/paymentMethodsRouter'
-import { getMembers } from './queries/getMembers'
+import { createCatalog } from './mutations/createCatalog'
+import { editCatalog } from './mutations/editCatalog'
+import { organizationsRouter } from './routers/organizationsRouter'
 
 const purchasesRouter = router({
   create: createPurchase,
@@ -49,14 +46,6 @@ const purchasesRouter = router({
   requestAccess: requestPurchaseAccessSession,
 })
 
-const organizationsRouter = router({
-  create: createOrganization,
-  update: editOrganization,
-  requestStripeConnect: requestStripeConnectOnboardingLink,
-  getMembers: getMembers,
-  // Revenue is a sub-resource of organizations
-  getRevenue: getRevenueData,
-})
 const filesRouter = router({
   create: createFile,
   update: editFile,
@@ -91,7 +80,6 @@ export const appRouter = router({
     generateDescription,
     sendAIChat,
     getProperNouns,
-    getFocusedMembership,
     getPresignedURL,
     toggleTestMode,
   }),
@@ -102,6 +90,8 @@ export const appRouter = router({
   }),
   subscriptions: subscriptionsRouter,
   paymentMethods: paymentMethodsRouter,
+  createCatalog,
+  editCatalog,
 })
 
 // This would map to REST endpoints like:
