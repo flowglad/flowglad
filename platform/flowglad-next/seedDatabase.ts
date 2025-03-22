@@ -93,6 +93,7 @@ export const setupOrg = async () => {
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
+        catalogId: null,
       },
       transaction
     )

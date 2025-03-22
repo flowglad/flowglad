@@ -35,6 +35,7 @@ const defaultProduct: Product.ClientInsert = {
   displayFeatures: [],
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
+  catalogId: null,
 }
 
 export const CreateProductModal = ({

@@ -66,6 +66,20 @@ Here's our progress thus far. If you don't see your framework or language on her
 | Golang      | 🟡      |
 | React Native| 🟡      |
 
+## Authentication Services
+Flowglad couples tightly with your authentication layer, automatically mapping your notion of customers to our notion of customers. To make this effortless, we have adapters for many popular auth services.
+
+If you have a custom auth setup or need to support team-based billing, you can tell Flowglad how to derive the customer record on your server by setting `getRequestingCustomer`.
+
+| Authentication Service | Support |
+|------------------------|---------|
+| Supabase Auth          | ✅      |
+| Clerk                  | ✅      |
+| NextAuth               | ✅      |
+| Better Auth            | 🟡      |
+| Stack Auth             | 🟡      |
+| Firebase Auth          | 🟡      |
+
 
 ## Built With
 
@@ -77,3 +91,4 @@ Here's our progress thus far. If you don't see your framework or language on her
 - [Zod](https://zod.dev/?ref=flowglad.com)
 - [Trigger.dev](https://trigger.dev/?ref=flowglad.com)
 - [Supabase](https://supabase.com/?ref=flowglad.com)
+- [Stack Auth](https://stack-auth.com/?ref=flowglad.com)

@@ -14,4 +14,5 @@ export const dummyProduct: Product.Record = {
   livemode: false,
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
+  catalogId: null,
 }

@@ -30,7 +30,8 @@ export const SideNavigation = () => {
   const selectedPath = pathname
   const { user, organization } = useAuthContext()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation()
-  const focusedMembership = trpc.utils.getFocusedMembership.useQuery()
+  const focusedMembership =
+    trpc.organizations.getFocusedMembership.useQuery()
   const [
     initialFocusedMembershipLoading,
     setInitialFocusedMembershipLoading,

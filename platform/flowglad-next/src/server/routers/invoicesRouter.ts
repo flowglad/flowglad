@@ -48,9 +48,14 @@ const listInvoicesProcedure = protectedProcedure
   .input(invoicesPaginatedSelectSchema)
   .output(invoicesPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectInvoicesPaginated(input, transaction)
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectInvoicesPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const getInvoiceProcedure = protectedProcedure
@@ -58,14 +63,19 @@ const getInvoiceProcedure = protectedProcedure
   .input(idInputSchema)
   .output(invoiceWithLineItemsClientSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const [invoiceAndLineItems] =
-        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { id: input.id },
-          transaction
-        )
-      return invoiceAndLineItems
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const [invoiceAndLineItems] =
+          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+            { id: input.id },
+            transaction
+          )
+        return invoiceAndLineItems
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const createInvoiceProcedure = protectedProcedure
@@ -79,58 +89,63 @@ const createInvoiceProcedure = protectedProcedure
     })
   )
   .mutation(async ({ ctx, input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const {
-        invoice: invoiceInsert,
-        invoiceLineItems: invoiceLineItemInserts,
-        autoSend,
-      } = input
-      const customer = await selectCustomerById(
-        invoiceInsert.customerId,
-        transaction
-      )
-
-      const invoice = await insertInvoice(
-        {
-          ...invoiceInsert,
-          livemode: ctx.livemode,
-          dueDate: invoiceInsert.dueDate ?? new Date(),
-          organizationId: ctx.organizationId!,
-        },
-        transaction
-      )
-
-      const invoiceLineItems = await insertInvoiceLineItems(
-        invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
-          ...invoiceLineItemInsert,
-          invoiceId: invoice.id,
-          livemode: ctx.livemode,
-        })),
-        transaction
-      )
-
-      if (!customer.stripeCustomerId) {
-        throw new Error(
-          `Customer ${customer.id} does not have a stripeCustomerId`
-        )
-      }
-
-      if (autoSend) {
-        const organization = await selectOrganizationById(
-          ctx.organizationId!,
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const {
+          invoice: invoiceInsert,
+          invoiceLineItems: invoiceLineItemInserts,
+          autoSend,
+        } = input
+        const customer = await selectCustomerById(
+          invoiceInsert.customerId,
           transaction
         )
-        await sendInvoiceNotificationEmail({
-          to: [customer.email],
-          invoice,
-          invoiceLineItems,
-          organizationName: organization.name,
-          organizationLogoUrl: organization.logoURL ?? undefined,
-        })
-      }
 
-      return { invoice, invoiceLineItems }
-    })
+        const invoice = await insertInvoice(
+          {
+            ...invoiceInsert,
+            livemode: ctx.livemode,
+            dueDate: invoiceInsert.dueDate ?? new Date(),
+            organizationId: ctx.organizationId!,
+          },
+          transaction
+        )
+
+        const invoiceLineItems = await insertInvoiceLineItems(
+          invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
+            ...invoiceLineItemInsert,
+            invoiceId: invoice.id,
+            livemode: ctx.livemode,
+          })),
+          transaction
+        )
+
+        if (!customer.stripeCustomerId) {
+          throw new Error(
+            `Customer ${customer.id} does not have a stripeCustomerId`
+          )
+        }
+
+        if (autoSend) {
+          const organization = await selectOrganizationById(
+            ctx.organizationId!,
+            transaction
+          )
+          await sendInvoiceNotificationEmail({
+            to: [customer.email],
+            invoice,
+            invoiceLineItems,
+            organizationName: organization.name,
+            organizationLogoUrl: organization.logoURL ?? undefined,
+          })
+        }
+
+        return { invoice, invoiceLineItems }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const updateInvoiceProcedure = protectedProcedure
@@ -144,13 +159,18 @@ const updateInvoiceProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const { invoice, invoiceLineItems } =
-      await authenticatedTransaction(async ({ transaction }) => {
-        return updateInvoiceTransaction(
-          input,
-          ctx.livemode,
-          transaction
-        )
-      })
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return updateInvoiceTransaction(
+            input,
+            ctx.livemode,
+            transaction
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
     return { invoice, invoiceLineItems }
   })
 
@@ -167,37 +187,38 @@ const sendInvoiceReminderProcedure = protectedProcedure
   .input(sendInvoiceReminderSchema)
   .output(z.object({ success: z.boolean() }))
   .mutation(async ({ ctx, input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const invoice = await selectInvoiceById(
-        input.invoiceId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        invoice.customerId,
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        invoice.organizationId!,
-        transaction
-      )
-      const invoiceLineItems = await selectInvoiceLineItems(
-        {
-          invoiceId: invoice.id,
-        },
-        transaction
-      )
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const invoice = await selectInvoiceById(
+          input.invoiceId,
+          transaction
+        )
+        const organization = await selectOrganizationById(
+          invoice.organizationId!,
+          transaction
+        )
+        const invoiceLineItems = await selectInvoiceLineItems(
+          {
+            invoiceId: invoice.id,
+          },
+          transaction
+        )
 
-      await sendInvoiceReminderEmail({
-        to: input.to,
-        cc: input.cc,
-        invoice,
-        invoiceLineItems,
-        organizationName: organization.name,
-        organizationLogoUrl: organization.logoURL ?? undefined,
-      })
+        await sendInvoiceReminderEmail({
+          to: input.to,
+          cc: input.cc,
+          invoice,
+          invoiceLineItems,
+          organizationName: organization.name,
+          organizationLogoUrl: organization.logoURL ?? undefined,
+        })
 
-      return { success: true }
-    })
+        return { success: true }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 export const invoicesRouter = router({

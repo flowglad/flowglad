@@ -19,31 +19,31 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
   ```ts
   import { boolean, text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
   import { z } from 'zod'
+  import { sql } from 'drizzle-orm'
   import {
     tableBase,
     notNullStringForeignKey,
     constructIndex,
     constructUniquenessIndex,
     enhancedCreateInsertSchema,
-    createUpdateSchema
   } from '@/db/tableUtils'
-  import sql from 'drizzle-orm'
   import { organizations } from '@/db/schema/organizations'
-  import core from '@/utils/core'
   import { createSelectSchema } from 'drizzle-zod'
   import { UnicornRiderStatus } from '@/types'
 
-  const TABLE_NAME = 'UnicornRiders'
+  const TABLE_NAME = 'unicorn_riders' // table name in db should be snake_case
 
   export const unicornRiders = pgTable(
     TABLE_NAME,
     {
-      ...tableBase('unicornRider'),
+      ...tableBase('unicorn_rider'),
+      // columns should be camelCase in their typescript keys,
+      // but snake_case in their db names
       organizationId: notNullStringForeignKey(
         'organization_id',
         organizations
       ),
-      superSecretColumn: text('superSecretColumn').notNull(),
+      superSecretColumn: text('super_secret_column').notNull(),
       title: text('title').notNull(),
       active: boolean('active').notNull().default(true),
       status: pgEnumColumn({
