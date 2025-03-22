@@ -1226,6 +1226,13 @@
       "when": 1742573892562,
       "tag": "0174_absent_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 175,
+      "version": "7",
+      "when": 1742612629294,
+      "tag": "0175_furry_whiplash",
+      "breakpoints": true
     }
   ]
 }
