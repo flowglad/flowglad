@@ -10,6 +10,7 @@ import core from './core'
 import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
 import { Customer } from '@/db/schema/customers'
+import { hashData } from './backendCore'
 
 export interface CreateEventPayload {
   type: FlowgladEventType
@@ -53,7 +54,7 @@ export const commitEvent = async (
       eventRetentionPolicy: eventTypeToRetentionPolicy[payload.type],
       occurredAt: new Date(),
       rawPayload: payload.payload,
-      hash: core.hashData(JSON.stringify(payload.payload)),
+      hash: hashData(JSON.stringify(payload.payload)),
       metadata: {},
       source: payload.source,
       subjectEntity: null,

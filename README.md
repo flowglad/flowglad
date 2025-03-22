@@ -20,8 +20,6 @@
   </p>
 </p>
 
-## Drop-in Payments and Billing
-
 ## Project Goals
 
 In the last 15 years, the market has given developers more options than ever for every single part of their stack. But when it comes to payments, there have been virtually zero new entrants. The existing options are slim, and almost all of them require us to talk to sales to even set up an account. When it comes to _self-serve_ payments, there are even fewer options.

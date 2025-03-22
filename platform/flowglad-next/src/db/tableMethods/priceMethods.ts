@@ -15,6 +15,7 @@ import {
   createUpdateFunction,
   whereClauseFromObject,
   createPaginatedSelectFunction,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
 import { and, eq, SQLWrapper } from 'drizzle-orm'
@@ -102,10 +103,43 @@ export const selectPricesAndProductsForOrganization = async (
   }))
 }
 
+export interface ProductWithPrices {
+  product: Product.Record
+  prices: Price.Record[]
+}
+
+export interface ClientProductWithPrices {
+  product: Product.ClientRecord
+  prices: Price.ClientRecord[]
+}
+
+const priceProductJoinResultToProductAndPrices = (
+  result: {
+    price: Price.Record
+    product: Product.Record
+  }[]
+): ProductWithPrices[] => {
+  const productMap = new Map<string, Product.Record>()
+  const pricesMap = new Map<string, Price.Record>()
+
+  result.forEach((item) => {
+    productMap.set(item.product.id, item.product)
+    pricesMap.set(item.price.id, item.price)
+  })
+
+  const products = Array.from(productMap.values())
+  const prices = Array.from(pricesMap.values())
+
+  return products.map((product) => ({
+    product,
+    prices: prices.filter((price) => price.productId === product.id),
+  }))
+}
+
 export const selectPricesAndProductByProductId = async (
   productId: string,
   transaction: DbTransaction
-) => {
+): Promise<ProductWithPrices> => {
   const results = await transaction
     .select({
       price: prices,
@@ -123,14 +157,33 @@ export const selectPricesAndProductByProductId = async (
     price: pricesSelectSchema.parse(result.price),
   }))
 
-  const finalResult: {
+  const [normalizedResult] =
+    priceProductJoinResultToProductAndPrices(parsedResults)
+  return normalizedResult
+}
+
+export const selectPricesAndProductsByProductWhere = async (
+  whereConditions: SelectConditions<typeof products>,
+  transaction: DbTransaction
+): Promise<ProductWithPrices[]> => {
+  const results = await transaction
+    .select({
+      price: prices,
+      product: products,
+    })
+    .from(prices)
+    .innerJoin(products, eq(products.id, prices.productId))
+    .where(whereClauseFromObject(products, whereConditions))
+
+  const parsedResults: {
     product: Product.Record
-    prices: Price.Record[]
-  } = {
-    product: parsedResults[0].product,
-    prices: parsedResults.map((result) => result.price),
-  }
-  return finalResult
+    price: Price.Record
+  }[] = results.map((result) => ({
+    product: productsSelectSchema.parse(result.product),
+    price: pricesSelectSchema.parse(result.price),
+  }))
+
+  return priceProductJoinResultToProductAndPrices(parsedResults)
 }
 
 export const selectDefaultPriceAndProductByProductId = async (
