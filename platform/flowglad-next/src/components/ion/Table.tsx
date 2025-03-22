@@ -35,10 +35,11 @@ const TableRoot = React.forwardRef<
       ref={ref}
       className={twMerge(
         clsx(
-          'w-full caption-bottom overflow-hidden rounded-radius bg-nav',
+          'w-full caption-bottom table-fixed overflow-hidden rounded-radius bg-nav',
           className
         )
       )}
+      style={{ borderCollapse: 'collapse' }}
       {...props}
     />
   </div>
@@ -108,7 +109,7 @@ TableRow.displayName = 'TableRow'
 const TableHead = React.forwardRef<
   HTMLTableCellElement,
   React.ThHTMLAttributes<HTMLTableCellElement> & { rounded?: boolean }
->(({ className, rounded, ...props }, ref) => (
+>(({ className, style, rounded, ...props }, ref) => (
   <th
     ref={ref}
     className={twMerge(
@@ -118,6 +119,13 @@ const TableHead = React.forwardRef<
         className
       )
     )}
+    style={{
+      ...style,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      maxWidth: '0',
+    }}
     {...props}
   />
 ))
@@ -128,7 +136,7 @@ TableHead.displayName = 'TableHead'
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <td
     ref={ref}
     className={twMerge(
@@ -137,6 +145,13 @@ const TableCell = React.forwardRef<
         className
       )
     )}
+    style={{
+      ...style,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      maxWidth: '0',
+    }}
     {...props}
   />
 ))
@@ -218,9 +233,17 @@ const PaginationRow = ({ table }: { table: TableType<any> }) => {
 
 /* ---------------------------------- Type --------------------------------- */
 
+export type ColumnDefWithWidth<TData, TValue> = ColumnDef<
+  TData,
+  TValue
+> & {
+  width?: number | string // Can be pixel value or percentage
+  minWidth?: number
+  maxWidth?: number
+}
 export interface TableProps<TData, TValue> {
   /** Table columns */
-  columns: ColumnDef<TData, TValue>[]
+  columns: ColumnDefWithWidth<TData, TValue>[]
   /** Table data */
   data: TData[]
   /** Table footer */
@@ -279,18 +302,30 @@ function Table<TData, TValue>({
         className
       )}
     >
-      <TableRoot className={clsx('w-full')}>
+      <TableRoot className={clsx('w-full', 'table-fixed')}>
         {caption && <TableCaption>{caption}</TableCaption>}
         {columns.some((column) => !!column.header) && (
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow className="border-none" key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const columnDef = header.column
+                    .columnDef as ColumnDef<TData, TValue> & {
+                    width?: number | string
+                    minWidth?: number
+                    maxWidth?: number
+                  }
+
                   return (
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
                       rounded={!bordered}
+                      style={{
+                        width: columnDef.width,
+                        minWidth: columnDef.minWidth,
+                        maxWidth: columnDef.maxWidth,
+                      }}
                     >
                       {header.isPlaceholder
                         ? null

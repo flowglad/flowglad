@@ -4,15 +4,20 @@ import {
   createUpdateFunction,
   createSelectFunction,
   ORMMethodCreatorConfig,
+  SelectConditions,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   Catalog,
   catalogs,
+  catalogsClientSelectSchema,
   catalogsInsertSchema,
   catalogsSelectSchema,
   catalogsUpdateSchema,
 } from '@/db/schema/catalogs'
 import { DbTransaction } from '@/db/types'
+import { count, eq } from 'drizzle-orm'
+import { products } from '../schema/products'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -76,4 +81,25 @@ export const makeCatalogDefault = async (
     transaction
   )
   return updatedCatalog
+}
+
+export const selectCatalogsTableRows = async (
+  where: SelectConditions<typeof catalogs>,
+  transaction: DbTransaction
+): Promise<Catalog.TableRow[]> => {
+  const results = await transaction
+    .select({
+      catalog: catalogs,
+      productsCount: count(products.id),
+    })
+    .from(catalogs)
+    .leftJoin(products, eq(catalogs.id, products.catalogId))
+    .where(whereClauseFromObject(catalogs, where))
+    .groupBy(catalogs.id)
+    .orderBy(catalogs.createdAt)
+
+  return results.map(({ catalog, productsCount }) => ({
+    catalog: catalogsClientSelectSchema.parse(catalog),
+    productsCount: productsCount || 0,
+  }))
 }
