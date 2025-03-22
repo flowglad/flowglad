@@ -94,6 +94,10 @@ export const SideNavigation = () => {
               parentLeadingIcon={<Store size={16} />}
               childItems={[
                 {
+                  label: 'Catalogs',
+                  href: '/store/catalogs',
+                },
+                {
                   label: 'Products',
                   href: '/store/products',
                 },
