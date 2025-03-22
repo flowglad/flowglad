@@ -20,6 +20,7 @@ import {
 import { createInvoiceNumberBase } from '@/utils/core'
 import { z } from 'zod'
 import { users } from './users'
+import { catalogs } from './catalogs'
 
 const TABLE_NAME = 'customers'
 
@@ -36,14 +37,14 @@ const columns = {
   ),
   archived: boolean('archived').default(false).notNull(),
   stripeCustomerId: text('stripe_customer_id'),
-  customerTaxId: text('customer_tax_id'),
-  slackId: text('slack_id'),
+  taxId: text('tax_id'),
   logoURL: text('logo_url'),
   iconURL: text('icon_url'),
   domain: text('domain'),
   billingAddress: jsonb('billing_address'),
   externalId: text('external_id').notNull(),
   userId: nullableStringForeignKey('user_id', users),
+  catalogId: nullableStringForeignKey('catalog_id', catalogs),
 }
 
 export const customers = pgTable(TABLE_NAME, columns, (table) => {
@@ -55,6 +56,7 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       table.organizationId,
       table.email,
     ]),
+    constructIndex(TABLE_NAME, [table.catalogId]),
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,
       table.externalId,
@@ -64,7 +66,6 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       table.invoiceNumberBase,
     ]),
     constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
-    constructIndex(TABLE_NAME, [table.slackId]),
     livemodePolicy(),
   ]
 })
@@ -78,8 +79,7 @@ const readonlyColumns = {
 
 const hiddenColumns = {
   stripeCustomerId: true,
-  customerTaxId: true,
-  slackId: true,
+  taxId: true,
 } as const
 
 const nonClientEditableColumns = {
