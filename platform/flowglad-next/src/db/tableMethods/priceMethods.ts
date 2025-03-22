@@ -191,3 +191,41 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
   prices,
   config
 )
+
+export const makePriceDefault = async (
+  priceOrId: Price.Record | string,
+  transaction: DbTransaction
+) => {
+  const newDefaultPrice =
+    typeof priceOrId === 'string'
+      ? await selectPriceById(priceOrId, transaction)
+      : priceOrId
+
+  const { price: oldDefaultPrice } = (
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { isDefault: true },
+      transaction
+    )
+  )[0]
+
+  if (oldDefaultPrice) {
+    await updatePrice(
+      {
+        id: oldDefaultPrice.id,
+        isDefault: false,
+        type: oldDefaultPrice.type,
+      },
+      transaction
+    )
+  }
+
+  const updatedPrice = await updatePrice(
+    {
+      id: newDefaultPrice.id,
+      isDefault: true,
+      type: newDefaultPrice.type,
+    },
+    transaction
+  )
+  return updatedPrice
+}
