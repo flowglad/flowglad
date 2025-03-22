@@ -693,8 +693,10 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
         tremor-id="tremor-raw"
         {...other}
       >
-        <ResponsiveContainer>
+        <ResponsiveContainer width={800} height={500}>
           <RechartsAreaChart
+            width={800}
+            height={500}
             data={data}
             onClick={
               hasOnValueChange && (activeLegend || activeDot)

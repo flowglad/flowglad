@@ -96,19 +96,22 @@ export const getYAxisDomain = (
   autoMinValue: boolean,
   minValue: number | undefined,
   maxValue: number | undefined,
-  paddingFactor: number = 1 // Increased to 50% padding for better visibility
+  additionalPaddingMultiple: number = 0 // Increased to 50% padding for better visibility
 ): AxisDomain => {
   if (minValue !== undefined && maxValue !== undefined) {
     // Always start from 0 for revenue and add significant padding to top
-    return [0, maxValue * (1 + paddingFactor)]
+    return [0, maxValue * (1 + additionalPaddingMultiple)]
   }
   // For dynamic domains, also add padding
   if (autoMinValue) {
-    return [0, (dataMax: number) => dataMax * (1 + paddingFactor)]
+    return [
+      0,
+      (dataMax: number) => dataMax * (1 + additionalPaddingMultiple),
+    ]
   }
   return [
     'dataMin',
-    (dataMax: number) => dataMax * (1 + paddingFactor),
+    (dataMax: number) => dataMax * (1 + additionalPaddingMultiple),
   ]
 }
 export function hasOnlyOneValueForKey(

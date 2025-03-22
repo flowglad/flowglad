@@ -639,9 +639,11 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
         tremor-id="tremor-raw"
         {...other}
       >
-        <ResponsiveContainer>
+        <ResponsiveContainer width={'100%'} height={'100%'}>
           <RechartsLineChart
             data={data}
+            width={800}
+            height={300}
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
                 ? () => {
