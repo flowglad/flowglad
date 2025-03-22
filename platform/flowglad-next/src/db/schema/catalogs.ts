@@ -1,4 +1,4 @@
-import { text, pgTable } from 'drizzle-orm/pg-core'
+import { text, pgTable, boolean } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -22,6 +22,7 @@ export const catalogs = pgTable(
       'organization_id',
       organizations
     ),
+    isDefault: boolean('is_default').notNull().default(false),
     name: text('name').notNull(),
   },
   (table) => {
