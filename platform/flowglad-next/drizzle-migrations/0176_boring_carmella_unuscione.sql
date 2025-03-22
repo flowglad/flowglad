@@ -48,5 +48,5 @@ ALTER TABLE "prices"
 ADD CONSTRAINT "prices_ensure_one_default_per_product"
 EXCLUDE USING btree (
     product_id WITH =,
-    (CASE WHEN isDefault THEN 1 ELSE NULL END) WITH =
+    (CASE WHEN is_default THEN 1 ELSE NULL END) WITH =
 ) DEFERRABLE INITIALLY DEFERRED;
