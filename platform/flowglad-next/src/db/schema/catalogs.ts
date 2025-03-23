@@ -9,6 +9,7 @@ import {
   notNullStringForeignKey,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  livemodePolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
@@ -41,6 +42,7 @@ export const catalogs = pgTable(
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
+      livemodePolicy(),
     ]
   }
 ).enableRLS()

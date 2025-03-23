@@ -11,7 +11,8 @@ import { Accordion } from '../ion/Accordion'
 import AIHoverModal from './AIHoverModal'
 import Select from '../ion/Select'
 import { trpc } from '@/app/_trpc/client'
-
+import { encodeCursor } from '@/db/tableUtils'
+import { useAuthContext } from '@/contexts/authContext'
 export const ProductFormFields = ({
   editProduct = false,
 }: {
@@ -23,9 +24,17 @@ export const ProductFormFields = ({
     setValue,
     watch,
   } = useFormContext<CreateProductSchema>()
+  const { organization } = useAuthContext()
   const { data: catalogs } = trpc.catalogs.list.useQuery({
     limit: 100,
+    cursor: encodeCursor({
+      parameters: {
+        organizationId: organization!.id,
+      },
+    }),
   })
+
+  console.log('catalogs?.data', catalogs?.data)
   const product = watch('product')
   return (
     <div className="relative flex justify-between items-center gap-2.5 bg-background">

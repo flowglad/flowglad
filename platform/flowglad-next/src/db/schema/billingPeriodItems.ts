@@ -7,6 +7,7 @@ import {
   constructIndex,
   enhancedCreateInsertSchema,
   createUpdateSchema,
+  livemodePolicy,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
@@ -44,6 +45,7 @@ export const billingPeriodItems = pgTable(
         for: 'all',
         using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
       }),
+      livemodePolicy(),
     ]
   }
 ).enableRLS()
