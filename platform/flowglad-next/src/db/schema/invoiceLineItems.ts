@@ -90,9 +90,7 @@ export const invoiceLineItemsPaginatedSelectSchema =
   createPaginatedSelectSchema(invoiceLineItemsClientSelectSchema)
 
 export const invoiceLineItemsPaginatedListSchema =
-  createPaginatedListQuerySchema<
-    z.infer<typeof invoiceLineItemsClientSelectSchema>
-  >(invoiceLineItemsClientSelectSchema)
+  createPaginatedListQuerySchema(invoiceLineItemsClientSelectSchema)
 
 export namespace InvoiceLineItem {
   export type Insert = z.infer<typeof invoiceLineItemsInsertSchema>

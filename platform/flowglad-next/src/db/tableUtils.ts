@@ -785,8 +785,8 @@ export const createPaginatedSelectFunction = <
   }
 }
 
-export const createPaginatedListQuerySchema = <T extends {}>(
-  schema: ZodTableUnionOrType<T>
+export const createPaginatedListQuerySchema = <T extends z.ZodType>(
+  schema: T
 ) => {
   return z.object({
     data: z.array(schema),
@@ -795,7 +795,7 @@ export const createPaginatedListQuerySchema = <T extends {}>(
     hasMore: z.boolean(),
     total: z.number(),
   }) as z.ZodType<{
-    data: z.infer<ZodTableUnionOrType<T>>[]
+    data: z.infer<T>[]
     currentCursor?: string
     nextCursor?: string
     total: number

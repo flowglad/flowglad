@@ -275,9 +275,7 @@ export const invoicesPaginatedSelectSchema =
   createPaginatedSelectSchema(coreInvoicesSelectSchema.partial())
 
 export const invoicesPaginatedListSchema =
-  createPaginatedListQuerySchema<
-    z.infer<typeof invoicesClientSelectSchema>
-  >(invoicesClientSelectSchema)
+  createPaginatedListQuerySchema(invoicesClientSelectSchema)
 
 export namespace Invoice {
   export type Insert = z.infer<typeof invoicesInsertSchema>

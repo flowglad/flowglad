@@ -9,6 +9,8 @@ import Switch from '../ion/Switch'
 import StatusBadge from '../StatusBadge'
 import { Accordion } from '../ion/Accordion'
 import AIHoverModal from './AIHoverModal'
+import Select from '../ion/Select'
+import { trpc } from '@/app/_trpc/client'
 
 export const ProductFormFields = ({
   editProduct = false,
@@ -21,6 +23,9 @@ export const ProductFormFields = ({
     setValue,
     watch,
   } = useFormContext<CreateProductSchema>()
+  const { data: catalogs } = trpc.catalogs.list.useQuery({
+    limit: 100,
+  })
   const product = watch('product')
   return (
     <div className="relative flex justify-between items-center gap-2.5 bg-background">
@@ -64,6 +69,26 @@ export const ProductFormFields = ({
                       }
                       hint="Details about your product that will be displayed on the purchase page."
                     />
+                    {!editProduct && (
+                      <div className="w-full relative flex flex-col gap-3">
+                        <Label>Catalog</Label>
+                        <Controller
+                          name="product.catalogId"
+                          render={({ field }) => (
+                            <Select
+                              options={
+                                catalogs?.data?.map((catalog) => ({
+                                  label: catalog.name,
+                                  value: catalog.id,
+                                })) || []
+                              }
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
+                          )}
+                        />
+                      </div>
+                    )}
                     {editProduct && (
                       <div className="w-full relative flex flex-col gap-3">
                         <Label>Status</Label>
