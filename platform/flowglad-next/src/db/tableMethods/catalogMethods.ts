@@ -23,6 +23,7 @@ import {
   products,
   productsClientSelectSchema,
 } from '../schema/products'
+import { selectPricesAndProductsByProductWhere } from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -118,33 +119,39 @@ export const selectCatalogsWithProductsByCatalogWhere = async (
   where: SelectConditions<typeof catalogs>,
   transaction: DbTransaction
 ): Promise<Catalog.WithProducts[]> => {
-  const catalogsWithProducts = await transaction
-    .select({
-      catalog: catalogs,
-      product: products,
-    })
+  /**
+   * Implementation note:
+   * it is actually fairly important to do this in two steps,
+   * because catalogs are one-to-many with products, so we couldn't
+   * easily describe our desired "limit" result easily.
+   * But in two steps, we can limit the catalogs, and then get the
+   * products for each catalog.
+   * This COULD create a performance issue if there are a lot of products
+   * to fetch, but in practice it should be fine.
+   */
+  const catalogResults = await transaction
+    .select()
     .from(catalogs)
-    .leftJoin(products, eq(catalogs.id, products.catalogId))
     .where(whereClauseFromObject(catalogs, where))
     .limit(100)
     .orderBy(catalogs.createdAt)
 
   const uniqueCatalogsMap = new Map<string, Catalog.ClientRecord>()
-  catalogsWithProducts.forEach(({ catalog, product }) => {
+  catalogResults.forEach((catalog) => {
     uniqueCatalogsMap.set(
       catalog.id,
       catalogsClientSelectSchema.parse(catalog)
     )
   })
-  const productsByCatalogId = new Map<
-    string,
-    Product.ClientRecord[]
-  >()
-  catalogsWithProducts.forEach(({ catalog, product }) => {
-    productsByCatalogId.set(catalog.id, [
-      productsClientSelectSchema.parse(product),
-    ])
+  const productResults = await selectPricesAndProductsByProductWhere(
+    { catalogId: catalogResults.map((catalog) => catalog.id) },
+    transaction
+  )
+  const productsByCatalogId = new Map()
+  productResults.forEach(({ product }) => {
+    productsByCatalogId.set(product.catalogId, [product])
   })
+
   const uniqueCatalogs = Array.from(uniqueCatalogsMap.values())
   return uniqueCatalogs.map((catalog) => ({
     ...catalog,
