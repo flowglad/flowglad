@@ -1,8 +1,5 @@
 'use client'
 
-import { LineChart } from '@/components/charts/LineChart'
-import { RevenueChart } from '@/components/RevenueChart'
-
 type RichCustomer = {
   subscription: {
     name: string
@@ -91,20 +88,7 @@ const InternalDemoPage = () => {
   return (
     <div style={{ padding: '20px' }}>
       <h1>Internal Demo Page</h1>
-      <div
-        style={
-          {
-            // width: '800px',
-            // height: '500px',
-            // position: 'relative',
-          }
-        }
-      >
-        <RevenueChart
-          fromDate={new Date('2023-01-01')}
-          toDate={new Date('2025-12-31')}
-        />
-      </div>
+      <div></div>
     </div>
   )
 }
