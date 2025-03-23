@@ -110,22 +110,6 @@ export const properNounClientUpdateSchema =
 
 export const properNounClientSelectSchema = properNounsSelectSchema
 
-export const properNounSupabaseWebhookInsertPayloadSchema =
-  z.discriminatedUnion('table', [
-    productsSupabaseInsertPayloadSchema,
-    pricesSupabaseInsertPayloadSchema,
-    customersSupabaseInsertPayloadSchema,
-    discountsSupabaseInsertPayloadSchema,
-  ])
-
-export const properNounSupabaseWebhookUpdatePayloadSchema =
-  z.discriminatedUnion('table', [
-    productsSupabaseUpdatePayloadSchema,
-    pricesSupabaseUpdatePayloadSchema,
-    customersSupabaseUpdatePayloadSchema,
-    discountsSupabaseUpdatePayloadSchema,
-  ])
-
 export namespace ProperNoun {
   export type Insert = z.infer<typeof properNounsInsertSchema>
   export type Update = z.infer<typeof properNounsUpdateSchema>

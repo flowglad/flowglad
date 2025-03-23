@@ -3,6 +3,7 @@ import {
   createInsertFunction,
   createUpdateFunction,
   createSelectFunction,
+  createPaginatedSelectFunction,
   ORMMethodCreatorConfig,
   SelectConditions,
   whereClauseFromObject,
@@ -17,7 +18,12 @@ import {
 } from '@/db/schema/catalogs'
 import { DbTransaction } from '@/db/types'
 import { count, eq } from 'drizzle-orm'
-import { products } from '../schema/products'
+import {
+  Product,
+  products,
+  productsClientSelectSchema,
+} from '../schema/products'
+import { selectPricesAndProductsByProductWhere } from './priceMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -37,6 +43,11 @@ export const insertCatalog = createInsertFunction(catalogs, config)
 export const updateCatalog = createUpdateFunction(catalogs, config)
 
 export const selectCatalogs = createSelectFunction(catalogs, config)
+
+export const selectCatalogsPaginated = createPaginatedSelectFunction(
+  catalogs,
+  config
+)
 
 export const selectDefaultCatalog = async (
   {
@@ -101,5 +112,53 @@ export const selectCatalogsTableRows = async (
   return results.map(({ catalog, productsCount }) => ({
     catalog: catalogsClientSelectSchema.parse(catalog),
     productsCount: productsCount || 0,
+  }))
+}
+
+export type CatalogWithProducts = Catalog.ClientRecord & {
+  products: Product.ClientRecord[]
+}
+
+export const selectCatalogsWithProductsByCatalogWhere = async (
+  where: SelectConditions<typeof catalogs>,
+  transaction: DbTransaction
+): Promise<CatalogWithProducts[]> => {
+  /**
+   * Implementation note:
+   * it is actually fairly important to do this in two steps,
+   * because catalogs are one-to-many with products, so we couldn't
+   * easily describe our desired "limit" result easily.
+   * But in two steps, we can limit the catalogs, and then get the
+   * products for each catalog.
+   * This COULD create a performance issue if there are a lot of products
+   * to fetch, but in practice it should be fine.
+   */
+  const catalogResults = await transaction
+    .select()
+    .from(catalogs)
+    .where(whereClauseFromObject(catalogs, where))
+    .limit(100)
+    .orderBy(catalogs.createdAt)
+
+  const uniqueCatalogsMap = new Map<string, Catalog.ClientRecord>()
+  catalogResults.forEach((catalog) => {
+    uniqueCatalogsMap.set(
+      catalog.id,
+      catalogsClientSelectSchema.parse(catalog)
+    )
+  })
+  const productResults = await selectPricesAndProductsByProductWhere(
+    { catalogId: catalogResults.map((catalog) => catalog.id) },
+    transaction
+  )
+  const productsByCatalogId = new Map()
+  productResults.forEach(({ product }) => {
+    productsByCatalogId.set(product.catalogId, [product])
+  })
+
+  const uniqueCatalogs = Array.from(uniqueCatalogsMap.values())
+  return uniqueCatalogs.map((catalog) => ({
+    ...catalog,
+    products: productsByCatalogId.get(catalog.id) || [],
   }))
 }

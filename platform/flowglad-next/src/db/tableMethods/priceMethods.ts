@@ -28,6 +28,7 @@ import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
+import { catalogs, catalogsSelectSchema } from '../schema/catalogs'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -100,6 +101,43 @@ export const selectPricesAndProductsForOrganization = async (
   return results.map((result) => ({
     product: productsSelectSchema.parse(result.product),
     price: pricesSelectSchema.parse(result.price),
+  }))
+}
+
+export const selectPricesProductsAndCatalogsForOrganization = async (
+  whereConditions: Partial<Price.Record>,
+  organizationId: string,
+  transaction: DbTransaction
+) => {
+  let query = transaction
+    .select({
+      price: prices,
+      product: products,
+      catalog: catalogs,
+    })
+    .from(prices)
+    .innerJoin(products, eq(products.id, prices.productId))
+    .leftJoin(catalogs, eq(products.catalogId, catalogs.id))
+    .$dynamic()
+
+  const whereClauses: SQLWrapper[] = [
+    eq(products.organizationId, organizationId),
+  ]
+  if (Object.keys(whereConditions).length > 0) {
+    const whereClause = whereClauseFromObject(prices, whereConditions)
+    if (whereClause) {
+      whereClauses.push(whereClause)
+    }
+  }
+  query = query.where(and(...whereClauses))
+
+  const results = await query
+  return results.map((result) => ({
+    product: productsSelectSchema.parse(result.product),
+    price: pricesSelectSchema.parse(result.price),
+    catalog: result.catalog
+      ? catalogsSelectSchema.parse(result.catalog)
+      : undefined,
   }))
 }
 

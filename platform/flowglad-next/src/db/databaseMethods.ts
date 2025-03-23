@@ -52,6 +52,10 @@ export const authenticatedTransaction = async <T>(
         )
       )
       .limit(1)
+    console.log(
+      'focusedMembership?.livemode',
+      focusedMembership?.livemode
+    )
     livemode = focusedMembership?.livemode ?? false
     jwtClaim = {
       role: 'authenticated',

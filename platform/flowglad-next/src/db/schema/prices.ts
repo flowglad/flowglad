@@ -238,9 +238,7 @@ export const pricesPaginatedSelectSchema =
   )
 
 export const pricesPaginatedListSchema =
-  createPaginatedListQuerySchema<
-    z.infer<typeof pricesClientSelectSchema>
-  >(pricesClientSelectSchema)
+  createPaginatedListQuerySchema(pricesClientSelectSchema)
 
 export namespace Price {
   export type Insert = z.infer<typeof pricesInsertSchema>

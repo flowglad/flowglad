@@ -1,0 +1,4 @@
+CREATE POLICY "Check mode" ON "billing_period_items" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);--> statement-breakpoint
+CREATE POLICY "Check mode" ON "billing_periods" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);--> statement-breakpoint
+CREATE POLICY "Check mode" ON "billing_runs" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);--> statement-breakpoint
+CREATE POLICY "Check mode" ON "catalogs" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);
