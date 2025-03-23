@@ -109,6 +109,7 @@ export const createOrganizationTransaction = async (
     },
     transaction
   )
+
   await insertCatalog(
     {
       name: 'Default',
