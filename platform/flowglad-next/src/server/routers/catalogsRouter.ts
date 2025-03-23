@@ -4,10 +4,10 @@ import {
   catalogsPaginatedListSchema,
   catalogsPaginatedSelectSchema,
   catalogIdSchema,
-  catalogWithProductsSchema,
   createCatalogSchema,
   editCatalogSchema,
 } from '@/db/schema/catalogs'
+import { catalogWithProductsSchema } from '@/db/schema/products'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
   insertCatalog,
@@ -16,10 +16,7 @@ import {
   makeCatalogDefault,
   selectCatalogsWithProductsByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
-import {
-  createPostOpenApiMeta,
-  generateOpenApiMetas,
-} from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({

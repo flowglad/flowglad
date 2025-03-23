@@ -21,7 +21,7 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
-import { catalogs } from './catalogs'
+import { catalogs, catalogsClientSelectSchema } from './catalogs'
 
 const PRODUCTS_TABLE_NAME = 'products'
 
@@ -160,6 +160,11 @@ export const productsPaginatedSelectSchema =
 
 export const productsPaginatedListSchema =
   createPaginatedListQuerySchema(productsClientSelectSchema)
+
+export const catalogWithProductsSchema =
+  catalogsClientSelectSchema.extend({
+    products: z.array(productsClientSelectSchema).max(10),
+  })
 
 export namespace Product {
   export type Insert = z.infer<typeof productsInsertSchema>

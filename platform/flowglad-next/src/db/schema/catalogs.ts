@@ -83,11 +83,6 @@ export const catalogIdSchema = z.object({
   id: z.string(),
 })
 
-export const catalogWithProductsSchema =
-  catalogsClientSelectSchema.extend({
-    products: z.array(productsClientSelectSchema).max(10),
-  })
-
 export namespace Catalog {
   export type Insert = z.infer<typeof catalogsInsertSchema>
   export type Update = z.infer<typeof catalogsUpdateSchema>
@@ -104,7 +99,6 @@ export namespace Catalog {
   export type PaginatedList = z.infer<
     typeof catalogsPaginatedListSchema
   >
-  export type WithProducts = z.infer<typeof catalogWithProductsSchema>
   export interface TableRow {
     catalog: ClientRecord
     productsCount: number
