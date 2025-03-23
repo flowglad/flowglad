@@ -3,6 +3,7 @@ import {
   createInsertFunction,
   createUpdateFunction,
   createSelectFunction,
+  createPaginatedSelectFunction,
   ORMMethodCreatorConfig,
   SelectConditions,
   whereClauseFromObject,
@@ -17,7 +18,11 @@ import {
 } from '@/db/schema/catalogs'
 import { DbTransaction } from '@/db/types'
 import { count, eq } from 'drizzle-orm'
-import { products } from '../schema/products'
+import {
+  Product,
+  products,
+  productsClientSelectSchema,
+} from '../schema/products'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -37,6 +42,11 @@ export const insertCatalog = createInsertFunction(catalogs, config)
 export const updateCatalog = createUpdateFunction(catalogs, config)
 
 export const selectCatalogs = createSelectFunction(catalogs, config)
+
+export const selectCatalogsPaginated = createPaginatedSelectFunction(
+  catalogs,
+  config
+)
 
 export const selectDefaultCatalog = async (
   {
@@ -101,5 +111,43 @@ export const selectCatalogsTableRows = async (
   return results.map(({ catalog, productsCount }) => ({
     catalog: catalogsClientSelectSchema.parse(catalog),
     productsCount: productsCount || 0,
+  }))
+}
+
+export const selectCatalogsWithProductsByCatalogWhere = async (
+  where: SelectConditions<typeof catalogs>,
+  transaction: DbTransaction
+): Promise<Catalog.WithProducts[]> => {
+  const catalogsWithProducts = await transaction
+    .select({
+      catalog: catalogs,
+      product: products,
+    })
+    .from(catalogs)
+    .leftJoin(products, eq(catalogs.id, products.catalogId))
+    .where(whereClauseFromObject(catalogs, where))
+    .limit(100)
+    .orderBy(catalogs.createdAt)
+
+  const uniqueCatalogsMap = new Map<string, Catalog.ClientRecord>()
+  catalogsWithProducts.forEach(({ catalog, product }) => {
+    uniqueCatalogsMap.set(
+      catalog.id,
+      catalogsClientSelectSchema.parse(catalog)
+    )
+  })
+  const productsByCatalogId = new Map<
+    string,
+    Product.ClientRecord[]
+  >()
+  catalogsWithProducts.forEach(({ catalog, product }) => {
+    productsByCatalogId.set(catalog.id, [
+      productsClientSelectSchema.parse(product),
+    ])
+  })
+  const uniqueCatalogs = Array.from(uniqueCatalogsMap.values())
+  return uniqueCatalogs.map((catalog) => ({
+    ...catalog,
+    products: productsByCatalogId.get(catalog.id) || [],
   }))
 }

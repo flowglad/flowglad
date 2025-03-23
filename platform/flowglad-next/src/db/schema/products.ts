@@ -57,7 +57,10 @@ const columns = {
    * "10 bots" => "bots"
    */
   pluralQuantityLabel: text('plural_quantity_label'),
-  catalogId: nullableStringForeignKey('catalog_id', catalogs),
+  catalogId: nullableStringForeignKey(
+    'catalog_id',
+    catalogs
+  ).notNull(),
 }
 
 export const products = pgTable(
@@ -110,6 +113,10 @@ export const productsUpdateSchema = productsInsertSchema
     id: z.string(),
   })
 
+const createOnlyColumns = {
+  catalogId: true,
+} as const
+
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
@@ -131,9 +138,10 @@ export const productsClientInsertSchema = productsInsertSchema.omit(
   nonClientEditableColumns
 )
 
-export const productsClientUpdateSchema = productsUpdateSchema.omit(
-  nonClientEditableColumns
-)
+export const productsClientUpdateSchema = productsUpdateSchema.omit({
+  ...nonClientEditableColumns,
+  ...createOnlyColumns,
+})
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({

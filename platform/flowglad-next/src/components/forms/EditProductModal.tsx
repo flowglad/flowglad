@@ -3,7 +3,7 @@
 import FormModal from '@/components/forms/FormModal'
 import { Product } from '@/db/schema/products'
 import { editProductSchema } from '@/db/schema/prices'
-import { ProductFormFields } from '@/components/forms/ProductFormFieldsV2'
+import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { Price } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'

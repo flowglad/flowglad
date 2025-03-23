@@ -9,6 +9,7 @@ import { Product } from '@/db/schema/products'
 import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import { Price } from '@/db/schema/prices'
 import { ProductsTable } from './ProductsTable'
+import { trpc } from '@/app/_trpc/client'
 
 export enum FocusedTab {
   All = 'all',
@@ -26,7 +27,7 @@ type Props = {
 function Internal({ products }: Props) {
   const [isCreateProductOpen, setIsCreateProductOpen] =
     useState(false)
-
+  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery()
   const activeProducts = products.filter(
     (product) => product.product.active
   )
@@ -73,10 +74,13 @@ function Internal({ products }: Props) {
               </Button>
             }
           />
-          <CreateProductModal
-            isOpen={isCreateProductOpen}
-            setIsOpen={setIsCreateProductOpen}
-          />
+          {defaultCatalog && (
+            <CreateProductModal
+              isOpen={isCreateProductOpen}
+              setIsOpen={setIsCreateProductOpen}
+              defaultCatalogId={defaultCatalog.id}
+            />
+          )}
         </div>
       </div>
     </div>

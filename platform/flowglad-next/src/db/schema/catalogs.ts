@@ -7,10 +7,16 @@ import {
   tableBase,
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
+  createPaginatedSelectSchema,
+  createPaginatedListQuerySchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+import {
+  products,
+  productsClientSelectSchema,
+} from '@/db/schema/products'
 
 const TABLE_NAME = 'catalogs'
 
@@ -67,6 +73,21 @@ export const catalogsClientUpdateSchema =
 export const catalogsClientInsertSchema =
   catalogsInsertSchema.omit(readOnlyColumns)
 
+export const catalogsPaginatedSelectSchema =
+  createPaginatedSelectSchema(catalogsClientSelectSchema)
+
+export const catalogsPaginatedListSchema =
+  createPaginatedListQuerySchema(catalogsClientSelectSchema)
+
+export const catalogIdSchema = z.object({
+  id: z.string(),
+})
+
+export const catalogWithProductsSchema =
+  catalogsClientSelectSchema.extend({
+    products: z.array(productsClientSelectSchema).max(10),
+  })
+
 export namespace Catalog {
   export type Insert = z.infer<typeof catalogsInsertSchema>
   export type Update = z.infer<typeof catalogsUpdateSchema>
@@ -80,6 +101,10 @@ export namespace Catalog {
   export type ClientUpdate = z.infer<
     typeof catalogsClientUpdateSchema
   >
+  export type PaginatedList = z.infer<
+    typeof catalogsPaginatedListSchema
+  >
+  export type WithProducts = z.infer<typeof catalogWithProductsSchema>
   export interface TableRow {
     catalog: ClientRecord
     productsCount: number
