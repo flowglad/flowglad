@@ -263,8 +263,8 @@ export const activeColumn = () =>
   boolean('active').notNull().default(true)
 export const descriptionColumn = () => text('description')
 export const createdAtColumn = () =>
-  timestamp('createdAt').notNull().defaultNow()
-export const sequenceNumberColumn = () => integer('sequenceNumber')
+  timestamp('created_at').notNull().defaultNow()
+export const sequenceNumberColumn = () => integer('sequence_number')
 
 export const tableBase = (idPrefix?: string) => ({
   id: text('id')
@@ -275,7 +275,7 @@ export const tableBase = (idPrefix?: string) => ({
     )
     .notNull(),
   createdAt: createdAtColumn(),
-  updatedAt: timestamp('updatedAt')
+  updatedAt: timestamp('updated_at')
     .defaultNow()
     .$onUpdate(() => new Date()),
   livemode: boolean('livemode').notNull(),
@@ -636,7 +636,7 @@ export const createBulkUpsertFunction = <
       .values(parsedData)
       .onConflictDoUpdate({
         target,
-        set: onConflictDoUpdateSetValues(table, ['id', 'createdAt']),
+        set: onConflictDoUpdateSetValues(table, ['id', 'created_at']),
       })
       .returning()
     return result.map((data) => config.selectSchema.parse(data))
