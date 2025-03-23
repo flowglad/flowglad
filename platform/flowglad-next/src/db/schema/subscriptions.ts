@@ -183,9 +183,7 @@ export const subscriptionsPaginatedSelectSchema =
   )
 
 export const subscriptionsPaginatedListSchema =
-  createPaginatedListQuerySchema<
-    z.infer<typeof subscriptionClientSelectSchema>
-  >(subscriptionClientSelectSchema)
+  createPaginatedListQuerySchema(subscriptionClientSelectSchema)
 
 export namespace Subscription {
   export type Insert = z.infer<typeof subscriptionsInsertSchema>

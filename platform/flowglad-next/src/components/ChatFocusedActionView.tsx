@@ -4,6 +4,7 @@ import {
   useChatActionsContext,
 } from './ChatActionsContext'
 import { CreateProductModal } from './forms/CreateProductModal'
+import { trpc } from '@/app/_trpc/client'
 
 const ChatFocusedActionView = () => {
   const {
@@ -12,6 +13,7 @@ const ChatFocusedActionView = () => {
     setFocusedActionId,
     setAction,
   } = useChatActionsContext()
+  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery()
   if (!focusedActionId) {
     return null
   }
@@ -22,7 +24,8 @@ const ChatFocusedActionView = () => {
   const { structuredOutput, classification } = action
   if (
     classification.noun === Nouns.Product &&
-    classification.verb === Verbs.Create
+    classification.verb === Verbs.Create &&
+    defaultCatalog
   ) {
     return (
       <CreateProductModal
@@ -32,6 +35,7 @@ const ChatFocusedActionView = () => {
             setFocusedActionId(null)
           }
         }}
+        defaultCatalogId={defaultCatalog?.id}
         onSubmitStart={() => {
           setAction({
             ...action,

@@ -46,6 +46,7 @@ import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
 import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
 import { Payment } from '@/db/schema/payments'
 import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
+import { insertCatalog } from '@/db/tableMethods/catalogMethods'
 const insertCountries = async () => {
   await db
     .insert(countries)
@@ -81,6 +82,16 @@ export const setupOrg = async () => {
       },
       transaction
     )
+    const catalog = await insertCatalog(
+      {
+        name: 'Flowglad Test Catalog',
+        organizationId: organization.id,
+        livemode: true,
+        isDefault: true,
+      },
+      transaction
+    )
+
     const product = await insertProduct(
       {
         name: 'Flowglad Test Product',
@@ -93,10 +104,11 @@ export const setupOrg = async () => {
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        catalogId: null,
+        catalogId: catalog.id,
       },
       transaction
     )
+
     const price = await insertPrice(
       {
         productId: product.id,

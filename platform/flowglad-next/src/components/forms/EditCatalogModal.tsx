@@ -16,7 +16,7 @@ const EditCatalogModal: React.FC<EditCatalogModalProps> = ({
   setIsOpen,
   catalog,
 }) => {
-  const editCatalog = trpc.editCatalog.useMutation()
+  const editCatalog = trpc.catalogs.update.useMutation()
   return (
     <FormModal
       isOpen={isOpen}

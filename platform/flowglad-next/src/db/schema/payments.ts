@@ -165,9 +165,7 @@ export const paymentsTableRowDataSchema = z.object({
 })
 
 export const paymentsPaginatedListSchema =
-  createPaginatedListQuerySchema<
-    z.infer<typeof paymentsClientSelectSchema>
-  >(paymentsClientSelectSchema)
+  createPaginatedListQuerySchema(paymentsClientSelectSchema)
 
 export namespace Payment {
   export type Insert = z.infer<typeof paymentsInsertSchema>

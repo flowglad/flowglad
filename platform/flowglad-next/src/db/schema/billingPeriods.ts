@@ -12,6 +12,7 @@ import {
   enhancedCreateInsertSchema,
   createUpdateSchema,
   pgEnumColumn,
+  livemodePolicy,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
@@ -48,6 +49,7 @@ export const billingPeriods = pgTable(
         for: 'all',
         using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
+      livemodePolicy(),
     ]
   }
 ).enableRLS()

@@ -265,9 +265,7 @@ export const discountsPaginatedSelectSchema =
   createPaginatedSelectSchema(discountClientSelectSchema)
 
 export const discountsPaginatedListSchema =
-  createPaginatedListQuerySchema<
-    z.infer<typeof discountClientSelectSchema>
-  >(discountClientSelectSchema)
+  createPaginatedListQuerySchema(discountClientSelectSchema)
 
 export namespace Discount {
   export type Insert = z.infer<typeof discountsInsertSchema>

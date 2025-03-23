@@ -22,6 +22,7 @@ import {
   CreateOrganizationInput,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
+import { insertCatalog } from '@/db/tableMethods/catalogMethods'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -108,9 +109,31 @@ export const createOrganizationTransaction = async (
     },
     transaction
   )
+
+  await insertCatalog(
+    {
+      name: 'Default',
+      livemode: true,
+      organizationId: organizationRecord.id,
+    },
+    transaction
+  )
+
+  const defaultTestmodeCatalog = await insertCatalog(
+    {
+      name: 'Default (testmode)',
+      livemode: false,
+      organizationId: organizationRecord.id,
+    },
+    transaction
+  )
+
   await createProductTransaction(
     {
-      product: dummyProduct,
+      product: {
+        ...dummyProduct,
+        catalogId: defaultTestmodeCatalog.id,
+      },
       prices: [
         {
           ...subscriptionDummyPrice,

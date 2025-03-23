@@ -14,7 +14,7 @@ const CreateCatalogModal: React.FC<CreateCatalogModalProps> = ({
   isOpen,
   setIsOpen,
 }) => {
-  const createCatalog = trpc.createCatalog.useMutation()
+  const createCatalog = trpc.catalogs.create.useMutation()
   return (
     <FormModal
       isOpen={isOpen}

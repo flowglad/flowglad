@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=373:16122
 'use client'
 import { PriceType } from '@/types'
-import { ProductFormFields } from '@/components/forms/ProductFormFieldsV2'
+import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { Price } from '@/db/schema/prices'
 import {
   CreateProductSchema,
@@ -35,7 +35,7 @@ const defaultProduct: Product.ClientInsert = {
   displayFeatures: [],
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
-  catalogId: null,
+  catalogId: 'catalog_111____',
 }
 
 export const CreateProductModal = ({
@@ -45,6 +45,7 @@ export const CreateProductModal = ({
   chatPreview,
   onSubmitStart,
   onSubmitSuccess,
+  defaultCatalogId,
 }: {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
@@ -53,6 +54,7 @@ export const CreateProductModal = ({
   onSubmitSuccess?: () => void
   onSubmitError?: (error: Error) => void
   chatPreview?: boolean
+  defaultCatalogId: string
 }) => {
   const { organization } = useAuthenticatedContext()
   const createProduct = trpc.products.create.useMutation()
@@ -63,6 +65,7 @@ export const CreateProductModal = ({
     defaultValues ?? {
       product: {
         ...defaultProduct,
+        catalogId: defaultCatalogId,
       },
       price: {
         ...defaultPrice,

@@ -263,8 +263,8 @@ export const activeColumn = () =>
   boolean('active').notNull().default(true)
 export const descriptionColumn = () => text('description')
 export const createdAtColumn = () =>
-  timestamp('createdAt').notNull().defaultNow()
-export const sequenceNumberColumn = () => integer('sequenceNumber')
+  timestamp('created_at').notNull().defaultNow()
+export const sequenceNumberColumn = () => integer('sequence_number')
 
 export const tableBase = (idPrefix?: string) => ({
   id: text('id')
@@ -275,7 +275,7 @@ export const tableBase = (idPrefix?: string) => ({
     )
     .notNull(),
   createdAt: createdAtColumn(),
-  updatedAt: timestamp('updatedAt')
+  updatedAt: timestamp('updated_at')
     .defaultNow()
     .$onUpdate(() => new Date()),
   livemode: boolean('livemode').notNull(),
@@ -536,7 +536,6 @@ export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
     schema: z.string(),
     record: selectSchema,
   })
-
   const supabaseUpdatePayloadSchema = z.object({
     type: z.literal(SupabasePayloadType.UPDATE),
     table: z.literal(tableName),
@@ -637,7 +636,7 @@ export const createBulkUpsertFunction = <
       .values(parsedData)
       .onConflictDoUpdate({
         target,
-        set: onConflictDoUpdateSetValues(table, ['id', 'createdAt']),
+        set: onConflictDoUpdateSetValues(table, ['id', 'created_at']),
       })
       .returning()
     return result.map((data) => config.selectSchema.parse(data))
@@ -786,8 +785,8 @@ export const createPaginatedSelectFunction = <
   }
 }
 
-export const createPaginatedListQuerySchema = <T extends {}>(
-  schema: ZodTableUnionOrType<T>
+export const createPaginatedListQuerySchema = <T extends z.ZodType>(
+  schema: T
 ) => {
   return z.object({
     data: z.array(schema),
@@ -796,7 +795,7 @@ export const createPaginatedListQuerySchema = <T extends {}>(
     hasMore: z.boolean(),
     total: z.number(),
   }) as z.ZodType<{
-    data: z.infer<ZodTableUnionOrType<T>>[]
+    data: z.infer<T>[]
     currentCursor?: string
     nextCursor?: string
     total: number

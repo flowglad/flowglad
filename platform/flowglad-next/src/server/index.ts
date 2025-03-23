@@ -32,9 +32,8 @@ import { invoiceLineItemsRouter } from './routers/invoiceLineItemsRouter'
 import { invoicesRouter } from './routers/invoicesRouter'
 import { countriesRouter } from './routers/countriesRouter'
 import { paymentMethodsRouter } from './routers/paymentMethodsRouter'
-import { createCatalog } from './mutations/createCatalog'
-import { editCatalog } from './mutations/editCatalog'
 import { organizationsRouter } from './routers/organizationsRouter'
+import { catalogsRouter } from './routers/catalogsRouter'
 
 const purchasesRouter = router({
   create: createPurchase,
@@ -73,6 +72,7 @@ export const appRouter = router({
   invoiceLineItems: invoiceLineItemsRouter,
   invoices: invoicesRouter,
   countries: countriesRouter,
+  catalogs: catalogsRouter,
   // Utility endpoints
   utils: router({
     ping,
@@ -90,8 +90,6 @@ export const appRouter = router({
   }),
   subscriptions: subscriptionsRouter,
   paymentMethods: paymentMethodsRouter,
-  createCatalog,
-  editCatalog,
 })
 
 // This would map to REST endpoints like:

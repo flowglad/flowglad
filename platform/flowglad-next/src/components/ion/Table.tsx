@@ -124,7 +124,7 @@ const TableHead = React.forwardRef<
       whiteSpace: 'nowrap',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
-      maxWidth: '0',
+      // maxWidth: '0',
     }}
     {...props}
   />
@@ -150,7 +150,7 @@ const TableCell = React.forwardRef<
       whiteSpace: 'nowrap',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
-      maxWidth: '0',
+      // maxWidth: '0',
     }}
     {...props}
   />
