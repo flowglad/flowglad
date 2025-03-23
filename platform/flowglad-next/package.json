@@ -108,7 +108,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.474.0",
     "nanoid": "^5.0.7",
-    "next": "15.2.2",
+    "next": "15.2.3",
     "octokit": "4.1.2",
     "openai": "^4.76.3",
     "papaparse": "^5.5.1",
