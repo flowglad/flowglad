@@ -586,7 +586,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       customTooltip,
       ...other
     } = props
-
     const { containerRef, width, height } = useContainerSize()
     const CustomTooltip = customTooltip
     const paddingValue =
@@ -666,6 +665,17 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
         tremor-id="tremor-raw"
         {...other}
       >
+        {/*
+         * Chart Sizing Mechanism:
+         * 1. The outer div is set to h-80 (20rem) and w-full by default, making it fill its parent's width
+         * 2. ResponsiveContainer wraps the chart and is set to 100% width and height, so it fills the outer div
+         * 3. useContainerSize hook uses ResizeObserver to track the actual pixel dimensions of the outer div
+         * 4. These dimensions (width & height) are passed to RechartsLineChart, which uses them for internal calculations
+         * 5. When the container resizes:
+         *    - ResizeObserver detects the change and updates width/height state
+         *    - These new dimensions flow to RechartsLineChart
+         *    - ResponsiveContainer ensures smooth transitions and maintains aspect ratio
+         */}
         <ResponsiveContainer width={'100%'} height={'100%'}>
           <RechartsLineChart
             data={data}
