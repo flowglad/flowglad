@@ -1,12 +1,16 @@
 import { adminTransaction } from '@/db/databaseMethods'
-import { Customer } from '@/db/schema/customers'
-import { Product } from '@/db/schema/products'
 import {
-  ProperNoun,
-  properNounSupabaseWebhookInsertPayloadSchema,
-  properNounSupabaseWebhookUpdatePayloadSchema,
-} from '@/db/schema/properNouns'
-import { Price } from '@/db/schema/prices'
+  customersSupabaseInsertPayloadSchema,
+  customersSupabaseUpdatePayloadSchema,
+} from '@/db/schema/customers'
+import {
+  productsSupabaseInsertPayloadSchema,
+  productsSupabaseUpdatePayloadSchema,
+} from '@/db/schema/products'
+import {
+  pricesSupabaseInsertPayloadSchema,
+  pricesSupabaseUpdatePayloadSchema,
+} from '@/db/schema/prices'
 import { upsertProperNounByEntityId } from '@/db/tableMethods/properNounMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
@@ -22,6 +26,42 @@ import {
 } from '@/utils/properNounHelpers'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { z } from 'zod'
+import {
+  discountsSupabaseInsertPayloadSchema,
+  discountsSupabaseUpdatePayloadSchema,
+} from '@/db/schema/discounts'
+
+const properNounSupabaseWebhookUpdatePayloadSchema =
+  z.discriminatedUnion('table', [
+    productsSupabaseUpdatePayloadSchema.extend({
+      table: z.literal('products'),
+    }),
+    pricesSupabaseUpdatePayloadSchema.extend({
+      table: z.literal('prices'),
+    }),
+    customersSupabaseUpdatePayloadSchema.extend({
+      table: z.literal('customers'),
+    }),
+    discountsSupabaseUpdatePayloadSchema.extend({
+      table: z.literal('discounts'),
+    }),
+  ])
+
+const properNounSupabaseWebhookInsertPayloadSchema =
+  z.discriminatedUnion('table', [
+    productsSupabaseInsertPayloadSchema.extend({
+      table: z.literal('products'),
+    }),
+    pricesSupabaseInsertPayloadSchema.extend({
+      table: z.literal('prices'),
+    }),
+    customersSupabaseInsertPayloadSchema.extend({
+      table: z.literal('customers'),
+    }),
+    discountsSupabaseInsertPayloadSchema.extend({
+      table: z.literal('discounts'),
+    }),
+  ])
 
 export const upsertProperNounTask = task({
   id: 'upsert-proper-noun',

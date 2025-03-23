@@ -3,7 +3,10 @@ import Internal from './Internal'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { Price } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
+import {
+  selectPricesAndProductsForOrganization,
+  selectPricesProductsAndCatalogsForOrganization,
+} from '@/db/tableMethods/priceMethods'
 
 const ProductsPage = async () => {
   const { productsAndPrices: productsResult } =
@@ -17,7 +20,7 @@ const ProductsPage = async () => {
           transaction
         )
         const productsResult =
-          await selectPricesAndProductsForOrganization(
+          await selectPricesProductsAndCatalogsForOrganization(
             {},
             membership.organization.id,
             transaction

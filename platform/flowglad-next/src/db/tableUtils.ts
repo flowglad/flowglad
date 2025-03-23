@@ -536,7 +536,6 @@ export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
     schema: z.string(),
     record: selectSchema,
   })
-
   const supabaseUpdatePayloadSchema = z.object({
     type: z.literal(SupabasePayloadType.UPDATE),
     table: z.literal(tableName),

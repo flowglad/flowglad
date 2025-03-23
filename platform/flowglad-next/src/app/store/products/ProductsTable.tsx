@@ -20,6 +20,7 @@ import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import PricingCellView from '@/components/PricingCellView'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { Catalog } from '@/db/schema/catalogs'
 
 export enum FocusedTab {
   All = 'all',
@@ -30,15 +31,15 @@ export enum FocusedTab {
 type Props = {
   products: {
     product: Product.ClientRecord
+    catalog?: Catalog.ClientRecord
     prices: Price.ClientRecord[]
   }[]
 }
 
 interface ProductRow {
-  totalRevenue: string
-  monthToDateRevenue: string
   prices: Price.Record[]
   product: Product.ClientRecord
+  catalog?: Catalog.ClientRecord
 }
 
 const MoreMenuCell = ({
@@ -118,6 +119,7 @@ export const ProductsTable = ({
       [
         {
           id: 'image',
+          width: 100,
           cell: ({ row: { original: cellData } }) => (
             <div className="bg-fbg-primary-200 h-10 w-10 hover:bg-fbg-primary-200 overflow-clip flex items-center justify-center rounded-md">
               {cellData.product.imageURL ? (
@@ -187,13 +189,32 @@ export const ProductsTable = ({
           ),
         },
         {
+          id: 'catalog',
+          header: ({ column }) => (
+            <SortableColumnHeaderCell
+              title="Catalog"
+              column={column}
+            />
+          ),
+          accessorKey: 'catalog.name',
+          cell: ({ row: { original: cellData } }) => {
+            const catalogName = cellData.catalog?.name
+            if (catalogName) {
+              return <div className="w-fit">{catalogName}</div>
+            }
+            return <div className="w-fit">-</div>
+          },
+        },
+        {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div
-              className="w-fit"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreMenuCell product={cellData.product} />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreMenuCell product={cellData.product} />
+              </div>
             </div>
           ),
         },
@@ -208,9 +229,8 @@ export const ProductsTable = ({
           columns={columns}
           data={products.map((product) => ({
             product: product.product,
-            totalRevenue: '',
-            monthToDateRevenue: '',
             prices: product.prices,
+            catalog: product.catalog,
           }))}
           onClickRow={(row) => {
             router.push(`/store/products/${row.product.id}`)
