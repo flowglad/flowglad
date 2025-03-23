@@ -34,7 +34,7 @@ const publicRoutes = [
 ]
 
 if (core.IS_DEV) {
-  publicRoutes.push('/demo-route')
+  // publicRoutes.push('/demo-route')
   publicRoutes.push('/oauth/callback/(.*)')
 }
 

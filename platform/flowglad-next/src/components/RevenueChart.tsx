@@ -61,9 +61,6 @@ export function RevenueChart({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
-  function exportOnClickHandler() {
-    alert('exportOnClickHandler fired')
-  }
 
   const chartData = React.useMemo(() => {
     if (!revenueData) return []
@@ -81,6 +78,17 @@ export function RevenueChart({
       }
     })
   }, [revenueData, organization?.defaultCurrency])
+
+  // Calculate max value for better visualization,
+  // fitting the y axis to the max value in the data
+  const maxValue = React.useMemo(() => {
+    if (!revenueData?.length) return 0
+    const max = Math.max(
+      ...revenueData.map((item) => item.revenue / 100)
+    )
+    return max
+  }, [revenueData])
+
   const cumulativeRevenueInDecimals = revenueData
     ?.reduce((acc, curr) => acc + curr.revenue / 100, 0)
     .toFixed(2)
@@ -198,14 +206,14 @@ export function RevenueChart({
           data={chartData}
           index="date"
           categories={['revenue']}
-          showLegend={false}
-          showYAxis={false}
-          startEndOnly={true}
-          className="-mb-2 mt-8 h-48"
+          // startEndOnly={true}
+          className="-mb-2 mt-8"
           colors={['amber']}
           customTooltip={RevenueTooltip}
-          // verticalLineCount={Math.min(20, chartData.length)}
-          tooltipCallback={(props) => {
+          maxValue={maxValue}
+          autoMinValue={false}
+          minValue={0}
+          tooltipCallback={(props: any) => {
             if (props.active) {
               setTooltipData((prev) => {
                 if (prev?.label === props.label) return prev
