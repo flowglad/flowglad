@@ -79,14 +79,14 @@ export function RevenueChart({
     })
   }, [revenueData, organization?.defaultCurrency])
 
-  // Calculate max value with 20% padding for better visualization
+  // Calculate max value for better visualization,
+  // fitting the y axis to the max value in the data
   const maxValue = React.useMemo(() => {
     if (!revenueData?.length) return 0
     const max = Math.max(
       ...revenueData.map((item) => item.revenue / 100)
     )
-    console.log('max', max)
-    return max // Add 20% padding
+    return max
   }, [revenueData])
 
   const cumulativeRevenueInDecimals = revenueData
