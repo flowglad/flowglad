@@ -3,7 +3,7 @@
 WITH organizations AS (
   SELECT DISTINCT organization_id FROM products
 )
-INSERT INTO catalogs (id, organization_id, name, is_default, livemode, created_at, updated_at)
+INSERT INTO catalogs (id, organization_id, name, is_default, livemode, "createdAt", "updatedAt")
 SELECT 
   'catalog_' || encode(digest(gen_random_uuid()::text, 'sha256'), 'hex')::text, -- for live mode catalogs
   organization_id,
