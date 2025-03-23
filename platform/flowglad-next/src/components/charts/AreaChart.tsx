@@ -1,3 +1,14 @@
+/**
+ * ⚠️ WARNING - WORK IN PROGRESS (March 22, 2025)
+ * This component is currently under development and has known issues:
+ * 1. Sizing behavior is inconsistent and may not properly fill container
+ * 2. Y-axis rendering has visual glitches
+ * 3. Responsiveness needs improvement
+ *
+ * DO NOT USE IN PRODUCTION until these issues are resolved.
+ * For production charts, use LineChart.tsx instead which is stable.
+ */
+
 'use client'
 
 import React from 'react'
@@ -15,6 +26,7 @@ import {
   YAxis,
 } from 'recharts'
 import { AxisDomain } from 'recharts/types/util/types'
+import { mergeRefs } from 'react-merge-refs'
 
 import {
   AvailableChartColors,
@@ -26,6 +38,30 @@ import {
 } from '@/utils/chartStyles'
 import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
 import { cx } from '@/utils/core'
+
+// Add useContainerSize hook
+const useContainerSize = () => {
+  const [size, setSize] = React.useState({ width: 0, height: 0 })
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setSize({ width, height })
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [])
+
+  return { containerRef, ...size }
+}
 
 //#region Legend
 
@@ -563,6 +599,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
       customTooltip,
       ...other
     } = props
+    const { containerRef, width, height } = useContainerSize()
     const CustomTooltip = customTooltip
     const paddingValue =
       (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis)
@@ -688,13 +725,26 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
 
     return (
       <div
-        ref={ref}
+        ref={mergeRefs([ref, containerRef])}
         className={cx('h-80 w-full', className)}
         tremor-id="tremor-raw"
         {...other}
       >
-        <ResponsiveContainer>
+        {/*
+         * Chart Sizing Mechanism:
+         * 1. The outer div is set to h-80 (20rem) and w-full by default, making it fill its parent's width
+         * 2. ResponsiveContainer wraps the chart and is set to 100% width and height, so it fills the outer div
+         * 3. useContainerSize hook uses ResizeObserver to track the actual pixel dimensions of the outer div
+         * 4. These dimensions (width & height) are passed to RechartsAreaChart, which uses them for internal calculations
+         * 5. When the container resizes:
+         *    - ResizeObserver detects the change and updates width/height state
+         *    - These new dimensions flow to RechartsAreaChart
+         *    - ResponsiveContainer ensures smooth transitions and maintains aspect ratio
+         */}
+        <ResponsiveContainer width={'100%'} height={'100%'}>
           <RechartsAreaChart
+            width={width || 800}
+            height={height || 300}
             data={data}
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
@@ -706,7 +756,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 : undefined
             }
             margin={{
-              bottom: 80,
+              bottom: xAxisLabel ? 30 : undefined,
               left: yAxisLabel ? 20 : undefined,
               right: yAxisLabel ? 5 : undefined,
               top: 5,
