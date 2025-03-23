@@ -206,7 +206,7 @@ export function RevenueChart({
           data={chartData}
           index="date"
           categories={['revenue']}
-          startEndOnly={true}
+          // startEndOnly={true}
           className="-mb-2 mt-8"
           colors={['amber']}
           customTooltip={RevenueTooltip}
