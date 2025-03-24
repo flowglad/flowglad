@@ -16,10 +16,6 @@ import {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
-import {
-  upsertStripePriceFromPrice,
-  upsertStripeProductFromProduct,
-} from './stripe'
 import { Price } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Product } from '@/db/schema/products'
@@ -32,34 +28,7 @@ export const createPrice = async (
   payload: Price.Insert,
   transaction: DbTransaction
 ) => {
-  const createdPrice = await insertPrice(payload, transaction)
-
-  // Fetch the associated product to get its Stripe ID
-  const product = await selectProductById(
-    createdPrice.productId,
-    transaction
-  )
-  if (!product) {
-    throw new Error('Associated product not found')
-  }
-  if (!product.stripeProductId) {
-    throw new Error('Associated product is missing Stripe ID')
-  }
-
-  // Create or update Stripe price
-  const stripePrice = await upsertStripePriceFromPrice({
-    price: createdPrice,
-    productStripeId: product.stripeProductId!,
-    livemode: product.livemode,
-  })
-  createdPrice.stripePriceId = stripePrice.id
-
-  // Update the price with the Stripe price ID
-  const updatedPrice = await updatePrice(
-    { ...createdPrice, stripePriceId: stripePrice.id },
-    transaction
-  )
-  return updatedPrice
+  return insertPrice(payload, transaction)
 }
 
 export const createProductTransaction = async (
@@ -86,21 +55,6 @@ export const createProductTransaction = async (
       active: true,
       organizationId,
       livemode,
-      stripeProductId: null,
-    },
-    transaction
-  )
-
-  // Create or update Stripe product
-  const stripeProduct = await upsertStripeProductFromProduct(
-    createdProduct,
-    createdProduct.livemode
-  )
-  createdProduct.stripeProductId = stripeProduct.id
-  const updatedProduct = await updateProduct(
-    {
-      id: createdProduct.id,
-      stripeProductId: stripeProduct.id,
     },
     transaction
   )
@@ -119,7 +73,7 @@ export const createProductTransaction = async (
     })
   )
   return {
-    product: updatedProduct,
+    product: createdProduct,
     prices: createdPrices,
   }
 }
@@ -128,15 +82,7 @@ export const editProduct = async (
   payload: { product: Product.Update },
   { transaction }: AuthenticatedTransactionParams
 ) => {
-  const updatedProduct = await updateProduct(
-    payload.product,
-    transaction
-  )
-  await upsertStripeProductFromProduct(
-    updatedProduct,
-    updatedProduct.livemode
-  )
-  return updatedProduct
+  return updateProduct(payload.product, transaction)
 }
 
 export const editPriceTransaction = async (
@@ -160,29 +106,7 @@ export const editPriceTransaction = async (
     await makePriceDefault(price.id, transaction)
   }
 
-  let updatedPrice = await updatePrice(
-    price as Price.Update,
-    transaction
-  )
-
-  if (price.stripePriceId && pricingDetailsChanged) {
-    const [product] = await selectProducts(
-      { id: price.productId },
-      transaction
-    )
-    const newStripePrice = await upsertStripePriceFromPrice({
-      price: updatedPrice,
-      productStripeId: product.stripeProductId!,
-      oldPrice: previousPrice,
-      livemode: product.livemode,
-    })
-    updatedPrice = await updatePrice(
-      { ...updatedPrice, stripePriceId: newStripePrice.id },
-      transaction
-    )
-  }
-
-  return updatedPrice
+  return updatePrice(price, transaction)
 }
 
 export const cloneCatalog = async (

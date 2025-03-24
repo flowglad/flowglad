@@ -30,7 +30,6 @@ const columns = {
   name: text('name').notNull(),
   description: text('description'),
   imageURL: text('image_url'),
-  stripeProductId: text('stripe_product_id').unique(),
   organizationId: notNullStringForeignKey(
     'organization_id',
     organizations
@@ -70,7 +69,6 @@ export const products = pgTable(
     return [
       constructIndex(PRODUCTS_TABLE_NAME, [table.organizationId]),
       constructIndex(PRODUCTS_TABLE_NAME, [table.active]),
-      constructIndex(PRODUCTS_TABLE_NAME, [table.stripeProductId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -122,9 +120,7 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {
-  stripeProductId: true,
-} as const
+const hiddenColumns = {} as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
