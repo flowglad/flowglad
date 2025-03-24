@@ -1,4 +1,4 @@
-import { FlowgladServer } from '../flowgladServer'
+import { FlowgladServer } from '../FlowgladServer'
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
 import type { SubRouteHandler } from './types'
 

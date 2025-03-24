@@ -5,6 +5,7 @@ export { createNextRouteHandler } from './createNextRouteHandler'
 
 export {
   FlowgladServer,
+  FlowgladServerAdmin,
   createRequestHandler,
   RequestHandlerError,
   type RequestHandlerOptions,

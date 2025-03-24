@@ -8,6 +8,7 @@ import {
   insertPrice,
   makePriceDefault,
   selectPrices,
+  selectPricesAndProductsByProductWhere,
   selectPricesAndProductsForOrganization,
   updatePrice,
 } from '@/db/tableMethods/priceMethods'
@@ -22,6 +23,10 @@ import {
 import { Price } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Product } from '@/db/schema/products'
+import {
+  insertCatalog,
+  selectCatalogById,
+} from '@/db/tableMethods/catalogMethods'
 
 export const createPrice = async (
   payload: Price.Insert,
@@ -180,30 +185,32 @@ export const editPriceTransaction = async (
   return updatedPrice
 }
 
-export const selectCatalog = async (
-  { organizationId }: { organizationId: string },
-  transaction: DbTransaction
+export const cloneCatalog = async (
+  input: { sourceCatalogId: string; name: string },
+  { transaction }: AuthenticatedTransactionParams
 ) => {
-  const result = await selectPricesAndProductsForOrganization(
-    { active: true },
-    organizationId,
+  const catalog = await selectCatalogById(
+    input.sourceCatalogId,
     transaction
   )
-  // Group prices by product
-  const productMap = new Map<
-    string,
-    { product: Product.Record; prices: Price.Record[] }
-  >()
-
-  for (const { product, price } of result) {
-    if (!productMap.has(product.id)) {
-      productMap.set(product.id, {
-        product,
-        prices: [],
-      })
-    }
-    productMap.get(product.id)!.prices.push(price)
+  if (!catalog) {
+    throw new Error('Catalog not found')
   }
-
-  return Array.from(productMap.values())
+  const newCatalog = await insertCatalog(
+    {
+      name: input.name,
+      livemode: catalog.livemode,
+      isDefault: false,
+      organizationId: catalog.organizationId,
+    },
+    transaction
+  )
+  const productsWithPrices =
+    await selectPricesAndProductsByProductWhere(
+      {
+        catalogId: catalog.id,
+      },
+      transaction
+    )
+  const products = productsWithPrices.map(({ product }) => product)
 }
