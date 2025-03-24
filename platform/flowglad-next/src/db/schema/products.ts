@@ -161,11 +161,6 @@ export const productsPaginatedSelectSchema =
 export const productsPaginatedListSchema =
   createPaginatedListQuerySchema(productsClientSelectSchema)
 
-export const catalogWithProductsSchema =
-  catalogsClientSelectSchema.extend({
-    products: z.array(productsClientSelectSchema).max(10),
-  })
-
 export namespace Product {
   export type Insert = z.infer<typeof productsInsertSchema>
   export type Update = z.infer<typeof productsUpdateSchema>

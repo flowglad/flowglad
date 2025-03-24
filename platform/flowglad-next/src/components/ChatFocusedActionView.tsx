@@ -13,7 +13,9 @@ const ChatFocusedActionView = () => {
     setFocusedActionId,
     setAction,
   } = useChatActionsContext()
-  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery()
+  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery(
+    {}
+  )
   if (!focusedActionId) {
     return null
   }

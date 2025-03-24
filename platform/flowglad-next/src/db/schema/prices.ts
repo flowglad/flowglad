@@ -20,12 +20,14 @@ import {
 import {
   products,
   productsClientInsertSchema,
+  productsClientSelectSchema,
   productsUpdateSchema,
 } from '@/db/schema/products'
 import core from '@/utils/core'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
+import { catalogsClientSelectSchema } from './catalogs'
 
 const VARIANTS_TABLE_NAME = 'prices'
 
@@ -314,3 +316,17 @@ export const editProductSchema = z.object({
 })
 
 export type EditProductInput = z.infer<typeof editProductSchema>
+
+export const productWithPricesSchema =
+  productsClientSelectSchema.extend({
+    prices: z.array(pricesClientSelectSchema),
+  })
+
+export const catalogWithProductsSchema =
+  catalogsClientSelectSchema.extend({
+    products: z.array(productWithPricesSchema),
+  })
+
+export type CatalogWithProductsAndPrices = z.infer<
+  typeof catalogWithProductsSchema
+>
