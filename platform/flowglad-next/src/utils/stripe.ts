@@ -480,88 +480,6 @@ export const getConnectedAccount = async (
   return stripe(livemode).accounts.retrieve(accountId)
 }
 
-export const upsertStripeProductFromProduct = async (
-  product: Product.Record,
-  livemode: boolean
-): Promise<Stripe.Product> => {
-  const stripeProductData: Stripe.ProductCreateParams = {
-    name: product.name,
-    description: product.description || undefined,
-    active: product.active,
-    metadata: {
-      productId: product.id,
-      organizationId: product.organizationId,
-    },
-    // url: product.url,
-    // images: product.imageUrls ? [product.imageUrls] : undefined,
-    // tax_code: product.taxCode,
-    // shippable: product.shippable,
-    // statement_descriptor: product.statementDescriptor,
-    // unit_label: product.unitLabel,
-  }
-
-  if (product.stripeProductId) {
-    return stripe(livemode).products.update(
-      product.stripeProductId,
-      stripeProductData
-    )
-  } else {
-    return stripe(livemode).products.create(stripeProductData)
-  }
-}
-
-/**
- * Creates a Stripe price from a price.
- * If the price already has a Stripe price, it will:
- * - Create a new price with the same product and new unit_amount.
- * - Deactivate the old price.
- *
- * If the price does not have a Stripe price, it will be created.
- * @param params
- * @returns
- */
-export const upsertStripePriceFromPrice = async ({
-  price,
-  productStripeId,
-  oldPrice,
-  livemode,
-}: {
-  price: Price.Record
-  productStripeId: string
-  oldPrice?: Price.Record
-  livemode: boolean
-}): Promise<Stripe.Price> => {
-  const maybeRecurringPriceData: Pick<
-    Stripe.PriceCreateParams,
-    'recurring'
-  > =
-    price.type === PriceType.Subscription
-      ? {
-          recurring: {
-            interval:
-              price.intervalUnit as Stripe.PriceCreateParams.Recurring['interval'],
-            interval_count: price.intervalCount || undefined,
-          },
-        }
-      : {}
-  const stripePriceData: Stripe.PriceCreateParams = {
-    product: productStripeId,
-    unit_amount: price.unitPrice,
-    currency: price.currency,
-    ...maybeRecurringPriceData,
-    metadata: {
-      priceId: price.id,
-      productId: price.productId,
-    },
-  }
-  if (oldPrice?.stripePriceId) {
-    return stripe(livemode).prices.update(oldPrice.stripePriceId, {
-      active: false,
-    })
-  }
-  return stripe(livemode).prices.create(stripePriceData)
-}
-
 export const unitedStatesBankAccountPaymentMethodOptions = (
   bankPaymentOnly: Nullish<boolean>
 ): Pick<
@@ -792,26 +710,6 @@ export const getStripeInvoiceAndInvoiceLineItemsForPaymentIntent =
       lineItems: invoice.lines.data,
     }
   }
-
-export const updateStripeProductFromProduct = async (
-  product: Product.Record,
-  livemode: boolean
-): Promise<Stripe.Product> => {
-  if (!product.stripeProductId) {
-    throw new Error('Product does not have a Stripe product ID')
-  }
-
-  const stripeProductData: Stripe.ProductUpdateParams = {
-    name: product.name,
-    images: product.imageURL ? [product.imageURL] : undefined,
-    // Add any other fields you want to update
-  }
-
-  return stripe(livemode).products.update(
-    product.stripeProductId,
-    stripeProductData
-  )
-}
 
 export const createStripeCustomer = async (params: {
   email: string

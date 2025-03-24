@@ -99,7 +99,6 @@ export const setupOrg = async () => {
         livemode: true,
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
-        stripeProductId: `prod_${core.nanoid()}`,
         active: true,
         displayFeatures: [],
         singularQuantityLabel: 'seat',
@@ -122,7 +121,6 @@ export const setupOrg = async () => {
         unitPrice: 1000,
         setupFeeAmount: 0,
         trialPeriodDays: 0,
-        stripePriceId: `price_${core.nanoid()}`,
         currency: CurrencyCode.USD,
       },
       transaction

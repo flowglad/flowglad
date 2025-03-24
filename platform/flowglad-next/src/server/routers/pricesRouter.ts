@@ -13,11 +13,8 @@ import {
   insertPrice,
   selectPrices,
   selectPricesPaginated,
-  updatePrice,
 } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
-import { selectProducts } from '@/db/tableMethods/productMethods'
-import { upsertStripePriceFromPrice } from '@/utils/stripe'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { z } from 'zod'
 
@@ -69,26 +66,7 @@ export const createPrice = protectedProcedure
         })
       }
 
-      const newPrice = await insertPrice(
-        {
-          ...price,
-          stripePriceId: null,
-        },
-        transaction
-      )
-      const [product] = await selectProducts(
-        { id: price.productId },
-        transaction
-      )
-      const stripePrice = await upsertStripePriceFromPrice({
-        price: newPrice,
-        productStripeId: product.stripeProductId!,
-        livemode: product.livemode,
-      })
-      await updatePrice(
-        { ...newPrice, stripePriceId: stripePrice.id },
-        transaction
-      )
+      const newPrice = await insertPrice(price, transaction)
       return {
         price: newPrice,
       }

@@ -14,7 +14,6 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   productId: '1',
   setupFeeAmount: null,
   isDefault: false,
-  stripePriceId: null,
   active: true,
   livemode: false,
   currency: CurrencyCode.USD,

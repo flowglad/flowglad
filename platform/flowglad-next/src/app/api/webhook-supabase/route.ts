@@ -6,7 +6,6 @@ import {
   SupabaseInsertPayload,
 } from '@/types'
 import { invoiceUpdatedTask } from '@/trigger/supabase/invoice-updated'
-import { productUpdatedTask } from '@/trigger/supabase/product-updated'
 import { customerCreatedTask } from '@/trigger/supabase/customer-inserted'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
@@ -38,11 +37,6 @@ export async function POST(request: Request) {
     case `Invoices:${SupabasePayloadType.UPDATE}`:
       await invoiceUpdatedTask.trigger(
         payload as SupabaseUpdatePayload<Invoice.Record>
-      )
-      break
-    case `Products:${SupabasePayloadType.UPDATE}`:
-      await productUpdatedTask.trigger(
-        payload as SupabaseUpdatePayload<Product.Record>
       )
       break
     case `Customers:${SupabasePayloadType.INSERT}`:

@@ -31,12 +31,6 @@ const config: ORMMethodCreatorConfig<
 
 export const selectProductById = createSelectById(products, config)
 
-export const upsertProductByStripeProductId = createUpsertFunction(
-  products,
-  products.stripeProductId,
-  config
-)
-
 export const selectProducts = createSelectFunction(products, config)
 
 export const insertProduct = createInsertFunction(products, config)

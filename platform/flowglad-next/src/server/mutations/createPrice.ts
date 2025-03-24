@@ -4,11 +4,8 @@ import { createPriceSchema } from '@/db/schema/prices'
 import {
   insertPrice,
   selectPrices,
-  updatePrice,
 } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
-import { selectProducts } from '@/db/tableMethods/productMethods'
-import { upsertStripePriceFromPrice } from '@/utils/stripe'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 
 export const createPrice = protectedProcedure
@@ -45,25 +42,11 @@ export const createPrice = protectedProcedure
           {
             ...price,
             currency: focusedMembership.organization.defaultCurrency,
-            stripePriceId: null,
           },
           transaction
         )
-        const [product] = await selectProducts(
-          { id: price.productId },
-          transaction
-        )
-        const stripePrice = await upsertStripePriceFromPrice({
-          price: newPrice,
-          productStripeId: product.stripeProductId!,
-          livemode: product.livemode,
-        })
-        await updatePrice(
-          { ...newPrice, stripePriceId: stripePrice.id },
-          transaction
-        )
         return {
-          data: newPrice,
+          data: { price: newPrice },
         }
       }
     )
