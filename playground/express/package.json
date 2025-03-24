@@ -15,7 +15,7 @@
   "dependencies": {
     "@flowglad/express": "file:.yalc/@flowglad/express",
     "@flowglad/nextjs": "file:.yalc/@flowglad/nextjs",
-    "@flowglad/node": "0.11.0",
+    "@flowglad/node": "0.11.1",
     "@flowglad/react": "file:.yalc/@flowglad/react",
     "@flowglad/server": "file:.yalc/@flowglad/server",
     "@flowglad/shared": "file:.yalc/@flowglad/shared",
