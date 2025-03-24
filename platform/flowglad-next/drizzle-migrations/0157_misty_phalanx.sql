@@ -638,6 +638,8 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+ALTER TABLE "messages" ALTER COLUMN "organization_member_id" TYPE text;--> statement-breakpoint
+
 DO $$ BEGIN
  ALTER TABLE "memberships" ADD CONSTRAINT "memberships_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION

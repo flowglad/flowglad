@@ -6,6 +6,7 @@ import {
   catalogIdSchema,
   createCatalogSchema,
   editCatalogSchema,
+  cloneCatalogInputSchema,
 } from '@/db/schema/catalogs'
 import { catalogWithProductsSchema } from '@/db/schema/prices'
 import { authenticatedTransaction } from '@/db/databaseMethods'
@@ -21,6 +22,7 @@ import {
   generateOpenApiMetas,
 } from '@/utils/openapi'
 import { z } from 'zod'
+import { cloneCatalogTransaction } from '@/utils/catalog'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Catalog',
@@ -102,7 +104,7 @@ const editCatalogProcedure = protectedProcedure
       catalog: catalogsClientSelectSchema,
     })
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const catalog = await authenticatedTransaction(
       async ({ transaction }) => {
         const catalog = await updateCatalog(
@@ -116,6 +118,9 @@ const editCatalogProcedure = protectedProcedure
           return makeCatalogDefault(catalog, transaction)
         }
         return catalog
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
     return {
@@ -136,17 +141,37 @@ const getDefaultCatalogProcedure = protectedProcedure
   .input(z.object({}))
   .output(catalogWithProductsSchema)
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const result = await selectCatalogsWithProductsByCatalogWhere(
-        {
-          organizationId: ctx.organizationId!,
-          livemode: ctx.livemode,
-          isDefault: true,
-        },
-        transaction
-      )
-      return result[0]
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const result = await selectCatalogsWithProductsByCatalogWhere(
+          {
+            organizationId: ctx.organizationId!,
+            livemode: ctx.livemode,
+            isDefault: true,
+          },
+          transaction
+        )
+        return result[0]
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const cloneCatalogProcedure = protectedProcedure
+  .meta(openApiMetas.POST)
+  .input(cloneCatalogInputSchema)
+  .output(catalogWithProductsSchema)
+  .mutation(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return cloneCatalogTransaction(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 export const catalogsRouter = router({
@@ -155,4 +180,5 @@ export const catalogsRouter = router({
   getDefault: getDefaultCatalogProcedure,
   create: createCatalogProcedure,
   update: editCatalogProcedure,
+  clone: cloneCatalogProcedure,
 })

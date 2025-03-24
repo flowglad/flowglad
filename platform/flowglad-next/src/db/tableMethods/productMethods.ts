@@ -17,6 +17,7 @@ import {
   productsUpdateSchema,
 } from '@/db/schema/products'
 import { ProperNoun } from '../schema/properNouns'
+import { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof products,
@@ -53,3 +54,14 @@ export const selectProductsPaginated = createPaginatedSelectFunction(
   products,
   config
 )
+
+export const bulkInsertProducts = async (
+  productInserts: Product.Insert[],
+  transaction: DbTransaction
+): Promise<Product.Record[]> => {
+  const results = await transaction
+    .insert(products)
+    .values(productInserts)
+    .returning()
+  return results.map((result) => productsSelectSchema.parse(result))
+}
