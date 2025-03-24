@@ -23,7 +23,10 @@ import {
   products,
   productsClientSelectSchema,
 } from '../schema/products'
-import { selectPricesAndProductsByProductWhere } from './priceMethods'
+import {
+  ProductWithPrices,
+  selectPricesAndProductsByProductWhere,
+} from './priceMethods'
 import { CatalogWithProductsAndPrices } from '../schema/prices'
 import { Customer } from '@/db/schema/customers'
 const config: ORMMethodCreatorConfig<
@@ -148,9 +151,18 @@ export const selectCatalogsWithProductsByCatalogWhere = async (
     { catalogId: catalogResults.map((catalog) => catalog.id) },
     transaction
   )
-  const productsByCatalogId = new Map()
-  productResults.forEach(({ product }) => {
-    productsByCatalogId.set(product.catalogId, [product])
+  const productsByCatalogId = new Map<
+    string,
+    CatalogWithProductsAndPrices['products']
+  >()
+  productResults.forEach(({ product, prices }) => {
+    productsByCatalogId.set(product.catalogId, [
+      ...(productsByCatalogId.get(product.catalogId) || []),
+      {
+        ...product,
+        prices,
+      },
+    ])
   })
 
   const uniqueCatalogs = Array.from(uniqueCatalogsMap.values())

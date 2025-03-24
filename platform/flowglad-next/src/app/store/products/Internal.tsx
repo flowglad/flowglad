@@ -10,6 +10,7 @@ import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import { Price } from '@/db/schema/prices'
 import { ProductsTable } from './ProductsTable'
 import { trpc } from '@/app/_trpc/client'
+import { Catalog } from '@/db/schema/catalogs'
 
 export enum FocusedTab {
   All = 'all',
@@ -21,6 +22,7 @@ type Props = {
   products: {
     product: Product.ClientRecord
     prices: Price.ClientRecord[]
+    catalog: Catalog.ClientRecord
   }[]
 }
 

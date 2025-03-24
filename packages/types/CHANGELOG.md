@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.8.7
+
+### Patch Changes
+
+- Add flowgladAdminClient
+
 ## 0.8.6
 
 ### Patch Changes

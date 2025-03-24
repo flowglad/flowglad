@@ -56,3 +56,10 @@ ALTER TABLE "subscriptions" RENAME COLUMN "createdAt" TO "created_at";--> statem
 ALTER TABLE "subscriptions" RENAME COLUMN "updatedAt" TO "updated_at";--> statement-breakpoint
 ALTER TABLE "users" RENAME COLUMN "createdAt" TO "created_at";--> statement-breakpoint
 ALTER TABLE "users" RENAME COLUMN "updatedAt" TO "updated_at";
+
+SELECT c.id, c.organization_id, c.livemode, c.catalog_id, cat.id as default_catalog_id, cat.livemode as catalog_livemode
+FROM customers c
+LEFT JOIN catalogs cat ON cat.organization_id = c.organization_id 
+    AND cat.is_default = true 
+    AND cat.livemode = c.livemode
+WHERE c.catalog_id IS NULL;

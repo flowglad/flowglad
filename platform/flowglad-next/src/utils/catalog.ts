@@ -24,6 +24,7 @@ import {
   selectCatalogById,
   selectCatalogsWithProductsByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
+import { CloneCatalogInput } from '@/db/schema/catalogs'
 
 export const createPrice = async (
   payload: Price.Insert,
@@ -111,13 +112,10 @@ export const editPriceTransaction = async (
 }
 
 export const cloneCatalogTransaction = async (
-  input: { sourceCatalogId: string; name: string },
+  input: CloneCatalogInput,
   transaction: DbTransaction
 ) => {
-  const catalog = await selectCatalogById(
-    input.sourceCatalogId,
-    transaction
-  )
+  const catalog = await selectCatalogById(input.id, transaction)
   if (!catalog) {
     throw new Error('Catalog not found')
   }

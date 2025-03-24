@@ -121,7 +121,7 @@ export const editCatalogSchema = z.object({
 export type EditCatalogInput = z.infer<typeof editCatalogSchema>
 
 export const cloneCatalogInputSchema = z.object({
-  sourceCatalogId: z.string(),
+  id: z.string(),
   name: z.string(),
 })
 

@@ -6,7 +6,7 @@ const RecurringProductWITHOUTTrialPeriod = () => {
   if (core.IS_PROD) {
     return notFound()
   }
-  return <div>Lol testing</div>
+  return <InternalDemoPage />
 }
 
 export default RecurringProductWITHOUTTrialPeriod

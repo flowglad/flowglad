@@ -10,6 +10,19 @@ export class FlowgladServerAdmin {
     this.flowgladNode = new FlowgladNode(options)
   }
 
+  public async createCustomer(
+    input: FlowgladNode.Customers.CustomerCreateParams
+  ) {
+    return this.flowgladNode.customers.create(input)
+  }
+
+  public async updateCustomer(
+    id: string,
+    input: FlowgladNode.Customers.CustomerUpdateParams
+  ) {
+    return this.flowgladNode.customers.update(id, input)
+  }
+
   public async getCatalog(id: string) {
     return this.flowgladNode.catalogs.retrieve(id)
   }
@@ -42,5 +55,12 @@ export class FlowgladServerAdmin {
     input: FlowgladNode.Products.ProductUpdateParams
   ) {
     return this.flowgladNode.products.update(id, input)
+  }
+
+  public async cloneCatalog(
+    id: string,
+    params: FlowgladNode.Catalogs.CatalogCloneParams
+  ) {
+    return this.flowgladNode.catalogs.clone(id, params)
   }
 }
