@@ -117,9 +117,7 @@ export const selectPricesProductsAndCatalogsForOrganization = async (
   return results.map((result) => ({
     product: productsSelectSchema.parse(result.product),
     price: pricesSelectSchema.parse(result.price),
-    catalog: result.catalog
-      ? catalogsSelectSchema.parse(result.catalog)
-      : undefined,
+    catalog: catalogsSelectSchema.parse(result.catalog),
   }))
 }
 

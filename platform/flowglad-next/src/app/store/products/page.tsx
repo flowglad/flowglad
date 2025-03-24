@@ -7,6 +7,7 @@ import {
   selectPricesAndProductsForOrganization,
   selectPricesProductsAndCatalogsForOrganization,
 } from '@/db/tableMethods/priceMethods'
+import { Catalog } from '@/db/schema/catalogs'
 
 const ProductsPage = async () => {
   const { productsAndPrices: productsResult } =
@@ -37,21 +38,29 @@ const ProductsPage = async () => {
       p.price,
     ])
   })
+
   const uniqueProducts = R.uniqBy(
     (p) => p.id,
     productsResult.map((p) => p.product)
   )
 
+  const catalogsByProductId = new Map<string, Catalog.ClientRecord>()
+  productsResult.forEach((p) => {
+    if (p.catalog) {
+      catalogsByProductId.set(p.product.id, p.catalog)
+    }
+  })
+
   const products = uniqueProducts.map((product) => ({
     product,
     prices: pricesByProductId.get(product.id) ?? [],
+    catalog: catalogsByProductId.get(product.id)!,
   }))
 
   products.sort(
     (a, b) =>
       b.product.createdAt.getTime() - a.product.createdAt.getTime()
   )
-
   return <Internal products={products} />
 }
 
