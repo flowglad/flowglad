@@ -554,3 +554,27 @@ export const setupSubscriptionItem = async ({
     )
   })
 }
+
+export const setupCatalog = async ({
+  organizationId,
+  name = 'Test Catalog',
+  livemode = true,
+  isDefault = false,
+}: {
+  organizationId: string
+  name?: string
+  livemode?: boolean
+  isDefault?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertCatalog(
+      {
+        name,
+        organizationId,
+        livemode,
+        isDefault,
+      },
+      transaction
+    )
+  })
+}

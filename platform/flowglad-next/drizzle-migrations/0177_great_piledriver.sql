@@ -5,7 +5,7 @@ WITH organizations AS (
 )
 INSERT INTO catalogs (id, organization_id, name, is_default, livemode, "createdAt", "updatedAt")
 SELECT 
-  'catalog_' || encode(digest(gen_random_uuid()::text, 'sha256'), 'hex')::text, -- for live mode catalogs
+  'catalog_' || gen_random_uuid()::text, -- for live mode catalogs
   organization_id,
   'Default',
   true,
@@ -21,7 +21,7 @@ WHERE NOT EXISTS (
 )
 UNION ALL
 SELECT 
-  'catalog_' || encode(digest(gen_random_uuid()::text, 'sha256'), 'hex')::text, -- for test mode catalogs
+  'catalog_' || gen_random_uuid()::text, -- for live mode catalogs
   organization_id,
   'Default (testmode)',
   true,
