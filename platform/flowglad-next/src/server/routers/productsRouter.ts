@@ -5,10 +5,8 @@ import {
   selectProductsPaginated,
   selectProductById,
 } from '@/db/tableMethods/productMethods'
-import { upsertStripeProductFromProduct } from '@/utils/stripe'
 import {
   createProductTransaction,
-  createPrice,
   editProduct as editProductCatalog,
   editPriceTransaction,
 } from '@/utils/catalog'

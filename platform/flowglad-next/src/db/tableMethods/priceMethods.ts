@@ -41,36 +41,18 @@ const config: ORMMethodCreatorConfig<
   updateSchema: pricesUpdateSchema,
 }
 
-export const selectPriceById = createSelectById(prices, config) as (
-  id: string,
-  transaction: DbTransaction
-) => Promise<Price.Record>
-
-export const upsertPriceByStripePriceId = createUpsertFunction(
-  prices,
-  prices.stripePriceId,
-  config
-)
+export const selectPriceById = createSelectById(prices, config)
 
 export const bulkInsertPrices = createBulkInsertFunction(
   prices,
   config
 )
+
 export const selectPrices = createSelectFunction(prices, config)
 
-export const insertPrice = createInsertFunction(
-  prices,
-  // @ts-expect-error - complex insert schema
-  config
-) as (
-  payload: Price.Insert,
-  transaction: DbTransaction
-) => Promise<Price.Record>
+export const insertPrice = createInsertFunction(prices, config)
 
-export const updatePrice = createUpdateFunction(prices, config) as (
-  payload: Price.Update,
-  transaction: DbTransaction
-) => Promise<Price.Record>
+export const updatePrice = createUpdateFunction(prices, config)
 
 export const selectPricesAndProductsForOrganization = async (
   whereConditions: Partial<Price.Record>,

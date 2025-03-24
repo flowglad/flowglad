@@ -57,7 +57,6 @@ const columns = {
   //   .notNull()
   //   .default(false),
   productId: notNullStringForeignKey('product_id', products),
-  stripePriceId: text('stripe_price_id').unique(),
   active: boolean('active').notNull().default(true),
   currency: pgEnumColumn({
     enumName: 'CurrencyCode',
@@ -73,9 +72,6 @@ export const prices = pgTable(
     return [
       constructIndex(VARIANTS_TABLE_NAME, [table.type]),
       constructIndex(VARIANTS_TABLE_NAME, [table.productId]),
-      constructUniqueIndex(VARIANTS_TABLE_NAME, [
-        table.stripePriceId,
-      ]),
       pgPolicy('Enable all for self organizations via products', {
         as: 'permissive',
         to: 'authenticated',
@@ -93,7 +89,6 @@ const basePriceColumns = {
   type: core.createSafeZodEnum(PriceType),
   isDefault: z.boolean(),
   unitPrice: core.safeZodPositiveInteger,
-  stripePriceId: z.string().nullish(),
   currency: core.createSafeZodEnum(CurrencyCode),
 }
 
@@ -188,9 +183,7 @@ const readOnlyColumns = {
   currency: true,
 } as const
 
-const hiddenColumns = {
-  stripePriceId: true,
-} as const
+const hiddenColumns = {} as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
