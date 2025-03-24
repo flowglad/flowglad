@@ -148,6 +148,7 @@ const getDefaultCatalogProcedure = protectedProcedure
       return result[0]
     })
   })
+
 export const catalogsRouter = router({
   list: listCatalogsProcedure,
   get: getCatalogProcedure,

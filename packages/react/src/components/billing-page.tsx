@@ -56,13 +56,13 @@ const CurrentSubscriptionOrPricingTable = ({
   }
   return (
     <PricingTable
-      products={catalog.products.map((item) => ({
-        name: item.product.name,
-        description: item.product.description,
-        displayFeatures: item.product.displayFeatures,
+      products={catalog.products.map((product) => ({
+        name: product.name,
+        description: product.description,
+        displayFeatures: product.displayFeatures,
         primaryButtonText: 'Subscribe',
         secondaryButtonText: 'Learn More',
-        prices: item.prices.map((price) => ({
+        prices: product.prices.map((price) => ({
           currency: price.currency,
           unitPrice: price.unitPrice,
           intervalCount: price.intervalCount,
