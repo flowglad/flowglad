@@ -36,7 +36,10 @@ import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { isSubscriptionInTerminalState } from '@/db/tableMethods/subscriptionMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import { selectCatalogsWithProductsByCatalogWhere } from '@/db/tableMethods/catalogMethods'
+import {
+  selectCatalogForCustomer,
+  selectCatalogsWithProductsByCatalogWhere,
+} from '@/db/tableMethods/catalogMethods'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -233,11 +236,10 @@ export const getCustomerBilling = protectedProcedure
           { customerId: customers[0].id },
           transaction
         )
-        const [catalog] =
-          await selectCatalogsWithProductsByCatalogWhere(
-            { isDefault: true },
-            transaction
-          )
+        const catalog = await selectCatalogForCustomer(
+          customers[0],
+          transaction
+        )
         const invoices =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
             { customerId: customers[0].id },
