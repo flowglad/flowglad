@@ -19,6 +19,7 @@ import {
 } from '@/db/tableMethods/catalogMethods'
 import {
   createGetOpenApiMeta,
+  createPostOpenApiMeta,
   generateOpenApiMetas,
 } from '@/utils/openapi'
 import { z } from 'zod'
@@ -151,6 +152,7 @@ const getDefaultCatalogProcedure = protectedProcedure
           },
           transaction
         )
+        console.log('====result[0].products', result[0].products)
         return result[0]
       },
       {
@@ -160,13 +162,25 @@ const getDefaultCatalogProcedure = protectedProcedure
   })
 
 const cloneCatalogProcedure = protectedProcedure
-  .meta(openApiMetas.POST)
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/catalogs/{id}/clone',
+      summary: 'Clone a Catalog',
+      tags: ['Catalogs'],
+      protect: true,
+    },
+  })
   .input(cloneCatalogInputSchema)
-  .output(catalogWithProductsSchema)
+  .output(z.object({ catalog: catalogWithProductsSchema }))
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        return cloneCatalogTransaction(input, transaction)
+        const catalog = await cloneCatalogTransaction(
+          input,
+          transaction
+        )
+        return { catalog }
       },
       {
         apiKey: ctx.apiKey,

@@ -1,5 +1,8 @@
 'use client'
 
+import Button from '@/components/ion/Button'
+import { trpc } from '../_trpc/client'
+
 type RichCustomer = {
   subscription: {
     name: string
@@ -21,11 +24,25 @@ const InternalDemoPage = () => {
       },
     }
   }
-
+  const cloneCatalogMutation = trpc.catalogs.clone.useMutation()
+  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery(
+    {}
+  )
   return (
     <div style={{ padding: '20px' }}>
       <h1>Internal Demo Page</h1>
-      <div></div>
+      {defaultCatalog && (
+        <Button
+          onClick={() =>
+            cloneCatalogMutation.mutate({
+              id: defaultCatalog.id,
+              name: `Cloned Catalog - ${new Date().toISOString()}`,
+            })
+          }
+        >
+          Clone Catalog
+        </Button>
+      )}
     </div>
   )
 }
