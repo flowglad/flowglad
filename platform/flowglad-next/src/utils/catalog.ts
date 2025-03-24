@@ -1,27 +1,28 @@
+import omit from 'ramda/src/omit'
 import {
+  bulkInsertProducts,
   insertProduct,
-  selectProductById,
-  selectProducts,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
 import {
+  bulkInsertPrices,
   insertPrice,
   makePriceDefault,
   selectPrices,
   selectPricesAndProductsByProductWhere,
-  selectPricesAndProductsForOrganization,
   updatePrice,
 } from '@/db/tableMethods/priceMethods'
 import {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
-import { Price } from '@/db/schema/prices'
+import { Price, pricesInsertSchema } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Product } from '@/db/schema/products'
 import {
   insertCatalog,
   selectCatalogById,
+  selectCatalogsWithProductsByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
 
 export const createPrice = async (
@@ -109,9 +110,9 @@ export const editPriceTransaction = async (
   return updatePrice(price, transaction)
 }
 
-export const cloneCatalog = async (
+export const cloneCatalogTransaction = async (
   input: { sourceCatalogId: string; name: string },
-  { transaction }: AuthenticatedTransactionParams
+  transaction: DbTransaction
 ) => {
   const catalog = await selectCatalogById(
     input.sourceCatalogId,
@@ -136,5 +137,78 @@ export const cloneCatalog = async (
       },
       transaction
     )
-  const products = productsWithPrices.map(({ product }) => product)
+  const products: Product.Record[] = productsWithPrices.map(
+    ({ product }) => product
+  )
+  // Create a map of existing product id => new product insert
+  const productInsertMap = new Map<string, Product.Insert>(
+    products.map((product) => [
+      product.id,
+      omit(['id'], {
+        ...product,
+        catalogId: newCatalog.id,
+      }),
+    ])
+  )
+
+  // Create a map of existing product id => price inserts
+  const priceInsertsMap = new Map<
+    string,
+    Omit<Price.Insert, 'productId'>[]
+  >(
+    productsWithPrices.map(({ product, prices }) => [
+      product.id,
+      prices.map((price) => {
+        return omit(['id'], {
+          ...price,
+        })
+      }),
+    ])
+  )
+
+  // Bulk insert all new products
+  const newProducts = await bulkInsertProducts(
+    Array.from(productInsertMap.values()),
+    transaction
+  )
+
+  // Create a map of existing product id => new product id
+  const oldProductIdToNewProductIdMap = new Map(
+    products.map((oldProduct, index) => [
+      oldProduct.id,
+      newProducts[index].id,
+    ])
+  )
+
+  // Create array of price inserts with updated product ids
+  const allPriceInserts: Price.Insert[] = []
+  for (const [
+    oldProductId,
+    priceInserts,
+  ] of priceInsertsMap.entries()) {
+    const newProductId =
+      oldProductIdToNewProductIdMap.get(oldProductId)
+    if (newProductId) {
+      const updatedPriceInserts: Price.Insert[] = priceInserts.map(
+        (priceInsert) =>
+          pricesInsertSchema.parse({
+            ...priceInsert,
+            productId: newProductId,
+          })
+      )
+      allPriceInserts.push(...updatedPriceInserts)
+    }
+  }
+
+  // Bulk insert all new prices
+  await bulkInsertPrices(allPriceInserts, transaction)
+
+  // Return the newly created catalog with products and prices
+  const [newCatalogWithProducts] =
+    await selectCatalogsWithProductsByCatalogWhere(
+      { id: newCatalog.id },
+      transaction
+    )
+
+  return newCatalogWithProducts
 }
