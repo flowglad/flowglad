@@ -7,7 +7,7 @@ import {
   createCatalogSchema,
   editCatalogSchema,
 } from '@/db/schema/catalogs'
-import { catalogWithProductsSchema } from '@/db/schema/products'
+import { catalogWithProductsSchema } from '@/db/schema/prices'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
   insertCatalog,
@@ -16,7 +16,10 @@ import {
   makeCatalogDefault,
   selectCatalogsWithProductsByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
-import { generateOpenApiMetas } from '@/utils/openapi'
+import {
+  createGetOpenApiMeta,
+  generateOpenApiMetas,
+} from '@/utils/openapi'
 import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -96,16 +99,17 @@ const editCatalogProcedure = protectedProcedure
   .input(editCatalogSchema)
   .output(
     z.object({
-      data: z.object({
-        catalog: catalogsClientSelectSchema,
-      }),
+      catalog: catalogsClientSelectSchema,
     })
   )
   .mutation(async ({ input }) => {
     const catalog = await authenticatedTransaction(
       async ({ transaction }) => {
         const catalog = await updateCatalog(
-          input.catalog,
+          {
+            ...input.catalog,
+            id: input.id,
+          },
           transaction
         )
         if (catalog.isDefault) {
@@ -115,12 +119,21 @@ const editCatalogProcedure = protectedProcedure
       }
     )
     return {
-      data: { catalog },
+      catalog,
     }
   })
 
 const getDefaultCatalogProcedure = protectedProcedure
-  .meta(openApiMetas.GET)
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/api/v1/catalogs/default',
+      summary: 'Get Default Catalog for Organization',
+      tags: ['Catalogs'],
+      protect: true,
+    },
+  })
+  .input(z.object({}))
   .output(catalogWithProductsSchema)
   .query(async ({ ctx }) => {
     return authenticatedTransaction(async ({ transaction }) => {
