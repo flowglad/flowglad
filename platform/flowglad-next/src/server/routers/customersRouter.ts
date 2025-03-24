@@ -252,7 +252,7 @@ export const getCustomerBilling = protectedProcedure
         const currentSubscriptions = subscriptions.filter((item) => {
           return isSubscriptionInTerminalState(item.status)
         })
-        console.log('====catalog', catalog)
+        console.log('======catalog', catalog)
         return {
           customer: {
             ...customers[0],
