@@ -28,9 +28,7 @@ import {
   RouteConfig,
 } from '@/utils/openapi'
 import { externalIdInputSchema } from '@/db/tableUtils'
-import { selectCatalog } from '@/utils/catalog'
-import { pricesClientSelectSchema } from '@/db/schema/prices'
-import { productsClientSelectSchema } from '@/db/schema/products'
+import { catalogWithProductsSchema } from '@/db/schema/prices'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
@@ -38,6 +36,7 @@ import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { isSubscriptionInTerminalState } from '@/db/tableMethods/subscriptionMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
+import { selectCatalogsWithProductsByCatalogWhere } from '@/db/tableMethods/catalogMethods'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -210,14 +209,7 @@ export const getCustomerBilling = protectedProcedure
         .describe(
           'The current subscriptions for the customer. By default, customers can only have one active subscription at a time. This will only return multiple subscriptions if you have enabled multiple subscriptions per customer.'
         ),
-      catalog: z.object({
-        products: z
-          .object({
-            product: productsClientSelectSchema,
-            prices: pricesClientSelectSchema.array(),
-          })
-          .array(),
-      }),
+      catalog: catalogWithProductsSchema,
     })
   )
   .query(async ({ input, ctx }) => {
@@ -241,10 +233,11 @@ export const getCustomerBilling = protectedProcedure
           { customerId: customers[0].id },
           transaction
         )
-        const catalog = await selectCatalog(
-          { organizationId },
-          transaction
-        )
+        const [catalog] =
+          await selectCatalogsWithProductsByCatalogWhere(
+            { isDefault: true },
+            transaction
+          )
         const invoices =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
             { customerId: customers[0].id },
@@ -278,9 +271,7 @@ export const getCustomerBilling = protectedProcedure
       paymentMethods,
       currentSubscriptions,
       subscriptions: customer.subscriptions,
-      catalog: {
-        products: catalog,
-      },
+      catalog,
     }
   })
 
