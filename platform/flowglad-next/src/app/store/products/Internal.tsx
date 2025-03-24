@@ -27,7 +27,9 @@ type Props = {
 function Internal({ products }: Props) {
   const [isCreateProductOpen, setIsCreateProductOpen] =
     useState(false)
-  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery()
+  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery(
+    {}
+  )
   const activeProducts = products.filter(
     (product) => product.product.active
   )

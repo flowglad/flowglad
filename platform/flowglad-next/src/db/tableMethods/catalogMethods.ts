@@ -24,6 +24,7 @@ import {
   productsClientSelectSchema,
 } from '../schema/products'
 import { selectPricesAndProductsByProductWhere } from './priceMethods'
+import { CatalogWithProductsAndPrices } from '../schema/prices'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -115,14 +116,10 @@ export const selectCatalogsTableRows = async (
   }))
 }
 
-export type CatalogWithProducts = Catalog.ClientRecord & {
-  products: Product.ClientRecord[]
-}
-
 export const selectCatalogsWithProductsByCatalogWhere = async (
   where: SelectConditions<typeof catalogs>,
   transaction: DbTransaction
-): Promise<CatalogWithProducts[]> => {
+): Promise<CatalogWithProductsAndPrices[]> => {
   /**
    * Implementation note:
    * it is actually fairly important to do this in two steps,

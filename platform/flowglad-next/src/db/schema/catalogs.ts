@@ -114,6 +114,7 @@ export const createCatalogSchema = z.object({
 export type CreateCatalogInput = z.infer<typeof createCatalogSchema>
 
 export const editCatalogSchema = z.object({
+  id: z.string(),
   catalog: catalogsClientUpdateSchema,
 })
 
