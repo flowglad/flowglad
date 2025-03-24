@@ -25,7 +25,7 @@ import {
 } from '../schema/products'
 import { selectPricesAndProductsByProductWhere } from './priceMethods'
 import { CatalogWithProductsAndPrices } from '../schema/prices'
-
+import { Customer } from '@/db/schema/customers'
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
   typeof catalogsSelectSchema,
@@ -158,4 +158,31 @@ export const selectCatalogsWithProductsByCatalogWhere = async (
     ...catalog,
     products: productsByCatalogId.get(catalog.id) || [],
   }))
+}
+
+/**
+ * Gets the catalog for a customer. If no catalog explicitly associated,
+ * returns the default catalog for the organization.
+ * @param customer
+ * @param transaction
+ * @returns
+ */
+export const selectCatalogForCustomer = async (
+  customer: Customer.Record,
+  transaction: DbTransaction
+): Promise<CatalogWithProductsAndPrices> => {
+  if (customer.catalogId) {
+    const [catalog] = await selectCatalogsWithProductsByCatalogWhere(
+      { id: customer.catalogId },
+      transaction
+    )
+    if (catalog) {
+      return catalog
+    }
+  }
+  const [catalog] = await selectCatalogsWithProductsByCatalogWhere(
+    { isDefault: true, organizationId: customer.organizationId },
+    transaction
+  )
+  return catalog
 }
