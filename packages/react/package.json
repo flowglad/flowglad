@@ -17,7 +17,7 @@
     "build:css": "tsx scripts/build-css.ts"
   },
   "dependencies": {
-    "@flowglad/node": "0.11.1",
+    "@flowglad/node": "0.12.0",
     "@flowglad/shared": "workspace:*",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
