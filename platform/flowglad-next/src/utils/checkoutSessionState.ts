@@ -313,6 +313,7 @@ const createInvoiceCheckoutSession = async (
       livemode: invoice.livemode,
       purchaseId: null,
       priceId: null,
+      outputMetadata: null,
     },
     transaction
   )

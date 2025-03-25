@@ -5,7 +5,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/utils'
 
 const buttonVariants = cva(
-  "flowglad-inline-flex flowglad-items-center flowglad-justify-center flowglad-gap-2 flowglad-whitespace-nowrap flowglad-rounded-md flowglad-text-sm flowglad-font-medium flowglad-transition-[color,box-shadow] flowglad-disabled:pointer-events-none flowglad-disabled:opacity-50 [&_svg]:flowglad-pointer-events-none [&_svg:not([class*='size-'])]:flowglad-size-4 flowglad-shrink-0 [&_svg]:flowglad-shrink-0 flowglad-outline-none flowglad-focus-visible:border-ring flowglad-focus-visible:ring-ring/50 flowglad-focus-visible:ring-[3px] flowglad-aria-invalid:ring-destructive/20 flowglad-dark:aria-invalid:ring-destructive/40 flowglad-aria-invalid:border-destructive",
+  "flowglad-inline-flex flowglad-items-center flowglad-justify-center flowglad-gap-2 flowglad-whitespace-nowrap flowglad-rounded-md flowglad-text-sm flowglad-font-medium flowglad-transition-[color,box-shadow] flowglad-disabled:pointer-events-none flowglad-disabled:opacity-50 [&_svg]:flowglad-pointer-events-none [&_svg:not([class*='size-'])]:flowglad-size-4 flowglad-shrink-0 [&_svg]:flowglad-shrink-0 flowglad-outline-none flowglad-focus-visible:border-ring flowglad-focus-visible:ring-ring/50 flowglad-focus-visible:ring-[3px] flowglad-aria-invalid:ring-destructive/20 flowglad-dark:aria-invalid:ring-destructive/40 flowglad-aria-invalid:border-destructive hover:flowglad-cursor-pointer",
   {
     variants: {
       variant: {

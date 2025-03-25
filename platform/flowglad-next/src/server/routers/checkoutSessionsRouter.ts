@@ -34,6 +34,11 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const checkoutSessionsRouteConfigs = routeConfigs
 
+/**
+ * This is not in the db/schemas/checkoutSessions.ts file because it is not
+ * used in the db. It is a special input schema in a procedure primarily
+ * used in the REST API.
+ */
 const createCheckoutSessionSchema = z.object({
   customerExternalId: z
     .string()
@@ -52,6 +57,12 @@ const createCheckoutSessionSchema = z.object({
     .string()
     .describe(
       'The URL to redirect to after the purchase is cancelled or fails'
+    ),
+  outputMetadata: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe(
+      'Metadata that will get added to the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
     ),
 })
 
