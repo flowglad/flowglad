@@ -102,7 +102,7 @@ const constructCreateCheckoutSession =
     const { flowgladRoute, requestConfig } = constructParams
     validateUrl(params.successUrl, 'successUrl')
     validateUrl(params.cancelUrl, 'cancelUrl')
-    validateUrl(flowgladRoute, 'flowgladRoute')
+    validateUrl(flowgladRoute, 'flowgladRoute', true)
     const headers = requestConfig?.headers
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
@@ -122,7 +122,7 @@ const constructCreateCheckoutSession =
     const data = json.data
     if (json.error) {
       console.error(
-        'FlowgladContext: Purchase session creation failed',
+        'FlowgladContext: Checkout session creation failed',
         json
       )
       return {
