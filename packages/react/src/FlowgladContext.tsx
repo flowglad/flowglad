@@ -37,6 +37,7 @@ export interface NonPresentContextValues {
   catalog: null
   invoices: []
   paymentMethods: []
+  purchases: []
 }
 
 export interface NotLoadedFlowgladContextValues
@@ -73,6 +74,7 @@ const notPresentContextValues: NonPresentContextValues = {
   catalog: null,
   invoices: [],
   paymentMethods: [],
+  purchases: [],
 }
 
 const FlowgladContext = createContext<FlowgladContextValues>({
@@ -207,6 +209,7 @@ export const FlowgladContextProvider = ({
       createCheckoutSession,
       catalog: billing.data.catalog,
       subscriptions: billing.data.subscriptions,
+      purchases: billing.data.purchases,
       errors: null,
       invoices: billing.data.invoices,
       paymentMethods: billing.data.paymentMethods,

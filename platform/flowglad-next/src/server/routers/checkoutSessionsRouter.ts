@@ -62,7 +62,7 @@ const createCheckoutSessionSchema = z.object({
     .record(z.string(), z.any())
     .optional()
     .describe(
-      'Metadata that will get added to the purchase or subscription'
+      'Metadata that will get added to the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
     ),
 })
 
