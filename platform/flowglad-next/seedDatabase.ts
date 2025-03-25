@@ -420,6 +420,7 @@ export const setupInvoice = async ({
         purchaseId,
         currency: CurrencyCode.USD,
         taxCountry: CountryCode.US,
+        subscriptionId: billingPeriod?.subscriptionId ?? null,
       },
       transaction
     )

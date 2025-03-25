@@ -89,6 +89,7 @@ export const safelyUpdateInvoiceStatus = (
       type: invoice.type,
       purchaseId: invoice.purchaseId,
       billingPeriodId: invoice.billingPeriodId,
+      subscriptionId: invoice.subscriptionId,
     } as Invoice.Update,
     transaction
   )
