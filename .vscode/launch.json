@@ -2,34 +2,57 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug server-side",
+      "name": "Build: debug",
       "type": "node-terminal",
       "request": "launch",
-      "command": "cd platform/flowglad-next && pnpm dev"
+      "command": "pnpm dev",
+      "cwd": "${workspaceFolder}/platform/flowglad-next",
+      "sourceMapPathOverrides": {
+        "webpack://_N_E/*": "${workspaceFolder}/platform/flowglad-next/*"
+      }
     },
     {
-      "name": "Debug client-side",
+      "name": "Next.js: debug server-side",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm dev",
+      "cwd": "${workspaceFolder}/platform/flowglad-next"
+    },
+    {
+      "name": "Next.js: debug client-side",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:3000"
+      "url": "http://localhost:3000",
+      "cwd": "${workspaceFolder}/platform/flowglad-next"
     },
     {
-      "name": "Debug Platform",
+      "name": "Next.js: debug client-side (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "reAttach": true,
+      "cwd": "${workspaceFolder}/platform/flowglad-next",
+      "pathMappings": [
+        {
+          "url": "webpack://_N_E",
+          "path": "${workspaceFolder}/platform/flowglad-next"
+        }
+      ]
+    },
+    {
+      "name": "Next.js: debug full stack",
       "type": "node",
       "request": "launch",
+      "program": "${workspaceFolder}/platform/flowglad-next/node_modules/.bin/next",
+      "runtimeArgs": ["--inspect"],
       "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/platform/flowglad-next/node_modules/next/dist/bin/next",
-      "args": ["dev"],
       "cwd": "${workspaceFolder}/platform/flowglad-next",
-      "env": {
-        "NODE_OPTIONS": "--inspect"
-      },
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
       "serverReadyAction": {
+        "action": "debugWithEdge",
+        "killOnServerStop": true,
         "pattern": "- Local:.+(https?://.+)",
         "uriFormat": "%s",
-        "action": "debugWithChrome"
+        "webRoot": "${workspaceFolder}/platform/flowglad-next"
       }
     }
   ]

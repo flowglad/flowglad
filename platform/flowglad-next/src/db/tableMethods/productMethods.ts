@@ -59,6 +59,9 @@ export const bulkInsertProducts = async (
   productInserts: Product.Insert[],
   transaction: DbTransaction
 ): Promise<Product.Record[]> => {
+  if (productInserts.length === 0) {
+    return []
+  }
   const results = await transaction
     .insert(products)
     .values(productInserts)
