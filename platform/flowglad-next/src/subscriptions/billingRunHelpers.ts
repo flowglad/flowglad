@@ -47,18 +47,25 @@ import {
 import { DbTransaction } from '@/db/types'
 import {
   calculateTotalDueAmount,
+  calculateTotalFeeAmount,
   createAndFinalizeSubscriptionFeeCalculation,
 } from '@/utils/bookkeeping/fees'
 import core from '@/utils/core'
 import {
-  createAndConfirmPaymentIntent,
+  confirmPaymentIntent,
+  createPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
+  updatePaymentIntent,
 } from '@/utils/stripe'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
-  paymentMethodId: string
+  currency: CurrencyCode
+  customer: Customer.Record
+  paymentMethod: PaymentMethod.Record
+  feeCalculation: FeeCalculation.Record
+  organization: Organization.Record
   scheduledFor: Date
 }
 
@@ -71,7 +78,7 @@ export const createBillingRunInsert = (
     scheduledFor,
     status: BillingRunStatus.Scheduled,
     subscriptionId: billingPeriod.subscriptionId,
-    paymentMethodId: params.paymentMethodId,
+    paymentMethodId: params.paymentMethod.id,
     livemode: billingPeriod.livemode,
   }
 }
@@ -414,12 +421,25 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
         ` Customer: ${customer.id}; Billing Period: ${billingPeriod.id}`
     )
   }
+
   if (!stripePaymentMethodId) {
     throw new Error(
       `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
         `Payment Method: ${paymentMethod.id}; Billing Period: ${billingPeriod.id}`
     )
   }
+  const paymentIntent = await createPaymentIntentForBillingRun({
+    // just a placeholder amount
+    amount: 100,
+    currency: organization.defaultCurrency,
+    stripeCustomerId: customer.stripeCustomerId!,
+    stripePaymentMethodId: paymentMethod.stripePaymentMethodId!,
+    billingPeriodId: billingRun.billingPeriodId,
+    billingRunId: billingRun.id,
+    feeCalculation,
+    organization,
+    livemode: billingRun.livemode,
+  })
 
   const paymentInsert: Payment.Insert = {
     amount: totalDueAmount,
@@ -436,11 +456,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     taxCountry: paymentMethod.billingDetails.address.address
       ?.country as CountryCode,
     paymentMethod: paymentMethod.type,
-    stripePaymentIntentId: `placeholder____${core.nanoid()}`,
+    stripePaymentIntentId: paymentIntent.id,
     livemode: billingPeriod.livemode,
   }
 
   const payment = await insertPayment(paymentInsert, transaction)
+
   /**
    * Eagerly update the billing run status to AwaitingPaymentConfirmation
    * to ensure that the billing run is in the correct state.
@@ -477,6 +498,7 @@ export const calculateTotalAmountToCharge = (params: {
   const { totalDueAmount, totalAmountPaid, payments } = params
   return Math.max(0, totalDueAmount - totalAmountPaid)
 }
+
 /**
  * TODO : support discount redemptions
  * @param billingRun
@@ -559,18 +581,20 @@ export const executeBillingRun = async (billingRunId: string) => {
       })
       return
     }
+    const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
 
-    const paymentIntent = await createAndConfirmPaymentIntent({
-      amount: totalAmountToCharge,
-      currency: invoice.currency,
-      stripeCustomerId: customer.stripeCustomerId,
-      stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
-      billingPeriodId: billingRun.billingPeriodId,
-      billingRunId: billingRun.id,
-      feeCalculation,
-      organization,
-      livemode: billingRun.livemode,
-    })
+    const paymentIntent = await updatePaymentIntent(
+      payment.stripePaymentIntentId,
+      {
+        amount: totalAmountToCharge,
+        application_fee_amount: totalFeeAmount,
+      },
+      billingRun.livemode
+    )
+    await confirmPaymentIntent(
+      payment.stripePaymentIntentId,
+      billingRun.livemode
+    )
 
     return adminTransaction(
       async ({ transaction }) => {
