@@ -27,7 +27,7 @@ export const inputContainerClasses = ({
       'border',
       'px-3',
       'text-sm',
-      'transition-shadow',
+      // 'transition-shadow',
       'text-foreground',
       'overflow-hidden',
       'h-9',
@@ -99,7 +99,7 @@ export interface InputProps
 /* ---------------------------------- Component --------------------------------- */
 
 export const inputClassNames = clsx(
-  'h-full w-full flex-shrink bg-transparent focus:outline-none disabled:pointer-events-none',
+  'h-full w-full flex-shrink bg-transparent outline-none focus:outline-none disabled:pointer-events-none',
   'placeholder:text-subtle disabled:text-on-disabled',
   'disabled:placeholder:text-on-disabled',
   'border-none',
@@ -108,7 +108,9 @@ export const inputClassNames = clsx(
   'autofill:hover:bg-transparent',
   'autofill:focus:bg-transparent',
   'autofill:active:bg-transparent',
-  'autofill:text-inherit'
+  'autofill:text-inherit',
+  'focus:ring-0 ring-0',
+  'px-0'
   // '[&::-webkit-autofill]:bg-yellow-50',
   // '[&::-webkit-autofill]:shadow-[0_0_0px_1000px_theme(colors.yellow.50)_inset]',
   // '[&::-webkit-autofill]:hover:bg-yellow-50',

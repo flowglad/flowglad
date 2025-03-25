@@ -11,6 +11,7 @@ import Switch from '@/components/ion/Switch'
 import Label from '@/components/ion/Label'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { Percent } from 'lucide-react'
+import { file } from 'jszip'
 
 export default function DiscountFormFields({
   edit = false,
@@ -26,9 +27,6 @@ export default function DiscountFormFields({
   } = form
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
-  const discount = watch('discount')
-  console.log('===discount', discount)
-  console.log('===errors', errors)
   return (
     <div className="space-y-4">
       <Input
@@ -79,7 +77,17 @@ export default function DiscountFormFields({
             render={({ field }) => {
               return (
                 <NumberInput
-                  {...field}
+                  onValueChange={(value) => {
+                    field.onChange(value.floatValue)
+                  }}
+                  error={
+                    (errors.discount?.amount?.message ??
+                    field.value > 100)
+                      ? 'Cannot exceed 100%'
+                      : undefined
+                  }
+                  defaultValue={field.value ?? 0}
+                  value={field.value ?? 0}
                   label="Amount"
                   className="flex-1"
                   showControls={false}
@@ -141,7 +149,7 @@ export default function DiscountFormFields({
                 onValueChange={(value) => {
                   field.onChange(value.floatValue)
                 }}
-                defaultValue={1}
+                defaultValue={field.value ?? 1}
                 max={10000000000}
                 min={1}
                 step={1}

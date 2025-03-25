@@ -24,6 +24,7 @@ import { idInputSchema } from '@/db/tableUtils'
 import { deleteDiscount as deleteDiscountMethod } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
+import { DiscountAmountType } from '@/types'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Discount',
@@ -45,6 +46,12 @@ export const createDiscount = protectedProcedure
             },
             transaction
           )
+        if (
+          input.discount.amount > 100 &&
+          input.discount.amountType === DiscountAmountType.Percent
+        ) {
+          throw new Error('Discount amount cannot exceed 100%')
+        }
         return insertDiscount(
           {
             ...input.discount,
