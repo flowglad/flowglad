@@ -583,7 +583,7 @@ export const executeBillingRun = async (billingRunId: string) => {
     }
     const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
 
-    const paymentIntent = await updatePaymentIntent(
+    await updatePaymentIntent(
       payment.stripePaymentIntentId,
       {
         amount: totalAmountToCharge,
@@ -591,7 +591,7 @@ export const executeBillingRun = async (billingRunId: string) => {
       },
       billingRun.livemode
     )
-    await confirmPaymentIntent(
+    const paymentIntent = await confirmPaymentIntent(
       payment.stripePaymentIntentId,
       billingRun.livemode
     )
