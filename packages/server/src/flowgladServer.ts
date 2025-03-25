@@ -196,6 +196,7 @@ export class FlowgladServer {
       priceId: params.priceId,
       successUrl: params.successUrl,
       cancelUrl: params.cancelUrl,
+      outputMetadata: params.outputMetadata,
     })
   }
 }
