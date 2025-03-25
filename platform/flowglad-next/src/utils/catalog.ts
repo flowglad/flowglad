@@ -116,12 +116,6 @@ export const cloneCatalogTransaction = async (
   transaction: DbTransaction
 ) => {
   const catalog = await selectCatalogById(input.id, transaction)
-  if (input.id === 'non-existent-id______') {
-    console.log('===catalog.non-existent-id______', catalog)
-  }
-  if (!catalog) {
-    throw new Error('Catalog not found')
-  }
   const newCatalog = await insertCatalog(
     {
       name: input.name,
@@ -138,7 +132,6 @@ export const cloneCatalogTransaction = async (
       },
       transaction
     )
-  console.log('===productsWithPrices', productsWithPrices)
   const products: Product.Record[] = productsWithPrices.map(
     ({ product }) => product
   )
