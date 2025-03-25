@@ -316,7 +316,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       projectPriceFieldsOntoPurchaseFields(price)
     const purchaseInsert = {
       ...purchasePriceFields,
-      name: product.name,
+      name: checkoutSession.outputName ?? product.name,
       organizationId: product.organizationId,
       customerId: customer.id,
       priceId: price.id,

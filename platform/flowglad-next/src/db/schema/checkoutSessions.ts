@@ -82,6 +82,7 @@ const columns = {
     enumBase: CheckoutSessionType,
   }).notNull(),
   outputMetadata: jsonb('output_metadata'),
+  outputName: text('output_name'),
 }
 
 export const checkoutSessions = pgTable(
