@@ -1,5 +1,6 @@
 import { z, ZodSchema } from 'zod'
 import { FlowgladActionKey, HTTPMethod } from './types'
+import { Flowglad } from '@flowglad/node'
 
 export type FlowgladActionValidatorMap = Record<
   FlowgladActionKey,
@@ -14,10 +15,47 @@ export const createCheckoutSessionSchema = z.object({
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
   outputMetadata: z.record(z.string(), z.any()).optional(),
+  outputName: z.string().optional(),
 })
 
 export type CreateCheckoutSessionParams = z.infer<
   typeof createCheckoutSessionSchema
+>
+
+export type SubscriptionCancellationArrangement =
+  Flowglad.Subscriptions.SubscriptionCancelParams['cancellation']['timing']
+
+const subscriptionCancellationTiming: Record<
+  string,
+  SubscriptionCancellationArrangement
+> = {
+  AtEndOfCurrentBillingPeriod: 'at_end_of_current_billing_period',
+  AtFutureDate: 'at_future_date',
+  Immediately: 'immediately',
+}
+
+const cancellationParametersSchema = z.discriminatedUnion('timing', [
+  z.object({
+    timing: z.literal(
+      subscriptionCancellationTiming.AtEndOfCurrentBillingPeriod
+    ),
+  }),
+  z.object({
+    timing: z.literal(subscriptionCancellationTiming.AtFutureDate),
+    endDate: z.date(),
+  }),
+  z.object({
+    timing: z.literal(subscriptionCancellationTiming.Immediately),
+  }),
+])
+
+export const cancelSubscriptionSchema = z.object({
+  id: z.string(),
+  cancellation: cancellationParametersSchema,
+})
+
+export type CancelSubscriptionParams = z.infer<
+  typeof cancelSubscriptionSchema
 >
 
 export const flowgladActionValidators: FlowgladActionValidatorMap = {
@@ -36,5 +74,9 @@ export const flowgladActionValidators: FlowgladActionValidatorMap = {
   [FlowgladActionKey.CreateCheckoutSession]: {
     method: HTTPMethod.POST,
     inputValidator: createCheckoutSessionSchema,
+  },
+  [FlowgladActionKey.CancelSubscription]: {
+    method: HTTPMethod.POST,
+    inputValidator: cancelSubscriptionSchema,
   },
 }

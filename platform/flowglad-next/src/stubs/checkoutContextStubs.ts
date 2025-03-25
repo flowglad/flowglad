@@ -30,6 +30,8 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   updatedAt: new Date(),
   priceId: '1',
   invoiceId: null,
+  outputName: null,
+  outputMetadata: null,
   status: CheckoutSessionStatus.Pending,
   organizationId: '1',
   customerName: 'Test Customer',
@@ -47,7 +49,6 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   successUrl: null,
   cancelUrl: null,
   type: CheckoutSessionType.Product,
-  outputMetadata: null,
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =

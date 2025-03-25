@@ -42,6 +42,7 @@ export interface CreateSubscriptionParams {
   trialEnd?: Date
   stripeSetupIntentId: string
   metadata?: CheckoutSession.OutputMetadata
+  name?: string
   defaultPaymentMethod: PaymentMethod.Record
   backupPaymentMethod?: PaymentMethod.Record
 }
@@ -60,6 +61,7 @@ export const insertSubscriptionAndItems = async (
     defaultPaymentMethod,
     backupPaymentMethod,
     trialEnd,
+    name: subscriptionName,
     stripeSetupIntentId,
     metadata,
   }: CreateSubscriptionParams,
@@ -85,7 +87,9 @@ export const insertSubscriptionAndItems = async (
     canceledAt: null,
     metadata: metadata ?? null,
     trialEnd: trialEnd ?? null,
-    planName: `${product.name}${price.name ? ` - ${price.name}` : ''}`,
+    name:
+      subscriptionName ??
+      `${product.name}${price.name ? ` - ${price.name}` : ''}`,
     currentBillingPeriodStart: currentBillingPeriod.startDate,
     currentBillingPeriodEnd: currentBillingPeriod.endDate,
     billingCycleAnchorDate: startDate,

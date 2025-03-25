@@ -40,12 +40,16 @@ import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMetho
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { isSubscriptionInTerminalState } from '@/db/tableMethods/subscriptionMethods'
+import {
+  isSubscriptionCurrent,
+  isSubscriptionInTerminalState,
+} from '@/db/tableMethods/subscriptionMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import {
   selectCatalogForCustomer,
   selectCatalogsWithProductsByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
+import { SubscriptionStatus } from '@/types'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -262,9 +266,8 @@ export const getCustomerBilling = protectedProcedure
           transaction
         )
         const currentSubscriptions = subscriptions.filter((item) => {
-          return isSubscriptionInTerminalState(item.status)
+          return isSubscriptionCurrent(item.status)
         })
-        console.log('======catalog', catalog)
         return {
           customer: {
             ...customers[0],

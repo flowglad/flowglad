@@ -50,7 +50,11 @@ const columns = {
 export const customers = pgTable(TABLE_NAME, columns, (table) => {
   return [
     constructIndex(TABLE_NAME, [table.organizationId]),
-    constructIndex(TABLE_NAME, [table.email, table.organizationId]),
+    constructIndex(TABLE_NAME, [
+      table.email,
+      table.organizationId,
+      table.livemode,
+    ]),
     constructIndex(TABLE_NAME, [table.userId]),
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,
