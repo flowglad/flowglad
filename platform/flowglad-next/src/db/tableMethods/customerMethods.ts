@@ -148,7 +148,11 @@ export const selectCustomerAndCustomerTableRows = async (
 export const upsertCustomerByEmailAndOrganizationId =
   createUpsertFunction(
     customersTable,
-    [customersTable.email, customersTable.organizationId],
+    [
+      customersTable.email,
+      customersTable.organizationId,
+      customersTable.livemode,
+    ],
     config
   )
 

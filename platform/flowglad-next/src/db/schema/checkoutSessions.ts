@@ -48,6 +48,7 @@ const columns = {
   priceId: nullableStringForeignKey('price_id', prices),
   purchaseId: nullableStringForeignKey('purchase_id', purchases),
   invoiceId: nullableStringForeignKey('invoice_id', invoices),
+  // outputMetadata: jsonb('output_metadata'),
   /**
    * Should only be non-1 in the case of priceId is not null.
    */
@@ -115,6 +116,7 @@ const refinement = {
   status: core.createSafeZodEnum(CheckoutSessionStatus),
   successUrl: z.string().url().nullable(),
   cancelUrl: z.string().url().nullable(),
+  // outputMetadata: z.any().nullable(),
   paymentMethodType: core
     .createSafeZodEnum(PaymentMethodType)
     .nullable(),
