@@ -213,6 +213,7 @@ export const createInitialInvoiceForPurchase = async (
     currency: price.currency,
     type: InvoiceType.Purchase,
     billingPeriodId: null,
+    subscriptionId: null,
     subtotal,
     applicationFee: 0,
     taxRatePercentage: '0',
@@ -337,6 +338,7 @@ export const createOpenPurchase = async (
         type: InvoiceType.Purchase,
         purchaseId: purchase.id,
         billingPeriodId: null,
+        subscriptionId: null,
       },
       transaction
     )
@@ -440,6 +442,7 @@ export const editOpenPurchase = async (
         type: InvoiceType.Purchase,
         purchaseId: purchase.id,
         billingPeriodId: null,
+        subscriptionId: null,
       },
       transaction
     )

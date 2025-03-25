@@ -34,6 +34,7 @@ import { customers } from './customers'
 import { organizations } from './organizations'
 import { billingPeriods } from './billingPeriods'
 import { memberships } from './memberships'
+import { subscriptions } from './subscriptions'
 
 export const TABLE_NAME = 'invoices'
 
@@ -73,6 +74,10 @@ export const invoices = pgTable(
       columnName: 'billing_interval',
       enumBase: IntervalUnit,
     }),
+    subscriptionId: nullableStringForeignKey(
+      'subscription_id',
+      subscriptions
+    ),
     billingPeriodStartDate: timestamp('billing_period_start_date'),
     billingPeriodEndDate: timestamp('billing_period_end_date'),
     billingIntervalCount: integer('billing_interval_count'),
@@ -128,18 +133,21 @@ const purchaseInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Purchase),
   purchaseId: z.string(),
   billingPeriodId: z.null(),
+  subscriptionId: z.null(),
 }
 
 const subscriptionInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Subscription),
   purchaseId: z.null(),
   billingPeriodId: z.string(),
+  subscriptionId: z.string(),
 }
 
 const standaloneInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Standalone),
   purchaseId: z.null(),
   billingPeriodId: z.null(),
+  subscriptionId: z.null(),
 }
 
 const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema.extend(

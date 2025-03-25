@@ -151,6 +151,7 @@ export const createInvoiceInsertForBillingRun = async (
   return {
     customerId: customer.id,
     organizationId: organization.id,
+    subscriptionId: billingPeriod.subscriptionId,
     invoiceNumber: core.createInvoiceNumber(
       customer.invoiceNumberBase!,
       invoicesForCustomer.length

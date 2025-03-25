@@ -64,6 +64,12 @@ const createCheckoutSessionSchema = z.object({
     .describe(
       'Metadata that will get added to the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
     ),
+  outputName: z
+    .string()
+    .optional()
+    .describe(
+      'The name of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+    ),
 })
 
 const singleCheckoutSessionOutputSchema = z.object({
@@ -117,6 +123,7 @@ export const createCheckoutSession = protectedProcedure
             invoiceId: null,
             outputMetadata: input.outputMetadata,
             type: CheckoutSessionType.Product,
+            outputName: input.outputName,
           } as const,
           transaction
         )

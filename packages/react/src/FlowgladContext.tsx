@@ -10,12 +10,19 @@ import {
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
+import { cancelSubscriptionSchema } from '@flowglad/shared'
 import { FlowgladTheme } from './FlowgladTheme'
 
 export type LoadedFlowgladContextValues =
   Flowglad.CustomerRetrieveBillingResponse & {
     loaded: true
     loadBilling: true
+    cancelSubscription: (
+      id: string,
+      params: z.infer<typeof cancelSubscriptionSchema>
+    ) => Promise<{
+      subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
+    }>
     createCheckoutSession: (
       params: z.infer<typeof createCheckoutSessionSchema> & {
         autoRedirect?: boolean
@@ -137,6 +144,43 @@ const constructCreateCheckoutSession =
     }
   }
 
+interface ConstructCancelSubscriptionParams {
+  flowgladRoute: string
+  requestConfig?: RequestConfig
+}
+
+const constructCancelSubscription =
+  (constructParams: ConstructCancelSubscriptionParams) =>
+  async (
+    params: Parameters<
+      LoadedFlowgladContextValues['cancelSubscription']
+    >[0]
+  ): Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
+  }> => {
+    const { flowgladRoute, requestConfig } = constructParams
+    const headers = requestConfig?.headers
+    const response = await axios.post(
+      `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
+      params,
+      { headers }
+    )
+    const json: {
+      data: Flowglad.Subscriptions.SubscriptionCancelResponse
+      error?: { code: string; json: Record<string, unknown> }
+    } = response.data
+    const data = json.data
+    if (json.error) {
+      console.error(
+        'FlowgladContext: Subscription cancellation failed',
+        json
+      )
+    }
+    return {
+      subscription: data,
+    }
+  }
+
 /**
  * Configuration for all requests made to the Flowglad API
  * route.
@@ -192,6 +236,11 @@ export const FlowgladContextProvider = ({
     requestConfig,
   })
 
+  const cancelSubscription = constructCancelSubscription({
+    flowgladRoute: serverRoute,
+    requestConfig,
+  })
+
   let value: FlowgladContextValues
 
   if (!loadBilling) {
@@ -207,6 +256,7 @@ export const FlowgladContextProvider = ({
       loadBilling,
       customer: billing.data.customer,
       createCheckoutSession,
+      cancelSubscription,
       catalog: billing.data.catalog,
       subscriptions: billing.data.subscriptions,
       purchases: billing.data.purchases,

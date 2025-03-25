@@ -339,6 +339,7 @@ export const processPaymentIntentEventForBillingRun = async (
         status: InvoiceStatus.AwaitingPaymentConfirmation,
         purchaseId: invoice.purchaseId,
         billingPeriodId: invoice.billingPeriodId,
+        subscriptionId: invoice.subscriptionId,
         type: invoice.type,
       } as Invoice.Update,
       transaction

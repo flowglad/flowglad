@@ -483,15 +483,21 @@ export enum PaymentMethodType {
 }
 
 export enum SubscriptionStatus {
-  Incomplete = 'incomplete',
-  IncompleteExpired = 'incomplete_expired',
   Trialing = 'trialing',
   Active = 'active',
   PastDue = 'past_due',
-  Canceled = 'canceled',
   Unpaid = 'unpaid',
-  Paused = 'paused',
   CancellationScheduled = 'cancellation_scheduled',
+  /**
+   * Non-current states
+   */
+  Incomplete = 'incomplete',
+  /**
+   * Terminal states
+   */
+  IncompleteExpired = 'incomplete_expired',
+  Canceled = 'canceled',
+  Paused = 'paused',
 }
 
 export enum TaxType {

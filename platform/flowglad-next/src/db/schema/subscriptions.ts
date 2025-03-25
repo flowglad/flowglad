@@ -74,7 +74,7 @@ const columns = {
   billingCycleAnchorDate: timestamp(
     'billing_cycle_anchor_date'
   ).notNull(),
-  planName: text('plan_name'),
+  name: text('name'),
 }
 
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {

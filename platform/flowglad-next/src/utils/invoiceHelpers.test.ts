@@ -306,6 +306,7 @@ describe('updateInvoiceTransaction', () => {
                 type: InvoiceType.Purchase,
                 billingPeriodId: null,
                 purchaseId: invoice.purchaseId!,
+                subscriptionId: null,
               },
               invoiceLineItems: [
                 {
@@ -334,6 +335,7 @@ describe('updateInvoiceTransaction', () => {
               type: InvoiceType.Purchase,
               billingPeriodId: null,
               purchaseId: invoice.purchaseId!,
+              subscriptionId: null,
             },
             invoiceLineItems: [
               {

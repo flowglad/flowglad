@@ -38,6 +38,7 @@ function CreateInvoiceModal({
       type: InvoiceType.Standalone,
       purchaseId: null,
       billingPeriodId: null,
+      subscriptionId: null,
     },
     invoiceLineItems: [
       {

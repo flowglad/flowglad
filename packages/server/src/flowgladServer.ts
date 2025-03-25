@@ -199,4 +199,17 @@ export class FlowgladServer {
       outputMetadata: params.outputMetadata,
     })
   }
+
+  public cancelSubscription = async (
+    id: string,
+    params: FlowgladNode.Subscriptions.SubscriptionCancelParams
+  ): Promise<FlowgladNode.Subscriptions.SubscriptionCancelResponse> => {
+    const session = await getSessionFromParams(
+      this.createHandlerParams
+    )
+    if (!session) {
+      throw new Error('User not authenticated')
+    }
+    return this.flowgladNode.subscriptions.cancel(id, params)
+  }
 }

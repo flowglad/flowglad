@@ -1,5 +1,15 @@
 # @flowglad/express
 
+## 0.8.10
+
+### Patch Changes
+
+- Flow through output metadata
+- Updated dependencies
+  - @flowglad/server@0.8.10
+  - @flowglad/react@0.8.10
+  - @flowglad/shared@0.8.10
+
 ## 0.8.9
 
 ### Patch Changes

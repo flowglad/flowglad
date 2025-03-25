@@ -132,3 +132,13 @@ export const selectSubscriptionsTableRowData = async (
 
 export const selectSubscriptionsPaginated =
   createPaginatedSelectFunction(subscriptions, config)
+
+export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
+  return [
+    SubscriptionStatus.Active,
+    SubscriptionStatus.PastDue,
+    SubscriptionStatus.Trialing,
+    SubscriptionStatus.CancellationScheduled,
+    SubscriptionStatus.Unpaid,
+  ].includes(status)
+}

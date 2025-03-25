@@ -17,6 +17,8 @@ const checkoutSession: CheckoutSession.Record = {
   id: '1',
   createdAt: new Date(),
   updatedAt: new Date(),
+  outputName: null,
+  outputMetadata: null,
   priceId: '1',
   organizationId: '1',
   customerName: 'Test Customer',
@@ -35,7 +37,6 @@ const checkoutSession: CheckoutSession.Record = {
   cancelUrl: null,
   quantity: 1,
   invoiceId: null,
-  outputMetadata: null,
   type: CheckoutSessionType.Product,
 }
 
