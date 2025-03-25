@@ -27,6 +27,7 @@ import {
   selectBillingPeriodAndItemsForDate,
 } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -40,6 +41,7 @@ export interface CreateSubscriptionParams {
   intervalCount: number
   trialEnd?: Date
   stripeSetupIntentId: string
+  metadata?: CheckoutSession.OutputMetadata
   defaultPaymentMethod: PaymentMethod.Record
   backupPaymentMethod?: PaymentMethod.Record
 }
@@ -59,6 +61,7 @@ export const insertSubscriptionAndItems = async (
     backupPaymentMethod,
     trialEnd,
     stripeSetupIntentId,
+    metadata,
   }: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
@@ -80,7 +83,7 @@ export const insertSubscriptionAndItems = async (
     backupPaymentMethodId: backupPaymentMethod?.id ?? null,
     cancelScheduledAt: null,
     canceledAt: null,
-    metadata: {},
+    metadata: metadata ?? null,
     trialEnd: trialEnd ?? null,
     planName: `${product.name}${price.name ? ` - ${price.name}` : ''}`,
     currentBillingPeriodStart: currentBillingPeriod.startDate,

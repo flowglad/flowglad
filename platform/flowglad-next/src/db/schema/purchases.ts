@@ -74,6 +74,7 @@ const columns = {
   proposal: text('proposal'),
   archived: boolean('archived').default(false),
   billingAddress: jsonb('billing_address'),
+  metadata: jsonb('metadata'),
 }
 
 export const purchases = pgTable(
@@ -99,6 +100,7 @@ const zodSchemaEnhancementColumns = {
   quantity: core.safeZodPositiveInteger,
   status: core.createSafeZodEnum(PurchaseStatus),
   priceType: core.createSafeZodEnum(PriceType),
+  metadata: z.record(z.string(), z.any()).nullable(),
 }
 
 const baseSelectSchema = createSelectSchema(purchases, {

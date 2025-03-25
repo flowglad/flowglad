@@ -58,6 +58,7 @@ export const organizations = pgTable(
     allowMultipleSubscriptionsPerCustomer: boolean(
       'allow_multiple_subscriptions_per_customer'
     ).default(false),
+    featureFlags: jsonb('feature_flags').default({}),
   },
   (table) => {
     return [
@@ -95,6 +96,7 @@ const columnRefinements = {
   defaultCurrency: core.createSafeZodEnum(CurrencyCode),
   billingAddress: billingAddressSchema,
   contactEmail: z.string().email().nullable(),
+  featureFlags: z.record(z.string(), z.boolean()),
 }
 
 export const organizationsSelectSchema = createSelectSchema(
@@ -120,6 +122,7 @@ const hiddenColumns = {
   feePercentage: true,
   stripeAccountId: true,
   stripeConnectContractType: true,
+  featureFlags: true,
 } as const
 
 const readOnlyColumns = {

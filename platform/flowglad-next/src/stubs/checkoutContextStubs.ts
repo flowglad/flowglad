@@ -47,6 +47,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   successUrl: null,
   cancelUrl: null,
   type: CheckoutSessionType.Product,
+  outputMetadata: null,
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =

@@ -206,9 +206,9 @@ export const editCheckoutSession = async (
 }
 
 /**
- * Handles the bookkeeping operations for a purchase session, managing customer, purchase, and fee records.
+ * Handles the bookkeeping operations for a checkout session, managing customer, purchase, and fee records.
  *
- * @param checkoutSession - The purchase session record to process
+ * @param checkoutSession - The checkout session record to process
  * @param providedStripecustomerId - Optional Stripe customer ID to link with the customer
  * @param transaction - Database transaction for ensuring data consistency
  *
@@ -323,6 +323,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       quantity: 1,
       billingAddress: checkoutSession.billingAddress,
       livemode: checkoutSession.livemode,
+      metadata: checkoutSession.outputMetadata,
     } as Purchase.Insert
 
     const results = await upsertPurchaseById(

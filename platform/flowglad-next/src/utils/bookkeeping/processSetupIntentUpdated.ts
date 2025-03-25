@@ -166,6 +166,7 @@ export const processSetupIntentUpdated = async (
         : undefined,
       startDate: new Date(),
       quantity: checkoutSession.quantity,
+      metadata: checkoutSession.outputMetadata,
       product,
       livemode: purchase.livemode,
     },

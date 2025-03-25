@@ -27,6 +27,7 @@ export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchas
     status: PurchaseStatus.Pending,
     billingAddress: null,
     livemode: false,
+    metadata: null,
   }
 
 export const subscriptionWithTrialDummyPurchase: Purchase.SubscriptionPurchaseRecord =
