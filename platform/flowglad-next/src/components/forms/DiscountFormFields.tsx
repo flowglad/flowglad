@@ -27,8 +27,6 @@ export default function DiscountFormFields({
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
   const discount = watch('discount')
-  console.log('===discount', discount)
-  console.log('===errors', errors)
   return (
     <div className="space-y-4">
       <Input
