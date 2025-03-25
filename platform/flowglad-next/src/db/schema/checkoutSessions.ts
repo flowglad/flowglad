@@ -81,6 +81,7 @@ const columns = {
     columnName: 'type',
     enumBase: CheckoutSessionType,
   }).notNull(),
+  outputMetadata: jsonb('output_metadata'),
 }
 
 export const checkoutSessions = pgTable(
@@ -110,6 +111,9 @@ export const checkoutSessions = pgTable(
   }
 ).enableRLS()
 
+export const checkoutSessionOutputMetadataSchema = z
+  .record(z.string(), z.any())
+  .nullable()
 const refinement = {
   ...newBaseZodSelectSchemaColumns,
   billingAddress: billingAddressSchema.nullable(),
@@ -120,6 +124,7 @@ const refinement = {
   paymentMethodType: core
     .createSafeZodEnum(PaymentMethodType)
     .nullable(),
+  outputMetadata: checkoutSessionOutputMetadataSchema,
 }
 
 const purchaseCheckoutSessionRefinement = {
@@ -387,5 +392,8 @@ export namespace CheckoutSession {
   >
   export type PaginatedList = z.infer<
     typeof checkoutSessionsPaginatedListSchema
+  >
+  export type OutputMetadata = z.infer<
+    typeof checkoutSessionOutputMetadataSchema
   >
 }
