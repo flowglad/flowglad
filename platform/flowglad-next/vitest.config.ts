@@ -20,6 +20,14 @@ export default defineConfig(({ mode }) => {
       environment: 'node',
       setupFiles: ['./vitest.setup.ts'],
       env: loadEnv(mode, process.cwd(), ''),
+      deps: {
+        inline: [/@stackframe\/stack-shared/], // Force inline this package
+      },
+      server: {
+        deps: {
+          inline: [/@stackframe\/stack-shared/],
+        },
+      },
     },
     resolve: {
       alias: {

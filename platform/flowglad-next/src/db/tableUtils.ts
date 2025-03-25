@@ -40,6 +40,7 @@ import {
   createSelectSchema,
   createInsertSchema as zodCreateInsertSchema,
 } from 'drizzle-zod'
+import { snakeCase } from 'change-case'
 
 type ZodTableUnionOrType<
   T extends
@@ -304,7 +305,7 @@ export const taxColumns = () => ({
   /**
    * The Flowglad processing fee
    */
-  applicationFee: integer('applicationFee'),
+  applicationFee: integer('application_fee'),
 })
 
 export const taxSchemaColumns = {
@@ -368,7 +369,7 @@ export const onConflictDoUpdateSetValues = <
          * can be symbols - this strips the symbol wrapper,
          * which is included in the stringified key
          */
-        key.toString().replace(/^Symbol\((.*)\)$/, '$1')
+        snakeCase(key.toString().replace(/^Symbol\((.*)\)$/, '$1'))
       )}`,
     }
   }, {})
@@ -576,6 +577,9 @@ export const createBulkInsertFunction = <
     const parsedData = dataArray.map((data) =>
       insertSchema.parse(data)
     ) as InferInsertModel<T>[]
+    if (dataArray.length === 0) {
+      return []
+    }
     const result = await transaction
       .insert(table)
       .values(parsedData)

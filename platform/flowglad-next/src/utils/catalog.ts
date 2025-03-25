@@ -116,9 +116,6 @@ export const cloneCatalogTransaction = async (
   transaction: DbTransaction
 ) => {
   const catalog = await selectCatalogById(input.id, transaction)
-  if (!catalog) {
-    throw new Error('Catalog not found')
-  }
   const newCatalog = await insertCatalog(
     {
       name: input.name,

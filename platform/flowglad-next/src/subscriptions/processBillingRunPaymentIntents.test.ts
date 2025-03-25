@@ -32,6 +32,7 @@ import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
+import { IntentMetadataType } from '@/utils/stripe'
 
 /**
  * In our tests we assume that getStripeCharge (used inside processPaymentIntentEventForBillingRun)
@@ -100,7 +101,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'succeeded',
             metadata: {
               billingRunId: billingRun.id,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
               billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: `ch_test_${new Date().getTime()}`,
@@ -154,7 +155,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'succeeded',
             metadata: {
               billingRunId: newBillingRun.id,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
               billingPeriodId: newBillingRun.billingPeriodId,
             },
             latest_charge: stripeChargeId,
@@ -209,7 +210,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //           status: 'succeeded',
   //           metadata: {
   //             billingRunId: billingRun.id,
-  //             type: 'billingRun',
+  //             type: IntentMetadataType.BillingRun,
   //             billingPeriodId: billingRun.billingPeriodId,
   //           },
   //           latest_charge: stripeChargeId,
@@ -285,7 +286,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'requires_payment_method',
             metadata: {
               billingRunId: failedBillingRun.id,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
               billingPeriodId: failedBillingRun.billingPeriodId,
             },
             latest_charge: stripeChargeId,
@@ -359,7 +360,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'canceled',
             metadata: {
               billingRunId: billingRun.id,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
               billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: stripeChargeId,
@@ -431,7 +432,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'processing',
             metadata: {
               billingRunId: billingRun.id,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
               billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: `ch_${billingRun.id}__processing`,
@@ -513,7 +514,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'requires_action',
             metadata: {
               billingRunId: billingRun.id,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
               billingPeriodId: billingPeriod.id,
             },
             latest_charge: stripeChargeId,
@@ -565,7 +566,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             status: 'succeeded',
             metadata: {
               billingRunId: billingRun.id,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
               billingPeriodId: billingRun.billingPeriodId,
             },
             latest_charge: `ch_no_invoice_${billingRun.id}`,
@@ -609,7 +610,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
             metadata: {
               billingRunId: billingRun.id,
               billingPeriodId: billingRun.billingPeriodId,
-              type: 'billingRun',
+              type: IntentMetadataType.BillingRun,
             },
             latest_charge: null,
             livemode: true,
@@ -656,7 +657,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //           metadata: {
   //             billingRunId: billingRun.id,
   //             billingPeriodId: billingRun.billingPeriodId,
-  //             type: 'billingRun',
+  //             type: IntentMetadataType.BillingRun,
   //           },
   //           latest_charge: `ch_no_payment_${billingRun.id}`,
   //           livemode: true,

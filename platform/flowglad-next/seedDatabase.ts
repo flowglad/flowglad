@@ -125,7 +125,7 @@ export const setupOrg = async () => {
       },
       transaction
     )
-    return { organization, product, price }
+    return { organization, product, price, catalog }
   })
 }
 
