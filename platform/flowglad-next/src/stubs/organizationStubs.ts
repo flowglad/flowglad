@@ -20,5 +20,6 @@ export const dummyOrganization: Organization.Record = {
   defaultCurrency: CurrencyCode.USD,
   billingAddress: null,
   contactEmail: null,
+  featureFlags: {},
   allowMultipleSubscriptionsPerCustomer: false,
 }
