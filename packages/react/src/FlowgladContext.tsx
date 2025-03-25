@@ -2,6 +2,7 @@
 import React, { createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
+import axios from 'axios'
 import {
   createCheckoutSessionSchema,
   FlowgladActionKey,
@@ -104,21 +105,17 @@ const constructCreateCheckoutSession =
     validateUrl(params.cancelUrl, 'cancelUrl')
     validateUrl(flowgladRoute, 'flowgladRoute', true)
     const headers = requestConfig?.headers
-    const response = await fetch(
+    const response = await axios.post(
       `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
+      params,
       {
-        method:
-          flowgladActionValidators[
-            FlowgladActionKey.CreateCheckoutSession
-          ].method,
-        body: JSON.stringify(params),
         headers,
       }
     )
     const json: {
       data: Flowglad.CheckoutSessions.CheckoutSessionCreateResponse
       error?: { code: string; json: Record<string, unknown> }
-    } = await response.json()
+    } = response.data
     const data = json.data
     if (json.error) {
       console.error(

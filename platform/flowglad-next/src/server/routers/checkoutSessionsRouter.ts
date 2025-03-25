@@ -53,6 +53,12 @@ const createCheckoutSessionSchema = z.object({
     .describe(
       'The URL to redirect to after the purchase is cancelled or fails'
     ),
+  outputMetadata: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe(
+      'Metadata that will get added to the purchase or subscription'
+    ),
 })
 
 const singleCheckoutSessionOutputSchema = z.object({

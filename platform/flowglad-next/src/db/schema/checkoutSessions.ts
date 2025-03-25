@@ -138,6 +138,7 @@ const invoiceCheckoutSessionRefinement = {
   priceId: z.null(),
   purchaseId: z.null(),
   type: z.literal(CheckoutSessionType.Invoice),
+  outputMetadata: z.null(),
 }
 
 const productCheckoutSessionRefinement = {

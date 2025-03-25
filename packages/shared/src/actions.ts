@@ -13,6 +13,7 @@ export const createCheckoutSessionSchema = z.object({
   priceId: z.string(),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
+  outputMetadata: z.record(z.string(), z.any()).optional(),
 })
 
 export type CreateCheckoutSessionParams = z.infer<
