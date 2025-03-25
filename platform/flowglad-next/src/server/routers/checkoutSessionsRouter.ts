@@ -34,6 +34,11 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const checkoutSessionsRouteConfigs = routeConfigs
 
+/**
+ * This is not in the db/schemas/checkoutSessions.ts file because it is not
+ * used in the db. It is a special input schema in a procedure primarily
+ * used in the REST API.
+ */
 const createCheckoutSessionSchema = z.object({
   customerExternalId: z
     .string()
