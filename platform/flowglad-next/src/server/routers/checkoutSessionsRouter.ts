@@ -115,6 +115,7 @@ export const createCheckoutSession = protectedProcedure
             successUrl: input.successUrl,
             cancelUrl: input.cancelUrl,
             invoiceId: null,
+            outputMetadata: input.outputMetadata,
             type: CheckoutSessionType.Product,
           } as const,
           transaction
