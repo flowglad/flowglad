@@ -1,5 +1,25 @@
 # @flowglad/nextjs
 
+## 0.8.9
+
+### Patch Changes
+
+- Relative route check
+- Updated dependencies
+  - @flowglad/server@0.8.9
+  - @flowglad/shared@0.8.9
+  - @flowglad/react@0.8.9
+
+## 0.8.8
+
+### Patch Changes
+
+- Export SubscriptionDetails type
+- Updated dependencies
+  - @flowglad/server@0.8.8
+  - @flowglad/shared@0.8.8
+  - @flowglad/react@0.8.8
+
 ## 0.8.7
 
 ### Patch Changes

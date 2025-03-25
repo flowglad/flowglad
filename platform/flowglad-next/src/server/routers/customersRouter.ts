@@ -19,8 +19,14 @@ import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
 import { createOrUpdateCustomer as createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
-import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
-import { createCustomerOutputSchema } from '@/db/schema/purchases'
+import {
+  createCustomerInputSchema,
+  selectPurchases,
+} from '@/db/tableMethods/purchaseMethods'
+import {
+  createCustomerOutputSchema,
+  purchaseClientSelectSchema,
+} from '@/db/schema/purchases'
 import {
   createGetOpenApiMeta,
   generateOpenApiMetas,
@@ -206,6 +212,7 @@ export const getCustomerBilling = protectedProcedure
       subscriptions: richSubscriptionClientSelectSchema.array(),
       invoices: invoiceWithLineItemsClientSchema.array(),
       paymentMethods: paymentMethodClientSelectSchema.array(),
+      purchases: purchaseClientSelectSchema.array(),
       currentSubscriptions: richSubscriptionClientSelectSchema
         .array()
         .optional()
@@ -226,6 +233,7 @@ export const getCustomerBilling = protectedProcedure
       invoices,
       paymentMethods,
       currentSubscriptions,
+      purchases,
     } = await authenticatedTransaction(
       async ({ transaction }) => {
         const customers = await selectCustomers(
@@ -249,6 +257,10 @@ export const getCustomerBilling = protectedProcedure
           { customerId: customers[0].id },
           transaction
         )
+        const purchases = await selectPurchases(
+          { customerId: customers[0].id },
+          transaction
+        )
         const currentSubscriptions = subscriptions.filter((item) => {
           return isSubscriptionInTerminalState(item.status)
         })
@@ -258,6 +270,7 @@ export const getCustomerBilling = protectedProcedure
             ...customers[0],
             subscriptions,
           },
+          purchases,
           invoices,
           paymentMethods,
           catalog,
@@ -273,6 +286,7 @@ export const getCustomerBilling = protectedProcedure
       invoices,
       paymentMethods,
       currentSubscriptions,
+      purchases,
       subscriptions: customer.subscriptions,
       catalog,
     }

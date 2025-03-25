@@ -487,6 +487,7 @@ export const createOrUpdateCustomer = async (
       {
         email: payload.customer.email,
         organizationId: payload.customer.organizationId,
+        livemode: payload.customer.livemode,
       },
       transaction
     )

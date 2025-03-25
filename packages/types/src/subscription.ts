@@ -11,3 +11,6 @@ export type SubscriptionStatus =
 
 export type SubscriptionIntervalUnit =
   Flowglad.Subscriptions.SubscriptionRetrieveResponse.Subscription['interval']
+
+export type SubscriptionDetails =
+  Flowglad.CustomerRetrieveBillingResponse['subscriptions'][number]
