@@ -7,6 +7,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 
 async function example(db: PostgresJsDatabase) {
+  // eslint-disable-next-line no-console
   console.log(`foo`)
 }
 

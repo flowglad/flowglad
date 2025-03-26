@@ -52,14 +52,18 @@ const ProductsPage = async () => {
   })
 
   const products = uniqueProducts.map((product) => ({
-    product,
+    ...product,
     prices: pricesByProductId.get(product.id) ?? [],
+    defaultPrice:
+      pricesByProductId
+        .get(product.id)
+        ?.find((price) => price.isDefault) ??
+      pricesByProductId.get(product.id)?.[0]!,
     catalog: catalogsByProductId.get(product.id)!,
   }))
 
   products.sort(
-    (a, b) =>
-      b.product.createdAt.getTime() - a.product.createdAt.getTime()
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
   )
   return <Internal products={products} />
 }

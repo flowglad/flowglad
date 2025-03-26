@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react'
 import Table from '@/components/ion/Table'
 import { Product } from '@/db/schema/products'
 import core from '@/utils/core'
-import { Price } from '@/db/schema/prices'
+import { Price, ProductWithPrices } from '@/db/schema/prices'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
@@ -29,11 +29,7 @@ export enum FocusedTab {
 }
 
 type Props = {
-  products: {
-    product: Product.ClientRecord
-    catalog?: Catalog.ClientRecord
-    prices: Price.ClientRecord[]
-  }[]
+  products: (ProductWithPrices & { catalog?: Catalog.ClientRecord })[]
 }
 
 interface ProductRow {
@@ -228,7 +224,7 @@ export const ProductsTable = ({
         <Table
           columns={columns}
           data={products.map((product) => ({
-            product: product.product,
+            product,
             prices: product.prices,
             catalog: product.catalog,
           }))}
