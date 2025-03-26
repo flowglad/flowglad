@@ -26,7 +26,7 @@ import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
-  resource: 'Catalog',
+  resource: 'catalog',
   tags: ['Catalogs'],
 })
 

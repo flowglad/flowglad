@@ -1,14 +1,28 @@
+'use client'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from './ui/dialog'
-import { buttonVariants } from './ui/button'
+import { Button, buttonVariants } from './ui/button'
+import { SubscriptionCardSubscription } from '../types'
+import { formatDate } from '../lib/utils'
+import { useState } from 'react'
 
-export const CancelSubscriptionModal = () => {
+export const CancelSubscriptionModal = ({
+  subscription,
+  cancelSubscription,
+}: {
+  subscription: SubscriptionCardSubscription
+  cancelSubscription: (
+    subscription: SubscriptionCardSubscription
+  ) => void
+}) => {
+  const [cancelLoading, setCancelLoading] = useState(false)
   return (
     <Dialog>
       <DialogTrigger
@@ -21,12 +35,25 @@ export const CancelSubscriptionModal = () => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Are you absolutely sure?</DialogTitle>
+          <DialogTitle>Are you sure?</DialogTitle>
           <DialogDescription>
-            This action cannot be undone. This will permanently delete
-            your account and remove your data from our servers.
+            {`Your subscription will terminate on ${formatDate(subscription.currentBillingPeriodEnd)}, the end of the current
+            billing period`}
           </DialogDescription>
         </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline">Cancel</Button>
+          <Button
+            disabled={cancelLoading}
+            onClick={async () => {
+              setCancelLoading(true)
+              await cancelSubscription(subscription)
+              setCancelLoading(false)
+            }}
+          >
+            Confirm
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

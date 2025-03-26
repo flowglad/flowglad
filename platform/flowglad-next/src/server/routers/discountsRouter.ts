@@ -26,7 +26,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 import { z } from 'zod'
 
 const { openApiMetas } = generateOpenApiMetas({
-  resource: 'Discount',
+  resource: 'discount',
   tags: ['Discounts'],
 })
 

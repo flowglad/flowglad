@@ -23,6 +23,10 @@ export const cancelSubscription: SubRouteHandler<
       error,
     }
   }
+  console.log(
+    '====subscriptionHandlers.cancelSubscription params',
+    params
+  )
   const subscription = await flowgladServer.cancelSubscription(
     params.data
   )

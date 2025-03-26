@@ -7,7 +7,7 @@ import { createApiContext } from '@/server/trpcContext'
 import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs'
 import { ApiEnvironment } from '@/types'
 import { NextResponse } from 'next/server'
-import { trpcToRest, RouteConfig } from './trpcToRest'
+import { trpcToRest, RouteConfig } from '@/utils/openapi'
 import { customersRouteConfigs } from '@/server/routers/customersRouter'
 import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
@@ -16,6 +16,7 @@ import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
+
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
   try {
@@ -91,7 +92,6 @@ const handler = withUnkey(
         return method === routeMethod && config.pattern.test(path)
       }
     )
-
     if (!matchingRoute) {
       console.log(
         'No matching route found for path ',

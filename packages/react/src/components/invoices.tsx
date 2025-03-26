@@ -123,9 +123,12 @@ export function Invoices({
               }
               onClickInvoice(invoice)
             }}
-            className={cn('!flowglad-border-x-0', {
-              'flowglad-cursor-pointer': !!onClickInvoice,
-            })}
+            className={cn(
+              '!flowglad-border-t-0 !flowglad-border-x-0',
+              {
+                'flowglad-cursor-pointer': !!onClickInvoice,
+              }
+            )}
           >
             <TableCell className="flowglad-font-medium flowglad-text-muted-foreground flowglad-w-32 flowglad-pl-0">
               {formatDate(invoice.createdAt)}

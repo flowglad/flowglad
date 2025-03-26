@@ -97,7 +97,10 @@ export function CardPaymentMethodRow({
   paymentMethod: DisplayPaymentMethod
 }) {
   return (
-    <TableRow className="!flowglad-border-x-0" onClick={() => {}}>
+    <TableRow
+      className="!flowglad-border-t-0 !flowglad-border-x-0"
+      onClick={() => {}}
+    >
       <TableCell className="flowglad-flex flowglad-flex-row flowglad-items-center flowglad-gap-4">
         <CardPaymentMethodLabel
           brand={paymentMethod.paymentMethodData.brand as string}

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   Subscription,
   SubscriptionItem,
@@ -19,28 +19,17 @@ import {
 } from './ui/card'
 import { PriceLabel } from './currency-label'
 import { CancelSubscriptionModal } from './cancel-subscription-modal'
+import {
+  SubscriptionCardSubscription,
+  SubscriptionCardSubscriptionItem,
+} from '../types'
+import { useBilling } from '../FlowgladContext'
 
-type CurrentSubscriptionCardSubscription = Pick<
-  Subscription['subscription'],
-  | 'id'
-  | 'trialEnd'
-  | 'status'
-  | 'cancelScheduledAt'
-  | 'currentBillingPeriodEnd'
-  | 'interval'
-  | 'intervalCount'
-  | 'canceledAt'
->
-type CurrentSubscriptionCardSubscriptionItem = Pick<
-  SubscriptionItem,
-  'id' | 'unitPrice' | 'quantity'
->
 export interface CurrentSubscriptionCardProps {
   currency: CurrencyCode
-  subscription: CurrentSubscriptionCardSubscription
-  subscriptionItems: CurrentSubscriptionCardSubscriptionItem[]
+  subscription: SubscriptionCardSubscription
+  subscriptionItems: SubscriptionCardSubscriptionItem[]
   product: Pick<Product, 'name' | 'pluralQuantityLabel'>
-  onCancel?: () => void
 }
 
 const formatDate = (date: Date | string) => {
@@ -55,17 +44,32 @@ export const CurrentSubscriptionCard = ({
   subscription,
   product,
   currency,
-  onCancel,
   subscriptionItems,
 }: CurrentSubscriptionCardProps) => {
   const showTrialEnd =
     subscription.trialEnd && isInFuture(subscription.trialEnd)
   const isPastDue = subscription.status === 'past_due'
+  const billing = useBilling()
   const shouldShowBillingPeriodEnd =
     !subscription.cancelScheduledAt ||
     (subscription.cancelScheduledAt &&
       new Date(subscription.cancelScheduledAt) >
         new Date(subscription.currentBillingPeriodEnd))
+  const { cancelSubscription } = billing
+  const onCancel = useCallback(
+    async (subscription: SubscriptionCardSubscription) => {
+      if (!cancelSubscription) {
+        return
+      }
+      await cancelSubscription({
+        id: subscription.id,
+        cancellation: {
+          timing: 'at_end_of_current_billing_period',
+        },
+      })
+    },
+    [cancelSubscription]
+  )
 
   return (
     <Card className="flowglad-w-full">
@@ -126,7 +130,12 @@ export const CurrentSubscriptionCard = ({
             intervalCount: subscription.intervalCount,
           }}
         />
-        <CancelSubscriptionModal />
+        {!subscription.cancelScheduledAt && (
+          <CancelSubscriptionModal
+            subscription={subscription}
+            cancelSubscription={onCancel}
+          />
+        )}
       </CardContent>
     </Card>
   )

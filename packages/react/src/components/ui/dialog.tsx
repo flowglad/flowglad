@@ -35,9 +35,19 @@ function DialogPortal({
 }
 
 function DialogClose({
+  className,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+  return (
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      className={cn(
+        '!flowglad-outline-none !flowglad-ring-0 !flowglad-ring-offset-0',
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function DialogOverlay({
@@ -67,7 +77,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'flowglad-bg-background data-[state=open]:flowglad-animate-in data-[state=closed]:flowglad-animate-out data-[state=closed]:flowglad-fade-out-0 data-[state=open]:flowglad-fade-in-0 data-[state=closed]:flowglad-zoom-out-95 data-[state=open]:flowglad-zoom-in-95 data-[state=closed]:flowglad-slide-out-to-left-1/2 data-[state=closed]:flowglad-slide-out-to-top-[48%] data-[state=open]:flowglad-slide-in-from-left-1/2 data-[state=open]:flowglad-slide-in-from-top-[48%] flowglad-fixed flowglad-top-[50%] flowglad-left-[50%] flowglad-z-50 flowglad-grid flowglad-w-full flowglad-max-w-[calc(100%-2rem)] flowglad-translate-x-[-50%] flowglad-translate-y-[-50%] flowglad-gap-4 flowglad-rounded-lg flowglad-border flowglad-p-6 flowglad-shadow-lg flowglad-duration-200 sm:flowglad-max-w-lg',
+          'flowglad-bg-background data-[state=open]:flowglad-animate-in data-[state=closed]:flowglad-animate-out data-[state=closed]:flowglad-fade-out-0 data-[state=open]:flowglad-fade-in-0 data-[state=closed]:flowglad-zoom-out-95 data-[state=open]:flowglad-zoom-in-95 data-[state=closed]:flowglad-slide-out-to-left-1/2 data-[state=closed]:flowglad-slide-out-to-top-[48%] data-[state=open]:flowglad-slide-in-from-left-1/2 data-[state=open]:flowglad-slide-in-from-top-[48%] flowglad-fixed flowglad-top-[50%] flowglad-left-[50%] flowglad-z-50 flowglad-grid flowglad-w-full flowglad-max-w-[calc(100%-2rem)] flowglad-translate-x-[-50%] flowglad-translate-y-[-50%] flowglad-gap-4 flowglad-rounded-lg flowglad-border flowglad-p-6 flowglad-shadow-lg flowglad-duration-200 sm:flowglad-max-w-lg !flowglad-outline-none !flowglad-ring-0 !flowglad-ring-offset-0 [&_button]:!flowglad-outline-none [&_button]:!flowglad-ring-0 [&_button]:!flowglad-ring-offset-0',
           className
         )}
         {...props}
