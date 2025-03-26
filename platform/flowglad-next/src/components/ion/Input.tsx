@@ -99,10 +99,11 @@ export interface InputProps
 /* ---------------------------------- Component --------------------------------- */
 
 export const inputClassNames = clsx(
-  'h-full w-full flex-shrink bg-transparent focus:outline-none disabled:pointer-events-none',
+  'h-full w-full flex-shrink bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 disabled:pointer-events-none',
   'placeholder:text-subtle disabled:text-on-disabled',
   'disabled:placeholder:text-on-disabled',
   'border-none',
+  'px-0',
   'autofill:bg-transparent',
   'autofill:text-on-disabled',
   'autofill:hover:bg-transparent',
