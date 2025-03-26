@@ -19,6 +19,7 @@
   "dependencies": {
     "@flowglad/node": "0.15.0",
     "@flowglad/shared": "workspace:*",
+    "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@tanstack/react-query": "5.66.0",
@@ -39,8 +40,8 @@
     "eslint": "catalog:repo",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "catalog:repo",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "catalog:repo"
   },
   "exports": {
     ".": {

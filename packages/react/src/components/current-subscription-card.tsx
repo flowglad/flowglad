@@ -1,3 +1,5 @@
+'use client'
+import { useState } from 'react'
 import {
   Subscription,
   SubscriptionItem,
@@ -16,26 +18,29 @@ import {
   CardTitle,
 } from './ui/card'
 import { PriceLabel } from './currency-label'
+import { CancelSubscriptionModal } from './cancel-subscription-modal'
 
+type CurrentSubscriptionCardSubscription = Pick<
+  Subscription['subscription'],
+  | 'id'
+  | 'trialEnd'
+  | 'status'
+  | 'cancelScheduledAt'
+  | 'currentBillingPeriodEnd'
+  | 'interval'
+  | 'intervalCount'
+  | 'canceledAt'
+>
+type CurrentSubscriptionCardSubscriptionItem = Pick<
+  SubscriptionItem,
+  'id' | 'unitPrice' | 'quantity'
+>
 export interface CurrentSubscriptionCardProps {
   currency: CurrencyCode
-  subscription: Pick<
-    Subscription['subscription'],
-    | 'id'
-    | 'trialEnd'
-    | 'status'
-    | 'cancelScheduledAt'
-    | 'currentBillingPeriodEnd'
-    | 'interval'
-    | 'intervalCount'
-    | 'canceledAt'
-  >
-  subscriptionItems: Pick<
-    SubscriptionItem,
-    'id' | 'unitPrice' | 'quantity'
-  >[]
+  subscription: CurrentSubscriptionCardSubscription
+  subscriptionItems: CurrentSubscriptionCardSubscriptionItem[]
   product: Pick<Product, 'name' | 'pluralQuantityLabel'>
-  onClickCancel?: () => void
+  onCancel?: () => void
 }
 
 const formatDate = (date: Date | string) => {
@@ -50,13 +55,12 @@ export const CurrentSubscriptionCard = ({
   subscription,
   product,
   currency,
-  onClickCancel,
+  onCancel,
   subscriptionItems,
 }: CurrentSubscriptionCardProps) => {
   const showTrialEnd =
     subscription.trialEnd && isInFuture(subscription.trialEnd)
   const isPastDue = subscription.status === 'past_due'
-
   const shouldShowBillingPeriodEnd =
     !subscription.cancelScheduledAt ||
     (subscription.cancelScheduledAt &&
@@ -122,9 +126,7 @@ export const CurrentSubscriptionCard = ({
             intervalCount: subscription.intervalCount,
           }}
         />
-        <Button variant="outline" onClick={onClickCancel}>
-          Cancel
-        </Button>
+        <CancelSubscriptionModal />
       </CardContent>
     </Card>
   )

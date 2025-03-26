@@ -127,7 +127,14 @@ export function BillingPage({
       </Section>
       <Section>
         <SectionTitle>Invoices</SectionTitle>
-        <Invoices invoices={[]} />
+        <Invoices
+          invoices={billing.invoices.map(
+            ({ invoice, invoiceLineItems }) => ({
+              ...invoice,
+              lineItems: invoiceLineItems,
+            })
+          )}
+        />
       </Section>
     </div>
   )
