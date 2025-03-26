@@ -147,8 +147,9 @@ export const selectCatalogsWithProductsByCatalogWhere = async (
       catalogsClientSelectSchema.parse(catalog)
     )
   })
+
   const productResults = await selectPricesAndProductsByProductWhere(
-    { catalogId: catalogResults.map((catalog) => catalog.id) },
+    { catalogId: Array.from(uniqueCatalogsMap.keys()) },
     transaction
   )
   const productsByCatalogId = new Map<

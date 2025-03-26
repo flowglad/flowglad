@@ -16,6 +16,7 @@ import {
   updateCatalog,
   makeCatalogDefault,
   selectCatalogsWithProductsByCatalogWhere,
+  selectDefaultCatalog,
 } from '@/db/tableMethods/catalogMethods'
 import {
   createGetOpenApiMeta,
@@ -24,6 +25,7 @@ import {
 } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
+import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'catalog',
@@ -142,23 +144,37 @@ const getDefaultCatalogProcedure = protectedProcedure
   .input(z.object({}))
   .output(catalogWithProductsSchema)
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
+    const catalog = await authenticatedTransaction(
       async ({ transaction }) => {
-        const result = await selectCatalogsWithProductsByCatalogWhere(
+        const defaultCatalog = await selectDefaultCatalog(
           {
             organizationId: ctx.organizationId!,
             livemode: ctx.livemode,
-            isDefault: true,
           },
           transaction
         )
-        console.log('====result[0].products', result[0].products)
-        return result[0]
+        if (!defaultCatalog) {
+          throw new Error('Default catalog not found')
+        }
+        const productResults =
+          await selectPricesAndProductsByProductWhere(
+            { catalogId: defaultCatalog.id },
+            transaction
+          )
+        return {
+          ...defaultCatalog,
+          products: productResults.map(({ product, prices }) => ({
+            ...product,
+            prices,
+          })),
+        }
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+
+    return catalog
   })
 
 const cloneCatalogProcedure = protectedProcedure
