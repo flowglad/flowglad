@@ -5,6 +5,7 @@ import {
 } from './customerHandlers'
 import { createCheckoutSession } from './checkoutSessionHandlers'
 import { SubRouteHandler } from './types'
+import { cancelSubscription } from './subscriptionHandlers'
 
 export const routeToHandlerMap: Record<
   FlowgladActionKey,
@@ -13,4 +14,5 @@ export const routeToHandlerMap: Record<
   [FlowgladActionKey.GetCustomerBilling]: getCustomerBilling,
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,
   [FlowgladActionKey.CreateCheckoutSession]: createCheckoutSession,
+  [FlowgladActionKey.CancelSubscription]: cancelSubscription,
 }

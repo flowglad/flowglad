@@ -21,6 +21,7 @@ import { BillingAddress } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
 import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 /**
  * Use the
  * @param paymentMethod
@@ -354,8 +355,11 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
           margin: '30px 0 10px 0',
         }}
       >
-        {formatCurrency(total)} {invoice.currency || 'USD'} due{' '}
-        {formattedDueDate}
+        {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          invoice.currency,
+          total
+        )}{' '}
+        due {formattedDueDate}
       </Text>
 
       {paymentLink && (

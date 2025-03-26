@@ -1,4 +1,3 @@
-import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import {
   Body,

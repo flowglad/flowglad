@@ -61,11 +61,15 @@ export const OrganizationPaymentNotificationEmail = ({
           </Text>
           <Section style={details}>
             <Text style={detailsText}>Payment</Text>
-            <Text style={detailsValue}>${humanReadableAmount}</Text>
+            <Text style={detailsValue}>{humanReadableAmount}</Text>
             <Text style={detailsText}>Status</Text>
             <Text style={detailsValue}>Paid</Text>
-            <Text style={detailsText}>Invoice #</Text>
-            <Text style={detailsValue}>{invoiceNumber}</Text>
+            {invoiceNumber && (
+              <>
+                <Text style={detailsText}>Invoice #</Text>
+                <Text style={detailsValue}>{invoiceNumber}</Text>
+              </>
+            )}
           </Section>
           <Section style={buttonContainer}>
             <Link
@@ -144,7 +148,7 @@ const buttonContainer = {
 }
 
 const button = {
-  backgroundColor: '#6772e5',
+  backgroundColor: '#000',
   borderRadius: '4px',
   color: '#ffffff',
   fontSize: '14px',
