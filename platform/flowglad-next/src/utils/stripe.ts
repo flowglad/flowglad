@@ -1009,6 +1009,13 @@ export const updatePaymentIntent = async (
   })
 }
 
+export const confirmPaymentIntent = async (
+  paymentIntentId: string,
+  livemode: boolean
+) => {
+  return stripe(livemode).paymentIntents.confirm(paymentIntentId)
+}
+
 export const getStripeCharge = async (chargeId: string) => {
   let charge: Stripe.Charge
   try {
@@ -1058,13 +1065,38 @@ export const listRefundsForCharge = async (
   })
 }
 
+// export const createPaymentIntentForBillingRun = async (params: {
+//   amount: number
+//   currency: CurrencyCode
+//   stripeCustomerId: string
+//   stripePaymentMethodId: string
+//   livemode: boolean
+//   billingRunId: string
+//   billingPeriodId: string
+//   feeCalculation: FeeCalculation.Record
+// }) => {
+//   const metadata: BillingRunStripeIntentMetadata = {
+//     billingRunId: params.billingRunId,
+//     type: IntentMetadataType.BillingRun,
+//     billingPeriodId: params.billingPeriodId,
+//   }
+
+//   return stripe(params.livemode).paymentIntents.create({
+//     amount: params.amount,
+//     currency: params.currency,
+//     customer: params.stripeCustomerId,
+//     payment_method: params.stripePaymentMethodId,
+//     confirm: false,
+//     metadata,
+//   })
+// }
 /**
  * To be used for subscription payments executed during the billing
  * run workflow
  * @param param0
  * @returns
  */
-export const createAndConfirmPaymentIntent = async ({
+export const createPaymentIntentForBillingRun = async ({
   amount,
   currency,
   stripeCustomerId,
@@ -1100,13 +1132,15 @@ export const createAndConfirmPaymentIntent = async ({
     organization,
     livemode,
   })
+
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
   return stripe(livemode).paymentIntents.create({
     amount,
     currency,
     customer: stripeCustomerId,
     payment_method: stripePaymentMethodId,
-    confirm: true,
+    // now that this creates the payment intent, we confirm it as a separate step.
+    // confirm: true,
     off_session: true,
     application_fee_amount: applicationFeeAmount,
     metadata,
