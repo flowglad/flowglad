@@ -26,6 +26,7 @@ import {
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createBillingRun } from './billingRunHelpers'
 import { BillingRun } from '@/db/schema/billingRuns'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 
 interface CreateBillingPeriodParams {
   subscription: Subscription.Record
@@ -251,10 +252,14 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       transaction
     )
     if (paymentMethodId) {
+      const paymentMethod = await selectPaymentMethodById(
+        paymentMethodId,
+        transaction
+      )
       billingRun = await createBillingRun(
         {
           billingPeriod: newBillingPeriod,
-          paymentMethodId: paymentMethodId,
+          paymentMethod,
           scheduledFor: newBillingPeriod.startDate,
         },
         transaction

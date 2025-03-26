@@ -61,11 +61,7 @@ import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
-  currency: CurrencyCode
-  customer: Customer.Record
   paymentMethod: PaymentMethod.Record
-  feeCalculation: FeeCalculation.Record
-  organization: Organization.Record
   scheduledFor: Date
 }
 

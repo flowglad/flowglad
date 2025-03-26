@@ -171,7 +171,7 @@ const safelyProcessCreationForExistingSubscription = async (
     (await createBillingRun(
       {
         billingPeriod,
-        paymentMethodId: params.defaultPaymentMethod.id,
+        paymentMethod: params.defaultPaymentMethod,
         scheduledFor: subscription.currentBillingPeriodStart,
       },
       transaction
@@ -252,7 +252,7 @@ export const createSubscriptionWorkflow = async (
   const billingRun = await createBillingRun(
     {
       billingPeriod,
-      paymentMethodId: params.defaultPaymentMethod.id,
+      paymentMethod: params.defaultPaymentMethod,
       scheduledFor: subscription.currentBillingPeriodStart,
     },
     transaction
