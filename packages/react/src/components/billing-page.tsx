@@ -48,7 +48,7 @@ const CurrentSubscriptionOrPricingTable = ({
           subscription={currentSubscription}
           subscriptionItems={currentSubscription.subscriptionItems}
           product={{
-            name: 'Pro Plus',
+            name: currentSubscription.name!,
             pluralQuantityLabel: null,
           }}
         />

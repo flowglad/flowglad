@@ -1,5 +1,15 @@
 # @flowglad/nextjs
 
+## 0.8.11
+
+### Patch Changes
+
+- Improvements to embedded billing component, improved subscription type in types package
+- Updated dependencies
+  - @flowglad/react@0.8.11
+  - @flowglad/server@0.8.11
+  - @flowglad/shared@0.8.11
+
 ## 0.8.10
 
 ### Patch Changes

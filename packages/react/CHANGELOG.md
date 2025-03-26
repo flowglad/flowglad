@@ -1,5 +1,13 @@
 # @flowglad/react
 
+## 0.8.11
+
+### Patch Changes
+
+- Improvements to embedded billing component, improved subscription type in types package
+- Updated dependencies
+  - @flowglad/shared@0.8.11
+
 ## 0.8.10
 
 ### Patch Changes
