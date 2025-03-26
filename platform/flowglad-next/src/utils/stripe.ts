@@ -1096,7 +1096,7 @@ export const listRefundsForCharge = async (
  * @param param0
  * @returns
  */
-export const createPaymentIntentForBillingRun = async ({
+export const createAndConfirmPaymentIntentForBillingRun = async ({
   amount,
   currency,
   stripeCustomerId,
@@ -1139,8 +1139,7 @@ export const createPaymentIntentForBillingRun = async ({
     currency,
     customer: stripeCustomerId,
     payment_method: stripePaymentMethodId,
-    // now that this creates the payment intent, we confirm it as a separate step.
-    // confirm: true,
+    confirm: true,
     off_session: true,
     application_fee_amount: applicationFeeAmount,
     metadata,

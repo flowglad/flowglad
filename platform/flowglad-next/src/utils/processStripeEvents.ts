@@ -40,6 +40,7 @@ export const handleStripePrimaryWebhookEvent = async (
      * - if it's for ACH, this is like final final v3 final final.
      */
     case 'payment_intent.succeeded':
+      console.log('payment_intent.succeeded====', event)
       await stripePaymentIntentSucceededTask.trigger(event)
       break
     case 'charge.failed': {
