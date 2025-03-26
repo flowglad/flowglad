@@ -16,6 +16,7 @@ import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodIte
 import { createBillingRun } from './billingRunHelpers'
 import { Subscription } from '@/db/schema/subscriptions'
 import { AdjustSubscriptionParams } from './schemas'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   adjustmentDate: Date,
@@ -179,10 +180,14 @@ export const adjustSubscription = async (
       `Proration adjust for subscription ${subscription.id} failed. No default or backup payment method was found for the subscription`
     )
   }
+  const paymentMethod = await selectPaymentMethodById(
+    paymentMethodId,
+    transaction
+  )
   await createBillingRun(
     {
       billingPeriod: currentBillingPeriodForSubscription,
-      paymentMethodId: paymentMethodId,
+      paymentMethod,
       scheduledFor: new Date(),
     },
     transaction
