@@ -8,10 +8,14 @@ const CloneCatalogFormFields: React.FC = () => {
     register,
     formState: { errors },
   } = useFormContext<CloneCatalogInput>()
-  console.log('errors', errors)
   return (
     <div className="flex flex-col gap-3">
-      <Input label="Catalog Name" required {...register('name')} />
+      <Input
+        label="Catalog Name"
+        required
+        {...register('name')}
+        error={errors.name?.message}
+      />
     </div>
   )
 }
