@@ -1,4 +1,4 @@
-import { kebabCase } from 'change-case'
+import { camelCase, kebabCase } from 'change-case'
 import { OpenApiMeta, OpenApiMethod } from 'trpc-swagger'
 import { titleCase } from './core'
 
@@ -154,8 +154,9 @@ export const generateOpenApiMetas = (params: {
   openApiMetas: OpenApiMetaOutput
   routeConfigs: Record<string, RouteConfig>[]
 } => {
-  const pluralResource =
+  const pluralResource = camelCase(
     params.pluralResource ?? `${params.resource}s`
+  )
   const titleCaseResource = titleCase(params.resource)
   const openApiMetas: OpenApiMetaOutput = {
     GET: createGetOpenApiMeta({
@@ -227,7 +228,6 @@ export const trpcToRest = (
       `Invalid procedure name: ${procedureName}. Expected format: entity.action`
     )
   }
-
   // Special cases for utility endpoints
   if (entity === 'utils') {
     return {
@@ -319,7 +319,7 @@ export const trpcToRest = (
           procedure: procedureName,
           pattern: new RegExp(`^${entity}\/([^\\/]+)\/${action}$`),
           mapParams: (matches, body) => ({
-            id: matches[1],
+            id: matches[0],
             ...body,
           }),
         },

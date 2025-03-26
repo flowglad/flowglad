@@ -21,7 +21,7 @@ import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
-  resource: 'Subscription',
+  resource: 'subscription',
   tags: ['Subscriptions'],
 })
 
@@ -52,11 +52,16 @@ const adjustSubscriptionProcedure = protectedProcedure
       subscriptionItems: subscriptionItemClientSelectSchema.array(),
     })
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const { subscription, subscriptionItems } =
-      await authenticatedTransaction(async ({ transaction }) => {
-        return adjustSubscription(input, transaction)
-      })
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return adjustSubscription(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
     return {
       subscription,
       subscriptionItems,
@@ -79,38 +84,53 @@ const cancelSubscriptionProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(async ({ input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const subscription = await scheduleSubscriptionCancellation(
-        input,
-        transaction
-      )
-      return { subscription }
-    })
+  .mutation(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const subscription = await scheduleSubscriptionCancellation(
+          input,
+          transaction
+        )
+        return { subscription }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const listSubscriptionsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(subscriptionsPaginatedSelectSchema)
   .output(subscriptionsPaginatedListSchema)
-  .query(async ({ input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectSubscriptionsPaginated(input, transaction)
-    })
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionsPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const getSubscriptionProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
-  .query(async ({ input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const subscription = await selectSubscriptionById(
-        input.id,
-        transaction
-      )
-      return { subscription }
-    })
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const subscription = await selectSubscriptionById(
+          input.id,
+          transaction
+        )
+        return { subscription }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 export const subscriptionsRouter = router({

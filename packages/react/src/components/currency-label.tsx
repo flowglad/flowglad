@@ -49,7 +49,7 @@ export const PriceLabel = ({
 }) => {
   if (price.type === 'subscription') {
     return (
-      <div className={cn(className)} id="lol">
+      <div className={cn(className)}>
         {humanReadableCurrencyAmount(price.currency, price.unitPrice)}{' '}
         per {(price as SubscriptionPrice).intervalUnit}
       </div>

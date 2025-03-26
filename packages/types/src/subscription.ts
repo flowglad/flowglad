@@ -1,7 +1,7 @@
 import { type Flowglad } from '@flowglad/node'
 
 export type Subscription =
-  Flowglad.Subscriptions.SubscriptionRetrieveResponse
+  Flowglad.Subscriptions.SubscriptionRetrieveResponse['subscription']
 
 export type SubscriptionItem =
   Flowglad.CustomerRetrieveBillingResponse.Subscription.SubscriptionItem

@@ -1,6 +1,6 @@
 'use client'
 import React, { createContext, useContext } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import axios from 'axios'
 import {
@@ -11,7 +11,6 @@ import {
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
-import { cancelSubscriptionSchema } from '@flowglad/shared'
 import { FlowgladTheme } from './FlowgladTheme'
 
 export type LoadedFlowgladContextValues =
@@ -45,6 +44,7 @@ export interface NonPresentContextValues {
   invoices: []
   paymentMethods: []
   purchases: []
+  cancelSubscription: null
 }
 
 export interface NotLoadedFlowgladContextValues
@@ -82,6 +82,7 @@ const notPresentContextValues: NonPresentContextValues = {
   invoices: [],
   paymentMethods: [],
   purchases: [],
+  cancelSubscription: null,
 }
 
 const FlowgladContext = createContext<FlowgladContextValues>({
@@ -147,6 +148,7 @@ const constructCreateCheckoutSession =
 interface ConstructCancelSubscriptionParams {
   flowgladRoute: string
   requestConfig?: RequestConfig
+  queryClient: ReturnType<typeof useQueryClient>
 }
 
 const constructCancelSubscription =
@@ -156,7 +158,8 @@ const constructCancelSubscription =
   ): Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }> => {
-    const { flowgladRoute, requestConfig } = constructParams
+    const { flowgladRoute, requestConfig, queryClient } =
+      constructParams
     const headers = requestConfig?.headers
     const response = await axios.post(
       `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
@@ -173,6 +176,11 @@ const constructCancelSubscription =
         'FlowgladContext: Subscription cancellation failed',
         json
       )
+    } else {
+      // Refetch customer billing after successful cancellation
+      await queryClient.invalidateQueries({
+        queryKey: [FlowgladActionKey.GetCustomerBilling],
+      })
     }
     return {
       subscription: data,
@@ -201,6 +209,8 @@ export const FlowgladContextProvider = ({
   requestConfig?: RequestConfig
   children: React.ReactNode
 }) => {
+  const queryClient = useQueryClient()
+
   // In a perfect world, this would be a useMutation hook rather than useQuery.
   // Because technically, billing fetch requests run a "find or create" operation on
   // the customer. But useQuery allows us to execute the call using `enabled`
@@ -237,6 +247,7 @@ export const FlowgladContextProvider = ({
   const cancelSubscription = constructCancelSubscription({
     flowgladRoute: serverRoute,
     requestConfig,
+    queryClient,
   })
 
   let value: FlowgladContextValues
@@ -249,18 +260,20 @@ export const FlowgladContextProvider = ({
       ...notPresentContextValues,
     }
   } else if (billing) {
+    const billingData = billing.data
     value = {
       loaded: true,
       loadBilling,
-      customer: billing.data.customer,
+      customer: billingData.customer,
       createCheckoutSession,
       cancelSubscription,
-      catalog: billing.data.catalog,
-      subscriptions: billing.data.subscriptions,
-      purchases: billing.data.purchases,
+      catalog: billingData.catalog,
+      subscriptions: billingData.subscriptions,
+      purchases: billingData.purchases,
       errors: null,
-      invoices: billing.data.invoices,
-      paymentMethods: billing.data.paymentMethods,
+      invoices: billingData.invoices,
+      paymentMethods: billingData.paymentMethods,
+      currentSubscriptions: billingData.currentSubscriptions,
     }
   } else if (isPendingBilling) {
     value = {

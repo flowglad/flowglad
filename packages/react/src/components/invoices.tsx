@@ -44,12 +44,15 @@ function OpenInvoiceStatusBadge({
       <Badge
         variant="secondary"
         className={cn(
-          'bg-red-100 text-red-700 border-red-200 gap-1',
+          '!flowglad-bg-red-100 !flowglad-text-red-700 !flowglad-border-red-200 flowglad-gap-1',
           className
         )}
       >
         Past Due
-        <Clock className="w-4 h-4" strokeWidth={2.5} />
+        <Clock
+          className="flowglad-w-4 flowglad-h-4"
+          strokeWidth={2.5}
+        />
       </Badge>
     )
   }
@@ -57,7 +60,7 @@ function OpenInvoiceStatusBadge({
     <Badge
       variant="secondary"
       className={cn(
-        'bg-yellow-100 text-yellow-700 border-yellow-200',
+        '!flowglad-bg-yellow-100 !flowglad-text-yellow-700 !flowglad-border-yellow-200',
         className
       )}
     >
@@ -88,12 +91,15 @@ export function InvoiceStatusBadge({
         <Badge
           variant="secondary"
           className={cn(
-            'bg-green-100 text-green-700 border-green-200 w-fit gap-1',
+            '!flowglad-bg-green-100 !flowglad-text-green-700 !flowglad-border-green-200 flowglad-w-fit flowglad-gap-1',
             className
           )}
         >
           Paid
-          <Check className="w-4 h-4" strokeWidth={2.5} />
+          <Check
+            className="flowglad-w-4 flowglad-h-4"
+            strokeWidth={2.5}
+          />
         </Badge>
       )
   }
@@ -117,20 +123,23 @@ export function Invoices({
               }
               onClickInvoice(invoice)
             }}
-            className={cn({
-              'cursor-pointer': !!onClickInvoice,
-            })}
+            className={cn(
+              '!flowglad-border-t-0 !flowglad-border-x-0',
+              {
+                'flowglad-cursor-pointer': !!onClickInvoice,
+              }
+            )}
           >
-            <TableCell className="font-medium text-muted-foreground w-32">
+            <TableCell className="flowglad-font-medium flowglad-text-muted-foreground flowglad-w-32 flowglad-pl-0">
               {formatDate(invoice.createdAt)}
             </TableCell>
-            <TableCell className="font-medium w-32">
+            <TableCell className="flowglad-font-medium flowglad-w-32">
               {humanReadableCurrencyAmount(
                 invoice.currency,
                 totalAmountForInvoice(invoice)
               )}
             </TableCell>
-            <TableCell className="flex justify-end">
+            <TableCell className="flowglad-flex flowglad-justify-end">
               <InvoiceStatusBadge
                 status={invoice.status}
                 dueDate={invoice.dueDate}

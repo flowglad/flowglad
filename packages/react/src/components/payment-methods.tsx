@@ -97,7 +97,10 @@ export function CardPaymentMethodRow({
   paymentMethod: DisplayPaymentMethod
 }) {
   return (
-    <TableRow onClick={() => {}}>
+    <TableRow
+      className="!flowglad-border-t-0 !flowglad-border-x-0"
+      onClick={() => {}}
+    >
       <TableCell className="flowglad-flex flowglad-flex-row flowglad-items-center flowglad-gap-4">
         <CardPaymentMethodLabel
           brand={paymentMethod.paymentMethodData.brand as string}
@@ -123,10 +126,17 @@ export function PaymentMethodRow({
 export function PaymentMethods({
   paymentMethods,
 }: PaymentMethodsProps) {
+  // Sort payment methods to show default payment method first
+  const sortedPaymentMethods = [...paymentMethods].sort((a, b) => {
+    if (a.default && !b.default) return -1
+    if (!a.default && b.default) return 1
+    return 0
+  })
+
   return (
     <Table>
       <TableBody>
-        {paymentMethods.map((paymentMethod, index) => (
+        {sortedPaymentMethods.map((paymentMethod, index) => (
           <PaymentMethodRow
             key={index}
             paymentMethod={paymentMethod}
