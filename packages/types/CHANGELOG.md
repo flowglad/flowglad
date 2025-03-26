@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.8.11
+
+### Patch Changes
+
+- Improvements to embedded billing component, improved subscription type in types package
+
 ## 0.8.10
 
 ### Patch Changes
