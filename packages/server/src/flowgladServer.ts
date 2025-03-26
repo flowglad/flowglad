@@ -1,4 +1,7 @@
-import { CreateCheckoutSessionParams } from '@flowglad/shared'
+import {
+  CancelSubscriptionParams,
+  CreateCheckoutSessionParams,
+} from '@flowglad/shared'
 import {
   ClerkFlowgladServerSessionParams,
   CoreCustomerUser,
@@ -197,19 +200,25 @@ export class FlowgladServer {
       successUrl: params.successUrl,
       cancelUrl: params.cancelUrl,
       outputMetadata: params.outputMetadata,
+      // outputName: params.outputName,
     })
   }
 
   public cancelSubscription = async (
-    id: string,
-    params: FlowgladNode.Subscriptions.SubscriptionCancelParams
+    params: CancelSubscriptionParams
   ): Promise<FlowgladNode.Subscriptions.SubscriptionCancelResponse> => {
-    const session = await getSessionFromParams(
-      this.createHandlerParams
-    )
-    if (!session) {
-      throw new Error('User not authenticated')
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(params.id)
+    if (subscription.status !== 'active') {
+      throw new Error('Subscription is not active')
     }
-    return this.flowgladNode.subscriptions.cancel(id, params)
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+    return this.flowgladNode.subscriptions.cancel(params.id, {
+      cancellation:
+        params.cancellation as FlowgladNode.Subscriptions.SubscriptionCancelParams['cancellation'],
+    })
   }
 }
