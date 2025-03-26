@@ -77,15 +77,12 @@ const CatalogsTable = ({ data }: { data: Catalog.TableRow[] }) => {
           ),
         },
         {
-          header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Actions"
-              column={column}
-            />
-          ),
-          accessorKey: 'actions',
+          id: '_',
+          width: '10%',
           cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell catalog={cellData.catalog} />
+            <div className="flex justify-end">
+              <MoreMenuCell catalog={cellData.catalog} />
+            </div>
           ),
         },
       ] as ColumnDefWithWidth<Catalog.TableRow, string>[],
