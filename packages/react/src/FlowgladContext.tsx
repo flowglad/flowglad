@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import axios from 'axios'
 import {
+  CancelSubscriptionParams,
   createCheckoutSessionSchema,
   FlowgladActionKey,
   flowgladActionValidators,
@@ -18,8 +19,7 @@ export type LoadedFlowgladContextValues =
     loaded: true
     loadBilling: true
     cancelSubscription: (
-      id: string,
-      params: z.infer<typeof cancelSubscriptionSchema>
+      params: CancelSubscriptionParams
     ) => Promise<{
       subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
     }>
@@ -152,9 +152,7 @@ interface ConstructCancelSubscriptionParams {
 const constructCancelSubscription =
   (constructParams: ConstructCancelSubscriptionParams) =>
   async (
-    params: Parameters<
-      LoadedFlowgladContextValues['cancelSubscription']
-    >[0]
+    params: CancelSubscriptionParams
   ): Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }> => {
