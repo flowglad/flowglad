@@ -45,12 +45,9 @@ export const OrganizationPaymentNotificationEmail = ({
       <Body style={main}>
         <Container style={container}>
           <Img
-            src={
-              // TODO: add Flowglad logo
-              `${baseUrl}/static/flowglad-logo.png`
-            }
-            width="100"
-            height="100"
+            src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
+            width="543"
+            height="200"
             alt="Flowglad Logo"
             style={logo}
           />

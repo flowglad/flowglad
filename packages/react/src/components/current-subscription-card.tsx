@@ -1,3 +1,5 @@
+'use client'
+import { useCallback, useState } from 'react'
 import {
   Subscription,
   SubscriptionItem,
@@ -16,26 +18,18 @@ import {
   CardTitle,
 } from './ui/card'
 import { PriceLabel } from './currency-label'
+import { CancelSubscriptionModal } from './cancel-subscription-modal'
+import {
+  SubscriptionCardSubscription,
+  SubscriptionCardSubscriptionItem,
+} from '../types'
+import { useBilling } from '../FlowgladContext'
 
 export interface CurrentSubscriptionCardProps {
   currency: CurrencyCode
-  subscription: Pick<
-    Subscription['subscription'],
-    | 'id'
-    | 'trialEnd'
-    | 'status'
-    | 'cancelScheduledAt'
-    | 'currentBillingPeriodEnd'
-    | 'interval'
-    | 'intervalCount'
-    | 'canceledAt'
-  >
-  subscriptionItems: Pick<
-    SubscriptionItem,
-    'id' | 'unitPrice' | 'quantity'
-  >[]
+  subscription: SubscriptionCardSubscription
+  subscriptionItems: SubscriptionCardSubscriptionItem[]
   product: Pick<Product, 'name' | 'pluralQuantityLabel'>
-  onClickCancel?: () => void
 }
 
 const formatDate = (date: Date | string) => {
@@ -50,29 +44,43 @@ export const CurrentSubscriptionCard = ({
   subscription,
   product,
   currency,
-  onClickCancel,
   subscriptionItems,
 }: CurrentSubscriptionCardProps) => {
   const showTrialEnd =
     subscription.trialEnd && isInFuture(subscription.trialEnd)
   const isPastDue = subscription.status === 'past_due'
-
+  const billing = useBilling()
   const shouldShowBillingPeriodEnd =
     !subscription.cancelScheduledAt ||
     (subscription.cancelScheduledAt &&
       new Date(subscription.cancelScheduledAt) >
         new Date(subscription.currentBillingPeriodEnd))
+  const { cancelSubscription } = billing
+  const onCancel = useCallback(
+    async (subscription: SubscriptionCardSubscription) => {
+      if (!cancelSubscription) {
+        return
+      }
+      await cancelSubscription({
+        id: subscription.id,
+        cancellation: {
+          timing: 'at_end_of_current_billing_period',
+        },
+      })
+    },
+    [cancelSubscription]
+  )
 
   return (
     <Card className="flowglad-w-full">
-      <CardHeader className="flowglad-flex flowglad-flex-col flowglad-justify-between flowglad-gap-2">
-        <div className="flowglad-flex flowglad-flex-row flowglad-gap-2 flowglad-justify-between">
+      <CardHeader>
+        <div className="flowglad-flex flowglad-flex-row flowglad-justify-between flowglad-w-full">
           <div className="flowglad-flex flowglad-flex-col flowglad-gap-2">
             <div className="flowglad-flex flowglad-items-center flowglad-gap-4">
               <CardTitle>{product.name}</CardTitle>
               <Badge variant="secondary">Current Plan</Badge>
             </div>
-            <CardDescription className="flowglad-flex flowglad-flex-row flowglad-justify-between flowglad-items-start">
+            <CardDescription className="flowglad-flex flowglad-flex-row flowglad-items-start">
               <div>
                 {subscription.cancelScheduledAt && (
                   <div className="flowglad-text-destructive">
@@ -93,7 +101,7 @@ export const CurrentSubscriptionCard = ({
                 {shouldShowBillingPeriodEnd &&
                   !subscription.cancelScheduledAt && (
                     <div>
-                      Renews on
+                      Renews on{' '}
                       {formatDate(
                         subscription.currentBillingPeriodEnd
                       )}
@@ -102,12 +110,14 @@ export const CurrentSubscriptionCard = ({
               </div>
             </CardDescription>
           </div>
-          <div className="flowglad-flex flowglad-flex-col flowglad-gap-2">
-            <CardTitle>{product.pluralQuantityLabel}</CardTitle>
-            <div className="flowglad-justify-end flowglad-text-end flowglad-items-start">
-              {subscriptionItems[0].quantity}
+          {product.pluralQuantityLabel && (
+            <div className="flowglad-flex flowglad-flex-col flowglad-gap-2 flowglad-items-end">
+              <CardTitle>{product.pluralQuantityLabel}</CardTitle>
+              <div className="flowglad-text-end">
+                {subscriptionItems[0].quantity}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flowglad-flex flowglad-items-center flowglad-justify-between">
@@ -120,9 +130,12 @@ export const CurrentSubscriptionCard = ({
             intervalCount: subscription.intervalCount,
           }}
         />
-        <Button variant="outline" onClick={onClickCancel}>
-          Cancel
-        </Button>
+        {!subscription.cancelScheduledAt && (
+          <CancelSubscriptionModal
+            subscription={subscription}
+            cancelSubscription={onCancel}
+          />
+        )}
       </CardContent>
     </Card>
   )

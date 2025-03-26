@@ -200,7 +200,7 @@ export class FlowgladServer {
       successUrl: params.successUrl,
       cancelUrl: params.cancelUrl,
       outputMetadata: params.outputMetadata,
-      // outputName: params.outputName,
+      outputName: params.outputName,
     })
   }
 
