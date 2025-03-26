@@ -260,18 +260,20 @@ export const FlowgladContextProvider = ({
       ...notPresentContextValues,
     }
   } else if (billing) {
+    const billingData = billing.data
     value = {
       loaded: true,
       loadBilling,
-      customer: billing.data.customer,
+      customer: billingData.customer,
       createCheckoutSession,
       cancelSubscription,
-      catalog: billing.data.catalog,
-      subscriptions: billing.data.subscriptions,
-      purchases: billing.data.purchases,
+      catalog: billingData.catalog,
+      subscriptions: billingData.subscriptions,
+      purchases: billingData.purchases,
       errors: null,
-      invoices: billing.data.invoices,
-      paymentMethods: billing.data.paymentMethods,
+      invoices: billingData.invoices,
+      paymentMethods: billingData.paymentMethods,
+      currentSubscriptions: billingData.currentSubscriptions,
     }
   } else if (isPendingBilling) {
     value = {

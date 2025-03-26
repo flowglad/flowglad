@@ -7,6 +7,7 @@ import { PaymentMethods } from './payment-methods'
 import { CustomerBillingDetails } from './customer-billing-details'
 import { CurrentSubscriptionCard } from './current-subscription-card'
 import { PricingTable } from './pricing-table'
+import { useBilling } from '../FlowgladContext'
 
 const SectionTitle = ({
   children,
@@ -75,13 +76,12 @@ const CurrentSubscriptionOrPricingTable = ({
   )
 }
 
-export function BillingPage({
-  billing,
-  className,
-}: {
-  billing: Flowglad.CustomerRetrieveBillingResponse
-  className?: string
-}) {
+export function BillingPage({ className }: { className?: string }) {
+  const billing = useBilling()
+  if (!billing.loadBilling || !billing.loaded || !billing.catalog) {
+    return <div>Loading...</div>
+  }
+
   return (
     <div
       className={cn(
@@ -91,7 +91,7 @@ export function BillingPage({
     >
       <Section>
         <CurrentSubscriptionOrPricingTable
-          catalog={billing.catalog}
+          catalog={billing.catalog!}
           currentSubscriptions={billing.currentSubscriptions}
         />
       </Section>

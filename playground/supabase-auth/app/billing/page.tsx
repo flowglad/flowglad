@@ -5,7 +5,7 @@ import { BillingPage } from '@flowglad/nextjs';
 export default async () => {
   const billing = await flowgladServer.getBilling();
   if (billing.currentSubscriptions?.length) {
-    return <BillingPage billing={billing} />;
+    return <BillingPage />;
   }
   return <InnerPricingTable />;
 };

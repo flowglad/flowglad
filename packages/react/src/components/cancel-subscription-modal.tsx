@@ -23,8 +23,10 @@ export const CancelSubscriptionModal = ({
   ) => void
 }) => {
   const [cancelLoading, setCancelLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         className={buttonVariants({
           variant: 'outline',
@@ -42,13 +44,16 @@ export const CancelSubscriptionModal = ({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
           <Button
             disabled={cancelLoading}
             onClick={async () => {
               setCancelLoading(true)
               await cancelSubscription(subscription)
               setCancelLoading(false)
+              setOpen(false)
             }}
           >
             Confirm
