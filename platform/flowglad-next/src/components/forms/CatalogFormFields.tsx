@@ -10,7 +10,6 @@ export default function CatalogFormFields() {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Name</Label>
         <Input
           id="name"
           {...form.register('catalog.name')}
