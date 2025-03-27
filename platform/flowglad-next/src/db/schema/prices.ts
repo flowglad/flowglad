@@ -117,23 +117,32 @@ const subscriptionPriceColumns = {
   trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
 }
 
-export const subscriptionPriceSelectSchema =
-  basePriceSelectSchema.extend(subscriptionPriceColumns)
+const SUBSCRIPTION_PRICE_DESCRIPTION =
+  'A subscription price, which will have details on the interval, default trial period, and setup fee (if any).'
+
+export const subscriptionPriceSelectSchema = basePriceSelectSchema
+  .extend(subscriptionPriceColumns)
+  .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
 export const subscriptionPriceInsertSchema =
-  subscriptionPriceSelectSchema.omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  })
+  subscriptionPriceSelectSchema
+    .omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+    })
+    .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
 export const subscriptionPriceUpdateSchema =
-  subscriptionPriceInsertSchema.partial().extend({
-    id: z.string(),
-    type: z.literal(PriceType.Subscription),
-  })
+  subscriptionPriceInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+      type: z.literal(PriceType.Subscription),
+    })
+    .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
-const otherPriceColumns = {
+const singlePaymentPriceColumns = {
   type: z.literal(PriceType.SinglePayment),
   intervalCount: core.safeZodNullOrUndefined,
   intervalUnit: core.safeZodNullOrUndefined,
@@ -141,35 +150,44 @@ const otherPriceColumns = {
   trialPeriodDays: core.safeZodNullOrUndefined,
 }
 
-export const otherPriceSelectSchema =
-  basePriceSelectSchema.extend(otherPriceColumns)
+const SINGLE_PAYMENT_PRICE_DESCRIPTION =
+  'A single payment price, which only gets paid once. Subscriptions cannot be made from single payment prices. Purchases, though, can.'
 
-export const otherPriceInsertSchema = otherPriceSelectSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-})
+export const singlePaymentPriceSelectSchema = basePriceSelectSchema
+  .extend(singlePaymentPriceColumns)
+  .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
 
-export const otherPriceUpdateSchema = otherPriceInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-    type: z.literal(PriceType.SinglePayment),
-  })
+export const singlePaymentPriceInsertSchema =
+  singlePaymentPriceSelectSchema
+    .omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+    })
+    .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
+
+export const singlePaymentPriceUpdateSchema =
+  singlePaymentPriceInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+      type: z.literal(PriceType.SinglePayment),
+    })
+    .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
 
 export const pricesSelectSchema = z.discriminatedUnion('type', [
   subscriptionPriceSelectSchema,
-  otherPriceSelectSchema,
+  singlePaymentPriceSelectSchema,
 ])
 
 export const pricesInsertSchema = z.discriminatedUnion('type', [
   subscriptionPriceInsertSchema,
-  otherPriceInsertSchema,
+  singlePaymentPriceInsertSchema,
 ])
 
 export const pricesUpdateSchema = z.discriminatedUnion('type', [
   subscriptionPriceUpdateSchema,
-  otherPriceUpdateSchema,
+  singlePaymentPriceUpdateSchema,
 ])
 
 export const variantSelectClauseSchema = basePriceSelectSchema
@@ -199,28 +217,28 @@ export const subscriptionPriceClientUpdateSchema =
 export const subscriptionPriceClientSelectSchema =
   subscriptionPriceSelectSchema.omit(hiddenColumns)
 
-export const otherPriceClientInsertSchema =
-  otherPriceInsertSchema.omit(nonClientEditableColumns)
+export const singlePaymentPriceClientInsertSchema =
+  singlePaymentPriceInsertSchema.omit(nonClientEditableColumns)
 
-export const otherPriceClientUpdateSchema =
-  otherPriceUpdateSchema.omit(nonClientEditableColumns)
+export const singlePaymentPriceClientUpdateSchema =
+  singlePaymentPriceUpdateSchema.omit(nonClientEditableColumns)
 
-export const otherPriceClientSelectSchema =
-  otherPriceSelectSchema.omit(hiddenColumns)
+export const singlePaymentPriceClientSelectSchema =
+  singlePaymentPriceSelectSchema.omit(hiddenColumns)
 
 export const pricesClientInsertSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientInsertSchema,
-  otherPriceClientInsertSchema,
+  singlePaymentPriceClientInsertSchema,
 ])
 
 export const pricesClientUpdateSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientUpdateSchema,
-  otherPriceClientUpdateSchema,
+  singlePaymentPriceClientUpdateSchema,
 ])
 
 export const pricesClientSelectSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientSelectSchema,
-  otherPriceClientSelectSchema,
+  singlePaymentPriceClientSelectSchema,
 ])
 
 export const pricesPaginatedSelectSchema =
@@ -249,9 +267,15 @@ export namespace Price {
   export type SubscriptionRecord = z.infer<
     typeof subscriptionPriceSelectSchema
   >
-  export type OtherInsert = z.infer<typeof otherPriceInsertSchema>
-  export type OtherUpdate = z.infer<typeof otherPriceUpdateSchema>
-  export type OtherRecord = z.infer<typeof otherPriceSelectSchema>
+  export type OtherInsert = z.infer<
+    typeof singlePaymentPriceInsertSchema
+  >
+  export type OtherUpdate = z.infer<
+    typeof singlePaymentPriceUpdateSchema
+  >
+  export type OtherRecord = z.infer<
+    typeof singlePaymentPriceSelectSchema
+  >
 
   export type ClientSubscriptionInsert = z.infer<
     typeof subscriptionPriceClientInsertSchema
@@ -263,13 +287,13 @@ export namespace Price {
     typeof subscriptionPriceClientSelectSchema
   >
   export type ClientOtherInsert = z.infer<
-    typeof otherPriceClientInsertSchema
+    typeof singlePaymentPriceClientInsertSchema
   >
   export type ClientOtherUpdate = z.infer<
-    typeof otherPriceClientUpdateSchema
+    typeof singlePaymentPriceClientUpdateSchema
   >
   export type ClientOtherRecord = z.infer<
-    typeof otherPriceClientSelectSchema
+    typeof singlePaymentPriceClientSelectSchema
   >
   export type ClientInsert = z.infer<typeof pricesClientInsertSchema>
   export type ClientUpdate = z.infer<typeof pricesClientUpdateSchema>
@@ -313,7 +337,9 @@ export type EditProductInput = z.infer<typeof editProductSchema>
 export const productWithPricesSchema =
   productsClientSelectSchema.extend({
     prices: z.array(pricesClientSelectSchema),
-    defaultPrice: pricesClientSelectSchema,
+    defaultPrice: pricesClientSelectSchema.describe(
+      'The default price for the product. If no price is explicitly set as default, will return the first price created for the product..'
+    ),
   })
 
 export type ProductWithPrices = z.infer<
