@@ -7,7 +7,6 @@ import {
   ProductWithPrices,
 } from '@/db/schema/prices'
 import {
-  createUpsertFunction,
   createSelectById,
   createSelectFunction,
   createInsertFunction,
@@ -19,7 +18,7 @@ import {
   SelectConditions,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
-import { and, eq, SQLWrapper } from 'drizzle-orm'
+import { and, asc, eq, SQLWrapper } from 'drizzle-orm'
 import {
   Product,
   products,
@@ -138,15 +137,17 @@ const priceProductJoinResultToProductAndPrices = (
 
   const products = Array.from(productMap.values())
   const prices = Array.from(pricesMap.values())
-
+  const sortedPrices = prices.sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  )
   return products.map((product): ProductWithPrices => {
     return {
       ...product,
-      prices: prices.filter(
+      prices: sortedPrices.filter(
         (price) => price.productId === product.id
       ),
       defaultPrice:
-        prices.find((price) => price.isDefault) ?? prices[0],
+        sortedPrices.find((price) => price.isDefault) ?? prices[0],
     }
   })
 }
@@ -189,6 +190,7 @@ export const selectPricesAndProductsByProductWhere = async (
     .from(prices)
     .innerJoin(products, eq(products.id, prices.productId))
     .where(whereClauseFromObject(products, whereConditions))
+    .orderBy(asc(products.createdAt))
 
   const parsedResults: {
     product: Product.Record

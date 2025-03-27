@@ -313,7 +313,9 @@ export type EditProductInput = z.infer<typeof editProductSchema>
 export const productWithPricesSchema =
   productsClientSelectSchema.extend({
     prices: z.array(pricesClientSelectSchema),
-    defaultPrice: pricesClientSelectSchema,
+    defaultPrice: pricesClientSelectSchema.describe(
+      'The default price for the product. If no price is explicitly set as default, will return the first price created for the product..'
+    ),
   })
 
 export type ProductWithPrices = z.infer<
