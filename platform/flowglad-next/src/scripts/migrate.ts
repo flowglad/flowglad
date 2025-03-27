@@ -23,8 +23,10 @@ const client = postgres(dbUrl, {
 const db = drizzle(client)
 
 export const migrateDb = async () => {
+  // eslint-disable-next-line no-console
   console.info('Applying migrations...')
   await migrate(db, { migrationsFolder: 'drizzle-migrations' })
+  // eslint-disable-next-line no-console
   console.info('Migrations applied successfully.')
 }
 
@@ -34,7 +36,9 @@ async function main() {
 }
 
 main().catch((err) => {
+  // eslint-disable-next-line no-console
   console.error(`Error applying migrations:`)
+  // eslint-disable-next-line no-console
   console.log(err)
   process.exit(1)
 })

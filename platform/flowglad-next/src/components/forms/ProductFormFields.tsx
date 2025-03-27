@@ -34,7 +34,6 @@ export const ProductFormFields = ({
     }),
   })
 
-  console.log('catalogs?.data', catalogs?.data)
   const product = watch('product')
   return (
     <div className="relative flex justify-between items-center gap-2.5 bg-background">

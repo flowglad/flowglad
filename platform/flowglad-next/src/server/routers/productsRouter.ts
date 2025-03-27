@@ -13,6 +13,7 @@ import {
 import {
   createProductSchema,
   editProductSchema,
+  productWithPricesSchema,
 } from '@/db/schema/prices'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
@@ -23,6 +24,7 @@ import {
   productsPaginatedListSchema,
   productsPaginatedSelectSchema,
 } from '@/db/schema/products'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Product',
@@ -102,15 +104,24 @@ export const listProducts = protectedProcedure
 export const getProduct = protectedProcedure
   .meta(openApiMetas.GET)
   .input(z.object({ id: z.string() }))
-  .output(singleProductOutputSchema)
+  .output(productWithPricesSchema)
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(async ({ transaction }) => {
       const product = await selectProductById(input.id, transaction)
       if (!product) {
         throw new Error('Product not found')
       }
+      const prices = await selectPrices(
+        {
+          productId: product.id,
+        },
+        transaction
+      )
       return {
-        product,
+        ...product,
+        prices,
+        defaultPrice:
+          prices.find((price) => price.isDefault) ?? prices[0],
       }
     })
   })

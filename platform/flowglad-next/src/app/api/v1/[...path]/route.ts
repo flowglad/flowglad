@@ -93,6 +93,7 @@ const handler = withUnkey(
       }
     )
     if (!matchingRoute) {
+      // eslint-disable-next-line no-console
       console.log(
         'No matching route found for path ',
         path,

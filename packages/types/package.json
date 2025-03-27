@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/types",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",

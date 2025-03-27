@@ -209,7 +209,7 @@ describe('cloneCatalogTransaction', () => {
               },
               transaction
             )
-          return productsWithPrices.map(({ product }) => product)
+          return productsWithPrices
         }
       )
 
@@ -466,7 +466,6 @@ describe('cloneCatalogTransaction', () => {
           )
         }
       )
-      console.log('===clonedCatalog', clonedCatalog)
       expect(clonedCatalog).toBeDefined()
       const clonedProducts = await adminTransaction(
         async ({ transaction }) => {

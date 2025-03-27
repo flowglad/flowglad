@@ -35,7 +35,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
     feeCalculation,
     maybeCustomer,
   } = await adminTransaction(async ({ transaction }) => {
-    const { product, price } =
+    const { product, defaultPrice } =
       await selectDefaultPriceAndProductByProductId(id, transaction)
     if (!product.active) {
       // TODO: ERROR PAGE UI
@@ -57,7 +57,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       {
         productId: product.id,
         organizationId: organization.id,
-        price,
+        price: defaultPrice,
         type: CheckoutSessionType.Product,
       },
       transaction
@@ -82,7 +82,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       : null
     return {
       product,
-      price,
+      price: defaultPrice,
       organization,
       checkoutSession,
       discount,

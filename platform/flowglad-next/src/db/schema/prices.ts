@@ -313,7 +313,12 @@ export type EditProductInput = z.infer<typeof editProductSchema>
 export const productWithPricesSchema =
   productsClientSelectSchema.extend({
     prices: z.array(pricesClientSelectSchema),
+    defaultPrice: pricesClientSelectSchema,
   })
+
+export type ProductWithPrices = z.infer<
+  typeof productWithPricesSchema
+>
 
 export const catalogWithProductsSchema =
   catalogsClientSelectSchema.extend({

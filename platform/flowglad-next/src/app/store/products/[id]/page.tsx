@@ -12,7 +12,7 @@ const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params
   const { product, prices } = await authenticatedTransaction(
     async ({ transaction }) => {
-      const { product, prices } =
+      const { prices, ...product } =
         await selectPricesAndProductByProductId(id, transaction)
       return { product, prices }
     }

@@ -5,12 +5,12 @@ import Button from '@/components/ion/Button'
 import { PageHeader } from '@/components/ion/PageHeader'
 import { Clipboard, Eye } from 'lucide-react'
 import { ProductsTable } from '@/app/store/products/ProductsTable'
-import { ClientProductWithPrices } from '@/db/tableMethods/priceMethods'
+import { ProductWithPrices } from '@/db/schema/prices'
 import { Catalog } from '@/db/schema/catalogs'
 import core from '@/utils/core'
 
 export type InnerCatalogDetailsPageProps = {
-  products: ClientProductWithPrices[]
+  products: ProductWithPrices[]
   catalog: Catalog.ClientRecord
 }
 

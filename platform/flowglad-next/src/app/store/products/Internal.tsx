@@ -5,9 +5,8 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import Button from '@/components/ion/Button'
 import { PageHeader } from '@/components/ion/PageHeader'
-import { Product } from '@/db/schema/products'
 import { CreateProductModal } from '@/components/forms/CreateProductModal'
-import { Price } from '@/db/schema/prices'
+import { ProductWithPrices } from '@/db/schema/prices'
 import { ProductsTable } from './ProductsTable'
 import { trpc } from '@/app/_trpc/client'
 import { Catalog } from '@/db/schema/catalogs'
@@ -19,11 +18,7 @@ export enum FocusedTab {
 }
 
 type Props = {
-  products: {
-    product: Product.ClientRecord
-    prices: Price.ClientRecord[]
-    catalog: Catalog.ClientRecord
-  }[]
+  products: (ProductWithPrices & { catalog: Catalog.ClientRecord })[]
 }
 
 function Internal({ products }: Props) {
@@ -32,11 +27,9 @@ function Internal({ products }: Props) {
   const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery(
     {}
   )
-  const activeProducts = products.filter(
-    (product) => product.product.active
-  )
+  const activeProducts = products.filter((product) => product.active)
   const inactiveProducts = products.filter(
-    (product) => !product.product.active
+    (product) => !product.active
   )
   const activeProductsCount = activeProducts.length
   const inactiveProductsCount = inactiveProducts.length

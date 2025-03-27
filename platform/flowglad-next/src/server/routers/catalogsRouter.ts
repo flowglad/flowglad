@@ -156,17 +156,13 @@ const getDefaultCatalogProcedure = protectedProcedure
         if (!defaultCatalog) {
           throw new Error('Default catalog not found')
         }
-        const productResults =
-          await selectPricesAndProductsByProductWhere(
-            { catalogId: defaultCatalog.id },
-            transaction
-          )
+        const products = await selectPricesAndProductsByProductWhere(
+          { catalogId: defaultCatalog.id },
+          transaction
+        )
         return {
           ...defaultCatalog,
-          products: productResults.map(({ product, prices }) => ({
-            ...product,
-            prices,
-          })),
+          products,
         }
       },
       {

@@ -20,6 +20,7 @@ function pullDevelopmentEnvVars() {
   execSync('pnpm vercel:env-pull', {
     stdio: 'inherit',
   })
+  // eslint-disable-next-line no-console
   console.info(
     '📥 Successfully pulled development environment variables'
   )
@@ -41,10 +42,12 @@ export default async function runScript(
     execSync(`vercel env pull --environment=${env}`, {
       stdio: 'inherit',
     })
+    // eslint-disable-next-line no-console
     console.info(
       `📥 Successfully ran vercel env pull command for ${env}`
     )
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error(
       `❌ Error running vercel env pull command for ${env}:`,
       error
@@ -63,10 +66,12 @@ export default async function runScript(
   try {
     await scriptMethod(db)
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('❌ Error running script:', error)
     pullDevelopmentEnvVars()
     process.exit(1)
   } finally {
+    // eslint-disable-next-line no-console
     console.log('Script has finished running successfully.')
     pullDevelopmentEnvVars()
     process.exit(0)

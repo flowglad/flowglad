@@ -18,17 +18,11 @@ import {
 } from '@/db/schema/catalogs'
 import { DbTransaction } from '@/db/types'
 import { count, eq } from 'drizzle-orm'
-import {
-  Product,
-  products,
-  productsClientSelectSchema,
-} from '../schema/products'
-import {
-  ProductWithPrices,
-  selectPricesAndProductsByProductWhere,
-} from './priceMethods'
+import { products } from '../schema/products'
+import { selectPricesAndProductsByProductWhere } from './priceMethods'
 import { CatalogWithProductsAndPrices } from '../schema/prices'
 import { Customer } from '@/db/schema/customers'
+
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
   typeof catalogsSelectSchema,
@@ -156,12 +150,14 @@ export const selectCatalogsWithProductsByCatalogWhere = async (
     string,
     CatalogWithProductsAndPrices['products']
   >()
-  productResults.forEach(({ product, prices }) => {
+  productResults.forEach(({ prices, ...product }) => {
     productsByCatalogId.set(product.catalogId, [
       ...(productsByCatalogId.get(product.catalogId) || []),
       {
         ...product,
         prices,
+        defaultPrice:
+          prices.find((price) => price.isDefault) ?? prices[0],
       },
     ])
   })
