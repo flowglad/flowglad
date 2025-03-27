@@ -154,17 +154,24 @@ export const coreCheckoutSessionsSelectSchema = createSelectSchema(
 )
 
 const purchaseCheckoutSessionsSelectSchema =
-  coreCheckoutSessionsSelectSchema.extend(
-    purchaseCheckoutSessionRefinement
-  )
+  coreCheckoutSessionsSelectSchema
+    .extend(purchaseCheckoutSessionRefinement)
+    .describe(
+      'A checkout session for a customized purchase, which will complete the purchase record and (if for a subscription price) a subscription upon successful completion.'
+    )
 const invoiceCheckoutSessionsSelectSchema =
-  coreCheckoutSessionsSelectSchema.extend(
-    invoiceCheckoutSessionRefinement
-  )
+  coreCheckoutSessionsSelectSchema
+    .extend(invoiceCheckoutSessionRefinement)
+    .describe(
+      'A checkout session for an invoice, which will only create a payment record associated with the invoice upon successful completion. It will not create a subscription or purchase.'
+    )
+
 const productCheckoutSessionsSelectSchema =
-  coreCheckoutSessionsSelectSchema.extend(
-    productCheckoutSessionRefinement
-  )
+  coreCheckoutSessionsSelectSchema
+    .extend(productCheckoutSessionRefinement)
+    .describe(
+      'A checkout session for a product, which will create a purchase record and (if for a subscription price) a subscription upon successful completion.'
+    )
 
 export const checkoutSessionsSelectSchema = z.discriminatedUnion(
   'type',

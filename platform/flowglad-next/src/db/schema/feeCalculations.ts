@@ -137,15 +137,21 @@ const checkoutSessionFeeCalculationExtension = {
   priceId: z.string(),
 }
 
+const SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION =
+  'A fee calculation for a subscription, which should always have an associated billingPeriodId.'
+
+const CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION =
+  'A fee calculation for a checkoutSession, which should always have a checkoutSessionId.'
+
 export const subscriptionPaymentFeeCalculationInsertSchema =
-  coreFeeCalculationsInsertSchema.extend(
-    subscriptionFeeCalculationExtension
-  )
+  coreFeeCalculationsInsertSchema
+    .extend(subscriptionFeeCalculationExtension)
+    .describe(SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION)
 
 export const checkoutSessionPaymentFeeCalculationInsertSchema =
-  coreFeeCalculationsInsertSchema.extend(
-    checkoutSessionFeeCalculationExtension
-  )
+  coreFeeCalculationsInsertSchema
+    .extend(checkoutSessionFeeCalculationExtension)
+    .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
 
 export const feeCalculationsInsertSchema = z.discriminatedUnion(
   'type',
@@ -156,14 +162,14 @@ export const feeCalculationsInsertSchema = z.discriminatedUnion(
 )
 
 export const subscriptionPaymentFeeCalculationSelectSchema =
-  coreFeeCalculationsSelectSchema.extend(
-    subscriptionFeeCalculationExtension
-  )
+  coreFeeCalculationsSelectSchema
+    .extend(subscriptionFeeCalculationExtension)
+    .describe(SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION)
 
 export const checkoutSessionPaymentFeeCalculationSelectSchema =
-  coreFeeCalculationsSelectSchema.extend(
-    checkoutSessionFeeCalculationExtension
-  )
+  coreFeeCalculationsSelectSchema
+    .extend(checkoutSessionFeeCalculationExtension)
+    .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
 
 export const feeCalculationsSelectSchema = z.discriminatedUnion(
   'type',
@@ -178,12 +184,14 @@ export const subscriptionPaymentFeeCalculationUpdateSchema =
     .partial()
     .extend(idInputSchema.shape)
     .extend(subscriptionFeeCalculationExtension)
+    .describe(SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION)
 
 export const checkoutSessionPaymentFeeCalculationUpdateSchema =
   checkoutSessionPaymentFeeCalculationInsertSchema
     .partial()
     .extend(checkoutSessionFeeCalculationExtension)
     .extend(idInputSchema.shape)
+    .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
 
 export const feeCalculationsUpdateSchema = z.discriminatedUnion(
   'type',

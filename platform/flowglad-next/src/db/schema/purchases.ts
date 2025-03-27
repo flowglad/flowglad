@@ -133,14 +133,24 @@ const nulledSubscriptionColumns = {
   stripesubscriptionId: makeSchemaPropNull(z.any()),
 }
 
+const SUBSCRIPTION_PURCHASE_DESCRIPTION =
+  'A purchase associated with a subscription price. This type of purchase will have recurring billing cycles and may include trial periods.'
+
+const SINGLE_PAYMENT_PURCHASE_DESCRIPTION =
+  'A purchase associated with a single payment price. This type of purchase is paid once and does not have recurring billing cycles.'
+
 export const subscriptionPurchaseInsertSchema = baseInsertSchema
   .extend(subscriptionColumns)
   .extend(nulledInstallmentColumns)
+  .describe(SUBSCRIPTION_PURCHASE_DESCRIPTION)
 
 export const subscriptionPurchaseUpdateSchema =
-  subscriptionPurchaseInsertSchema.partial().extend({
-    id: z.string(),
-  })
+  subscriptionPurchaseInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+    })
+    .describe(SUBSCRIPTION_PURCHASE_DESCRIPTION)
 
 const singlePaymentColumns = {
   ...nulledSubscriptionColumns,
@@ -149,8 +159,9 @@ const singlePaymentColumns = {
   priceType: z.literal(PriceType.SinglePayment),
 }
 
-export const singlePaymentPurchaseInsertSchema =
-  baseInsertSchema.extend(singlePaymentColumns)
+export const singlePaymentPurchaseInsertSchema = baseInsertSchema
+  .extend(singlePaymentColumns)
+  .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
 
 export const purchasesInsertSchema = z.discriminatedUnion(
   'priceType',
@@ -163,14 +174,19 @@ export const purchasesInsertSchema = z.discriminatedUnion(
 export const subscriptionPurchaseSelectSchema = baseSelectSchema
   .extend(subscriptionColumns)
   .extend(nulledInstallmentColumns)
+  .describe(SUBSCRIPTION_PURCHASE_DESCRIPTION)
 
-export const singlePaymentPurchaseSelectSchema =
-  baseSelectSchema.extend(singlePaymentColumns)
+export const singlePaymentPurchaseSelectSchema = baseSelectSchema
+  .extend(singlePaymentColumns)
+  .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
 
 const singlePaymentPurchaseUpdateSchema =
-  singlePaymentPurchaseInsertSchema.partial().extend({
-    id: z.string(),
-  })
+  singlePaymentPurchaseInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+    })
+    .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
 
 export const purchasesUpdateSchema = z.union([
   subscriptionPurchaseUpdateSchema,

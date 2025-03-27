@@ -150,16 +150,26 @@ const standaloneInvoiceColumnExtensions = {
   subscriptionId: z.null(),
 }
 
-const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema.extend(
-  purchaseInvoiceColumnExtensions
-)
+const PURCHASE_INVOICE_DESCRIPTION =
+  'An invoice created in association with a purchase. This type of invoice is only ever created for single payment prices. Purchases associated with subscriptions will have subscription invoices created instead.'
 
-const subscriptionInvoiceInsertSchema =
-  coreInvoicesInsertSchema.extend(subscriptionInvoiceColumnExtensions)
+const SUBSCRIPTION_INVOICE_DESCRIPTION =
+  'An invoice created in association with a subscription. This type of invoice is only ever created for subscription prices. Purchases associated with single payment prices will have purchase invoices created instead.'
 
-const standaloneInvoiceInsertSchema = coreInvoicesInsertSchema.extend(
-  standaloneInvoiceColumnExtensions
-)
+const STANDALONE_INVOICE_DESCRIPTION =
+  'An invoice created without any associated purchase or subscription. These invoices are most often created manually.'
+
+const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema
+  .extend(purchaseInvoiceColumnExtensions)
+  .describe(PURCHASE_INVOICE_DESCRIPTION)
+
+const subscriptionInvoiceInsertSchema = coreInvoicesInsertSchema
+  .extend(subscriptionInvoiceColumnExtensions)
+  .describe(SUBSCRIPTION_INVOICE_DESCRIPTION)
+
+const standaloneInvoiceInsertSchema = coreInvoicesInsertSchema
+  .extend(standaloneInvoiceColumnExtensions)
+  .describe(STANDALONE_INVOICE_DESCRIPTION)
 
 export const invoicesInsertSchema = z.discriminatedUnion('type', [
   purchaseInvoiceInsertSchema,
@@ -172,14 +182,18 @@ const coreInvoicesSelectSchema = createSelectSchema(
   refineColumns
 )
 
-export const purchaseInvoiceSelectSchema =
-  coreInvoicesSelectSchema.extend(purchaseInvoiceColumnExtensions)
+export const purchaseInvoiceSelectSchema = coreInvoicesSelectSchema
+  .extend(purchaseInvoiceColumnExtensions)
+  .describe(PURCHASE_INVOICE_DESCRIPTION)
 
 export const subscriptionInvoiceSelectSchema =
-  coreInvoicesSelectSchema.extend(subscriptionInvoiceColumnExtensions)
+  coreInvoicesSelectSchema
+    .extend(subscriptionInvoiceColumnExtensions)
+    .describe(SUBSCRIPTION_INVOICE_DESCRIPTION)
 
-export const standaloneInvoiceSelectSchema =
-  coreInvoicesSelectSchema.extend(standaloneInvoiceColumnExtensions)
+export const standaloneInvoiceSelectSchema = coreInvoicesSelectSchema
+  .extend(standaloneInvoiceColumnExtensions)
+  .describe(STANDALONE_INVOICE_DESCRIPTION)
 
 export const invoicesSelectSchema = z.discriminatedUnion('type', [
   purchaseInvoiceSelectSchema,
@@ -192,14 +206,18 @@ const coreInvoicesUpdateSchema = createUpdateSchema(
   refineColumns
 )
 
-export const purchaseInvoiceUpdateSchema =
-  coreInvoicesUpdateSchema.extend(purchaseInvoiceColumnExtensions)
+export const purchaseInvoiceUpdateSchema = coreInvoicesUpdateSchema
+  .extend(purchaseInvoiceColumnExtensions)
+  .describe(PURCHASE_INVOICE_DESCRIPTION)
 
 export const subscriptionInvoiceUpdateSchema =
-  coreInvoicesUpdateSchema.extend(subscriptionInvoiceColumnExtensions)
+  coreInvoicesUpdateSchema
+    .extend(subscriptionInvoiceColumnExtensions)
+    .describe(SUBSCRIPTION_INVOICE_DESCRIPTION)
 
-export const standaloneInvoiceUpdateSchema =
-  coreInvoicesUpdateSchema.extend(standaloneInvoiceColumnExtensions)
+export const standaloneInvoiceUpdateSchema = coreInvoicesUpdateSchema
+  .extend(standaloneInvoiceColumnExtensions)
+  .describe(STANDALONE_INVOICE_DESCRIPTION)
 
 export const invoicesUpdateSchema = z.discriminatedUnion('type', [
   purchaseInvoiceUpdateSchema,
