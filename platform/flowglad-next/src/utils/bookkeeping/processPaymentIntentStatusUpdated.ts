@@ -32,6 +32,7 @@ import {
 } from '../events'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
