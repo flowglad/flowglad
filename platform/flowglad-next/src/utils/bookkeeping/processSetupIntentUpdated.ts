@@ -178,6 +178,7 @@ export const processSetupIntentUpdated = async (
     {
       id: purchase.id,
       status: PurchaseStatus.Paid,
+      priceType: price.type,
       purchaseDate: new Date(),
     },
     transaction

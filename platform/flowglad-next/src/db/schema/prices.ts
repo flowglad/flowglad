@@ -175,22 +175,37 @@ export const singlePaymentPriceUpdateSchema =
     })
     .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
 
-export const pricesSelectSchema = z.discriminatedUnion('type', [
-  subscriptionPriceSelectSchema,
-  singlePaymentPriceSelectSchema,
-])
+const PRICES_SELECT_SCHEMA_DESCRIPTION =
+  'A price record, which describes a price for a product. Products can have multiple prices.'
 
-export const pricesInsertSchema = z.discriminatedUnion('type', [
-  subscriptionPriceInsertSchema,
-  singlePaymentPriceInsertSchema,
-])
+const PRICES_INSERT_SCHEMA_DESCRIPTION =
+  'A price record, which describes a price for a product. Products can have multiple prices.'
 
-export const pricesUpdateSchema = z.discriminatedUnion('type', [
-  subscriptionPriceUpdateSchema,
-  singlePaymentPriceUpdateSchema,
-])
+const PRICES_UPDATE_SCHEMA_DESCRIPTION =
+  'A price record, which describes a price for a product. Products can have multiple prices.'
 
-export const variantSelectClauseSchema = basePriceSelectSchema
+export const pricesSelectSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPriceSelectSchema,
+    singlePaymentPriceSelectSchema,
+  ])
+  .describe(PRICES_SELECT_SCHEMA_DESCRIPTION)
+
+export const pricesInsertSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPriceInsertSchema,
+    singlePaymentPriceInsertSchema,
+  ])
+  .describe(PRICES_INSERT_SCHEMA_DESCRIPTION)
+
+export const pricesUpdateSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPriceUpdateSchema,
+    singlePaymentPriceUpdateSchema,
+  ])
+  .describe(PRICES_UPDATE_SCHEMA_DESCRIPTION)
+
+export const pricesSelectClauseSchema = basePriceSelectSchema
   .omit({
     id: true,
   })
@@ -267,13 +282,13 @@ export namespace Price {
   export type SubscriptionRecord = z.infer<
     typeof subscriptionPriceSelectSchema
   >
-  export type OtherInsert = z.infer<
+  export type SinglePaymentInsert = z.infer<
     typeof singlePaymentPriceInsertSchema
   >
-  export type OtherUpdate = z.infer<
+  export type SinglePaymentUpdate = z.infer<
     typeof singlePaymentPriceUpdateSchema
   >
-  export type OtherRecord = z.infer<
+  export type SinglePaymentRecord = z.infer<
     typeof singlePaymentPriceSelectSchema
   >
 
@@ -286,20 +301,20 @@ export namespace Price {
   export type ClientSubscriptionRecord = z.infer<
     typeof subscriptionPriceClientSelectSchema
   >
-  export type ClientOtherInsert = z.infer<
+  export type ClientSinglePaymentInsert = z.infer<
     typeof singlePaymentPriceClientInsertSchema
   >
-  export type ClientOtherUpdate = z.infer<
+  export type ClientSinglePaymentUpdate = z.infer<
     typeof singlePaymentPriceClientUpdateSchema
   >
-  export type ClientOtherRecord = z.infer<
+  export type ClientSinglePaymentRecord = z.infer<
     typeof singlePaymentPriceClientSelectSchema
   >
   export type ClientInsert = z.infer<typeof pricesClientInsertSchema>
   export type ClientUpdate = z.infer<typeof pricesClientUpdateSchema>
   export type ClientRecord = z.infer<typeof pricesClientSelectSchema>
   export type ClientSelectClause = z.infer<
-    typeof variantSelectClauseSchema
+    typeof pricesSelectClauseSchema
   >
   export type PaginatedList = z.infer<
     typeof pricesPaginatedListSchema

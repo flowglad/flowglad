@@ -32,6 +32,16 @@ import { Product } from './products'
 
 export const PURCHASES_TABLE_NAME = 'purchases'
 
+// Schema descriptions
+const PURCHASES_BASE_DESCRIPTION =
+  'A purchase record, which describes a transaction that can be associated with either a subscription or single payment price. Each purchase has a specific type that determines its behavior and required fields.'
+
+const SUBSCRIPTION_PURCHASE_DESCRIPTION =
+  'A purchase associated with a subscription price. This type of purchase will have recurring billing cycles and may include trial periods.'
+
+const SINGLE_PAYMENT_PURCHASE_DESCRIPTION =
+  'A purchase associated with a single payment price. This type of purchase is paid once and does not have recurring billing cycles.'
+
 const columns = {
   ...tableBase('prch'),
   name: text('name').notNull(),
@@ -133,12 +143,6 @@ const nulledSubscriptionColumns = {
   stripesubscriptionId: makeSchemaPropNull(z.any()),
 }
 
-const SUBSCRIPTION_PURCHASE_DESCRIPTION =
-  'A purchase associated with a subscription price. This type of purchase will have recurring billing cycles and may include trial periods.'
-
-const SINGLE_PAYMENT_PURCHASE_DESCRIPTION =
-  'A purchase associated with a single payment price. This type of purchase is paid once and does not have recurring billing cycles.'
-
 export const subscriptionPurchaseInsertSchema = baseInsertSchema
   .extend(subscriptionColumns)
   .extend(nulledInstallmentColumns)
@@ -149,6 +153,7 @@ export const subscriptionPurchaseUpdateSchema =
     .partial()
     .extend({
       id: z.string(),
+      priceType: z.literal(PriceType.Subscription),
     })
     .describe(SUBSCRIPTION_PURCHASE_DESCRIPTION)
 
@@ -163,13 +168,12 @@ export const singlePaymentPurchaseInsertSchema = baseInsertSchema
   .extend(singlePaymentColumns)
   .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
 
-export const purchasesInsertSchema = z.discriminatedUnion(
-  'priceType',
-  [
+export const purchasesInsertSchema = z
+  .discriminatedUnion('priceType', [
     subscriptionPurchaseInsertSchema,
     singlePaymentPurchaseInsertSchema,
-  ]
-)
+  ])
+  .describe(PURCHASES_BASE_DESCRIPTION)
 
 export const subscriptionPurchaseSelectSchema = baseSelectSchema
   .extend(subscriptionColumns)
@@ -185,6 +189,7 @@ const singlePaymentPurchaseUpdateSchema =
     .partial()
     .extend({
       id: z.string(),
+      priceType: z.literal(PriceType.SinglePayment),
     })
     .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
 
@@ -193,13 +198,12 @@ export const purchasesUpdateSchema = z.union([
   singlePaymentPurchaseUpdateSchema,
 ])
 
-export const purchasesSelectSchema = z.discriminatedUnion(
-  'priceType',
-  [
+export const purchasesSelectSchema = z
+  .discriminatedUnion('priceType', [
     subscriptionPurchaseSelectSchema,
     singlePaymentPurchaseSelectSchema,
-  ]
-)
+  ])
+  .describe(PURCHASES_BASE_DESCRIPTION)
 
 // Client Subscription Schemas
 export const subscriptionPurchaseClientInsertSchema =
@@ -237,26 +241,26 @@ export const singlePaymentPurchaseClientSelectSchema =
   singlePaymentPurchaseSelectSchema.omit(clientSelectOmits)
 
 // Combined Client Schemas
-export const purchaseClientInsertSchema = z.discriminatedUnion(
-  'priceType',
-  [
+export const purchaseClientInsertSchema = z
+  .discriminatedUnion('priceType', [
     subscriptionPurchaseClientInsertSchema,
     singlePaymentPurchaseClientInsertSchema,
-  ]
-)
+  ])
+  .describe(PURCHASES_BASE_DESCRIPTION)
 
-export const purchaseClientUpdateSchema = z.union([
-  subscriptionPurchaseClientUpdateSchema,
-  singlePaymentPurchaseClientUpdateSchema,
-])
+export const purchaseClientUpdateSchema = z
+  .discriminatedUnion('priceType', [
+    subscriptionPurchaseClientUpdateSchema,
+    singlePaymentPurchaseClientUpdateSchema,
+  ])
+  .describe(PURCHASES_BASE_DESCRIPTION)
 
-export const purchaseClientSelectSchema = z.discriminatedUnion(
-  'priceType',
-  [
+export const purchaseClientSelectSchema = z
+  .discriminatedUnion('priceType', [
     subscriptionPurchaseClientSelectSchema,
     singlePaymentPurchaseClientSelectSchema,
-  ]
-)
+  ])
+  .describe(PURCHASES_BASE_DESCRIPTION)
 
 export namespace Purchase {
   export type SubscriptionPurchaseInsert = z.infer<

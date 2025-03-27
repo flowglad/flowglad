@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { Product } from '@/db/schema/products'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 
-const defaultPrice: Price.ClientOtherInsert = {
+const defaultPrice: Price.ClientSinglePaymentInsert = {
   name: '',
   type: PriceType.SinglePayment,
   unitPrice: 100,

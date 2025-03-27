@@ -40,6 +40,7 @@ const EndPurchaseModal = ({
       await endPurchase.mutateAsync({
         purchase: {
           id: purchase.id,
+          priceType: purchase.priceType,
           endDate: data.endDate,
         },
       })

@@ -45,6 +45,7 @@ export interface NonPresentContextValues {
   paymentMethods: []
   purchases: []
   cancelSubscription: null
+  currentSubscriptions: []
 }
 
 export interface NotLoadedFlowgladContextValues
@@ -83,6 +84,7 @@ const notPresentContextValues: NonPresentContextValues = {
   paymentMethods: [],
   purchases: [],
   cancelSubscription: null,
+  currentSubscriptions: [],
 }
 
 const FlowgladContext = createContext<FlowgladContextValues>({
