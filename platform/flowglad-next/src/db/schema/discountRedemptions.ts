@@ -19,6 +19,16 @@ import core from '@/utils/core'
 
 const TABLE_NAME = 'discount_redemptions'
 
+// Schema descriptions
+const DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION =
+  'A discount redemption record, which describes an instance of a discount being applied has been applied to a purchase or subscription. Currently, purchases or subscriptions can only have one discount redemption.'
+const DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION =
+  'A discount redemption for a one-time payment, which will only be applied once. It cannot have numberOfPayments.'
+const NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION =
+  'A discount redemption for a subscription, which will be applied for a specified number of payments. It must have numberOfPayments.'
+const FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION =
+  'A discount redemption for a subscription, which will be applied indefinitely over the lifetime of the subscription. It cannot have numberOfPayments.'
+
 export const discountRedemptions = pgTable(
   TABLE_NAME,
   {
@@ -75,9 +85,7 @@ export const defaultDiscountRedemptionsSelectSchema = baseSelectSchema
     duration: z.literal(DiscountDuration.Once),
     numberOfPayments: z.null(),
   })
-  .describe(
-    'A discount redemption for a one-time payment, which will only be applied once. It cannot have numberOfPayments.'
-  )
+  .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
 
 export const numberOfPaymentsDiscountRedemptionsSelectSchema =
   baseSelectSchema
@@ -85,21 +93,14 @@ export const numberOfPaymentsDiscountRedemptionsSelectSchema =
       duration: z.literal(DiscountDuration.NumberOfPayments),
       numberOfPayments: core.safeZodPositiveInteger,
     })
-    .describe(
-      'A discount redemption for a subscription, which will be applied for a specified number of payments. It must have numberOfPayments.'
-    )
+    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
 
 export const foreverDiscountRedemptionsSelectSchema = baseSelectSchema
   .extend({
     duration: z.literal(DiscountDuration.Forever),
     numberOfPayments: z.null(),
   })
-  .describe(
-    'A discount redemption for a subscription, which will be applied indefinitely over the lifetime of the subscription. It cannot have numberOfPayments.'
-  )
-
-const DISCOUNT_REDEMPTIONS_SELECT_SCHEMA_DESCRIPTION =
-  'A discount redemption record, which describes an instance of a discount being applied has been applied to a purchase or subscription. Currently, purchases or subscriptions can only have one discount redemption.'
+  .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
 
 // Combined select schema
 export const discountRedemptionsSelectSchema = z
@@ -108,7 +109,7 @@ export const discountRedemptionsSelectSchema = z
     numberOfPaymentsDiscountRedemptionsSelectSchema,
     foreverDiscountRedemptionsSelectSchema,
   ])
-  .describe(DISCOUNT_REDEMPTIONS_SELECT_SCHEMA_DESCRIPTION)
+  .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
 // Base insert schema
 const baseInsertSchema = enhancedCreateInsertSchema(
@@ -136,14 +137,13 @@ export const foreverDiscountRedemptionsInsertSchema =
   })
 
 // Combined insert schema
-export const discountRedemptionsInsertSchema = z.discriminatedUnion(
-  'duration',
-  [
+export const discountRedemptionsInsertSchema = z
+  .discriminatedUnion('duration', [
     defaultDiscountRedemptionsInsertSchema,
     numberOfPaymentsDiscountRedemptionsInsertSchema,
     foreverDiscountRedemptionsInsertSchema,
-  ]
-)
+  ])
+  .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
 // Duration-specific update schemas
 export const defaultDiscountRedemptionsUpdateSchema =
@@ -168,14 +168,13 @@ export const foreverDiscountRedemptionsUpdateSchema =
   })
 
 // Combined update schema
-export const discountRedemptionsUpdateSchema = z.discriminatedUnion(
-  'duration',
-  [
+export const discountRedemptionsUpdateSchema = z
+  .discriminatedUnion('duration', [
     defaultDiscountRedemptionsUpdateSchema,
     numberOfPaymentsDiscountRedemptionsUpdateSchema,
     foreverDiscountRedemptionsUpdateSchema,
-  ]
-)
+  ])
+  .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
 const readOnlyColumns = {
   purchaseId: true,
