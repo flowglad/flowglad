@@ -38,6 +38,10 @@ import { billingPeriods } from './billingPeriods'
 
 const TABLE_NAME = 'fee_calculations'
 
+// Schema descriptions
+const FEE_CALCULATIONS_BASE_DESCRIPTION =
+  'A fee calculation record, which describes the fees and taxes associated with a payment. Each calculation has a specific type that determines its behavior and required fields.'
+
 export const feeCalculations = pgTable(
   TABLE_NAME,
   {
@@ -153,13 +157,12 @@ export const checkoutSessionPaymentFeeCalculationInsertSchema =
     .extend(checkoutSessionFeeCalculationExtension)
     .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
 
-export const feeCalculationsInsertSchema = z.discriminatedUnion(
-  'type',
-  [
+export const feeCalculationsInsertSchema = z
+  .discriminatedUnion('type', [
     subscriptionPaymentFeeCalculationInsertSchema,
     checkoutSessionPaymentFeeCalculationInsertSchema,
-  ]
-)
+  ])
+  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
 export const subscriptionPaymentFeeCalculationSelectSchema =
   coreFeeCalculationsSelectSchema
@@ -171,13 +174,12 @@ export const checkoutSessionPaymentFeeCalculationSelectSchema =
     .extend(checkoutSessionFeeCalculationExtension)
     .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
 
-export const feeCalculationsSelectSchema = z.discriminatedUnion(
-  'type',
-  [
+export const feeCalculationsSelectSchema = z
+  .discriminatedUnion('type', [
     subscriptionPaymentFeeCalculationSelectSchema,
     checkoutSessionPaymentFeeCalculationSelectSchema,
-  ]
-)
+  ])
+  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
 export const subscriptionPaymentFeeCalculationUpdateSchema =
   subscriptionPaymentFeeCalculationInsertSchema
@@ -193,13 +195,12 @@ export const checkoutSessionPaymentFeeCalculationUpdateSchema =
     .extend(idInputSchema.shape)
     .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
 
-export const feeCalculationsUpdateSchema = z.discriminatedUnion(
-  'type',
-  [
+export const feeCalculationsUpdateSchema = z
+  .discriminatedUnion('type', [
     subscriptionPaymentFeeCalculationUpdateSchema,
     checkoutSessionPaymentFeeCalculationUpdateSchema,
-  ]
-)
+  ])
+  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
 const readOnlyColumns = {
   organizationId: true,
@@ -220,13 +221,12 @@ export const subscriptionFeeCalculationClientSelectSchema =
 export const checkoutSessionFeeCalculationClientSelectSchema =
   checkoutSessionPaymentFeeCalculationSelectSchema.omit(hiddenColumns)
 
-export const feeCalculationClientSelectSchema = z.discriminatedUnion(
-  'type',
-  [
-    subscriptionFeeCalculationClientSelectSchema,
-    checkoutSessionFeeCalculationClientSelectSchema,
-  ]
-)
+export const feeCalculationClientSelectSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPaymentFeeCalculationSelectSchema,
+    checkoutSessionPaymentFeeCalculationSelectSchema,
+  ])
+  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
 const customerHiddenColumns = {
   flowgladFeePercentage: true,

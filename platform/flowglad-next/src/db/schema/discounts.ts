@@ -26,6 +26,16 @@ import { DiscountAmountType, DiscountDuration } from '@/types'
 
 const TABLE_NAME = 'discounts'
 
+// Schema descriptions
+const DISCOUNTS_BASE_DESCRIPTION =
+  'A discount record, which describes a discount that can be applied to purchases or subscriptions. Discounts can be one-time, have a fixed number of payments, or be applied indefinitely.'
+const DEFAULT_DISCOUNT_DESCRIPTION =
+  'A one-time discount that will only be applied once to a purchase or subscription.'
+const NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION =
+  'A discount that will be applied for a specified number of payments on a subscription.'
+const FOREVER_DISCOUNT_DESCRIPTION =
+  'A discount that will be applied indefinitely over the lifetime of a subscription.'
+
 export const discounts = pgTable(
   TABLE_NAME,
   {
@@ -129,14 +139,13 @@ export const foreverDiscountsInsertSchema = baseDiscountSchema.extend(
 )
 
 // Combined insert schema
-export const discountsInsertSchema = z.discriminatedUnion(
-  'duration',
-  [
+export const discountsInsertSchema = z
+  .discriminatedUnion('duration', [
     defaultDiscountsInsertSchema,
     numberOfPaymentsDiscountsInsertSchema,
     foreverDiscountsInsertSchema,
-  ]
-)
+  ])
+  .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 // Select schemas
 const baseSelectSchema = createSelectSchema(
@@ -155,14 +164,13 @@ export const foreverDiscountsSelectSchema = baseSelectSchema.extend(
   foreverDiscountsRefinements
 )
 
-export const discountsSelectSchema = z.discriminatedUnion(
-  'duration',
-  [
+export const discountsSelectSchema = z
+  .discriminatedUnion('duration', [
     defaultDiscountsSelectSchema,
     numberOfPaymentsDiscountsSelectSchema,
     foreverDiscountsSelectSchema,
-  ]
-)
+  ])
+  .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 // Update schemas
 export const defaultDiscountsUpdateSchema =
@@ -186,14 +194,13 @@ export const foreverDiscountsUpdateSchema =
     numberOfPayments: z.null(),
   })
 
-export const discountsUpdateSchema = z.discriminatedUnion(
-  'duration',
-  [
+export const discountsUpdateSchema = z
+  .discriminatedUnion('duration', [
     defaultDiscountsUpdateSchema,
     numberOfPaymentsDiscountsUpdateSchema,
     foreverDiscountsUpdateSchema,
-  ]
-)
+  ])
+  .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 const hiddenColumns = {} as const
 
@@ -216,14 +223,13 @@ export const numberOfPaymentsDiscountClientInsertSchema =
 export const foreverDiscountClientInsertSchema =
   foreverDiscountsInsertSchema.omit(nonClientEditableColumns)
 
-export const discountClientInsertSchema = z.discriminatedUnion(
-  'duration',
-  [
-    defaultDiscountClientInsertSchema,
-    numberOfPaymentsDiscountClientInsertSchema,
-    foreverDiscountClientInsertSchema,
-  ]
-)
+export const discountClientInsertSchema = z
+  .discriminatedUnion('duration', [
+    defaultDiscountsInsertSchema,
+    numberOfPaymentsDiscountsInsertSchema,
+    foreverDiscountsInsertSchema,
+  ])
+  .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 export const defaultDiscountClientUpdateSchema =
   defaultDiscountsUpdateSchema.omit(nonClientEditableColumns)
@@ -234,14 +240,13 @@ export const numberOfPaymentsDiscountClientUpdateSchema =
 export const foreverDiscountClientUpdateSchema =
   foreverDiscountsUpdateSchema.omit(nonClientEditableColumns)
 
-export const discountClientUpdateSchema = z.discriminatedUnion(
-  'duration',
-  [
-    defaultDiscountClientUpdateSchema,
-    numberOfPaymentsDiscountClientUpdateSchema,
-    foreverDiscountClientUpdateSchema,
-  ]
-)
+export const discountClientUpdateSchema = z
+  .discriminatedUnion('duration', [
+    defaultDiscountsUpdateSchema,
+    numberOfPaymentsDiscountsUpdateSchema,
+    foreverDiscountsUpdateSchema,
+  ])
+  .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 export const defaultDiscountClientSelectSchema =
   defaultDiscountsSelectSchema
@@ -252,14 +257,13 @@ export const numberOfPaymentsDiscountClientSelectSchema =
 export const foreverDiscountClientSelectSchema =
   foreverDiscountsSelectSchema
 
-export const discountClientSelectSchema = z.discriminatedUnion(
-  'duration',
-  [
-    defaultDiscountClientSelectSchema,
-    numberOfPaymentsDiscountClientSelectSchema,
-    foreverDiscountClientSelectSchema,
-  ]
-)
+export const discountClientSelectSchema = z
+  .discriminatedUnion('duration', [
+    defaultDiscountsSelectSchema,
+    numberOfPaymentsDiscountsSelectSchema,
+    foreverDiscountsSelectSchema,
+  ])
+  .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 export const discountsPaginatedSelectSchema =
   createPaginatedSelectSchema(discountClientSelectSchema)

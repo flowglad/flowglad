@@ -38,6 +38,19 @@ import { subscriptions } from './subscriptions'
 
 export const TABLE_NAME = 'invoices'
 
+// Schema descriptions
+const INVOICES_BASE_DESCRIPTION =
+  'An invoice record, which describes a bill that can be associated with a purchase, subscription, or stand alone. Each invoice has a specific type that determines its behavior and required fields.'
+
+const PURCHASE_INVOICE_DESCRIPTION =
+  'An invoice created in association with a purchase. This type of invoice is only ever created for single payment prices. Purchases associated with subscriptions will have subscription invoices created instead.'
+
+const SUBSCRIPTION_INVOICE_DESCRIPTION =
+  'An invoice created in association with a subscription. This type of invoice is only ever created for subscription prices. Purchases associated with single payment prices will have purchase invoices created instead.'
+
+const STANDALONE_INVOICE_DESCRIPTION =
+  'An invoice created without any associated purchase or subscription. These invoices are most often created manually.'
+
 export const invoices = pgTable(
   TABLE_NAME,
   {
@@ -150,15 +163,6 @@ const standaloneInvoiceColumnExtensions = {
   subscriptionId: z.null(),
 }
 
-const PURCHASE_INVOICE_DESCRIPTION =
-  'An invoice created in association with a purchase. This type of invoice is only ever created for single payment prices. Purchases associated with subscriptions will have subscription invoices created instead.'
-
-const SUBSCRIPTION_INVOICE_DESCRIPTION =
-  'An invoice created in association with a subscription. This type of invoice is only ever created for subscription prices. Purchases associated with single payment prices will have purchase invoices created instead.'
-
-const STANDALONE_INVOICE_DESCRIPTION =
-  'An invoice created without any associated purchase or subscription. These invoices are most often created manually.'
-
 const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema
   .extend(purchaseInvoiceColumnExtensions)
   .describe(PURCHASE_INVOICE_DESCRIPTION)
@@ -171,11 +175,13 @@ const standaloneInvoiceInsertSchema = coreInvoicesInsertSchema
   .extend(standaloneInvoiceColumnExtensions)
   .describe(STANDALONE_INVOICE_DESCRIPTION)
 
-export const invoicesInsertSchema = z.discriminatedUnion('type', [
-  purchaseInvoiceInsertSchema,
-  subscriptionInvoiceInsertSchema,
-  standaloneInvoiceInsertSchema,
-])
+export const invoicesInsertSchema = z
+  .discriminatedUnion('type', [
+    purchaseInvoiceInsertSchema,
+    subscriptionInvoiceInsertSchema,
+    standaloneInvoiceInsertSchema,
+  ])
+  .describe(INVOICES_BASE_DESCRIPTION)
 
 const coreInvoicesSelectSchema = createSelectSchema(
   invoices,
@@ -195,11 +201,13 @@ export const standaloneInvoiceSelectSchema = coreInvoicesSelectSchema
   .extend(standaloneInvoiceColumnExtensions)
   .describe(STANDALONE_INVOICE_DESCRIPTION)
 
-export const invoicesSelectSchema = z.discriminatedUnion('type', [
-  purchaseInvoiceSelectSchema,
-  subscriptionInvoiceSelectSchema,
-  standaloneInvoiceSelectSchema,
-])
+export const invoicesSelectSchema = z
+  .discriminatedUnion('type', [
+    purchaseInvoiceSelectSchema,
+    subscriptionInvoiceSelectSchema,
+    standaloneInvoiceSelectSchema,
+  ])
+  .describe(INVOICES_BASE_DESCRIPTION)
 
 const coreInvoicesUpdateSchema = createUpdateSchema(
   invoices,
@@ -219,11 +227,13 @@ export const standaloneInvoiceUpdateSchema = coreInvoicesUpdateSchema
   .extend(standaloneInvoiceColumnExtensions)
   .describe(STANDALONE_INVOICE_DESCRIPTION)
 
-export const invoicesUpdateSchema = z.discriminatedUnion('type', [
-  purchaseInvoiceUpdateSchema,
-  subscriptionInvoiceUpdateSchema,
-  standaloneInvoiceUpdateSchema,
-])
+export const invoicesUpdateSchema = z
+  .discriminatedUnion('type', [
+    purchaseInvoiceUpdateSchema,
+    subscriptionInvoiceUpdateSchema,
+    standaloneInvoiceUpdateSchema,
+  ])
+  .describe(INVOICES_BASE_DESCRIPTION)
 
 const hiddenColumns = {
   stripePaymentIntentId: true,
@@ -256,14 +266,13 @@ export const subscriptionInvoiceClientSelectSchema =
 export const standaloneInvoiceClientSelectSchema =
   standaloneInvoiceSelectSchema.omit(hiddenColumns)
 
-export const invoicesClientSelectSchema = z.discriminatedUnion(
-  'type',
-  [
+export const invoicesClientSelectSchema = z
+  .discriminatedUnion('type', [
     purchaseInvoiceClientSelectSchema,
     subscriptionInvoiceClientSelectSchema,
     standaloneInvoiceClientSelectSchema,
-  ]
-)
+  ])
+  .describe(INVOICES_BASE_DESCRIPTION)
 
 export const purchaseInvoiceClientInsertSchema =
   purchaseInvoiceInsertSchema.omit(nonClientEditableColumns)
@@ -272,14 +281,13 @@ export const subscriptionInvoiceClientInsertSchema =
 export const standaloneInvoiceClientInsertSchema =
   standaloneInvoiceInsertSchema.omit(nonClientEditableColumns)
 
-export const invoicesClientInsertSchema = z.discriminatedUnion(
-  'type',
-  [
+export const invoicesClientInsertSchema = z
+  .discriminatedUnion('type', [
     purchaseInvoiceClientInsertSchema,
     subscriptionInvoiceClientInsertSchema,
     standaloneInvoiceClientInsertSchema,
-  ]
-)
+  ])
+  .describe(INVOICES_BASE_DESCRIPTION)
 
 export const purchaseInvoiceClientUpdateSchema =
   purchaseInvoiceUpdateSchema.omit(nonClientEditableColumns)
@@ -288,14 +296,13 @@ export const subscriptionInvoiceClientUpdateSchema =
 export const standaloneInvoiceClientUpdateSchema =
   standaloneInvoiceUpdateSchema.omit(nonClientEditableColumns)
 
-export const invoicesClientUpdateSchema = z.discriminatedUnion(
-  'type',
-  [
+export const invoicesClientUpdateSchema = z
+  .discriminatedUnion('type', [
     purchaseInvoiceClientUpdateSchema,
     subscriptionInvoiceClientUpdateSchema,
     standaloneInvoiceClientUpdateSchema,
-  ]
-)
+  ])
+  .describe(INVOICES_BASE_DESCRIPTION)
 
 export const invoicesPaginatedSelectSchema =
   createPaginatedSelectSchema(coreInvoicesSelectSchema.partial())

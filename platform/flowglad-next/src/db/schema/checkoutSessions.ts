@@ -37,6 +37,16 @@ import { invoices } from './invoices'
 
 const TABLE_NAME = 'checkout_sessions'
 
+// Schema descriptions
+const CHECKOUT_SESSIONS_BASE_DESCRIPTION =
+  'A checkout session record, which describes a checkout process that can be used to complete purchases, invoices, or product orders. Each session has a specific type that determines its behavior and required fields.'
+const PURCHASE_CHECKOUT_SESSION_DESCRIPTION =
+  'A checkout session for a customized purchase, which will complete the purchase record and (if for a subscription price) a subscription upon successful completion.'
+const INVOICE_CHECKOUT_SESSION_DESCRIPTION =
+  'A checkout session for an invoice, which will only create a payment record associated with the invoice upon successful completion. It will not create a subscription or purchase.'
+const PRODUCT_CHECKOUT_SESSION_DESCRIPTION =
+  'A checkout session for a product, which will create a purchase record and (if for a subscription price) a subscription upon successful completion.'
+
 const columns = {
   ...tableBase('chckt_session'),
   status: pgEnumColumn({
@@ -156,31 +166,24 @@ export const coreCheckoutSessionsSelectSchema = createSelectSchema(
 const purchaseCheckoutSessionsSelectSchema =
   coreCheckoutSessionsSelectSchema
     .extend(purchaseCheckoutSessionRefinement)
-    .describe(
-      'A checkout session for a customized purchase, which will complete the purchase record and (if for a subscription price) a subscription upon successful completion.'
-    )
+    .describe(PURCHASE_CHECKOUT_SESSION_DESCRIPTION)
 const invoiceCheckoutSessionsSelectSchema =
   coreCheckoutSessionsSelectSchema
     .extend(invoiceCheckoutSessionRefinement)
-    .describe(
-      'A checkout session for an invoice, which will only create a payment record associated with the invoice upon successful completion. It will not create a subscription or purchase.'
-    )
+    .describe(INVOICE_CHECKOUT_SESSION_DESCRIPTION)
 
 const productCheckoutSessionsSelectSchema =
   coreCheckoutSessionsSelectSchema
     .extend(productCheckoutSessionRefinement)
-    .describe(
-      'A checkout session for a product, which will create a purchase record and (if for a subscription price) a subscription upon successful completion.'
-    )
+    .describe(PRODUCT_CHECKOUT_SESSION_DESCRIPTION)
 
-export const checkoutSessionsSelectSchema = z.discriminatedUnion(
-  'type',
-  [
+export const checkoutSessionsSelectSchema = z
+  .discriminatedUnion('type', [
     purchaseCheckoutSessionsSelectSchema,
     invoiceCheckoutSessionsSelectSchema,
     productCheckoutSessionsSelectSchema,
-  ]
-)
+  ])
+  .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
 export const coreCheckoutSessionsInsertSchema =
   enhancedCreateInsertSchema(checkoutSessions, refinement)
@@ -196,14 +199,13 @@ export const productCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     productCheckoutSessionRefinement
   )
-export const checkoutSessionsInsertSchema = z.discriminatedUnion(
-  'type',
-  [
+export const checkoutSessionsInsertSchema = z
+  .discriminatedUnion('type', [
     purchaseCheckoutSessionsInsertSchema,
     invoiceCheckoutSessionsInsertSchema,
     productCheckoutSessionsInsertSchema,
-  ]
-)
+  ])
+  .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
 export const coreCheckoutSessionsUpdateSchema =
   coreCheckoutSessionsInsertSchema.partial().extend({
@@ -223,14 +225,13 @@ const productCheckoutSessionUpdateSchema =
     productCheckoutSessionRefinement
   )
 
-export const checkoutSessionsUpdateSchema = z.discriminatedUnion(
-  'type',
-  [
+export const checkoutSessionsUpdateSchema = z
+  .discriminatedUnion('type', [
     purchaseCheckoutSessionUpdateSchema,
     invoiceCheckoutSessionUpdateSchema,
     productCheckoutSessionUpdateSchema,
-  ]
-)
+  ])
+  .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
 export const createCheckoutSessionInputSchema = z.object({
   checkoutSession: checkoutSessionsInsertSchema,
@@ -261,14 +262,13 @@ const productCheckoutSessionClientUpdateSchema =
     id: z.string(),
   })
 
-const checkoutSessionClientUpdateSchema = z.discriminatedUnion(
-  'type',
-  [
+const checkoutSessionClientUpdateSchema = z
+  .discriminatedUnion('type', [
     purchaseCheckoutSessionClientUpdateSchema,
     invoiceCheckoutSessionClientUpdateSchema,
     productCheckoutSessionClientUpdateSchema,
-  ]
-)
+  ])
+  .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
 export const editCheckoutSessionInputSchema = z.object({
   checkoutSession: checkoutSessionClientUpdateSchema,
@@ -301,7 +301,7 @@ export const checkoutSessionClientSelectSchema = z
     invoiceCheckoutSessionClientSelectSchema,
     productCheckoutSessionClientSelectSchema,
   ])
-  .describe(CHECKOUT_SESSION_CLIENT_SELECT_SCHEMA_DESCRIPTION)
+  .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
 const feeReadyColumns = {
   billingAddress: billingAddressSchema,
