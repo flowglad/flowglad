@@ -83,12 +83,14 @@ export const post = async (
   data: object,
   config?: AxiosRequestConfig
 ) => {
+  // eslint-disable-next-line no-console
   console.log('requesting:', {
     url,
     data: JSON.stringify(data),
     config,
   })
   const resp = await axios.post(url, data, config)
+  // eslint-disable-next-line no-console
   console.log(
     `request\n: ${url}, ${JSON.stringify(data)}`,
     '\nresponse:',
@@ -154,6 +156,7 @@ export const safeContactList = (
   if (IS_PROD) {
     return params.prodContacts
   }
+  // eslint-disable-next-line no-console
   console.log(`safeContactList: would have sent to ${prodContacts}`)
   return stagingContacts
 }

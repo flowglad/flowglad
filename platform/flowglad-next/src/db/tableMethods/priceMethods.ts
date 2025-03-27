@@ -4,6 +4,7 @@ import {
   pricesInsertSchema,
   pricesSelectSchema,
   pricesUpdateSchema,
+  ProductWithPrices,
 } from '@/db/schema/prices'
 import {
   createUpsertFunction,
@@ -121,16 +122,6 @@ export const selectPricesProductsAndCatalogsForOrganization = async (
   }))
 }
 
-export interface ProductWithPrices {
-  product: Product.Record
-  prices: Price.Record[]
-}
-
-export interface ClientProductWithPrices {
-  product: Product.ClientRecord
-  prices: Price.ClientRecord[]
-}
-
 const priceProductJoinResultToProductAndPrices = (
   result: {
     price: Price.Record
@@ -148,10 +139,16 @@ const priceProductJoinResultToProductAndPrices = (
   const products = Array.from(productMap.values())
   const prices = Array.from(pricesMap.values())
 
-  return products.map((product) => ({
-    product,
-    prices: prices.filter((price) => price.productId === product.id),
-  }))
+  return products.map((product): ProductWithPrices => {
+    return {
+      ...product,
+      prices: prices.filter(
+        (price) => price.productId === product.id
+      ),
+      defaultPrice:
+        prices.find((price) => price.isDefault) ?? prices[0],
+    }
+  })
 }
 
 export const selectPricesAndProductByProductId = async (
@@ -208,10 +205,8 @@ export const selectDefaultPriceAndProductByProductId = async (
   productId: string,
   transaction: DbTransaction
 ) => {
-  const { prices, product } = await selectPricesAndProductByProductId(
-    productId,
-    transaction
-  )
+  const { prices, ...product } =
+    await selectPricesAndProductByProductId(productId, transaction)
 
   const defaultPrice =
     prices.find((price) => price.isDefault) ?? prices[0]
@@ -220,7 +215,7 @@ export const selectDefaultPriceAndProductByProductId = async (
     throw new Error(`No default price found for product ${productId}`)
   }
   return {
-    price: defaultPrice,
+    defaultPrice,
     product,
   }
 }

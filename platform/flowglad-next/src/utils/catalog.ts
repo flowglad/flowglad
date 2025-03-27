@@ -132,9 +132,7 @@ export const cloneCatalogTransaction = async (
       },
       transaction
     )
-  const products: Product.Record[] = productsWithPrices.map(
-    ({ product }) => product
-  )
+  const products: Product.Record[] = productsWithPrices
   // Create a map of existing product id => new product insert
   const productInsertMap = new Map<string, Product.Insert>(
     products.map((product) => [
@@ -151,7 +149,7 @@ export const cloneCatalogTransaction = async (
     string,
     Omit<Price.Insert, 'productId'>[]
   >(
-    productsWithPrices.map(({ product, prices }) => [
+    productsWithPrices.map(({ prices, ...product }) => [
       product.id,
       prices.map((price) => {
         return omit(['id'], {
