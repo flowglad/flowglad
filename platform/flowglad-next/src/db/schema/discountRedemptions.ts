@@ -70,23 +70,33 @@ const baseSelectSchema = createSelectSchema(
 )
 
 // Duration-specific select schemas
-export const defaultDiscountRedemptionsSelectSchema =
-  baseSelectSchema.extend({
+export const defaultDiscountRedemptionsSelectSchema = baseSelectSchema
+  .extend({
     duration: z.literal(DiscountDuration.Once),
     numberOfPayments: z.null(),
   })
+  .describe(
+    'A discount redemption for a one-time payment, which will only be applied once. It cannot have numberOfPayments.'
+  )
 
 export const numberOfPaymentsDiscountRedemptionsSelectSchema =
-  baseSelectSchema.extend({
-    duration: z.literal(DiscountDuration.NumberOfPayments),
-    numberOfPayments: core.safeZodPositiveInteger,
-  })
+  baseSelectSchema
+    .extend({
+      duration: z.literal(DiscountDuration.NumberOfPayments),
+      numberOfPayments: core.safeZodPositiveInteger,
+    })
+    .describe(
+      'A discount redemption for a subscription, which will be applied for a specified number of payments. It must have numberOfPayments.'
+    )
 
-export const foreverDiscountRedemptionsSelectSchema =
-  baseSelectSchema.extend({
+export const foreverDiscountRedemptionsSelectSchema = baseSelectSchema
+  .extend({
     duration: z.literal(DiscountDuration.Forever),
     numberOfPayments: z.null(),
   })
+  .describe(
+    'A discount redemption for a subscription, which will be applied indefinitely over the lifetime of the subscription. It cannot have numberOfPayments.'
+  )
 
 // Combined select schema
 export const discountRedemptionsSelectSchema = z.discriminatedUnion(

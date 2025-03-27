@@ -21,7 +21,7 @@ import { CheckoutFlowType, PriceType } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq } from 'drizzle-orm'
 import {
-  otherPriceSelectSchema,
+  singlePaymentPriceSelectSchema,
   subscriptionPriceSelectSchema,
   prices,
   pricesSelectSchema,
@@ -176,7 +176,7 @@ export type SubscriptionBillingInfoCore = z.infer<
 
 const singlePaymentBillingInfoSchema = z.object({
   purchase: singlePaymentPurchaseSelectSchema.nullish(),
-  price: otherPriceSelectSchema,
+  price: singlePaymentPriceSelectSchema,
   flowType: z.literal(CheckoutFlowType.SinglePayment),
   product: productsSelectSchema,
 })

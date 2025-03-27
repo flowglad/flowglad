@@ -117,24 +117,30 @@ const subscriptionPriceColumns = {
   trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
 }
 
+const SUBSCRIPTION_PRICE_DESCRIPTION =
+  'A subscription price, which will have details on the interval, default trial period, and setup fee (if any).'
+
 export const subscriptionPriceSelectSchema = basePriceSelectSchema
   .extend(subscriptionPriceColumns)
-  .describe(
-    'A subscription price, which will have details on the interval, default trial period, and setup fee (if any).'
-  )
+  .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
 export const subscriptionPriceInsertSchema =
-  subscriptionPriceSelectSchema.omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  })
+  subscriptionPriceSelectSchema
+    .omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+    })
+    .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
 export const subscriptionPriceUpdateSchema =
-  subscriptionPriceInsertSchema.partial().extend({
-    id: z.string(),
-    type: z.literal(PriceType.Subscription),
-  })
+  subscriptionPriceInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+      type: z.literal(PriceType.Subscription),
+    })
+    .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
 const singlePaymentPriceColumns = {
   type: z.literal(PriceType.SinglePayment),
@@ -144,24 +150,30 @@ const singlePaymentPriceColumns = {
   trialPeriodDays: core.safeZodNullOrUndefined,
 }
 
+const SINGLE_PAYMENT_PRICE_DESCRIPTION =
+  'A single payment price, which only gets paid once. Subscriptions cannot be made from single payment prices. Purchases, though, can.'
+
 export const singlePaymentPriceSelectSchema = basePriceSelectSchema
   .extend(singlePaymentPriceColumns)
-  .describe(
-    'A single payment price, which only gets paid once. Subscriptions cannot be made from single payment prices. Purchases, though, can.'
-  )
+  .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
 
 export const singlePaymentPriceInsertSchema =
-  singlePaymentPriceSelectSchema.omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  })
+  singlePaymentPriceSelectSchema
+    .omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+    })
+    .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
 
 export const singlePaymentPriceUpdateSchema =
-  singlePaymentPriceInsertSchema.partial().extend({
-    id: z.string(),
-    type: z.literal(PriceType.SinglePayment),
-  })
+  singlePaymentPriceInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+      type: z.literal(PriceType.SinglePayment),
+    })
+    .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
 
 export const pricesSelectSchema = z.discriminatedUnion('type', [
   subscriptionPriceSelectSchema,
