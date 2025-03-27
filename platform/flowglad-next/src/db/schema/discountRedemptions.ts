@@ -98,15 +98,17 @@ export const foreverDiscountRedemptionsSelectSchema = baseSelectSchema
     'A discount redemption for a subscription, which will be applied indefinitely over the lifetime of the subscription. It cannot have numberOfPayments.'
   )
 
+const DISCOUNT_REDEMPTIONS_SELECT_SCHEMA_DESCRIPTION =
+  'A discount redemption record, which describes an instance of a discount being applied has been applied to a purchase or subscription. Currently, purchases or subscriptions can only have one discount redemption.'
+
 // Combined select schema
-export const discountRedemptionsSelectSchema = z.discriminatedUnion(
-  'duration',
-  [
+export const discountRedemptionsSelectSchema = z
+  .discriminatedUnion('duration', [
     defaultDiscountRedemptionsSelectSchema,
     numberOfPaymentsDiscountRedemptionsSelectSchema,
     foreverDiscountRedemptionsSelectSchema,
-  ]
-)
+  ])
+  .describe(DISCOUNT_REDEMPTIONS_SELECT_SCHEMA_DESCRIPTION)
 
 // Base insert schema
 const baseInsertSchema = enhancedCreateInsertSchema(

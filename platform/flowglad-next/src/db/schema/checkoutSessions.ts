@@ -285,6 +285,9 @@ const hiddenColumns = {
   stripeSetupIntentId: true,
 } as const
 
+const CHECKOUT_SESSION_CLIENT_SELECT_SCHEMA_DESCRIPTION =
+  'A time-limited checkout session, which captures the payment details needed to create a subscription, or purchase, or pay a standalone invoice.'
+
 export const purchaseCheckoutSessionClientSelectSchema =
   purchaseCheckoutSessionsSelectSchema.omit(hiddenColumns)
 export const invoiceCheckoutSessionClientSelectSchema =
@@ -292,14 +295,13 @@ export const invoiceCheckoutSessionClientSelectSchema =
 export const productCheckoutSessionClientSelectSchema =
   productCheckoutSessionsSelectSchema.omit(hiddenColumns)
 
-export const checkoutSessionClientSelectSchema = z.discriminatedUnion(
-  'type',
-  [
+export const checkoutSessionClientSelectSchema = z
+  .discriminatedUnion('type', [
     purchaseCheckoutSessionClientSelectSchema,
     invoiceCheckoutSessionClientSelectSchema,
     productCheckoutSessionClientSelectSchema,
-  ]
-)
+  ])
+  .describe(CHECKOUT_SESSION_CLIENT_SELECT_SCHEMA_DESCRIPTION)
 
 const feeReadyColumns = {
   billingAddress: billingAddressSchema,
@@ -313,12 +315,16 @@ export const feeReadyInvoiceCheckoutSessionSelectSchema =
 export const feeReadyProductCheckoutSessionSelectSchema =
   productCheckoutSessionClientSelectSchema.extend(feeReadyColumns)
 
-export const feeReadyCheckoutSessionSelectSchema =
-  z.discriminatedUnion('type', [
+const FEE_READY_CHECKOUT_SESSION_SELECT_SCHEMA_DESCRIPTION =
+  'A checkout session that is ready to be used to calculate a fee.'
+
+export const feeReadyCheckoutSessionSelectSchema = z
+  .discriminatedUnion('type', [
     feeReadyPurchaseCheckoutSessionSelectSchema,
     feeReadyInvoiceCheckoutSessionSelectSchema,
     feeReadyProductCheckoutSessionSelectSchema,
   ])
+  .describe(FEE_READY_CHECKOUT_SESSION_SELECT_SCHEMA_DESCRIPTION)
 
 export const checkoutSessionsPaginatedSelectSchema =
   createPaginatedSelectSchema(checkoutSessionClientSelectSchema)
