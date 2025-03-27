@@ -173,6 +173,7 @@ export const editCheckoutSession = async (
       {
         id: purchase.id,
         billingAddress: checkoutSession.billingAddress,
+        priceType: purchase.priceType,
       },
       transaction
     )

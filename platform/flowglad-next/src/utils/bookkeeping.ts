@@ -68,11 +68,16 @@ export const updatePurchaseStatusToReflectLatestPayment = async (
     purchaseStatus = PurchaseStatus.Pending
   }
   if (payment.purchaseId) {
+    const purchase = await selectPurchaseById(
+      payment.purchaseId,
+      transaction
+    )
     await updatePurchase(
       {
         id: payment.purchaseId,
         status: purchaseStatus,
         purchaseDate: payment.chargeDate,
+        priceType: purchase.priceType,
       },
       transaction
     )
@@ -467,6 +472,7 @@ export const editOpenPurchase = async (
   return updatePurchase(
     {
       id: payload.id,
+      priceType: newPrice.type,
     },
     transaction
   )
