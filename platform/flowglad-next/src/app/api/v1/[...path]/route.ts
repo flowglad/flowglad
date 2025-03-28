@@ -16,6 +16,8 @@ import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
+import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
+import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -33,6 +35,8 @@ const routeConfigs = [
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
+  ...usageMetersRouteConfigs,
+  ...usageEventsRouteConfigs,
 ]
 
 const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(

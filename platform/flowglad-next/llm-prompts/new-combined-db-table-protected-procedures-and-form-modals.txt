@@ -25,7 +25,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     tableBase,
     notNullStringForeignKey,
     constructIndex,
-    constructUniquenessIndex,
+    constructUniqueIndex,
     enhancedCreateInsertSchema,
     livemodePolicy,
   } from '@/db/tableUtils'
@@ -59,7 +59,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       return [
         constructIndex(TABLE_NAME, [table.organizationId]),
         constructIndex(TABLE_NAME, [table.status]),
-        constructUniquenessIndex(TABLE_NAME, [table.email]),
+        constructUniqueIndex(TABLE_NAME, [table.email]),
         pgPolicy('Enable read for own organizations', {
           as: 'permissive',
           to: 'authenticated',
@@ -74,7 +74,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
   - If there are any foreign keys, use the (notNullish|nullable)(String|Integer)ForeignKey methods in tableUtils to declare them.
     - Table Indexes: these are declared via the second argument in pgTable which is a function that takes the table and returns an object with indexes.
       - If there are any foreign keys, make sure to make database indexes of them. Use constructIndex from tableUtils.
-      - If there are any unique constraints, make database indexes of them. Use constructUniquenessIndex from tableUtils.
+      - If there are any unique constraints, make database indexes of them. Use constructUniqueIndex from tableUtils.
       - If there are any enum columns, make database indexes of them
   - Export Zod Schema and types for: Insert, Select, Update, and Mutation Inputs
     - Delcare a columnRefinments object that has all of the zod schemas for each column that needs to be refined
