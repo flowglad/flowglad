@@ -7,7 +7,7 @@ import {
   insertSubscription,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
-import { IntervalUnit, SubscriptionStatus } from '@/types'
+import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
@@ -88,6 +88,7 @@ export const insertSubscriptionAndItems = async (
     canceledAt: null,
     metadata: metadata ?? null,
     trialEnd: trialEnd ?? null,
+    runBillingAtPeriodStart: price.type === PriceType.Subscription,
     name:
       subscriptionName ??
       `${product.name}${price.name ? ` - ${price.name}` : ''}`,
@@ -167,19 +168,29 @@ const safelyProcessCreationForExistingSubscription = async (
     },
     transaction
   )
+  /**
+   * If the subscription is set to run billing at period start,
+   * we schedule the billing run for the start of the billing period.
+   * Otherwise, we schedule the billing run for the end of the billing period.
+   */
+  const scheduledFor = subscription.runBillingAtPeriodStart
+    ? subscription.currentBillingPeriodStart
+    : subscription.currentBillingPeriodEnd
   const billingRun =
     existingBillingRun ??
     (await createBillingRun(
       {
         billingPeriod,
         paymentMethod: params.defaultPaymentMethod,
-        scheduledFor: subscription.currentBillingPeriodStart,
+        scheduledFor,
       },
       transaction
     ))
-  await attemptBillingRunTask.trigger({
-    billingRun,
-  })
+  if (subscription.runBillingAtPeriodStart) {
+    await attemptBillingRunTask.trigger({
+      billingRun,
+    })
+  }
   return {
     subscription,
     subscriptionItems,
@@ -245,6 +256,9 @@ export const createSubscriptionWorkflow = async (
 
   const { subscription, subscriptionItems } =
     await insertSubscriptionAndItems(params, transaction)
+  const scheduledFor = subscription.runBillingAtPeriodStart
+    ? subscription.currentBillingPeriodStart
+    : subscription.currentBillingPeriodEnd
   const { billingPeriod, billingPeriodItems } =
     await createBillingPeriodAndItems(
       {
@@ -262,14 +276,15 @@ export const createSubscriptionWorkflow = async (
     {
       billingPeriod,
       paymentMethod: params.defaultPaymentMethod,
-      scheduledFor: subscription.currentBillingPeriodStart,
+      scheduledFor,
     },
     transaction
   )
-
-  await attemptBillingRunTask.trigger({
-    billingRun,
-  })
+  if (subscription.runBillingAtPeriodStart) {
+    await attemptBillingRunTask.trigger({
+      billingRun,
+    })
+  }
 
   return {
     subscription,
