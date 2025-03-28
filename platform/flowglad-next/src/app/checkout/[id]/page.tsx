@@ -104,8 +104,8 @@ const CheckoutSessionPage = async ({
       return (
         <div className="flex flex-col items-center justify-center h-screen">
           <h1 className="text-2xl font-bold">
-            You already have an active subscription. Please reach out
-            to us if you'd like to change your plan.
+            {`You already have an active subscription. Please reach out
+            to us if you'd like to change your plan.`}
           </h1>
         </div>
       )
