@@ -1317,6 +1317,13 @@
       "when": 1743182313252,
       "tag": "0187_glorious_whistler",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1743190150022,
+      "tag": "0188_past_lightspeed",
+      "breakpoints": true
     }
   ]
 }
