@@ -217,6 +217,7 @@ export const setupSubscription = async (params: {
   trialEnd?: Date
 }) => {
   return adminTransaction(async ({ transaction }) => {
+    const price = await selectPriceById(params.priceId, transaction)
     return insertSubscription(
       {
         organizationId: params.organizationId,
@@ -240,6 +241,8 @@ export const setupSubscription = async (params: {
         metadata: {},
         stripeSetupIntentId: `setupintent_${core.nanoid()}`,
         name: null,
+        runBillingAtPeriodStart:
+          price.type === PriceType.Subscription ? true : false,
       },
       transaction
     )

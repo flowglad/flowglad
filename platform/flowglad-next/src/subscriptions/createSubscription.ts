@@ -29,6 +29,7 @@ import {
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -75,7 +76,9 @@ export const insertSubscriptionAndItems = async (
     lastBillingPeriodEndDate: null,
     trialEnd,
   })
-
+  if (!isPriceTypeSubscription(price)) {
+    throw new Error('Price is not a subscription')
+  }
   const subscriptionInsert: Subscription.Insert = {
     organizationId: organization.id,
     customerId: customer.id,
@@ -88,7 +91,8 @@ export const insertSubscriptionAndItems = async (
     canceledAt: null,
     metadata: metadata ?? null,
     trialEnd: trialEnd ?? null,
-    runBillingAtPeriodStart: price.type === PriceType.Subscription,
+    runBillingAtPeriodStart:
+      price.type === PriceType.Subscription ? true : false,
     name:
       subscriptionName ??
       `${product.name}${price.name ? ` - ${price.name}` : ''}`,

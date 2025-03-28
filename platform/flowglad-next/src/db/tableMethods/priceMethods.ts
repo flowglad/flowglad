@@ -29,6 +29,7 @@ import {
   organizationsSelectSchema,
 } from '../schema/organizations'
 import { catalogs, catalogsSelectSchema } from '../schema/catalogs'
+import { PriceType } from '@/types'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -296,4 +297,13 @@ export const makePriceDefault = async (
     transaction
   )
   return updatedPrice
+}
+
+export const subscriptionPriceTypes = [
+  PriceType.Subscription,
+  PriceType.Usage,
+]
+
+export const isPriceTypeSubscription = (price: Price.Record) => {
+  return subscriptionPriceTypes.includes(price.type)
 }

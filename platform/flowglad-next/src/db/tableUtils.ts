@@ -628,8 +628,9 @@ export const createBulkUpsertFunction = <
     const result = await transaction
       .insert(table)
       .values(parsedData)
-      .onConflictDoNothing({
+      .onConflictDoUpdate({
         target,
+        set: onConflictDoUpdateSetValues(table, ['id', 'created_at']),
       })
       .returning()
     return result.map((data) => config.selectSchema.parse(data))

@@ -16,7 +16,9 @@ import {
   IntervalUnit,
   PaymentMethodType,
   SubscriptionStatus,
+  PriceType,
 } from '@/types'
+import { Price } from '@/db/schema/prices'
 import {
   insertSubscription,
   updateSubscription,
@@ -218,6 +220,127 @@ describe('createSubscription', async () => {
       expect(billingPeriodItems).toHaveLength(0)
     })
   })
+
+  describe('price type behavior', () => {
+    it('sets runBillingAtPeriodStart to false for usage price', async () => {
+      const { organization, product } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      const usagePrice = {
+        ...price,
+        type: PriceType.Usage,
+      } as Price.Record
+
+      const { subscription } = await adminTransaction(
+        async ({ transaction }) => {
+          const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: usagePrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(subscription.runBillingAtPeriodStart).toBe(false)
+    })
+
+    it('sets runBillingAtPeriodStart to true for subscription price', async () => {
+      const { organization, product } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      const subscriptionPrice = {
+        ...price,
+        type: PriceType.Subscription,
+      } as Price.Record
+
+      const { subscription } = await adminTransaction(
+        async ({ transaction }) => {
+          const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: subscriptionPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(subscription.runBillingAtPeriodStart).toBe(true)
+    })
+
+    it('throws if price is not subscription type', async () => {
+      const { organization, product } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      const singlePaymentPrice = {
+        ...price,
+        type: PriceType.SinglePayment,
+      } as Price.Record
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: singlePaymentPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              customer,
+              stripeSetupIntentId,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow('Price is not a subscription')
+    })
+  })
+
   it("doesn't recreate subscriptions, billing periods, or billing period items for the same setup intent", async () => {
     const startDate = new Date()
     const newCustomer = await setupCustomer({
