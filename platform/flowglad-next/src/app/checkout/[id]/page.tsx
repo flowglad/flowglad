@@ -12,6 +12,10 @@ import { PriceType, CheckoutSessionStatus } from '@/types'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { notFound, redirect } from 'next/navigation'
+import {
+  selectSubscriptions,
+  currentSubscriptionStatuses,
+} from '@/db/tableMethods/subscriptionMethods'
 
 const CheckoutSessionPage = async ({
   params,
@@ -26,6 +30,7 @@ const CheckoutSessionPage = async ({
     sellerOrganization,
     feeCalculation,
     maybeCustomer,
+    maybeCurrentSubscriptions,
   } = await adminTransaction(async ({ transaction }) => {
     const checkoutSession = await selectCheckoutSessionById(
       id,
@@ -57,6 +62,17 @@ const CheckoutSessionPage = async ({
           transaction
         )
       : null
+    const maybeCurrentSubscriptions =
+      maybeCustomer &&
+      !organization.allowMultipleSubscriptionsPerCustomer
+        ? await selectSubscriptions(
+            {
+              customerId: maybeCustomer.id,
+              status: currentSubscriptionStatuses,
+            },
+            transaction
+          )
+        : null
     return {
       checkoutSession,
       product,
@@ -64,11 +80,36 @@ const CheckoutSessionPage = async ({
       sellerOrganization: organization,
       feeCalculation,
       maybeCustomer,
+      maybeCurrentSubscriptions,
     }
   })
 
   if (!checkoutSession) {
     notFound()
+  }
+  /**
+   * If the customer has an active subscription, and the price is a subscription,
+   * and the organization does not allow multiple subscriptions per customer,
+   * redirect to the post-payment page.
+   */
+  if (
+    maybeCurrentSubscriptions &&
+    maybeCurrentSubscriptions.length > 0 &&
+    price.type === PriceType.Subscription &&
+    !sellerOrganization.allowMultipleSubscriptionsPerCustomer
+  ) {
+    if (checkoutSession.successUrl) {
+      redirect(checkoutSession.successUrl)
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen">
+          <h1 className="text-2xl font-bold">
+            You already have an active subscription. Please reach out
+            to us if you'd like to change your plan.
+          </h1>
+        </div>
+      )
+    }
   }
 
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
