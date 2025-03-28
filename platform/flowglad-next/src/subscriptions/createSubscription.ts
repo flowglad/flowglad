@@ -76,7 +76,7 @@ export const insertSubscriptionAndItems = async (
     lastBillingPeriodEndDate: null,
     trialEnd,
   })
-  if (!isPriceTypeSubscription(price)) {
+  if (!isPriceTypeSubscription(price.type)) {
     throw new Error('Price is not a subscription')
   }
   const subscriptionInsert: Subscription.Insert = {

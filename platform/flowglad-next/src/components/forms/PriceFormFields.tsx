@@ -21,6 +21,7 @@ import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import Hint from '../ion/Hint'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthContext } from '@/contexts/authContext'
+import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
 
 const usePriceFormContext = () => {
   return useFormContext<Pick<CreateProductSchema, 'price'>>()
@@ -221,7 +222,7 @@ const PriceFormFields = ({
               value={field.value}
               orientation="horizontal"
               onValueChange={(value) => {
-                if (value === PriceType.Subscription) {
+                if (isPriceTypeSubscription(value as PriceType)) {
                   setValue('price.intervalCount', 1)
                   setValue('price.intervalUnit', IntervalUnit.Month)
                 }

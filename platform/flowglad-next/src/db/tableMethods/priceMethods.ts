@@ -304,6 +304,8 @@ export const subscriptionPriceTypes = [
   PriceType.Usage,
 ]
 
-export const isPriceTypeSubscription = (price: Price.Record) => {
-  return subscriptionPriceTypes.includes(price.type)
+export const isPriceTypeSubscription = (
+  priceType: Price.Record['type']
+) => {
+  return subscriptionPriceTypes.includes(priceType)
 }
