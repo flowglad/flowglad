@@ -7,9 +7,9 @@ export const flowgladServer = new FlowgladServer({
   },
   // getRequestingCustomer: async () => {
   //   return {
-  //     email: 'test_lkjalsfdjasdf@test.com',
+  //     email: 'test_lklkajsdlfkjasdfjalsfdjasdf@test.com',
   //     name: 'Test User',
-  //     externalId: '___IPasdkfjalks123'
+  //     externalId: '___IPasdkfasdfasdfasdfjalks123'
   //   };
   // },
   baseURL: 'http://localhost:3000'
