@@ -181,7 +181,7 @@ export const createOrganizationTransaction = async (
 }
 
 export const hasFeatureFlag = (
-  organization: Organization.Record | null | undefined,
+  organization: Organization.ClientRecord | null | undefined,
   featureFlag: FeatureFlag
 ) => {
   if (!organization) {

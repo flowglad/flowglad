@@ -1173,7 +1173,7 @@ export const getStripePrice = async (
  * meaning to create an intent for an anonymized customer to create a subscription.
  */
 export const createSetupIntentForCheckoutSession = async (params: {
-  price: Price.SubscriptionRecord
+  price: Price.SubscriptionRecord | Price.UsageRecord
   product: Product.Record
   organization: Organization.Record
   checkoutSession: CheckoutSession.Record

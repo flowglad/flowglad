@@ -22,7 +22,8 @@ const subscriptionDetails = {
   intervalCount: 1,
   pricePerBillingCycle: 100,
   currency: CurrencyCode.USD,
-}
+  type: PriceType.Subscription,
+} as const
 
 export const stubbedCheckoutSession: CheckoutSession.Record = {
   id: '1',

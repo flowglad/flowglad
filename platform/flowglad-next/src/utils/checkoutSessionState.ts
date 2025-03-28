@@ -215,7 +215,10 @@ export const createNonInvoiceCheckoutSession = async (
    * - It's livemode AND payouts are enabled
    */
   if (!checkoutSession.livemode || organization.payoutsEnabled) {
-    if (price.type === PriceType.Subscription) {
+    if (
+      price.type === PriceType.Subscription ||
+      price.type === PriceType.Usage
+    ) {
       const setupIntent = await createSetupIntentForCheckoutSession({
         price,
         product,

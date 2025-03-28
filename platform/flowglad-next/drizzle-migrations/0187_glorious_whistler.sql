@@ -1,0 +1,1 @@
+ALTER TABLE "subscriptions" ADD COLUMN "run_billing_at_period_start" boolean DEFAULT true;

@@ -29,6 +29,18 @@ import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { catalogsClientSelectSchema } from './catalogs'
 
+const readOnlyColumns = {
+  livemode: true,
+  currency: true,
+} as const
+
+const hiddenColumns = {} as const
+
+const nonClientEditableColumns = {
+  ...readOnlyColumns,
+  ...hiddenColumns,
+} as const
+
 const VARIANTS_TABLE_NAME = 'prices'
 
 const columns = {
@@ -117,6 +129,15 @@ const subscriptionPriceColumns = {
   trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
 }
 
+const usagePriceColumns = {
+  ...subscriptionPriceColumns,
+  trialPeriodDays: core.safeZodNullOrUndefined,
+  type: z.literal(PriceType.Usage),
+}
+
+const USAGE_PRICE_DESCRIPTION =
+  'A usage price, which describes the price per unit of usage of a product.'
+
 const SUBSCRIPTION_PRICE_DESCRIPTION =
   'A subscription price, which will have details on the interval, default trial period, and setup fee (if any).'
 
@@ -184,10 +205,40 @@ const PRICES_INSERT_SCHEMA_DESCRIPTION =
 const PRICES_UPDATE_SCHEMA_DESCRIPTION =
   'A price record, which describes a price for a product. Products can have multiple prices.'
 
+export const usagePriceSelectSchema = basePriceSelectSchema
+  .extend(usagePriceColumns)
+  .describe(USAGE_PRICE_DESCRIPTION)
+
+export const usagePriceInsertSchema = usagePriceSelectSchema
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .describe(USAGE_PRICE_DESCRIPTION)
+
+export const usagePriceUpdateSchema = usagePriceInsertSchema
+  .partial()
+  .extend({
+    id: z.string(),
+    type: z.literal(PriceType.Usage),
+  })
+  .describe(USAGE_PRICE_DESCRIPTION)
+
+export const usagePriceClientInsertSchema =
+  usagePriceInsertSchema.omit(nonClientEditableColumns)
+
+export const usagePriceClientUpdateSchema =
+  usagePriceUpdateSchema.omit(nonClientEditableColumns)
+
+export const usagePriceClientSelectSchema =
+  usagePriceSelectSchema.omit(hiddenColumns)
+
 export const pricesSelectSchema = z
   .discriminatedUnion('type', [
     subscriptionPriceSelectSchema,
     singlePaymentPriceSelectSchema,
+    usagePriceSelectSchema,
   ])
   .describe(PRICES_SELECT_SCHEMA_DESCRIPTION)
 
@@ -195,6 +246,7 @@ export const pricesInsertSchema = z
   .discriminatedUnion('type', [
     subscriptionPriceInsertSchema,
     singlePaymentPriceInsertSchema,
+    usagePriceInsertSchema,
   ])
   .describe(PRICES_INSERT_SCHEMA_DESCRIPTION)
 
@@ -202,6 +254,7 @@ export const pricesUpdateSchema = z
   .discriminatedUnion('type', [
     subscriptionPriceUpdateSchema,
     singlePaymentPriceUpdateSchema,
+    usagePriceUpdateSchema,
   ])
   .describe(PRICES_UPDATE_SCHEMA_DESCRIPTION)
 
@@ -210,18 +263,6 @@ export const pricesSelectClauseSchema = basePriceSelectSchema
     id: true,
   })
   .partial()
-
-const readOnlyColumns = {
-  livemode: true,
-  currency: true,
-} as const
-
-const hiddenColumns = {} as const
-
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...hiddenColumns,
-} as const
 
 export const subscriptionPriceClientInsertSchema =
   subscriptionPriceInsertSchema.omit(nonClientEditableColumns)
@@ -244,16 +285,19 @@ export const singlePaymentPriceClientSelectSchema =
 export const pricesClientInsertSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientInsertSchema,
   singlePaymentPriceClientInsertSchema,
+  usagePriceClientInsertSchema,
 ])
 
 export const pricesClientUpdateSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientUpdateSchema,
   singlePaymentPriceClientUpdateSchema,
+  usagePriceClientUpdateSchema,
 ])
 
 export const pricesClientSelectSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientSelectSchema,
   singlePaymentPriceClientSelectSchema,
+  usagePriceClientSelectSchema,
 ])
 
 export const pricesPaginatedSelectSchema =
@@ -318,6 +362,20 @@ export namespace Price {
   >
   export type PaginatedList = z.infer<
     typeof pricesPaginatedListSchema
+  >
+
+  export type UsageInsert = z.infer<typeof usagePriceInsertSchema>
+  export type UsageUpdate = z.infer<typeof usagePriceUpdateSchema>
+  export type UsageRecord = z.infer<typeof usagePriceSelectSchema>
+
+  export type ClientUsageInsert = z.infer<
+    typeof usagePriceClientInsertSchema
+  >
+  export type ClientUsageUpdate = z.infer<
+    typeof usagePriceClientUpdateSchema
+  >
+  export type ClientUsageRecord = z.infer<
+    typeof usagePriceClientSelectSchema
   >
 }
 
