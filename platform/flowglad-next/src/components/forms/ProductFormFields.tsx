@@ -9,10 +9,6 @@ import Switch from '../ion/Switch'
 import StatusBadge from '../StatusBadge'
 import { Accordion } from '../ion/Accordion'
 import AIHoverModal from './AIHoverModal'
-import Select from '../ion/Select'
-import { trpc } from '@/app/_trpc/client'
-import { encodeCursor } from '@/db/tableUtils'
-import { useAuthContext } from '@/contexts/authContext'
 import CatalogSelect from './CatalogSelect'
 
 export const ProductFormFields = ({
@@ -27,15 +23,7 @@ export const ProductFormFields = ({
     watch,
     control,
   } = useFormContext<CreateProductSchema>()
-  const { organization } = useAuthContext()
-  const { data: catalogs } = trpc.catalogs.list.useQuery({
-    limit: 100,
-    cursor: encodeCursor({
-      parameters: {
-        organizationId: organization!.id,
-      },
-    }),
-  })
+  console.log('errors', errors)
 
   const product = watch('product')
   return (

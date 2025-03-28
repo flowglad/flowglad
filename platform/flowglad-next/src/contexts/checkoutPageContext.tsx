@@ -20,8 +20,12 @@ import { useRouter } from 'next/navigation'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 export type SubscriptionCheckoutDetails = Pick<
-  Price.SubscriptionRecord,
-  'trialPeriodDays' | 'intervalUnit' | 'intervalCount' | 'currency'
+  Price.SubscriptionRecord | Price.UsageRecord,
+  | 'trialPeriodDays'
+  | 'intervalUnit'
+  | 'intervalCount'
+  | 'currency'
+  | 'type'
 > & {
   pricePerBillingCycle: number
 }
@@ -105,6 +109,7 @@ const subscriptionDetailsFromBillingInfoCore = (
           )
             ? price.unitPrice!
             : purchase.pricePerBillingCycle,
+          type: price.type,
         }
       : undefined
   return subscriptionDetails

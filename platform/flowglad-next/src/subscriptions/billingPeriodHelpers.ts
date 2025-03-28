@@ -27,6 +27,7 @@ import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMetho
 import { createBillingRun } from './billingRunHelpers'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 
 interface CreateBillingPeriodParams {
   subscription: Subscription.Record
@@ -256,14 +257,22 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         paymentMethodId,
         transaction
       )
+      const scheduledFor = subscription.runBillingAtPeriodStart
+        ? newBillingPeriod.startDate
+        : newBillingPeriod.endDate
       billingRun = await createBillingRun(
         {
           billingPeriod: newBillingPeriod,
           paymentMethod,
-          scheduledFor: newBillingPeriod.startDate,
+          scheduledFor,
         },
         transaction
       )
+      if (subscription.runBillingAtPeriodStart) {
+        await attemptBillingRunTask.trigger({
+          billingRun,
+        })
+      }
     }
     subscription = await updateSubscription(
       {

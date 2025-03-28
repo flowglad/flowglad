@@ -183,6 +183,9 @@ const paymentFormButtonLabel = ({
         totalDueAmount
       )}`
     } else if (flowType === CheckoutFlowType.Subscription) {
+      if (subscriptionDetails?.type === PriceType.Usage) {
+        return `Start plan`
+      }
       return `Start ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
         currency,
         totalDueAmount
@@ -191,6 +194,7 @@ const paymentFormButtonLabel = ({
   }
   return 'Pay'
 }
+
 const PaymentForm = () => {
   const stripe = useStripe()
   const elements = useElements()

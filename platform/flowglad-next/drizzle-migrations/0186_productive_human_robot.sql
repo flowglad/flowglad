@@ -46,3 +46,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS "usage_events_transaction_id_usage_meter_id_un
 CREATE UNIQUE INDEX IF NOT EXISTS "usage_meters_organization_id_name_unique_idx" ON "usage_meters" USING btree ("organization_id","name");--> statement-breakpoint
 CREATE POLICY "Enable read for own organizations" ON "usage_events" AS PERMISSIVE FOR ALL TO "authenticated" USING ("customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships")));--> statement-breakpoint
 CREATE POLICY "Check mode" ON "usage_events" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);
+--> statement-breakpoint
+ALTER TYPE "PriceType" ADD VALUE 'usage';

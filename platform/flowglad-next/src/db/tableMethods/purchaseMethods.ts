@@ -25,6 +25,7 @@ import {
   subscriptionPriceSelectSchema,
   prices,
   pricesSelectSchema,
+  usagePriceSelectSchema,
 } from '../schema/prices'
 import {
   customerClientInsertSchema,
@@ -165,7 +166,10 @@ export const selectPurchaseCheckoutParametersById = async (
 
 const subscriptionBillingInfoSchema = z.object({
   purchase: subscriptionPurchaseSelectSchema.nullish(),
-  price: subscriptionPriceSelectSchema,
+  price: z.discriminatedUnion('type', [
+    subscriptionPriceSelectSchema,
+    usagePriceSelectSchema,
+  ]),
   flowType: z.literal(CheckoutFlowType.Subscription),
   product: productsSelectSchema,
 })

@@ -122,7 +122,6 @@ const hiddenColumns = {
   feePercentage: true,
   stripeAccountId: true,
   stripeConnectContractType: true,
-  featureFlags: true,
 } as const
 
 const readOnlyColumns = {
@@ -133,6 +132,7 @@ const readOnlyColumns = {
   domain: true,
   tagline: true,
   defaultCurrency: true,
+  featureFlags: true,
 } as const
 
 export const organizationsClientSelectSchema =

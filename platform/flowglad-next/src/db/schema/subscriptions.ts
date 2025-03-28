@@ -5,6 +5,7 @@ import {
   jsonb,
   pgPolicy,
   integer,
+  boolean,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -65,6 +66,9 @@ const columns = {
   canceledAt: timestamp('canceled_at'),
   cancelScheduledAt: timestamp('cancel_scheduled_at'),
   priceId: notNullStringForeignKey('price_id', prices),
+  runBillingAtPeriodStart: boolean(
+    'run_billing_at_period_start'
+  ).default(true),
   interval: pgEnumColumn({
     enumName: 'IntervalUnit',
     columnName: 'interval',

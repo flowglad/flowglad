@@ -42,6 +42,9 @@ const SUBSCRIPTION_PURCHASE_DESCRIPTION =
 const SINGLE_PAYMENT_PURCHASE_DESCRIPTION =
   'A purchase associated with a single payment price. This type of purchase is paid once and does not have recurring billing cycles.'
 
+const USAGE_PURCHASE_DESCRIPTION =
+  'A purchase associated with a usage price. This type of purchase is paid once and does not have recurring billing cycles.'
+
 const columns = {
   ...tableBase('prch'),
   name: text('name').notNull(),
@@ -164,14 +167,26 @@ const singlePaymentColumns = {
   priceType: z.literal(PriceType.SinglePayment),
 }
 
+const usageColumns = {
+  ...nulledSubscriptionColumns,
+  firstInvoiceValue: core.safeZodPositiveIntegerOrZero,
+  totalPurchaseValue: core.safeZodPositiveIntegerOrZero,
+  priceType: z.literal(PriceType.Usage),
+}
+
 export const singlePaymentPurchaseInsertSchema = baseInsertSchema
   .extend(singlePaymentColumns)
   .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
+
+export const usagePurchaseInsertSchema = baseInsertSchema
+  .extend(usageColumns)
+  .describe(USAGE_PURCHASE_DESCRIPTION)
 
 export const purchasesInsertSchema = z
   .discriminatedUnion('priceType', [
     subscriptionPurchaseInsertSchema,
     singlePaymentPurchaseInsertSchema,
+    usagePurchaseInsertSchema,
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
 
@@ -192,10 +207,15 @@ const singlePaymentPurchaseUpdateSchema =
       priceType: z.literal(PriceType.SinglePayment),
     })
     .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
-
+const usagePurchaseUpdateSchema = singlePaymentPurchaseUpdateSchema
+  .extend({
+    priceType: z.literal(PriceType.Usage),
+  })
+  .describe(USAGE_PURCHASE_DESCRIPTION)
 export const purchasesUpdateSchema = z.union([
   subscriptionPurchaseUpdateSchema,
   singlePaymentPurchaseUpdateSchema,
+  usagePurchaseUpdateSchema,
 ])
 
 export const purchasesSelectSchema = z
@@ -234,17 +254,34 @@ export const subscriptionPurchaseClientSelectSchema =
 export const singlePaymentPurchaseClientInsertSchema =
   singlePaymentPurchaseInsertSchema.omit(clientWriteOmits)
 
+export const usagePurchaseClientInsertSchema =
+  usagePurchaseInsertSchema.omit(clientWriteOmits)
+
 export const singlePaymentPurchaseClientUpdateSchema =
   singlePaymentPurchaseUpdateSchema.omit(clientWriteOmits)
 
+export const usagePurchaseClientUpdateSchema =
+  usagePurchaseUpdateSchema
+    .omit(clientWriteOmits)
+    .describe(USAGE_PURCHASE_DESCRIPTION)
+
 export const singlePaymentPurchaseClientSelectSchema =
   singlePaymentPurchaseSelectSchema.omit(clientSelectOmits)
+
+export const usagePurchaseClientSelectSchema =
+  singlePaymentPurchaseSelectSchema
+    .extend({
+      priceType: z.literal(PriceType.Usage),
+    })
+    .omit(clientSelectOmits)
+    .describe(USAGE_PURCHASE_DESCRIPTION)
 
 // Combined Client Schemas
 export const purchaseClientInsertSchema = z
   .discriminatedUnion('priceType', [
     subscriptionPurchaseClientInsertSchema,
     singlePaymentPurchaseClientInsertSchema,
+    usagePurchaseClientInsertSchema,
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
 
@@ -252,6 +289,7 @@ export const purchaseClientUpdateSchema = z
   .discriminatedUnion('priceType', [
     subscriptionPurchaseClientUpdateSchema,
     singlePaymentPurchaseClientUpdateSchema,
+    usagePurchaseClientUpdateSchema,
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
 
@@ -259,6 +297,7 @@ export const purchaseClientSelectSchema = z
   .discriminatedUnion('priceType', [
     subscriptionPurchaseClientSelectSchema,
     singlePaymentPurchaseClientSelectSchema,
+    usagePurchaseClientSelectSchema,
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
 

@@ -130,7 +130,10 @@ export const createCheckoutSession = protectedProcedure
 
         let stripeSetupIntentId: string | null = null
         let stripePaymentIntentId: string | null = null
-        if (price.type === PriceType.Subscription) {
+        if (
+          price.type === PriceType.Subscription ||
+          price.type === PriceType.Usage
+        ) {
           const stripeSetupIntent =
             await createSetupIntentForCheckoutSession({
               price,
