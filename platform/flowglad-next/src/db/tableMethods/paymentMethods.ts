@@ -57,13 +57,13 @@ export const upsertPaymentByStripeChargeId = async (
   payment: Payment.Insert,
   transaction: DbTransaction
 ) => {
-  const existingPayment = await selectPayments(
+  const [existingPayment] = await selectPayments(
     {
       stripeChargeId: payment.stripeChargeId,
     },
     transaction
   )
-  if (existingPayment.length > 0) {
+  if (existingPayment) {
     return existingPayment
   }
   return upsertPayments(
