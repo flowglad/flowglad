@@ -5,7 +5,7 @@ import {
   RadioGroup,
   RadioGroupItem as Radio,
 } from '@/components/ion/Radio'
-import { IntervalUnit, PriceType } from '@/types'
+import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
 import Switch from '@/components/ion/Switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import Select from '@/components/ion/Select'
@@ -19,14 +19,15 @@ import {
 import Input from '@/components/ion/Input'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import Hint from '../ion/Hint'
+import { hasFeatureFlag } from '@/utils/organizationHelpers'
+import { useAuthContext } from '@/contexts/authContext'
 
 const usePriceFormContext = () => {
   return useFormContext<Pick<CreateProductSchema, 'price'>>()
 }
 
-const SubscriptionFields = () => {
+const TrialPeriodFields = () => {
   const {
-    register,
     formState: { errors },
     control,
     watch,
@@ -39,6 +40,50 @@ const SubscriptionFields = () => {
   useEffect(() => {
     setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
   }, [trialPeriodDays])
+
+  return (
+    <>
+      <Switch
+        label="Trial period"
+        checked={offerTrial}
+        onCheckedChange={(checked) => {
+          setOfferTrial(checked)
+          if (!checked) {
+            setValue('price.trialPeriodDays', 0)
+          }
+        }}
+      />
+      {offerTrial && (
+        <Controller
+          name="price.trialPeriodDays"
+          control={control}
+          render={({ field }) => (
+            <NumberInput
+              {...field}
+              label="Trial Period Days"
+              min={1}
+              max={365}
+              step={1}
+              error={
+                (errors.price?.trialPeriodDays as FieldError)?.message
+              }
+            />
+          )}
+        />
+      )}
+    </>
+  )
+}
+
+const SubscriptionFields = ({
+  omitTrialPeriodFields = false,
+}: {
+  omitTrialPeriodFields?: boolean
+}) => {
+  const {
+    formState: { errors },
+    control,
+  } = usePriceFormContext()
   return (
     <>
       <div className="flex items-end gap-2.5">
@@ -71,34 +116,7 @@ const SubscriptionFields = () => {
           )}
         />
       </div>
-      <Switch
-        label="Trial period"
-        checked={offerTrial}
-        onCheckedChange={(checked) => {
-          setOfferTrial(checked)
-          if (!checked) {
-            setValue('price.trialPeriodDays', 0)
-          }
-        }}
-      />
-      {offerTrial && (
-        <Controller
-          name="price.trialPeriodDays"
-          control={control}
-          render={({ field }) => (
-            <NumberInput
-              {...field}
-              label="Trial Period Days"
-              min={1}
-              max={365}
-              step={1}
-              error={
-                (errors.price?.trialPeriodDays as FieldError)?.message
-              }
-            />
-          )}
-        />
-      )}
+      {!omitTrialPeriodFields && <TrialPeriodFields />}
     </>
   )
 }
@@ -153,6 +171,7 @@ const SinglePaymentFields = () => {
     />
   )
 }
+
 const PriceFormFields = ({
   priceOnly,
   edit,
@@ -167,16 +186,19 @@ const PriceFormFields = ({
     register,
     formState: { errors },
   } = usePriceFormContext()
-  const price = watch('price')
   const type = watch('price.type')
   let typeFields = <></>
-
+  const { organization } = useAuthContext()
+  const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
   switch (type) {
     case PriceType.Subscription:
       typeFields = <SubscriptionFields />
       break
     case PriceType.SinglePayment:
       typeFields = <SinglePaymentFields />
+      break
+    case PriceType.Usage:
+      typeFields = <SubscriptionFields omitTrialPeriodFields />
       break
   }
   return (
@@ -221,6 +243,9 @@ const PriceFormFields = ({
                   label="Subscription"
                   value={PriceType.Subscription}
                 />
+                {hasUsage && (
+                  <Radio label="Usage" value={PriceType.Usage} />
+                )}
               </div>
             </RadioGroup>
           )}

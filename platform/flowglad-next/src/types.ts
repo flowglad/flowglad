@@ -424,6 +424,7 @@ export enum CurrencyCode {
 export enum PriceType {
   SinglePayment = 'single_payment',
   Subscription = 'subscription',
+  Usage = 'usage',
   // Installments = 'installments',
   // PayWhatYouWant = 'pay_what_you_want',
   // ZeroPrice = 'zero_price',
