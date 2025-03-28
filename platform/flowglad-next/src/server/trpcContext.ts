@@ -3,6 +3,7 @@ import { ApiEnvironment } from '@/types'
 import { adminTransaction } from '@/db/databaseMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { stackServerApp } from '@/stack'
+import { Organization } from '@/db/schema/organizations'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
@@ -10,6 +11,7 @@ export const createContext = async (
   const user = await stackServerApp.getUser()
   let environment: ApiEnvironment = 'live'
   let organizationId: string | undefined
+  let organization: Organization.Record | undefined
   if (user) {
     const maybeMembership = await adminTransaction(
       async ({ transaction }) => {
@@ -20,8 +22,9 @@ export const createContext = async (
       }
     )
     if (maybeMembership) {
-      const { membership, organization } = maybeMembership
+      const { membership } = maybeMembership
       environment = membership.livemode ? 'live' : 'test'
+      organization = maybeMembership.organization
       organizationId = organization.id
     }
   }
@@ -31,6 +34,7 @@ export const createContext = async (
     environment,
     livemode: environment === 'live',
     organizationId,
+    organization,
     isApi: false,
     apiKey: undefined,
   }

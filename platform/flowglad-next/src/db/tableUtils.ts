@@ -394,16 +394,6 @@ export const createIndexName = (
   )
 }
 
-export const constructUniquenessIndex = (
-  tableName: string,
-  columns: Parameters<IndexBuilderOn['on']>
-) => {
-  const indexName = createIndexName(tableName, columns, true)
-  return {
-    [indexName]: uniqueIndex(indexName).on(...columns),
-  }
-}
-
 export const constructUniqueIndex = (
   tableName: string,
   columns: Parameters<IndexBuilderOn['on']>
@@ -638,9 +628,8 @@ export const createBulkUpsertFunction = <
     const result = await transaction
       .insert(table)
       .values(parsedData)
-      .onConflictDoUpdate({
+      .onConflictDoNothing({
         target,
-        set: onConflictDoUpdateSetValues(table, ['id', 'created_at']),
       })
       .returning()
     return result.map((data) => config.selectSchema.parse(data))
