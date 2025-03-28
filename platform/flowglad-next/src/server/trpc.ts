@@ -5,6 +5,8 @@ import { TRPCError } from '@trpc/server'
 import { TRPCApiContext, TRPCContext } from './trpcContext'
 import { t } from './coreTrpcObject'
 import { createTracingMiddleware } from './tracingMiddleware'
+import { FeatureFlag } from '@/types'
+import { hasFeatureFlag } from '@/utils/organizationHelpers'
 
 // Create tracing middleware factory
 const tracingMiddlewareFactory = createTracingMiddleware()
@@ -31,6 +33,7 @@ const isAuthed = t.middleware(({ next, ctx }) => {
         environment,
         apiKey,
         organizationId: (ctx as TRPCContext).organizationId,
+        organization: (ctx as TRPCContext).organization,
         livemode,
       },
     })
@@ -45,6 +48,7 @@ const isAuthed = t.middleware(({ next, ctx }) => {
       path: (ctx as TRPCContext).path,
       environment,
       organizationId: (ctx as TRPCContext).organizationId,
+      organization: (ctx as TRPCContext).organization,
       livemode,
     },
   })
@@ -52,3 +56,20 @@ const isAuthed = t.middleware(({ next, ctx }) => {
 
 // Protected procedure with tracing
 export const protectedProcedure = baseProcedure.use(isAuthed)
+
+export const featureFlaggedProcedure = (featureFlag: FeatureFlag) => {
+  return protectedProcedure.use(({ next, ctx }) => {
+    const { organization } = ctx
+    if (!hasFeatureFlag(organization, featureFlag)) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: `Organization ${organization?.id} does not have feature flag ${featureFlag} enabled`,
+      })
+    }
+    return next({ ctx })
+  })
+}
+
+export const usageProcedure = featureFlaggedProcedure(
+  FeatureFlag.Usage
+)

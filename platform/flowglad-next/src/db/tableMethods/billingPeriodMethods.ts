@@ -16,7 +16,7 @@ import {
 } from '@/db/schema/billingPeriods'
 import { customers, customersSelectSchema } from '../schema/customers'
 import { subscriptionsSelectSchema } from '../schema/subscriptions'
-import { and, eq, gte, lt, lte } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt, lte } from 'drizzle-orm'
 import { BillingPeriodStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { subscriptions } from '../schema/subscriptions'
@@ -103,24 +103,39 @@ export const selectBillingPeriodInvoiceSubscriptionWithCustomerAndOrganization =
     }
   }
 
-export const selectCurrentBillingPeriodForSubscription = async (
-  subscriptionId: string,
+export const selectBillingPeriodsForSubscriptions = async (
+  subscriptionIds: string[],
   transaction: DbTransaction
 ) => {
-  const result = await transaction
+  const billingPeriodsForSubscriptions = await transaction
     .select()
     .from(billingPeriods)
     .where(
       and(
-        eq(billingPeriods.subscriptionId, subscriptionId),
+        inArray(billingPeriods.subscriptionId, subscriptionIds),
         lt(billingPeriods.startDate, new Date()),
         gte(billingPeriods.endDate, new Date())
       )
     )
-    .limit(1)
+  return billingPeriodsForSubscriptions.map((billingPeriod) =>
+    billingPeriodsSelectSchema.parse(billingPeriod)
+  )
+}
 
-  if (!result[0]) return null
-  return billingPeriodsSelectSchema.parse(result[0])
+export const selectCurrentBillingPeriodForSubscription = async (
+  subscriptionId: string,
+  transaction: DbTransaction
+): Promise<BillingPeriod.Record | null> => {
+  const [currentBillingPeriod] =
+    await selectBillingPeriodsForSubscriptions(
+      [subscriptionId],
+      transaction
+    )
+
+  if (!currentBillingPeriod) {
+    return null
+  }
+  return currentBillingPeriod
 }
 
 export const isBillingPeriodInTerminalState = (

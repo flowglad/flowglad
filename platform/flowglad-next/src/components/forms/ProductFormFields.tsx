@@ -13,6 +13,8 @@ import Select from '../ion/Select'
 import { trpc } from '@/app/_trpc/client'
 import { encodeCursor } from '@/db/tableUtils'
 import { useAuthContext } from '@/contexts/authContext'
+import CatalogSelect from './CatalogSelect'
+
 export const ProductFormFields = ({
   editProduct = false,
 }: {
@@ -23,6 +25,7 @@ export const ProductFormFields = ({
     formState: { errors },
     setValue,
     watch,
+    control,
   } = useFormContext<CreateProductSchema>()
   const { organization } = useAuthContext()
   const { data: catalogs } = trpc.catalogs.list.useQuery({
@@ -79,21 +82,9 @@ export const ProductFormFields = ({
                     />
                     {!editProduct && (
                       <div className="w-full relative flex flex-col gap-3">
-                        <Label>Catalog</Label>
-                        <Controller
+                        <CatalogSelect
                           name="product.catalogId"
-                          render={({ field }) => (
-                            <Select
-                              options={
-                                catalogs?.data?.map((catalog) => ({
-                                  label: catalog.name,
-                                  value: catalog.id,
-                                })) || []
-                              }
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            />
-                          )}
+                          control={control}
                         />
                       </div>
                     )}

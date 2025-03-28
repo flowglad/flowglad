@@ -727,3 +727,7 @@ export enum CheckoutSessionType {
   Purchase = 'purchase',
   Invoice = 'invoice',
 }
+
+export enum FeatureFlag {
+  Usage = 'usage',
+}

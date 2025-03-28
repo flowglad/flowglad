@@ -25,7 +25,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     tableBase,
     notNullStringForeignKey,
     constructIndex,
-    constructUniquenessIndex,
+    constructUniqueIndex,
     enhancedCreateInsertSchema,
     livemodePolicy,
   } from '@/db/tableUtils'
@@ -59,7 +59,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       return [
         constructIndex(TABLE_NAME, [table.organizationId]),
         constructIndex(TABLE_NAME, [table.status]),
-        constructUniquenessIndex(TABLE_NAME, [table.email]),
+        constructUniqueIndex(TABLE_NAME, [table.email]),
         pgPolicy('Enable read for own organizations', {
           as: 'permissive',
           to: 'authenticated',
@@ -74,7 +74,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
   - If there are any foreign keys, use the (notNullish|nullable)(String|Integer)ForeignKey methods in tableUtils to declare them.
     - Table Indexes: these are declared via the second argument in pgTable which is a function that takes the table and returns an object with indexes.
       - If there are any foreign keys, make sure to make database indexes of them. Use constructIndex from tableUtils.
-      - If there are any unique constraints, make database indexes of them. Use constructUniquenessIndex from tableUtils.
+      - If there are any unique constraints, make database indexes of them. Use constructUniqueIndex from tableUtils.
       - If there are any enum columns, make database indexes of them
   - Export Zod Schema and types for: Insert, Select, Update, and Mutation Inputs
     - Delcare a columnRefinments object that has all of the zod schemas for each column that needs to be refined
@@ -245,44 +245,148 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     )
     ```
 
-# 2. Create new TRPC protectedProcedures for create and edit
+# 2. Create new TRPC Router
 
-Follow the following instructions for both the createUnicornRider and editUnicornRider protectedProcedures.
-You are creating a new trpc protectedProcedure that will be a mutation. Refer to the TRPC docs for more information.
+Follow the following instructions for the trpc router. Refer to the TRPC docs for more information.
 
-You can rely on the other protectedProcedures the directory @/server/mutations as reference patterns. Here is how it will look for example, for a mutation called editCustomer:
+You can rely on the other protectedProcedures the directory @/server/routers for reference patterns.
 
 ```ts
-// in @/server/mutations/editCustomer.ts
+import { router } from '../trpc'
+import { editUnicornRiderInputSchema } from '@/db/schema/unicornRiders'
+import {
+  selectUnicornRiderById,
+  updateUnicornRider,
+  createUnicornRiderInputSchema
+} from '@/db/tableMethods/unicornRiderMethods'
+import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import {
+  unicornRidersClientSelectSchema,
+  unicornRidersPaginatedSelectSchema,
+  unicornRidersPaginatedListSchema,
+} from '@/db/schema/unicornRiders'
+
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { editCustomerSchema } from '@/db/schema/customers'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import {
+  insertUnicornRider,
+  selectUnicornRidersPaginated,
+} from '@/db/tableMethods/unicornRiderMethods'
+import { idInputSchema } from '@/db/tableUtils'
+import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { z } from 'zod'
 
-export const editCustomer = protectedProcedure
-  .input(editCustomerSchema)
-  .mutation(async ({ input }) => {
-    const updatedCustomer = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return updateCustomer(input.customer, transaction)
+const { openApiMetas } = generateOpenApiMetas({
+  resource: 'unicornRider',
+  tags: ['UnicornRiders'],
+})
+
+export const createUnicornRider = protectedProcedure
+  .meta(openApiMetas.POST)
+  .input(createUnicornRiderInputSchema)
+  .output(z.object({ unicornRider: unicornRiderClientSelectSchema }))
+  .mutation(async ({ input, ctx }) => {
+    const unicornRider = await authenticatedTransaction(
+      async ({ transaction, userId, livemode }) => {
+        const [{ organization }] =
+          await selectMembershipAndOrganizations(
+            {
+              userId,
+              focused: true,
+            },
+            transaction
+          )
+        return insertUnicornRider(
+          {
+            ...input.unicornRider,
+            organizationId: organization.id,
+            livemode,
+          },
+          transaction
+        )
       }
     )
-    return {
-      data: { customer: updatedCustomer },
-    }
+    return { unicornRider }
   })
+
+export const unicornRidersRouteConfigs = {
+  ...trpcToRest('unicornRiders.create'),
+  ...trpcToRest('unicornRiders.update'),
+  ...trpcToRest('unicornRiders.get'),
+  ...trpcToRest('unicornRiders.list'),
+}
+
+const listUnicornRidersProcedure = protectedProcedure
+  .meta(openApiMetas.LIST)
+  .input(unicornRidersPaginatedSelectSchema)
+  .output(unicornRidersPaginatedListSchema)
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectUnicornRidersPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+export const editUnicornRider = protectedProcedure
+  .meta(openApiMetas.PUT)
+  .input(editUnicornRiderInputSchema)
+  .output(z.object({ unicornRider: unicornRiderClientSelectSchema }))
+  .mutation(async ({ input, ctx }) => {
+    const unicornRider = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const updatedUnicornRider = await updateUnicornRider(
+          {
+            ...input.unicornRider,
+            id: input.id,
+          },
+          transaction
+        )
+        return updatedUnicornRider
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+    return { unicornRider }
+  })
+
+export const getUnicornRider = protectedProcedure
+  .meta(openApiMetas.GET)
+  .input(idInputSchema)
+  .output(z.object({ unicornRider: unicornRiderClientSelectSchema }))
+  .query(async ({ input, ctx }) => {
+    const unicornRider = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectUnicornRiderById(input.id, transaction)
+      },
+      { apiKey: ctx.apiKey }
+    )
+    return { unicornRider }
+  })
+
+export const unicornRidersRouter = router({
+  get: getUnicornRider,
+  create: createUnicornRider,
+  update: editUnicornRider,
+  list: listUnicornRidersProcedure,
+})
 ```
 
 And then in @/server/index.ts, you would add it to the appRouter like so:
 
 ```ts
 // ... existing imports
-import { editCustomer } from './mutations/editCustomer'
+import { unicornRidersRouter } from './routers/unicornRidersRouter'
 
 export const appRouter = router({
-  // ... existing mutation
-  editCustomer,
+  // ... existing routers...
+  unicornRiders: unicornRidersRouter,
 })
+```
 
 ## Notes
 

@@ -7,6 +7,7 @@ import {
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import {
   BusinessOnboardingStatus,
+  FeatureFlag,
   FlowgladApiKeyType,
   StripeConnectContractType,
 } from '@/types'
@@ -20,6 +21,7 @@ import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import { createApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import {
   CreateOrganizationInput,
+  Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
 import { insertCatalog } from '@/db/tableMethods/catalogMethods'
@@ -176,4 +178,14 @@ export const createOrganizationTransaction = async (
       organizationRecord
     ),
   }
+}
+
+export const hasFeatureFlag = (
+  organization: Organization.Record | null | undefined,
+  featureFlag: FeatureFlag
+) => {
+  if (!organization) {
+    return false
+  }
+  return organization.featureFlags?.[featureFlag]
 }

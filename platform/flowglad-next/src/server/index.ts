@@ -34,6 +34,8 @@ import { countriesRouter } from './routers/countriesRouter'
 import { paymentMethodsRouter } from './routers/paymentMethodsRouter'
 import { organizationsRouter } from './routers/organizationsRouter'
 import { catalogsRouter } from './routers/catalogsRouter'
+import { usageMetersRouter } from './routers/usageMetersRouter'
+import { usageEventsRouter } from './routers/usageEventsRouter'
 
 const purchasesRouter = router({
   create: createPurchase,
@@ -90,6 +92,8 @@ export const appRouter = router({
   }),
   subscriptions: subscriptionsRouter,
   paymentMethods: paymentMethodsRouter,
+  usageMeters: usageMetersRouter,
+  usageEvents: usageEventsRouter,
 })
 
 // This would map to REST endpoints like:
