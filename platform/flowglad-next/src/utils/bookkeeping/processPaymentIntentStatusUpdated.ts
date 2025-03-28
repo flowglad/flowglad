@@ -209,7 +209,7 @@ export const upsertPaymentForStripeCharge = async (
     customerId,
     livemode,
   }
-  const [payment] = await upsertPaymentByStripeChargeId(
+  const payment = await upsertPaymentByStripeChargeId(
     paymentInsert,
     transaction
   )

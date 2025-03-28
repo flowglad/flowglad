@@ -66,11 +66,12 @@ export const upsertPaymentByStripeChargeId = async (
   if (existingPayment) {
     return existingPayment
   }
-  return upsertPayments(
+  const upsertedPayments = await upsertPayments(
     [payment],
     [payments.stripeChargeId],
     transaction
   )
+  return upsertedPayments[0]
 }
 
 export const selectSettledPaymentsByinvoiceId = async (
