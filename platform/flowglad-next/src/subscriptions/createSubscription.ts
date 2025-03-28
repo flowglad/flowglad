@@ -28,6 +28,7 @@ import {
 } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -202,7 +203,15 @@ export const createSubscriptionWorkflow = async (
     transaction
   )
   if (activeSubscriptionsForCustomer.length > 0) {
-    throw new Error('Customer already has an active subscription')
+    const organization = await selectOrganizationById(
+      customer.organizationId,
+      transaction
+    )
+    if (!organization.allowMultipleSubscriptionsPerCustomer) {
+      throw new Error(
+        `Customer ${customer.id} already has an active subscription. Please cancel the existing subscription before creating a new one.`
+      )
+    }
   }
   if (customer.id !== defaultPaymentMethod.customerId) {
     throw new Error(
