@@ -53,10 +53,19 @@ export const selectPayments = createSelectFunction(payments, config)
 
 const upsertPayments = createBulkUpsertFunction(payments, config)
 
-export const upsertPaymentByStripeChargeId = (
+export const upsertPaymentByStripeChargeId = async (
   payment: Payment.Insert,
   transaction: DbTransaction
 ) => {
+  const existingPayment = await selectPayments(
+    {
+      stripeChargeId: payment.stripeChargeId,
+    },
+    transaction
+  )
+  if (existingPayment.length > 0) {
+    return existingPayment
+  }
   return upsertPayments(
     [payment],
     [payments.stripeChargeId],
