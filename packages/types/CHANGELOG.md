@@ -1,5 +1,12 @@
 # @flowglad/types
 
+## 0.8.12
+
+### Patch Changes
+
+- Better docs and type flowthroughs
+- Default prices on products
+
 ## 0.8.11
 
 ### Patch Changes

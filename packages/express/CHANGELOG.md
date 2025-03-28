@@ -1,5 +1,17 @@
 # @flowglad/express
 
+## 0.8.12
+
+### Patch Changes
+
+- Better docs and type flowthroughs
+- Default prices on products
+- Updated dependencies
+- Updated dependencies
+  - @flowglad/react@0.8.12
+  - @flowglad/server@0.8.12
+  - @flowglad/shared@0.8.12
+
 ## 0.8.11
 
 ### Patch Changes
