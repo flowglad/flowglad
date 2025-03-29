@@ -201,6 +201,7 @@ export class FlowgladServer {
       cancelUrl: params.cancelUrl,
       outputMetadata: params.outputMetadata,
       outputName: params.outputName,
+      quantity: params.quantity || undefined,
     })
   }
 
