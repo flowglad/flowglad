@@ -1,5 +1,13 @@
 # @flowglad/react
 
+## 0.8.13
+
+### Patch Changes
+
+- Add subscription.current, checkoutSession.quantity
+- Updated dependencies
+  - @flowglad/shared@0.8.13
+
 ## 0.8.12
 
 ### Patch Changes

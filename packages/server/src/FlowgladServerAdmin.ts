@@ -15,7 +15,12 @@ export class FlowgladServerAdmin {
   ) {
     return this.flowgladNode.customers.create(input)
   }
-
+  public async getCustomer(externalId: string) {
+    return this.flowgladNode.customers.retrieve(externalId)
+  }
+  public async getCustomerBilling(externalId: string) {
+    return this.flowgladNode.customers.retrieveBilling(externalId)
+  }
   public async updateCustomer(
     id: string,
     input: FlowgladNode.Customers.CustomerUpdateParams
