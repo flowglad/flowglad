@@ -100,3 +100,12 @@ export namespace Membership {
     typeof membershipsClientSelectSchema
   >
 }
+
+export const inviteUserToOrganizationSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+})
+
+export type InviteUserToOrganizationInput = z.infer<
+  typeof inviteUserToOrganizationSchema
+>
