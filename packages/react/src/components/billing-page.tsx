@@ -8,6 +8,8 @@ import { CustomerBillingDetails } from './customer-billing-details'
 import { CurrentSubscriptionCard } from './current-subscription-card'
 import { PricingTable } from './pricing-table'
 import { useBilling } from '../FlowgladContext'
+import { useCallback } from 'react'
+import { CreateCheckoutSessionParams } from '@flowglad/shared'
 
 const SectionTitle = ({
   children,
@@ -36,6 +38,17 @@ const CurrentSubscriptionOrPricingTable = ({
   catalog: Flowglad.CustomerRetrieveBillingResponse['catalog']
   currentSubscriptions: Flowglad.CustomerRetrieveBillingResponse['currentSubscriptions']
 }) => {
+  const billing = useBilling()
+  const createCheckoutSession = useCallback(
+    (params: CreateCheckoutSessionParams) => {
+      const { createCheckoutSession } = billing
+      if (!createCheckoutSession) {
+        return
+      }
+      createCheckoutSession(params)
+    },
+    [billing]
+  )
   if (currentSubscriptions && currentSubscriptions.length > 0) {
     const currentSubscription = currentSubscriptions[0]
     return (
@@ -62,7 +75,14 @@ const CurrentSubscriptionOrPricingTable = ({
         description: product.description,
         displayFeatures: product.displayFeatures,
         primaryButtonText: 'Subscribe',
-        secondaryButtonText: 'Learn More',
+        onClickPrimaryButton: () => {
+          return createCheckoutSession({
+            priceId: product.defaultPrice.id,
+            successUrl: window.location.href,
+            cancelUrl: window.location.href,
+            quantity: 1,
+          })
+        },
         prices: product.prices.map((price) => ({
           currency: price.currency,
           unitPrice: price.unitPrice,

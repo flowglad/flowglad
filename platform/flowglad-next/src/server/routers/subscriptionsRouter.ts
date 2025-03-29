@@ -7,6 +7,7 @@ import {
   subscriptionsPaginatedSelectSchema,
 } from '@/db/schema/subscriptions'
 import {
+  isSubscriptionCurrent,
   selectSubscriptionById,
   selectSubscriptionsPaginated,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -63,7 +64,10 @@ const adjustSubscriptionProcedure = protectedProcedure
         }
       )
     return {
-      subscription,
+      subscription: {
+        ...subscription,
+        current: isSubscriptionCurrent(subscription.status),
+      },
       subscriptionItems,
     }
   })
@@ -91,7 +95,12 @@ const cancelSubscriptionProcedure = protectedProcedure
           input,
           transaction
         )
-        return { subscription }
+        return {
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(subscription.status),
+          },
+        }
       },
       {
         apiKey: ctx.apiKey,
@@ -106,7 +115,17 @@ const listSubscriptionsProcedure = protectedProcedure
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        return selectSubscriptionsPaginated(input, transaction)
+        const result = await selectSubscriptionsPaginated(
+          input,
+          transaction
+        )
+        return {
+          ...result,
+          data: result.data.map((subscription) => ({
+            ...subscription,
+            current: isSubscriptionCurrent(subscription.status),
+          })),
+        }
       },
       {
         apiKey: ctx.apiKey,
@@ -125,7 +144,12 @@ const getSubscriptionProcedure = protectedProcedure
           input.id,
           transaction
         )
-        return { subscription }
+        return {
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(subscription.status),
+          },
+        }
       },
       {
         apiKey: ctx.apiKey,
