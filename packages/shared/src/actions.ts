@@ -16,6 +16,7 @@ export const createCheckoutSessionSchema = z.object({
   cancelUrl: z.string().url(),
   outputMetadata: z.record(z.string(), z.any()).optional(),
   outputName: z.string().optional(),
+  quantity: z.number().optional().nullish().default(1),
 })
 
 export type CreateCheckoutSessionParams = z.infer<

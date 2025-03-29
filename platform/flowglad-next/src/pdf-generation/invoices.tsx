@@ -22,6 +22,7 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
 import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { CurrencyCode } from '@/types'
 /**
  * Use the
  * @param paymentMethod
@@ -248,10 +249,12 @@ export const BillingInfo: React.FC<BillingInfoProps> = ({
 
 interface InvoiceLineItemsProps {
   lineItems: InvoiceLineItem.Record[]
+  currency: CurrencyCode
 }
 
 export const InvoiceLineItems: React.FC<InvoiceLineItemsProps> = ({
   lineItems,
+  currency,
 }) => {
   return (
     <Section style={{ marginBottom: '30px' }}>
@@ -290,13 +293,19 @@ export const InvoiceLineItems: React.FC<InvoiceLineItemsProps> = ({
                 className="price-column"
                 style={{ textAlign: 'right' }}
               >
-                {formatCurrency(item.price)}
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currency,
+                  item.price
+                )}
               </td>
               <td
                 className="amount-column"
                 style={{ textAlign: 'right' }}
               >
-                {formatCurrency(item.price * item.quantity)}
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currency,
+                  item.price * item.quantity
+                )}
               </td>
             </tr>
           ))}
@@ -637,7 +646,10 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             paymentLink={paymentLink}
             mode="invoice"
           />
-          <InvoiceLineItems lineItems={invoiceLineItems} />
+          <InvoiceLineItems
+            lineItems={invoiceLineItems}
+            currency={invoice.currency}
+          />
           <InvoiceTotals
             subtotal={subtotal}
             taxAmount={taxAmount}

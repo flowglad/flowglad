@@ -167,7 +167,13 @@ export const subscriptionClientUpdateSchema =
   subscriptionsUpdateSchema.omit(nonClientEditableColumns)
 
 export const subscriptionClientSelectSchema =
-  subscriptionsSelectSchema.omit(hiddenColumns)
+  subscriptionsSelectSchema.omit(hiddenColumns).extend({
+    current: z
+      .boolean()
+      .describe(
+        'Whether the subscription is current (statuses "active", "trialing", "past_due", or "cancellation_scheduled")'
+      ),
+  })
 
 export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,

@@ -70,6 +70,12 @@ const createCheckoutSessionSchema = z.object({
     .describe(
       'The name of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
     ),
+  quantity: z
+    .number()
+    .optional()
+    .describe(
+      'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+    ),
 })
 
 const singleCheckoutSessionOutputSchema = z.object({

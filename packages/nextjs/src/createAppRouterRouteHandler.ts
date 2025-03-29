@@ -7,7 +7,7 @@ import {
 import { HTTPMethod } from '@flowglad/shared'
 import { NextRequest, NextResponse } from 'next/server'
 
-export const createNextRouteHandler = (
+export const createAppRouterRouteHandler = (
   flowgladServer: FlowgladServer,
   options: Omit<RequestHandlerOptions, 'flowgladServer'> = {}
 ) => {

@@ -15,7 +15,6 @@ const InnerPricingTable = () => {
         displayFeatures: product.displayFeatures,
         primaryButtonText: 'Subscribe',
         onClickPrimaryButton: () => {
-          console.log('primary button clicked');
           createCheckoutSession({
             successUrl: `${window.location.origin}/billing`,
             cancelUrl: `${window.location.origin}/billing`,

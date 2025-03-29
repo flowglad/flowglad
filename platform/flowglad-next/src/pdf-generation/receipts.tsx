@@ -104,7 +104,10 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
             mode="receipt"
             payment={paymentData.payment}
           />
-          <InvoiceLineItems lineItems={invoiceLineItems} />
+          <InvoiceLineItems
+            lineItems={invoiceLineItems}
+            currency={invoice.currency}
+          />
           <InvoiceTotals
             subtotal={subtotal}
             taxAmount={taxAmount}

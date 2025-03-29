@@ -1,8 +1,10 @@
+'use client'
 import { Product, Price } from '@flowglad/types'
 import { Button, ButtonProps } from './ui/button'
 import { FeatureList } from './feature-list'
 import { cn } from '../lib/utils'
 import { PriceLabel } from './currency-label'
+import { useState } from 'react'
 
 interface PricingTableProduct
   extends Pick<Product, 'name' | 'description' | 'displayFeatures'> {
@@ -46,6 +48,7 @@ function PricingTableButton({
   variant?: ButtonProps['variant']
   disabled?: boolean
 }) {
+  const [isLoading, setIsLoading] = useState(false)
   if (href) {
     return (
       <a href={href} target="_blank" className="flex w-full">
@@ -65,9 +68,16 @@ function PricingTableButton({
     <Button
       type={type}
       size={size}
-      onClick={onClick}
+      onClick={async () => {
+        if (disabled) {
+          return
+        }
+        setIsLoading(true)
+        await onClick?.()
+        setIsLoading(false)
+      }}
       variant={variant}
-      disabled={disabled}
+      disabled={disabled || isLoading}
     >
       {children}
     </Button>
