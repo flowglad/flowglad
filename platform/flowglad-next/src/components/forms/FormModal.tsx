@@ -56,6 +56,7 @@ const useShouldRenderContent = ({
 interface FormModalProps<T extends FieldValues>
   extends ModalInterfaceProps {
   onSubmit: (data: T) => void
+  onSuccess?: () => void
   formSchema: z.ZodSchema<T>
   defaultValues: DefaultValues<T>
   title: string
@@ -100,6 +101,7 @@ export const NestedFormModal = <T extends FieldValues>({
   submitButtonText,
   autoClose = true,
   form,
+  onSuccess,
 }: NestedFormModalProps<T>) => {
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
@@ -127,6 +129,9 @@ export const NestedFormModal = <T extends FieldValues>({
           await onSubmit()
           if (autoClose) {
             setIsOpen(false)
+          }
+          if (onSuccess) {
+            onSuccess()
           }
         }}
       >

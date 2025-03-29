@@ -37,7 +37,7 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 export const usageMetersRouteConfigs = routeConfigs
 
 export const createUsageMeter = usageProcedure
-  .meta(openApiMetas.POST)
+  // .meta(openApiMetas.POST)
   .input(createUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
@@ -70,7 +70,7 @@ export const createUsageMeter = usageProcedure
   })
 
 const listUsageMetersProcedure = usageProcedure
-  .meta(openApiMetas.LIST)
+  // .meta(openApiMetas.LIST)
   .input(usageMeterPaginatedSelectSchema)
   .output(usageMeterPaginatedListSchema)
   .query(async ({ ctx, input }) => {
@@ -85,7 +85,7 @@ const listUsageMetersProcedure = usageProcedure
   })
 
 const editUsageMeter = usageProcedure
-  .meta(openApiMetas.PUT)
+  // .meta(openApiMetas.PUT)
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
@@ -108,7 +108,7 @@ const editUsageMeter = usageProcedure
   })
 
 const getUsageMeter = usageProcedure
-  .meta(openApiMetas.GET)
+  // .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .query(async ({ input, ctx }) => {

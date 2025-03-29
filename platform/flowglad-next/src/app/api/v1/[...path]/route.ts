@@ -35,8 +35,8 @@ const routeConfigs = [
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
-  ...usageMetersRouteConfigs,
-  ...usageEventsRouteConfigs,
+  // ...usageMetersRouteConfigs,
+  // ...usageEventsRouteConfigs,
 ]
 
 const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(

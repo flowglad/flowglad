@@ -3,12 +3,18 @@
 import { PageHeader } from '@/components/ion/PageHeader'
 import type { TabData } from '@/components/ion/PageHeader'
 import DeveloperSettingsPage from './DeveloperSettingsTab'
+import TeammatesSettingsTab from './TeammatesSettingsTab'
 
 const tabs: TabData[] = [
   {
     label: 'Developers',
     subPath: 'developers',
     Component: DeveloperSettingsPage,
+  },
+  {
+    label: 'Teammates',
+    subPath: 'teammates',
+    Component: TeammatesSettingsTab,
   },
 ]
 
