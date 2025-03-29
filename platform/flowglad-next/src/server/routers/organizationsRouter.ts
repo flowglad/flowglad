@@ -21,6 +21,7 @@ import { z } from 'zod'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { stackServerApp } from '@/stack'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
+import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -36,48 +37,58 @@ const generateSubdomainSlug = (name: string) => {
   ) // Fallback if result is empty
 }
 
-const mininanoid = customAlphabet(
-  'abcdefghijklmnopqrstuvwxyz0123456789',
-  6
-)
-
 const getMembers = protectedProcedure.query(async ({ ctx }) => {
   if (!ctx.organizationId) {
     throw new Error('organizationId is required')
   }
-
-  const members = await authenticatedTransaction(
-    async ({ transaction }) => {
-      return selectMembershipsAndUsersByMembershipWhere(
-        { organizationId: ctx.organizationId },
-        transaction
-      )
-    }
-  )
+  const members = await adminTransaction(async ({ transaction }) => {
+    return selectMembershipsAndUsersByMembershipWhere(
+      { organizationId: ctx.organizationId },
+      transaction
+    )
+  })
 
   return {
-    data: { members },
+    /**
+     * Sort members by date of creation, newest first
+     */
+    members: members.sort((a, b) => {
+      return (
+        new Date(b.membership.createdAt).getTime() -
+        new Date(a.membership.createdAt).getTime()
+      )
+    }),
   }
 })
 
-const getFocusedMembership = protectedProcedure.query(async () => {
-  const focusedMembership = await authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      return selectFocusedMembershipAndOrganization(
-        userId,
-        transaction
-      )
-    }
-  )
-  return focusedMembership
-})
+const getFocusedMembership = protectedProcedure.query(
+  async ({ ctx }) => {
+    const focusedMembership = await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        return selectFocusedMembershipAndOrganization(
+          userId,
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+    return focusedMembership
+  }
+)
 
 const getRevenueData = protectedProcedure
   .input(getRevenueDataInputSchema)
-  .query(async ({ input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectRevenueDataForOrganization(input, transaction)
-    })
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectRevenueDataForOrganization(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const createOrganization = protectedProcedure
@@ -118,7 +129,7 @@ const createOrganization = protectedProcedure
 
 const editOrganization = protectedProcedure
   .input(editOrganizationSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, userId }) => {
         const { organization } = input
@@ -126,6 +137,9 @@ const editOrganization = protectedProcedure
         return {
           data: organization,
         }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
   })
@@ -136,6 +150,7 @@ export const organizationsRouter = router({
   requestStripeConnect: requestStripeConnectOnboardingLink,
   getMembers: getMembers,
   getFocusedMembership: getFocusedMembership,
+  inviteUser: inviteUserToOrganization,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
 })

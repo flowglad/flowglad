@@ -27,6 +27,7 @@ const CreateApiKeyModal = ({
   const copyTextHandler = useCopyTextHandler({
     text: rawApiKey ?? '',
   })
+  const trpcContext = trpc.useContext()
   return (
     <FormModal
       isOpen={isOpen}
@@ -46,6 +47,9 @@ const CreateApiKeyModal = ({
         const result = await createApiKey.mutateAsync(data)
         setRawApiKey(result.shownOnlyOnceKey)
         setLivemode(result.apiKey.livemode)
+      }}
+      onSuccess={() => {
+        trpcContext.apiKeys.get.invalidate()
       }}
       hideFooter={rawApiKey ? true : false}
       autoClose={false}

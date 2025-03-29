@@ -117,6 +117,7 @@ export const createOrganizationTransaction = async (
       name: 'Default',
       livemode: true,
       organizationId: organizationRecord.id,
+      isDefault: true,
     },
     transaction
   )
@@ -126,6 +127,7 @@ export const createOrganizationTransaction = async (
       name: 'Default (testmode)',
       livemode: false,
       organizationId: organizationRecord.id,
+      isDefault: true,
     },
     transaction
   )

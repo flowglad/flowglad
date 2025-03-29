@@ -24,25 +24,20 @@ const InternalDemoPage = () => {
       },
     }
   }
-  const cloneCatalogMutation = trpc.catalogs.clone.useMutation()
-  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery(
-    {}
-  )
+  const inviteUserMutation =
+    trpc.utils.inviteUserToOrganization.useMutation()
   return (
     <div style={{ padding: '20px' }}>
       <h1>Internal Demo Page</h1>
-      {defaultCatalog && (
-        <Button
-          onClick={() =>
-            cloneCatalogMutation.mutate({
-              id: defaultCatalog.id,
-              name: `Cloned Catalog - ${new Date().toISOString()}`,
-            })
-          }
-        >
-          Clone Catalog
-        </Button>
-      )}
+      <Button
+        onClick={() =>
+          inviteUserMutation.mutate({
+            email: 'verybusyfounder@gmail.com',
+          })
+        }
+      >
+        Invite User
+      </Button>
     </div>
   )
 }
