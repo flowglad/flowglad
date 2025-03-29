@@ -48,7 +48,17 @@ const getMembers = protectedProcedure.query(async ({ ctx }) => {
     )
   })
 
-  return { members }
+  return {
+    /**
+     * Sort members by date of creation, newest first
+     */
+    members: members.sort((a, b) => {
+      return (
+        new Date(b.membership.createdAt).getTime() -
+        new Date(a.membership.createdAt).getTime()
+      )
+    }),
+  }
 })
 
 const getFocusedMembership = protectedProcedure.query(
