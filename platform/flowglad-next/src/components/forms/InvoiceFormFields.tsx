@@ -160,12 +160,12 @@ const InvoiceFormFields = ({
               value={field.value?.toString()}
               fetchOptionData={async () => {
                 const { data } = await refetch()
-                return data?.data
+                return data?.members
               }}
               label="Owner"
               mapDataToOptions={(data) => {
                 return (
-                  data?.members.map((member) => ({
+                  data?.map((member) => ({
                     label: member.user.name ?? '',
                     value: member.membership.id,
                   })) ?? []
@@ -173,7 +173,7 @@ const InvoiceFormFields = ({
               }}
               className="flex-1"
               defaultValueFromData={(data) => {
-                return data?.members[0]?.membership.id ?? ''
+                return (data ?? [])[0]?.membership.id ?? ''
               }}
               onValueChange={(value) => field.onChange(value ?? '')}
             />
