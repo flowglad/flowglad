@@ -4,9 +4,7 @@ import Table from '@/components/ion/Table'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from '@/utils/core'
-import TableTitle, {
-  TableTitleButtonSettingProps,
-} from '@/components/ion/TableTitle'
+import TableTitle from '@/components/ion/TableTitle'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import { Plus } from 'lucide-react'
 import { FallbackSkeleton } from '@/components/ion/Skeleton'

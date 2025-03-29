@@ -18,6 +18,9 @@ export const inviteUserToOrganizationSchema = z.object({
   name: z.string().optional(),
 })
 
+export type InviteUserToOrganizationInput = z.infer<
+  typeof inviteUserToOrganizationSchema
+>
 /**
  * Invites a user to an organization.
  * If the user doesn't exist, it creates a new user and inserts a membership for them.
