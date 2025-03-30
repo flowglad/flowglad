@@ -54,6 +54,25 @@
         "uriFormat": "%s",
         "webRoot": "${workspaceFolder}/platform/flowglad-next"
       }
+    },
+    {
+      "name": "Debug Tests",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm test",
+      "cwd": "${workspaceFolder}/platform/flowglad-next",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Debug Single Test",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm test ${input:testName}",
+      "cwd": "${workspaceFolder}/platform/flowglad-next",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "preLaunchTask": "npm: test:debug"
     }
   ]
 }

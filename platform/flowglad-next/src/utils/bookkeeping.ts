@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
 import {
@@ -116,8 +117,12 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
     },
     transaction
   )
+  const dedupedSuccessfulPaymentsForInvoice = R.uniqBy(
+    (item) => item.id,
+    [payment, ...successfulPaymentsForInvoice]
+  ).flat()
   const amountPaidSoFarForInvoice =
-    successfulPaymentsForInvoice.reduce(
+    dedupedSuccessfulPaymentsForInvoice.reduce(
       (acc, payment) => acc + payment.amount,
       0
     )
@@ -131,9 +136,9 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
       InvoiceStatus.Paid,
       transaction
     )
-    await generatePaymentReceiptPdfTask.trigger({
-      paymentId: payment.id,
-    })
+    // await generatePaymentReceiptPdfTask.trigger({
+    //   paymentId: payment.id,
+    // })
   }
 }
 
