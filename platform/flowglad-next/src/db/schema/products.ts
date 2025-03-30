@@ -61,6 +61,10 @@ const columns = {
     'catalog_id',
     catalogs
   ).notNull(),
+  /**
+   * A hidden column, used primarily for managing migrations from
+   * from external processors onto Flowglad
+   */
   externalId: text('external_id'),
 }
 

@@ -3,7 +3,11 @@ import { PriceType } from '@/types'
 import { Price } from '@/db/schema/prices'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
-const PricingCellView = ({ prices }: { prices: Price.Record[] }) => {
+const PricingCellView = ({
+  prices,
+}: {
+  prices: Price.ClientRecord[]
+}) => {
   if (prices.length === 0) {
     return <div>-</div>
   }

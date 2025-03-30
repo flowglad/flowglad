@@ -79,6 +79,10 @@ const columns = {
     'billing_cycle_anchor_date'
   ).notNull(),
   name: text('name'),
+  /**
+   * A hidden column, used primarily for managing migrations from
+   * from external processors onto Flowglad
+   */
   externalId: text('external_id'),
 }
 

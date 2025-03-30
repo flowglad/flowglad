@@ -34,6 +34,10 @@ const columns = {
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
   metadata: jsonb('metadata'),
+  /**
+   * A hidden column, used primarily for managing migrations from
+   * from external processors onto Flowglad
+   */
   externalId: text('external_id'),
 }
 

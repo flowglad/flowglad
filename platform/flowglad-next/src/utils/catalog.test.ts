@@ -152,6 +152,7 @@ describe('cloneCatalogTransaction', () => {
               pluralQuantityLabel: null,
               catalogId: sourceCatalog.id,
               imageURL: null,
+              externalId: null,
             },
             transaction
           )
@@ -174,6 +175,7 @@ describe('cloneCatalogTransaction', () => {
               setupFeeAmount: 0,
               trialPeriodDays: 0,
               currency: CurrencyCode.USD,
+              externalId: null,
             },
             transaction
           )
