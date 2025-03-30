@@ -8,6 +8,7 @@ import {
   createBulkUpsertFunction,
   SelectConditions,
   whereClauseFromObject,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
   SubscriptionItem,
@@ -183,5 +184,19 @@ export const selectRichSubscriptions = async (
 
   return richSubscriptions.map((item) =>
     richSubscriptionClientSelectSchema.parse(item)
+  )
+}
+
+const bulkInsertOrDoNothingSubscriptionItems =
+  createBulkInsertOrDoNothingFunction(subscriptionItems, config)
+
+export const bulkInsertOrDoNothingSubscriptionItemsByExternalId = (
+  subscriptionItemInserts: SubscriptionItem.Insert[],
+  transaction: DbTransaction
+) => {
+  return bulkInsertOrDoNothingSubscriptionItems(
+    subscriptionItemInserts,
+    [subscriptionItems.externalId],
+    transaction
   )
 }

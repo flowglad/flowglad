@@ -17,6 +17,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   nullableStringForeignKey,
+  constructUniqueIndex,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
@@ -60,6 +61,7 @@ const columns = {
     'catalog_id',
     catalogs
   ).notNull(),
+  externalId: text('external_id'),
 }
 
 export const products = pgTable(
@@ -69,6 +71,7 @@ export const products = pgTable(
     return [
       constructIndex(PRODUCTS_TABLE_NAME, [table.organizationId]),
       constructIndex(PRODUCTS_TABLE_NAME, [table.active]),
+      constructUniqueIndex(PRODUCTS_TABLE_NAME, [table.externalId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -120,7 +123,9 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  externalId: true,
+} as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,

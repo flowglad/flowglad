@@ -65,7 +65,7 @@ const columns = {
   metadata: jsonb('metadata'),
   canceledAt: timestamp('canceled_at'),
   cancelScheduledAt: timestamp('cancel_scheduled_at'),
-  priceId: notNullStringForeignKey('price_id', prices),
+  priceId: nullableStringForeignKey('price_id', prices),
   runBillingAtPeriodStart: boolean(
     'run_billing_at_period_start'
   ).default(true),
@@ -79,6 +79,7 @@ const columns = {
     'billing_cycle_anchor_date'
   ).notNull(),
   name: text('name'),
+  externalId: text('external_id'),
 }
 
 export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
@@ -87,6 +88,10 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.externalId,
+      table.organizationId,
+    ]),
     pgPolicy('Enable actions for own organizations via customer', {
       as: 'permissive',
       to: 'authenticated',
@@ -149,6 +154,7 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   stripeSetupIntentId: true,
+  externalId: true,
 } as const
 
 const nonClientEditableColumns = {

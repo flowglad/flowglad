@@ -34,14 +34,16 @@ const readOnlyColumns = {
   currency: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  externalId: true,
+} as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
   ...hiddenColumns,
 } as const
 
-const VARIANTS_TABLE_NAME = 'prices'
+const PRICES_TABLE_NAME = 'prices'
 
 const columns = {
   ...tableBase('vrnt'),
@@ -75,25 +77,26 @@ const columns = {
     columnName: 'currency',
     enumBase: CurrencyCode,
   }).notNull(),
+  externalId: text('external_id'),
 }
 
-export const prices = pgTable(
-  VARIANTS_TABLE_NAME,
-  columns,
-  (table) => {
-    return [
-      constructIndex(VARIANTS_TABLE_NAME, [table.type]),
-      constructIndex(VARIANTS_TABLE_NAME, [table.productId]),
-      pgPolicy('Enable all for self organizations via products', {
-        as: 'permissive',
-        to: 'authenticated',
-        for: 'all',
-        using: sql`"product_id" in (select "id" from "products")`,
-      }),
-      livemodePolicy(),
-    ]
-  }
-).enableRLS()
+export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
+  return [
+    constructIndex(PRICES_TABLE_NAME, [table.type]),
+    constructIndex(PRICES_TABLE_NAME, [table.productId]),
+    constructUniqueIndex(PRICES_TABLE_NAME, [
+      table.externalId,
+      table.productId,
+    ]),
+    pgPolicy('Enable all for self organizations via products', {
+      as: 'permissive',
+      to: 'authenticated',
+      for: 'all',
+      using: sql`"product_id" in (select "id" from "products")`,
+    }),
+    livemodePolicy(),
+  ]
+}).enableRLS()
 
 const intervalZodSchema = core.createSafeZodEnum(IntervalUnit)
 
@@ -112,7 +115,7 @@ export const basePriceSelectSchema = createSelectSchema(
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({
     table: prices,
-    tableName: VARIANTS_TABLE_NAME,
+    tableName: PRICES_TABLE_NAME,
     refine: basePriceColumns,
   })
 
