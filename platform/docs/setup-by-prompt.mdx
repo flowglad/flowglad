@@ -70,10 +70,10 @@ export const flowgladServer = new FlowgladServer({
 
 `// /api/flowglad/[...path]/route.ts
 'use server'
-import { createNextRouteHandler } from '@flowglad/nextjs/server'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/flowglad'
 
-const routeHandler = createNextRouteHandler(flowgladServer)
+const routeHandler = createAppRouterRouteHandler(flowgladServer)
 
 export { routeHandler as GET, routeHandler as POST }
 `
@@ -149,10 +149,10 @@ export const flowgladServer = new FlowgladServer({
 
 `// /api/flowglad/[...path]/route.ts
 'use server'
-import { createNextRouteHandler } from '@flowglad/nextjs/server'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/flowglad'
 
-const routeHandler = createNextRouteHandler(flowgladServer)
+const routeHandler = createAppRouterRouteHandler(flowgladServer)
 
 export { routeHandler as GET, routeHandler as POST }
 `
@@ -226,10 +226,10 @@ export const flowgladServer = new FlowgladServer({
 
 `// /api/flowglad/[...path]/route.ts
 'use server'
-import { createNextRouteHandler } from '@flowglad/nextjs/server'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/flowglad'
 
-const routeHandler = createNextRouteHandler(flowgladServer)
+const routeHandler = createAppRouterRouteHandler(flowgladServer)
 
 export { routeHandler as GET, routeHandler as POST }
 `

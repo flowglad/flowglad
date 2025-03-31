@@ -18,6 +18,8 @@ import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
 import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
+import { trace, SpanStatusCode, context } from '@opentelemetry/api'
+import { logger } from '@/utils/logger'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -63,6 +65,7 @@ type TRPCResponse =
           data: {
             code: string
             httpStatus: number
+            stack: string
           }
         }
       }
@@ -81,96 +84,142 @@ const handler = withUnkey(
     req: NextRequestWithUnkeyContext,
     { params }: { params: Promise<{ path: string[] }> }
   ) => {
-    if (!req.unkey) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-    if (!req.unkey.valid) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-    const path = (await params).path.join('/')
-    const method = req.method
-    // Find matching route
-    const matchingRoute = Object.entries(routes).find(
-      ([key, config]) => {
-        const [routeMethod, routePath] = key.split(' ')
-        return method === routeMethod && config.pattern.test(path)
+    const tracer = trace.getTracer('rest-api')
+
+    return tracer.startActiveSpan(
+      `REST ${req.method}`,
+      async (parentSpan) => {
+        try {
+          if (!req.unkey) {
+            parentSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Unauthorized',
+            })
+            parentSpan.setAttributes({ 'error.type': 'AUTH_ERROR' })
+            return new Response('Unauthorized', { status: 401 })
+          }
+
+          const path = (await params).path.join('/')
+          parentSpan.setAttributes({
+            'http.method': req.method,
+            'http.path': path,
+          })
+
+          // Create a new context with our parent span
+          const ctx = trace.setSpan(context.active(), parentSpan)
+
+          // Find matching route
+          const matchingRoute = Object.entries(routes).find(
+            ([key, config]) => {
+              const [routeMethod, routePath] = key.split(' ')
+              return (
+                req.method === routeMethod &&
+                config.pattern.test(path)
+              )
+            }
+          )
+          if (!matchingRoute) {
+            // eslint-disable-next-line no-console
+            console.log(
+              'No matching route found for path ',
+              path,
+              'among routes ',
+              routes
+            )
+            parentSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Not Found',
+            })
+            return new Response('Not Found', { status: 404 })
+          }
+
+          const [_, route] = matchingRoute
+
+          // Extract parameters from URL
+          const matches = path.match(route.pattern)?.slice(1) || []
+          // Get body for POST/PUT requests
+          let body = undefined
+          if (req.method === 'POST' || req.method === 'PUT') {
+            body = await req.json()
+          }
+          // Map URL parameters and body to tRPC input
+          const input = route.mapParams(matches, body)
+          // Create modified request with the correct tRPC procedure path
+          const newUrl = new URL(req.url)
+          newUrl.pathname = `/api/v1/trpc/${route.procedure}`
+
+          let newReq: Request
+          // If we have input, add it as a query parameter
+          if (input && req.method === 'GET') {
+            newUrl.searchParams.set(
+              'input',
+              JSON.stringify({ json: input })
+            )
+          }
+
+          if (
+            (input && req.method === 'POST') ||
+            req.method === 'PUT'
+          ) {
+            newReq = new Request(newUrl, {
+              headers: req.headers,
+              method: req.method,
+              body: JSON.stringify({
+                json: input,
+              }),
+            })
+          } else {
+            newReq = new Request(newUrl, {
+              headers: req.headers,
+              method: req.method,
+            })
+          }
+
+          // Execute the TRPC handler within our trace context
+          const response = await context.with(ctx, () =>
+            fetchRequestHandler({
+              endpoint: '/api/v1/trpc',
+              req: newReq,
+              router: appRouter,
+              createContext: createApiContext({
+                organizationId: req.unkey?.ownerId!,
+                environment: req.unkey?.environment as ApiEnvironment,
+              }) as unknown as FetchCreateContextFn<typeof appRouter>,
+            })
+          )
+
+          const responseJson: TRPCResponse = await response.json()
+          if (!responseJson.result) {
+            const errorMessage = parseErrorMessage(
+              responseJson.error.json.message
+            )
+
+            // Add explicit error logging
+            logger.error(`REST API Error: ${req.method} ${path}`, {
+              stack: responseJson.error.json.data.stack,
+              errorMessage,
+              code: responseJson.error.json.data.code,
+              path,
+              method: req.method,
+              status: 400,
+            })
+
+            return NextResponse.json(
+              {
+                error: errorMessage,
+                code: responseJson.error.json.data.code,
+              },
+              {
+                status: 400,
+              }
+            )
+          }
+          return NextResponse.json(responseJson.result.data.json)
+        } finally {
+          parentSpan.end()
+        }
       }
     )
-    if (!matchingRoute) {
-      // eslint-disable-next-line no-console
-      console.log(
-        'No matching route found for path ',
-        path,
-        'among routes ',
-        routes
-      )
-      return new Response('Not Found', { status: 404 })
-    }
-
-    const [_, route] = matchingRoute
-
-    // Extract parameters from URL
-    const matches = path.match(route.pattern)?.slice(1) || []
-    // Get body for POST/PUT requests
-    let body = undefined
-    if (method === 'POST' || method === 'PUT') {
-      body = await req.json()
-    }
-    // Map URL parameters and body to tRPC input
-    const input = route.mapParams(matches, body)
-    // Create modified request with the correct tRPC procedure path
-    const newUrl = new URL(req.url)
-    newUrl.pathname = `/api/v1/trpc/${route.procedure}`
-
-    let newReq: Request
-    // If we have input, add it as a query parameter
-    if (input && method === 'GET') {
-      newUrl.searchParams.set(
-        'input',
-        JSON.stringify({ json: input })
-      )
-    }
-
-    if ((input && method === 'POST') || method === 'PUT') {
-      newReq = new Request(newUrl, {
-        headers: req.headers,
-        method: method,
-        body: JSON.stringify({
-          json: input,
-        }),
-      })
-    } else {
-      newReq = new Request(newUrl, {
-        headers: req.headers,
-        method: method,
-      })
-    }
-
-    const response = await fetchRequestHandler({
-      endpoint: '/api/v1/trpc',
-      req: newReq,
-      router: appRouter,
-      createContext: createApiContext({
-        organizationId: req.unkey.ownerId!,
-        environment: req.unkey.environment as ApiEnvironment,
-      }) as unknown as FetchCreateContextFn<typeof appRouter>,
-    })
-    const responseJson: TRPCResponse = await response.json()
-    if (!responseJson.result) {
-      const errorMessage = parseErrorMessage(
-        responseJson.error.json.message
-      )
-      return NextResponse.json(
-        {
-          error: errorMessage,
-          code: responseJson.error.json.data.code,
-        },
-        {
-          status: 400,
-        }
-      )
-    }
-    return NextResponse.json(responseJson.result.data.json)
   }
 )
 

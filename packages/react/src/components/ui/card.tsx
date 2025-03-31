@@ -23,7 +23,7 @@ function CardHeader({
     <div
       data-slot="card-header"
       className={cn(
-        'flowglad-container/card-header flowglad-grid flowglad-auto-rows-min flowglad-grid-rows-[auto_auto] flowglad-items-start flowglad-gap-1.5 flowglad-px-6 flowglad-has-[data-slot=card-action]:grid-cols-[1fr_auto] flowglad-[.border-b]:pb-6',
+        'flowglad-container/card-header flowglad-grid flowglad-auto-rows-min flowglad-grid-rows-[auto_auto] flowglad-items-start flowglad-gap-1.5 flowglad-px-6 flowglad-has-[data-slot=card-action]:flowglad-grid-cols-[1fr_auto] [.flowglad-border-b]:flowglad-pb-6',
         className
       )}
       {...props}
@@ -100,7 +100,7 @@ function CardFooter({
     <div
       data-slot="card-footer"
       className={cn(
-        'flowglad-flex flowglad-items-center flowglad-px-6 flowglad-[.border-t]:pt-6',
+        'flowglad-flex flowglad-items-center flowglad-px-6 [.flowglad-border-t]:flowglad-pt-6',
         className
       )}
       {...props}

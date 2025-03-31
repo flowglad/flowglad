@@ -90,7 +90,7 @@ export const createOrganizationTransaction = async (
       /**
        * This is the default fee for non merchant of record organizations
        */
-      feePercentage: '1.00',
+      feePercentage: '0.65',
       onboardingStatus: BusinessOnboardingStatus.Unauthorized,
       stripeConnectContractType: StripeConnectContractType.Platform,
       defaultCurrency: defaultCurrencyForCountry(country),
