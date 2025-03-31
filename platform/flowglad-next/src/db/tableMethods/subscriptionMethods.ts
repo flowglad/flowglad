@@ -144,3 +144,14 @@ export const currentSubscriptionStatuses = [
 export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
   return currentSubscriptionStatuses.includes(status)
 }
+
+export const subscriptionWithCurrent = <
+  T extends Subscription.ClientRecord,
+>(
+  subscription: T
+): T & { current: boolean } => {
+  return {
+    ...subscription,
+    current: isSubscriptionCurrent(subscription.status),
+  }
+}

@@ -1,8 +1,8 @@
 'use server';
-import { createNextRouteHandler } from '@flowglad/nextjs/server';
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server';
 import { flowgladServer } from '@/utils/flowglad';
 
-const routeHandler = createNextRouteHandler(flowgladServer);
+const routeHandler = createAppRouterRouteHandler(flowgladServer);
 
 export const GET = routeHandler;
 

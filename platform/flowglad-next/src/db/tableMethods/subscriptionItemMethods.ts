@@ -30,6 +30,8 @@ import {
 } from '@/subscriptions/schemas'
 import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
+import { isSubscriptionCurrent } from './subscriptionMethods'
+import { SubscriptionStatus } from '@/types'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItems,
@@ -163,6 +165,9 @@ export const selectRichSubscriptions = async (
       if (!acc.has(subscriptionId)) {
         acc.set(subscriptionId, {
           ...subscriptionsSelectSchema.parse(row.subscription),
+          current: isSubscriptionCurrent(
+            row.subscription.status as SubscriptionStatus
+          ),
           subscriptionItems: [],
         })
       }
