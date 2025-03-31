@@ -14,16 +14,11 @@ import {
   BillingPeriodStatus,
   BillingRunStatus,
   IntervalUnit,
-  PaymentMethodType,
   SubscriptionStatus,
   PriceType,
 } from '@/types'
 import { Price } from '@/db/schema/prices'
-import {
-  insertSubscription,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
-import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { core } from '@/utils/core'
 

@@ -537,11 +537,9 @@ export const executeBillingRun = async (billingRunId: string) => {
     /**
      * Skip PDF generation in test mode
      */
-    if (!core.IS_TEST) {
-      await generateInvoicePdfTask.trigger({
-        invoiceId: invoice.id,
-      })
-    }
+    await generateInvoicePdfTask.trigger({
+      invoiceId: invoice.id,
+    })
     /**
      * If the total amount to charge is less than or equal to 0,
      * we can skip the charge attempt.
