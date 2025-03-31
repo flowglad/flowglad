@@ -13,6 +13,11 @@ import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
 import { FlowgladTheme } from './FlowgladTheme'
 
+export type FrontendCreateCheckoutSessionParams = z.infer<
+  typeof createCheckoutSessionSchema
+> & {
+  autoRedirect?: boolean
+}
 export type LoadedFlowgladContextValues =
   Flowglad.CustomerRetrieveBillingResponse & {
     loaded: true
@@ -23,9 +28,7 @@ export type LoadedFlowgladContextValues =
       subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
     }>
     createCheckoutSession: (
-      params: z.infer<typeof createCheckoutSessionSchema> & {
-        autoRedirect?: boolean
-      }
+      params: FrontendCreateCheckoutSessionParams
     ) => Promise<
       | {
           id: string
