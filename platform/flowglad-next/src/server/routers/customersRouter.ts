@@ -43,6 +43,7 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import {
   isSubscriptionCurrent,
   isSubscriptionInTerminalState,
+  subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import {
@@ -238,46 +239,47 @@ export const getCustomerBilling = protectedProcedure
       paymentMethods,
       currentSubscriptions,
       purchases,
+      subscriptions,
     } = await authenticatedTransaction(
       async ({ transaction }) => {
-        const customers = await selectCustomers(
+        const [customer] = await selectCustomers(
           { ...input, organizationId },
           transaction
         )
         const subscriptions = await selectRichSubscriptions(
-          { customerId: customers[0].id },
+          { customerId: customer.id },
           transaction
         )
         const catalog = await selectCatalogForCustomer(
-          customers[0],
+          customer,
           transaction
         )
         const invoices =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-            { customerId: customers[0].id },
+            { customerId: customer.id },
             transaction
           )
         const paymentMethods = await selectPaymentMethods(
-          { customerId: customers[0].id },
+          { customerId: customer.id },
           transaction
         )
         const purchases = await selectPurchases(
-          { customerId: customers[0].id },
+          { customerId: customer.id },
           transaction
         )
         const currentSubscriptions = subscriptions.filter((item) => {
           return isSubscriptionCurrent(item.status)
         })
         return {
-          customer: {
-            ...customers[0],
-            subscriptions,
-          },
+          customer,
           purchases,
           invoices,
           paymentMethods,
           catalog,
-          currentSubscriptions,
+          subscriptions: subscriptions.map(subscriptionWithCurrent),
+          currentSubscriptions: currentSubscriptions.map(
+            subscriptionWithCurrent
+          ),
         }
       },
       {
@@ -288,9 +290,11 @@ export const getCustomerBilling = protectedProcedure
       customer,
       invoices,
       paymentMethods,
-      currentSubscriptions,
+      currentSubscriptions: currentSubscriptions.map((item) =>
+        richSubscriptionClientSelectSchema.parse(item)
+      ),
       purchases,
-      subscriptions: customer.subscriptions,
+      subscriptions,
       catalog,
     }
   })

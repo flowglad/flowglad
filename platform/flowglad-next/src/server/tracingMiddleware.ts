@@ -10,9 +10,12 @@ export function createTracingMiddleware() {
   return (t: FlowgladTRPC) => {
     return t.middleware<TRPCContext>(
       async ({ path, type, next, getRawInput, ctx }) => {
+        const requestId = crypto.randomUUID().slice(0, 8) // Taking first 8 chars for brevity
         const rawInput = await getRawInput()
         const { user, apiKey, organizationId, environment } =
           ctx as TRPCContext
+
+        // This will automatically become a child span of any active parent span
         return tracer.startActiveSpan(
           `TRPC ${type} ${path}`,
           { kind: SpanKind.SERVER },
@@ -61,13 +64,21 @@ export function createTracingMiddleware() {
             }
 
             // Log request start
-            logger.info(`TRPC Request: ${type} ${path}`, {
-              type,
-              path,
-              has_input: rawInput !== undefined,
-              input: rawInput,
-              auth_type: apiKey ? 'api_key' : user ? 'user' : 'none',
-            })
+            logger.info(
+              `[${requestId}] 🟡 TRPC Request: ${type} ${path}`,
+              {
+                requestId,
+                type,
+                path,
+                has_input: rawInput !== undefined,
+                input: rawInput,
+                auth_type: apiKey
+                  ? 'api_key'
+                  : user
+                    ? 'user'
+                    : 'none',
+              }
+            )
 
             try {
               // Execute the operation
@@ -78,11 +89,15 @@ export function createTracingMiddleware() {
 
               // Log request end
               const duration = Date.now() - startTime
-              logger.info(`TRPC Success: ${type} ${path}`, {
-                type,
-                path,
-                duration_ms: duration,
-              })
+              logger.info(
+                `[${requestId}] 🟢 TRPC Success: ${type} ${path}`,
+                {
+                  requestId,
+                  type,
+                  path,
+                  duration_ms: duration,
+                }
+              )
 
               return result
             } catch (error) {
@@ -97,7 +112,7 @@ export function createTracingMiddleware() {
                   ? error.message
                   : String(error)
 
-              // Set error attributes on span
+              // Enhanced error attributes
               span.setStatus({
                 code: SpanStatusCode.ERROR,
                 message: errorMessage,
@@ -110,15 +125,39 @@ export function createTracingMiddleware() {
                     ? error.name
                     : 'Unknown',
                 'error.message': errorMessage,
+                'error.code': errorCode,
+                'error.stack':
+                  error instanceof Error ? error.stack : undefined,
+                'error.cause':
+                  error instanceof Error
+                    ? String(error.cause)
+                    : undefined,
+                'error.details': isTRPCError
+                  ? JSON.stringify(error.cause)
+                  : undefined,
+              })
+
+              // Record error event with additional context
+              span.addEvent('error', {
+                'error.object': JSON.stringify({
+                  message: errorMessage,
+                  code: errorCode,
+                  stack:
+                    error instanceof Error ? error.stack : undefined,
+                  timestamp: new Date().toISOString(),
+                }),
               })
 
               // Log the error
               const duration = Date.now() - startTime
               logger.error(
-                error instanceof Error
-                  ? error
-                  : new Error(String(error)),
+                `[${requestId}] 🔴 TRPC Error: ${type} ${path}`,
                 {
+                  error:
+                    error instanceof Error
+                      ? error
+                      : new Error(String(error)),
+                  requestId,
                   type,
                   path,
                   error_code: errorCode,

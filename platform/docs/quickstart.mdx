@@ -117,10 +117,10 @@ Next, set up your Flowglad API route at `/api/flowglad/[...path]`. Your app will
 ```ts Next.js
 // /api/flowglad/[...path]/route.ts
 'use server';
-import { createNextRouteHandler } from '@flowglad/nextjs/server';
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server';
 import { flowgladServer } from '@/app/flowglad';
 
-const routeHandler = createNextRouteHandler(flowgladServer);
+const routeHandler = createAppRouterRouteHandler(flowgladServer);
 
 export { routeHandler as GET, routeHandler as POST }
 ```

@@ -40,7 +40,7 @@ export const organizations = pgTable(
       columnName: 'onboarding_status',
       enumBase: BusinessOnboardingStatus,
     }),
-    feePercentage: text('fee_percentage').notNull().default('3.00'),
+    feePercentage: text('fee_percentage').notNull().default('0.65'),
     defaultCurrency: pgEnumColumn({
       enumName: 'CurrencyCode',
       columnName: 'default_currency',
