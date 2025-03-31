@@ -13,7 +13,7 @@ import PricingCellView from '@/components/PricingCellView'
 
 interface ProductDetailsOverviewProps {
   product: Product.ClientRecord
-  prices: Price.Record[]
+  prices: Price.ClientRecord[]
 }
 
 const ProductDetailsRow = ({

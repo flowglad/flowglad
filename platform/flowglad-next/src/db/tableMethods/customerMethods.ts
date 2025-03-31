@@ -189,3 +189,14 @@ export const selectCustomersPaginated = createPaginatedSelectFunction(
   customersTable,
   config
 )
+
+export const bulkInsertOrDoNothingCustomersByStripeCustomerId = (
+  customerInserts: Customer.Insert[],
+  transaction: DbTransaction
+) => {
+  return bulkInsertCustomersOrDoNothing(
+    customerInserts,
+    [customersTable.stripeCustomerId],
+    transaction
+  )
+}

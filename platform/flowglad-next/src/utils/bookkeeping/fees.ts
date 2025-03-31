@@ -49,7 +49,7 @@ export const calculatePriceBaseAmount = ({
   invoice,
   purchase,
 }: {
-  price: Price.Record
+  price: Price.ClientRecord
   invoice?: InvoiceWithLineItems | null
   purchase?: Purchase.ClientRecord | null
 }) => {

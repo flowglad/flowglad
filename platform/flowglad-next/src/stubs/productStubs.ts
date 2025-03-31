@@ -14,4 +14,5 @@ export const dummyProduct: Product.Record = {
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
   catalogId: 'catalog_111____',
+  externalId: null,
 }

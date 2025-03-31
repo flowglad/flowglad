@@ -5,6 +5,7 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
   Subscription,
@@ -143,4 +144,18 @@ export const currentSubscriptionStatuses = [
 
 export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
   return currentSubscriptionStatuses.includes(status)
+}
+
+const bulkInsertOrDoNothingSubscriptions =
+  createBulkInsertOrDoNothingFunction(subscriptions, config)
+
+export const bulkInsertOrDoNothingSubscriptionsByExternalId = (
+  subscriptionInserts: Subscription.Insert[],
+  transaction: DbTransaction
+) => {
+  return bulkInsertOrDoNothingSubscriptions(
+    subscriptionInserts,
+    [subscriptions.externalId, subscriptions.organizationId],
+    transaction
+  )
 }

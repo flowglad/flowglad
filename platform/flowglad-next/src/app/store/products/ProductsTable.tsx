@@ -33,7 +33,7 @@ type Props = {
 }
 
 interface ProductRow {
-  prices: Price.Record[]
+  prices: Price.ClientRecord[]
   product: Product.ClientRecord
   catalog?: Catalog.ClientRecord
 }

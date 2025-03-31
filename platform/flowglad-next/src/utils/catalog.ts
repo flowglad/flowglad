@@ -16,7 +16,11 @@ import {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
-import { Price, pricesInsertSchema } from '@/db/schema/prices'
+import {
+  Price,
+  pricesInsertSchema,
+  ProductWithPrices,
+} from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Product } from '@/db/schema/products'
 import {
@@ -57,6 +61,7 @@ export const createProductTransaction = async (
       active: true,
       organizationId,
       livemode,
+      externalId: null,
     },
     transaction
   )
@@ -69,6 +74,7 @@ export const createProductTransaction = async (
           productId: createdProduct.id,
           livemode,
           currency: defaultCurrency,
+          externalId: null,
         },
         transaction
       )
@@ -132,7 +138,7 @@ export const cloneCatalogTransaction = async (
       },
       transaction
     )
-  const products: Product.Record[] = productsWithPrices
+  const products = productsWithPrices as ProductWithPrices[]
   // Create a map of existing product id => new product insert
   const productInsertMap = new Map<string, Product.Insert>(
     products.map((product) => [
@@ -140,6 +146,7 @@ export const cloneCatalogTransaction = async (
       omit(['id'], {
         ...product,
         catalogId: newCatalog.id,
+        externalId: null,
       }),
     ])
   )
@@ -154,6 +161,7 @@ export const cloneCatalogTransaction = async (
       prices.map((price) => {
         return omit(['id'], {
           ...price,
+          externalId: null,
         })
       }),
     ])

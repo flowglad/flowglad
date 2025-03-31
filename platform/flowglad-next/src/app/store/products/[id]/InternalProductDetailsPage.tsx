@@ -10,8 +10,8 @@ import { Product } from '@/db/schema/products'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 
 export type InternalProductDetailsPageProps = {
-  product: Product.Record
-  prices: Price.Record[]
+  product: Product.ClientRecord
+  prices: Price.ClientRecord[]
 }
 
 function InternalProductDetailsPage(

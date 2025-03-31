@@ -7,7 +7,10 @@ import { PaymentMethods } from './payment-methods'
 import { CustomerBillingDetails } from './customer-billing-details'
 import { CurrentSubscriptionCard } from './current-subscription-card'
 import { PricingTable } from './pricing-table'
-import { useBilling } from '../FlowgladContext'
+import {
+  FrontendCreateCheckoutSessionParams,
+  useBilling,
+} from '../FlowgladContext'
 import { useCallback } from 'react'
 import { CreateCheckoutSessionParams } from '@flowglad/shared'
 
@@ -40,7 +43,7 @@ const CurrentSubscriptionOrPricingTable = ({
 }) => {
   const billing = useBilling()
   const createCheckoutSession = useCallback(
-    (params: CreateCheckoutSessionParams) => {
+    (params: FrontendCreateCheckoutSessionParams) => {
       const { createCheckoutSession } = billing
       if (!createCheckoutSession) {
         return
@@ -81,6 +84,7 @@ const CurrentSubscriptionOrPricingTable = ({
             successUrl: window.location.href,
             cancelUrl: window.location.href,
             quantity: 1,
+            autoRedirect: true,
           })
         },
         prices: product.prices.map((price) => ({

@@ -17,4 +17,5 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   active: true,
   livemode: false,
   currency: CurrencyCode.USD,
+  externalId: null,
 }

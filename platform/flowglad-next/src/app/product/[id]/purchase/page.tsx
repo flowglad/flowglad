@@ -17,6 +17,7 @@ import {
 import core from '@/utils/core'
 import { findOrCreateCheckoutSession } from '@/utils/checkoutSessionState'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
+import { Price } from '@/db/schema/prices'
 
 interface PurchasePageProps {
   params: Promise<{
@@ -57,7 +58,7 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
       {
         productId: product.id,
         organizationId: organization.id,
-        price: defaultPrice,
+        price: defaultPrice as Price.Record,
         type: CheckoutSessionType.Product,
       },
       transaction

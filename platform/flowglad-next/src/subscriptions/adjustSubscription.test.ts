@@ -57,6 +57,7 @@ describe('adjustSubscription Integration Tests', async () => {
     | 'updatedAt'
     | 'metadata'
     | 'addedDate'
+    | 'externalId'
   >
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -105,6 +106,7 @@ describe('adjustSubscription Integration Tests', async () => {
       updatedAt: new Date(),
       metadata: null,
       addedDate: new Date(),
+      externalId: null,
     }
   })
 
@@ -225,6 +227,7 @@ describe('adjustSubscription Integration Tests', async () => {
               quantity: 3,
               unitPrice: 300,
               livemode: subscription.livemode,
+              externalId: null,
             },
           ]
 
@@ -421,6 +424,8 @@ describe('adjustSubscription Integration Tests', async () => {
             name: 'Item 1',
             quantity: 1,
             unitPrice: 100,
+            externalId: null,
+            priceId: price.id,
           },
           {
             name: 'Item 3',
@@ -430,7 +435,8 @@ describe('adjustSubscription Integration Tests', async () => {
             livemode: subscription.livemode,
             metadata: null,
             addedDate: new Date(),
-            priceId: subscription.priceId,
+            priceId: price.id,
+            externalId: null,
           },
         ]
 
@@ -551,7 +557,8 @@ describe('adjustSubscription Integration Tests', async () => {
             metadata: null,
             addedDate: new Date(),
             subscriptionId: subscription.id,
-            priceId: subscription.priceId,
+            priceId: price.id,
+            externalId: null,
           },
         ]
 

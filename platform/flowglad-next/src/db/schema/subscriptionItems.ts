@@ -12,6 +12,7 @@ import {
   notNullStringForeignKey,
   constructIndex,
   livemodePolicy,
+  constructUniqueIndex,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -33,6 +34,11 @@ const columns = {
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
   metadata: jsonb('metadata'),
+  /**
+   * A hidden column, used primarily for managing migrations from
+   * from external processors onto Flowglad
+   */
+  externalId: text('external_id'),
 }
 
 export const subscriptionItems = pgTable(
@@ -42,6 +48,7 @@ export const subscriptionItems = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.priceId]),
+      constructUniqueIndex(TABLE_NAME, [table.externalId]),
       pgPolicy(
         'Enable actions for own organizations via subscriptions',
         {
