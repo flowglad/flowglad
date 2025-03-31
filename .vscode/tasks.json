@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "testName",
+      "type": "promptString",
+      "description": "Enter the test name to debug (e.g. 'Process payment intent status updated')"
+    }
+  ],
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "test:debug",
+      "label": "npm: test:debug",
+      "detail": "Debug a single test case"
+    }
+  ]
+} 

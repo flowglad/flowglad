@@ -9,7 +9,6 @@ import {
 import { DbTransaction } from '@/db/types'
 import {
   createStripeCustomer,
-  getStripeCharge,
   stripeIdFromObjectOrId,
   updatePaymentIntent,
 } from '@/utils/stripe'

@@ -504,18 +504,13 @@ describe('Process payment intent status updated', async () => {
       expect(result.refunded).toBe(false)
     })
     it('marks the invoice as paid when the charge is successful and the invoice total is met', async () => {
-      const invoice = await setupInvoice({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-      })
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
         customerId: customer.id,
       })
       const fakeCharge: any = {
-        id: 'ch_paid',
-        payment_intent: 'pi_paid',
+        id: `ch_paid_${core.nanoid()}`,
+        payment_intent: `pi_paid_${core.nanoid()}`,
         created: new Date().getTime() / 1000,
         amount: 5000,
         status: 'succeeded',

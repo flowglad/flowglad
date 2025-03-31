@@ -684,7 +684,7 @@ describe('fees.ts', () => {
 
       // Create a payment from last month
       const lastMonth = new Date()
-      lastMonth.setMonth(lastMonth.getMonth() - 1)
+      lastMonth.setMonth(lastMonth.getMonth() - 2)
 
       await adminTransaction(async ({ transaction }) => {
         return insertPayment(

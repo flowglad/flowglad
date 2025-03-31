@@ -21,7 +21,7 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { createBillingPeriodAndItems } from './billingPeriodHelpers'
 import { createBillingRun } from './billingRunHelpers'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
-import { isNil } from '@/utils/core'
+import core, { isNil } from '@/utils/core'
 import {
   selectBillingPeriodAndItemsByBillingPeriodWhere,
   selectBillingPeriodAndItemsForDate,
@@ -284,7 +284,8 @@ export const createSubscriptionWorkflow = async (
     },
     transaction
   )
-  if (subscription.runBillingAtPeriodStart) {
+
+  if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
     await attemptBillingRunTask.trigger({
       billingRun,
     })

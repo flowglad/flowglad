@@ -28,10 +28,16 @@ export default defineConfig(({ mode }) => {
           inline: [/@stackframe\/stack-shared/],
         },
       },
+      mockReset: true,
+      clearMocks: true,
     },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@trigger': path.resolve(
+          __dirname,
+          './src/__mocks__/@trigger'
+        ),
       },
     },
   }
