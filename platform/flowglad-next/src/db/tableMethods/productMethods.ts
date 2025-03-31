@@ -8,6 +8,7 @@ import {
   ORMMethodCreatorConfig,
   createUpdateFunction,
   createPaginatedSelectFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
   Product,
@@ -67,4 +68,18 @@ export const bulkInsertProducts = async (
     .values(productInserts)
     .returning()
   return results.map((result) => productsSelectSchema.parse(result))
+}
+
+export const bulkInsertOrDoNothingProducts =
+  createBulkInsertOrDoNothingFunction(products, config)
+
+export const bulkInsertOrDoNothingProductsByExternalId = (
+  productInserts: Product.Insert[],
+  transaction: DbTransaction
+) => {
+  return bulkInsertOrDoNothingProducts(
+    productInserts,
+    [products.externalId],
+    transaction
+  )
 }

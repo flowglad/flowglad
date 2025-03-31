@@ -16,6 +16,7 @@ import {
   whereClauseFromObject,
   createPaginatedSelectFunction,
   SelectConditions,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
 import { and, asc, eq, SQLWrapper } from 'drizzle-orm'
@@ -308,4 +309,18 @@ export const isPriceTypeSubscription = (
   priceType: Price.Record['type']
 ) => {
   return subscriptionPriceTypes.includes(priceType)
+}
+
+const bulkInsertOrDoNothingPrices =
+  createBulkInsertOrDoNothingFunction(prices, config)
+
+export const bulkInsertOrDoNothingPricesByExternalId = (
+  priceInserts: Price.Insert[],
+  transaction: DbTransaction
+) => {
+  return bulkInsertOrDoNothingPrices(
+    priceInserts,
+    [prices.externalId, prices.productId],
+    transaction
+  )
 }

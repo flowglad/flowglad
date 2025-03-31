@@ -104,6 +104,7 @@ export const setupOrg = async () => {
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
         catalogId: catalog.id,
+        externalId: null,
       },
       transaction
     )
@@ -122,6 +123,7 @@ export const setupOrg = async () => {
         setupFeeAmount: 0,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
+        externalId: null,
       },
       transaction
     )
@@ -243,6 +245,7 @@ export const setupSubscription = async (params: {
         name: null,
         runBillingAtPeriodStart:
           price.type === PriceType.Subscription ? true : false,
+        externalId: null,
       },
       transaction
     )
@@ -550,9 +553,10 @@ export const setupSubscriptionItem = async ({
         quantity,
         unitPrice,
         livemode: subscription.livemode,
-        priceId: priceId ?? subscription.priceId,
+        priceId: priceId ?? subscription.priceId!,
         addedDate: addedDate ?? new Date(),
         metadata: metadata ?? {},
+        externalId: null,
       },
       transaction
     )

@@ -102,6 +102,7 @@ export const insertSubscriptionAndItems = async (
     interval,
     intervalCount,
     stripeSetupIntentId,
+    externalId: null,
   }
 
   const subscription = await insertSubscription(
@@ -118,6 +119,7 @@ export const insertSubscriptionAndItems = async (
     livemode,
     unitPrice: price.unitPrice,
     metadata: null,
+    externalId: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(
