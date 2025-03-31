@@ -1492,7 +1492,7 @@ export const defaultCurrencyForCountry = (
   }
 }
 
-export const getStripeOAuthUrl = async () => {
+export const getStripeOAuthUrl = () => {
   return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write`
 }
 
