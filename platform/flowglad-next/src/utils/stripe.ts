@@ -1491,3 +1491,16 @@ export const defaultCurrencyForCountry = (
       return CurrencyCode.USD
   }
 }
+
+export const getStripeOAuthUrl = async () => {
+  return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${core.envVariable('STRIPE_CONNECT_CLIENT_ID')}&scope=read_write`
+}
+
+export const completeStripeOAuthFlow = async (params: {
+  code: string
+}) => {
+  return stripe(true).oauth.token({
+    grant_type: 'authorization_code',
+    code: params.code,
+  })
+}
