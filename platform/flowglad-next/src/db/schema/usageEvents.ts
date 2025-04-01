@@ -48,7 +48,6 @@ export const usageEvents = pgTable(
     amount: integer('amount').notNull(),
     usageDate: timestamp('usage_date').notNull().defaultNow(),
     transactionId: text('transaction_id'),
-    subjectId: text('subject_id'),
     priceId: notNullStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
   },
@@ -63,7 +62,6 @@ export const usageEvents = pgTable(
         table.transactionId,
         table.usageMeterId,
       ]),
-      constructIndex(TABLE_NAME, [table.subjectId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
