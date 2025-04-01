@@ -67,8 +67,8 @@ importers:
   packages/express:
     dependencies:
       '@flowglad/node':
-        specifier: 0.17.0
-        version: 0.17.0
+        specifier: 0.18.0
+        version: 0.18.0
       '@flowglad/react':
         specifier: workspace:*
         version: link:../react
@@ -98,8 +98,8 @@ importers:
   packages/nextjs:
     dependencies:
       '@flowglad/node':
-        specifier: 0.17.0
-        version: 0.17.0
+        specifier: 0.18.0
+        version: 0.18.0
       '@flowglad/react':
         specifier: workspace:*
         version: link:../react
@@ -132,8 +132,8 @@ importers:
   packages/react:
     dependencies:
       '@flowglad/node':
-        specifier: 0.17.0
-        version: 0.17.0
+        specifier: 0.18.0
+        version: 0.18.0
       '@flowglad/shared':
         specifier: workspace:*
         version: link:../shared
@@ -208,8 +208,8 @@ importers:
   packages/server:
     dependencies:
       '@flowglad/node':
-        specifier: 0.17.0
-        version: 0.17.0
+        specifier: 0.18.0
+        version: 0.18.0
       '@flowglad/shared':
         specifier: workspace:*
         version: link:../shared
@@ -246,8 +246,8 @@ importers:
   packages/types:
     dependencies:
       '@flowglad/node':
-        specifier: 0.16.1
-        version: 0.16.1
+        specifier: 0.18.0
+        version: 0.18.0
     devDependencies:
       eslint:
         specifier: catalog:repo
@@ -678,11 +678,8 @@ packages:
   '@flowglad/node@0.14.0':
     resolution: {integrity: sha512-gbvCjpAu2FNpgJ2DPwlTX8tQinKcjiTpnTyxMCFEgV0nRChJB5wR7nkgmCS/Au/SC/Nm8EBAf335WM4FkAlmlQ==}
 
-  '@flowglad/node@0.16.1':
-    resolution: {integrity: sha512-IG2wLbWIBwck5SjBbQobZZcjPV+a6WmGEWai6jY61B5CjkAuFULu3tbx91uFKisGSaC5XvUSaIZRl/JTB9EZAQ==}
-
-  '@flowglad/node@0.17.0':
-    resolution: {integrity: sha512-nqLoBRlchWqatDNrsPHsWocyNMgHFCJs10AhD1w9yW3801jMaXuIdeiVzkreI8qJl7jELCmI6oos28bnmmDZ0w==}
+  '@flowglad/node@0.18.0':
+    resolution: {integrity: sha512-1Y5/jNL4UvAQRa+gV7I/1GtnDMQujUM5ctEiznPnw4ZtwRfpUFr413bn6IHilgAUyjDpWEEwU3aXsddbKQcBQQ==}
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -3506,9 +3503,7 @@ snapshots:
 
   '@flowglad/node@0.14.0': {}
 
-  '@flowglad/node@0.16.1': {}
-
-  '@flowglad/node@0.17.0': {}
+  '@flowglad/node@0.18.0': {}
 
   '@humanwhocodes/config-array@0.11.14':
     dependencies:

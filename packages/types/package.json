@@ -19,7 +19,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@flowglad/node": "0.16.1"
+    "@flowglad/node": "0.18.0"
   },
   "devDependencies": {
     "eslint": "catalog:repo",
