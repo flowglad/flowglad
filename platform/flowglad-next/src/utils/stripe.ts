@@ -3,11 +3,8 @@ import {
   BusinessOnboardingStatus,
   CountryCode,
   CurrencyCode,
-  DiscountAmountType,
-  DiscountDuration,
   Nullish,
   PaymentMethodType,
-  PriceType,
   StripeConnectContractType,
 } from '@/types'
 import core from './core'
@@ -20,7 +17,6 @@ import { Invoice } from '@/db/schema/invoices'
 import { BillingAddress } from '@/db/schema/organizations'
 import { Purchase } from '@/db/schema/purchases'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Discount } from '@/db/schema/discounts'
 import { calculateTotalFeeAmount } from './bookkeeping/fees'
 import { calculateTotalDueAmount } from './bookkeeping/fees'
 import { FeeCalculation } from '@/db/schema/feeCalculations'

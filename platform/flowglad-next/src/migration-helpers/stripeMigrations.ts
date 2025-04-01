@@ -1,5 +1,7 @@
 import { Catalog } from '@/db/schema/catalogs'
 import { Customer } from '@/db/schema/customers'
+import { BillingAddress } from '@/db/schema/organizations'
+import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
@@ -7,6 +9,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import {
   CurrencyCode,
   IntervalUnit,
+  PaymentMethodType,
   PriceType,
   SubscriptionStatus,
 } from '@/types'
@@ -33,13 +36,17 @@ export const stripeCustomerToCustomerInsert = (
     email: stripeCustomer.email!,
     externalId: stripeCustomer.id,
     billingAddress: stripeCustomer.address
-      ? {
-          city: stripeCustomer.address.city,
-          country: stripeCustomer.address.country,
-          line1: stripeCustomer.address.line1,
-          line2: stripeCustomer.address.line2,
-          postal_code: stripeCustomer.address.postal_code,
-        }
+      ? ({
+          name: stripeCustomer.name ?? stripeCustomer.email ?? '',
+          address: {
+            city: stripeCustomer.address.city,
+            country: stripeCustomer.address.country,
+            line1: stripeCustomer.address.line1,
+            line2: stripeCustomer.address.line2,
+            postal_code: stripeCustomer.address.postal_code,
+            state: stripeCustomer.address.state,
+          },
+        } as BillingAddress)
       : undefined,
   }
 }
@@ -100,7 +107,7 @@ export const stripePriceToPriceInsert = (
     productId: product.id,
     externalId: stripePrice.id,
     livemode: stripePrice.livemode,
-    currency: stripePrice.currency as CurrencyCode,
+    currency: stripePrice.currency.toUpperCase() as CurrencyCode,
     unitPrice: stripePrice.unit_amount ?? 0,
     active: stripePrice.active,
     name: stripePrice.nickname ?? '',

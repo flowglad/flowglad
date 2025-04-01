@@ -61,7 +61,7 @@ export default async function runScript(
   loadEnvConfig(projectDir)
 
   const client = postgres(core.envVariable('DATABASE_URL'))
-  const db = drizzle(client, { logger: true })
+  const db = drizzle(client, { logger: false })
 
   try {
     await scriptMethod(db)
