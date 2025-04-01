@@ -10,7 +10,6 @@ import core from '@/utils/core'
 import { Price, ProductWithPrices } from '@/db/schema/prices'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
-import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
 import DeleteProductModal from '@/components/forms/DeleteProductModal'
 import EditProductModal from '@/components/forms/EditProductModal'
 import Image from 'next/image'
@@ -69,23 +68,9 @@ const MoreMenuCell = ({
       label: 'Create price',
       handler: () => setIsCreatePriceOpen(true),
     })
-    items.push({
-      label: 'Archive product',
-      handler: () => setIsArchiveOpen(true),
-    })
-  } else {
-    items.push({
-      label: 'Unarchive product',
-      handler: () => setIsArchiveOpen(true),
-    })
   }
   return (
     <>
-      <ArchiveProductModal
-        isOpen={isArchiveOpen}
-        setIsOpen={setIsArchiveOpen}
-        product={product}
-      />
       <EditProductModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}

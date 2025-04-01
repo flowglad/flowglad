@@ -124,6 +124,7 @@ export const setupOrg = async () => {
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
         externalId: null,
+        usageMeterId: null,
       },
       transaction
     )

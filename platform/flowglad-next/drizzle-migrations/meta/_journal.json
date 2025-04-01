@@ -1331,6 +1331,20 @@
       "when": 1743364743559,
       "tag": "0189_purple_wolfsbane",
       "breakpoints": true
+    },
+    {
+      "idx": 190,
+      "version": "7",
+      "when": 1743525928224,
+      "tag": "0190_pale_speed",
+      "breakpoints": true
+    },
+    {
+      "idx": 191,
+      "version": "7",
+      "when": 1743526723953,
+      "tag": "0191_green_sugar_man",
+      "breakpoints": true
     }
   ]
 }

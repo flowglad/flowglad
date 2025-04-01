@@ -16,6 +16,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  nullableStringForeignKey,
 } from '@/db/tableUtils'
 import {
   products,
@@ -28,6 +29,7 @@ import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { catalogsClientSelectSchema } from './catalogs'
+import { usageMeters } from './usageMeters'
 
 const readOnlyColumns = {
   livemode: true,
@@ -82,8 +84,19 @@ const columns = {
    * from external processors onto Flowglad
    */
   externalId: text('external_id'),
+  usageMeterId: nullableStringForeignKey(
+    'usage_meter_id',
+    usageMeters
+  ),
 }
 
+const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL OR "usage_meter_id" IN (
+  SELECT "id" FROM "usage_meters" 
+  WHERE "usage_meters"."organization_id" = (
+    SELECT "organization_id" FROM "products" 
+    WHERE "products"."id" = "product_id"
+  )
+)`
 export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
   return [
     constructIndex(PRICES_TABLE_NAME, [table.type]),
@@ -92,6 +105,25 @@ export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
       table.externalId,
       table.productId,
     ]),
+    constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
+    pgPolicy(
+      'On insert, ensure usage meter belongs to same organization as product',
+      {
+        as: 'permissive',
+        to: 'authenticated',
+        for: 'insert',
+        withCheck: usageMeterBelongsToSameOrganization,
+      }
+    ),
+    pgPolicy(
+      'On update, ensure usage meter belongs to same organization as product',
+      {
+        as: 'permissive',
+        to: 'authenticated',
+        for: 'update',
+        withCheck: usageMeterBelongsToSameOrganization,
+      }
+    ),
     pgPolicy('Enable all for self organizations via products', {
       as: 'permissive',
       to: 'authenticated',
@@ -139,6 +171,11 @@ const subscriptionPriceColumns = {
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
   trialPeriodDays: core.safeZodNullOrUndefined,
+  usageMeterId: z
+    .string()
+    .describe(
+      'The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.'
+    ),
   type: z.literal(PriceType.Usage),
 }
 

@@ -4,6 +4,7 @@ import {
   pgPolicy,
   text,
   timestamp,
+  jsonb,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
@@ -21,8 +22,11 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
+import { prices } from './prices'
 
 const TABLE_NAME = 'usage_events'
+
+const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
 
 export const usageEvents = pgTable(
   TABLE_NAME,
@@ -44,6 +48,8 @@ export const usageEvents = pgTable(
     amount: integer('amount').notNull(),
     usageDate: timestamp('usage_date').notNull().defaultNow(),
     transactionId: text('transaction_id'),
+    priceId: notNullStringForeignKey('price_id', prices),
+    properties: jsonb('properties'),
   },
   (table) => {
     return [
@@ -51,6 +57,7 @@ export const usageEvents = pgTable(
       constructIndex(TABLE_NAME, [table.usageMeterId]),
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
+      constructIndex(TABLE_NAME, [table.priceId]),
       constructUniqueIndex(TABLE_NAME, [
         table.transactionId,
         table.usageMeterId,
@@ -61,6 +68,24 @@ export const usageEvents = pgTable(
         for: 'all',
         using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
+      pgPolicy(
+        'On insert, only allow usage events for prices with matching usage meter',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'insert',
+          withCheck: usageEventPriceMustMatchUsageMeter,
+        }
+      ),
+      pgPolicy(
+        'On update, only allow usage events for prices with matching usage meter',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'update',
+          using: usageEventPriceMustMatchUsageMeter,
+        }
+      ),
       livemodePolicy(),
     ]
   }
@@ -82,6 +107,11 @@ const columnRefinements = {
     .string()
     .describe(
       'A unique identifier for the transaction. This is used to prevent duplicate usage events from being created.'
+    ),
+  properties: z
+    .record(z.string(), z.unknown())
+    .describe(
+      'Properties for the usage event. Only required when using the "count_distinct_properties" aggregation type.'
     ),
 }
 
