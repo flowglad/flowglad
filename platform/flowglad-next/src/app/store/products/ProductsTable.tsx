@@ -71,11 +71,6 @@ const MoreMenuCell = ({
   }
   return (
     <>
-      <ArchiveProductModal
-        isOpen={isArchiveOpen}
-        setIsOpen={setIsArchiveOpen}
-        product={product}
-      />
       <EditProductModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
