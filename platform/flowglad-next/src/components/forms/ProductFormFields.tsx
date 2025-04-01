@@ -23,7 +23,6 @@ export const ProductFormFields = ({
     watch,
     control,
   } = useFormContext<CreateProductSchema>()
-  console.log('errors', errors)
 
   const product = watch('product')
   return (

@@ -6,7 +6,6 @@ import {
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
-import core from './core'
 import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
 import { Customer } from '@/db/schema/customers'
