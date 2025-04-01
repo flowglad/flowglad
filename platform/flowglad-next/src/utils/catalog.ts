@@ -26,7 +26,7 @@ import { Product } from '@/db/schema/products'
 import {
   insertCatalog,
   selectCatalogById,
-  selectCatalogsWithProductsByCatalogWhere,
+  selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
 import { CloneCatalogInput } from '@/db/schema/catalogs'
 
@@ -206,7 +206,7 @@ export const cloneCatalogTransaction = async (
 
   // Return the newly created catalog with products and prices
   const [newCatalogWithProducts] =
-    await selectCatalogsWithProductsByCatalogWhere(
+    await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
       { id: newCatalog.id },
       transaction
     )

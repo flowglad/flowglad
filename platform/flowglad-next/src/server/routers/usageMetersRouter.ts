@@ -1,8 +1,4 @@
-import {
-  featureFlaggedProcedure,
-  router,
-  usageProcedure,
-} from '../trpc'
+import { router, usageProcedure } from '../trpc'
 import {
   editUsageMeterSchema,
   usageMeterPaginatedListSchema,
@@ -17,12 +13,8 @@ import {
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { usageMetersClientSelectSchema } from '@/db/schema/usageMeters'
 
-import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import {
-  insertUsageMeter,
-  selectUsageMeters,
-} from '@/db/tableMethods/usageMeterMethods'
+import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'

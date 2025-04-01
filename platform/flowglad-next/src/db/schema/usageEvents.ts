@@ -47,7 +47,7 @@ export const usageEvents = pgTable(
     ),
     amount: integer('amount').notNull(),
     usageDate: timestamp('usage_date').notNull().defaultNow(),
-    transactionId: text('transaction_id'),
+    transactionId: text('transaction_id').notNull(),
     priceId: notNullStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
   },

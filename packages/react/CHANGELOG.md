@@ -1,5 +1,16 @@
 # @flowglad/react
 
+## 0.9.0
+
+### Minor Changes
+
+- Add usage events
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/shared@0.9.0
+
 ## 0.8.13
 
 ### Patch Changes
