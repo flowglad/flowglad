@@ -732,3 +732,8 @@ export enum CheckoutSessionType {
 export enum FeatureFlag {
   Usage = 'usage',
 }
+
+export enum UsageMeterAggregationType {
+  Sum = 'sum',
+  CountDistinctProperties = 'count_distinct_properties',
+}
