@@ -1,4 +1,10 @@
-import { text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
+import {
+  text,
+  pgTable,
+  pgPolicy,
+  jsonb,
+  pgEnum,
+} from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import {
@@ -10,10 +16,11 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   constructUniqueIndex,
+  pgEnumColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
-import { Catalog } from '@/db/schema/catalogs'
+import { UsageMeterAggregationType } from '@/types'
 
 const TABLE_NAME = 'usage_meters'
 
@@ -28,6 +35,13 @@ export const usageMeters = pgTable(
     name: text('name').notNull(),
     catalogId: text('catalog_id').notNull(),
     productId: text('product_id').notNull(),
+    aggregationType: pgEnumColumn({
+      enumName: 'UsageMeterAggregationType',
+      columnName: 'aggregation_type',
+      enumBase: UsageMeterAggregationType,
+    })
+      .notNull()
+      .default(UsageMeterAggregationType.Sum),
   },
   (table) => {
     return [
@@ -49,7 +63,13 @@ export const usageMeters = pgTable(
   }
 ).enableRLS()
 
-const columnRefinements = {}
+const columnRefinements = {
+  aggregationType: z
+    .nativeEnum(UsageMeterAggregationType)
+    .describe(
+      'The type of aggregation to perform on the usage meter. Defaults to "sum", which aggregates all the usage event amounts for the billing period. "count_distinct_properties" counts the number of distinct properties in the billing period for a given meter.'
+    ),
+}
 
 export const usageMetersInsertSchema = enhancedCreateInsertSchema(
   usageMeters,

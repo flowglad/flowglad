@@ -4,6 +4,7 @@ import {
   pgPolicy,
   text,
   timestamp,
+  jsonb,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
@@ -49,6 +50,7 @@ export const usageEvents = pgTable(
     transactionId: text('transaction_id'),
     subjectId: text('subject_id'),
     priceId: notNullStringForeignKey('price_id', prices),
+    properties: jsonb('properties'),
   },
   (table) => {
     return [
@@ -108,10 +110,10 @@ const columnRefinements = {
     .describe(
       'A unique identifier for the transaction. This is used to prevent duplicate usage events from being created.'
     ),
-  subjectId: z
-    .string()
+  properties: z
+    .record(z.string(), z.unknown())
     .describe(
-      'An externally defined identifier for the subject that the usage belongs to, e.g. a user within a customer organization. Can be used for aggregation on the meter, and also for segmenting usage behavior within organizations.'
+      'Properties for the usage event. Only required when using the "count_distinct_properties" aggregation type.'
     ),
 }
 

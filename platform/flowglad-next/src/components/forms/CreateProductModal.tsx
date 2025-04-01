@@ -25,6 +25,7 @@ const defaultPrice: Price.ClientSinglePaymentInsert = {
   trialPeriodDays: null,
   setupFeeAmount: null,
   active: true,
+  usageMeterId: null,
 }
 
 const defaultProduct: Product.ClientInsert = {

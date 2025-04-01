@@ -116,6 +116,7 @@ export const stripePriceToPriceInsert = (
       trialPeriodDays: null,
       setupFeeAmount: null,
       isDefault: stripeProduct.default_price === stripePrice.id,
+      usageMeterId: null,
     }
     return singlePaymentPrice
   }
@@ -134,6 +135,7 @@ export const stripePriceToPriceInsert = (
         stripePrice.recurring?.trial_period_days ?? null,
       setupFeeAmount: null,
       isDefault: stripeProduct.default_price === stripePrice.id,
+      usageMeterId: null,
     }
     return subscriptionPrice
   }

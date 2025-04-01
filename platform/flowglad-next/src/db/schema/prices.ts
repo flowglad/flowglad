@@ -16,6 +16,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  nullableStringForeignKey,
 } from '@/db/tableUtils'
 import {
   products,
@@ -83,7 +84,7 @@ const columns = {
    * from external processors onto Flowglad
    */
   externalId: text('external_id'),
-  usageMeterId: notNullStringForeignKey(
+  usageMeterId: nullableStringForeignKey(
     'usage_meter_id',
     usageMeters
   ),
@@ -170,6 +171,11 @@ const subscriptionPriceColumns = {
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
   trialPeriodDays: core.safeZodNullOrUndefined,
+  usageMeterId: z
+    .string()
+    .describe(
+      'The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.'
+    ),
   type: z.literal(PriceType.Usage),
 }
 

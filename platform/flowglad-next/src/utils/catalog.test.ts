@@ -176,6 +176,7 @@ describe('cloneCatalogTransaction', () => {
               trialPeriodDays: 0,
               currency: CurrencyCode.USD,
               externalId: null,
+              usageMeterId: null,
             },
             transaction
           )
