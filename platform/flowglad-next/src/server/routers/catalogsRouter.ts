@@ -17,11 +17,7 @@ import {
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectDefaultCatalog,
 } from '@/db/tableMethods/catalogMethods'
-import {
-  createGetOpenApiMeta,
-  createPostOpenApiMeta,
-  generateOpenApiMetas,
-} from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
