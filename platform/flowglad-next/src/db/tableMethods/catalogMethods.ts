@@ -156,10 +156,12 @@ export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
         catalogsClientSelectSchema.parse(catalog)
       )
       const oldMeters = usageMetersByCatalogId.get(catalog.id) ?? []
-      usageMetersByCatalogId.set(catalog.id, [
-        ...oldMeters,
-        usageMetersClientSelectSchema.parse(usageMeter),
-      ])
+      if (usageMeter) {
+        usageMetersByCatalogId.set(catalog.id, [
+          ...oldMeters,
+          usageMetersClientSelectSchema.parse(usageMeter),
+        ])
+      }
     })
 
     const productResults =
