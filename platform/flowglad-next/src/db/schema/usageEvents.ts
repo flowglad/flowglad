@@ -21,8 +21,11 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
+import { prices } from './prices'
 
 const TABLE_NAME = 'usage_events'
+
+const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
 
 export const usageEvents = pgTable(
   TABLE_NAME,
@@ -44,6 +47,8 @@ export const usageEvents = pgTable(
     amount: integer('amount').notNull(),
     usageDate: timestamp('usage_date').notNull().defaultNow(),
     transactionId: text('transaction_id'),
+    subjectId: text('subject_id'),
+    priceId: notNullStringForeignKey('price_id', prices),
   },
   (table) => {
     return [
@@ -51,16 +56,36 @@ export const usageEvents = pgTable(
       constructIndex(TABLE_NAME, [table.usageMeterId]),
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
+      constructIndex(TABLE_NAME, [table.priceId]),
       constructUniqueIndex(TABLE_NAME, [
         table.transactionId,
         table.usageMeterId,
       ]),
+      constructIndex(TABLE_NAME, [table.subjectId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
         using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
+      pgPolicy(
+        'Only allow usage events for prices with matching usage meter',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'insert',
+          using: usageEventPriceMustMatchUsageMeter,
+        }
+      ),
+      pgPolicy(
+        'Only allow usage events for prices with matching usage meter',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'update',
+          using: usageEventPriceMustMatchUsageMeter,
+        }
+      ),
       livemodePolicy(),
     ]
   }
@@ -82,6 +107,11 @@ const columnRefinements = {
     .string()
     .describe(
       'A unique identifier for the transaction. This is used to prevent duplicate usage events from being created.'
+    ),
+  subjectId: z
+    .string()
+    .describe(
+      'An externally defined identifier for the subject that the usage belongs to, e.g. a user within a customer organization. Can be used for aggregation on the meter, and also for segmenting usage behavior within organizations.'
     ),
 }
 
