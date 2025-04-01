@@ -107,21 +107,21 @@ export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
     ]),
     constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
     pgPolicy(
-      'Ensure usage meter belongs to same organization as product',
+      'On insert, ensure usage meter belongs to same organization as product',
       {
         as: 'permissive',
         to: 'authenticated',
         for: 'insert',
-        using: usageMeterBelongsToSameOrganization,
+        withCheck: usageMeterBelongsToSameOrganization,
       }
     ),
     pgPolicy(
-      'Ensure usage meter belongs to same organization as product',
+      'On update, ensure usage meter belongs to same organization as product',
       {
         as: 'permissive',
         to: 'authenticated',
         for: 'update',
-        using: usageMeterBelongsToSameOrganization,
+        withCheck: usageMeterBelongsToSameOrganization,
       }
     ),
     pgPolicy('Enable all for self organizations via products', {

@@ -71,16 +71,16 @@ export const usageEvents = pgTable(
         using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
       pgPolicy(
-        'Only allow usage events for prices with matching usage meter',
+        'On insert, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
           to: 'authenticated',
           for: 'insert',
-          using: usageEventPriceMustMatchUsageMeter,
+          withCheck: usageEventPriceMustMatchUsageMeter,
         }
       ),
       pgPolicy(
-        'Only allow usage events for prices with matching usage meter',
+        'On update, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
           to: 'authenticated',
