@@ -20,8 +20,9 @@ import { DbTransaction } from '@/db/types'
 import { count, eq } from 'drizzle-orm'
 import { products } from '../schema/products'
 import { selectPricesAndProductsByProductWhere } from './priceMethods'
-import { CatalogWithProductsAndPrices } from '../schema/prices'
+import { CatalogWithProductsAndUsageMeters } from '../schema/prices'
 import { Customer } from '@/db/schema/customers'
+import { usageMeters } from '../schema/usageMeters'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -113,61 +114,67 @@ export const selectCatalogsTableRows = async (
   }))
 }
 
-export const selectCatalogsWithProductsByCatalogWhere = async (
-  where: SelectConditions<typeof catalogs>,
-  transaction: DbTransaction
-): Promise<CatalogWithProductsAndPrices[]> => {
-  /**
-   * Implementation note:
-   * it is actually fairly important to do this in two steps,
-   * because catalogs are one-to-many with products, so we couldn't
-   * easily describe our desired "limit" result easily.
-   * But in two steps, we can limit the catalogs, and then get the
-   * products for each catalog.
-   * This COULD create a performance issue if there are a lot of products
-   * to fetch, but in practice it should be fine.
-   */
-  const catalogResults = await transaction
-    .select()
-    .from(catalogs)
-    .where(whereClauseFromObject(catalogs, where))
-    .limit(100)
-    .orderBy(catalogs.createdAt)
+export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
+  async (
+    where: SelectConditions<typeof catalogs>,
+    transaction: DbTransaction
+  ): Promise<CatalogWithProductsAndUsageMeters[]> => {
+    /**
+     * Implementation note:
+     * it is actually fairly important to do this in two steps,
+     * because catalogs are one-to-many with products, so we couldn't
+     * easily describe our desired "limit" result easily.
+     * But in two steps, we can limit the catalogs, and then get the
+     * products for each catalog.
+     * This COULD create a performance issue if there are a lot of products
+     * to fetch, but in practice it should be fine.
+     */
+    const catalogResults = await transaction
+      .select({
+        catalog: catalogs,
+        usageMeter: usageMeters,
+      })
+      .from(catalogs)
+      .leftJoin(usageMeters, eq(catalogs.id, usageMeters.catalogId))
+      .where(whereClauseFromObject(catalogs, where))
+      .limit(100)
+      .orderBy(catalogs.createdAt)
 
-  const uniqueCatalogsMap = new Map<string, Catalog.ClientRecord>()
-  catalogResults.forEach((catalog) => {
-    uniqueCatalogsMap.set(
-      catalog.id,
-      catalogsClientSelectSchema.parse(catalog)
-    )
-  })
+    const uniqueCatalogsMap = new Map<string, Catalog.ClientRecord>()
+    catalogResults.forEach(({ catalog }) => {
+      uniqueCatalogsMap.set(
+        catalog.id,
+        catalogsClientSelectSchema.parse(catalog)
+      )
+    })
 
-  const productResults = await selectPricesAndProductsByProductWhere(
-    { catalogId: Array.from(uniqueCatalogsMap.keys()) },
-    transaction
-  )
-  const productsByCatalogId = new Map<
-    string,
-    CatalogWithProductsAndPrices['products']
-  >()
-  productResults.forEach(({ prices, ...product }) => {
-    productsByCatalogId.set(product.catalogId, [
-      ...(productsByCatalogId.get(product.catalogId) || []),
-      {
-        ...product,
-        prices,
-        defaultPrice:
-          prices.find((price) => price.isDefault) ?? prices[0],
-      },
-    ])
-  })
+    const productResults =
+      await selectPricesAndProductsByProductWhere(
+        { catalogId: Array.from(uniqueCatalogsMap.keys()) },
+        transaction
+      )
+    const productsByCatalogId = new Map<
+      string,
+      CatalogWithProductsAndUsageMeters['products']
+    >()
+    productResults.forEach(({ prices, ...product }) => {
+      productsByCatalogId.set(product.catalogId, [
+        ...(productsByCatalogId.get(product.catalogId) || []),
+        {
+          ...product,
+          prices,
+          defaultPrice:
+            prices.find((price) => price.isDefault) ?? prices[0],
+        },
+      ])
+    })
 
-  const uniqueCatalogs = Array.from(uniqueCatalogsMap.values())
-  return uniqueCatalogs.map((catalog) => ({
-    ...catalog,
-    products: productsByCatalogId.get(catalog.id) || [],
-  }))
-}
+    const uniqueCatalogs = Array.from(uniqueCatalogsMap.values())
+    return uniqueCatalogs.map((catalog) => ({
+      ...catalog,
+      products: productsByCatalogId.get(catalog.id) || [],
+    }))
+  }
 
 /**
  * Gets the catalog for a customer. If no catalog explicitly associated,
@@ -179,19 +186,21 @@ export const selectCatalogsWithProductsByCatalogWhere = async (
 export const selectCatalogForCustomer = async (
   customer: Customer.Record,
   transaction: DbTransaction
-): Promise<CatalogWithProductsAndPrices> => {
+): Promise<CatalogWithProductsAndUsageMeters> => {
   if (customer.catalogId) {
-    const [catalog] = await selectCatalogsWithProductsByCatalogWhere(
-      { id: customer.catalogId },
-      transaction
-    )
+    const [catalog] =
+      await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+        { id: customer.catalogId },
+        transaction
+      )
     if (catalog) {
       return catalog
     }
   }
-  const [catalog] = await selectCatalogsWithProductsByCatalogWhere(
-    { isDefault: true, organizationId: customer.organizationId },
-    transaction
-  )
+  const [catalog] =
+    await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+      { isDefault: true, organizationId: customer.organizationId },
+      transaction
+    )
   return catalog
 }

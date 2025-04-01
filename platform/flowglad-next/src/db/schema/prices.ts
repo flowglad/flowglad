@@ -463,11 +463,11 @@ export type ProductWithPrices = z.infer<
   typeof productWithPricesSchema
 >
 
-export const catalogWithProductsSchema =
+export const catalogWithProductsAndUsageMetersSchema =
   catalogsClientSelectSchema.extend({
     products: z.array(productWithPricesSchema),
   })
 
-export type CatalogWithProductsAndPrices = z.infer<
-  typeof catalogWithProductsSchema
+export type CatalogWithProductsAndUsageMeters = z.infer<
+  typeof catalogWithProductsAndUsageMetersSchema
 >

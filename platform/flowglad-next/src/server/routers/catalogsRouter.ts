@@ -8,14 +8,13 @@ import {
   editCatalogSchema,
   cloneCatalogInputSchema,
 } from '@/db/schema/catalogs'
-import { catalogWithProductsSchema } from '@/db/schema/prices'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
   insertCatalog,
   selectCatalogsPaginated,
   updateCatalog,
   makeCatalogDefault,
-  selectCatalogsWithProductsByCatalogWhere,
+  selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectDefaultCatalog,
 } from '@/db/tableMethods/catalogMethods'
 import {
@@ -26,6 +25,7 @@ import {
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'catalog',
@@ -52,12 +52,12 @@ const listCatalogsProcedure = protectedProcedure
 const getCatalogProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(catalogIdSchema)
-  .output(catalogWithProductsSchema)
+  .output(catalogWithProductsAndUsageMetersSchema)
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
         const [catalog] =
-          await selectCatalogsWithProductsByCatalogWhere(
+          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
             { id: input.id },
             transaction
           )
@@ -142,7 +142,7 @@ const getDefaultCatalogProcedure = protectedProcedure
     },
   })
   .input(z.object({}))
-  .output(catalogWithProductsSchema)
+  .output(catalogWithProductsAndUsageMetersSchema)
   .query(async ({ ctx }) => {
     const catalog = await authenticatedTransaction(
       async ({ transaction }) => {
@@ -184,7 +184,9 @@ const cloneCatalogProcedure = protectedProcedure
     },
   })
   .input(cloneCatalogInputSchema)
-  .output(z.object({ catalog: catalogWithProductsSchema }))
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {

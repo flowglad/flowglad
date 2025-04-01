@@ -34,7 +34,7 @@ import {
   RouteConfig,
 } from '@/utils/openapi'
 import { externalIdInputSchema } from '@/db/tableUtils'
-import { catalogWithProductsSchema } from '@/db/schema/prices'
+import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
@@ -42,15 +42,10 @@ import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   isSubscriptionCurrent,
-  isSubscriptionInTerminalState,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import {
-  selectCatalogForCustomer,
-  selectCatalogsWithProductsByCatalogWhere,
-} from '@/db/tableMethods/catalogMethods'
-import { SubscriptionStatus } from '@/types'
+import { selectCatalogForCustomer } from '@/db/tableMethods/catalogMethods'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -224,7 +219,7 @@ export const getCustomerBilling = protectedProcedure
         .describe(
           'The current subscriptions for the customer. By default, customers can only have one active subscription at a time. This will only return multiple subscriptions if you have enabled multiple subscriptions per customer.'
         ),
-      catalog: catalogWithProductsSchema,
+      catalog: catalogWithProductsAndUsageMetersSchema,
     })
   )
   .query(async ({ input, ctx }) => {
