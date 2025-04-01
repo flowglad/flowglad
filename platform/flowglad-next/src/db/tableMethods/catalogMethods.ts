@@ -22,7 +22,11 @@ import { products } from '../schema/products'
 import { selectPricesAndProductsByProductWhere } from './priceMethods'
 import { CatalogWithProductsAndUsageMeters } from '../schema/prices'
 import { Customer } from '@/db/schema/customers'
-import { usageMeters } from '../schema/usageMeters'
+import {
+  UsageMeter,
+  usageMeters,
+  usageMetersClientSelectSchema,
+} from '../schema/usageMeters'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -141,11 +145,21 @@ export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
       .orderBy(catalogs.createdAt)
 
     const uniqueCatalogsMap = new Map<string, Catalog.ClientRecord>()
-    catalogResults.forEach(({ catalog }) => {
+    const usageMetersByCatalogId = new Map<
+      string,
+      UsageMeter.ClientRecord[]
+    >()
+
+    catalogResults.forEach(({ catalog, usageMeter }) => {
       uniqueCatalogsMap.set(
         catalog.id,
         catalogsClientSelectSchema.parse(catalog)
       )
+      const oldMeters = usageMetersByCatalogId.get(catalog.id) ?? []
+      usageMetersByCatalogId.set(catalog.id, [
+        ...oldMeters,
+        usageMetersClientSelectSchema.parse(usageMeter),
+      ])
     })
 
     const productResults =
@@ -172,7 +186,8 @@ export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
     const uniqueCatalogs = Array.from(uniqueCatalogsMap.values())
     return uniqueCatalogs.map((catalog) => ({
       ...catalog,
-      products: productsByCatalogId.get(catalog.id) || [],
+      usageMeters: usageMetersByCatalogId.get(catalog.id) ?? [],
+      products: productsByCatalogId.get(catalog.id) ?? [],
     }))
   }
 

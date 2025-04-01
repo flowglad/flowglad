@@ -29,7 +29,10 @@ import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { catalogsClientSelectSchema } from './catalogs'
-import { usageMeters } from './usageMeters'
+import {
+  usageMeters,
+  usageMetersClientSelectSchema,
+} from './usageMeters'
 
 const readOnlyColumns = {
   livemode: true,
@@ -466,6 +469,7 @@ export type ProductWithPrices = z.infer<
 export const catalogWithProductsAndUsageMetersSchema =
   catalogsClientSelectSchema.extend({
     products: z.array(productWithPricesSchema),
+    usageMeters: z.array(usageMetersClientSelectSchema),
   })
 
 export type CatalogWithProductsAndUsageMeters = z.infer<

@@ -48,7 +48,9 @@ const listCatalogsProcedure = protectedProcedure
 const getCatalogProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(catalogIdSchema)
-  .output(catalogWithProductsAndUsageMetersSchema)
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
@@ -60,7 +62,7 @@ const getCatalogProcedure = protectedProcedure
         if (!catalog) {
           throw new Error(`Catalog ${input.id} not found`)
         }
-        return catalog
+        return { catalog }
       },
       {
         apiKey: ctx.apiKey,
@@ -138,35 +140,30 @@ const getDefaultCatalogProcedure = protectedProcedure
     },
   })
   .input(z.object({}))
-  .output(catalogWithProductsAndUsageMetersSchema)
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
   .query(async ({ ctx }) => {
     const catalog = await authenticatedTransaction(
       async ({ transaction }) => {
-        const defaultCatalog = await selectDefaultCatalog(
-          {
-            organizationId: ctx.organizationId!,
-            livemode: ctx.livemode,
-          },
-          transaction
-        )
+        const [defaultCatalog] =
+          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+            {
+              organizationId: ctx.organizationId!,
+              livemode: ctx.livemode,
+            },
+            transaction
+          )
         if (!defaultCatalog) {
           throw new Error('Default catalog not found')
         }
-        const products = await selectPricesAndProductsByProductWhere(
-          { catalogId: defaultCatalog.id },
-          transaction
-        )
-        return {
-          ...defaultCatalog,
-          products,
-        }
+        return defaultCatalog
       },
       {
         apiKey: ctx.apiKey,
       }
     )
-
-    return catalog
+    return { catalog }
   })
 
 const cloneCatalogProcedure = protectedProcedure
