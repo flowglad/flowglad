@@ -9,7 +9,6 @@ import {
   insertPrice,
 } from '@/db/tableMethods/priceMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
-import { core } from '@/utils/core'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 
@@ -159,29 +158,27 @@ describe('cloneCatalogTransaction', () => {
         }
       )
 
-      const price2 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertPrice(
-            {
-              productId: product2.id,
-              name: 'Second Product Price',
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              active: true,
-              isDefault: true,
-              unitPrice: 2000,
-              setupFeeAmount: 0,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              usageMeterId: null,
-            },
-            transaction
-          )
-        }
-      )
+      await adminTransaction(async ({ transaction }) => {
+        return insertPrice(
+          {
+            productId: product2.id,
+            name: 'Second Product Price',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            active: true,
+            isDefault: true,
+            unitPrice: 2000,
+            setupFeeAmount: 0,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            usageMeterId: null,
+          },
+          transaction
+        )
+      })
 
       const clonedCatalog = await adminTransaction(
         async ({ transaction }) => {
