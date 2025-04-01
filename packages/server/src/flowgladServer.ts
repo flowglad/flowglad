@@ -1,6 +1,7 @@
 import {
   CancelSubscriptionParams,
   CreateCheckoutSessionParams,
+  CreateUsageEventParams,
 } from '@flowglad/shared'
 import {
   ClerkFlowgladServerSessionParams,
@@ -220,6 +221,23 @@ export class FlowgladServer {
     return this.flowgladNode.subscriptions.cancel(params.id, {
       cancellation:
         params.cancellation as FlowgladNode.Subscriptions.SubscriptionCancelParams['cancellation'],
+    })
+  }
+  public createUsageEvent = async (
+    params: CreateUsageEventParams
+  ): Promise<FlowgladNode.UsageEvents.UsageEventCreateResponse> => {
+    const customer = await this.findOrCreateCustomer()
+    return this.flowgladNode.usageEvents.create({
+      usageEvent: {
+        amount: params.amount,
+        customerId: customer.id,
+        priceId: params.priceId,
+        subscriptionId: params.subscriptionId,
+        usageMeterId: params.usageMeterId,
+        transactionId: params.transactionId,
+        usageDate: params.usageDate || undefined,
+        properties: params.properties,
+      },
     })
   }
 }

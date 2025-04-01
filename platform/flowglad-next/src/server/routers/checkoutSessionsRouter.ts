@@ -34,12 +34,7 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const checkoutSessionsRouteConfigs = routeConfigs
 
-/**
- * This is not in the db/schemas/checkoutSessions.ts file because it is not
- * used in the db. It is a special input schema in a procedure primarily
- * used in the REST API.
- */
-const createCheckoutSessionSchema = z.object({
+const createCheckoutSessionObject = {
   customerExternalId: z
     .string()
     .describe(
@@ -76,7 +71,19 @@ const createCheckoutSessionSchema = z.object({
     .describe(
       'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
     ),
-})
+}
+/**
+ * This is not in the db/schemas/checkoutSessions.ts file because it is not
+ * used in the db. It is a special input schema in a procedure primarily
+ * used in the REST API.
+ */
+const oldCreateCheckoutSessionSchema = z
+  .object(createCheckoutSessionObject)
+  .describe('Deprecated: Use createCheckoutSessionSchema instead.')
+
+type OldCreateCheckoutSessionInput = z.infer<
+  typeof oldCreateCheckoutSessionSchema
+>
 
 const singleCheckoutSessionOutputSchema = z.object({
   checkoutSession: checkoutSessionClientSelectSchema,
@@ -85,11 +92,28 @@ const singleCheckoutSessionOutputSchema = z.object({
     .describe('The URL to redirect to complete the purchase'),
 })
 
+const createCheckoutSessionSchema = z
+  .object({
+    checkoutSession: z.object(createCheckoutSessionObject),
+  })
+  .describe('Use this schema for new checkout sessions.')
+
+type CreateCheckoutSessionInput = z.infer<
+  typeof createCheckoutSessionSchema
+>
+
 export const createCheckoutSession = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(createCheckoutSessionSchema)
+  .input(
+    z.union([
+      createCheckoutSessionSchema,
+      oldCreateCheckoutSessionSchema,
+    ])
+  )
   .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
+    const checkoutSessionInput =
+      (input as CreateCheckoutSessionInput).checkoutSession ?? input
     return authenticatedTransaction(
       async ({ transaction, livemode }) => {
         const organizationId = ctx.organizationId
@@ -98,19 +122,19 @@ export const createCheckoutSession = protectedProcedure
         }
         const [customer] = await selectCustomers(
           {
-            externalId: input.customerExternalId,
+            externalId: checkoutSessionInput.customerExternalId,
           },
           transaction
         )
         if (!customer) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: `Customer not found for externalId: ${input.customerExternalId}`,
+            message: `Customer not found for externalId: ${checkoutSessionInput.customerExternalId}`,
           })
         }
         const [{ price, product, organization }] =
           await selectPriceProductAndOrganizationByPriceWhere(
-            { id: input.priceId },
+            { id: checkoutSessionInput.priceId },
             transaction
           )
         // NOTE: invoice and purchase purchase sessions
@@ -118,18 +142,18 @@ export const createCheckoutSession = protectedProcedure
         const checkoutSession = await insertCheckoutSession(
           {
             customerId: customer.id,
-            priceId: input.priceId,
+            priceId: checkoutSessionInput.priceId,
             organizationId,
             customerEmail: customer.email,
             customerName: customer.name,
             status: CheckoutSessionStatus.Open,
             livemode,
-            successUrl: input.successUrl,
-            cancelUrl: input.cancelUrl,
+            successUrl: checkoutSessionInput.successUrl,
+            cancelUrl: checkoutSessionInput.cancelUrl,
             invoiceId: null,
-            outputMetadata: input.outputMetadata,
+            outputMetadata: checkoutSessionInput.outputMetadata,
             type: CheckoutSessionType.Product,
-            outputName: input.outputName,
+            outputName: checkoutSessionInput.outputName,
           } as const,
           transaction
         )
@@ -164,7 +188,7 @@ export const createCheckoutSession = protectedProcedure
             stripeSetupIntentId,
             stripePaymentIntentId,
             invoiceId: null,
-            priceId: input.priceId,
+            priceId: checkoutSessionInput.priceId,
             type: CheckoutSessionType.Product,
           },
           transaction

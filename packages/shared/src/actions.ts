@@ -55,6 +55,20 @@ export const cancelSubscriptionSchema = z.object({
   cancellation: cancellationParametersSchema,
 })
 
+export const createUsageEventSchema = z.object({
+  amount: z.number(),
+  priceId: z.string(),
+  subscriptionId: z.string(),
+  usageMeterId: z.string(),
+  properties: z.record(z.string(), z.unknown()).nullish(),
+  transactionId: z.string(),
+  usageDate: z.string().nullish(),
+})
+
+export type CreateUsageEventParams = z.infer<
+  typeof createUsageEventSchema
+>
+
 export type CancelSubscriptionParams = z.infer<
   typeof cancelSubscriptionSchema
 >
