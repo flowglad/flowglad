@@ -68,4 +68,40 @@ export class FlowgladServerAdmin {
   ) {
     return this.flowgladNode.catalogs.clone(id, params)
   }
+  public async getCatalogWithProductsAndUsageMeters(id: string) {
+    return this.flowgladNode.catalogs.retrieve(id)
+  }
+  public async getUsageMeters(
+    params: FlowgladNode.UsageMeters.UsageMeterListParams
+  ) {
+    return this.flowgladNode.usageMeters.list(params)
+  }
+  public async getUsageMeter(id: string) {
+    return this.flowgladNode.usageMeters.retrieve(id)
+  }
+  public async updateUsageMeter(
+    id: string,
+    params: FlowgladNode.UsageMeters.UsageMeterUpdateParams
+  ) {
+    return this.flowgladNode.usageMeters.update(id, params)
+  }
+  public async createUsageMeter(
+    params: FlowgladNode.UsageMeters.UsageMeterCreateParams
+  ) {
+    return this.flowgladNode.usageMeters.create(params)
+  }
+  public async createUsageEvent(
+    params: FlowgladNode.UsageEvents.UsageEventCreateParams
+  ) {
+    return this.flowgladNode.usageEvents.create(params)
+  }
+  public async getUsageEvent(id: string) {
+    return this.flowgladNode.usageEvents.retrieve(id)
+  }
+  public async updateUsageEvent(
+    id: string,
+    params: FlowgladNode.UsageEvents.UsageEventUpdateParams
+  ) {
+    return this.flowgladNode.usageEvents.update(id, params)
+  }
 }

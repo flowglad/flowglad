@@ -167,7 +167,7 @@ export const generateOpenApiMetas = (params: {
     }),
     POST: createPostOpenApiMeta({
       resource: pluralResource,
-      summary: `Create ${params.resource}`,
+      summary: `Create ${titleCaseResource}`,
       tags: params.tags,
     }),
     PUT: createPutOpenApiMeta({

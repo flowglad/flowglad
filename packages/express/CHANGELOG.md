@@ -1,5 +1,18 @@
 # @flowglad/express
 
+## 0.9.0
+
+### Minor Changes
+
+- Add usage events
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/server@0.9.0
+  - @flowglad/shared@0.9.0
+  - @flowglad/react@0.9.0
+
 ## 0.8.13
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.9.0
+
+### Minor Changes
+
+- Add usage events
+
 ## 0.8.13
 
 ### Patch Changes

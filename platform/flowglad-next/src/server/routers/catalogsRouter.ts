@@ -8,24 +8,20 @@ import {
   editCatalogSchema,
   cloneCatalogInputSchema,
 } from '@/db/schema/catalogs'
-import { catalogWithProductsSchema } from '@/db/schema/prices'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
   insertCatalog,
   selectCatalogsPaginated,
   updateCatalog,
   makeCatalogDefault,
-  selectCatalogsWithProductsByCatalogWhere,
+  selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectDefaultCatalog,
 } from '@/db/tableMethods/catalogMethods'
-import {
-  createGetOpenApiMeta,
-  createPostOpenApiMeta,
-  generateOpenApiMetas,
-} from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'catalog',
@@ -52,19 +48,21 @@ const listCatalogsProcedure = protectedProcedure
 const getCatalogProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(catalogIdSchema)
-  .output(catalogWithProductsSchema)
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
         const [catalog] =
-          await selectCatalogsWithProductsByCatalogWhere(
+          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
             { id: input.id },
             transaction
           )
         if (!catalog) {
           throw new Error(`Catalog ${input.id} not found`)
         }
-        return catalog
+        return { catalog }
       },
       {
         apiKey: ctx.apiKey,
@@ -142,35 +140,30 @@ const getDefaultCatalogProcedure = protectedProcedure
     },
   })
   .input(z.object({}))
-  .output(catalogWithProductsSchema)
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
   .query(async ({ ctx }) => {
     const catalog = await authenticatedTransaction(
       async ({ transaction }) => {
-        const defaultCatalog = await selectDefaultCatalog(
-          {
-            organizationId: ctx.organizationId!,
-            livemode: ctx.livemode,
-          },
-          transaction
-        )
+        const [defaultCatalog] =
+          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+            {
+              organizationId: ctx.organizationId!,
+              livemode: ctx.livemode,
+            },
+            transaction
+          )
         if (!defaultCatalog) {
           throw new Error('Default catalog not found')
         }
-        const products = await selectPricesAndProductsByProductWhere(
-          { catalogId: defaultCatalog.id },
-          transaction
-        )
-        return {
-          ...defaultCatalog,
-          products,
-        }
+        return defaultCatalog
       },
       {
         apiKey: ctx.apiKey,
       }
     )
-
-    return catalog
+    return { catalog }
   })
 
 const cloneCatalogProcedure = protectedProcedure
@@ -184,7 +177,9 @@ const cloneCatalogProcedure = protectedProcedure
     },
   })
   .input(cloneCatalogInputSchema)
-  .output(z.object({ catalog: catalogWithProductsSchema }))
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {

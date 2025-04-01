@@ -1,6 +1,8 @@
 import {
   CancelSubscriptionParams,
   CreateCheckoutSessionParams,
+  CreateUsageEventParams,
+  createUsageEventSchema,
 } from '@flowglad/shared'
 import {
   ClerkFlowgladServerSessionParams,
@@ -220,6 +222,27 @@ export class FlowgladServer {
     return this.flowgladNode.subscriptions.cancel(params.id, {
       cancellation:
         params.cancellation as FlowgladNode.Subscriptions.SubscriptionCancelParams['cancellation'],
+    })
+  }
+  /**
+   * Create a usage event for a customer.
+   * NOTE: this method makes two API calls, including one to get the customer.
+   * If you are to create usages en masse with minimum latency,
+   * you should use `FlowgladServerAdmin.createUsageEvent` instead.
+   * @param params - The parameters for the usage event.
+   * @returns The created usage event.
+   */
+  public createUsageEvent = async (
+    params: CreateUsageEventParams
+  ): Promise<FlowgladNode.UsageEvents.UsageEventCreateResponse> => {
+    const parsedParams = createUsageEventSchema.parse(params)
+    const customer = await this.findOrCreateCustomer()
+    return this.flowgladNode.usageEvents.create({
+      usageEvent: {
+        ...parsedParams,
+        customerId: customer.id,
+        usageDate: parsedParams.usageDate || undefined,
+      },
     })
   }
 }
