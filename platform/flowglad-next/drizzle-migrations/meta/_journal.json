@@ -1345,6 +1345,13 @@
       "when": 1743526723953,
       "tag": "0191_green_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 192,
+      "version": "7",
+      "when": 1743562441904,
+      "tag": "0192_hesitant_baron_strucker",
+      "breakpoints": true
     }
   ]
 }
