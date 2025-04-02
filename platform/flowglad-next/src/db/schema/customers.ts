@@ -56,11 +56,16 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       table.livemode,
     ]),
     constructIndex(TABLE_NAME, [table.userId]),
-    constructUniqueIndex(TABLE_NAME, [
-      table.organizationId,
-      table.email,
-      table.livemode,
-    ]),
+    /**
+     * Cannot have a unique index on email, because Stripe can have multiple
+     * customers with the same email address, and this constraint at the DB
+     * would break migrations from Stripe to Flowglad.
+     */
+    // constructUniqueIndex(TABLE_NAME, [
+    //   table.organizationId,
+    //   table.email,
+    //   table.livemode,
+    // ]),
     constructIndex(TABLE_NAME, [table.catalogId]),
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,

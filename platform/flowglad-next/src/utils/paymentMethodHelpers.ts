@@ -37,6 +37,7 @@ export const paymentMethodForStripePaymentMethodId = async (
       type: PaymentMethodType.Card,
       livemode,
       customerId,
+      externalId: null,
       billingDetails: {
         name: stripePaymentMethod.billing_details?.name,
         email: stripePaymentMethod.billing_details?.email,

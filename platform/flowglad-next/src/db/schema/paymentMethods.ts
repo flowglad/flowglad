@@ -14,6 +14,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  constructUniqueIndex,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -36,6 +37,7 @@ const columns = {
   paymentMethodData: jsonb('payment_method_data').notNull(),
   metadata: jsonb('metadata'),
   stripePaymentMethodId: text('stripe_payment_method_id'),
+  externalId: text('external_id'),
 }
 
 export const paymentMethods = pgTable(
@@ -45,6 +47,7 @@ export const paymentMethods = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.customerId]),
       constructIndex(TABLE_NAME, [table.type]),
+      constructUniqueIndex(TABLE_NAME, [table.externalId]),
       pgPolicy('Enable read for own organizations via customer', {
         as: 'permissive',
         to: 'authenticated',
@@ -112,6 +115,7 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   stripePaymentMethodId: true,
+  externalId: true,
 } as const
 
 const nonClientEditableColumns = {
