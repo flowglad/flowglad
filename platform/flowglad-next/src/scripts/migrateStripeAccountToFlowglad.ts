@@ -8,6 +8,7 @@ import runScript from './scriptRunner'
 import Stripe from 'stripe'
 import {
   stripeCustomerToCustomerInsert,
+  stripePaymentMethodToPaymentMethodInsert,
   stripePriceToPriceInsert,
   stripeProductToProductInsert,
   stripeSubscriptionItemToSubscriptionItemInsert,
@@ -40,6 +41,11 @@ import {
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { bulkInsertOrDoNothingSubscriptionItemsByExternalId } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
+import { PaymentMethod } from '@/db/schema/paymentMethods'
+import {
+  bulkInsertOrDoNothingPaymentMethodsByExternalId,
+  selectPaymentMethods,
+} from '@/db/tableMethods/paymentMethodMethods'
 
 const getAllStripeRecords = async <
   T extends { id: string },
@@ -69,6 +75,122 @@ const getAllStripeRecords = async <
   return records
 }
 
+/**
+ * 1. insert or do nothing customers
+ * 2. for each customer, insert or do nothing platform payment methods with external id = payment method . fingerprint
+ *
+ */
+
+const migrateStripeCustomerDataToFlowglad = async (
+  db: PostgresJsDatabase,
+  stripeClient: Stripe,
+  flowgladOrganizationId: string,
+  stripeAccountId: string
+) => {
+  const stripeCustomers: Stripe.Customer[] =
+    await getAllStripeRecords((params) =>
+      stripeClient.customers.list(params, {
+        stripeAccount: stripeAccountId,
+      })
+    )
+
+  const customerRecords = await db.transaction(
+    async (transaction) => {
+      const customerInserts: Customer.Insert[] = stripeCustomers.map(
+        (customer) =>
+          stripeCustomerToCustomerInsert(customer, {
+            livemode: true,
+            organizationId: flowgladOrganizationId,
+          })
+      )
+
+      await bulkInsertOrDoNothingCustomersByStripeCustomerId(
+        customerInserts,
+        transaction
+      )
+      const customerRecords = await selectCustomers(
+        {
+          stripeCustomerId: stripeCustomers.map((customer) =>
+            stripeIdFromObjectOrId(customer.id)
+          ),
+          organizationId: flowgladOrganizationId,
+          livemode: true,
+        },
+        transaction
+      )
+      return customerRecords
+    }
+  )
+  const customersByStripeCustomerId = new Map<
+    string,
+    Customer.Record
+  >(
+    customerRecords.map((customer) => [
+      customer.stripeCustomerId!,
+      customer,
+    ])
+  )
+  const platformStripePaymentMethods: Stripe.PaymentMethod[] = []
+  for (const customer of stripeCustomers) {
+    const customerStripePaymentMethods = await getAllStripeRecords(
+      (params) =>
+        stripeClient.paymentMethods.list({
+          ...params,
+          customer: customer.id,
+        })
+    )
+    platformStripePaymentMethods.push(
+      ...customerStripePaymentMethods.map((item) => {
+        return {
+          ...item,
+          // defensive, to ensure customer is always set and always the string id
+          customer: customer.id,
+        }
+      })
+    )
+  }
+  const paymentMethodRecords = await db.transaction(
+    async (transaction) => {
+      const paymentMethodInserts: PaymentMethod.Insert[] =
+        platformStripePaymentMethods.map((paymentMethod) =>
+          stripePaymentMethodToPaymentMethodInsert(
+            paymentMethod,
+            customersByStripeCustomerId.get(
+              stripeIdFromObjectOrId(paymentMethod.customer!)
+            )!,
+            {
+              livemode: true,
+              organizationId: flowgladOrganizationId,
+            }
+          )
+        )
+      await bulkInsertOrDoNothingPaymentMethodsByExternalId(
+        paymentMethodInserts,
+        transaction
+      )
+      const paymentMethodRecords = await selectPaymentMethods(
+        {
+          externalId: platformStripePaymentMethods.map(
+            (paymentMethod) => paymentMethod.id
+          ),
+        },
+        transaction
+      )
+      throw new Error('Made it to the finish line')
+      return paymentMethodRecords
+    }
+  )
+}
+/**
+ * In 3 steps this should:
+ * 1. Migrate catalog: prices, products, (eventually discounts) [x]
+ * 2. Migrate customers: customers [x], payment methods [ ]
+ * 3. Migrate subscriptions:
+ *    - Subscriptions [ ]
+ *    - Subscription items (eventually with discount redemptions) [ ]
+ *    - Subscription default payment method [ ]
+ * @param db
+ */
 async function migrateStripeAccountToFlowglad(
   db: PostgresJsDatabase
 ) {
@@ -137,12 +259,6 @@ async function migrateStripeAccountToFlowglad(
         stripeAccount: stripeAccountId,
       })
   )
-  const stripeCustomers: Stripe.Customer[] =
-    await getAllStripeRecords((params) =>
-      stripeClient.customers.list(params, {
-        stripeAccount: stripeAccountId,
-      })
-    )
   const stripeSubscriptions: Stripe.Subscription[] =
     await getAllStripeRecords((params) =>
       stripeClient.subscriptions.list(
@@ -165,8 +281,6 @@ async function migrateStripeAccountToFlowglad(
       subscription,
     ])
   )
-  console.log('stripeSubscriptions[0]', stripeSubscriptions[0])
-  throw new Error('===Made it to the finish line!!!')
   await db.transaction(async (transaction) => {
     await bulkInsertOrDoNothingProductsByExternalId(
       productInserts,
@@ -244,65 +358,14 @@ async function migrateStripeAccountToFlowglad(
     //     subscription,
     //   ])
     // )
-    // const stripeSubscriptionItems: Stripe.SubscriptionItem[] =
-    //   stripeSubscriptions.map((sub) => sub.items.data).flat()
-    // const subscriptionItemInserts: SubscriptionItem.Insert[] =
-    //   stripeSubscriptionItems.map((subscriptionItem) =>
-    //     stripeSubscriptionItemToSubscriptionItemInsert(
-    //       subscriptionItem,
-    //       subscriptionsByStripeSubscriptionId.get(
-    //         stripeIdFromObjectOrId(subscriptionItem.subscription)
-    //       )!,
-    //       pricesByStripePriceId.get(
-    //         stripeIdFromObjectOrId(subscriptionItem.price)
-    //       )!,
-    //       {
-    //         livemode: true,
-    //         organizationId: flowgladOrganizationId,
-    //       }
-    //     )
-    //   )
-    // await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
-    //   subscriptionItemInserts,
-    //   transaction
-    // )
     // throw new Error('Made it to the finish line!!!')
   })
-  await db.transaction(async (transaction) => {
-    const customerInserts: Customer.Insert[] = stripeCustomers.map(
-      (customer) =>
-        stripeCustomerToCustomerInsert(customer, {
-          livemode: true,
-          organizationId: flowgladOrganizationId,
-        })
-    )
-
-    await bulkInsertOrDoNothingCustomersByStripeCustomerId(
-      customerInserts,
-      transaction
-    )
-    const customerRecords = await selectCustomers(
-      {
-        stripeCustomerId: stripeCustomers.map((customer) =>
-          stripeIdFromObjectOrId(customer.id)
-        ),
-        organizationId: flowgladOrganizationId,
-        livemode: true,
-      },
-      transaction
-    )
-    const customersByStripeCustomerId = new Map<
-      string,
-      Customer.Record
-    >(
-      customerRecords.map((customer) => [
-        customer.stripeCustomerId!,
-        customer,
-      ])
-    )
-
-    throw new Error('Made it to the finish line!!!')
-  })
+  await migrateStripeCustomerDataToFlowglad(
+    db,
+    stripeClient,
+    flowgladOrganizationId,
+    stripeAccountId
+  )
 }
 
 runScript(migrateStripeAccountToFlowglad)

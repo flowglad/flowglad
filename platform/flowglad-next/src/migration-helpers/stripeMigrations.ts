@@ -176,6 +176,30 @@ const stripeSubscriptionToSubscriptionStatus = (
   }
 }
 
+export const stripePaymentMethodToPaymentMethodInsert = (
+  stripePaymentMethod: Stripe.PaymentMethod,
+  customer: Customer.Record,
+  params: CoreMigrationParams
+): PaymentMethod.Insert => {
+  if (!stripePaymentMethod.card) {
+    throw new Error(
+      `Received a payment method with type "card" but no "card" object. id: ${stripePaymentMethod.id}`
+    )
+  }
+  return {
+    livemode: stripePaymentMethod.livemode,
+    type: stripePaymentMethod.type as PaymentMethodType,
+    default: false,
+    metadata: stripePaymentMethod.metadata,
+    customerId: customer.id,
+    paymentMethodData: stripePaymentMethod.card as {},
+    billingDetails:
+      stripePaymentMethod.billing_details as unknown as PaymentMethod.ClientInsert['billingDetails'],
+    stripePaymentMethodId: stripePaymentMethod.id,
+    externalId: `${stripePaymentMethod.card.fingerprint}__${stripePaymentMethod.customer}`,
+  }
+}
+
 export const stripeSubscriptionToSubscriptionInsert = (
   stripeSubscription: Stripe.Subscription,
   customer: Customer.Record,

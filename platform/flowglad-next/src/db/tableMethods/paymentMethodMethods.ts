@@ -5,6 +5,7 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
   PaymentMethod,
@@ -92,4 +93,18 @@ export const safelyInsertPaymentMethod = async (
     )
   }
   return dangerouslyInsertPaymentMethod(paymentMethod, transaction)
+}
+
+const bulkInsertOrDoNothingPaymentMethods =
+  createBulkInsertOrDoNothingFunction(paymentMethods, config)
+
+export const bulkInsertOrDoNothingPaymentMethodsByExternalId = async (
+  inserts: PaymentMethod.Insert[],
+  transaction: DbTransaction
+) => {
+  return bulkInsertOrDoNothingPaymentMethods(
+    inserts,
+    [paymentMethods.externalId],
+    transaction
+  )
 }
