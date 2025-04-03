@@ -145,16 +145,29 @@ export const selectCustomerAndCustomerTableRows = async (
   })
 }
 
-export const upsertCustomerByEmailAndOrganizationId =
-  createUpsertFunction(
-    customersTable,
-    [
-      customersTable.email,
-      customersTable.organizationId,
-      customersTable.livemode,
-    ],
-    config
+export const upsertCustomerByEmailAndOrganizationId = async (
+  customerInsert: Customer.Insert,
+  transaction: DbTransaction
+) => {
+  const [existingCustomer] = await selectCustomers(
+    {
+      email: customerInsert.email,
+      organizationId: customerInsert.organizationId,
+      livemode: customerInsert.livemode,
+    },
+    transaction
   )
+  if (existingCustomer) {
+    return updateCustomer(
+      {
+        id: existingCustomer.id,
+        ...customerInsert,
+      },
+      transaction
+    )
+  }
+  return insertCustomer(customerInsert, transaction)
+}
 
 const bulkInsertCustomersOrDoNothing =
   createBulkInsertOrDoNothingFunction(customersTable, config)

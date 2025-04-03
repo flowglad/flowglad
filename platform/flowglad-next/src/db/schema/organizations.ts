@@ -71,7 +71,7 @@ export const organizations = pgTable(
 ).enableRLS()
 
 const billingAddressSchemaColumns = {
-  name: z.string(),
+  name: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   address: z.object({

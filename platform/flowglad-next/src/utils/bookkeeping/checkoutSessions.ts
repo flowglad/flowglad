@@ -271,19 +271,17 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     customer = result[0]
   }
   if (!customer) {
-    const customerUpsert =
-      await upsertCustomerByEmailAndOrganizationId(
-        {
-          email: checkoutSession.customerEmail!,
-          name: checkoutSession.customerName!,
-          organizationId: product.organizationId,
-          billingAddress: checkoutSession.billingAddress,
-          externalId: core.nanoid(),
-          livemode: checkoutSession.livemode,
-        },
-        transaction
-      )
-    customer = customerUpsert[0]
+    customer = await upsertCustomerByEmailAndOrganizationId(
+      {
+        email: checkoutSession.customerEmail!,
+        name: checkoutSession.customerName!,
+        organizationId: product.organizationId,
+        billingAddress: checkoutSession.billingAddress,
+        externalId: core.nanoid(),
+        livemode: checkoutSession.livemode,
+      },
+      transaction
+    )
     let stripeCustomerId: string | null = providedStripecustomerId
     if (!stripeCustomerId) {
       stripeCustomerId = customer.stripeCustomerId
@@ -297,7 +295,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       })
       stripeCustomerId = stripeCustomer.id
     }
-    const upsertResult = await upsertCustomerByEmailAndOrganizationId(
+    customer = await upsertCustomerByEmailAndOrganizationId(
       {
         email: checkoutSession.customerEmail!,
         name: checkoutSession.customerName!,
@@ -309,7 +307,6 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       },
       transaction
     )
-    customer = upsertResult[0]
   }
   if (!purchase) {
     const purchasePriceFields =
