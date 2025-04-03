@@ -479,6 +479,7 @@ export enum PaymentStatus {
 
 export enum PaymentMethodType {
   Card = 'card',
+  Link = 'link',
   USBankAccount = 'us_bank_account',
   SEPADebit = 'sepa_debit',
 }

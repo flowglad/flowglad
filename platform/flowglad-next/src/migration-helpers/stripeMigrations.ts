@@ -176,27 +176,61 @@ const stripeSubscriptionToSubscriptionStatus = (
   }
 }
 
+const getPaymentMethodDataAndExternalId = (
+  stripePaymentMethod: Stripe.PaymentMethod
+): {
+  externalId: string
+  paymentMethodData: {}
+} => {
+  if (
+    stripePaymentMethod.type !== 'link' &&
+    stripePaymentMethod.type !== 'card'
+  ) {
+    throw new Error(
+      `Received non link non card stripe payment method. id: ${stripePaymentMethod.id}`
+    )
+  }
+  if (stripePaymentMethod.type === 'link') {
+    return {
+      externalId: `${stripePaymentMethod.link?.email}__${stripeIdFromObjectOrId(stripePaymentMethod.customer!)}`,
+      paymentMethodData: stripePaymentMethod.link as {},
+    }
+  }
+  return {
+    externalId: `${stripePaymentMethod.card?.fingerprint}__${stripeIdFromObjectOrId(stripePaymentMethod.customer!)}`,
+    paymentMethodData: stripePaymentMethod.card as {},
+  }
+}
 export const stripePaymentMethodToPaymentMethodInsert = (
   stripePaymentMethod: Stripe.PaymentMethod,
   customer: Customer.Record,
   params: CoreMigrationParams
 ): PaymentMethod.Insert => {
-  if (!stripePaymentMethod.card) {
+  if (
+    stripePaymentMethod.type !== 'link' &&
+    stripePaymentMethod.type !== 'card'
+  ) {
+    console.log(
+      'card stripePaymentMethod without `card` prop:',
+      stripePaymentMethod
+    )
     throw new Error(
-      `Received a payment method with type "card" but no "card" object. id: ${stripePaymentMethod.id}`
+      `Received a payment method with no "card" object. id: ${stripePaymentMethod.id}`
     )
   }
+  const { externalId, paymentMethodData } =
+    getPaymentMethodDataAndExternalId(stripePaymentMethod)
   return {
     livemode: stripePaymentMethod.livemode,
     type: stripePaymentMethod.type as PaymentMethodType,
     default: false,
     metadata: stripePaymentMethod.metadata,
     customerId: customer.id,
-    paymentMethodData: stripePaymentMethod.card as {},
+    paymentMethodData,
     billingDetails:
       stripePaymentMethod.billing_details as unknown as PaymentMethod.ClientInsert['billingDetails'],
     stripePaymentMethodId: stripePaymentMethod.id,
-    externalId: `${stripePaymentMethod.card.fingerprint}__${stripePaymentMethod.customer}`,
+    externalId,
   }
 }
 
