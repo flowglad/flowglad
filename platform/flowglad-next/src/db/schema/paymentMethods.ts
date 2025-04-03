@@ -65,7 +65,7 @@ const columnRefinements = {
     name: z.string().nullable(),
     email: z.string().nullable(),
     address: z.object({
-      name: z.string().nullable(),
+      name: z.string().nullish(),
       address: billingAddressSchema.shape.address
         .extend({
           country: z.string().nullable(),
@@ -74,7 +74,7 @@ const columnRefinements = {
           state: z.string().nullable(),
           postal_code: z.string().nullable(),
         })
-        .nullable(),
+        .nullish(),
     }),
   }),
   paymentMethodData: z.record(z.unknown()),

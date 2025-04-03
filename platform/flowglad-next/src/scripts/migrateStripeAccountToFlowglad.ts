@@ -69,8 +69,9 @@ const getAllStripeRecords = async <
       records.push(record)
     }
     hasMore = iterator.has_more
-    console.log('iterator', iterator)
-    startingAfter = iterator.data[iterator.data.length - 1].id
+    if (iterator.data.length > 0) {
+      startingAfter = iterator.data[iterator.data.length - 1].id
+    }
   }
   return records
 }
@@ -176,15 +177,28 @@ const migrateStripeCustomerDataToFlowglad = async (
         },
         transaction
       )
-      throw new Error('Made it to the finish line')
       return paymentMethodRecords
     }
   )
 }
+
+const migrateStripeSubscriptionDataToFlowglad = async (
+  db: PostgresJsDatabase,
+  stripeClient: Stripe,
+  flowgladOrganizationId: string,
+  stripeAccountId: string
+) => {
+  const stripeSubscriptions: Stripe.Subscription[] =
+    await getAllStripeRecords((params) =>
+      stripeClient.subscriptions.list(params, {
+        stripeAccount: stripeAccountId,
+      })
+    )
+}
 /**
  * In 3 steps this should:
  * 1. Migrate catalog: prices, products, (eventually discounts) [x]
- * 2. Migrate customers: customers [x], payment methods [ ]
+ * 2. Migrate customers: customers [x], payment methods [x]
  * 3. Migrate subscriptions:
  *    - Subscriptions [ ]
  *    - Subscription items (eventually with discount redemptions) [ ]

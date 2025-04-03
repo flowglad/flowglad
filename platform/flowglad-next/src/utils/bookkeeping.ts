@@ -489,24 +489,10 @@ export const createOrUpdateCustomer = async (
   },
   { transaction }: AuthenticatedTransactionParams
 ) => {
-  let [customer] = await upsertCustomerByEmailAndOrganizationId(
+  let customer = await upsertCustomerByEmailAndOrganizationId(
     payload.customer,
     transaction
   )
-  /**
-   * Find or create a customer
-   */
-  if (!customer) {
-    const findResult = await selectCustomers(
-      {
-        email: payload.customer.email,
-        organizationId: payload.customer.organizationId,
-        livemode: payload.customer.livemode,
-      },
-      transaction
-    )
-    customer = findResult[0]
-  }
   if (!customer.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
       payload.customer

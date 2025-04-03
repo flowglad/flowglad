@@ -1,5 +1,5 @@
 DO $$ BEGIN
-    CREATE TYPE "PaymentMethodType" AS ENUM ('card', 'us_bank_account', 'sepa_debit');
+    CREATE TYPE "PaymentMethodType" AS ENUM ('card', 'us_bank_account', 'sepa_debit', 'link');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
