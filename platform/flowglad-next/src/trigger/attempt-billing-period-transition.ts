@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 

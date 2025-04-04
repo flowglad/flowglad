@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'

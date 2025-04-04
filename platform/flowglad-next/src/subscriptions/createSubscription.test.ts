@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupOrg,
   setupCustomer,

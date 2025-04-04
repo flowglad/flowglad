@@ -18,7 +18,7 @@ import {
   setupMemberships,
 } from '../../seedDatabase'
 
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { processPaymentIntentEventForBillingRun } from './processBillingRunPaymentIntents'
 import {
   BillingRunStatus,

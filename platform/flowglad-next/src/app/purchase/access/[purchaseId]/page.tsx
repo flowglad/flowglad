@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { PurchaseStatus } from '@/types'
 import PendingPostPurchaseScreen from './PendingPostPurchaseScreen'
 import { findPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'

@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { PurchaseAccessSessionSource } from '@/types'
 import { processSetupIntentUpdated } from '@/utils/bookkeeping/processSetupIntentUpdated'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'

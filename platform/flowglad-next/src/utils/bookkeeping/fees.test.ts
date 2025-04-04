@@ -35,7 +35,7 @@ import {
   setupPayment,
   setupInvoice,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from '../core'

@@ -3,7 +3,7 @@ import core from '@/utils/core'
 import { task } from '@trigger.dev/sdk/v3'
 import { Invoice } from '@/db/schema/invoices'
 import { generatePdf } from '@/pdf-generation/generatePDF'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectInvoiceById,
   updateInvoice,

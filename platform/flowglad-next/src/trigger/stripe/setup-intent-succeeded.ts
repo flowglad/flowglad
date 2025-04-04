@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { processSetupIntentUpdated } from '@/utils/bookkeeping/processSetupIntentUpdated'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import Stripe from 'stripe'

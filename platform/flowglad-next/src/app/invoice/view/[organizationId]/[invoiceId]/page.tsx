@@ -11,7 +11,7 @@ import {
   CustomerInvoicePayButtonBanner,
 } from './CustomerInvoiceButtonBanner'
 import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { findOrCreateInvoiceCheckoutSession } from '@/utils/checkoutSessionState'
 
 const CustomerInvoicePaidView = (props: InvoiceTemplateProps) => {

@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { memberships } from '@/db/schema/memberships'
 import {
   selectMembershipAndOrganizations,
