@@ -6,6 +6,7 @@ import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { Subscription } from '@/db/schema/subscriptions'
+import { DbTransaction } from '@/db/types'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -176,7 +177,47 @@ const stripeSubscriptionToSubscriptionStatus = (
   }
 }
 
-const getPaymentMethodDataAndExternalId = (
+const paymentMethodRecordForStripeSubscription = async (
+  stripe: Stripe,
+  stripeSubscription: Stripe.Subscription,
+  paymentMethodRecords: PaymentMethod.Record[]
+): Promise<PaymentMethod.Record | null> => {
+  if (!stripeSubscription.default_payment_method) {
+    return null
+  }
+  if (paymentMethodRecords.length === 0) {
+    return null
+  }
+  if (paymentMethodRecords.length === 1) {
+    return paymentMethodRecords[0]
+  }
+  if (typeof stripeSubscription.default_payment_method === 'string') {
+    const stripeSubscriptionPaymentMethod =
+      await stripe.paymentMethods.retrieve(
+        stripeSubscription.default_payment_method
+      )
+    const { externalId } = getPaymentMethodDataAndExternalId(
+      stripeSubscriptionPaymentMethod
+    )
+    return (
+      paymentMethodRecords.find(
+        (paymentMethod) => paymentMethod.externalId === externalId
+      ) ?? null
+    )
+  }
+  const stripeSubscriptionPaymentMethod =
+    stripeSubscription.default_payment_method
+  const { externalId } = getPaymentMethodDataAndExternalId(
+    stripeSubscriptionPaymentMethod
+  )
+  return (
+    paymentMethodRecords.find(
+      (paymentMethod) => paymentMethod.externalId === externalId
+    ) ?? null
+  )
+}
+
+export const getPaymentMethodDataAndExternalId = (
   stripePaymentMethod: Stripe.PaymentMethod
 ): {
   externalId: string
@@ -234,11 +275,19 @@ export const stripePaymentMethodToPaymentMethodInsert = (
   }
 }
 
-export const stripeSubscriptionToSubscriptionInsert = (
+export const stripeSubscriptionToSubscriptionInsert = async (
   stripeSubscription: Stripe.Subscription,
   customer: Customer.Record,
-  params: CoreMigrationParams
-): Subscription.Insert => {
+  paymentMethodsForCustomer: PaymentMethod.Record[],
+  params: CoreMigrationParams,
+  stripe: Stripe
+): Promise<Subscription.Insert> => {
+  const defaultPaymentMethod =
+    await paymentMethodRecordForStripeSubscription(
+      stripe,
+      stripeSubscription,
+      paymentMethodsForCustomer
+    )
   return {
     externalId: stripeSubscription.id,
     livemode: stripeSubscription.livemode,
@@ -256,11 +305,7 @@ export const stripeSubscriptionToSubscriptionInsert = (
     ),
     metadata: stripeSubscription.metadata,
     customerId: customer.id,
-    defaultPaymentMethodId: stripeSubscription.default_payment_method
-      ? stripeIdFromObjectOrId(
-          stripeSubscription.default_payment_method
-        )
-      : null,
+    defaultPaymentMethodId: defaultPaymentMethod?.id ?? null,
     backupPaymentMethodId: null,
     trialEnd: stripeSubscription.trial_end
       ? dateFromStripeTimestamp(stripeSubscription.trial_end)
@@ -275,7 +320,9 @@ export const stripeSubscriptionToSubscriptionInsert = (
       ? dateFromStripeTimestamp(stripeSubscription.canceled_at)
       : null,
     stripeSetupIntentId: null,
-    cancelScheduledAt: null,
+    cancelScheduledAt: stripeSubscription.cancel_at
+      ? dateFromStripeTimestamp(stripeSubscription.cancel_at)
+      : null,
     runBillingAtPeriodStart: null,
     priceId: null,
   }

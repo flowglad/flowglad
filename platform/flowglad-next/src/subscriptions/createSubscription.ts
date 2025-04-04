@@ -111,7 +111,7 @@ export const insertSubscriptionAndItems = async (
   )
 
   const subscriptionItemInsert: SubscriptionItem.Insert = {
-    name: `${price.name} x ${quantity}`,
+    name: `${price.name}${quantity > 1 ? ` x ${quantity}` : ''}`,
     subscriptionId: subscription.id,
     priceId: price.id,
     addedDate: startDate,
