@@ -197,13 +197,15 @@ export class FlowgladServer {
       throw new Error('User not authenticated')
     }
     return this.flowgladNode.checkoutSessions.create({
-      customerExternalId: session.externalId,
-      priceId: params.priceId,
-      successUrl: params.successUrl,
-      cancelUrl: params.cancelUrl,
-      outputMetadata: params.outputMetadata,
-      outputName: params.outputName,
-      quantity: params.quantity || undefined,
+      checkoutSession: {
+        customerExternalId: session.externalId,
+        priceId: params.priceId,
+        successUrl: params.successUrl,
+        cancelUrl: params.cancelUrl,
+        outputMetadata: params.outputMetadata,
+        outputName: params.outputName,
+        quantity: params.quantity || undefined,
+      },
     })
   }
 
