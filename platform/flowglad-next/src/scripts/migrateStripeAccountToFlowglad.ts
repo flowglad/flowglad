@@ -76,6 +76,13 @@ const getAllStripeRecords = async <
   return records
 }
 
+interface CoreStripeMigrationParams {
+  flowgladOrganizationId: string
+  stripeAccountId: string
+  stripeClient: Stripe
+  db: PostgresJsDatabase
+}
+
 /**
  * 1. insert or do nothing customers
  * 2. for each customer, insert or do nothing platform payment methods with external id = payment method . fingerprint
@@ -83,11 +90,14 @@ const getAllStripeRecords = async <
  */
 
 const migrateStripeCustomerDataToFlowglad = async (
-  db: PostgresJsDatabase,
-  stripeClient: Stripe,
-  flowgladOrganizationId: string,
-  stripeAccountId: string
+  migrationParams: CoreStripeMigrationParams
 ) => {
+  const {
+    flowgladOrganizationId,
+    stripeAccountId,
+    stripeClient,
+    db,
+  } = migrationParams
   const stripeCustomers: Stripe.Customer[] =
     await getAllStripeRecords((params) =>
       stripeClient.customers.list(params, {
@@ -183,17 +193,299 @@ const migrateStripeCustomerDataToFlowglad = async (
 }
 
 const migrateStripeSubscriptionDataToFlowglad = async (
-  db: PostgresJsDatabase,
-  stripeClient: Stripe,
-  flowgladOrganizationId: string,
-  stripeAccountId: string
+  migrationParams: CoreStripeMigrationParams
 ) => {
+  const {
+    flowgladOrganizationId,
+    stripeAccountId,
+    stripeClient,
+    db,
+  } = migrationParams
   const stripeSubscriptions: Stripe.Subscription[] =
     await getAllStripeRecords((params) =>
-      stripeClient.subscriptions.list(params, {
+      stripeClient.subscriptions.list(
+        {
+          ...params,
+          expand: ['data.default_payment_method', 'data.items'], // This expands the default_payment_method field
+        },
+        {
+          stripeAccount: stripeAccountId,
+        }
+      )
+    )
+  console.log(
+    'stripeSubscriptions.length',
+    stripeSubscriptions.length
+  )
+  console.log(
+    'stripeSubscriptions[0].items.data',
+    stripeSubscriptions[0].items.data
+  )
+  const subscriptionRecords = await db.transaction(
+    async (transaction) => {
+      const customerRecords = await selectCustomers(
+        {
+          stripeCustomerId: stripeSubscriptions.map((subscription) =>
+            stripeIdFromObjectOrId(subscription.customer)
+          ),
+        },
+        transaction
+      )
+      const customersByStripeCustomerId = new Map<
+        string,
+        Customer.Record
+      >(
+        customerRecords.map((customer) => [
+          customer.stripeCustomerId!,
+          customer,
+        ])
+      )
+      const paymentMethodRecords = await selectPaymentMethods(
+        {
+          customerId: customerRecords.map((customer) => customer.id),
+        },
+        transaction
+      )
+      const paymentMethodRecordsByCustomerId: Record<
+        string,
+        PaymentMethod.Record[] | undefined
+      > = R.groupBy(
+        (paymentMethod) => paymentMethod.customerId!,
+        paymentMethodRecords
+      )
+      const subscriptionInserts: Subscription.Insert[] =
+        await Promise.all(
+          stripeSubscriptions.map(async (subscription) => {
+            const customerRecord = customersByStripeCustomerId.get(
+              stripeIdFromObjectOrId(subscription.customer)
+            )!
+            return stripeSubscriptionToSubscriptionInsert(
+              subscription,
+              customerRecord,
+              paymentMethodRecordsByCustomerId[customerRecord.id] ??
+                [],
+              {
+                livemode: true,
+                organizationId: flowgladOrganizationId,
+              },
+              stripeClient
+            )
+          })
+        )
+      await bulkInsertOrDoNothingSubscriptionsByExternalId(
+        subscriptionInserts,
+        transaction
+      )
+      const subscriptionRecords = await selectSubscriptions(
+        {
+          externalId: subscriptionInserts.map(
+            (subscription) => subscription.externalId
+          ),
+        },
+        transaction
+      )
+      const subcriptionRecordsByStripeSubscriptionId = new Map<
+        string,
+        Subscription.Record
+      >(
+        subscriptionRecords.map((subscription) => [
+          subscription.externalId!,
+          subscription,
+        ])
+      )
+      const priceRecords = await selectPrices(
+        {
+          externalId: stripeSubscriptions
+            .map((subscription) =>
+              subscription.items.data.map((item) =>
+                stripeIdFromObjectOrId(item.price)
+              )
+            )
+            .flat(),
+        },
+        transaction
+      )
+      const priceRecordsByExternalId = new Map<string, Price.Record>(
+        priceRecords.map((price) => [price.externalId!, price])
+      )
+      const subscriptionItemInserts: SubscriptionItem.Insert[] =
+        stripeSubscriptions
+          .map((subscription) => {
+            return subscription.items.data.map((item) => {
+              const priceRecord = priceRecordsByExternalId.get(
+                stripeIdFromObjectOrId(item.price)
+              )
+              if (!priceRecord) {
+                console.error(
+                  'Error: price record not found for subscription item',
+                  item
+                )
+                process.exit(1)
+              }
+              const subscriptionRecord =
+                subcriptionRecordsByStripeSubscriptionId.get(
+                  stripeIdFromObjectOrId(subscription.id)
+                )!
+              if (!subscriptionRecord) {
+                console.error('Error: subscription record not found')
+                process.exit(1)
+              }
+              return stripeSubscriptionItemToSubscriptionItemInsert(
+                item,
+                subscriptionRecord,
+                priceRecord,
+                {
+                  livemode: true,
+                  organizationId: flowgladOrganizationId,
+                }
+              )
+            })
+          })
+          .flat()
+
+      await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
+        subscriptionItemInserts,
+        transaction
+      )
+      throw Error('Made it here')
+    }
+  )
+}
+
+const migrateStripeCatalogDataToFlowglad = async (
+  migrationParams: CoreStripeMigrationParams
+) => {
+  const { stripeAccountId, stripeClient, db } = migrationParams
+  const activeStripeProducts: Stripe.Product[] =
+    await getAllStripeRecords((params) =>
+      stripeClient.products.list(params, {
         stripeAccount: stripeAccountId,
       })
     )
+
+  const inactiveStripeProducts: Stripe.Product[] =
+    await getAllStripeRecords((params) =>
+      stripeClient.products.list(
+        {
+          ...params,
+          active: false,
+        },
+        {
+          stripeAccount: stripeAccountId,
+        }
+      )
+    )
+  const stripeProducts = [
+    ...activeStripeProducts,
+    ...inactiveStripeProducts,
+  ]
+  const stripeProductsByStripeProductId = new Map<
+    string,
+    Stripe.Product
+  >(stripeProducts.map((product) => [product.id, product]))
+
+  const activeStripePrices: Stripe.Price[] =
+    await getAllStripeRecords((params) =>
+      stripeClient.prices.list(params, {
+        stripeAccount: stripeAccountId,
+      })
+    )
+  const inactiveStripePrices: Stripe.Price[] =
+    await getAllStripeRecords((params) =>
+      stripeClient.prices.list(
+        {
+          ...params,
+          active: false,
+        },
+        {
+          stripeAccount: stripeAccountId,
+        }
+      )
+    )
+
+  const stripeSubscriptionsWithItems: Stripe.Subscription[] =
+    await getAllStripeRecords((params) =>
+      stripeClient.subscriptions.list(
+        {
+          ...params,
+          expand: ['data.items'],
+        },
+        {
+          stripeAccount: stripeAccountId,
+        }
+      )
+    )
+  const stripeSubscriptionItemPrices: Stripe.Price[] =
+    stripeSubscriptionsWithItems.flatMap((subscription) =>
+      subscription.items.data.map((item) => item.price)
+    )
+
+  const stripePrices = R.uniqBy(
+    (price) => price.id,
+    [
+      ...activeStripePrices,
+      ...inactiveStripePrices,
+      ...stripeSubscriptionItemPrices,
+    ]
+  )
+
+  await db.transaction(async (transaction) => {
+    const defaultCatalog = await selectDefaultCatalog(
+      {
+        organizationId: migrationParams.flowgladOrganizationId,
+        livemode: true,
+      },
+      transaction
+    )
+    if (!defaultCatalog) {
+      console.error('Error: default catalog not found')
+      process.exit(1)
+    }
+    const productInserts = stripeProducts.map((product) =>
+      stripeProductToProductInsert(product, defaultCatalog, {
+        livemode: true,
+        organizationId: migrationParams.flowgladOrganizationId,
+      })
+    )
+    await bulkInsertOrDoNothingProductsByExternalId(
+      productInserts,
+      transaction
+    )
+    const productRecords = await selectProducts(
+      {
+        externalId: stripeProducts.map((product) => product.id),
+      },
+      transaction
+    )
+    const productsByStripeProductId = new Map<string, Product.Record>(
+      productRecords.map((product) => [product.externalId!, product])
+    )
+    const priceInserts: Price.Insert[] = stripePrices.map((price) =>
+      stripePriceToPriceInsert(
+        price,
+        stripeProductsByStripeProductId.get(
+          stripeIdFromObjectOrId(price.product)
+        )!,
+        productsByStripeProductId.get(
+          stripeIdFromObjectOrId(price.product)
+        )!,
+        {
+          livemode: true,
+          organizationId: migrationParams.flowgladOrganizationId,
+        }
+      )
+    )
+    await bulkInsertOrDoNothingPricesByExternalId(
+      priceInserts,
+      transaction
+    )
+    const priceRecords = await selectPrices(
+      {
+        externalId: stripePrices.map((price) => price.id),
+      },
+      transaction
+    )
+  })
 }
 /**
  * In 3 steps this should:
@@ -222,19 +514,9 @@ async function migrateStripeAccountToFlowglad(
   }
   const stripeAccountId = connectedAccountIdArg.split('=')[1]
   const stripeClient = stripe(true)
-  const stripeProducts: Stripe.Product[] = await getAllStripeRecords(
-    (params) =>
-      stripeClient.products.list(params, {
-        stripeAccount: stripeAccountId,
-      })
-  )
-  const stripeProductsByStripeProductId = new Map<
-    string,
-    Stripe.Product
-  >(stripeProducts.map((product) => [product.id, product]))
 
-  const { defaultCatalog, flowgladOrganizationId } =
-    await db.transaction(async (transaction) => {
+  const { flowgladOrganizationId } = await db.transaction(
+    async (transaction) => {
       const [organization] = await selectOrganizations(
         {
           stripeAccountId,
@@ -245,141 +527,20 @@ async function migrateStripeAccountToFlowglad(
         console.error('Error: organization not found')
         process.exit(1)
       }
-      const defaultCatalog = await selectDefaultCatalog(
-        {
-          organizationId: organization.id,
-          livemode: true,
-        },
-        transaction
-      )
       return {
-        defaultCatalog,
         flowgladOrganizationId: organization.id,
       }
-    })
-  if (!defaultCatalog) {
-    console.error('Error: default catalog not found')
-    process.exit(1)
-  }
-  const productInserts = stripeProducts.map((product) =>
-    stripeProductToProductInsert(product, defaultCatalog, {
-      livemode: true,
-      organizationId: flowgladOrganizationId,
-    })
+    }
   )
-  const stripePrices: Stripe.Price[] = await getAllStripeRecords(
-    (params) =>
-      stripeClient.prices.list(params, {
-        stripeAccount: stripeAccountId,
-      })
-  )
-  const stripeSubscriptions: Stripe.Subscription[] =
-    await getAllStripeRecords((params) =>
-      stripeClient.subscriptions.list(
-        {
-          ...params,
-          expand: ['data.default_payment_method'], // This expands the default_payment_method field
-        },
-        {
-          stripeAccount: stripeAccountId,
-        }
-      )
-    )
-
-  const stripeSubscriptionsByStripeCustomerId = new Map<
-    string,
-    Stripe.Subscription
-  >(
-    stripeSubscriptions.map((subscription) => [
-      stripeIdFromObjectOrId(subscription.customer),
-      subscription,
-    ])
-  )
-  await db.transaction(async (transaction) => {
-    await bulkInsertOrDoNothingProductsByExternalId(
-      productInserts,
-      transaction
-    )
-    const productRecords = await selectProducts(
-      {
-        externalId: stripeProducts.map((product) => product.id),
-      },
-      transaction
-    )
-    const productsByStripeProductId = new Map<string, Product.Record>(
-      productRecords.map((product) => [product.externalId!, product])
-    )
-    const priceInserts: Price.Insert[] = stripePrices.map((price) =>
-      stripePriceToPriceInsert(
-        price,
-        stripeProductsByStripeProductId.get(
-          stripeIdFromObjectOrId(price.product)
-        )!,
-        productsByStripeProductId.get(
-          stripeIdFromObjectOrId(price.product)
-        )!,
-        {
-          livemode: true,
-          organizationId: flowgladOrganizationId,
-        }
-      )
-    )
-    await bulkInsertOrDoNothingPricesByExternalId(
-      priceInserts,
-      transaction
-    )
-    const priceRecords = await selectPrices(
-      {
-        externalId: stripePrices.map((price) => price.id),
-      },
-      transaction
-    )
-    // const pricesByStripePriceId = new Map<string, Price.Record>(
-    //   priceRecords.map((price) => [price.externalId!, price])
-    // )
-    // const subscriptionInserts: Subscription.Insert[] =
-    //   stripeSubscriptions.map((subscription) =>
-    //     stripeSubscriptionToSubscriptionInsert(
-    //       subscription,
-    //       customersByStripeCustomerId.get(
-    //         stripeIdFromObjectOrId(subscription.customer)
-    //       )!,
-    //       {
-    //         livemode: true,
-    //         organizationId: flowgladOrganizationId,
-    //       }
-    //     )
-    //   )
-    // await bulkInsertOrDoNothingSubscriptionsByExternalId(
-    //   subscriptionInserts,
-    //   transaction
-    // )
-    // const subscriptionRecords = await selectSubscriptions(
-    //   {
-    //     externalId: stripeSubscriptions.map(
-    //       (subscription) => subscription.id
-    //     ),
-    //     organizationId: flowgladOrganizationId,
-    //   },
-    //   transaction
-    // )
-    // const subscriptionsByStripeSubscriptionId = new Map<
-    //   string,
-    //   Subscription.Record
-    // >(
-    //   subscriptionRecords.map((subscription) => [
-    //     subscription.externalId!,
-    //     subscription,
-    //   ])
-    // )
-    // throw new Error('Made it to the finish line!!!')
-  })
-  await migrateStripeCustomerDataToFlowglad(
+  const migrationParams = {
     db,
     stripeClient,
     flowgladOrganizationId,
-    stripeAccountId
-  )
+    stripeAccountId,
+  }
+  await migrateStripeCatalogDataToFlowglad(migrationParams)
+  await migrateStripeCustomerDataToFlowglad(migrationParams)
+  await migrateStripeSubscriptionDataToFlowglad(migrationParams)
 }
 
 runScript(migrateStripeAccountToFlowglad)
