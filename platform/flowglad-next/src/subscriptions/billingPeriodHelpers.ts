@@ -25,7 +25,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createBillingRun } from './billingRunHelpers'
-import { BillingRun } from '@/db/schema/billingRuns'
+import type { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 

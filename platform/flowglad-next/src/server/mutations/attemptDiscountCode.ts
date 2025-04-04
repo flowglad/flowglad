@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import { publicProcedure } from '@/server/trpc'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { attemptDiscountCodeInputSchema } from '@/db/schema/discounts'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'

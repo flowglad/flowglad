@@ -1,5 +1,5 @@
 import { customAlphabet } from 'nanoid'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   insertOrganization,
   selectOrganizations,

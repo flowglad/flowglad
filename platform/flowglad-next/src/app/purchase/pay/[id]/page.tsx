@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   billingInfoSchema,
   selectPurchaseCheckoutParametersById,

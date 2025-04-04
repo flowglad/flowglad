@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerAndCustomerFromCustomerWhere } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'

@@ -5,7 +5,7 @@ import {
   findInvoiceCheckoutSession,
 } from '@/utils/checkoutSessionState'
 import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { productIdOrPurchaseIdSchema } from '@/db/schema/discounts'
 
 export const clearDiscountCode = publicProcedure

@@ -17,7 +17,10 @@ import { PostgresJsDatabase, drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
 function pullDevelopmentEnvVars() {
-  execSync('pnpm vercel:env-pull', {
+  execSync(`vercel env pull --environment='development'`, {
+    stdio: 'inherit',
+  })
+  execSync('pnpm postvercel:env-pull', {
     stdio: 'inherit',
   })
   // eslint-disable-next-line no-console

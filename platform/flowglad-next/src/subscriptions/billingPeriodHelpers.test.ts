@@ -30,7 +30,7 @@ import {
   setupBillingRun,
   setupBillingPeriod,
 } from '../../seedDatabase'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { Customer } from '@/db/schema/customers'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'

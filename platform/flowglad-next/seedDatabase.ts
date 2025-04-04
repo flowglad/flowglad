@@ -1,5 +1,5 @@
 import db from '@/db/client'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { countries } from '@/db/schema/countries'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'

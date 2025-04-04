@@ -2,7 +2,7 @@ import {
   selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import Stripe from 'stripe'
 import { PaymentStatus } from '@/types'

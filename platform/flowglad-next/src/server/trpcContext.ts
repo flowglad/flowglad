@@ -1,6 +1,6 @@
 import * as trpcNext from '@trpc/server/adapters/next'
 import { ApiEnvironment } from '@/types'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { stackServerApp } from '@/stack'
 import { Organization } from '@/db/schema/organizations'

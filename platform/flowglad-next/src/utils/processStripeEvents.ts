@@ -7,7 +7,7 @@ import { stripePaymentIntentProcessingTask } from '@/trigger/stripe/payment-inte
 import { stripePaymentIntentSucceededTask } from '@/trigger/stripe/payment-intent-succeeded'
 import Stripe from 'stripe'
 import { getConnectedAccountOnboardingStatus } from './stripe'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { BusinessOnboardingStatus } from '@/types'

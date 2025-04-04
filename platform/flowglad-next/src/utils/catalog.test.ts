@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { setupOrg, setupCatalog } from '../../seedDatabase'
 import { cloneCatalogTransaction } from './catalog'
 import { IntervalUnit, PriceType, CurrencyCode } from '@/types'

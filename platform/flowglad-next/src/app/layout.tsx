@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic'
 
 import Providers from './Providers'
 import { cn } from '@/utils/core'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Organization } from '@/db/schema/organizations'
 // import AIModal from './components/forms/AIModal'

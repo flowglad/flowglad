@@ -9,7 +9,7 @@ import {
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 
 // These seed methods (and the clearDatabase helper) come from our test support code.
 // They create real records in our test database.

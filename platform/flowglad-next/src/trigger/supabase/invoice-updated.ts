@@ -9,7 +9,7 @@ import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods
 import { sendReceiptEmail } from '@/utils/email'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 

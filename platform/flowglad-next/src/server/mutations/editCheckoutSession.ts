@@ -1,5 +1,5 @@
 import { publicProcedure } from '@/server/trpc'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { editCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import { editCheckoutSession as editCheckoutSessionFn } from '@/utils/bookkeeping/checkoutSessions'
 

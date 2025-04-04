@@ -25,7 +25,7 @@ import {
 } from '../../../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import {
   safelyUpdateInvoiceStatus,

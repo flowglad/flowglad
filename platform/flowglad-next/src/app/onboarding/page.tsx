@@ -1,7 +1,5 @@
-import {
-  adminTransaction,
-  authenticatedTransaction,
-} from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   FlowgladApiKeyType,

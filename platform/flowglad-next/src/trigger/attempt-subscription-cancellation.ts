@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { Subscription } from '@/db/schema/subscriptions'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'

@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { selectBillingPeriodsDueForTransition } from '@/db/tableMethods/billingPeriodMethods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { attemptBillingPeriodTransitionTask } from './attempt-billing-period-transition'
 
 export const attemptTransitionBillingPeriodsTask = task({

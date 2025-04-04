@@ -1,5 +1,5 @@
 import { selectCountries } from '@/db/tableMethods/countryMethods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { protectedProcedure, router } from '../trpc'
 import { z } from 'zod'
 import { countriesSelectSchema } from '@/db/schema/countries'
