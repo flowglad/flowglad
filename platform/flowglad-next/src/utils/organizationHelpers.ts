@@ -1,6 +1,7 @@
 import { customAlphabet } from 'nanoid'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
+  insertOrDoNothingOrganizationByExternalId,
   insertOrganization,
   selectOrganizations,
 } from '@/db/tableMethods/organizationMethods'
@@ -83,20 +84,21 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
-  const organizationRecord = await insertOrganization(
-    {
-      ...organization,
-      subdomainSlug: finalSubdomainSlug,
-      /**
-       * This is the default fee for non merchant of record organizations
-       */
-      feePercentage: '0.65',
-      onboardingStatus: BusinessOnboardingStatus.Unauthorized,
-      stripeConnectContractType: StripeConnectContractType.Platform,
-      defaultCurrency: defaultCurrencyForCountry(country),
-    },
-    transaction
-  )
+  const organizationRecord =
+    await insertOrDoNothingOrganizationByExternalId(
+      {
+        ...organization,
+        subdomainSlug: finalSubdomainSlug,
+        /**
+         * This is the default fee for non merchant of record organizations
+         */
+        feePercentage: '0.65',
+        onboardingStatus: BusinessOnboardingStatus.Unauthorized,
+        stripeConnectContractType: StripeConnectContractType.Platform,
+        defaultCurrency: defaultCurrencyForCountry(country),
+      },
+      transaction
+    )
 
   await insertMembership(
     {

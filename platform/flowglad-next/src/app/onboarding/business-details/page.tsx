@@ -18,7 +18,7 @@ import { Select } from '@/components/ion/Select'
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const { data } = trpc.countries.list.useQuery()
-  const { setOrganization } = useAuthContext()
+  const { setOrganization, user } = useAuthContext()
   const {
     register,
     handleSubmit,
@@ -36,8 +36,13 @@ const BusinessDetails = () => {
   const router = useRouter()
   const onSubmit = handleSubmit(async (data) => {
     try {
-      const { organization } =
-        await createOrganization.mutateAsync(data)
+      const { organization } = await createOrganization.mutateAsync({
+        ...data,
+        organization: {
+          ...data.organization,
+          externalId: user?.id,
+        },
+      })
       setOrganization(organization)
       router.refresh()
       router.push('/onboarding')
