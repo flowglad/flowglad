@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
 import { schedules } from '@trigger.dev/sdk/v3'
 import { attemptBillingRunsTask } from './attempt-run-all-billings'

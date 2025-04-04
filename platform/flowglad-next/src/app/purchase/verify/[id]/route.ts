@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { exchangeTokenForPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import { NextRequest } from 'next/server'
 import { redirect } from 'next/navigation'

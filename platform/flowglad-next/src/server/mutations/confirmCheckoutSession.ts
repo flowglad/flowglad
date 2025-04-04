@@ -1,5 +1,5 @@
 import { publicProcedure } from '@/server/trpc'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { z } from 'zod'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import {

@@ -1,6 +1,6 @@
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { z } from 'zod'
 import {
   selectFocusedMembershipAndOrganization,

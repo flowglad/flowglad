@@ -7,10 +7,8 @@ import {
   createAccountOnboardingLink,
 } from '@/utils/stripe'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
-import {
-  adminTransaction,
-  authenticatedTransaction,
-} from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/databaseMethods'
 import { requestStripeConnectOnboardingLinkInputSchema } from '@/db/schema/countries'
 
 export const requestStripeConnectOnboardingLink = protectedProcedure

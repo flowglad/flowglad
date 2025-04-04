@@ -1,5 +1,5 @@
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { completeStripeOAuthFlow } from '@/utils/stripe'

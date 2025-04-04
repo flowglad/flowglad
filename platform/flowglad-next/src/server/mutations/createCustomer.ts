@@ -1,9 +1,7 @@
 import * as R from 'ramda'
 import { protectedProcedure } from '../trpc'
-import {
-  adminTransaction,
-  authenticatedTransaction,
-} from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/databaseMethods'
 import { createOrUpdateCustomer as createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'

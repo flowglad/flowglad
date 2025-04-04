@@ -10,7 +10,7 @@ import {
   BillingPeriodStatus,
   BillingRunStatus,
 } from '@/types'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupSubscription,
   setupBillingRun,

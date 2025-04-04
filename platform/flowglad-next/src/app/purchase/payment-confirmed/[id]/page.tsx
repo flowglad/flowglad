@@ -3,7 +3,7 @@ import {
   selectPurchases,
 } from '@/db/tableMethods/purchaseMethods'
 import { notFound } from 'next/navigation'
-import { adminTransaction } from '@/db/databaseMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 import InnerPaymentConfirmedPage from './InnerPaymentConfirmedPage'
 
 interface PageProps {
