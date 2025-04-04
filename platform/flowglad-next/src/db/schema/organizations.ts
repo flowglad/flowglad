@@ -127,10 +127,6 @@ const hiddenColumns = {
   externalId: true,
 } as const
 
-const createOnlyColumns = {
-  externalId: true,
-} as const
-
 const readOnlyColumns = {
   stripeAccountId: true,
   payoutsEnabled: true,
@@ -149,18 +145,13 @@ export const organizationsClientUpdateSchema =
   organizationsUpdateSchema.omit({
     ...hiddenColumns,
     ...readOnlyColumns,
-    ...createOnlyColumns,
   })
 
 export const organizationsClientInsertSchema =
-  organizationsInsertSchema
-    .omit({
-      ...hiddenColumns,
-      ...readOnlyColumns,
-    })
-    .extend({
-      externalId: z.string().optional(),
-    })
+  organizationsInsertSchema.omit({
+    ...hiddenColumns,
+    ...readOnlyColumns,
+  })
 
 export namespace Organization {
   export type Insert = z.infer<typeof organizationsInsertSchema>

@@ -36,13 +36,8 @@ const BusinessDetails = () => {
   const router = useRouter()
   const onSubmit = handleSubmit(async (data) => {
     try {
-      const { organization } = await createOrganization.mutateAsync({
-        ...data,
-        organization: {
-          ...data.organization,
-          externalId: user?.id,
-        },
-      })
+      const { organization } =
+        await createOrganization.mutateAsync(data)
       setOrganization(organization)
       router.refresh()
       router.push('/onboarding')

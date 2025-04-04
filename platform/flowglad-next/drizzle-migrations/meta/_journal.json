@@ -1352,6 +1352,13 @@
       "when": 1743562441904,
       "tag": "0192_hesitant_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 193,
+      "version": "7",
+      "when": 1743790810726,
+      "tag": "0193_condemned_electro",
+      "breakpoints": true
     }
   ]
 }

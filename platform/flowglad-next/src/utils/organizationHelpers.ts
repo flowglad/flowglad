@@ -83,7 +83,7 @@ export const createOrganizationTransaction = async (
     organization.countryId,
     transaction
   )
-
+  const currentEpochHour = Math.floor(Date.now() / 1000 / 3600)
   const organizationRecord =
     await insertOrDoNothingOrganizationByExternalId(
       {
@@ -96,6 +96,10 @@ export const createOrganizationTransaction = async (
         onboardingStatus: BusinessOnboardingStatus.Unauthorized,
         stripeConnectContractType: StripeConnectContractType.Platform,
         defaultCurrency: defaultCurrencyForCountry(country),
+        /**
+         * Use this hash to prevent a race condition where a user may accidentally double-submit createOrganization
+         */
+        externalId: `${user.id}-${organization.name}-${currentEpochHour}`,
       },
       transaction
     )
