@@ -25,7 +25,7 @@ const client = postgres(dbUrl, {
 })
 
 export const db = drizzle(client, {
-  logger: core.IS_PROD ? false : false,
+  logger: core.IS_PROD ? true : true,
 })
 
 export default db
