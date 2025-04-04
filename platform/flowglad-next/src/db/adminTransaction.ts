@@ -3,6 +3,11 @@ import db from './client'
 import { sql } from 'drizzle-orm'
 import { isNil } from '@/utils/core'
 
+// This method needs to be in its own module, because
+// comingling it with `authenticatedTransaction` in the same file
+// can cause issues where we execute stackAuth code globally that
+// only works in the context of a nextjs sessionful runtime.
+
 export const adminTransaction = async <T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
   {
