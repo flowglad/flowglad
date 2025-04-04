@@ -145,7 +145,7 @@ export const processSetupIntentUpdated = async (
   if (!price.intervalCount) {
     throw new Error('Price interval count is required')
   }
-  await createSubscriptionWorkflow(
+  const { billingRun } = await createSubscriptionWorkflow(
     {
       stripeSetupIntentId: setupIntent.id,
       defaultPaymentMethod: paymentMethod,
@@ -184,5 +184,5 @@ export const processSetupIntentUpdated = async (
     transaction
   )
 
-  return { purchase: updatedPurchase, checkoutSession }
+  return { purchase: updatedPurchase, checkoutSession, billingRun }
 }
