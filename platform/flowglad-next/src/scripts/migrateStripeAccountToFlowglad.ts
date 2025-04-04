@@ -213,135 +213,131 @@ const migrateStripeSubscriptionDataToFlowglad = async (
         }
       )
     )
-  const subscriptionRecords = await db.transaction(
-    async (transaction) => {
-      const customerRecords = await selectCustomers(
-        {
-          stripeCustomerId: stripeSubscriptions.map((subscription) =>
+  await db.transaction(async (transaction) => {
+    const customerRecords = await selectCustomers(
+      {
+        stripeCustomerId: stripeSubscriptions.map((subscription) =>
+          stripeIdFromObjectOrId(subscription.customer)
+        ),
+      },
+      transaction
+    )
+    const customersByStripeCustomerId = new Map<
+      string,
+      Customer.Record
+    >(
+      customerRecords.map((customer) => [
+        customer.stripeCustomerId!,
+        customer,
+      ])
+    )
+    const paymentMethodRecords = await selectPaymentMethods(
+      {
+        customerId: customerRecords.map((customer) => customer.id),
+      },
+      transaction
+    )
+    const paymentMethodRecordsByCustomerId: Record<
+      string,
+      PaymentMethod.Record[] | undefined
+    > = R.groupBy(
+      (paymentMethod) => paymentMethod.customerId!,
+      paymentMethodRecords
+    )
+    const subscriptionInserts: Subscription.Insert[] =
+      await Promise.all(
+        stripeSubscriptions.map(async (subscription) => {
+          const customerRecord = customersByStripeCustomerId.get(
             stripeIdFromObjectOrId(subscription.customer)
-          ),
-        },
-        transaction
+          )!
+          return stripeSubscriptionToSubscriptionInsert(
+            subscription,
+            customerRecord,
+            paymentMethodRecordsByCustomerId[customerRecord.id] ?? [],
+            {
+              livemode: true,
+              organizationId: flowgladOrganizationId,
+            },
+            stripeClient
+          )
+        })
       )
-      const customersByStripeCustomerId = new Map<
-        string,
-        Customer.Record
-      >(
-        customerRecords.map((customer) => [
-          customer.stripeCustomerId!,
-          customer,
-        ])
-      )
-      const paymentMethodRecords = await selectPaymentMethods(
-        {
-          customerId: customerRecords.map((customer) => customer.id),
-        },
-        transaction
-      )
-      const paymentMethodRecordsByCustomerId: Record<
-        string,
-        PaymentMethod.Record[] | undefined
-      > = R.groupBy(
-        (paymentMethod) => paymentMethod.customerId!,
-        paymentMethodRecords
-      )
-      const subscriptionInserts: Subscription.Insert[] =
-        await Promise.all(
-          stripeSubscriptions.map(async (subscription) => {
-            const customerRecord = customersByStripeCustomerId.get(
-              stripeIdFromObjectOrId(subscription.customer)
-            )!
-            return stripeSubscriptionToSubscriptionInsert(
-              subscription,
-              customerRecord,
-              paymentMethodRecordsByCustomerId[customerRecord.id] ??
-                [],
+    await bulkInsertOrDoNothingSubscriptionsByExternalId(
+      subscriptionInserts,
+      transaction
+    )
+    const subscriptionRecords = await selectSubscriptions(
+      {
+        externalId: subscriptionInserts.map(
+          (subscription) => subscription.externalId
+        ),
+      },
+      transaction
+    )
+    const subcriptionRecordsByStripeSubscriptionId = new Map<
+      string,
+      Subscription.Record
+    >(
+      subscriptionRecords.map((subscription) => [
+        subscription.externalId!,
+        subscription,
+      ])
+    )
+    const priceRecords = await selectPrices(
+      {
+        externalId: stripeSubscriptions
+          .map((subscription) =>
+            subscription.items.data.map((item) =>
+              stripeIdFromObjectOrId(item.price)
+            )
+          )
+          .flat(),
+      },
+      transaction
+    )
+    const priceRecordsByExternalId = new Map<string, Price.Record>(
+      priceRecords.map((price) => [price.externalId!, price])
+    )
+    const subscriptionItemInserts: SubscriptionItem.Insert[] =
+      stripeSubscriptions
+        .map((subscription) => {
+          return subscription.items.data.map((item) => {
+            const priceRecord = priceRecordsByExternalId.get(
+              stripeIdFromObjectOrId(item.price)
+            )
+            if (!priceRecord) {
+              console.error(
+                'Error: price record not found for subscription item',
+                item
+              )
+              process.exit(1)
+            }
+            const subscriptionRecord =
+              subcriptionRecordsByStripeSubscriptionId.get(
+                stripeIdFromObjectOrId(subscription.id)
+              )!
+            if (!subscriptionRecord) {
+              console.error('Error: subscription record not found')
+              process.exit(1)
+            }
+            return stripeSubscriptionItemToSubscriptionItemInsert(
+              item,
+              subscriptionRecord,
+              priceRecord,
               {
                 livemode: true,
                 organizationId: flowgladOrganizationId,
-              },
-              stripeClient
+              }
             )
           })
-        )
-      await bulkInsertOrDoNothingSubscriptionsByExternalId(
-        subscriptionInserts,
-        transaction
-      )
-      const subscriptionRecords = await selectSubscriptions(
-        {
-          externalId: subscriptionInserts.map(
-            (subscription) => subscription.externalId
-          ),
-        },
-        transaction
-      )
-      const subcriptionRecordsByStripeSubscriptionId = new Map<
-        string,
-        Subscription.Record
-      >(
-        subscriptionRecords.map((subscription) => [
-          subscription.externalId!,
-          subscription,
-        ])
-      )
-      const priceRecords = await selectPrices(
-        {
-          externalId: stripeSubscriptions
-            .map((subscription) =>
-              subscription.items.data.map((item) =>
-                stripeIdFromObjectOrId(item.price)
-              )
-            )
-            .flat(),
-        },
-        transaction
-      )
-      const priceRecordsByExternalId = new Map<string, Price.Record>(
-        priceRecords.map((price) => [price.externalId!, price])
-      )
-      const subscriptionItemInserts: SubscriptionItem.Insert[] =
-        stripeSubscriptions
-          .map((subscription) => {
-            return subscription.items.data.map((item) => {
-              const priceRecord = priceRecordsByExternalId.get(
-                stripeIdFromObjectOrId(item.price)
-              )
-              if (!priceRecord) {
-                console.error(
-                  'Error: price record not found for subscription item',
-                  item
-                )
-                process.exit(1)
-              }
-              const subscriptionRecord =
-                subcriptionRecordsByStripeSubscriptionId.get(
-                  stripeIdFromObjectOrId(subscription.id)
-                )!
-              if (!subscriptionRecord) {
-                console.error('Error: subscription record not found')
-                process.exit(1)
-              }
-              return stripeSubscriptionItemToSubscriptionItemInsert(
-                item,
-                subscriptionRecord,
-                priceRecord,
-                {
-                  livemode: true,
-                  organizationId: flowgladOrganizationId,
-                }
-              )
-            })
-          })
-          .flat()
+        })
+        .flat()
 
-      await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
-        subscriptionItemInserts,
-        transaction
-      )
-      throw Error('Made it here')
-    }
-  )
+    await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
+      subscriptionItemInserts,
+      transaction
+    )
+  })
 }
 
 const migrateStripeCatalogDataToFlowglad = async (
@@ -479,6 +475,7 @@ const migrateStripeCatalogDataToFlowglad = async (
     )
   })
 }
+
 /**
  * In 3 steps this should:
  * 1. Migrate catalog: prices, products, (eventually discounts) [x]
