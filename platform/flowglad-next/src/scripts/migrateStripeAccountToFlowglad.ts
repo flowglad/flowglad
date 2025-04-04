@@ -213,14 +213,6 @@ const migrateStripeSubscriptionDataToFlowglad = async (
         }
       )
     )
-  console.log(
-    'stripeSubscriptions.length',
-    stripeSubscriptions.length
-  )
-  console.log(
-    'stripeSubscriptions[0].items.data',
-    stripeSubscriptions[0].items.data
-  )
   const subscriptionRecords = await db.transaction(
     async (transaction) => {
       const customerRecords = await selectCustomers(
