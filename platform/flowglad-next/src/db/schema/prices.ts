@@ -142,7 +142,7 @@ const intervalZodSchema = core.createSafeZodEnum(IntervalUnit)
 const basePriceColumns = {
   type: core.createSafeZodEnum(PriceType),
   isDefault: z.boolean(),
-  unitPrice: core.safeZodPositiveIntegerOrZero,
+  unitPrice: core.safeZodNonNegativeInteger,
   currency: core.createSafeZodEnum(CurrencyCode),
 }
 

@@ -104,12 +104,7 @@ type CreateCheckoutSessionInput = z.infer<
 
 export const createCheckoutSession = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(
-    z.union([
-      createCheckoutSessionSchema,
-      oldCreateCheckoutSessionSchema,
-    ])
-  )
+  .input(createCheckoutSessionSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
     const checkoutSessionInput =

@@ -517,6 +517,7 @@ export const core = {
   safeZodDate,
   safeZodAlwaysNull,
   safeZodPositiveIntegerOrZero,
+  safeZodNonNegativeInteger,
   IS_DEV,
 }
 
