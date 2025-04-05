@@ -6,6 +6,7 @@ import {
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
   createBulkInsertOrDoNothingFunction,
+  onConflictDoUpdateSetValues,
 } from '@/db/tableUtils'
 import {
   PaymentMethod,
@@ -15,8 +16,7 @@ import {
   paymentMethodsUpdateSchema,
 } from '@/db/schema/paymentMethods'
 import { DbTransaction } from '../types'
-import db from '../client'
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 const config: ORMMethodCreatorConfig<
   typeof paymentMethods,
@@ -107,4 +107,29 @@ export const bulkInsertOrDoNothingPaymentMethodsByExternalId = async (
     [paymentMethods.externalId],
     transaction
   )
+}
+
+export const bulkUpsertPaymentMethodsByExternalId = async (
+  inserts: PaymentMethod.Insert[],
+  transaction: DbTransaction
+) => {
+  const parsedData = inserts.map((insert) => {
+    const result = config.insertSchema.safeParse(insert)
+    if (!result.success) {
+      console.log('error for insert: ', insert)
+      console.error(result.error)
+      throw new Error(result.error.message)
+    }
+    return result.data
+  })
+  await transaction
+    .insert(paymentMethods)
+    .values(parsedData)
+    .onConflictDoUpdate({
+      target: [paymentMethods.externalId],
+      set: onConflictDoUpdateSetValues(paymentMethods, [
+        'billing_details',
+      ]),
+    })
+    .returning()
 }

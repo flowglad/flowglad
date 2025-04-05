@@ -433,8 +433,13 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     refunded: false,
     refundedAmount: 0,
     refundedAt: null,
-    taxCountry: paymentMethod.billingDetails.address.address
-      ?.country as CountryCode,
+    /**
+     * Sometimes billing details address is nested.
+     * othertimes it is not. Try nested first, then fallback to non-nested.
+     */
+    taxCountry:
+      paymentMethod.billingDetails.address.address?.country ??
+      (paymentMethod.billingDetails.address.country as CountryCode),
     paymentMethod: paymentMethod.type,
     stripePaymentIntentId: `placeholder____${core.nanoid()}`,
     livemode: billingPeriod.livemode,

@@ -955,6 +955,8 @@ export const paymentMethodFromStripeCharge = (
       return PaymentMethodType.USBankAccount
     case 'sepa_debit':
       return PaymentMethodType.SEPADebit
+    case 'link':
+      return PaymentMethodType.Link
     default:
       throw new Error(
         `Unknown payment method type: ${paymentMethodDetails.type}`

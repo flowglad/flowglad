@@ -42,10 +42,10 @@ export const paymentMethodForStripePaymentMethodId = async (
         name: stripePaymentMethod.billing_details?.name,
         email: stripePaymentMethod.billing_details?.email,
         address: {
-          name: stripePaymentMethod.billing_details?.name ?? '',
+          ...stripePaymentMethod.billing_details?.address,
           address: stripePaymentMethod.billing_details?.address,
         },
-      },
+      } as PaymentMethod.BillingDetails,
       /**
        * For now, assume that the most recently added payment method is the
        * default.

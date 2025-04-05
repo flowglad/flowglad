@@ -43,7 +43,7 @@ import { bulkInsertOrDoNothingSubscriptionItemsByExternalId } from '@/db/tableMe
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import {
-  bulkInsertOrDoNothingPaymentMethodsByExternalId,
+  bulkUpsertPaymentMethodsByExternalId,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
 
@@ -175,7 +175,23 @@ const migrateStripeCustomerDataToFlowglad = async (
             }
           )
         )
-      await bulkInsertOrDoNothingPaymentMethodsByExternalId(
+      const groupedByExternalId = R.groupBy(
+        (paymentMethod) => paymentMethod.externalId!,
+        paymentMethodInserts
+      )
+      // Log payment methods with duplicate externalIds
+      Object.entries(groupedByExternalId)
+        .filter(
+          ([_, paymentMethods]) =>
+            paymentMethods && paymentMethods.length > 1
+        )
+        .forEach(([externalId, paymentMethods]) => {
+          console.log(
+            `Duplicate payment methods found for externalId: ${externalId}`,
+            paymentMethods
+          )
+        })
+      await bulkUpsertPaymentMethodsByExternalId(
         paymentMethodInserts,
         transaction
       )
@@ -465,12 +481,6 @@ const migrateStripeCatalogDataToFlowglad = async (
     )
     await bulkInsertOrDoNothingPricesByExternalId(
       priceInserts,
-      transaction
-    )
-    const priceRecords = await selectPrices(
-      {
-        externalId: stripePrices.map((price) => price.id),
-      },
       transaction
     )
   })
