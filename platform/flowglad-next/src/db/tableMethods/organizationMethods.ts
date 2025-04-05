@@ -1,4 +1,5 @@
 import {
+  Organization,
   organizations,
   organizationsInsertSchema,
   organizationsSelectSchema,
@@ -11,7 +12,9 @@ import {
   ORMMethodCreatorConfig,
   createInsertFunction,
   createUpdateFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
+import { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof organizations,
@@ -56,3 +59,39 @@ export const updateOrganization = createUpdateFunction(
   organizations,
   config
 )
+
+const insertOrDoNothingOrganization =
+  createBulkInsertOrDoNothingFunction(organizations, config)
+
+export const bulkInsertOrDoNothingOrganizationsByExternalId = (
+  inserts: Organization.Insert[],
+  transaction: DbTransaction
+) => {
+  return insertOrDoNothingOrganization(
+    inserts,
+    [organizations.externalId],
+    transaction
+  )
+}
+
+export const insertOrDoNothingOrganizationByExternalId = async (
+  insert: Organization.Insert,
+  transaction: DbTransaction
+) => {
+  const inserts = [insert]
+  const result = await insertOrDoNothingOrganization(
+    inserts,
+    [organizations.externalId],
+    transaction
+  )
+  if (!result || result.length === 0 || result[0] === null) {
+    const [organization] = await selectOrganizations(
+      {
+        externalId: insert.externalId,
+      },
+      transaction
+    )
+    return organization
+  }
+  return result[0]
+}

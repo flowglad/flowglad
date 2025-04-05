@@ -19,7 +19,10 @@ import {
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { createBillingPeriodAndItems } from './billingPeriodHelpers'
-import { createBillingRun } from './billingRunHelpers'
+import {
+  createBillingRun,
+  executeBillingRun,
+} from './billingRunHelpers'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import core, { isNil } from '@/utils/core'
 import {
@@ -286,12 +289,6 @@ export const createSubscriptionWorkflow = async (
     },
     transaction
   )
-
-  if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
-    await attemptBillingRunTask.trigger({
-      billingRun,
-    })
-  }
 
   return {
     subscription,

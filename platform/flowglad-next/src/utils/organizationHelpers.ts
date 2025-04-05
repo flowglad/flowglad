@@ -1,6 +1,7 @@
 import { customAlphabet } from 'nanoid'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
+  insertOrDoNothingOrganizationByExternalId,
   insertOrganization,
   selectOrganizations,
 } from '@/db/tableMethods/organizationMethods'
@@ -82,21 +83,26 @@ export const createOrganizationTransaction = async (
     organization.countryId,
     transaction
   )
-
-  const organizationRecord = await insertOrganization(
-    {
-      ...organization,
-      subdomainSlug: finalSubdomainSlug,
-      /**
-       * This is the default fee for non merchant of record organizations
-       */
-      feePercentage: '0.65',
-      onboardingStatus: BusinessOnboardingStatus.Unauthorized,
-      stripeConnectContractType: StripeConnectContractType.Platform,
-      defaultCurrency: defaultCurrencyForCountry(country),
-    },
-    transaction
-  )
+  const currentEpochHour = Math.floor(Date.now() / 1000 / 3600)
+  const organizationRecord =
+    await insertOrDoNothingOrganizationByExternalId(
+      {
+        ...organization,
+        subdomainSlug: finalSubdomainSlug,
+        /**
+         * This is the default fee for non merchant of record organizations
+         */
+        feePercentage: '0.65',
+        onboardingStatus: BusinessOnboardingStatus.Unauthorized,
+        stripeConnectContractType: StripeConnectContractType.Platform,
+        defaultCurrency: defaultCurrencyForCountry(country),
+        /**
+         * Use this hash to prevent a race condition where a user may accidentally double-submit createOrganization
+         */
+        externalId: `${user.id}-${organization.name}-${currentEpochHour}`,
+      },
+      transaction
+    )
 
   await insertMembership(
     {

@@ -345,7 +345,7 @@ describe('createSubscription', async () => {
       organizationId: organization.id,
       customerId: newCustomer.id,
     })
-    // Create initial subscription
+    // Create initial subscription and capture first result
     const firstSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: newCustomer.id,
@@ -362,17 +362,41 @@ describe('createSubscription', async () => {
       quantity: 1,
       unitPrice: price.unitPrice,
     })
-    const billingPeriod = await setupBillingPeriod({
+    const firstBillingPeriod = await setupBillingPeriod({
       subscriptionId: firstSubscription.id,
       startDate,
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     })
     await setupBillingPeriodItems({
-      billingPeriodId: billingPeriod.id,
+      billingPeriodId: firstBillingPeriod.id,
       quantity: 1,
       unitPrice: price.unitPrice,
     })
-    // Attempt to create subscription with same setup intent
+
+    // Store the first billing run
+    const firstResult = await adminTransaction(
+      async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: newPaymentMethod,
+            customer: newCustomer,
+            stripeSetupIntentId:
+              firstSubscription.stripeSetupIntentId!,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Attempt second creation with same setup intent
     const secondResult = await adminTransaction(
       async ({ transaction }) => {
         return createSubscriptionWorkflow(
@@ -395,7 +419,8 @@ describe('createSubscription', async () => {
       }
     )
 
-    // Verify same subscription and billing period returned
+    // Verify same subscription, billing period, and billing run returned
     expect(secondResult.subscription.id).toBe(firstSubscription.id)
+    expect(secondResult.billingRun.id).toBe(firstResult.billingRun.id)
   })
 })

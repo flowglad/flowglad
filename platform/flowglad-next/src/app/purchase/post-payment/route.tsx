@@ -24,6 +24,7 @@ import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Invoice } from '@/db/schema/invoices'
+import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 
 interface ProcessPostPaymentResult {
   purchase: Purchase.Record
@@ -121,11 +122,11 @@ const processSetupIntent = async (
   url: string | URL | null
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
-  const { purchase, checkoutSession } = await adminTransaction(
-    async ({ transaction }) => {
+  const { purchase, checkoutSession, billingRun } =
+    await adminTransaction(async ({ transaction }) => {
       return processSetupIntentUpdated(setupIntent, transaction)
-    }
-  )
+    })
+  await executeBillingRun(billingRun.id)
   const url = checkoutSession.successUrl
     ? new URL(checkoutSession.successUrl)
     : null
