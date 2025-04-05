@@ -52,7 +52,7 @@
   "navigation": [
     {
       "group": "Get Started",
-      "pages": ["quickstart", "setup-by-prompt"]
+      "pages": ["quickstart", "setup-by-prompt", "how-it-works"]
     },
     {
       "group": "Concepts",

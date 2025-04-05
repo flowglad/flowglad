@@ -1,0 +1,46 @@
+---
+title: 'How Flowglad Works'
+description: 'Breaking down how data flows in Flowglad'
+---
+
+Beyond running payments, Flowglad takes the work of modeling and storing billing state off of your plate. Typically, you are left on your own to store a second copy of your billing data in your database, and keep it in sync with your payments processor via webhooks.
+
+Flowglad models and stores this billing data for you, so you don't need to do all this. Instead, billing state is a natural extension of your auth model: Flowglad gives you a way to get the billing state for each of your customers based on who is logged in for a given session or request. Whenever you need billing data, you just request it from Flowglad.
+
+## Data Flow
+
+Flowglad is a full-data provider.
+
+## Teleological
+
+Flowglad takes the responsibility of "getting billing right" off your plate, regardless of your business model. To do this, we strongly recommend you take advantage of our SDKs. We have a REST API, but it's unlikely that you'll want to use it directly, even via one of our REST clients. This is deliberate: REST APIs do not give you a sense of direction. There's no clear "and then this step" with REST APIs.
+
+Rather than requiring you to learn our REST API, we've created a set of SDKs that make it easy to do whatever it is you need done. The SDKs ship with functions whose purpose is intuitive and obvious. They allow us to describe operations the way you think about them.
+
+Flowglad's opinionation means you don't have to worry about the many footguns awaiting you in billing and payments.
+
+## From Your Perspective
+
+Flowglad's is designed to allow you to reason about billing and payments, from your perspective rather than ours.
+
+Most approaches to billing to date have focused on the API. But that only gets you JSON payloads. You're left to make sense of them and deliver them where they need to go.
+
+Flowglad aims to solve the deeper job to be done: getting billing data with the meaning you understand, in the form factor you need, at the time and location where you need it.
+
+This approach results in a smaller integration footprint that works more closely to the way thought it would, and leaves you less to maintain as your application grows.
+
+This principle has driven three major design decisions to date:
+
+- You define and access customer billing data in terms of your customer id, not ours
+- We identify your customers based on your application's authentication
+- SDK-first, rather than REST-API first
+
+## Good Cybernetics
+
+Cybernetics is the study of controlling and managing complex systems. At its core, billing, pricing and payments logic is a cybernetic problem. You don't just have customer payment data to manage. You also have pricing logic, entitlements (which plans unlock access to what features), and a myriad of other things to reason about. Inevitably you will need to manage your answers to these questions over the axis of time.
+
+When you update your pricing, you have to decide how or whether to migrate existing customers. When you give a new customer bespoke terms, you have to reason about where the store the exceptions to their pricing policy, and possibly the features they can uniquely access. Your billing data will need to agree with your accounting and application logic.
+
+Getting this right is very, very hard. As pricing models grow more complex, layering in upsells, team billing, and usage based pricing - the cybernetic problem gets harder and harder. It's a very common and painful form of technical debt. And it impacts more than just engineering: it creates a drag on your accounting, sales and marketing.
+
+Our goal is to solve the billing cybernetic problem once and for all.
