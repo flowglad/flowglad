@@ -1,6 +1,6 @@
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
 import { SubRouteHandler, SubRouteHandlerResultData } from './types'
-import { FlowgladServer } from '../_FlowgladServer'
+import { FlowgladServer } from '../FlowgladServer'
 
 export const cancelSubscription: SubRouteHandler<
   FlowgladActionKey.CancelSubscription

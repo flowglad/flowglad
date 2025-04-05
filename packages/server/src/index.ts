@@ -1,4 +1,4 @@
-export { FlowgladServer } from './_FlowgladServer'
+export { FlowgladServer } from './FlowgladServer'
 export { FlowgladServerAdmin } from './FlowgladServerAdmin'
 export { routeToHandlerMap } from './subrouteHandlers'
 export {
