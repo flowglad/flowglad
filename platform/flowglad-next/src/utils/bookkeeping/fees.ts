@@ -190,8 +190,15 @@ export const calculatePaymentMethodFeeAmount = (
       return Math.round(Math.min(totalAmountToCharge * 0.008, 500))
     case PaymentMethodType.SEPADebit:
       return Math.round(Math.min(totalAmountToCharge * 0.008, 600))
+    case PaymentMethodType.Link:
+      return Math.round(totalAmountToCharge * 0.029 + 30)
+    /**
+     * Default: assume the old 2.9% + .30.
+     * If it later turns out that the stripe processing fee is a different rate,
+     * we can always retroactively refund the difference.
+     */
     default:
-      return 0
+      return Math.round(totalAmountToCharge * 0.029 + 30)
   }
 }
 
@@ -434,6 +441,7 @@ const createSubscriptionFeeCalculationInsert = (
       paymentMethod: paymentMethod.type,
       paymentMethodCountry: (paymentMethod.billingDetails.address
         ?.address?.country ??
+        paymentMethod.billingDetails.address?.country ??
         paymentMethod.paymentMethodData?.country) as CountryCode,
       organization,
       organizationCountry,
@@ -464,7 +472,7 @@ const createSubscriptionFeeCalculationInsert = (
   const feeCalculationInsert: FeeCalculation.Insert = {
     type: FeeCalculationType.SubscriptionPayment,
     organizationId: organization.id,
-    billingAddress: paymentMethod.billingDetails.address,
+    billingAddress: paymentMethod.billingDetails,
     priceId: null,
     checkoutSessionId: null,
     paymentMethodType: paymentMethod.type,

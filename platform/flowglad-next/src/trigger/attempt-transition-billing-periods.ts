@@ -7,14 +7,13 @@ export const attemptTransitionBillingPeriodsTask = task({
   id: 'attempt-transition-billing-periods',
   run: async (
     payload: {
-      idempotencyKey: string
       lastTimestamp: Date
       currentTimestamp: Date
     },
     { ctx }
   ) => {
     logger.log('Attempting to transition billing periods', {
-      idempotencyKey: payload.idempotencyKey,
+      payload,
       ctx,
     })
 
