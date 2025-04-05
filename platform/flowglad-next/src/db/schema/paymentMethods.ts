@@ -140,6 +140,9 @@ export namespace PaymentMethod {
   export type Insert = z.infer<typeof paymentMethodsInsertSchema>
   export type Update = z.infer<typeof paymentMethodsUpdateSchema>
   export type Record = z.infer<typeof paymentMethodsSelectSchema>
+  export type BillingDetails = z.infer<
+    typeof paymentMethodBillingDetailsSchema
+  >
   export type ClientInsert = z.infer<
     typeof paymentMethodClientInsertSchema
   >
