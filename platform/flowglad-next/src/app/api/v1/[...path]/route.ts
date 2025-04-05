@@ -193,7 +193,6 @@ const handler = withUnkey(
             const errorMessage = parseErrorMessage(
               responseJson.error.json.message
             )
-
             // Add explicit error logging
             logger.error(`REST API Error: ${req.method} ${path}`, {
               stack: responseJson.error.json.data.stack,

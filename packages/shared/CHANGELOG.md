@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.9.1
+
+### Patch Changes
+
+- Fix checkout session create
+
 ## 0.9.0
 
 ### Minor Changes

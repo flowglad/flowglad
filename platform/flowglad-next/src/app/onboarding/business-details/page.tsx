@@ -18,7 +18,7 @@ import { Select } from '@/components/ion/Select'
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const { data } = trpc.countries.list.useQuery()
-  const { setOrganization } = useAuthContext()
+  const { setOrganization, user } = useAuthContext()
   const {
     register,
     handleSubmit,

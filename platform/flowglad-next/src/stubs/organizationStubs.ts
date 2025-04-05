@@ -22,4 +22,5 @@ export const dummyOrganization: Organization.Record = {
   contactEmail: null,
   featureFlags: {},
   allowMultipleSubscriptionsPerCustomer: false,
+  externalId: '___',
 }

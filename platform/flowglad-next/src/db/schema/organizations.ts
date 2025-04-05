@@ -59,12 +59,14 @@ export const organizations = pgTable(
       'allow_multiple_subscriptions_per_customer'
     ).default(false),
     featureFlags: jsonb('feature_flags').default({}),
+    externalId: text('external_id').unique(),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.name]),
       constructUniqueIndex(TABLE_NAME, [table.stripeAccountId]),
       constructUniqueIndex(TABLE_NAME, [table.domain]),
+      constructUniqueIndex(TABLE_NAME, [table.externalId]),
       constructIndex(TABLE_NAME, [table.countryId]),
     ]
   }
@@ -122,6 +124,7 @@ const hiddenColumns = {
   feePercentage: true,
   stripeAccountId: true,
   stripeConnectContractType: true,
+  externalId: true,
 } as const
 
 const readOnlyColumns = {
