@@ -67,8 +67,8 @@ importers:
   packages/express:
     dependencies:
       '@flowglad/node':
-        specifier: 0.18.0
-        version: 0.18.0
+        specifier: 0.18.2
+        version: 0.18.2
       '@flowglad/react':
         specifier: workspace:*
         version: link:../react
@@ -98,8 +98,8 @@ importers:
   packages/nextjs:
     dependencies:
       '@flowglad/node':
-        specifier: 0.18.0
-        version: 0.18.0
+        specifier: 0.18.2
+        version: 0.18.2
       '@flowglad/react':
         specifier: workspace:*
         version: link:../react
@@ -132,8 +132,8 @@ importers:
   packages/react:
     dependencies:
       '@flowglad/node':
-        specifier: 0.18.0
-        version: 0.18.0
+        specifier: 0.18.2
+        version: 0.18.2
       '@flowglad/shared':
         specifier: workspace:*
         version: link:../shared
@@ -208,8 +208,8 @@ importers:
   packages/server:
     dependencies:
       '@flowglad/node':
-        specifier: 0.18.0
-        version: 0.18.0
+        specifier: 0.18.2
+        version: 0.18.2
       '@flowglad/shared':
         specifier: workspace:*
         version: link:../shared
@@ -246,8 +246,8 @@ importers:
   packages/types:
     dependencies:
       '@flowglad/node':
-        specifier: 0.18.0
-        version: 0.18.0
+        specifier: 0.18.2
+        version: 0.18.2
     devDependencies:
       eslint:
         specifier: catalog:repo
@@ -678,8 +678,8 @@ packages:
   '@flowglad/node@0.14.0':
     resolution: {integrity: sha512-gbvCjpAu2FNpgJ2DPwlTX8tQinKcjiTpnTyxMCFEgV0nRChJB5wR7nkgmCS/Au/SC/Nm8EBAf335WM4FkAlmlQ==}
 
-  '@flowglad/node@0.18.0':
-    resolution: {integrity: sha512-1Y5/jNL4UvAQRa+gV7I/1GtnDMQujUM5ctEiznPnw4ZtwRfpUFr413bn6IHilgAUyjDpWEEwU3aXsddbKQcBQQ==}
+  '@flowglad/node@0.18.2':
+    resolution: {integrity: sha512-xX3TUhtJEZ4WfAbxpr8UeQYzsHs6o6UbcVmB0UWvps6X4NI+A+0rBQITlMeaZzWZYBP9rM1QWb59T1lpvMKdXA==}
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -3503,7 +3503,7 @@ snapshots:
 
   '@flowglad/node@0.14.0': {}
 
-  '@flowglad/node@0.18.0': {}
+  '@flowglad/node@0.18.2': {}
 
   '@humanwhocodes/config-array@0.11.14':
     dependencies:

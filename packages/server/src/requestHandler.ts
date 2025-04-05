@@ -1,5 +1,5 @@
 import { routeToHandlerMap } from './subrouteHandlers'
-import { FlowgladServer } from './FlowgladServer'
+import { FlowgladServer } from './_FlowgladServer'
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
 
 /**
