@@ -434,6 +434,7 @@ const createSubscriptionFeeCalculationInsert = (
       paymentMethod: paymentMethod.type,
       paymentMethodCountry: (paymentMethod.billingDetails.address
         ?.address?.country ??
+        paymentMethod.billingDetails.address?.country ??
         paymentMethod.paymentMethodData?.country) as CountryCode,
       organization,
       organizationCountry,

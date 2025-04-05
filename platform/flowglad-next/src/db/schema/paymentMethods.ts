@@ -59,24 +59,18 @@ export const paymentMethods = pgTable(
   }
 ).enableRLS()
 
+export const paymentMethodBillingDetailsSchema = z.object({
+  name: z.string().nullable(),
+  email: z.string().nullable(),
+  address: z.object({
+    ...billingAddressSchema.shape.address.shape,
+    address: billingAddressSchema.shape.address.nullish(),
+  }),
+})
+
 const columnRefinements = {
   type: z.nativeEnum(PaymentMethodType),
-  billingDetails: z.object({
-    name: z.string().nullable(),
-    email: z.string().nullable(),
-    address: z.object({
-      name: z.string().nullish(),
-      address: billingAddressSchema.shape.address
-        .extend({
-          country: z.string().nullable(),
-          line1: z.string().nullable(),
-          city: z.string().nullable(),
-          state: z.string().nullable(),
-          postal_code: z.string().nullable(),
-        })
-        .nullish(),
-    }),
-  }),
+  billingDetails: paymentMethodBillingDetailsSchema,
   paymentMethodData: z.record(z.unknown()),
   metadata: z.record(z.unknown()).nullable(),
 }

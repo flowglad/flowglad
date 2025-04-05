@@ -201,12 +201,12 @@ const paymentMethodRecordForStripeSubscription = async (
       await stripe.paymentMethods.retrieve(
         stripeSubscription.default_payment_method
       )
-    const { externalId } = getPaymentMethodDataAndExternalId(
+    const { externalIdPrefix } = getPaymentMethodDataAndExternalId(
       stripeSubscriptionPaymentMethod
     )
     return (
-      paymentMethodRecords.find(
-        (paymentMethod) => paymentMethod.externalId === externalId
+      paymentMethodRecords.find((paymentMethod) =>
+        paymentMethod.externalId!.startsWith(externalIdPrefix)
       ) ?? null
     )
   }
@@ -225,6 +225,15 @@ const paymentMethodRecordForStripeSubscription = async (
 export const getPaymentMethodDataAndExternalId = (
   stripePaymentMethod: Stripe.PaymentMethod
 ): {
+  /**
+   * Used as a way to help identify the correct platform payment method
+   * to correspond to the correct connected account payment method
+   * for a given subscription.
+   *
+   * We need to do this because payment method ids are not copied across
+   * source account -> destination account when copying payment data.
+   */
+  externalIdPrefix: string
   externalId: string
   paymentMethodData: {}
 } => {
@@ -237,13 +246,17 @@ export const getPaymentMethodDataAndExternalId = (
     )
   }
   if (stripePaymentMethod.type === 'link') {
+    const externalIdPrefix = `${stripePaymentMethod.link?.email}__${stripeIdFromObjectOrId(stripePaymentMethod.customer!)}`
     return {
-      externalId: `${stripePaymentMethod.link?.email}__${stripeIdFromObjectOrId(stripePaymentMethod.customer!)}`,
+      externalIdPrefix,
+      externalId: `${externalIdPrefix}__${stripeIdFromObjectOrId(stripePaymentMethod.id!)}`,
       paymentMethodData: stripePaymentMethod.link as {},
     }
   }
+  const externalIdPrefix = `${stripePaymentMethod.card?.fingerprint}__${stripeIdFromObjectOrId(stripePaymentMethod.customer!)}`
   return {
-    externalId: `${stripePaymentMethod.card?.fingerprint}__${stripeIdFromObjectOrId(stripePaymentMethod.customer!)}`,
+    externalIdPrefix,
+    externalId: `${externalIdPrefix}__${stripeIdFromObjectOrId(stripePaymentMethod.id!)}`,
     paymentMethodData: stripePaymentMethod.card as {},
   }
 }
@@ -266,6 +279,19 @@ export const stripePaymentMethodToPaymentMethodInsert = (
   }
   const { externalId, paymentMethodData } =
     getPaymentMethodDataAndExternalId(stripePaymentMethod)
+  // Sometimes billing_details.address.country may not be defined (e.g. if they only have a postal code check)
+  // but we need the country for determining card origin for fee calculations
+  const billingDetails = {
+    ...(stripePaymentMethod.billing_details as unknown as PaymentMethod.ClientInsert['billingDetails']),
+    address: {
+      ...(stripePaymentMethod.billing_details?.address || {}),
+      country:
+        stripePaymentMethod.billing_details?.address?.country ||
+        (stripePaymentMethod.type === 'card'
+          ? stripePaymentMethod.card?.country
+          : null),
+    },
+  } as PaymentMethod.ClientInsert['billingDetails']
   return {
     livemode: stripePaymentMethod.livemode,
     type: stripePaymentMethod.type as PaymentMethodType,
@@ -273,8 +299,7 @@ export const stripePaymentMethodToPaymentMethodInsert = (
     metadata: stripePaymentMethod.metadata,
     customerId: customer.id,
     paymentMethodData,
-    billingDetails:
-      stripePaymentMethod.billing_details as unknown as PaymentMethod.ClientInsert['billingDetails'],
+    billingDetails,
     stripePaymentMethodId: stripePaymentMethod.id,
     externalId,
   }
