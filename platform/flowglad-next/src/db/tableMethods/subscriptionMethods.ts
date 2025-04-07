@@ -15,7 +15,7 @@ import {
   subscriptionsTableRowDataSchema,
   subscriptionsUpdateSchema,
 } from '@/db/schema/subscriptions'
-import { and, lte, gte, eq, desc } from 'drizzle-orm'
+import { and, lte, gte, eq, desc, gt, isNull, or } from 'drizzle-orm'
 import { SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { customers } from '../schema/customers'
@@ -127,7 +127,15 @@ export const selectSubscriptionsTableRowData = async (
     .orderBy(desc(subscriptions.createdAt))
 
   return subscriptionsRowData.map((row) =>
-    subscriptionsTableRowDataSchema.parse(row)
+    subscriptionsTableRowDataSchema.parse({
+      ...row,
+      subscription: {
+        ...row.subscription,
+        current: isSubscriptionCurrent(
+          row.subscription.status as SubscriptionStatus
+        ),
+      },
+    })
   )
 }
 
@@ -168,5 +176,30 @@ export const bulkInsertOrDoNothingSubscriptionsByExternalId = (
     subscriptionInserts,
     [subscriptions.externalId, subscriptions.organizationId],
     transaction
+  )
+}
+
+export const getActiveSubscriptionsForPeriod = async (
+  organizationId: string,
+  startDate: Date,
+  endDate: Date,
+  transaction: DbTransaction
+): Promise<Subscription.Record[]> => {
+  const subscriptionRecords = await transaction
+    .select()
+    .from(subscriptions)
+    .where(
+      and(
+        eq(subscriptions.organizationId, organizationId),
+        gte(subscriptions.startDate, startDate),
+        or(
+          isNull(subscriptions.canceledAt),
+          gt(subscriptions.canceledAt, endDate)
+        )
+      )
+    )
+
+  return subscriptionRecords.map((subscription) =>
+    subscriptionsSelectSchema.parse(subscription)
   )
 }

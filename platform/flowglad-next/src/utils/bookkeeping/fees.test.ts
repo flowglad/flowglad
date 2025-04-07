@@ -270,13 +270,10 @@ describe('fees.ts', () => {
       ).toBe(0)
     })
 
-    it('handles invalid paymentMethod by returning 0', () => {
+    it('returns 2.9% + 30 cents for card payment method', () => {
       expect(
-        calculatePaymentMethodFeeAmount(
-          1000,
-          'InvalidMethod' as PaymentMethodType
-        )
-      ).toBe(0)
+        calculatePaymentMethodFeeAmount(1000, PaymentMethodType.Card)
+      ).toBe(59) // (1000 * 0.029 + 30) rounded
     })
   })
 

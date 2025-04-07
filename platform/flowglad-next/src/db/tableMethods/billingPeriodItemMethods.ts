@@ -14,7 +14,7 @@ import {
   billingPeriodItemsSelectSchema,
   billingPeriodItemsUpdateSchema,
 } from '@/db/schema/billingPeriodItems'
-import { and, eq, gte, lte } from 'drizzle-orm'
+import { and, eq, gte, lte, or, between, SQL } from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'
 import {
   organizations,
@@ -29,7 +29,6 @@ import {
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
 import { customers, customersSelectSchema } from '../schema/customers'
-import { Bai_Jamjuree } from 'next/font/google'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriodItems,
@@ -172,4 +171,87 @@ export const selectBillingPeriodAndItemsByBillingPeriodWhere = async (
       billingPeriodItemsSelectSchema.parse(item.billingPeriodItems)
     ),
   }
+}
+
+/**
+ * Retrieves billing periods with their items and subscriptions for an organization that overlap with a date range
+ * This efficiently gets all the data needed for revenue calculations in a single query
+ * 
+ * @param organizationId The organization ID
+ * @param startDate The start date of the range to check for overlapping billing periods
+ * @param endDate The end date of the range to check for overlapping billing periods
+ * @param transaction The database transaction
+ * @returns An array of objects containing billing period, its items, and the associated subscription
+ */
+export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange = async (
+  organizationId: string,
+  startDate: Date,
+  endDate: Date,
+  transaction: DbTransaction
+) => {
+  // Create the condition to find billing periods that overlap with the date range
+  const dateRangeCondition = or(
+    // Billing period starts within the date range
+    between(billingPeriods.startDate, startDate, endDate),
+    // Billing period ends within the date range
+    between(billingPeriods.endDate, startDate, endDate),
+    // Billing period spans the entire date range
+    and(
+      lte(billingPeriods.startDate, startDate),
+      gte(billingPeriods.endDate, endDate)
+    )
+  )
+
+  // Execute the query that joins billing periods, subscription, and billing period items
+  const result = await transaction
+    .select({
+      billingPeriod: billingPeriods,
+      subscription: subscriptions,
+      billingPeriodItem: billingPeriodItems,
+    })
+    .from(subscriptions)
+    .innerJoin(
+      billingPeriods,
+      eq(subscriptions.id, billingPeriods.subscriptionId)
+    )
+    .innerJoin(
+      billingPeriodItems,
+      eq(billingPeriods.id, billingPeriodItems.billingPeriodId)
+    )
+    .where(
+      and(
+        eq(subscriptions.organizationId, organizationId),
+        dateRangeCondition
+      )
+    )
+
+  if (!result.length) {
+    return []
+  }
+
+  // Group the results by billing period ID
+  const groupedByBillingPeriod = result.reduce((acc, row) => {
+    const billingPeriodId = row.billingPeriod.id
+    
+    if (!acc[billingPeriodId]) {
+      acc[billingPeriodId] = {
+        billingPeriod: billingPeriodsSelectSchema.parse(row.billingPeriod),
+        subscription: subscriptionsSelectSchema.parse(row.subscription),
+        billingPeriodItems: []
+      }
+    }
+    
+    acc[billingPeriodId].billingPeriodItems.push(
+      billingPeriodItemsSelectSchema.parse(row.billingPeriodItem)
+    )
+    
+    return acc
+  }, {} as Record<string, {
+    billingPeriod: ReturnType<typeof billingPeriodsSelectSchema.parse>,
+    subscription: ReturnType<typeof subscriptionsSelectSchema.parse>,
+    billingPeriodItems: ReturnType<typeof billingPeriodItemsSelectSchema.parse>[]
+  }>)
+
+  // Convert the grouped object to an array
+  return Object.values(groupedByBillingPeriod)
 }
