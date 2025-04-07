@@ -20,6 +20,14 @@ import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { stackServerApp } from '@/stack'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
+import { 
+  calculateMRRByMonth, 
+  calculateMRRBreakdown, 
+  calculateARR,
+  MonthlyRecurringRevenue,
+  MRRBreakdown,
+  RevenueCalculationOptions
+} from '@/utils/billing-dashboard'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -89,6 +97,79 @@ const getRevenueData = protectedProcedure
     )
   })
 
+const getMRRCalculationInputSchema = z.object({
+  startDate: z.date(),
+  endDate: z.date(),
+  granularity: z.nativeEnum(RevenueChartIntervalUnit)
+})
+
+const getMRR = protectedProcedure
+  .input(getMRRCalculationInputSchema)
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return calculateMRRByMonth(
+          ctx.organizationId!,
+          input,
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const getARR = protectedProcedure
+  .query(async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return calculateARR(
+          ctx.organizationId!,
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const getMRRBreakdownInputSchema = z.object({
+  currentMonth: z.date(),
+  previousMonth: z.date()
+})
+
+const getMRRBreakdown = protectedProcedure
+  .input(getMRRBreakdownInputSchema)
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return calculateMRRBreakdown(
+          ctx.organizationId!,
+          input.currentMonth,
+          input.previousMonth,
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 const createOrganization = protectedProcedure
   .input(createOrganizationSchema)
   .output(
@@ -151,4 +232,8 @@ export const organizationsRouter = router({
   inviteUser: inviteUserToOrganization,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
+  // MRR-related endpoints for the billing dashboard
+  getMRR: getMRR,
+  getARR: getARR,
+  getMRRBreakdown: getMRRBreakdown,
 })
