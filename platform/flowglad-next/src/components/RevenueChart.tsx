@@ -243,6 +243,12 @@ export function RevenueChart({
               value
             )
           }
+          yAxisValueFormatter={(value: number) =>
+            stripeCurrencyAmountToHumanReadableCurrencyAmount(
+              organization?.defaultCurrency!,
+              value
+            )
+          }
           tooltipCallback={(props: any) => {
             if (props.active) {
               setTooltipData((prev) => {

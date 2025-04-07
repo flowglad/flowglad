@@ -8,6 +8,17 @@ import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringReven
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
 import { DateRangePicker } from '@/components/ion/Datepicker'
 
+const ChartContainer = ({
+  children,
+}: {
+  children: React.ReactNode
+}) => {
+  return (
+    <div className="bg-nav w-full relative flex flex-col gap-6 p-8 pt-0 rounded-radius-sm border border-stroke-subtle">
+      {children}
+    </div>
+  )
+}
 export interface DashboardPageProps {
   organizationCreatedAt: Date
 }
@@ -48,28 +59,28 @@ function InternalDashboardPage({
             />
           </div>
           <div className="grid grid-cols-1 gap-6">
-            <div className="bg-nav w-full relative flex flex-col gap-6 p-8 pt-0 rounded-radius-sm border border-stroke-subtle">
+            <ChartContainer>
               <DateRangeRevenueChart
                 organizationCreatedAt={organizationCreatedAt}
                 fromDate={range.from}
                 toDate={range.to}
               />
-            </div>
+            </ChartContainer>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-nav w-full relative flex flex-col gap-6 p-8 pt-0 rounded-radius-sm border border-stroke-subtle">
+              <ChartContainer>
                 <DateRangeRecurringRevenueChart
                   organizationCreatedAt={organizationCreatedAt}
                   fromDate={range.from}
                   toDate={range.to}
                 />
-              </div>
-              <div className="bg-nav w-full relative flex flex-col gap-6 p-8 pt-0 rounded-radius-sm border border-stroke-subtle">
+              </ChartContainer>
+              <ChartContainer>
                 <DateRangeActiveSubscribersChart
                   organizationCreatedAt={organizationCreatedAt}
                   fromDate={range.from}
                   toDate={range.to}
                 />
-              </div>
+              </ChartContainer>
             </div>
           </div>
         </div>

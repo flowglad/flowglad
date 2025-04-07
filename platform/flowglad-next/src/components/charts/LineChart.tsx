@@ -526,6 +526,7 @@ interface LineChartProps
   categories: string[]
   colors?: AvailableChartColorsKeys[]
   valueFormatter?: (value: number) => string
+  yAxisValueFormatter?: (value: number) => string
   startEndOnly?: boolean
   showXAxis?: boolean
   showYAxis?: boolean
@@ -563,6 +564,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       index,
       colors = AvailableChartColors,
       valueFormatter = (value: number) => value.toString(),
+      yAxisValueFormatter = valueFormatter,
       startEndOnly = false,
       showXAxis = true,
       showYAxis = true,
@@ -762,6 +764,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 startEndOnlyYAxis ? [0, maxValue || 0] : undefined
               }
               allowDecimals={allowDecimals}
+              tickFormatter={yAxisValueFormatter}
             >
               {yAxisLabel && (
                 <Label

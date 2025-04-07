@@ -196,7 +196,7 @@ export const RecurringRevenueChart = ({
           index="date"
           categories={['revenue']}
           className="-mb-2 mt-8"
-          colors={['blue']}
+          colors={['amber']}
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}
@@ -204,6 +204,12 @@ export const RecurringRevenueChart = ({
           startEndOnly={true}
           startEndOnlyYAxis={true}
           valueFormatter={(value: number) =>
+            stripeCurrencyAmountToHumanReadableCurrencyAmount(
+              organization?.defaultCurrency!,
+              value
+            )
+          }
+          yAxisValueFormatter={(value: number) =>
             stripeCurrencyAmountToHumanReadableCurrencyAmount(
               organization?.defaultCurrency!,
               value
