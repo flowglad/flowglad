@@ -28,6 +28,14 @@ import {
   MRRBreakdown,
   RevenueCalculationOptions,
 } from '@/utils/billing-dashboard/revenueCalculationHelpers'
+import {
+  calculateActiveSubscribersByMonth,
+  calculateSubscriberBreakdown,
+  getCurrentActiveSubscribers,
+  MonthlyActiveSubscribers,
+  SubscriberBreakdown,
+  SubscriberCalculationOptions,
+} from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { RevenueChartIntervalUnit } from '@/types'
 
 const generateSubdomainSlug = (name: string) => {
@@ -167,6 +175,80 @@ const getMRRBreakdown = protectedProcedure
     )
   })
 
+const getActiveSubscribersInputSchema = z.object({
+  startDate: z.date(),
+  endDate: z.date(),
+  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+})
+
+const getActiveSubscribers = protectedProcedure
+  .input(getActiveSubscribersInputSchema)
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return calculateActiveSubscribersByMonth(
+          ctx.organizationId!,
+          input,
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const getSubscriberBreakdownInputSchema = z.object({
+  currentMonth: z.date(),
+  previousMonth: z.date(),
+})
+
+const getSubscriberBreakdown = protectedProcedure
+  .input(getSubscriberBreakdownInputSchema)
+  .query(async ({ input, ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return calculateSubscriberBreakdown(
+          ctx.organizationId!,
+          input.currentMonth,
+          input.previousMonth,
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const getCurrentSubscribers = protectedProcedure.query(
+  async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return getCurrentActiveSubscribers(
+          { organizationId: ctx.organizationId! },
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  }
+)
+
 const createOrganization = protectedProcedure
   .input(createOrganizationSchema)
   .output(
@@ -233,4 +315,8 @@ export const organizationsRouter = router({
   getMRR: getMRR,
   getARR: getARR,
   getMRRBreakdown: getMRRBreakdown,
+  // Subscriber-related endpoints for the billing dashboard
+  getActiveSubscribers: getActiveSubscribers,
+  getSubscriberBreakdown: getSubscriberBreakdown,
+  getCurrentSubscribers: getCurrentSubscribers,
 })

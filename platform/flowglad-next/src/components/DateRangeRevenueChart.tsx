@@ -6,20 +6,24 @@ const DateRangeRevenueChart = ({
   organizationCreatedAt,
   alignDatePicker = 'left',
   productId,
+  fromDate,
+  toDate,
 }: {
   organizationCreatedAt: Date
   alignDatePicker?: 'left' | 'right'
   productId?: string
+  fromDate?: Date
+  toDate?: Date
 }) => {
   const defaultFromDate = new Date(organizationCreatedAt)
   const [range, setRange] = useState<{
     from: Date
     to: Date
   }>({
-    from: new Date(organizationCreatedAt),
-    to: new Date(),
+    from: fromDate ?? new Date(organizationCreatedAt),
+    to: toDate ?? new Date(),
   })
-
+  const showDateRangePicker = !fromDate || !toDate
   return (
     <>
       <div
@@ -27,31 +31,27 @@ const DateRangeRevenueChart = ({
           alignDatePicker === 'right' ? 'justify-end' : ''
         }`}
       >
-        <DateRangePicker
-          fromDate={range.from}
-          toDate={range.to}
-          minDate={new Date(organizationCreatedAt)}
-          maxDate={new Date()}
-          onSelect={(range) => {
-            setRange({
-              from: range?.from ?? defaultFromDate,
-              to: range?.to ?? new Date(),
-            })
-          }}
-          mode="range"
-        />
+        {showDateRangePicker && (
+          <DateRangePicker
+            fromDate={range.from}
+            toDate={range.to}
+            minDate={new Date(organizationCreatedAt)}
+            maxDate={new Date()}
+            onSelect={(range) => {
+              setRange({
+                from: range?.from ?? defaultFromDate,
+                to: range?.to ?? new Date(),
+              })
+            }}
+            mode="range"
+          />
+        )}
       </div>
-      <div className="w-full flex flex-col">
-        <div className="bg-nav w-full relative flex flex-col gap-6 p-8 pt-4 rounded-radius-sm border border-stroke-subtle">
-          <div className="w-full flex flex-col gap-2">
-            <RevenueChart
-              fromDate={range.from}
-              toDate={range.to}
-              productId={productId}
-            />
-          </div>
-        </div>
-      </div>
+      <RevenueChart
+        fromDate={range.from}
+        toDate={range.to}
+        productId={productId}
+      />
     </>
   )
 }

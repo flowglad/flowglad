@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { DateRangePicker } from './ion/Datepicker'
-import { RecurringRevenueChart } from './RecurringRevenueChart'
+import { ActiveSubscribersChart } from './ActiveSubscribersChart'
 
-const DateRangeRecurringRevenueChart = ({
+const DateRangeActiveSubscribersChart = ({
   organizationCreatedAt,
   alignDatePicker = 'left',
   productId,
@@ -48,7 +48,7 @@ const DateRangeRecurringRevenueChart = ({
           />
         )}
       </div>
-      <RecurringRevenueChart
+      <ActiveSubscribersChart
         fromDate={range.from}
         toDate={range.to}
         productId={productId}
@@ -57,4 +57,4 @@ const DateRangeRecurringRevenueChart = ({
   )
 }
 
-export default DateRangeRecurringRevenueChart
+export default DateRangeActiveSubscribersChart
