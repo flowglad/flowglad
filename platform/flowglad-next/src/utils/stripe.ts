@@ -1177,12 +1177,12 @@ export const createSetupIntentForCheckoutSession = async (params: {
   checkoutSession: CheckoutSession.Record
   purchase?: Purchase.Record
 }) => {
-  const { checkoutSession, organization } = params
+  const { checkoutSession, organization, purchase } = params
   const metadata: CheckoutSessionStripeIntentMetadata = {
     checkoutSessionId: checkoutSession.id,
     type: IntentMetadataType.CheckoutSession,
   }
-  const bankOnly = params.purchase?.bankPaymentOnly
+  const bankOnly = purchase?.bankPaymentOnly
   const bankOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
     bankOnly
   ) as Partial<Stripe.SetupIntentCreateParams>
@@ -1210,11 +1210,14 @@ export const createSetupIntentForCheckoutSession = async (params: {
   /**
    * On behalf of required to comply with SCA
    */
-  const onBehalfOf = params.checkoutSession.livemode
-    ? params.organization.stripeAccountId!
-    : undefined
+  const onBehalfOf =
+    checkoutSession.livemode &&
+    organization.stripeConnectContractType ===
+      StripeConnectContractType.Platform
+      ? organization.stripeAccountId!
+      : undefined
 
-  return stripe(params.checkoutSession.livemode).setupIntents.create({
+  return stripe(checkoutSession.livemode).setupIntents.create({
     ...bankPaymentOnlyParams,
     metadata,
     on_behalf_of: onBehalfOf,
