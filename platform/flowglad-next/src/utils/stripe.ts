@@ -1177,30 +1177,47 @@ export const createSetupIntentForCheckoutSession = async (params: {
   checkoutSession: CheckoutSession.Record
   purchase?: Purchase.Record
 }) => {
-  const { checkoutSession } = params
+  const { checkoutSession, organization, purchase } = params
   const metadata: CheckoutSessionStripeIntentMetadata = {
     checkoutSessionId: checkoutSession.id,
     type: IntentMetadataType.CheckoutSession,
   }
-  const bankOnly = params.purchase?.bankPaymentOnly
+  const bankOnly = purchase?.bankPaymentOnly
   const bankOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
     bankOnly
   ) as Partial<Stripe.SetupIntentCreateParams>
+  /**
+   * If the organization is on a Merchant of Record contract, the default params
+   * should be empty, because this is how you tell Stripe to use
+   * the account's existing default payment method config.
+   *
+   * If the organization is on a standard platform contract, the default params
+   * should enable automatic payment methods, because we need to collect payment
+   * method information from the customer up front.
+   */
+  const defaultParams =
+    organization.stripeConnectContractType ===
+    StripeConnectContractType.MerchantOfRecord
+      ? {}
+      : {
+          automatic_payment_methods: {
+            enabled: true,
+          },
+        }
   const bankPaymentOnlyParams = bankOnly
     ? bankOnlyParams
-    : {
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      }
+    : defaultParams
   /**
    * On behalf of required to comply with SCA
    */
-  const onBehalfOf = params.checkoutSession.livemode
-    ? params.organization.stripeAccountId!
-    : undefined
+  const onBehalfOf =
+    checkoutSession.livemode &&
+    organization.stripeConnectContractType ===
+      StripeConnectContractType.Platform
+      ? organization.stripeAccountId!
+      : undefined
 
-  return stripe(params.checkoutSession.livemode).setupIntents.create({
+  return stripe(checkoutSession.livemode).setupIntents.create({
     ...bankPaymentOnlyParams,
     metadata,
     on_behalf_of: onBehalfOf,

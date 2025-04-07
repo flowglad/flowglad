@@ -99,6 +99,7 @@ const columnRefinements = {
   billingAddress: billingAddressSchema,
   contactEmail: z.string().email().nullable(),
   featureFlags: z.record(z.string(), z.boolean()),
+  stripeConnectContractType: z.nativeEnum(StripeConnectContractType),
 }
 
 export const organizationsSelectSchema = createSelectSchema(
