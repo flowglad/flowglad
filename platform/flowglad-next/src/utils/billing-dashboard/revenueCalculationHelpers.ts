@@ -8,7 +8,8 @@ import {
   selectBillingPeriodsDueForTransition
 } from '@/db/tableMethods/billingPeriodMethods'
 import { 
-  selectBillingPeriodItems 
+  selectBillingPeriodItems,
+  selectBillingPeriodsWithItemsAndSubscriptionForDateRange
 } from '@/db/tableMethods/billingPeriodItemMethods'
 import {
   selectSubscriptions
@@ -145,69 +146,20 @@ export async function getBillingPeriodsForDateRange(
   endDate: Date,
   transaction: DbTransaction
 ): Promise<BillingPeriodWithItems[]> {
-  // First, get all subscriptions for the organization using the table methods
-  const organizationSubscriptions = await selectSubscriptions(
-    { organizationId },
-    transaction
-  )
-
-  const subscriptionIds = organizationSubscriptions.map(sub => sub.id)
-  
-  if (subscriptionIds.length === 0) {
-    return []
-  }
-  
-  // Get all billing periods that overlap with the date range
-  // We need custom conditions, so we'll create a custom where clause to pass to selectBillingPeriods
-  const billingPeriodsCondition = and(
-    or(
-      // Billing period starts within the date range
-      between(billingPeriods.startDate, startDate, endDate),
-      // Billing period ends within the date range
-      between(billingPeriods.endDate, startDate, endDate),
-      // Billing period spans the entire date range
-      and(
-        lte(billingPeriods.startDate, startDate),
-        gte(billingPeriods.endDate, endDate)
-      )
-    ),
-    // Only for subscriptions from the specified organization
-    billingPeriods.subscriptionId.in(subscriptionIds)
-  )
-  
-  const billingPeriodsResult = await selectBillingPeriods(
-    billingPeriodsCondition,
+  // Use the new efficient method that gets everything in a single query
+  const results = await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
+    organizationId,
+    startDate,
+    endDate,
     transaction
   )
   
-  const result: BillingPeriodWithItems[] = []
-  
-  // For each billing period, get its items and add to the result
-  for (const billingPeriod of billingPeriodsResult) {
-    
-    // Find the associated subscription
-    const subscription = organizationSubscriptions.find(
-      sub => sub.id === billingPeriod.subscriptionId
-    )
-    
-    if (!subscription) {
-      continue
-    }
-    
-    // Get billing period items
-    const items = await selectBillingPeriodItems(
-      { billingPeriodId: billingPeriod.id },
-      transaction
-    )
-    
-    result.push({
-      billingPeriod,
-      billingPeriodItems: items,
-      subscription
-    })
-  }
-  
-  return result
+  // Map the results to the expected BillingPeriodWithItems format
+  return results.map(({ billingPeriod, billingPeriodItems, subscription }) => ({
+    billingPeriod,
+    billingPeriodItems,
+    subscription
+  }))
 }
 
 /**
