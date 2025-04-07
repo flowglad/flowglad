@@ -3,17 +3,24 @@ import { twMerge } from 'tailwind-merge'
 import clsx from 'clsx'
 import core from '@/utils/core'
 import { getColorClassName } from '@/utils/chartStyles'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 export const RevenueTooltip = ({
   active,
   payload,
   label,
 }: TooltipCallbackProps) => {
-  if (!active || !payload?.[0]) {
+  const { organization } = useAuthenticatedContext()
+  if (!active || !payload?.[0] || !organization) {
     return null
   }
   const value = payload[0].value as number
-  const formattedValue = core.formatCurrency(value, true)
+  const formattedValue =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      organization.defaultCurrency,
+      value
+    )
 
   return (
     <div

@@ -36,6 +36,7 @@ const TABLE_NAME = 'subscriptions'
 
 const columns = {
   ...tableBase('sub'),
+  startDate: timestamp('start_date').notNull(),
   customerId: notNullStringForeignKey('customer_id', customers),
   organizationId: notNullStringForeignKey(
     'organization_id',

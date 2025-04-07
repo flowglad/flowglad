@@ -1,20 +1,14 @@
 'use client'
-import { differenceInHours, isDate } from 'date-fns'
+import { differenceInHours } from 'date-fns'
 import React from 'react'
-import Select from '@/components/ion/Select'
-import {
-  AreaChart,
-  TooltipCallbackProps,
-} from '@/components/charts/AreaChart'
+import { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { CurrencyCode } from '@/types'
-import core from '@/utils/core'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
 import { FallbackSkeleton, Skeleton } from './ion/Skeleton'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
+import core from '@/utils/core'
 
 /**
  * Two dots make a graph principle: this is the minimum range duration required
@@ -29,14 +23,9 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
 } as const
 
 /**
- * NOTE: this component has a weird bug (that seems to ship with Tremor?)
- * where the chart lines will show up underneath the X axis if there's a single point above zero.
- * This seems to be an issue with how Tremor handles single > 0 point data sets.
- * It's not worth fixing.
- * @param param0
- * @returns
+ * Component for displaying Active Subscribers data in a chart
  */
-export function RevenueChart({
+export const ActiveSubscribersChart = ({
   fromDate,
   toDate,
   productId,
@@ -44,79 +33,56 @@ export function RevenueChart({
   fromDate: Date
   toDate: Date
   productId?: string
-}) {
+}) => {
   const { organization } = useAuthenticatedContext()
   const [interval, setInterval] =
     React.useState<RevenueChartIntervalUnit>(
-      RevenueChartIntervalUnit.Day
+      RevenueChartIntervalUnit.Month
     )
 
-  const { data: revenueData, isLoading } =
-    trpc.organizations.getRevenue.useQuery({
-      organizationId: organization?.id ?? '',
-      revenueChartIntervalUnit: interval,
-      fromDate,
-      toDate,
-      productId,
+  const { data: subscriberData, isLoading } =
+    trpc.organizations.getActiveSubscribers.useQuery({
+      startDate: fromDate,
+      endDate: toDate,
+      granularity: interval,
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
 
   const chartData = React.useMemo(() => {
-    if (!revenueData) return []
-    if (!organization?.defaultCurrency) return []
-    return revenueData.map((item) => {
-      const formattedRevenue =
-        stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          organization?.defaultCurrency,
-          item.revenue
-        )
+    if (!subscriberData) return []
+    return subscriberData.map((item) => {
       return {
-        date: item.date.toLocaleDateString(),
-        formattedRevenue,
-        revenue: Number(item.revenue).toFixed(2),
+        date: item.month.toLocaleDateString(),
+        subscribers: item.count,
       }
     })
-  }, [revenueData, organization?.defaultCurrency])
+  }, [subscriberData])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
   const maxValue = React.useMemo(() => {
-    if (!revenueData?.length) return 0
-    const max = Math.max(...revenueData.map((item) => item.revenue))
+    if (!subscriberData?.length) return 0
+    const max = Math.max(...subscriberData.map((item) => item.count))
     return max
-  }, [revenueData])
+  }, [subscriberData])
 
-  const cumulativeRevenueInDecimals = revenueData
-    ?.reduce((acc, curr) => acc + curr.revenue, 0)
-    .toFixed(2)
-
-  const formattedRevenueValue = React.useMemo(() => {
-    if (!revenueData?.length || !organization?.defaultCurrency) {
-      return '$0.00'
+  const formattedSubscriberValue = React.useMemo(() => {
+    if (!subscriberData?.length) {
+      return '0'
     }
     /**
      * If the tooltip is active, we use the value from the tooltip
      */
     if (tooltipData?.payload?.[0]?.value) {
-      return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-        organization.defaultCurrency,
-        tooltipData.payload[0].value
-      )
+      return tooltipData?.payload?.[0]?.value.toString()
     }
     /**
-     * If the tooltip is not active, we use the cumulative revenue
+     * If the tooltip is not active, we use the last value in the chart
      */
-    return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      organization.defaultCurrency,
-      Number(cumulativeRevenueInDecimals)
-    )
-  }, [
-    revenueData,
-    organization?.defaultCurrency,
-    tooltipData?.payload,
-    cumulativeRevenueInDecimals,
-  ])
+    const count = subscriberData[subscriberData.length - 1].count
+    return count.toString()
+  }, [subscriberData, tooltipData?.payload?.[0]?.value])
 
   const timespanInHours = differenceInHours(toDate, fromDate)
   const intervalOptions = React.useMemo(() => {
@@ -183,25 +149,8 @@ export function RevenueChart({
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between">
         <div className="text-sm text-gray-700 dark:text-gray-300 w-fit flex items-center flex-row">
-          <p className="whitespace-nowrap">Revenue by</p>
-          <Select
-            options={intervalOptions}
-            triggerClassName="border-none bg-transparent"
-            value={interval}
-            onValueChange={(value) =>
-              setInterval(value as RevenueChartIntervalUnit)
-            }
-          />
+          <p className="whitespace-nowrap">Active Subscribers</p>
         </div>
-        {/* <Button
-          iconLeading={<Export size={16} weight={'regular'} />}
-          variant="ghost"
-          color="primary"
-          size="sm"
-          onClick={exportOnClickHandler}
-        >
-          Export
-        </Button> */}
       </div>
 
       <div className="mt-2">
@@ -210,7 +159,7 @@ export function RevenueChart({
           className="w-24 h-6"
         >
           <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            {formattedRevenueValue}
+            {formattedSubscriberValue}
           </p>
           <p className="text-sm text-gray-700 dark:text-gray-300">
             {isTooltipLabelDate
@@ -227,8 +176,7 @@ export function RevenueChart({
         <LineChart
           data={chartData}
           index="date"
-          categories={['revenue']}
-          // startEndOnly={true}
+          categories={['subscribers']}
           className="-mb-2 mt-8"
           colors={['amber']}
           customTooltip={RevenueTooltip}
@@ -237,18 +185,7 @@ export function RevenueChart({
           minValue={0}
           startEndOnly={true}
           startEndOnlyYAxis={true}
-          valueFormatter={(value: number) =>
-            stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              organization?.defaultCurrency!,
-              value
-            )
-          }
-          yAxisValueFormatter={(value: number) =>
-            stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              organization?.defaultCurrency!,
-              value
-            )
-          }
+          valueFormatter={(value: number) => value.toString()}
           tooltipCallback={(props: any) => {
             if (props.active) {
               setTooltipData((prev) => {

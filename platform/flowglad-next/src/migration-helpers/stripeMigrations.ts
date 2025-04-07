@@ -329,6 +329,7 @@ export const stripeSubscriptionToSubscriptionInsert = async (
     status: stripeSubscriptionToSubscriptionStatus(
       stripeSubscription
     ),
+    startDate: dateFromStripeTimestamp(stripeSubscription.start_date),
     name: stripeSubscription.items.data[0].plan.nickname ?? '',
     billingCycleAnchorDate: new Date(
       stripeSubscription.billing_cycle_anchor

@@ -106,6 +106,7 @@ export const insertSubscriptionAndItems = async (
     intervalCount,
     stripeSetupIntentId,
     externalId: null,
+    startDate,
   }
 
   const subscription = await insertSubscription(

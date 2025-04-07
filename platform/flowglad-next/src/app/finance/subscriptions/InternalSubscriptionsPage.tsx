@@ -17,7 +17,7 @@ export default function InternalSubscriptionsPage({
       <div className="bg-background flex-1 h-full w-full flex gap-6 p-6 pb-10">
         <div className="flex-1 h-full w-full flex flex-col">
           <PageHeader
-            title="Subcriptions"
+            title="Subscriptions"
             tabs={[
               {
                 label: 'All',
