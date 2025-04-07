@@ -20,14 +20,15 @@ import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { stackServerApp } from '@/stack'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
-import { 
-  calculateMRRByMonth, 
-  calculateMRRBreakdown, 
+import {
+  calculateMRRByMonth,
+  calculateMRRBreakdown,
   calculateARR,
   MonthlyRecurringRevenue,
   MRRBreakdown,
-  RevenueCalculationOptions
+  RevenueCalculationOptions,
 } from '@/utils/billing-dashboard'
+import { RevenueChartIntervalUnit } from '@/types'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -100,7 +101,7 @@ const getRevenueData = protectedProcedure
 const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
-  granularity: z.nativeEnum(RevenueChartIntervalUnit)
+  granularity: z.nativeEnum(RevenueChartIntervalUnit),
 })
 
 const getMRR = protectedProcedure
@@ -109,7 +110,7 @@ const getMRR = protectedProcedure
     if (!ctx.organizationId) {
       throw new Error('organizationId is required')
     }
-    
+
     return authenticatedTransaction(
       async ({ transaction }) => {
         return calculateMRRByMonth(
@@ -124,28 +125,24 @@ const getMRR = protectedProcedure
     )
   })
 
-const getARR = protectedProcedure
-  .query(async ({ ctx }) => {
-    if (!ctx.organizationId) {
-      throw new Error('organizationId is required')
+const getARR = protectedProcedure.query(async ({ ctx }) => {
+  if (!ctx.organizationId) {
+    throw new Error('organizationId is required')
+  }
+
+  return authenticatedTransaction(
+    async ({ transaction }) => {
+      return calculateARR(ctx.organizationId!, transaction)
+    },
+    {
+      apiKey: ctx.apiKey,
     }
-    
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return calculateARR(
-          ctx.organizationId!,
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+  )
+})
 
 const getMRRBreakdownInputSchema = z.object({
   currentMonth: z.date(),
-  previousMonth: z.date()
+  previousMonth: z.date(),
 })
 
 const getMRRBreakdown = protectedProcedure
@@ -154,7 +151,7 @@ const getMRRBreakdown = protectedProcedure
     if (!ctx.organizationId) {
       throw new Error('organizationId is required')
     }
-    
+
     return authenticatedTransaction(
       async ({ transaction }) => {
         return calculateMRRBreakdown(
