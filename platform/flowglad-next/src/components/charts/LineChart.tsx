@@ -457,7 +457,7 @@ const ChartTooltip = ({
               'text-gray-900 dark:text-gray-50'
             )}
           >
-            {label}
+            {label} LABEL LABEL LABEL
           </p>
         </div>
         <div className={cx('space-y-1 px-4 py-2')}>
@@ -482,7 +482,7 @@ const ChartTooltip = ({
                     'text-gray-700 dark:text-gray-300'
                   )}
                 >
-                  {category}
+                  {category} TEST TEST TEST
                 </p>
               </div>
               <p
@@ -547,6 +547,7 @@ interface LineChartProps
   legendPosition?: 'left' | 'center' | 'right'
   tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void
   customTooltip?: React.ComponentType<TooltipProps>
+  startEndOnlyYAxis?: boolean
 }
 
 /**
@@ -584,6 +585,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       legendPosition = 'right',
       tooltipCallback,
       customTooltip,
+      startEndOnlyYAxis = false,
       ...other
     } = props
     const { containerRef, width, height } = useContainerSize()
@@ -748,7 +750,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               tickLine={false}
               type="number"
               domain={yAxisDomain as AxisDomain}
-              // tick={{ transform: 'translate(-3, 0)' }}
               fill=""
               stroke=""
               className={cx(
@@ -757,7 +758,9 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 // text fill
                 'fill-gray-500 dark:fill-gray-500'
               )}
-              // tickFormatter={valueFormatter}
+              ticks={
+                startEndOnlyYAxis ? [0, maxValue || 0] : undefined
+              }
               allowDecimals={allowDecimals}
             >
               {yAxisLabel && (

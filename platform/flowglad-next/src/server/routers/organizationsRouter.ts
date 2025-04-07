@@ -27,7 +27,7 @@ import {
   MonthlyRecurringRevenue,
   MRRBreakdown,
   RevenueCalculationOptions,
-} from '@/utils/billing-dashboard'
+} from '@/utils/billing-dashboard/revenueCalculationHelpers'
 import { RevenueChartIntervalUnit } from '@/types'
 
 const generateSubdomainSlug = (name: string) => {

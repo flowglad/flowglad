@@ -1,7 +1,7 @@
 // Generated with Ion on 10/31/2024, 6:10:56 PM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1033:8693
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import InternalHome from './InternalDashboard'
+import InternalDashboard from './InternalDashboard'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 
 export default async function Home() {
@@ -16,6 +16,8 @@ export default async function Home() {
     }
   )
   return (
-    <InternalHome organizationCreatedAt={organization.createdAt} />
+    <InternalDashboard
+      organizationCreatedAt={organization.createdAt}
+    />
   )
 }

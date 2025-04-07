@@ -216,6 +216,7 @@ export const setupSubscription = async (params: {
   currentBillingPeriodStart?: Date
   status?: SubscriptionStatus
   trialEnd?: Date
+  startDate?: Date
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(params.priceId, transaction)
@@ -245,6 +246,7 @@ export const setupSubscription = async (params: {
         runBillingAtPeriodStart:
           price.type === PriceType.Subscription ? true : false,
         externalId: null,
+        startDate: params.startDate ?? new Date(),
       },
       transaction
     )
