@@ -65,6 +65,7 @@ export const sendReceiptEmail = async (params: {
   }
   return safeSend({
     from: `${params.organizationName} Billing <notifs@send.flowglad.com>`,
+    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     to: params.to.map(safeTo),
     subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
     attachments,
@@ -89,6 +90,7 @@ export const sendOrganizationPaymentNotificationEmail = async (
   return safeSend({
     from: `${params.organizationName} (via Flowglad) <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
+    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
       params.currency,
       params.amount
@@ -104,6 +106,7 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
   return safeSend({
     from: 'notifications@flowglad.com',
     to: params.to.map(safeTo),
+    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: 'Your Order Link',
     react: SendPurchaseAccessSessionTokenEmail(params),
   })
@@ -126,6 +129,7 @@ export const sendPaymentFailedEmail = async (params: {
   return safeSend({
     from: 'notifications@flowglad.com',
     to: params.to.map(safeTo),
+    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: 'Payment Unsuccessful',
     react: PaymentFailedEmail({
       invoiceNumber: params.invoiceNumber,
@@ -143,7 +147,6 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   to,
   organizationName,
   invoiceNumber,
-  orderDate,
   amount,
   customerId,
   currency,
