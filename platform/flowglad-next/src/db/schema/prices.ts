@@ -51,7 +51,7 @@ const nonClientEditableColumns = {
 const PRICES_TABLE_NAME = 'prices'
 
 const columns = {
-  ...tableBase('vrnt'),
+  ...tableBase('price'),
   intervalUnit: pgEnumColumn({
     enumName: 'IntervalUnit',
     columnName: 'interval_unit',

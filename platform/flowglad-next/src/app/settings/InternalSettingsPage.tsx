@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ion/PageHeader'
 import type { TabData } from '@/components/ion/PageHeader'
 import DeveloperSettingsPage from './DeveloperSettingsTab'
 import TeammatesSettingsTab from './TeammatesSettingsTab'
+import InternalPageContainer from '@/components/InternalPageContainer'
 
 const tabs: TabData[] = [
   {
@@ -20,13 +21,9 @@ const tabs: TabData[] = [
 
 const InternalSettingsPage = () => {
   return (
-    <div className="h-full flex justify-between items-center gap-2.5">
-      <div className="bg-background flex-1 h-full w-full flex gap-6 p-6">
-        <div className="flex-1 h-full w-full flex flex-col">
-          <PageHeader title="Settings" tabs={tabs} />
-        </div>
-      </div>
-    </div>
+    <InternalPageContainer>
+      <PageHeader title="Settings" tabs={tabs} />
+    </InternalPageContainer>
   )
 }
 

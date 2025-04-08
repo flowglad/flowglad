@@ -4,6 +4,7 @@ import FormModal from '@/components/forms/FormModal'
 import { createUsageMeterSchema } from '@/db/schema/usageMeters'
 import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
 import { trpc } from '@/app/_trpc/client'
+import { UsageMeterAggregationType } from '@/types'
 
 interface CreateUsageMeterModalProps {
   isOpen: boolean
@@ -21,7 +22,11 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
       setIsOpen={setIsOpen}
       title="Create Usage Meter"
       formSchema={createUsageMeterSchema}
-      defaultValues={{ usageMeter: {} }}
+      defaultValues={{
+        usageMeter: {
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      }}
       onSubmit={createUsageMeter.mutateAsync}
     >
       <UsageMeterFormFields />

@@ -29,12 +29,15 @@ export const generateInvoicePdfTask = task({
       `/invoice/view/${invoice.organizationId}/${invoice.id}/pdf-preview`,
       urlBase
     )
+    logger.log('Invoice URL', { invoiceUrl })
     const key = `invoices/${invoice.organizationId}/${invoice.id}/${core.nanoid()}.pdf`
+    logger.log('Key', { key })
     await generatePdf({ url: invoiceUrl, bucketKey: key })
     const invoicePdfUrl = core.safeUrl(
       key,
       cloudflareMethods.BUCKET_PUBLIC_URL
     )
+    logger.log('Invoice PDF URL', { invoicePdfUrl })
     const oldInvoicePdfUrl = await adminTransaction(
       async ({ transaction }) => {
         const latestInvoice = await selectInvoiceById(

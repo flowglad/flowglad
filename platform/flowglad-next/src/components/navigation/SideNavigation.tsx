@@ -109,10 +109,10 @@ export const SideNavigation = () => {
                   label: 'Purchases',
                   href: '/store/purchases',
                 },
-                // {
-                //   label: 'Communities',
-                //   href: '/catalog/communities',
-                // },
+                {
+                  label: 'Usage Meters',
+                  href: '/store/usage-meters',
+                },
               ]}
               basePath="/store"
             />
