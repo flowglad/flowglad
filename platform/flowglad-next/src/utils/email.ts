@@ -46,19 +46,37 @@ export const sendReceiptEmail = async (params: {
   organizationName: string
   organizationLogoUrl?: string
 }) => {
+  const { invoice } = params
+  const attachments: {
+    filename: string
+    content: string
+  }[] = []
+  if (invoice.pdfURL) {
+    attachments.push({
+      filename: `${invoice.invoiceNumber}.pdf`,
+      content: invoice.pdfURL,
+    })
+  }
+  if (invoice.receiptPdfURL) {
+    attachments.push({
+      filename: `${invoice.invoiceNumber}-receipt.pdf`,
+      content: invoice.receiptPdfURL,
+    })
+  }
   return safeSend({
-    from: 'notifs@send.flowglad.com',
+    from: `${params.organizationName} Billing <notifs@send.flowglad.com>`,
     to: params.to.map(safeTo),
-    subject: `${params.organizationName} Order Receipt: #${params.invoice.invoiceNumber}`,
+    subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
+    attachments,
     react: OrderReceiptEmail({
-      invoiceNumber: params.invoice.invoiceNumber,
-      orderDate: core.formatDate(params.invoice.createdAt!),
+      invoiceNumber: invoice.invoiceNumber,
+      orderDate: core.formatDate(invoice.createdAt!),
       lineItems: params.invoiceLineItems.map((item) => ({
         name: item.description ?? '',
         price: item.price,
         quantity: item.quantity,
       })),
-      currency: params.invoice.currency,
+      currency: invoice.currency,
       organizationName: params.organizationName,
       organizationLogoUrl: params.organizationLogoUrl,
     }),
@@ -121,7 +139,15 @@ export const sendPaymentFailedEmail = async (params: {
   })
 }
 
-export const sendAwaitingPaymentConfirmationEmail = async (params: {
+export const sendAwaitingPaymentConfirmationEmail = async ({
+  to,
+  organizationName,
+  invoiceNumber,
+  orderDate,
+  amount,
+  customerId,
+  currency,
+}: {
   to: string[]
   organizationName: string
   invoiceNumber: string
@@ -132,19 +158,26 @@ export const sendAwaitingPaymentConfirmationEmail = async (params: {
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
-    to: params.to.map(safeTo),
+    to: to.map(safeTo),
     subject: 'Awaiting Payment Confirmation',
     react: OrganizationPaymentConfirmationEmail({
-      organizationName: params.organizationName,
-      amount: params.amount,
-      invoiceNumber: params.invoiceNumber,
-      customerId: params.customerId,
-      currency: params.currency,
+      organizationName,
+      amount,
+      invoiceNumber,
+      customerId,
+      currency,
     }),
   })
 }
 
-export const sendInvoiceReminderEmail = async (params: {
+export const sendInvoiceReminderEmail = async ({
+  to,
+  cc,
+  invoice,
+  invoiceLineItems,
+  organizationName,
+  organizationLogoUrl,
+}: {
   to: string[]
   cc?: string[]
   invoice: Invoice.Record
@@ -154,19 +187,26 @@ export const sendInvoiceReminderEmail = async (params: {
 }) => {
   return safeSend({
     from: 'notifs@flowglad.com',
-    to: params.to.map(safeTo),
-    cc: params.cc?.map(safeTo),
-    subject: `${params.organizationName} Invoice Reminder: #${params.invoice.invoiceNumber}`,
+    to: to.map(safeTo),
+    cc: cc?.map(safeTo),
+    subject: `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
     react: InvoiceReminderEmail({
-      invoice: params.invoice,
-      invoiceLineItems: params.invoiceLineItems,
-      organizationName: params.organizationName,
-      organizationLogoUrl: params.organizationLogoUrl,
+      invoice,
+      invoiceLineItems,
+      organizationName,
+      organizationLogoUrl,
     }),
   })
 }
 
-export const sendInvoiceNotificationEmail = async (params: {
+export const sendInvoiceNotificationEmail = async ({
+  to,
+  cc,
+  invoice,
+  invoiceLineItems,
+  organizationName,
+  organizationLogoUrl,
+}: {
   to: string[]
   cc?: string[]
   invoice: Invoice.Record
@@ -176,14 +216,14 @@ export const sendInvoiceNotificationEmail = async (params: {
 }) => {
   return safeSend({
     from: 'notifs@flowglad.com',
-    to: params.to.map(safeTo),
-    cc: params.cc?.map(safeTo),
-    subject: `${params.organizationName} New Invoice: #${params.invoice.invoiceNumber}`,
+    to: to.map(safeTo),
+    cc: cc?.map(safeTo),
+    subject: `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
     react: InvoiceNotificationEmail({
-      invoice: params.invoice,
-      invoiceLineItems: params.invoiceLineItems,
-      organizationName: params.organizationName,
-      organizationLogoUrl: params.organizationLogoUrl,
+      invoice,
+      invoiceLineItems,
+      organizationName,
+      organizationLogoUrl,
     }),
   })
 }

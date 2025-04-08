@@ -48,6 +48,7 @@ import {
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -303,12 +304,15 @@ export const processPaymentIntentEventForBillingRun = async (
   }
 
   if (billingRunStatus === BillingRunStatus.Succeeded) {
-    await processSucceededNotifications(notificationParams)
     await safelyUpdateSubscriptionStatus(
       subscription,
       SubscriptionStatus.Active,
       transaction
     )
+    await generatePaymentReceiptPdfTask.triggerAndWait({
+      paymentId: payment.id,
+    })
+    await processSucceededNotifications(notificationParams)
   } else if (billingRunStatus === BillingRunStatus.Failed) {
     const maybeRetry = await scheduleBillingRunRetry(
       billingRun,
