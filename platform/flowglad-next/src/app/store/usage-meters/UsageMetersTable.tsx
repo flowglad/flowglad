@@ -13,9 +13,6 @@ const UsageMetersTable = ({
 }: {
   data: UsageMeter.TableRow[]
 }) => {
-  const [createUsageMeterModalOpen, setCreateUsageMeterModalOpen] =
-    useState(false)
-
   const columns = useMemo(
     () =>
       [
@@ -77,24 +74,12 @@ const UsageMetersTable = ({
   )
 
   return (
-    <div className="w-full flex flex-col gap-5">
-      <TableTitle
-        title="Usage Meters"
-        buttonLabel="Create Usage Meter"
-        buttonIcon={<Plus size={8} strokeWidth={2} />}
-        buttonOnClick={() => setCreateUsageMeterModalOpen(true)}
-      />
-      <Table
-        columns={columns}
-        data={data}
-        className="bg-nav"
-        bordered
-      />
-      <CreateUsageMeterModal
-        isOpen={createUsageMeterModalOpen}
-        setIsOpen={setCreateUsageMeterModalOpen}
-      />
-    </div>
+    <Table
+      columns={columns}
+      data={data}
+      className="bg-nav"
+      bordered
+    />
   )
 }
 
