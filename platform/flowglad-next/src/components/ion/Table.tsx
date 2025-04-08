@@ -295,7 +295,7 @@ function Table<TData, TValue>({
   const rowLength = data.length
   if (rowLength === 0) {
     return (
-      <div className="w-full border-dotted border-2 border-stroke-subtle rounded-radius flex items-center justify-center h-24">
+      <div className="w-full border-dashed border-2 border-stroke-subtle rounded-radius flex items-center justify-center h-32 my-4">
         <span className="text-secondary">No items.</span>
       </div>
     )
