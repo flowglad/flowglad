@@ -15,6 +15,8 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import { UsageMeterAggregationType } from '@/types'
+import { Catalog, catalogs } from '@/db/schema/catalogs'
+import { products } from '@/db/schema/products'
 
 const TABLE_NAME = 'usage_meters'
 
@@ -27,8 +29,8 @@ export const usageMeters = pgTable(
       organizations
     ),
     name: text('name').notNull(),
-    catalogId: text('catalog_id').notNull(),
-    productId: text('product_id').notNull(),
+    catalogId: notNullStringForeignKey('catalog_id', catalogs),
+    productId: notNullStringForeignKey('product_id', products),
     aggregationType: pgEnumColumn({
       enumName: 'UsageMeterAggregationType',
       columnName: 'aggregation_type',
@@ -42,10 +44,6 @@ export const usageMeters = pgTable(
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.catalogId]),
       constructIndex(TABLE_NAME, [table.productId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.organizationId,
-        table.name,
-      ]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -121,6 +119,10 @@ export namespace UsageMeter {
   export type PaginatedList = z.infer<
     typeof usageMeterPaginatedListSchema
   >
+  export type TableRow = {
+    usageMeter: ClientRecord
+    catalog: Catalog.ClientRecord
+  }
 }
 
 export const createUsageMeterSchema = z.object({

@@ -30,6 +30,7 @@ import { CurrencyCode } from '@/types'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import InternalPageContainer from '@/components/InternalPageContainer'
 
 type CustomerTableRow = {
   name: string
@@ -318,25 +319,21 @@ function Internal({
   ]
   return (
     <>
-      <div className="h-full flex justify-between items-center gap-2.5">
-        <div className="bg-background flex-1 h-full w-full flex gap-6 p-6">
-          <div className="flex-1 h-full w-full flex flex-col">
-            <PageHeader
-              title="Customers"
-              tabs={tabs}
-              onTabChange={setFocusedTab}
-              primaryButton={
-                <Button
-                  iconLeading={<Plus size={16} />}
-                  onClick={() => setIsCreateCustomerOpen(true)}
-                >
-                  Create Customer
-                </Button>
-              }
-            />
-          </div>
-        </div>
-      </div>
+      <InternalPageContainer>
+        <PageHeader
+          title="Customers"
+          tabs={tabs}
+          onTabChange={setFocusedTab}
+          primaryButton={
+            <Button
+              iconLeading={<Plus size={16} />}
+              onClick={() => setIsCreateCustomerOpen(true)}
+            >
+              Create Customer
+            </Button>
+          }
+        />
+      </InternalPageContainer>
       <CreateCustomerFormModal
         isOpen={isCreateCustomerOpen}
         setIsOpen={setIsCreateCustomerOpen}
