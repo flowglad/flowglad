@@ -348,8 +348,11 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
             margin: '30px 0 10px 0',
           }}
         >
-          {formatCurrency(payment.amount)} paid on{' '}
-          {formatDate(payment.chargeDate)}
+          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            payment.currency,
+            payment.amount
+          )}{' '}
+          paid on {formatDate(payment.chargeDate)}
         </Text>
       </Section>
     )
@@ -465,7 +468,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                   <td
                     style={{ padding: '5px 0', textAlign: 'right' }}
                   >
-                    {formatCurrency(payment.amount)} {currency}
+                    {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                      payment.currency,
+                      payment.amount
+                    )}
                   </td>
                 </tr>
                 {payment.refunded &&

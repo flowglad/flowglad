@@ -97,10 +97,9 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
         > = {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          name:
-            (item.metadata?.name as string) || 'Subscription Item',
+          name: item.name || 'Subscription Item',
           discountRedemptionId: null, // This would need to be handled separately
-          description: (item.metadata?.description as string) || '',
+          description: '',
           livemode: params.subscription.livemode,
         }
         return billingPeriodItemInsert
