@@ -10,6 +10,7 @@ import { ProductWithPrices } from '@/db/schema/prices'
 import { ProductsTable } from './ProductsTable'
 import { trpc } from '@/app/_trpc/client'
 import { Catalog } from '@/db/schema/catalogs'
+import InternalPageContainer from '@/components/InternalPageContainer'
 
 export enum FocusedTab {
   All = 'all',
@@ -21,7 +22,7 @@ type Props = {
   products: (ProductWithPrices & { catalog: Catalog.ClientRecord })[]
 }
 
-function Internal({ products }: Props) {
+function InternalProductsPage({ products }: Props) {
   const [isCreateProductOpen, setIsCreateProductOpen] =
     useState(false)
   const { data } = trpc.catalogs.getDefault.useQuery({})
@@ -33,54 +34,48 @@ function Internal({ products }: Props) {
   const activeProductsCount = activeProducts.length
   const inactiveProductsCount = inactiveProducts.length
   return (
-    <div className="h-full flex justify-between items-center gap-2.5">
-      <div className="bg-background flex-1 h-full w-full flex gap-6 p-6">
-        <div className="flex-1 h-full w-full flex flex-col">
-          <PageHeader
-            title="Products"
-            tabs={[
-              {
-                label: 'All',
-                subPath: 'all',
-                Component: () => (
-                  <ProductsTable products={products} />
-                ),
-              },
-              {
-                label: `${activeProductsCount} Active`,
-                subPath: 'active',
-                Component: () => (
-                  <ProductsTable products={activeProducts} />
-                ),
-              },
-              {
-                label: `${inactiveProductsCount} Inactive`,
-                subPath: 'inactive',
-                Component: () => (
-                  <ProductsTable products={inactiveProducts} />
-                ),
-              },
-            ]}
-            primaryButton={
-              <Button
-                iconLeading={<Plus size={16} />}
-                onClick={() => setIsCreateProductOpen(true)}
-              >
-                Create Product
-              </Button>
-            }
-          />
-          {defaultCatalog && (
-            <CreateProductModal
-              isOpen={isCreateProductOpen}
-              setIsOpen={setIsCreateProductOpen}
-              defaultCatalogId={defaultCatalog.id}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+    <InternalPageContainer>
+      <PageHeader
+        title="Products"
+        tabs={[
+          {
+            label: 'All',
+            subPath: 'all',
+            Component: () => <ProductsTable products={products} />,
+          },
+          {
+            label: `${activeProductsCount} Active`,
+            subPath: 'active',
+            Component: () => (
+              <ProductsTable products={activeProducts} />
+            ),
+          },
+          {
+            label: `${inactiveProductsCount} Inactive`,
+            subPath: 'inactive',
+            Component: () => (
+              <ProductsTable products={inactiveProducts} />
+            ),
+          },
+        ]}
+        primaryButton={
+          <Button
+            iconLeading={<Plus size={16} />}
+            onClick={() => setIsCreateProductOpen(true)}
+          >
+            Create Product
+          </Button>
+        }
+      />
+      {defaultCatalog && (
+        <CreateProductModal
+          isOpen={isCreateProductOpen}
+          setIsOpen={setIsCreateProductOpen}
+          defaultCatalogId={defaultCatalog.id}
+        />
+      )}
+    </InternalPageContainer>
   )
 }
 
-export default Internal
+export default InternalProductsPage
