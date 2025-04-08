@@ -30,6 +30,12 @@ export const generatePaymentReceiptPdfTask = task({
         return { payment, invoice }
       }
     )
+    if (!invoice) {
+      return {
+        message: `Invoice not found for payment: ${payment.id}`,
+        payment,
+      }
+    }
     /**
      * In dev mode, trigger will not load localhost:3000 correctly,
      * probably because it's running inside of a container.
@@ -39,7 +45,7 @@ export const generatePaymentReceiptPdfTask = task({
       ? 'https://staging.flowglad.com'
       : core.envVariable('NEXT_PUBLIC_APP_URL')
     const invoiceUrl = core.safeUrl(
-      `/receipt/view/${payment.organizationId}/${payment.id}/pdf-preview`,
+      `/invoice/view/${payment.organizationId}/${invoice.id}/receipt-pdf-preview`,
       urlBase
     )
     const key = `receipts/${payment.organizationId}/${payment.id}/receipt_${core.nanoid()}.pdf`
@@ -48,7 +54,16 @@ export const generatePaymentReceiptPdfTask = task({
       key,
       cloudflareMethods.BUCKET_PUBLIC_URL
     )
-    await adminTransaction(({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
+      if (invoice) {
+        await updateInvoice(
+          {
+            ...invoice,
+            receiptPdfURL: receiptURL,
+          },
+          transaction
+        )
+      }
       return updatePayment(
         {
           id: payment.id,
