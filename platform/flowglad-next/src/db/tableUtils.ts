@@ -802,3 +802,5 @@ export const createPaginatedListQuerySchema = <T extends z.ZodType>(
     hasMore: boolean
   }>
 }
+
+export const metadataSchema = z.record(z.string(), z.any())

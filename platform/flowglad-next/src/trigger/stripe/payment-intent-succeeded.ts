@@ -97,7 +97,7 @@ export const stripePaymentIntentSucceededTask = task({
     })
 
     if (invoice.status === InvoiceStatus.Paid) {
-      await generatePaymentReceiptPdfTask.triggerAndWait({
+      await generatePaymentReceiptPdfTask.trigger({
         paymentId: payment.id,
       })
     }

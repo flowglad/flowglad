@@ -13,6 +13,7 @@ import {
   constructIndex,
   livemodePolicy,
   constructUniqueIndex,
+  metadataSchema,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -66,7 +67,7 @@ export const subscriptionItems = pgTable(
 const columnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
   quantity: core.safeZodPositiveInteger,
-  metadata: z.record(z.unknown()).nullable(),
+  metadata: metadataSchema.nullable(),
 }
 
 /*

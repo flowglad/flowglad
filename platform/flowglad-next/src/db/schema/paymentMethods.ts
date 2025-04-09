@@ -15,6 +15,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   constructUniqueIndex,
+  metadataSchema,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -72,7 +73,7 @@ const columnRefinements = {
   type: z.nativeEnum(PaymentMethodType),
   billingDetails: paymentMethodBillingDetailsSchema,
   paymentMethodData: z.record(z.unknown()),
-  metadata: z.record(z.unknown()).nullable(),
+  metadata: metadataSchema.nullable(),
 }
 
 /*

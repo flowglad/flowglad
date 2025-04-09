@@ -46,7 +46,7 @@ export interface CreateSubscriptionParams {
   intervalCount: number
   trialEnd?: Date
   stripeSetupIntentId: string
-  metadata?: CheckoutSession.OutputMetadata
+  metadata?: Subscription.ClientRecord
   name?: string
   defaultPaymentMethod: PaymentMethod.Record
   backupPaymentMethod?: PaymentMethod.Record
@@ -210,7 +210,7 @@ const safelyProcessCreationForExistingSubscription = async (
   }
 }
 
-export const createSubscriptionWorkflow = async (
+const verifyCanCreateSubscription = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
@@ -247,6 +247,55 @@ export const createSubscriptionWorkflow = async (
       `Customer ${customer.id} does not match backup payment method ${backupPaymentMethod.customerId}`
     )
   }
+}
+
+interface ManualCreateSubscriptionParams
+  extends Omit<CreateSubscriptionParams, 'stripeSetupIntentId'> {}
+
+export const manualCreateSubscriptionWorkflow = async (
+  params: ManualCreateSubscriptionParams,
+  transaction: DbTransaction
+) => {
+  const { customer, defaultPaymentMethod, backupPaymentMethod } =
+    params
+  await verifyCanCreateSubscription(params, transaction)
+  const { subscription, subscriptionItems } =
+    await insertSubscriptionAndItems(params, transaction)
+  const scheduledFor = subscription.runBillingAtPeriodStart
+    ? subscription.currentBillingPeriodStart
+    : subscription.currentBillingPeriodEnd
+  const { billingPeriod, billingPeriodItems } =
+    await createBillingPeriodAndItems(
+      {
+        subscription,
+        subscriptionItems,
+        trialPeriod: !!subscription.trialEnd,
+        isInitialBillingPeriod: true,
+      },
+      transaction
+    )
+  const billingRun = await createBillingRun(
+    {
+      billingPeriod,
+      paymentMethod: params.defaultPaymentMethod,
+      scheduledFor,
+    },
+    transaction
+  )
+  return {
+    subscription,
+    subscriptionItems,
+    billingPeriod,
+    billingPeriodItems,
+    billingRun,
+  }
+}
+
+export const setupIntentSucceededCreateSubscriptionWorkflow = async (
+  params: CreateSubscriptionParams,
+  transaction: DbTransaction
+) => {
+  await verifyCanCreateSubscription(params, transaction)
 
   const existingSubscription = await selectSubscriptionAndItems(
     {

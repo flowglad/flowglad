@@ -18,6 +18,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   constructUniqueIndex,
+  metadataSchema,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -120,7 +121,7 @@ const columnRefinements = {
   trialEnd: z.date().nullable(),
   canceledAt: z.date().nullable(),
   cancelScheduledAt: z.date().nullable(),
-  metadata: z.record(z.unknown()).nullable(),
+  metadata: metadataSchema.nullable(),
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
 }
@@ -242,4 +243,67 @@ export const editSubscriptionSchema = z.object({
 
 export type EditSubscriptionInput = z.infer<
   typeof editSubscriptionSchema
+>
+
+export const createSubscriptionInputSchema = z.object({
+  customerId: z
+    .string()
+    .describe('The customer for the subscription.'),
+  priceId: z
+    .string()
+    .describe(
+      `The price to subscribe to. Used to determine whether the subscription is ` +
+        `usage-based or not, and set other defaults such as trial period and billing intervals.`
+    ),
+  quantity: z
+    .number()
+    .describe('The quantity of the price purchased.'),
+  startDate: z
+    .date()
+    .optional()
+    .describe(
+      'The time when the subscription starts. If not provided, defaults to current time.'
+    ),
+  interval: z.nativeEnum(IntervalUnit),
+  intervalCount: z
+    .number()
+    .optional()
+    .describe(
+      'The number of intervals that each billing period will last. If not provided, defaults to 1'
+    ),
+  trialEnd: z
+    .date()
+    .optional()
+    .describe(
+      `The time when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
+    ),
+  metadata: metadataSchema.optional(),
+  name: z
+    .string()
+    .optional()
+    .describe(
+      `The name of the subscription. If not provided, defaults ` +
+        `to the name of the product associated with the price provided by 'priceId'.`
+    ),
+  defaultPaymentMethodId: z
+    .string()
+    .optional()
+    .describe(
+      `The default payment method to use when attempting to run charges for the subscription.` +
+        `If not provided, the customer's default payment method will be used. ` +
+        `If no default payment method is present, charges will not run. ` +
+        `If no default payment method is provided and there is a trial ` +
+        `period for the subscription, ` +
+        `the subscription will enter 'trial_ended' status at the end of the trial period.`
+    ),
+  backupPaymentMethodId: z
+    .string()
+    .optional()
+    .describe(
+      `The payment method to try if charges for the subscription fail with the default payment method.`
+    ),
+})
+
+export type CreateSubscriptionInputSchema = z.infer<
+  typeof createSubscriptionInputSchema
 >

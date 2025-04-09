@@ -1,4 +1,5 @@
 import { protectedProcedure, router } from '../trpc'
+import { IntervalUnit } from '@/types'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -11,7 +12,7 @@ import {
   selectSubscriptionById,
   selectSubscriptionsPaginated,
 } from '@/db/tableMethods/subscriptionMethods'
-import { idInputSchema } from '@/db/tableUtils'
+import { idInputSchema, metadataSchema } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import { adjustSubscriptionInputSchema } from '@/subscriptions/schemas'
 import {
@@ -20,6 +21,11 @@ import {
 } from '@/subscriptions/cancelSubscription'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
+import { setupIntentSucceededCreateSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { TRPCError } from '@trpc/server'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -150,6 +156,130 @@ const getSubscriptionProcedure = protectedProcedure
             current: isSubscriptionCurrent(subscription.status),
           },
         }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const createSubscriptionInputSchema = z.object({
+  customerId: z
+    .string()
+    .describe('The customer for the subscription.'),
+  priceId: z
+    .string()
+    .describe(
+      `The price to subscribe to. Used to determine whether the subscription is ` +
+        `usage-based or not, and set other defaults such as trial period and billing intervals.`
+    ),
+  quantity: z
+    .number()
+    .describe('The quantity of the price purchased.'),
+  startDate: z
+    .date()
+    .optional()
+    .describe(
+      'The time when the subscription starts. If not provided, defaults to current time.'
+    ),
+  interval: z.nativeEnum(IntervalUnit),
+  intervalCount: z
+    .number()
+    .optional()
+    .describe(
+      'The number of intervals that each billing period will last. If not provided, defaults to 1'
+    ),
+  trialEnd: z
+    .date()
+    .optional()
+    .describe(
+      `The time when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
+    ),
+  metadata: metadataSchema.optional(),
+  name: z
+    .string()
+    .optional()
+    .describe(
+      `The name of the subscription. If not provided, defaults ` +
+        `to the name of the product associated with the price provided by 'priceId'.`
+    ),
+  defaultPaymentMethodId: z
+    .string()
+    .optional()
+    .describe(
+      `The default payment method to use when attempting to run charges for the subscription.` +
+        `If not provided, the customer's default payment method will be used. ` +
+        `If no default payment method is present, charges will not run. ` +
+        `If no default payment method is provided and there is a trial ` +
+        `period for the subscription, ` +
+        `the subscription will enter 'trial_ended' status at the end of the trial period.`
+    ),
+  backupPaymentMethodId: z
+    .string()
+    .optional()
+    .describe(
+      `The payment method to try if charges for the subscription fail with the default payment method.`
+    ),
+})
+
+const createSubscriptionProcedure = protectedProcedure
+  .input(createSubscriptionInputSchema)
+  .output(z.object({ subscription: subscriptionClientSelectSchema }))
+  .mutation(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const customer = await selectCustomerById(
+          input.customerId,
+          transaction
+        )
+        const priceResult =
+          await selectPriceProductAndOrganizationByPriceWhere(
+            {
+              id: input.priceId,
+            },
+            transaction
+          )
+        if (priceResult.length === 0) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Price ${input.priceId} not found`,
+          })
+        }
+        const { price, product, organization } = priceResult[0]
+        const defaultPaymentMethod = input.defaultPaymentMethodId
+          ? await selectPaymentMethodById(
+              input.defaultPaymentMethodId,
+              transaction
+            )
+          : undefined
+        const backupPaymentMethod = input.backupPaymentMethodId
+          ? await selectPaymentMethodById(
+              input.backupPaymentMethodId,
+              transaction
+            )
+          : undefined
+        const subscription =
+          await setupIntentSucceededCreateSubscriptionWorkflow(
+            {
+              customer,
+              organization,
+              product,
+              price,
+              quantity: input.quantity,
+              startDate: input.startDate ?? new Date(),
+              interval: input.interval,
+              intervalCount: input.intervalCount ?? 1,
+              trialEnd: input.trialEnd,
+              stripeSetupIntentId: input.stripeSetupIntentId,
+              metadata: input.metadata,
+              name: input.name,
+              defaultPaymentMethod,
+              backupPaymentMethod,
+              livemode: ctx.livemode,
+            },
+            transaction
+          )
+        return { subscription }
       },
       {
         apiKey: ctx.apiKey,
