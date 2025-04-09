@@ -15,8 +15,8 @@ importers:
         specifier: file:.yalc/@flowglad/nextjs
         version: file:.yalc/@flowglad/nextjs(next@15.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@flowglad/node':
-        specifier: 0.15.0
-        version: 0.15.0
+        specifier: 0.18.0
+        version: 0.18.0
       '@flowglad/react':
         specifier: file:.yalc/@flowglad/react
         version: file:.yalc/@flowglad/react(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.17)
@@ -235,8 +235,8 @@ packages:
   '@flowglad/node@0.14.0':
     resolution: {integrity: sha512-gbvCjpAu2FNpgJ2DPwlTX8tQinKcjiTpnTyxMCFEgV0nRChJB5wR7nkgmCS/Au/SC/Nm8EBAf335WM4FkAlmlQ==}
 
-  '@flowglad/node@0.15.0':
-    resolution: {integrity: sha512-vUQwG6oAZFFzrYznhAGnMn8Ph1haK2VSypMw8zCC3+DAwszyxXA+fCkB3evjqkjl1lUFPQc+yE6lXGE8BVb0SQ==}
+  '@flowglad/node@0.18.0':
+    resolution: {integrity: sha512-1Y5/jNL4UvAQRa+gV7I/1GtnDMQujUM5ctEiznPnw4ZtwRfpUFr413bn6IHilgAUyjDpWEEwU3aXsddbKQcBQQ==}
 
   '@flowglad/react@0.2.4':
     resolution: {integrity: sha512-5Tq2Ol4T5iKe1ZSkLsFP1JdNAzzrb7jKnApDHEblDZZkFfNvbm5y7pcAiDvls+VGMZAzeazCO98nASp43/8WlQ==}
@@ -2842,7 +2842,7 @@ snapshots:
 
   '@flowglad/nextjs@file:.yalc/@flowglad/nextjs(next@15.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@flowglad/node': 0.15.0
+      '@flowglad/node': 0.18.0
       '@flowglad/react': 0.2.4(react@18.3.1)
       '@flowglad/server': 0.2.4
       '@flowglad/shared': 0.2.4
@@ -2868,7 +2868,7 @@ snapshots:
 
   '@flowglad/node@0.14.0': {}
 
-  '@flowglad/node@0.15.0': {}
+  '@flowglad/node@0.18.0': {}
 
   '@flowglad/react@0.2.4(react@18.3.1)':
     dependencies:
@@ -2882,7 +2882,7 @@ snapshots:
 
   '@flowglad/react@file:.yalc/@flowglad/react(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.17)':
     dependencies:
-      '@flowglad/node': 0.15.0
+      '@flowglad/node': 0.18.0
       '@flowglad/shared': 0.2.4
       '@radix-ui/react-dialog': 1.1.6(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-slot': 1.1.2(@types/react@18.3.18)(react@18.3.1)
@@ -2914,7 +2914,7 @@ snapshots:
 
   '@flowglad/server@file:.yalc/@flowglad/server':
     dependencies:
-      '@flowglad/node': 0.15.0
+      '@flowglad/node': 0.18.0
       '@flowglad/shared': 0.2.4
       zod: 3.23.8
 

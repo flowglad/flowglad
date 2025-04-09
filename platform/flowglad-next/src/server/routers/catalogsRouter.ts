@@ -17,7 +17,7 @@ import {
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectDefaultCatalog,
 } from '@/db/tableMethods/catalogMethods'
-import { generateOpenApiMetas } from '@/utils/openapi'
+import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
@@ -29,6 +29,18 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 })
 
 export const catalogsRouteConfigs = routeConfigs
+export const getDefaultCatalogRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
+  'GET /catalogs/default': {
+    procedure: 'catalogs.getDefault',
+    pattern: new RegExp(`^catalogs\/default$`),
+    mapParams: (matches) => ({
+      externalId: matches[0],
+    }),
+  },
+}
 
 const listCatalogsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)

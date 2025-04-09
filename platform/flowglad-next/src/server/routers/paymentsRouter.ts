@@ -11,24 +11,21 @@ import {
   selectPaymentsPaginated,
 } from '@/db/tableMethods/paymentMethods'
 import { idInputSchema } from '@/db/tableUtils'
-import { RouteConfig, trpcToRest } from '@/utils/openapi'
-import { generateOpenApiMetas } from '@/utils/openapi'
+import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 
-const { openApiMetas } = generateOpenApiMetas({
+const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Payment',
   tags: ['Payments'],
 })
 
-export const paymentsRouteConfigs: Record<string, RouteConfig> = {
-  ...trpcToRest('payments.list'),
-  ...trpcToRest('payments.get'),
+export const paymentsRouteConfigs = routeConfigs
+
+export const refundPaymentRouteConfig: Record<string, RouteConfig> = {
   'POST /payments/:id/refund': {
     procedure: 'payments.refund',
     pattern: new RegExp(`^payments\/([^\\/]+)\/refund$`),
-    mapParams: (matches: string[]) => ({
-      id: matches[0],
-    }),
+    mapParams: (matches) => ({ id: matches[0] }),
   },
 }
 
@@ -37,9 +34,14 @@ const listPaymentsProcedure = protectedProcedure
   .input(paymentsPaginatedSelectSchema)
   .output(paymentsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectPaymentsPaginated(input, transaction)
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectPaymentsPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const getPaymentProcedure = protectedProcedure
@@ -50,6 +52,9 @@ const getPaymentProcedure = protectedProcedure
     const payment = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectPaymentById(input.id, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
     return { payment }

@@ -759,10 +759,16 @@ export const createPaginatedSelectFunction = <
     const hasMore = result.length > limit
     // Remove the extra item if it exists
     const data = result.slice(0, limit)
-    const total = await transaction
+    let totalQuery = transaction
       .select({ count: count() })
       .from(table)
-      .where(whereClauseFromObject(table, parameters))
+      .$dynamic()
+    if (Object.keys(parameters).length > 0) {
+      totalQuery = totalQuery.where(
+        whereClauseFromObject(table, parameters)
+      )
+    }
+    const total = await totalQuery
     return {
       data: data.map((item) => selectSchema.parse(item)),
       currentCursor: cursor,

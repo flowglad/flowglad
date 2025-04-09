@@ -24,20 +24,16 @@ const InternalDemoPage = () => {
       },
     }
   }
-  const inviteUserMutation =
-    trpc.utils.inviteUserToOrganization.useMutation()
+  const { data: customersData } = trpc.customers.list.useQuery({})
   return (
     <div style={{ padding: '20px' }}>
       <h1>Internal Demo Page</h1>
-      <Button
-        onClick={() =>
-          inviteUserMutation.mutate({
-            email: 'verybusyfounder@gmail.com',
-          })
-        }
-      >
-        Invite User
-      </Button>
+      {customersData?.data.map((customer) => (
+        <div key={customer.id}>
+          <h2>{customer.name}</h2>
+          <p>{customer.email}</p>
+        </div>
+      ))}
     </div>
   )
 }

@@ -121,28 +121,41 @@ export const editCustomer = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editCustomerInputSchema)
   .output(editCustomerOutputSchema)
-  .mutation(async ({ input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const { customer } = input
+  .mutation(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { customer } = input
 
-      const updatedCustomer = await updateCustomer(
-        customer,
-        transaction
-      )
-      return {
-        customer: updatedCustomer,
+        const updatedCustomer = await updateCustomer(
+          customer,
+          transaction
+        )
+        return {
+          customer: updatedCustomer,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
-    })
+    )
   })
 
 export const getCustomerById = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(z.object({ customer: customerClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const customer = await selectCustomerById(input.id, transaction)
-      return { customer }
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const customer = await selectCustomerById(
+          input.id,
+          transaction
+        )
+        return { customer }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 export const getCustomer = protectedProcedure
@@ -299,9 +312,14 @@ const listCustomersProcedure = protectedProcedure
   .input(customersPaginatedSelectSchema)
   .output(customersPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectCustomersPaginated(input, transaction)
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectCustomersPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 export const customersRouter = router({
