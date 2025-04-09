@@ -56,6 +56,9 @@ export const createProduct = protectedProcedure
           },
           { transaction, userId, livemode }
         )
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
     return {
@@ -67,7 +70,7 @@ export const editProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
         const { product } = input
@@ -87,6 +90,9 @@ export const editProduct = protectedProcedure
         return {
           product: updatedProduct,
         }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
   })
@@ -96,9 +102,14 @@ export const listProducts = protectedProcedure
   .input(productsPaginatedSelectSchema)
   .output(productsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectProductsPaginated(input, transaction)
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectProductsPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 export const getProduct = protectedProcedure
@@ -106,24 +117,29 @@ export const getProduct = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(productWithPricesSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const product = await selectProductById(input.id, transaction)
-      if (!product) {
-        throw new Error('Product not found')
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const product = await selectProductById(input.id, transaction)
+        if (!product) {
+          throw new Error('Product not found')
+        }
+        const prices = await selectPrices(
+          {
+            productId: product.id,
+          },
+          transaction
+        )
+        return {
+          ...product,
+          prices,
+          defaultPrice:
+            prices.find((price) => price.isDefault) ?? prices[0],
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
-      const prices = await selectPrices(
-        {
-          productId: product.id,
-        },
-        transaction
-      )
-      return {
-        ...product,
-        prices,
-        defaultPrice:
-          prices.find((price) => price.isDefault) ?? prices[0],
-      }
-    })
+    )
   })
 
 export const productsRouter = router({
