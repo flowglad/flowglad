@@ -100,7 +100,6 @@ const handler = withUnkey(
     { params }: { params: Promise<{ path: string[] }> }
   ) => {
     const tracer = trace.getTracer('rest-api')
-    console.log('===routes', routes)
     return tracer.startActiveSpan(
       `REST ${req.method}`,
       async (parentSpan) => {
