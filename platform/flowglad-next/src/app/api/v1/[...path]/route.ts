@@ -16,7 +16,6 @@ import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
-import { paymentsRouteConfigs } from '@/server/routers/paymentsRouter'
 import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
@@ -46,11 +45,8 @@ const routeConfigs = [
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
-<<<<<<< Updated upstream
-=======
   ...paymentsRouteConfigs,
   ...catalogsRouteConfigs,
->>>>>>> Stashed changes
   ...usageMetersRouteConfigs,
   ...usageEventsRouteConfigs,
 ]
@@ -69,14 +65,10 @@ const routes: Record<string, RouteConfig> = {
   ...discountsRouteConfigs,
   ...productsRouteConfigs,
   ...trpcToRest('utils.ping'),
-<<<<<<< Updated upstream
-  ...paymentsRouteConfigs,
-=======
   // note it's important to add the array routes last
   // because the more specific patterns above will match first,
   // so e.g. /catalogs/default will not attempt to match to /catalogs/:id => id="default"
   ...arrayRoutes,
->>>>>>> Stashed changes
 } as const
 
 type TRPCResponse =

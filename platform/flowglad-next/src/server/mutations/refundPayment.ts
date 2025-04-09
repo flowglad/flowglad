@@ -5,15 +5,8 @@ import {
   refundPaymentInputSchema,
 } from '@/db/schema/payments'
 import { refundPaymentTransaction } from '@/utils/paymentHelpers'
-<<<<<<< Updated upstream
-import {
-  createGetOpenApiMeta,
-  createPostOpenApiMeta,
-} from '@/utils/openapi'
-=======
 import { createPostOpenApiMeta } from '@/utils/openapi'
 import { z } from 'zod'
->>>>>>> Stashed changes
 
 export const refundPayment = protectedProcedure
   .meta(
