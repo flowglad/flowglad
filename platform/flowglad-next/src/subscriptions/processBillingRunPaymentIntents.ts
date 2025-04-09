@@ -49,6 +49,7 @@ import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybilli
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/send-customer-payment-succeeded-notification'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -97,6 +98,9 @@ interface BillingRunNotificationParams {
 const processSucceededNotifications = async (
   params: BillingRunNotificationParams
 ) => {
+  await sendCustomerPaymentSucceededNotificationIdempotently(
+    params.payment.id
+  )
   await sendOrganizationPaymentNotificationEmail({
     organizationName: params.organization.name,
     amount: params.payment.amount,

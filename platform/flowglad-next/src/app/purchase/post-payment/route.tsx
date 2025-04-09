@@ -21,7 +21,10 @@ import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNon
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { isNil } from '@/utils/core'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
+import {
+  generateInvoicePdfIdempotently,
+  generateInvoicePdfTask,
+} from '@/trigger/generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Invoice } from '@/db/schema/invoices'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
@@ -146,15 +149,9 @@ const idempotentGenerateInvoicePdf = async (
   invoiceId: string,
   paymentId?: string
 ) => {
-  await generateInvoicePdfTask.trigger(
-    {
-      invoiceId,
-    },
-    {
-      idempotencyKey: paymentId,
-    }
-  )
+  return await generateInvoicePdfIdempotently(invoiceId)
 }
+
 export const GET = async (request: NextRequest) => {
   try {
     const searchParams = request.nextUrl.searchParams
