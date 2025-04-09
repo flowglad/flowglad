@@ -21,6 +21,14 @@ import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { logger } from '@/utils/logger'
+import {
+  catalogsRouteConfigs,
+  getDefaultCatalogRouteConfig,
+} from '@/server/routers/catalogsRouter'
+import {
+  paymentsRouteConfigs,
+  refundPaymentRouteConfig,
+} from '@/server/routers/paymentsRouter'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -38,6 +46,11 @@ const routeConfigs = [
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
+<<<<<<< Updated upstream
+=======
+  ...paymentsRouteConfigs,
+  ...catalogsRouteConfigs,
+>>>>>>> Stashed changes
   ...usageMetersRouteConfigs,
   ...usageEventsRouteConfigs,
 ]
@@ -50,12 +63,20 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 )
 
 const routes: Record<string, RouteConfig> = {
-  ...arrayRoutes,
+  ...getDefaultCatalogRouteConfig,
+  ...refundPaymentRouteConfig,
   ...customersRouteConfigs,
-  ...productsRouteConfigs,
   ...discountsRouteConfigs,
+  ...productsRouteConfigs,
   ...trpcToRest('utils.ping'),
+<<<<<<< Updated upstream
   ...paymentsRouteConfigs,
+=======
+  // note it's important to add the array routes last
+  // because the more specific patterns above will match first,
+  // so e.g. /catalogs/default will not attempt to match to /catalogs/:id => id="default"
+  ...arrayRoutes,
+>>>>>>> Stashed changes
 } as const
 
 type TRPCResponse =

@@ -11,15 +11,20 @@ import {
   selectPaymentsPaginated,
 } from '@/db/tableMethods/paymentMethods'
 import { idInputSchema } from '@/db/tableUtils'
+<<<<<<< Updated upstream
 import { RouteConfig, trpcToRest } from '@/utils/openapi'
 import { generateOpenApiMetas } from '@/utils/openapi'
+=======
+import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
+>>>>>>> Stashed changes
 import { z } from 'zod'
 
-const { openApiMetas } = generateOpenApiMetas({
+const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Payment',
   tags: ['Payments'],
 })
 
+<<<<<<< Updated upstream
 export const paymentsRouteConfigs: Record<string, RouteConfig> = {
   ...trpcToRest('payments.list'),
   ...trpcToRest('payments.get'),
@@ -29,6 +34,15 @@ export const paymentsRouteConfigs: Record<string, RouteConfig> = {
     mapParams: (matches: string[]) => ({
       id: matches[0],
     }),
+=======
+export const paymentsRouteConfigs = routeConfigs
+
+export const refundPaymentRouteConfig: Record<string, RouteConfig> = {
+  'POST /payments/:id/refund': {
+    procedure: 'payments.refund',
+    pattern: new RegExp(`^payments\/([^\\/]+)\/refund$`),
+    mapParams: (matches) => ({ id: matches[0] }),
+>>>>>>> Stashed changes
   },
 }
 
