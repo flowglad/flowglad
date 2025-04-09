@@ -1,12 +1,16 @@
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { refundPaymentInputSchema } from '@/db/schema/payments'
+import {
+  paymentsClientSelectSchema,
+  refundPaymentInputSchema,
+} from '@/db/schema/payments'
 import { refundPaymentTransaction } from '@/utils/paymentHelpers'
-import { createGetOpenApiMeta } from '@/utils/openapi'
+import { createPostOpenApiMeta } from '@/utils/openapi'
+import { z } from 'zod'
 
 export const refundPayment = protectedProcedure
   .meta(
-    createGetOpenApiMeta({
+    createPostOpenApiMeta({
       resource: 'payments',
       routeSuffix: 'refund',
       summary: 'Refund a Payment',
@@ -14,6 +18,7 @@ export const refundPayment = protectedProcedure
     })
   )
   .input(refundPaymentInputSchema)
+  .output(z.object({ payment: paymentsClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const payment = await authenticatedTransaction(
       async ({ transaction, livemode }) => {
@@ -28,7 +33,5 @@ export const refundPayment = protectedProcedure
       }
     )
 
-    return {
-      data: { payment },
-    }
+    return { payment }
   })

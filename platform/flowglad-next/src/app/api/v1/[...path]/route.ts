@@ -16,11 +16,18 @@ import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
-import { paymentsRouteConfigs } from '@/server/routers/paymentsRouter'
 import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { logger } from '@/utils/logger'
+import {
+  catalogsRouteConfigs,
+  getDefaultCatalogRouteConfig,
+} from '@/server/routers/catalogsRouter'
+import {
+  paymentsRouteConfigs,
+  refundPaymentRouteConfig,
+} from '@/server/routers/paymentsRouter'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -38,6 +45,8 @@ const routeConfigs = [
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
+  ...paymentsRouteConfigs,
+  ...catalogsRouteConfigs,
   ...usageMetersRouteConfigs,
   ...usageEventsRouteConfigs,
 ]
@@ -50,12 +59,16 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 )
 
 const routes: Record<string, RouteConfig> = {
-  ...arrayRoutes,
+  ...getDefaultCatalogRouteConfig,
+  ...refundPaymentRouteConfig,
   ...customersRouteConfigs,
-  ...productsRouteConfigs,
   ...discountsRouteConfigs,
+  ...productsRouteConfigs,
   ...trpcToRest('utils.ping'),
-  ...paymentsRouteConfigs,
+  // note it's important to add the array routes last
+  // because the more specific patterns above will match first,
+  // so e.g. /catalogs/default will not attempt to match to /catalogs/:id => id="default"
+  ...arrayRoutes,
 } as const
 
 type TRPCResponse =
@@ -87,7 +100,6 @@ const handler = withUnkey(
     { params }: { params: Promise<{ path: string[] }> }
   ) => {
     const tracer = trace.getTracer('rest-api')
-
     return tracer.startActiveSpan(
       `REST ${req.method}`,
       async (parentSpan) => {
@@ -156,6 +168,11 @@ const handler = withUnkey(
             newUrl.searchParams.set(
               'input',
               JSON.stringify({ json: input })
+            )
+          } else if (req.method === 'GET') {
+            newUrl.searchParams.set(
+              'input',
+              JSON.stringify({ json: {} })
             )
           }
 
