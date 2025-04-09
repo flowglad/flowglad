@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   createSelectById,
   createSelectFunction,
@@ -5,12 +6,14 @@ import {
   createUpdateFunction,
   ORMMethodCreatorConfig,
   createUpsertFunction,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   discountRedemptions,
   discountRedemptionsSelectSchema,
   discountRedemptionsInsertSchema,
   discountRedemptionsUpdateSchema,
+  DiscountRedemption,
 } from '@/db/schema/discountRedemptions'
 import { Purchase } from '../schema/purchases'
 import {
@@ -83,28 +86,35 @@ export const upsertDiscountRedemptionForPurchaseAndDiscount = async (
   return result[0]
 }
 
-export const selectDiscountAndDiscountRedemptionByPurchaseId = async (
-  purchaseId: string,
-  transaction: DbTransaction
-) => {
-  const [result] = await transaction
-    .select({
-      discount: discounts,
-      discountRedemption: discountRedemptions,
-    })
-    .from(discountRedemptions)
-    .innerJoin(
-      discounts,
-      eq(discountRedemptions.discountId, discounts.id)
-    )
-    .where(eq(discountRedemptions.purchaseId, purchaseId))
-  if (!result) {
-    return null
+export const selectDiscountAndDiscountRedemptionByDiscountRedemptionWhere =
+  async (
+    where: DiscountRedemption.Where,
+    transaction: DbTransaction
+  ) => {
+    let query = transaction
+      .select({
+        discount: discounts,
+        discountRedemption: discountRedemptions,
+      })
+      .from(discountRedemptions)
+      .innerJoin(
+        discounts,
+        eq(discountRedemptions.discountId, discounts.id)
+      )
+      .$dynamic()
+    if (!R.isEmpty(where)) {
+      query = query.where(
+        whereClauseFromObject(discountRedemptions, where)
+      )
+    }
+    const [result] = await query
+    if (!result) {
+      return null
+    }
+    return {
+      discount: discountsSelectSchema.parse(result.discount),
+      discountRedemption: discountRedemptionsSelectSchema.parse(
+        result.discountRedemption
+      ),
+    }
   }
-  return {
-    discount: discountsSelectSchema.parse(result.discount),
-    discountRedemption: discountRedemptionsSelectSchema.parse(
-      result.discountRedemption
-    ),
-  }
-}

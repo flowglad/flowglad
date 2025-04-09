@@ -19,6 +19,7 @@ import {
   createPaginatedListQuerySchema,
   constructUniqueIndex,
   metadataSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -226,6 +227,7 @@ export namespace Subscription {
   export type PaginatedList = z.infer<
     typeof subscriptionsPaginatedListSchema
   >
+  export type Where = SelectConditions<typeof subscriptions>
 }
 
 export const createSubscriptionSchema = z.object({

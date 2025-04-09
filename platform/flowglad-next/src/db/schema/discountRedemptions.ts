@@ -1,4 +1,10 @@
-import { integer, pgTable, text, pgPolicy } from 'drizzle-orm/pg-core'
+import {
+  integer,
+  pgTable,
+  text,
+  pgPolicy,
+  boolean,
+} from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -6,17 +12,18 @@ import {
   pgEnumColumn,
   enhancedCreateInsertSchema,
   tableBase,
-  createUpdateSchema,
   notNullStringForeignKey,
   constructUniqueIndex,
   livemodePolicy,
+  nullableStringForeignKey,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { discounts } from '@/db/schema/discounts'
 import { purchases } from '@/db/schema/purchases'
 import { createSelectSchema } from 'drizzle-zod'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
-
+import { subscriptions } from '@/db/schema/subscriptions'
 const TABLE_NAME = 'discount_redemptions'
 
 // Schema descriptions
@@ -48,13 +55,19 @@ export const discountRedemptions = pgTable(
       columnName: 'duration',
       enumBase: DiscountDuration,
     }).notNull(),
+    subscriptionId: nullableStringForeignKey(
+      'subscription_id',
+      subscriptions
+    ),
     numberOfPayments: integer('number_of_payments'),
+    fullyRedeemed: boolean('fully_redeemed').notNull().default(false),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.discountId]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
+      constructIndex(TABLE_NAME, [table.subscriptionId]),
       livemodePolicy(),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
@@ -199,4 +212,5 @@ export namespace DiscountRedemption {
   export type ClientRecord = z.infer<
     typeof discountRedemptionsClientSelectSchema
   >
+  export type Where = SelectConditions<typeof discountRedemptions>
 }

@@ -9,7 +9,7 @@ import {
   setupBillingPeriod,
   setupBillingPeriodItems,
 } from '../../seedDatabase'
-import { setupIntentSucceededCreateSubscriptionWorkflow } from './createSubscription'
+import { createSubscriptionWorkflow } from './createSubscription'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -38,7 +38,7 @@ describe('createSubscription', async () => {
     billingRun,
   } = await adminTransaction(async ({ transaction }) => {
     const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-    return setupIntentSucceededCreateSubscriptionWorkflow(
+    return createSubscriptionWorkflow(
       {
         organization,
         product,
@@ -62,7 +62,7 @@ describe('createSubscription', async () => {
       subscriptionItems[0].unitPrice * subscriptionItems[0].quantity
     ).toBe(price.unitPrice * 1)
     expect(billingPeriod.status).toBe(BillingPeriodStatus.Active)
-    expect(billingRun.status).toBe(BillingRunStatus.Scheduled)
+    expect(billingRun?.status).toBe(BillingRunStatus.Scheduled)
   })
   it('throws an error if the customer already has an active subscription', async () => {
     await adminTransaction(async ({ transaction }) => {
@@ -77,7 +77,7 @@ describe('createSubscription', async () => {
     const stripeSetupIntentId = `setupintent_${core.nanoid()}`
     await expect(
       adminTransaction(async ({ transaction }) => {
-        return setupIntentSucceededCreateSubscriptionWorkflow(
+        return createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -107,23 +107,22 @@ describe('createSubscription', async () => {
     // Create a past subscription that is now cancelled
     await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-      const sub =
-        await setupIntentSucceededCreateSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price,
-            quantity: 1,
-            livemode: true,
-            startDate: new Date('2023-01-01'),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: newPaymentMethod,
-            customer: newCustomer,
-            stripeSetupIntentId,
-          },
-          transaction
-        )
+      const sub = await createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date('2023-01-01'),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: newPaymentMethod,
+          customer: newCustomer,
+          stripeSetupIntentId,
+        },
+        transaction
+      )
 
       await updateSubscription(
         {
@@ -140,7 +139,7 @@ describe('createSubscription', async () => {
     // Should be able to create a new subscription since the past one is cancelled
     await expect(
       adminTransaction(async ({ transaction }) => {
-        return setupIntentSucceededCreateSubscriptionWorkflow(
+        return createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -175,7 +174,7 @@ describe('createSubscription', async () => {
     const { subscription, billingPeriod } = await adminTransaction(
       async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-        return setupIntentSucceededCreateSubscriptionWorkflow(
+        return createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -236,7 +235,7 @@ describe('createSubscription', async () => {
       const { subscription } = await adminTransaction(
         async ({ transaction }) => {
           const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-          return setupIntentSucceededCreateSubscriptionWorkflow(
+          return createSubscriptionWorkflow(
             {
               organization,
               product,
@@ -276,7 +275,7 @@ describe('createSubscription', async () => {
       const { subscription } = await adminTransaction(
         async ({ transaction }) => {
           const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-          return setupIntentSucceededCreateSubscriptionWorkflow(
+          return createSubscriptionWorkflow(
             {
               organization,
               product,
@@ -316,7 +315,7 @@ describe('createSubscription', async () => {
       await expect(
         adminTransaction(async ({ transaction }) => {
           const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-          return setupIntentSucceededCreateSubscriptionWorkflow(
+          return createSubscriptionWorkflow(
             {
               organization,
               product,
@@ -377,7 +376,7 @@ describe('createSubscription', async () => {
     // Store the first billing run
     const firstResult = await adminTransaction(
       async ({ transaction }) => {
-        return setupIntentSucceededCreateSubscriptionWorkflow(
+        return createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -400,7 +399,7 @@ describe('createSubscription', async () => {
     // Attempt second creation with same setup intent
     const secondResult = await adminTransaction(
       async ({ transaction }) => {
-        return setupIntentSucceededCreateSubscriptionWorkflow(
+        return createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -422,6 +421,85 @@ describe('createSubscription', async () => {
 
     // Verify same subscription, billing period, and billing run returned
     expect(secondResult.subscription.id).toBe(firstSubscription.id)
-    expect(secondResult.billingRun.id).toBe(firstResult.billingRun.id)
+    expect(secondResult.billingRun?.id).toBe(
+      firstResult.billingRun?.id
+    )
+  })
+
+  it('should NOT have a billingRun if no defaultPaymentMethod is provided and customer has no payment method', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customerWithoutPaymentMethod = await setupCustomer({
+      organizationId: organization.id,
+    })
+
+    const { subscription, billingPeriod, billingRun } =
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            customer: customerWithoutPaymentMethod,
+            stripeSetupIntentId,
+          },
+          transaction
+        )
+      })
+
+    // Verify subscription and billing period were created
+    expect(subscription).toBeDefined()
+    expect(billingPeriod).toBeDefined()
+
+    // Verify no billing run was created
+    expect(billingRun).toBeUndefined()
+  })
+
+  it('should execute with a billingRun if customer has a default payment method but no defaultPaymentMethodId is provided', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customerWithDefaultPaymentMethod = await setupCustomer({
+      organizationId: organization.id,
+    })
+
+    // Create a payment method and set it as default for the customer
+    const defaultPaymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customerWithDefaultPaymentMethod.id,
+      default: true,
+    })
+
+    const { subscription, billingPeriod, billingRun } =
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            customer: customerWithDefaultPaymentMethod,
+            stripeSetupIntentId,
+          },
+          transaction
+        )
+      })
+
+    // Verify subscription and billing period were created
+    expect(subscription).toBeDefined()
+    expect(billingPeriod).toBeDefined()
+
+    // Verify billing run was created with the customer's default payment method
+    expect(billingRun).toBeDefined()
+    expect(billingRun?.status).toBe(BillingRunStatus.Scheduled)
+    expect(billingRun?.paymentMethodId).toBe(defaultPaymentMethod.id)
   })
 })

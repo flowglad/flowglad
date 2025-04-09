@@ -16,6 +16,7 @@ import {
   createPaginatedListQuerySchema,
   constructUniqueIndex,
   metadataSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -159,6 +160,7 @@ export namespace PaymentMethod {
   export type PaginatedSelect = z.infer<
     typeof paymentMethodsPaginatedSelectSchema
   >
+  export type Where = SelectConditions<typeof paymentMethods>
 }
 
 export const createPaymentMethodSchema = z.object({

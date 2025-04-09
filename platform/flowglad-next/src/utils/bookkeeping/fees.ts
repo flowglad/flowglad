@@ -35,6 +35,7 @@ import {
   ClientInvoiceWithLineItems,
   InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
+import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 
 export const calculateInvoiceBaseAmount = (
   invoice: ClientInvoiceWithLineItems
@@ -392,8 +393,8 @@ interface SubscriptionFeeCalculationParams {
   organization: Organization.Record
   billingPeriod: BillingPeriod.Record
   billingPeriodItems: BillingPeriodItem.Record[]
-  discountRedemption?: DiscountRedemption.Record
   paymentMethod: PaymentMethod.Record
+  discountRedemption?: DiscountRedemption.Record
   organizationCountry: Country.Record
   livemode: boolean
   currency: CurrencyCode
@@ -414,13 +415,12 @@ const createSubscriptionFeeCalculationInsert = (
     organization,
     billingPeriod,
     billingPeriodItems,
-    discountRedemption,
     paymentMethod,
     organizationCountry,
     livemode,
     currency,
+    discountRedemption,
   } = params
-
   const baseAmount = calculateBillingItemBaseAmount(
     billingPeriodItems
   )
@@ -505,8 +505,20 @@ export const createAndFinalizeSubscriptionFeeCalculation = async (
   params: SubscriptionFeeCalculationParams,
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
-  const feeCalculationInsert =
-    createSubscriptionFeeCalculationInsert(params)
+  const [discountRedemption] = await selectDiscountRedemptions(
+    {
+      subscriptionId: params.billingPeriod.subscriptionId,
+      fullyRedeemed: false,
+    },
+    transaction
+  )
+
+  const feeCalculationInsert = createSubscriptionFeeCalculationInsert(
+    {
+      ...params,
+      discountRedemption,
+    }
+  )
   const initialFeeCalculation = await insertFeeCalculation(
     feeCalculationInsert,
     transaction

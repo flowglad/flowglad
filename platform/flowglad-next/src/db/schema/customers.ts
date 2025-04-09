@@ -12,6 +12,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   nullableStringForeignKey,
+  SelectConditions,
 } from '@/db/tableUtils'
 import {
   organizations,
@@ -179,6 +180,8 @@ export namespace Customer {
 
   export type EditInput = z.infer<typeof editCustomerInputSchema>
   export type EditOutput = z.infer<typeof editCustomerOutputSchema>
+
+  export type Where = SelectConditions<typeof customers>
 }
 
 export enum InferredCustomerStatus {

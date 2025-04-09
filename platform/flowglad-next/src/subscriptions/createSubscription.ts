@@ -33,6 +33,8 @@ import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
+import { BillingRun } from '@/db/schema/billingRuns'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -45,10 +47,10 @@ export interface CreateSubscriptionParams {
   interval: IntervalUnit
   intervalCount: number
   trialEnd?: Date
-  stripeSetupIntentId: string
-  metadata?: Subscription.ClientRecord
+  stripeSetupIntentId?: string
+  metadata?: Subscription.ClientRecord['metadata']
   name?: string
-  defaultPaymentMethod: PaymentMethod.Record
+  defaultPaymentMethod?: PaymentMethod.Record
   backupPaymentMethod?: PaymentMethod.Record
 }
 
@@ -88,7 +90,7 @@ export const insertSubscriptionAndItems = async (
     priceId: price.id,
     livemode,
     status: SubscriptionStatus.Incomplete,
-    defaultPaymentMethodId: defaultPaymentMethod.id,
+    defaultPaymentMethodId: defaultPaymentMethod?.id ?? null,
     backupPaymentMethodId: backupPaymentMethod?.id ?? null,
     cancelScheduledAt: null,
     canceledAt: null,
@@ -104,7 +106,7 @@ export const insertSubscriptionAndItems = async (
     billingCycleAnchorDate: startDate,
     interval,
     intervalCount,
-    stripeSetupIntentId,
+    stripeSetupIntentId: stripeSetupIntentId ?? null,
     externalId: null,
     startDate,
   }
@@ -155,6 +157,30 @@ const subscriptionForSetupIntent = async (
   return null
 }
 
+const billingRunForSubscription = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  const billingPeriodAndItems =
+    await selectBillingPeriodAndItemsByBillingPeriodWhere(
+      {
+        subscriptionId: subscription.id,
+      },
+      transaction
+    )
+  if (!billingPeriodAndItems) {
+    throw new Error('Billing period and items not found')
+  }
+  const { billingPeriod } = billingPeriodAndItems
+  const [existingBillingRun] = await selectBillingRuns(
+    {
+      billingPeriodId: billingPeriod.id,
+    },
+    transaction
+  )
+  return existingBillingRun
+}
+
 const safelyProcessCreationForExistingSubscription = async (
   params: CreateSubscriptionParams,
   subscription: Subscription.Record,
@@ -186,16 +212,20 @@ const safelyProcessCreationForExistingSubscription = async (
   const scheduledFor = subscription.runBillingAtPeriodStart
     ? subscription.currentBillingPeriodStart
     : subscription.currentBillingPeriodEnd
-  const billingRun =
+
+  const billingRun: BillingRun.Record | undefined =
     existingBillingRun ??
-    (await createBillingRun(
-      {
-        billingPeriod,
-        paymentMethod: params.defaultPaymentMethod,
-        scheduledFor,
-      },
-      transaction
-    ))
+    (params.defaultPaymentMethod
+      ? await createBillingRun(
+          {
+            billingPeriod,
+            paymentMethod: params.defaultPaymentMethod,
+            scheduledFor,
+          },
+          transaction
+        )
+      : undefined)
+
   if (subscription.runBillingAtPeriodStart) {
     await attemptBillingRunTask.trigger({
       billingRun,
@@ -234,7 +264,10 @@ const verifyCanCreateSubscription = async (
       )
     }
   }
-  if (customer.id !== defaultPaymentMethod.customerId) {
+  if (
+    defaultPaymentMethod &&
+    customer.id !== defaultPaymentMethod.customerId
+  ) {
     throw new Error(
       `Customer ${customer.id} does not match default payment method ${defaultPaymentMethod.customerId}`
     )
@@ -249,11 +282,8 @@ const verifyCanCreateSubscription = async (
   }
 }
 
-interface ManualCreateSubscriptionParams
-  extends Omit<CreateSubscriptionParams, 'stripeSetupIntentId'> {}
-
 export const manualCreateSubscriptionWorkflow = async (
-  params: ManualCreateSubscriptionParams,
+  params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
   const { customer, defaultPaymentMethod, backupPaymentMethod } =
@@ -274,14 +304,18 @@ export const manualCreateSubscriptionWorkflow = async (
       },
       transaction
     )
-  const billingRun = await createBillingRun(
-    {
-      billingPeriod,
-      paymentMethod: params.defaultPaymentMethod,
-      scheduledFor,
-    },
-    transaction
-  )
+
+  const billingRun = params.defaultPaymentMethod
+    ? await createBillingRun(
+        {
+          billingPeriod,
+          paymentMethod: params.defaultPaymentMethod,
+          scheduledFor,
+        },
+        transaction
+      )
+    : undefined
+
   return {
     subscription,
     subscriptionItems,
@@ -291,7 +325,34 @@ export const manualCreateSubscriptionWorkflow = async (
   }
 }
 
-export const setupIntentSucceededCreateSubscriptionWorkflow = async (
+const maybeDefaultPaymentMethodForSubscription = async (
+  params: {
+    customerId: string
+    defaultPaymentMethod?: PaymentMethod.Record | null
+  },
+  transaction: DbTransaction
+) => {
+  if (params.defaultPaymentMethod) {
+    return params.defaultPaymentMethod
+  }
+  const paymentMethods = await selectPaymentMethods(
+    {
+      customerId: params.customerId,
+    },
+    transaction
+  )
+  if (paymentMethods.length === 0) {
+    return null
+  }
+  const defaultPaymentMethod = paymentMethods.find(
+    (paymentMethod) => paymentMethod.default
+  )
+  return defaultPaymentMethod
+    ? defaultPaymentMethod
+    : paymentMethods[0]
+}
+
+export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
@@ -312,7 +373,14 @@ export const setupIntentSucceededCreateSubscriptionWorkflow = async (
       transaction
     )
   }
-
+  const defaultPaymentMethod =
+    await maybeDefaultPaymentMethodForSubscription(
+      {
+        customerId: params.customer.id,
+        defaultPaymentMethod: params.defaultPaymentMethod,
+      },
+      transaction
+    )
   const { subscription, subscriptionItems } =
     await insertSubscriptionAndItems(params, transaction)
   const scheduledFor = subscription.runBillingAtPeriodStart
@@ -328,17 +396,20 @@ export const setupIntentSucceededCreateSubscriptionWorkflow = async (
       },
       transaction
     )
+
   /**
    * create a billing run, set to to execute
    */
-  const billingRun = await createBillingRun(
-    {
-      billingPeriod,
-      paymentMethod: params.defaultPaymentMethod,
-      scheduledFor,
-    },
-    transaction
-  )
+  const billingRun = defaultPaymentMethod
+    ? await createBillingRun(
+        {
+          billingPeriod,
+          paymentMethod: defaultPaymentMethod,
+          scheduledFor,
+        },
+        transaction
+      )
+    : undefined
 
   return {
     subscription,

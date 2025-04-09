@@ -17,6 +17,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   nullableStringForeignKey,
+  SelectConditions,
 } from '@/db/tableUtils'
 import {
   products,
@@ -424,6 +425,8 @@ export namespace Price {
   export type ClientUsageRecord = z.infer<
     typeof usagePriceClientSelectSchema
   >
+
+  export type Where = SelectConditions<typeof prices>
 }
 
 export const editPriceSchema = z.object({

@@ -14,6 +14,7 @@ import {
   livemodePolicy,
   constructUniqueIndex,
   metadataSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -137,6 +138,7 @@ export namespace SubscriptionItem {
   export type ClientRecord = z.infer<
     typeof subscriptionItemClientSelectSchema
   >
+  export type Where = SelectConditions<typeof subscriptionItems>
 }
 
 export const createSubscriptionItemSchema = z.object({

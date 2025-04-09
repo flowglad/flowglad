@@ -22,6 +22,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -37,6 +38,7 @@ import { customerClientSelectSchema, customers } from './customers'
 import { sql } from 'drizzle-orm'
 import { paymentMethods } from './paymentMethods'
 import { billingPeriods } from './billingPeriods'
+import { subscriptions } from './subscriptions'
 
 export const TABLE_NAME = 'payments'
 
@@ -72,6 +74,10 @@ export const payments = pgTable(
     ),
     customerId: notNullStringForeignKey('customer_id', customers),
     purchaseId: nullableStringForeignKey('purchase_id', purchases),
+    subscriptionId: nullableStringForeignKey(
+      'subscription_id',
+      subscriptions
+    ),
     paymentMethodId: nullableStringForeignKey(
       'payment_method_id',
       paymentMethods
@@ -100,6 +106,7 @@ export const payments = pgTable(
       constructIndex(TABLE_NAME, [table.currency]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
+      constructIndex(TABLE_NAME, [table.subscriptionId]),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
         to: 'authenticated',
@@ -180,6 +187,7 @@ export namespace Payment {
   export type TableRowData = z.infer<
     typeof paymentsTableRowDataSchema
   >
+  export type Where = SelectConditions<typeof payments>
 }
 
 export const getRevenueDataInputSchema = z.object({

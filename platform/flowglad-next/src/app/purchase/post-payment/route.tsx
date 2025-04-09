@@ -126,7 +126,9 @@ const processSetupIntent = async (
     await adminTransaction(async ({ transaction }) => {
       return processSetupIntentUpdated(setupIntent, transaction)
     })
-  await executeBillingRun(billingRun.id)
+  if (billingRun) {
+    await executeBillingRun(billingRun.id)
+  }
   const url = checkoutSession.successUrl
     ? new URL(checkoutSession.successUrl)
     : null

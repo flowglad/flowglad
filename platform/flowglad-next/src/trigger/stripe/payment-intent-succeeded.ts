@@ -13,6 +13,8 @@ import Stripe from 'stripe'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
+import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -77,6 +79,11 @@ export const stripePaymentIntentSucceededTask = task({
           { organizationId: organization.id },
           transaction
         )
+
+      await safelyIncrementDiscountRedemptionSubscriptionPayment(
+        payment,
+        transaction
+      )
 
       return {
         invoice: invoice.invoice,

@@ -15,6 +15,7 @@ import {
   createUpdateSchema,
   pgEnumColumn,
   livemodePolicy,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import core from '@/utils/core'
@@ -139,6 +140,7 @@ export namespace BillingRun {
   export type ClientRecord = z.infer<
     typeof billingRunClientSelectSchema
   >
+  export type Where = SelectConditions<typeof billingRuns>
 }
 
 export const createBillingRunInputSchema = z.object({

@@ -16,6 +16,7 @@ import {
   createUpdateSchema,
   livemodePolicy,
   constructUniqueIndex,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -164,6 +165,7 @@ export namespace UsageEvent {
   export type ClientRecord = z.infer<
     typeof usageEventsClientSelectSchema
   >
+  export type Where = SelectConditions<typeof usageEvents>
 }
 
 export const createUsageEventSchema = z.object({

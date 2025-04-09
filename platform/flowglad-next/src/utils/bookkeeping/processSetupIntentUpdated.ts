@@ -15,7 +15,7 @@ import { Customer } from '@/db/schema/customers'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { Price } from '@/db/schema/prices'
-import { setupIntentSucceededCreateSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 
@@ -145,35 +145,34 @@ export const processSetupIntentUpdated = async (
   if (!price.intervalCount) {
     throw new Error('Price interval count is required')
   }
-  const { billingRun } =
-    await setupIntentSucceededCreateSubscriptionWorkflow(
-      {
-        stripeSetupIntentId: setupIntent.id,
-        defaultPaymentMethod: paymentMethod,
-        organization,
-        price,
-        customer,
-        interval: price.intervalUnit,
-        intervalCount: price.intervalCount,
-        /**
-         * If the price has a trial period, set the trial end date to the
-         * end of the period.
-         */
-        trialEnd: price.trialPeriodDays
-          ? new Date(
-              new Date().getTime() +
-                price.trialPeriodDays * 24 * 60 * 60 * 1000
-            )
-          : undefined,
-        startDate: new Date(),
-        quantity: checkoutSession.quantity,
-        metadata: checkoutSession.outputMetadata,
-        name: checkoutSession.outputName ?? undefined,
-        product,
-        livemode: purchase.livemode,
-      },
-      transaction
-    )
+  const { billingRun } = await createSubscriptionWorkflow(
+    {
+      stripeSetupIntentId: setupIntent.id,
+      defaultPaymentMethod: paymentMethod,
+      organization,
+      price,
+      customer,
+      interval: price.intervalUnit,
+      intervalCount: price.intervalCount,
+      /**
+       * If the price has a trial period, set the trial end date to the
+       * end of the period.
+       */
+      trialEnd: price.trialPeriodDays
+        ? new Date(
+            new Date().getTime() +
+              price.trialPeriodDays * 24 * 60 * 60 * 1000
+          )
+        : undefined,
+      startDate: new Date(),
+      quantity: checkoutSession.quantity,
+      metadata: checkoutSession.outputMetadata,
+      name: checkoutSession.outputName ?? undefined,
+      product,
+      livemode: purchase.livemode,
+    },
+    transaction
+  )
 
   const updatedPurchase = await updatePurchase(
     {

@@ -21,6 +21,7 @@ import {
   nullableStringForeignKey,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
@@ -326,4 +327,5 @@ export namespace Invoice {
   export type PaginatedList = z.infer<
     typeof invoicesPaginatedListSchema
   >
+  export type Where = SelectConditions<typeof invoices>
 }

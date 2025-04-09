@@ -19,6 +19,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -411,4 +412,6 @@ export namespace CheckoutSession {
   export type OutputMetadata = z.infer<
     typeof checkoutSessionOutputMetadataSchema
   >
+
+  export type Where = SelectConditions<typeof checkoutSessions>
 }

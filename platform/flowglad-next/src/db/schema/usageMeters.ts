@@ -11,6 +11,7 @@ import {
   createPaginatedListQuerySchema,
   constructUniqueIndex,
   pgEnumColumn,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -123,6 +124,7 @@ export namespace UsageMeter {
     usageMeter: ClientRecord
     catalog: Catalog.ClientRecord
   }
+  export type Where = SelectConditions<typeof usageMeters>
 }
 
 export const createUsageMeterSchema = z.object({

@@ -21,7 +21,7 @@ import {
 } from '@/subscriptions/cancelSubscription'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
-import { setupIntentSucceededCreateSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
@@ -258,28 +258,33 @@ const createSubscriptionProcedure = protectedProcedure
               transaction
             )
           : undefined
-        const subscription =
-          await setupIntentSucceededCreateSubscriptionWorkflow(
-            {
-              customer,
-              organization,
-              product,
-              price,
-              quantity: input.quantity,
-              startDate: input.startDate ?? new Date(),
-              interval: input.interval,
-              intervalCount: input.intervalCount ?? 1,
-              trialEnd: input.trialEnd,
-              stripeSetupIntentId: input.stripeSetupIntentId,
-              metadata: input.metadata,
-              name: input.name,
-              defaultPaymentMethod,
-              backupPaymentMethod,
-              livemode: ctx.livemode,
-            },
-            transaction
-          )
-        return { subscription }
+        const result = await createSubscriptionWorkflow(
+          {
+            customer,
+            organization,
+            product,
+            price,
+            quantity: input.quantity,
+            startDate: input.startDate ?? new Date(),
+            interval: input.interval,
+            intervalCount: input.intervalCount ?? 1,
+            trialEnd: input.trialEnd,
+            metadata: input.metadata,
+            name: input.name,
+            defaultPaymentMethod,
+            backupPaymentMethod,
+            livemode: ctx.livemode,
+          },
+          transaction
+        )
+        return {
+          subscription: {
+            ...result.subscription,
+            current: isSubscriptionCurrent(
+              result.subscription.status
+            ),
+          },
+        }
       },
       {
         apiKey: ctx.apiKey,
