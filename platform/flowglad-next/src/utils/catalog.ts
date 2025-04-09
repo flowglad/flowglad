@@ -17,6 +17,7 @@ import {
   DbTransaction,
 } from '@/db/types'
 import {
+  CreateProductPriceInput,
   Price,
   pricesInsertSchema,
   ProductWithPrices,
@@ -40,7 +41,7 @@ export const createPrice = async (
 export const createProductTransaction = async (
   payload: {
     product: Product.ClientInsert
-    prices: Price.ClientInsert[]
+    prices: CreateProductPriceInput[]
   },
   { userId, transaction, livemode }: AuthenticatedTransactionParams
 ) => {
