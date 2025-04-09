@@ -7,6 +7,8 @@ import {
   selectInvoiceById,
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
+import { InvoiceStatus } from '@/types'
+import { sendCustomerPaymentNotificationTask } from './send-customer-payment-notification'
 
 export const generateInvoicePdfTask = task({
   id: 'generate-invoice-pdf',

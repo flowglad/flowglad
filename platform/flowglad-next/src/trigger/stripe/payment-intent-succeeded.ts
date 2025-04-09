@@ -92,14 +92,24 @@ export const stripePaymentIntentSucceededTask = task({
     /**
      * Generate the invoice PDF
      */
-    await generateInvoicePdfTask.triggerAndWait({
-      invoiceId: invoice.id,
-    })
+    await generateInvoicePdfTask.trigger(
+      {
+        invoiceId: invoice.id,
+      },
+      {
+        idempotencyKey: `invoice-pdf-${payment.id}`,
+      }
+    )
 
     if (invoice.status === InvoiceStatus.Paid) {
-      await generatePaymentReceiptPdfTask.triggerAndWait({
-        paymentId: payment.id,
-      })
+      await generatePaymentReceiptPdfTask.trigger(
+        {
+          paymentId: payment.id,
+        },
+        {
+          idempotencyKey: `payment-receipt-${payment.id}`,
+        }
+      )
     }
     /**
      * Send the organization payment notification email

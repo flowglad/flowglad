@@ -106,12 +106,6 @@ const processSucceededNotifications = async (
       .map((user) => user.email!),
     currency: params.invoice.currency,
   })
-  await sendReceiptEmail({
-    invoice: params.invoice,
-    invoiceLineItems: params.invoiceLineItems,
-    organizationName: params.organization.name,
-    to: [params.customer.email],
-  })
 }
 
 interface BillingRunFailureNotificationParams
