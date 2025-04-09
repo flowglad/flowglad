@@ -11,7 +11,7 @@ import {
   selectPaymentsPaginated,
 } from '@/db/tableMethods/paymentMethods'
 import { idInputSchema } from '@/db/tableUtils'
-import { trpcToRest } from '@/utils/openapi'
+import { RouteConfig, trpcToRest } from '@/utils/openapi'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { z } from 'zod'
 
@@ -20,9 +20,16 @@ const { openApiMetas } = generateOpenApiMetas({
   tags: ['Payments'],
 })
 
-export const paymentsRouteConfigs = {
+export const paymentsRouteConfigs: Record<string, RouteConfig> = {
   ...trpcToRest('payments.list'),
   ...trpcToRest('payments.get'),
+  'POST /payments/:id/refund': {
+    procedure: 'payments.refund',
+    pattern: new RegExp(`^payments\/([^\\/]+)\/refund$`),
+    mapParams: (matches: string[]) => ({
+      id: matches[0],
+    }),
+  },
 }
 
 const listPaymentsProcedure = protectedProcedure
