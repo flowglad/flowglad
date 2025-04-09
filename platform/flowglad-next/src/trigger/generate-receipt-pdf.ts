@@ -1,17 +1,14 @@
 import cloudflareMethods from '@/utils/cloudflare'
 import core from '@/utils/core'
 import { task } from '@trigger.dev/sdk/v3'
-import { Invoice } from '@/db/schema/invoices'
 import { generatePdf } from '@/pdf-generation/generatePDF'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectInvoiceById,
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
-import { InvoiceStatus, PaymentStatus } from '@/types'
 import {
   selectPaymentById,
-  selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
 
@@ -79,3 +76,14 @@ export const generatePaymentReceiptPdfTask = task({
     }
   },
 })
+
+export const generatePaymentReceiptPdfIdempotently = async (
+  paymentId: string
+) => {
+  return await generatePaymentReceiptPdfTask.trigger(
+    { paymentId },
+    {
+      idempotencyKey: paymentId,
+    }
+  )
+}

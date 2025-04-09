@@ -13,6 +13,7 @@ import Stripe from 'stripe'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '../send-customer-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -102,13 +103,8 @@ export const stripePaymentIntentSucceededTask = task({
     )
 
     if (invoice.status === InvoiceStatus.Paid) {
-      await generatePaymentReceiptPdfTask.trigger(
-        {
-          paymentId: payment.id,
-        },
-        {
-          idempotencyKey: `payment-receipt-${payment.id}`,
-        }
+      await sendCustomerPaymentSucceededNotificationIdempotently(
+        payment.id
       )
     }
     /**
