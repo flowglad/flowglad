@@ -439,10 +439,27 @@ export const createPriceSchema = z.object({
 
 export type CreatePriceInput = z.infer<typeof createPriceSchema>
 
+const omitProductId = {
+  productId: true,
+} as const
+
+export const createProductPriceInputSchema = z.discriminatedUnion(
+  'type',
+  [
+    subscriptionPriceClientInsertSchema.omit(omitProductId),
+    singlePaymentPriceClientInsertSchema.omit(omitProductId),
+    usagePriceClientInsertSchema.omit(omitProductId),
+  ]
+)
+
 export const createProductSchema = z.object({
   product: productsClientInsertSchema,
-  price: pricesClientInsertSchema,
+  price: createProductPriceInputSchema,
 })
+
+export type CreateProductPriceInput = z.infer<
+  typeof createProductPriceInputSchema
+>
 
 export type CreateProductSchema = z.infer<typeof createProductSchema>
 

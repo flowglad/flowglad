@@ -16,6 +16,7 @@ import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
+import { paymentsRouteConfigs } from '@/server/routers/paymentsRouter'
 import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
@@ -37,8 +38,8 @@ const routeConfigs = [
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
-  // ...usageMetersRouteConfigs,
-  // ...usageEventsRouteConfigs,
+  ...usageMetersRouteConfigs,
+  ...usageEventsRouteConfigs,
 ]
 
 const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
@@ -54,6 +55,7 @@ const routes: Record<string, RouteConfig> = {
   ...productsRouteConfigs,
   ...discountsRouteConfigs,
   ...trpcToRest('utils.ping'),
+  ...paymentsRouteConfigs,
 } as const
 
 type TRPCResponse =
