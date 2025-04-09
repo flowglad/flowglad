@@ -34,9 +34,14 @@ const listPaymentsProcedure = protectedProcedure
   .input(paymentsPaginatedSelectSchema)
   .output(paymentsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectPaymentsPaginated(input, transaction)
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectPaymentsPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const getPaymentProcedure = protectedProcedure
@@ -47,6 +52,9 @@ const getPaymentProcedure = protectedProcedure
     const payment = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectPaymentById(input.id, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
     return { payment }

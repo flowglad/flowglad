@@ -170,6 +170,11 @@ const handler = withUnkey(
               'input',
               JSON.stringify({ json: input })
             )
+          } else if (req.method === 'GET') {
+            newUrl.searchParams.set(
+              'input',
+              JSON.stringify({ json: {} })
+            )
           }
 
           if (

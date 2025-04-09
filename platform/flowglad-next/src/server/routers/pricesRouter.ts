@@ -29,10 +29,15 @@ export const listPrices = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(pricesPaginatedSelectSchema)
   .output(pricesPaginatedListSchema)
-  .query(async ({ input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectPricesPaginated(input, transaction)
-    })
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectPricesPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const singlePriceOutputSchema = z.object({
@@ -43,41 +48,46 @@ export const createPrice = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createPriceSchema)
   .output(singlePriceOutputSchema)
-  .mutation(async ({ input }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const { price } = input
+  .mutation(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { price } = input
 
-      // Get all prices for this product to validate default price constraint
-      const existingPrices = await selectPrices(
-        { productId: price.productId },
-        transaction
-      )
+        // Get all prices for this product to validate default price constraint
+        const existingPrices = await selectPrices(
+          { productId: price.productId },
+          transaction
+        )
 
-      // If we're setting this price as default, ensure no other prices are default
-      const defaultPrices = [...existingPrices, price].filter(
-        (v) => v.isDefault
-      )
+        // If we're setting this price as default, ensure no other prices are default
+        const defaultPrices = [...existingPrices, price].filter(
+          (v) => v.isDefault
+        )
 
-      if (defaultPrices.length !== 1) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message:
-            'There must be exactly one default price per product',
-        })
+        if (defaultPrices.length !== 1) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'There must be exactly one default price per product',
+          })
+        }
+
+        const newPrice = await insertPrice(price, transaction)
+        return {
+          price: newPrice,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
-
-      const newPrice = await insertPrice(price, transaction)
-      return {
-        price: newPrice,
-      }
-    })
+    )
   })
 
 export const editPrice = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editPriceSchema)
   .output(singlePriceOutputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, userId }) => {
         const { price } = input
@@ -89,6 +99,9 @@ export const editPrice = protectedProcedure
         return {
           price: updatedPrice,
         }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
   })

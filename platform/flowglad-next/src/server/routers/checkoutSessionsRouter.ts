@@ -255,16 +255,21 @@ const getCheckoutSessionProcedure = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(singleCheckoutSessionOutputSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      const checkoutSession = await selectCheckoutSessionById(
-        input.id,
-        transaction
-      )
-      return {
-        checkoutSession,
-        url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const checkoutSession = await selectCheckoutSessionById(
+          input.id,
+          transaction
+        )
+        return {
+          checkoutSession,
+          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
-    })
+    )
   })
 
 const listCheckoutSessionsProcedure = protectedProcedure
@@ -272,9 +277,14 @@ const listCheckoutSessionsProcedure = protectedProcedure
   .input(checkoutSessionsPaginatedSelectSchema)
   .output(checkoutSessionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(async ({ transaction }) => {
-      return selectCheckoutSessionsPaginated(input, transaction)
-    })
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectCheckoutSessionsPaginated(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 export const checkoutSessionsRouter = router({
