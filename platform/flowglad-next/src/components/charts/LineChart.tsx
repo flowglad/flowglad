@@ -745,6 +745,11 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 </Label>
               )}
             </XAxis>
+            {/* Y-Axis Configuration:
+             * - Shows only a single tick when minValue equals maxValue to avoid redundant labels
+             * - This improves readability when all data points have the same value
+             * - Otherwise uses default ticks or [0, maxValue] when startEndOnlyYAxis is true
+             */}
             <YAxis
               width={yAxisWidth}
               hide={!showYAxis}
@@ -761,7 +766,13 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 'fill-gray-500 dark:fill-gray-500'
               )}
               ticks={
-                startEndOnlyYAxis ? [0, maxValue || 0] : undefined
+                startEndOnlyYAxis
+                  ? [0, maxValue || 0]
+                  : minValue !== undefined &&
+                      maxValue !== undefined &&
+                      minValue === maxValue
+                    ? [minValue]
+                    : undefined
               }
               allowDecimals={allowDecimals}
               tickFormatter={yAxisValueFormatter}

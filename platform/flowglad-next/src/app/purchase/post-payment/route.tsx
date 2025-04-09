@@ -21,14 +21,19 @@ import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNon
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { isNil } from '@/utils/core'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
+import {
+  generateInvoicePdfIdempotently,
+  generateInvoicePdfTask,
+} from '@/trigger/generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Invoice } from '@/db/schema/invoices'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
+import { Payment } from '@/db/schema/payments'
 
 interface ProcessPostPaymentResult {
   purchase: Purchase.Record
   invoice: Invoice.Record
+  payment: Payment.Record | null
   url: string | URL | null
 }
 
@@ -39,41 +44,43 @@ const processPaymentIntent = async (
   if (!paymentIntent) {
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
   }
-  const result = await adminTransaction(async ({ transaction }) => {
-    const { payment } = await processPaymentIntentStatusUpdated(
-      paymentIntent,
-      transaction
-    )
-    if (!payment.purchaseId) {
-      throw new Error(
-        `No purchase id found for payment ${payment.id}`
-      )
-    }
-    const purchase = await selectPurchaseById(
-      payment.purchaseId,
-      transaction
-    )
-    const invoice = await selectInvoiceById(
-      payment.invoiceId,
-      transaction
-    )
-    const metadata = stripeIntentMetadataSchema.parse(
-      paymentIntent.metadata
-    )
-    let checkoutSession: CheckoutSession.Record | null = null
-    if (metadata?.type === IntentMetadataType.CheckoutSession) {
-      checkoutSession = await selectCheckoutSessionById(
-        metadata.checkoutSessionId,
+  const { payment, purchase, invoice, checkoutSession } =
+    await adminTransaction(async ({ transaction }) => {
+      const { payment } = await processPaymentIntentStatusUpdated(
+        paymentIntent,
         transaction
       )
-    }
-    return { payment, purchase, checkoutSession, invoice }
-  })
+      if (!payment.purchaseId) {
+        throw new Error(
+          `No purchase id found for payment ${payment.id}`
+        )
+      }
+      const purchase = await selectPurchaseById(
+        payment.purchaseId,
+        transaction
+      )
+      const invoice = await selectInvoiceById(
+        payment.invoiceId,
+        transaction
+      )
+      const metadata = stripeIntentMetadataSchema.parse(
+        paymentIntent.metadata
+      )
+      let checkoutSession: CheckoutSession.Record | null = null
+      if (metadata?.type === IntentMetadataType.CheckoutSession) {
+        checkoutSession = await selectCheckoutSessionById(
+          metadata.checkoutSessionId,
+          transaction
+        )
+      }
+      return { payment, purchase, checkoutSession, invoice }
+    })
   return {
-    purchase: result.purchase,
-    invoice: result.invoice,
-    url: result.checkoutSession?.successUrl
-      ? new URL(result.checkoutSession.successUrl)
+    purchase,
+    invoice,
+    payment,
+    url: checkoutSession?.successUrl
+      ? new URL(checkoutSession.successUrl)
       : null,
   }
 }
@@ -112,7 +119,12 @@ const processCheckoutSession = async (
     ? new URL(result.checkoutSession.successUrl)
     : null
 
-  return { purchase: result.purchase, url, invoice: result.invoice }
+  return {
+    purchase: result.purchase,
+    url,
+    invoice: result.invoice,
+    payment: null,
+  }
 }
 
 const processSetupIntent = async (
@@ -133,6 +145,13 @@ const processSetupIntent = async (
     ? new URL(checkoutSession.successUrl)
     : null
   return { purchase, url }
+}
+
+const idempotentGenerateInvoicePdf = async (
+  invoiceId: string,
+  paymentId?: string
+) => {
+  return await generateInvoicePdfIdempotently(invoiceId)
 }
 
 export const GET = async (request: NextRequest) => {
@@ -161,17 +180,19 @@ export const GET = async (request: NextRequest) => {
         await processCheckoutSession(checkoutSessionId)
       const { invoice } = checkoutSessionResult
       result = checkoutSessionResult
-      await generateInvoicePdfTask.trigger({
-        invoiceId: invoice.id,
-      })
+      await idempotentGenerateInvoicePdf(
+        invoice.id,
+        checkoutSessionResult.payment?.id
+      )
     } else if (paymentIntentId) {
       const paymentIntentResult =
         await processPaymentIntent(paymentIntentId)
       const { invoice } = paymentIntentResult
       result = paymentIntentResult
-      await generateInvoicePdfTask.trigger({
-        invoiceId: invoice.id,
-      })
+      await idempotentGenerateInvoicePdf(
+        invoice.id,
+        paymentIntentResult.payment?.id
+      )
     } else if (setupIntentId) {
       result = await processSetupIntent(setupIntentId)
     } else {

@@ -10,11 +10,15 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 
 import { logger, task } from '@trigger.dev/sdk/v3'
 import Stripe from 'stripe'
-import { generateInvoicePdfTask } from '../generate-invoice-pdf'
+import {
+  generateInvoicePdfIdempotently,
+  generateInvoicePdfTask,
+} from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '../send-customer-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -97,16 +101,14 @@ export const stripePaymentIntentSucceededTask = task({
     })
 
     /**
-     * Generate the invoice PDF
+     * Generate the invoice PDF, which should be finalized now
      */
-    await generateInvoicePdfTask.triggerAndWait({
-      invoiceId: invoice.id,
-    })
+    await generateInvoicePdfIdempotently(invoice.id)
 
     if (invoice.status === InvoiceStatus.Paid) {
-      await generatePaymentReceiptPdfTask.trigger({
-        paymentId: payment.id,
-      })
+      await sendCustomerPaymentSucceededNotificationIdempotently(
+        payment.id
+      )
     }
     /**
      * Send the organization payment notification email
