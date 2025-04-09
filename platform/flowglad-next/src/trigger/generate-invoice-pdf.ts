@@ -76,3 +76,14 @@ export const generateInvoicePdfTask = task({
     }
   },
 })
+
+export const generateInvoicePdfIdempotently = async (
+  invoiceId: string
+) => {
+  return await generateInvoicePdfTask.trigger(
+    { invoiceId },
+    {
+      idempotencyKey: invoiceId,
+    }
+  )
+}

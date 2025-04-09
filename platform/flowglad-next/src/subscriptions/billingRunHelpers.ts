@@ -539,8 +539,11 @@ export const executeBillingRun = async (billingRunId: string) => {
       totalAmountPaid,
       payments,
     })
+
     /**
-     * Skip PDF generation in test mode
+     * Deliberately NOT using the idempotency key here -
+     * it's possible that the invoice will change before the billing run is processed.
+     * It may actually be ok to execute idempotently, but this is safer for now.
      */
     await generateInvoicePdfTask.trigger({
       invoiceId: invoice.id,

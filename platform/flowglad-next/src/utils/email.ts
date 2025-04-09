@@ -39,6 +39,7 @@ const safeSend = (
 
 const safeTo = (email: string) =>
   core.IS_PROD ? email : 'agree.ahmed@flowglad.com'
+
 export const sendReceiptEmail = async (params: {
   to: string[]
   invoice: Invoice.Record

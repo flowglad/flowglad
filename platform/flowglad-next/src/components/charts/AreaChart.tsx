@@ -798,6 +798,11 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 </Label>
               )}
             </XAxis>
+            {/* Y-Axis Configuration:
+             * - Shows only a single tick when minValue equals maxValue to avoid redundant labels
+             * - This improves readability when all data points have the same value
+             * - Otherwise uses default ticks for dynamic scaling
+             */}
             <YAxis
               width={yAxisWidth}
               hide={!showYAxis}
@@ -814,6 +819,13 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 // text fill
                 'fill-gray-500 dark:fill-gray-500'
               )}
+              ticks={
+                minValue !== undefined &&
+                maxValue !== undefined &&
+                minValue === maxValue
+                  ? [minValue]
+                  : undefined
+              }
               tickFormatter={
                 type === 'percent' ? valueToPercent : valueFormatter
               }
