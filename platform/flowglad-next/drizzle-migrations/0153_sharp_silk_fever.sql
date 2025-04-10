@@ -6,7 +6,7 @@ END $$;
 
 ALTER TABLE "PurchaseSessions" ALTER COLUMN "VariantId" DROP NOT NULL;--> statement-breakpoint
 DO $$ BEGIN
-    CREATE TYPE "PurchaseSessionType" AS ENUM ('product', 'purchase', 'invoice');
+    CREATE TYPE "PurchaseSessionType" AS ENUM ('product', 'purchase', 'invoice', 'add_payment_method');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
