@@ -238,6 +238,7 @@ export const createSelectFunction = <
       const parsed = selectSchema.safeParse(item)
       if (!parsed.success) {
         console.error(parsed.error.issues)
+        console.error(item)
         throw Error(
           `createSelectFunction: Error parsing result: ${JSON.stringify(
             item

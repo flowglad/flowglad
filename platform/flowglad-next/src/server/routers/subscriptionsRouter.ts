@@ -1,5 +1,5 @@
 import { protectedProcedure, router } from '../trpc'
-import { IntervalUnit } from '@/types'
+import { IntervalUnit, PriceType } from '@/types'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -182,7 +182,13 @@ const createSubscriptionInputSchema = z.object({
     .describe(
       'The time when the subscription starts. If not provided, defaults to current time.'
     ),
-  interval: z.nativeEnum(IntervalUnit),
+  interval: z
+    .nativeEnum(IntervalUnit)
+    .optional()
+    .describe(
+      'The interval of the subscription. If not provided, defaults to the interval of the price provided by ' +
+        '`priceId`.'
+    ),
   intervalCount: z
     .number()
     .optional()
@@ -223,6 +229,7 @@ const createSubscriptionInputSchema = z.object({
 })
 
 const createSubscriptionProcedure = protectedProcedure
+  .meta(openApiMetas.POST)
   .input(createSubscriptionInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
@@ -258,6 +265,20 @@ const createSubscriptionProcedure = protectedProcedure
               transaction
             )
           : undefined
+        if (price.type === PriceType.SinglePayment) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Price ${input.priceId} is a single payment price and cannot be used to create a subscription.`,
+          })
+        }
+        const startDate = input.startDate ?? new Date()
+        const defaultTrialEnd = price.trialPeriodDays
+          ? new Date(
+              startDate.getTime() +
+                price.trialPeriodDays * 24 * 60 * 60 * 1000
+            )
+          : undefined
+        const trialEnd = input.trialEnd ?? defaultTrialEnd
         const result = await createSubscriptionWorkflow(
           {
             customer,
@@ -265,12 +286,12 @@ const createSubscriptionProcedure = protectedProcedure
             product,
             price,
             quantity: input.quantity,
-            startDate: input.startDate ?? new Date(),
-            interval: input.interval,
-            intervalCount: input.intervalCount ?? 1,
-            trialEnd: input.trialEnd,
+            interval: input.interval ?? price.intervalUnit,
+            intervalCount: input.intervalCount ?? price.intervalCount,
+            trialEnd,
             metadata: input.metadata,
             name: input.name,
+            startDate,
             defaultPaymentMethod,
             backupPaymentMethod,
             livemode: ctx.livemode,
@@ -297,4 +318,5 @@ export const subscriptionsRouter = router({
   cancel: cancelSubscriptionProcedure,
   list: listSubscriptionsProcedure,
   get: getSubscriptionProcedure,
+  create: createSubscriptionProcedure,
 })

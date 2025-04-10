@@ -2,6 +2,7 @@
 
 import Button from '@/components/ion/Button'
 import { trpc } from '../_trpc/client'
+import { IntervalUnit, PriceType } from '@/types'
 
 type RichCustomer = {
   subscription: {
@@ -24,16 +25,29 @@ const InternalDemoPage = () => {
       },
     }
   }
+
   const { data: customersData } = trpc.customers.list.useQuery({})
+  const createSubscriptionMutation =
+    trpc.subscriptions.create.useMutation()
+  const { data: pricesData } = trpc.prices.list.useQuery({})
   return (
     <div style={{ padding: '20px' }}>
       <h1>Internal Demo Page</h1>
-      {customersData?.data.map((customer) => (
-        <div key={customer.id}>
-          <h2>{customer.name}</h2>
-          <p>{customer.email}</p>
-        </div>
-      ))}
+      <Button
+        onClick={async () => {
+          if (!customersData?.data.length) {
+            return
+          }
+          const customer = customersData.data[0]
+          await createSubscriptionMutation.mutateAsync({
+            customerId: customer.id,
+            priceId: 'price_GCiIbo6Q8sVeEkAgTu1tW',
+            trialEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+          })
+        }}
+      >
+        Create Customer
+      </Button>
     </div>
   )
 }

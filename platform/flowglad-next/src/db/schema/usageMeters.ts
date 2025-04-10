@@ -31,7 +31,6 @@ export const usageMeters = pgTable(
     ),
     name: text('name').notNull(),
     catalogId: notNullStringForeignKey('catalog_id', catalogs),
-    productId: notNullStringForeignKey('product_id', products),
     aggregationType: pgEnumColumn({
       enumName: 'UsageMeterAggregationType',
       columnName: 'aggregation_type',
@@ -44,7 +43,6 @@ export const usageMeters = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.catalogId]),
-      constructIndex(TABLE_NAME, [table.productId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',

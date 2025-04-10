@@ -95,10 +95,10 @@ const columns = {
 }
 
 const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL OR "usage_meter_id" IN (
-  SELECT "id" FROM "usage_meters" 
+  SELECT "id" FROM "usage_meters"
   WHERE "usage_meters"."organization_id" = (
     SELECT "organization_id" FROM "products" 
-    WHERE "products"."id" = "product_id"
+    WHERE "products"."id" = "prices"."product_id"
   )
 )`
 export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
@@ -110,15 +110,6 @@ export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
       table.productId,
     ]),
     constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
-    pgPolicy(
-      'On insert, ensure usage meter belongs to same organization as product',
-      {
-        as: 'permissive',
-        to: 'authenticated',
-        for: 'insert',
-        withCheck: usageMeterBelongsToSameOrganization,
-      }
-    ),
     pgPolicy(
       'On update, ensure usage meter belongs to same organization as product',
       {

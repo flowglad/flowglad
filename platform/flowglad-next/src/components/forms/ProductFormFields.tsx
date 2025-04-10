@@ -23,7 +23,7 @@ export const ProductFormFields = ({
     watch,
     control,
   } = useFormContext<CreateProductSchema>()
-
+  console.log('errors...', errors)
   const product = watch('product')
   return (
     <div className="relative flex justify-between items-center gap-2.5 bg-background">

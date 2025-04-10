@@ -4,6 +4,7 @@ import { Product } from '@/db/schema/products'
 import { Subscription } from '@/db/schema/subscriptions'
 import { Price } from '@/db/schema/prices'
 import {
+  currentSubscriptionStatuses,
   insertSubscription,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -246,14 +247,14 @@ const verifyCanCreateSubscription = async (
 ) => {
   const { customer, defaultPaymentMethod, backupPaymentMethod } =
     params
-  const activeSubscriptionsForCustomer = await selectSubscriptions(
+  const currentSubscriptionsForCustomer = await selectSubscriptions(
     {
       customerId: customer.id,
-      status: SubscriptionStatus.Active,
+      status: currentSubscriptionStatuses,
     },
     transaction
   )
-  if (activeSubscriptionsForCustomer.length > 0) {
+  if (currentSubscriptionsForCustomer.length > 0) {
     const organization = await selectOrganizationById(
       customer.organizationId,
       transaction
@@ -279,49 +280,6 @@ const verifyCanCreateSubscription = async (
     throw new Error(
       `Customer ${customer.id} does not match backup payment method ${backupPaymentMethod.customerId}`
     )
-  }
-}
-
-export const manualCreateSubscriptionWorkflow = async (
-  params: CreateSubscriptionParams,
-  transaction: DbTransaction
-) => {
-  const { customer, defaultPaymentMethod, backupPaymentMethod } =
-    params
-  await verifyCanCreateSubscription(params, transaction)
-  const { subscription, subscriptionItems } =
-    await insertSubscriptionAndItems(params, transaction)
-  const scheduledFor = subscription.runBillingAtPeriodStart
-    ? subscription.currentBillingPeriodStart
-    : subscription.currentBillingPeriodEnd
-  const { billingPeriod, billingPeriodItems } =
-    await createBillingPeriodAndItems(
-      {
-        subscription,
-        subscriptionItems,
-        trialPeriod: !!subscription.trialEnd,
-        isInitialBillingPeriod: true,
-      },
-      transaction
-    )
-
-  const billingRun = params.defaultPaymentMethod
-    ? await createBillingRun(
-        {
-          billingPeriod,
-          paymentMethod: params.defaultPaymentMethod,
-          scheduledFor,
-        },
-        transaction
-      )
-    : undefined
-
-  return {
-    subscription,
-    subscriptionItems,
-    billingPeriod,
-    billingPeriodItems,
-    billingRun,
   }
 }
 
@@ -357,21 +315,22 @@ export const createSubscriptionWorkflow = async (
   transaction: DbTransaction
 ) => {
   await verifyCanCreateSubscription(params, transaction)
-
-  const existingSubscription = await selectSubscriptionAndItems(
-    {
-      stripeSetupIntentId: params.stripeSetupIntentId,
-    },
-    transaction
-  )
-
-  if (existingSubscription) {
-    return safelyProcessCreationForExistingSubscription(
-      params,
-      existingSubscription.subscription,
-      existingSubscription.subscriptionItems,
+  if (params.stripeSetupIntentId) {
+    const existingSubscription = await selectSubscriptionAndItems(
+      {
+        stripeSetupIntentId: params.stripeSetupIntentId,
+      },
       transaction
     )
+
+    if (existingSubscription) {
+      return safelyProcessCreationForExistingSubscription(
+        params,
+        existingSubscription.subscription,
+        existingSubscription.subscriptionItems,
+        transaction
+      )
+    }
   }
   const defaultPaymentMethod =
     await maybeDefaultPaymentMethodForSubscription(
