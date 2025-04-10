@@ -15,4 +15,14 @@ export const routeToHandlerMap: Record<
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,
   [FlowgladActionKey.CreateCheckoutSession]: createCheckoutSession,
   [FlowgladActionKey.CancelSubscription]: cancelSubscription,
+  [FlowgladActionKey.CreateSubscription]: async () => {
+    return {
+      data: {},
+      status: 501,
+      error: {
+        code: 'Not Implemented',
+        json: {},
+      },
+    }
+  },
 }
