@@ -7,6 +7,7 @@ import { logger, task } from '@trigger.dev/sdk/v3'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { generateInvoicePdfTask } from './generate-invoice-pdf'
 import { generatePaymentReceiptPdfTask } from './generate-receipt-pdf'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 
 export const sendCustomerPaymentSucceededNotificationTask = task({
   id: 'send-customer-payment-succeeded-notification',
@@ -43,6 +44,7 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
         organization,
       }
     })
+
     if (!invoice.pdfURL) {
       await generateInvoicePdfTask.triggerAndWait({
         invoiceId: invoice.id,
@@ -53,9 +55,15 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
         paymentId: payment.id,
       })
     }
+    // Fetch the latest invoice after the PDF generation tasks have completed
+    const mostUpToDateInvoice = await adminTransaction(
+      async ({ transaction }) => {
+        return selectInvoiceById(invoice.id, transaction)
+      }
+    )
 
     const result = await sendReceiptEmail({
-      invoice,
+      invoice: mostUpToDateInvoice,
       invoiceLineItems,
       organizationName: organization.name,
       to: [customer.email],

@@ -245,12 +245,14 @@ export class FlowgladServer {
     params: Omit<CreateSubscriptionParams, 'customerId'>
   ): Promise<FlowgladNode.Subscriptions.SubscriptionCreateResponse> => {
     const customer = await this.findOrCreateCustomer()
-    const parsedParams = createSubscriptionSchema.parse({
+    const rawParams = {
       ...params,
       quantity: params.quantity ?? 1,
       customerId: customer.id,
-    })
-    return this.flowgladNode.subscriptions.create(parsedParams)
+    }
+    // const parsedParams = createSubscriptionSchema.parse(rawParams)
+    // @ts-ignore
+    return this.flowgladNode.subscriptions.create(rawParams)
   }
   /**
    * Create a usage event for a customer.

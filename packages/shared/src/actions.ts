@@ -104,7 +104,12 @@ export const createSubscriptionSchema = z.object({
   priceId: z.string(),
   quantity: z.number().optional(),
   startDate: z.string().datetime().optional(),
-  trialEnd: z.string().datetime().optional(),
+  trialEnd: z
+    .number()
+    .optional()
+    .describe(
+      `Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
+    ),
   metadata: z.record(z.string(), z.unknown()).optional(),
   name: z.string().optional(),
   backupPaymentMethodId: z.string().optional(),
