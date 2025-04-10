@@ -90,7 +90,7 @@ export const sendOrganizationPaymentNotificationEmail = async (
   params: OrganizationPaymentNotificationEmailProps & { to: string[] }
 ) => {
   return safeSend({
-    from: `${params.organizationName} (via Flowglad) <notifications@flowglad.com>`,
+    from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
