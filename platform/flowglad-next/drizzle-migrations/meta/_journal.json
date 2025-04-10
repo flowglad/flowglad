@@ -1380,13 +1380,6 @@
       "when": 1744250527126,
       "tag": "0196_sloppy_wendell_rand",
       "breakpoints": true
-    },
-    {
-      "idx": 197,
-      "version": "7",
-      "when": 1744260875314,
-      "tag": "0197_strange_umar",
-      "breakpoints": true
     }
   ]
 }
