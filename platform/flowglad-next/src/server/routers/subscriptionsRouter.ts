@@ -199,10 +199,10 @@ const createSubscriptionInputSchema = z.object({
       'The number of intervals that each billing period will last. If not provided, defaults to 1'
     ),
   trialEnd: z
-    .date()
+    .number()
     .optional()
     .describe(
-      `The time when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
+      `Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
     ),
   metadata: metadataSchema.optional(),
   name: z
@@ -291,13 +291,14 @@ const createSubscriptionProcedure = protectedProcedure
             quantity: input.quantity ?? 1,
             interval: input.interval ?? price.intervalUnit,
             intervalCount: input.intervalCount ?? price.intervalCount,
-            trialEnd,
+            trialEnd: trialEnd ? new Date(trialEnd) : undefined,
             metadata: input.metadata,
             name: input.name,
             startDate,
             defaultPaymentMethod,
             backupPaymentMethod,
             livemode: ctx.livemode,
+            autoStart: true,
           },
           transaction
         )

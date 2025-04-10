@@ -29,7 +29,6 @@ const InternalDemoPage = () => {
   const { data: customersData } = trpc.customers.list.useQuery({})
   const createSubscriptionMutation =
     trpc.subscriptions.create.useMutation()
-  const { data: pricesData } = trpc.prices.list.useQuery({})
   return (
     <div style={{ padding: '20px' }}>
       <h1>Internal Demo Page</h1>
@@ -42,7 +41,9 @@ const InternalDemoPage = () => {
           await createSubscriptionMutation.mutateAsync({
             customerId: customer.id,
             priceId: '',
-            trialEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+            trialEnd: new Date(
+              Date.now() + 1000 * 60 * 60 * 24 * 30
+            ).getTime(),
           })
         }}
       >

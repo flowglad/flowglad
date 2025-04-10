@@ -8,6 +8,7 @@ import {
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   selectUsageEventById,
+  selectUsageEvents,
   updateUsageEvent,
 } from '@/db/tableMethods/usageEventMethods'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
@@ -37,15 +38,7 @@ export const createUsageEvent = usageProcedure
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const usageEvent = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
+      async ({ transaction, livemode }) => {
         const billingPeriod =
           await selectCurrentBillingPeriodForSubscription(
             input.usageEvent.subscriptionId,
@@ -54,14 +47,36 @@ export const createUsageEvent = usageProcedure
         if (!billingPeriod) {
           throw new Error('Billing period not found')
         }
+        const [existingUsageEvent] = await selectUsageEvents(
+          {
+            transactionId: input.usageEvent.transactionId,
+            usageMeterId: input.usageEvent.usageMeterId,
+          },
+          transaction
+        )
+        if (existingUsageEvent) {
+          if (
+            existingUsageEvent.subscriptionId !==
+            input.usageEvent.subscriptionId
+          ) {
+            throw new Error(
+              `A usage event already exists for transactionid ${input.usageEvent.transactionId}, but does not belong to subscription ${input.usageEvent.subscriptionId}. Please provide a unique transactionId to create a new usage event.`
+            )
+          }
+          return existingUsageEvent
+        }
         return insertUsageEvent(
           {
             ...input.usageEvent,
             billingPeriodId: billingPeriod.id,
             livemode,
+            properties: input.usageEvent.properties ?? {},
           },
           transaction
         )
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
     return { usageEvent }

@@ -251,8 +251,6 @@ export const createNonInvoiceCheckoutSession = async (
       price.type === PriceType.Usage
     ) {
       const setupIntent = await createSetupIntentForCheckoutSession({
-        price,
-        product,
         organization,
         checkoutSession,
         purchase,

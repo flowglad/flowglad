@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.10.0
+
+### Minor Changes
+
+- Add subscription method, many other improvements
+
 ## 0.9.1
 
 ### Patch Changes

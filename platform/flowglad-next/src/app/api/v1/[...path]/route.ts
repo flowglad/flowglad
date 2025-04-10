@@ -217,6 +217,7 @@ const handler = withUnkey(
               stack: responseJson.error.json.data.stack,
               errorMessage,
               code: responseJson.error.json.data.code,
+              input,
               path,
               method: req.method,
               status: 400,

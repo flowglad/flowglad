@@ -4,6 +4,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { stackServerApp } from '@/stack'
 import { Organization } from '@/db/schema/organizations'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
@@ -56,11 +57,17 @@ export const createApiContext = ({
       // @ts-expect-error - headers get
       .get('Authorization')
       ?.replace(/^Bearer\s/, '')
+    const organization = await adminTransaction(
+      async ({ transaction }) => {
+        return selectOrganizationById(organizationId, transaction)
+      }
+    )
     return {
       apiKey,
       isApi: true,
       path: opts.req.url,
       organizationId,
+      organization,
       environment,
       livemode: environment === 'live',
     }

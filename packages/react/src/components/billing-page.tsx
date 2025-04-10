@@ -85,6 +85,7 @@ const CurrentSubscriptionOrPricingTable = ({
             cancelUrl: window.location.href,
             quantity: 1,
             autoRedirect: true,
+            type: 'product',
           })
         },
         prices: product.prices.map((price) => ({

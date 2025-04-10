@@ -53,6 +53,25 @@ export interface CreateSubscriptionParams {
   name?: string
   defaultPaymentMethod?: PaymentMethod.Record
   backupPaymentMethod?: PaymentMethod.Record
+  autoStart?: boolean
+}
+
+const deriveSubscriptionStatus = ({
+  autoStart,
+  trialEnd,
+  defaultPaymentMethodId,
+}: {
+  autoStart: boolean
+  trialEnd?: Date
+  defaultPaymentMethodId?: string
+}): SubscriptionStatus => {
+  if (trialEnd) {
+    return SubscriptionStatus.Trialing
+  }
+  if (autoStart && defaultPaymentMethodId) {
+    return SubscriptionStatus.Active
+  }
+  return SubscriptionStatus.Incomplete
 }
 
 export const insertSubscriptionAndItems = async (
@@ -72,6 +91,7 @@ export const insertSubscriptionAndItems = async (
     name: subscriptionName,
     stripeSetupIntentId,
     metadata,
+    autoStart = false,
   }: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
@@ -90,7 +110,11 @@ export const insertSubscriptionAndItems = async (
     customerId: customer.id,
     priceId: price.id,
     livemode,
-    status: SubscriptionStatus.Incomplete,
+    status: deriveSubscriptionStatus({
+      autoStart,
+      trialEnd,
+      defaultPaymentMethodId: defaultPaymentMethod?.id,
+    }),
     defaultPaymentMethodId: defaultPaymentMethod?.id ?? null,
     backupPaymentMethodId: backupPaymentMethod?.id ?? null,
     cancelScheduledAt: null,
