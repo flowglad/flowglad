@@ -10,6 +10,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   livemodePolicy,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
@@ -101,7 +102,8 @@ export namespace Catalog {
   export type PaginatedList = z.infer<
     typeof catalogsPaginatedListSchema
   >
-  export interface TableRow {
+  export type Where = SelectConditions<typeof catalogs>
+  export type TableRow = {
     catalog: ClientRecord
     productsCount: number
   }

@@ -11,6 +11,7 @@ import {
   createPaginatedListQuerySchema,
   constructUniqueIndex,
   pgEnumColumn,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -30,7 +31,6 @@ export const usageMeters = pgTable(
     ),
     name: text('name').notNull(),
     catalogId: notNullStringForeignKey('catalog_id', catalogs),
-    productId: notNullStringForeignKey('product_id', products),
     aggregationType: pgEnumColumn({
       enumName: 'UsageMeterAggregationType',
       columnName: 'aggregation_type',
@@ -43,7 +43,6 @@ export const usageMeters = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.catalogId]),
-      constructIndex(TABLE_NAME, [table.productId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -123,6 +122,7 @@ export namespace UsageMeter {
     usageMeter: ClientRecord
     catalog: Catalog.ClientRecord
   }
+  export type Where = SelectConditions<typeof usageMeters>
 }
 
 export const createUsageMeterSchema = z.object({

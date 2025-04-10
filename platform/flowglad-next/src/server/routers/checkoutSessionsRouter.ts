@@ -71,7 +71,19 @@ const createCheckoutSessionObject = {
     .describe(
       'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
     ),
+  targetSubscriptionId: z
+    .string()
+    .optional()
+    .describe(
+      'The id of the subscription that the payment method will be added to as the default payment method.'
+    ),
+  type: z
+    .nativeEnum(CheckoutSessionType)
+    .describe(
+      'The type of checkout session to create. Currently only `product` and `add_payment_method` are supported. All other types will throw an error.'
+    ),
 }
+
 /**
  * This is not in the db/schemas/checkoutSessions.ts file because it is not
  * used in the db. It is a special input schema in a procedure primarily
@@ -107,8 +119,17 @@ export const createCheckoutSession = protectedProcedure
   .input(createCheckoutSessionSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    const checkoutSessionInput =
-      (input as CreateCheckoutSessionInput).checkoutSession ?? input
+    const { checkoutSession: checkoutSessionInput } = input
+    const checkoutSessionType = checkoutSessionInput.type
+    if (
+      checkoutSessionType !== CheckoutSessionType.Product &&
+      checkoutSessionType !== CheckoutSessionType.AddPaymentMethod
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Invalid checkout session type: ${checkoutSessionType}. Currently only ${CheckoutSessionType.Product} and ${CheckoutSessionType.AddPaymentMethod} are supported.`,
+      })
+    }
     return authenticatedTransaction(
       async ({ transaction, livemode }) => {
         const organizationId = ctx.organizationId
@@ -132,7 +153,7 @@ export const createCheckoutSession = protectedProcedure
             { id: checkoutSessionInput.priceId },
             transaction
           )
-        // NOTE: invoice and purchase purchase sessions
+        // NOTE: invoice and purchase checkout sessions
         // are not supported by API yet.
         const checkoutSession = await insertCheckoutSession(
           {
@@ -149,6 +170,7 @@ export const createCheckoutSession = protectedProcedure
             outputMetadata: checkoutSessionInput.outputMetadata,
             type: CheckoutSessionType.Product,
             outputName: checkoutSessionInput.outputName,
+            targetSubscriptionId: null,
           } as const,
           transaction
         )
@@ -185,6 +207,7 @@ export const createCheckoutSession = protectedProcedure
             invoiceId: null,
             priceId: checkoutSessionInput.priceId,
             type: CheckoutSessionType.Product,
+            targetSubscriptionId: null,
           },
           transaction
         )

@@ -50,6 +50,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   successUrl: null,
   cancelUrl: null,
   type: CheckoutSessionType.Product,
+  targetSubscriptionId: null,
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =

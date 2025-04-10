@@ -13,18 +13,27 @@ export default function UsageMeterFormFields({
 }: {
   edit?: boolean
 }) {
-  const form = useFormContext<CreateUsageMeterInput>()
+  const {
+    register,
+    control,
+    formState: { errors },
+  } = useFormContext<CreateUsageMeterInput>()
+  console.log('errors...', errors)
   return (
     <div className="space-y-4">
-      <Input label="Name" {...form.register('usageMeter.name')} />
+      <Input
+        label="Name"
+        {...register('usageMeter.name')}
+        error={errors.usageMeter?.name?.message}
+      />
       <div className="w-full relative flex flex-col gap-3">
         <CatalogSelect
           name="usageMeter.catalogId"
-          control={form.control}
+          control={control}
         />
       </div>
       <Controller
-        control={form.control}
+        control={control}
         name="usageMeter.aggregationType"
         render={({ field }) => (
           <Select
@@ -35,6 +44,7 @@ export default function UsageMeterFormFields({
                 value: type,
               })
             )}
+            error={errors.usageMeter?.aggregationType?.message}
             label="Aggregation Type"
           />
         )}

@@ -17,6 +17,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -287,6 +288,7 @@ export namespace Discount {
   export type PaginatedList = z.infer<
     typeof discountsPaginatedListSchema
   >
+  export type Where = SelectConditions<typeof discounts>
 }
 
 export const createDiscountInputSchema = z.object({

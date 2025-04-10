@@ -9,6 +9,7 @@ import {
   newBaseZodSelectSchemaColumns,
   createUpdateSchema,
   livemodePolicy,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { users } from '@/db/schema/users'
 import { organizations } from '@/db/schema/organizations'
@@ -99,6 +100,7 @@ export namespace Membership {
   export type ClientRecord = z.infer<
     typeof membershipsClientSelectSchema
   >
+  export type Where = SelectConditions<typeof memberships>
 }
 
 export const inviteUserToOrganizationSchema = z.object({

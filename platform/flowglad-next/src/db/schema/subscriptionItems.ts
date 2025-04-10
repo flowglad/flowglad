@@ -13,6 +13,8 @@ import {
   constructIndex,
   livemodePolicy,
   constructUniqueIndex,
+  metadataSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -66,7 +68,7 @@ export const subscriptionItems = pgTable(
 const columnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
   quantity: core.safeZodPositiveInteger,
-  metadata: z.record(z.unknown()).nullable(),
+  metadata: metadataSchema.nullable(),
 }
 
 /*
@@ -136,6 +138,7 @@ export namespace SubscriptionItem {
   export type ClientRecord = z.infer<
     typeof subscriptionItemClientSelectSchema
   >
+  export type Where = SelectConditions<typeof subscriptionItems>
 }
 
 export const createSubscriptionItemSchema = z.object({

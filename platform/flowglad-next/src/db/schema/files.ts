@@ -9,6 +9,9 @@ import {
   tableBase,
   notNullStringForeignKey,
   livemodePolicy,
+  createSupabaseWebhookSchema,
+  ommittedColumnsForInsertSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -110,6 +113,7 @@ export namespace File {
   export type ClientInsert = z.infer<typeof fileClientInsertSchema>
   export type ClientUpdate = z.infer<typeof fileClientUpdateSchema>
   export type ClientRecord = z.infer<typeof fileClientSelectSchema>
+  export type Where = SelectConditions<typeof files>
 }
 
 export const createFileInputSchema = z.object({

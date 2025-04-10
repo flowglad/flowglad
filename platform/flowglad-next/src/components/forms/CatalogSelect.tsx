@@ -19,7 +19,11 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
   )
   const defaultCatalogId = defaultCatalog?.catalog.id
   const form = useFormContext()
-  const { watch, setValue } = form
+  const {
+    watch,
+    setValue,
+    formState: { errors },
+  } = form
   const catalogId = watch(name)
   // once the default catalog loads, set it if the catalog id has not been set
   useEffect(() => {
@@ -50,6 +54,7 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
               }
               value={field.value}
               onValueChange={field.onChange}
+              error={errors[name]?.message as string | undefined}
             />
           )}
         />

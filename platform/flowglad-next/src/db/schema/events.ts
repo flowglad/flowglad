@@ -15,6 +15,7 @@ import {
   tableBase,
   nullableStringForeignKey,
   livemodePolicy,
+  SelectConditions,
 } from '@/db/tableUtils'
 import {
   FlowgladEventType,
@@ -128,4 +129,5 @@ export namespace Event {
   export type Insert = z.infer<typeof eventsInsertSchema>
   export type Update = z.infer<typeof eventsUpdateSchema>
   export type Record = z.infer<typeof eventsSelectSchema>
+  export type Where = SelectConditions<typeof events>
 }

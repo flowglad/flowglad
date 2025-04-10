@@ -8,6 +8,9 @@ import {
   enhancedCreateInsertSchema,
   createUpdateSchema,
   livemodePolicy,
+  createSupabaseWebhookSchema,
+  ommittedColumnsForInsertSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
@@ -112,6 +115,7 @@ export namespace BillingPeriodItem {
   export type ClientRecord = z.infer<
     typeof billingPeriodItemClientSelectSchema
   >
+  export type Where = SelectConditions<typeof billingPeriodItems>
 }
 
 export const createBillingPeriodItemInputSchema = z.object({

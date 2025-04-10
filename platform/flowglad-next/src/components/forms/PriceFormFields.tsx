@@ -22,6 +22,7 @@ import Hint from '../ion/Hint'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthContext } from '@/contexts/authContext'
 import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
+import UsageMetersSelect from './UsageMetersSelect'
 
 const usePriceFormContext = () => {
   return useFormContext<Pick<CreateProductSchema, 'price'>>()
@@ -199,7 +200,15 @@ const PriceFormFields = ({
       typeFields = <SinglePaymentFields />
       break
     case PriceType.Usage:
-      typeFields = <SubscriptionFields omitTrialPeriodFields />
+      typeFields = (
+        <div className="flex flex-col gap-2.5">
+          <SubscriptionFields omitTrialPeriodFields />
+          <UsageMetersSelect
+            name="price.usageMeterId"
+            control={control}
+          />
+        </div>
+      )
       break
   }
   return (
@@ -252,10 +261,8 @@ const PriceFormFields = ({
           )}
         />
         <Hint>
-          <p>
-            What type of payment the user will make. Cannot be edited
-            after creation.
-          </p>
+          What type of payment the user will make. Cannot be edited
+          after creation.
         </Hint>
       </div>
       {typeFields}

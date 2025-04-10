@@ -16,6 +16,9 @@ import {
   createUpdateSchema,
   notNullStringForeignKey,
   livemodePolicy,
+  createSupabaseWebhookSchema,
+  ommittedColumnsForInsertSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { PurchaseAccessSessionSource } from '@/types'
 import core from '@/utils/core'
@@ -105,4 +108,5 @@ export namespace PurchaseAccessSession {
   export type ClientUpdate = z.infer<
     typeof purchaseAccessSessionsClientUpdateSchema
   >
+  export type Where = SelectConditions<typeof purchaseAccessSessions>
 }

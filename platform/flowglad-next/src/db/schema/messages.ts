@@ -8,6 +8,7 @@ import {
   nullableStringForeignKey,
   createUpdateSchema,
   livemodePolicy,
+  SelectConditions,
 } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { z } from 'zod'
@@ -109,4 +110,5 @@ export namespace Message {
   export type ClientUpdate = z.infer<
     typeof messagesClientUpdateSchema
   >
+  export type Where = SelectConditions<typeof messages>
 }

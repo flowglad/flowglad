@@ -18,6 +18,7 @@ import {
   createPaginatedListQuerySchema,
   nullableStringForeignKey,
   constructUniqueIndex,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
@@ -182,4 +183,5 @@ export namespace Product {
   export type PaginatedList = z.infer<
     typeof productsPaginatedListSchema
   >
+  export type Where = SelectConditions<typeof products>
 }

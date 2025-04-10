@@ -16,6 +16,9 @@ import {
   pgEnumColumn,
   livemodePolicy,
   idInputSchema,
+  createSupabaseWebhookSchema,
+  ommittedColumnsForInsertSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import {
   CheckoutSession,
@@ -259,6 +262,7 @@ export namespace FeeCalculation {
   export type CustomerRecord = z.infer<
     typeof customerFacingFeeCalculationSelectSchema
   >
+  export type Where = SelectConditions<typeof feeCalculations>
 }
 
 export const checkoutSessionFeeCalculationParametersChanged = ({

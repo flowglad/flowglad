@@ -10,6 +10,10 @@ import {
   tableBase,
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
+  createSupabaseWebhookSchema,
+  livemodePolicy,
+  ommittedColumnsForInsertSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
 import core from '@/utils/core'
@@ -167,6 +171,7 @@ export namespace Organization {
   export type ClientUpdate = z.infer<
     typeof organizationsClientUpdateSchema
   >
+  export type Where = SelectConditions<typeof organizations>
 }
 
 export const createOrganizationSchema = z.object({

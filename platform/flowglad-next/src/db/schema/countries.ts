@@ -7,6 +7,12 @@ import {
   newBaseZodSelectSchemaColumns,
   tableBase,
   constructUniqueIndex,
+  constructIndex,
+  notNullStringForeignKey,
+  createSupabaseWebhookSchema,
+  livemodePolicy,
+  ommittedColumnsForInsertSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { z } from 'zod'
 import { CountryCode } from '@/types'
@@ -53,6 +59,7 @@ export namespace Country {
   export type Insert = z.infer<typeof countriesInsertSchema>
   export type Update = z.infer<typeof countriesUpdateSchema>
   export type Record = z.infer<typeof countriesSelectSchema>
+  export type Where = SelectConditions<typeof countries>
 }
 
 export const requestStripeConnectOnboardingLinkInputSchema = z.object(
