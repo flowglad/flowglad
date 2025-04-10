@@ -5,12 +5,25 @@ import core from '@/utils/core'
 import { getColorClassName } from '@/utils/chartStyles'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import ErrorBoundary from './ErrorBoundary'
 
-export const RevenueTooltip = ({
+function DateDisplay({ label }: { label: string }) {
+  return (
+    <ErrorBoundary fallback={<div>{label}</div>}>
+      <div>
+        {!isNaN(Date.parse(label))
+          ? core.formatDate(new Date(label))
+          : label}
+      </div>
+    </ErrorBoundary>
+  )
+}
+
+function RevenueTooltip({
   active,
   payload,
   label,
-}: TooltipCallbackProps) => {
+}: TooltipCallbackProps) {
   const { organization } = useAuthenticatedContext()
   if (!active || !payload?.[0] || !organization) {
     return null
@@ -21,7 +34,6 @@ export const RevenueTooltip = ({
       organization.defaultCurrency,
       value
     )
-
   return (
     <div
       className={twMerge(
@@ -40,9 +52,11 @@ export const RevenueTooltip = ({
             style={{ width: '10px', height: '10px' }}
           />
         </div>
-        <div>{core.formatDate(new Date(label))}</div>
+        <DateDisplay label={label} />
         <div className="text-right">{formattedValue}</div>
       </div>
     </div>
   )
 }
+
+export { RevenueTooltip }
