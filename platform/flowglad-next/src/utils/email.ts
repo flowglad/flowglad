@@ -19,10 +19,11 @@ import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase
 import { DemoOfferEmail } from '@/email-templates/demo-offer-email'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
 import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization-payment-awaiting-confirmation'
+import { kebabCase } from 'change-case'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
-const safeSend = (
+export const safeSend = (
   email: CreateEmailOptions,
   options?: CreateEmailRequestOptions
 ) => {
@@ -50,22 +51,22 @@ export const sendReceiptEmail = async (params: {
   const { invoice } = params
   const attachments: {
     filename: string
-    content: string
+    path: string
   }[] = []
   if (invoice.pdfURL) {
     attachments.push({
       filename: `${invoice.invoiceNumber}.pdf`,
-      content: invoice.pdfURL,
+      path: invoice.pdfURL,
     })
   }
   if (invoice.receiptPdfURL) {
     attachments.push({
       filename: `${invoice.invoiceNumber}-receipt.pdf`,
-      content: invoice.receiptPdfURL,
+      path: invoice.receiptPdfURL,
     })
   }
   return safeSend({
-    from: `${params.organizationName} Billing <notifs@send.flowglad.com>`,
+    from: `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`,
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     to: params.to.map(safeTo),
     subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
@@ -89,7 +90,7 @@ export const sendOrganizationPaymentNotificationEmail = async (
   params: OrganizationPaymentNotificationEmailProps & { to: string[] }
 ) => {
   return safeSend({
-    from: `${params.organizationName} (via Flowglad) <notifications@flowglad.com>`,
+    from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(

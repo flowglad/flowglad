@@ -10,14 +10,9 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 
 import { logger, task } from '@trigger.dev/sdk/v3'
 import Stripe from 'stripe'
-import {
-  generateInvoicePdfIdempotently,
-  generateInvoicePdfTask,
-} from '../generate-invoice-pdf'
+import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'
-import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../send-customer-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
