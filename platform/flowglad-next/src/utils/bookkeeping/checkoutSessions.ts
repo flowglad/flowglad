@@ -60,7 +60,6 @@ import Stripe from 'stripe'
 import {
   safelyUpdateInvoiceStatus,
   selectInvoiceById,
-  updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'

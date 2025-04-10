@@ -728,6 +728,7 @@ export enum CheckoutSessionType {
   Product = 'product',
   Purchase = 'purchase',
   Invoice = 'invoice',
+  AddPaymentMethod = 'add_payment_method',
 }
 
 export enum FeatureFlag {

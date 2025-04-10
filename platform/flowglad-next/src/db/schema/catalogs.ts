@@ -103,6 +103,10 @@ export namespace Catalog {
     typeof catalogsPaginatedListSchema
   >
   export type Where = SelectConditions<typeof catalogs>
+  export type TableRow = {
+    catalog: ClientRecord
+    productsCount: number
+  }
 }
 
 export const createCatalogSchema = z.object({

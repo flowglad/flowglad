@@ -175,7 +175,10 @@ const createSubscriptionInputSchema = z.object({
     ),
   quantity: z
     .number()
-    .describe('The quantity of the price purchased.'),
+    .optional()
+    .describe(
+      'The quantity of the price purchased. If not provided, defaults to 1.'
+    ),
   startDate: z
     .date()
     .optional()
@@ -285,7 +288,7 @@ const createSubscriptionProcedure = protectedProcedure
             organization,
             product,
             price,
-            quantity: input.quantity,
+            quantity: input.quantity ?? 1,
             interval: input.interval ?? price.intervalUnit,
             intervalCount: input.intervalCount ?? price.intervalCount,
             trialEnd,

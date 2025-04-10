@@ -47,6 +47,8 @@ const INVOICE_CHECKOUT_SESSION_DESCRIPTION =
   'A checkout session for an invoice, which will only create a payment record associated with the invoice upon successful completion. It will not create a subscription or purchase.'
 const PRODUCT_CHECKOUT_SESSION_DESCRIPTION =
   'A checkout session for a product, which will create a purchase record and (if for a subscription price) a subscription upon successful completion.'
+const PAYMENT_METHOD_CREATION_CHECKOUT_SESSION_DESCRIPTION =
+  'A checkout session for a payment method creation, which will create a payment method record upon successful completion. If targetSubscriptionId is provided, the payment method will be added to the subscription as the default payment method.'
 
 const columns = {
   ...tableBase('chckt_session'),
@@ -94,6 +96,7 @@ const columns = {
   }).notNull(),
   outputMetadata: jsonb('output_metadata'),
   outputName: text('output_name'),
+  targetSubscriptionId: text('target_subscription_id'),
 }
 
 export const checkoutSessions = pgTable(
@@ -126,6 +129,7 @@ export const checkoutSessions = pgTable(
 export const checkoutSessionOutputMetadataSchema = z
   .record(z.string(), z.any())
   .nullable()
+
 const refinement = {
   ...newBaseZodSelectSchemaColumns,
   billingAddress: billingAddressSchema.nullable(),
@@ -142,6 +146,7 @@ const refinement = {
 const purchaseCheckoutSessionRefinement = {
   purchaseId: z.string(),
   priceId: z.string(),
+  targetSubscriptionId: z.null(),
   type: z.literal(CheckoutSessionType.Purchase),
 }
 
@@ -149,6 +154,7 @@ const invoiceCheckoutSessionRefinement = {
   invoiceId: z.string(),
   priceId: z.null(),
   purchaseId: z.null(),
+  targetSubscriptionId: z.null(),
   type: z.literal(CheckoutSessionType.Invoice),
   outputMetadata: z.null(),
 }
@@ -156,7 +162,23 @@ const invoiceCheckoutSessionRefinement = {
 const productCheckoutSessionRefinement = {
   priceId: z.string(),
   invoiceId: z.null(),
+  targetSubscriptionId: z.null(),
   type: z.literal(CheckoutSessionType.Product),
+}
+
+const addPaymentMethodCheckoutSessionRefinement = {
+  targetSubscriptionId: z
+    .string()
+    .nullable()
+    .describe(
+      'The subscription that the payment method will be added to as the default payment method.'
+    ),
+  customerId: z
+    .string()
+    .describe(
+      'The customer that the payment method will be added to as the default payment method.'
+    ),
+  type: z.literal(CheckoutSessionType.AddPaymentMethod),
 }
 
 export const coreCheckoutSessionsSelectSchema = createSelectSchema(
@@ -178,11 +200,17 @@ const productCheckoutSessionsSelectSchema =
     .extend(productCheckoutSessionRefinement)
     .describe(PRODUCT_CHECKOUT_SESSION_DESCRIPTION)
 
+const addPaymentMethodCheckoutSessionsSelectSchema =
+  coreCheckoutSessionsSelectSchema
+    .extend(addPaymentMethodCheckoutSessionRefinement)
+    .describe(PAYMENT_METHOD_CREATION_CHECKOUT_SESSION_DESCRIPTION)
+
 export const checkoutSessionsSelectSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionsSelectSchema,
     invoiceCheckoutSessionsSelectSchema,
     productCheckoutSessionsSelectSchema,
+    addPaymentMethodCheckoutSessionsSelectSchema,
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
@@ -200,11 +228,16 @@ export const productCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     productCheckoutSessionRefinement
   )
+export const addPaymentMethodCheckoutSessionsInsertSchema =
+  coreCheckoutSessionsInsertSchema.extend(
+    addPaymentMethodCheckoutSessionRefinement
+  )
 export const checkoutSessionsInsertSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionsInsertSchema,
     invoiceCheckoutSessionsInsertSchema,
     productCheckoutSessionsInsertSchema,
+    addPaymentMethodCheckoutSessionsInsertSchema,
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
@@ -225,12 +258,17 @@ const productCheckoutSessionUpdateSchema =
   coreCheckoutSessionsUpdateSchema.extend(
     productCheckoutSessionRefinement
   )
+const addPaymentMethodCheckoutSessionUpdateSchema =
+  coreCheckoutSessionsUpdateSchema.extend(
+    addPaymentMethodCheckoutSessionRefinement
+  )
 
 export const checkoutSessionsUpdateSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionUpdateSchema,
     invoiceCheckoutSessionUpdateSchema,
     productCheckoutSessionUpdateSchema,
+    addPaymentMethodCheckoutSessionUpdateSchema,
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
@@ -262,12 +300,19 @@ const productCheckoutSessionClientUpdateSchema =
   productCheckoutSessionUpdateSchema.omit(readOnlyColumns).extend({
     id: z.string(),
   })
+const addPaymentMethodCheckoutSessionClientUpdateSchema =
+  addPaymentMethodCheckoutSessionUpdateSchema
+    .omit(readOnlyColumns)
+    .extend({
+      id: z.string(),
+    })
 
 const checkoutSessionClientUpdateSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionClientUpdateSchema,
     invoiceCheckoutSessionClientUpdateSchema,
     productCheckoutSessionClientUpdateSchema,
+    addPaymentMethodCheckoutSessionClientUpdateSchema,
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
@@ -295,14 +340,17 @@ export const invoiceCheckoutSessionClientSelectSchema =
   invoiceCheckoutSessionsSelectSchema.omit(hiddenColumns)
 export const productCheckoutSessionClientSelectSchema =
   productCheckoutSessionsSelectSchema.omit(hiddenColumns)
+export const addPaymentMethodCheckoutSessionClientSelectSchema =
+  addPaymentMethodCheckoutSessionsSelectSchema.omit(hiddenColumns)
 
 export const checkoutSessionClientSelectSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionClientSelectSchema,
     invoiceCheckoutSessionClientSelectSchema,
     productCheckoutSessionClientSelectSchema,
+    addPaymentMethodCheckoutSessionClientSelectSchema,
   ])
-  .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
+  .describe(CHECKOUT_SESSION_CLIENT_SELECT_SCHEMA_DESCRIPTION)
 
 const feeReadyColumns = {
   billingAddress: billingAddressSchema,
@@ -315,6 +363,10 @@ export const feeReadyInvoiceCheckoutSessionSelectSchema =
   invoiceCheckoutSessionClientSelectSchema.extend(feeReadyColumns)
 export const feeReadyProductCheckoutSessionSelectSchema =
   productCheckoutSessionClientSelectSchema.extend(feeReadyColumns)
+export const feeReadyAddPaymentMethodCheckoutSessionSelectSchema =
+  addPaymentMethodCheckoutSessionClientSelectSchema.extend(
+    feeReadyColumns
+  )
 
 const FEE_READY_CHECKOUT_SESSION_SELECT_SCHEMA_DESCRIPTION =
   'A checkout session that is ready to be used to calculate a fee.'
@@ -324,6 +376,7 @@ export const feeReadyCheckoutSessionSelectSchema = z
     feeReadyPurchaseCheckoutSessionSelectSchema,
     feeReadyInvoiceCheckoutSessionSelectSchema,
     feeReadyProductCheckoutSessionSelectSchema,
+    feeReadyAddPaymentMethodCheckoutSessionSelectSchema,
   ])
   .describe(FEE_READY_CHECKOUT_SESSION_SELECT_SCHEMA_DESCRIPTION)
 
@@ -414,4 +467,24 @@ export namespace CheckoutSession {
   >
 
   export type Where = SelectConditions<typeof checkoutSessions>
+
+  export type AddPaymentMethodInsert = z.infer<
+    typeof addPaymentMethodCheckoutSessionsInsertSchema
+  >
+
+  export type AddPaymentMethodUpdate = z.infer<
+    typeof addPaymentMethodCheckoutSessionUpdateSchema
+  >
+
+  export type AddPaymentMethodRecord = z.infer<
+    typeof addPaymentMethodCheckoutSessionsSelectSchema
+  >
+
+  export type AddPaymentMethodClientRecord = z.infer<
+    typeof addPaymentMethodCheckoutSessionClientSelectSchema
+  >
+
+  export type AddPaymentMethodClientUpdate = z.infer<
+    typeof addPaymentMethodCheckoutSessionClientUpdateSchema
+  >
 }

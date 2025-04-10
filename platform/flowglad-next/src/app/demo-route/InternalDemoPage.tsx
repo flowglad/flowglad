@@ -41,7 +41,7 @@ const InternalDemoPage = () => {
           const customer = customersData.data[0]
           await createSubscriptionMutation.mutateAsync({
             customerId: customer.id,
-            priceId: 'price_GCiIbo6Q8sVeEkAgTu1tW',
+            priceId: '',
             trialEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
           })
         }}
