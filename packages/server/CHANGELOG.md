@@ -1,5 +1,16 @@
 # @flowglad/server
 
+## 0.10.0
+
+### Minor Changes
+
+- Add subscription method, many other improvements
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/shared@0.10.0
+
 ## 0.9.1
 
 ### Patch Changes

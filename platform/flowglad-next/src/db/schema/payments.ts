@@ -211,7 +211,12 @@ export type RevenueDataItem = {
 
 export const refundPaymentInputSchema = z.object({
   id: z.string(),
-  partialAmount: z.number().nullable(),
+  partialAmount: z
+    .number()
+    .optional()
+    .describe(
+      'The amount to refund. If not provided, the entire amount will be refunded. Cannot exceed the amount of the associated payment.'
+    ),
 })
 
 export type RefundPaymentInput = z.infer<

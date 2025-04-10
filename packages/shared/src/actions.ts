@@ -10,14 +10,40 @@ export type FlowgladActionValidatorMap = Record<
   }
 >
 
-export const createCheckoutSessionSchema = z.object({
-  priceId: z.string(),
+const createCoreCheckoutSessionSchema = z.object({
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
   outputMetadata: z.record(z.string(), z.any()).optional(),
   outputName: z.string().optional(),
-  quantity: z.number().optional().nullish().default(1),
 })
+
+export const createProductCheckoutSessionSchema =
+  createCoreCheckoutSessionSchema.extend({
+    type: z.literal('product'),
+    priceId: z.string(),
+    quantity: z.number().optional().default(1),
+  })
+
+export const createAddPaymentMethodCheckoutSessionSchema =
+  createCoreCheckoutSessionSchema.extend({
+    type: z.literal('add_payment_method'),
+    targetSubscriptionId: z.string(),
+  })
+
+export const createCheckoutSessionSchema = z.discriminatedUnion(
+  'type',
+  [
+    createProductCheckoutSessionSchema,
+    createAddPaymentMethodCheckoutSessionSchema,
+  ]
+)
+
+export type CreateProductCheckoutSessionParams = z.infer<
+  typeof createProductCheckoutSessionSchema
+>
+export type CreateAddPaymentMethodCheckoutSessionParams = z.infer<
+  typeof createAddPaymentMethodCheckoutSessionSchema
+>
 
 export type CreateCheckoutSessionParams = z.infer<
   typeof createCheckoutSessionSchema
@@ -73,6 +99,29 @@ export type CancelSubscriptionParams = z.infer<
   typeof cancelSubscriptionSchema
 >
 
+export const createSubscriptionSchema = z.object({
+  customerId: z.string(),
+  priceId: z.string(),
+  quantity: z.number().optional(),
+  startDate: z.string().datetime().optional(),
+  trialEnd: z
+    .number()
+    .optional()
+    .describe(
+      `Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
+    ),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  name: z.string().optional(),
+  backupPaymentMethodId: z.string().optional(),
+  defaultPaymentMethodId: z.string().optional(),
+  interval: z.enum(['day', 'week', 'month', 'year']).optional(),
+  intervalCount: z.number().optional(),
+})
+
+export type CreateSubscriptionParams = z.infer<
+  typeof createSubscriptionSchema
+>
+
 export const flowgladActionValidators: FlowgladActionValidatorMap = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -93,5 +142,9 @@ export const flowgladActionValidators: FlowgladActionValidatorMap = {
   [FlowgladActionKey.CancelSubscription]: {
     method: HTTPMethod.POST,
     inputValidator: cancelSubscriptionSchema,
+  },
+  [FlowgladActionKey.CreateSubscription]: {
+    method: HTTPMethod.POST,
+    inputValidator: createSubscriptionSchema,
   },
 }

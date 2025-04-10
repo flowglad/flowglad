@@ -42,7 +42,10 @@ export const createPostOpenApiMetaWithIdParam = (
   params: CreateOpenApiMetaParams
 ): OpenApiMeta => {
   const { summary, tags } = params
-  return createPostOpenApiMeta({ ...params })
+  return createPostOpenApiMeta({
+    ...params,
+    requireIdParam: true,
+  })
 }
 
 export const createPostOpenApiMeta = ({
@@ -50,13 +53,18 @@ export const createPostOpenApiMeta = ({
   summary,
   tags,
   routeSuffix,
-}: CreateOpenApiMetaParams): OpenApiMeta => {
+  requireIdParam = false,
+  idParamOverride,
+}: CreateOpenApiMetaParams & {
+  requireIdParam?: boolean
+  idParamOverride?: string
+}): OpenApiMeta => {
   return {
     openapi: {
       method: 'POST',
       path: `/api/v1/${kebabCase(resource)}${
-        routeSuffix ? `/${routeSuffix}` : ''
-      }`,
+        requireIdParam ? `/{${idParamOverride ?? 'id'}}` : ''
+      }${routeSuffix ? `/${routeSuffix}` : ''}`,
       summary,
       tags,
       protect: true,

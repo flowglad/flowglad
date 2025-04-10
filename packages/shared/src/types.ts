@@ -3,6 +3,7 @@ export enum FlowgladActionKey {
   FindOrCreateCustomer = 'customers/find-or-create',
   CreateCheckoutSession = 'checkout-sessions/create',
   CancelSubscription = 'subscriptions/cancel',
+  CreateSubscription = 'subscriptions/create',
 }
 
 export enum HTTPMethod {

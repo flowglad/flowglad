@@ -1,8 +1,12 @@
 import {
   CancelSubscriptionParams,
   CreateCheckoutSessionParams,
+  CreateSubscriptionParams,
+  createSubscriptionSchema,
   CreateUsageEventParams,
   createUsageEventSchema,
+  CreateAddPaymentMethodCheckoutSessionParams,
+  CreateProductCheckoutSessionParams,
 } from '@flowglad/shared'
 import {
   ClerkFlowgladServerSessionParams,
@@ -198,15 +202,25 @@ export class FlowgladServer {
     }
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
+        ...params,
         customerExternalId: session.externalId,
-        priceId: params.priceId,
-        successUrl: params.successUrl,
-        cancelUrl: params.cancelUrl,
-        outputMetadata: params.outputMetadata,
-        outputName: params.outputName,
-        quantity: params.quantity || undefined,
       },
     })
+  }
+
+  public createAddPaymentMethodCheckoutSession = async (
+    params: CreateAddPaymentMethodCheckoutSessionParams
+  ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
+    return this.createCheckoutSession({
+      ...params,
+      type: 'add_payment_method',
+    })
+  }
+
+  public createProductCheckoutSession = async (
+    params: CreateProductCheckoutSessionParams
+  ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
+    return this.createCheckoutSession({ ...params, type: 'product' })
   }
 
   public cancelSubscription = async (
@@ -225,6 +239,20 @@ export class FlowgladServer {
       cancellation:
         params.cancellation as FlowgladNode.Subscriptions.SubscriptionCancelParams['cancellation'],
     })
+  }
+
+  public createSubscription = async (
+    params: Omit<CreateSubscriptionParams, 'customerId'>
+  ): Promise<FlowgladNode.Subscriptions.SubscriptionCreateResponse> => {
+    const customer = await this.findOrCreateCustomer()
+    const rawParams = {
+      ...params,
+      quantity: params.quantity ?? 1,
+      customerId: customer.id,
+    }
+    // const parsedParams = createSubscriptionSchema.parse(rawParams)
+    // @ts-ignore
+    return this.flowgladNode.subscriptions.create(rawParams)
   }
   /**
    * Create a usage event for a customer.
@@ -247,4 +275,9 @@ export class FlowgladServer {
       },
     })
   }
+  public getCatalog =
+    async (): Promise<FlowgladNode.Catalogs.CatalogRetrieveResponse> => {
+      const billing = await this.getBilling()
+      return { catalog: billing.catalog }
+    }
 }
