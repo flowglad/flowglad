@@ -3,15 +3,12 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { sendReceiptEmail } from '@/utils/email'
-import { logger, task, wait } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import {
-  generateInvoicePdfIdempotently,
-  generateInvoicePdfTask,
-} from './generate-invoice-pdf'
+import { generateInvoicePdfTask } from './generate-invoice-pdf'
 import { generatePaymentReceiptPdfTask } from './generate-receipt-pdf'
 
-const sendCustomerPaymentSucceededNotificationTask = task({
+export const sendCustomerPaymentSucceededNotificationTask = task({
   id: 'send-customer-payment-succeeded-notification',
   run: async (payload: { paymentId: string }, { ctx }) => {
     const {
@@ -57,12 +54,18 @@ const sendCustomerPaymentSucceededNotificationTask = task({
       })
     }
 
-    await sendReceiptEmail({
+    const result = await sendReceiptEmail({
       invoice,
       invoiceLineItems,
       organizationName: organization.name,
       to: [customer.email],
     })
+
+    if (result?.error) {
+      logger.error('Error sending receipt email', {
+        error: result.error,
+      })
+    }
 
     return {
       message: 'Email sent successfully',
