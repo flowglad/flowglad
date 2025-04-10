@@ -37,15 +37,7 @@ export const createUsageEvent = usageProcedure
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const usageEvent = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
+      async ({ transaction, livemode }) => {
         const billingPeriod =
           await selectCurrentBillingPeriodForSubscription(
             input.usageEvent.subscriptionId,
@@ -59,9 +51,13 @@ export const createUsageEvent = usageProcedure
             ...input.usageEvent,
             billingPeriodId: billingPeriod.id,
             livemode,
+            properties: input.usageEvent.properties ?? {},
           },
           transaction
         )
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
     return { usageEvent }

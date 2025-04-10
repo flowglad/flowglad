@@ -5,12 +5,15 @@ import {
   refundPaymentInputSchema,
 } from '@/db/schema/payments'
 import { refundPaymentTransaction } from '@/utils/paymentHelpers'
-import { createPostOpenApiMeta } from '@/utils/openapi'
+import {
+  createPostOpenApiMeta,
+  createPostOpenApiMetaWithIdParam,
+} from '@/utils/openapi'
 import { z } from 'zod'
 
 export const refundPayment = protectedProcedure
   .meta(
-    createPostOpenApiMeta({
+    createPostOpenApiMetaWithIdParam({
       resource: 'payments',
       routeSuffix: 'refund',
       summary: 'Refund a Payment',
@@ -25,7 +28,7 @@ export const refundPayment = protectedProcedure
         return refundPaymentTransaction(
           {
             id: input.id,
-            partialAmount: input.partialAmount,
+            partialAmount: input.partialAmount ?? null,
             livemode,
           },
           transaction

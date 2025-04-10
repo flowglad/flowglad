@@ -312,6 +312,20 @@ export const subscriptionPriceClientUpdateSchema =
 export const subscriptionPriceClientSelectSchema =
   subscriptionPriceSelectSchema.omit(hiddenColumns)
 
+export const subscribablePriceSelectSchema = z.discriminatedUnion(
+  'type',
+  [subscriptionPriceSelectSchema, usagePriceSelectSchema]
+)
+
+export const subscribablePriceClientSelectSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPriceClientSelectSchema,
+    usagePriceClientSelectSchema,
+  ])
+  .describe(
+    'A subscribable price, which can be used to create a subscription based on standard recurring subscription prices or usage-based subscriptions.'
+  )
+
 export const singlePaymentPriceClientInsertSchema =
   singlePaymentPriceInsertSchema.omit(nonClientEditableColumns)
 
@@ -418,6 +432,13 @@ export namespace Price {
   >
 
   export type Where = SelectConditions<typeof prices>
+
+  export type SubscribablePriceRecord = z.infer<
+    typeof subscribablePriceSelectSchema
+  >
+  export type ClientSubscribablePriceRecord = z.infer<
+    typeof subscribablePriceClientSelectSchema
+  >
 }
 
 export const editPriceSchema = z.object({
