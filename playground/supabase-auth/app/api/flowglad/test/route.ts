@@ -22,8 +22,6 @@ export const GET = async () => {
   }
   let currentSubscriptionId: string | undefined;
   if (!currentSubscriptions || currentSubscriptions.length === 0) {
-    console.log('====creating new subscription');
-    console.log('====priceId', priceId);
     const { subscription: newSubscription } =
       await flowgladServer.createSubscription({
         priceId,
