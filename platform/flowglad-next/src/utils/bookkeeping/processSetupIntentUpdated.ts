@@ -1,5 +1,8 @@
 import { Organization } from '@/db/schema/organizations'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerById,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import { CheckoutSessionType, PurchaseStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -18,6 +21,7 @@ import { Price } from '@/db/schema/prices'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 const processCheckoutSessionSetupIntent = async (
   setupIntent: Stripe.SetupIntent,
@@ -47,7 +51,21 @@ const processCheckoutSessionSetupIntent = async (
       'Invoice checkout flow does not support setup intents'
     )
   }
-
+  if (checkoutSession.type === CheckoutSessionType.AddPaymentMethod) {
+    const organization = await selectOrganizationById(
+      checkoutSession.organizationId,
+      transaction
+    )
+    const customer = await selectCustomerById(
+      checkoutSession.customerId,
+      transaction
+    )
+    return {
+      checkoutSession,
+      organization,
+      customer,
+    }
+  }
   const [{ price, product, organization }] =
     await selectPriceProductAndOrganizationByPriceWhere(
       { id: checkoutSession.priceId },
@@ -102,19 +120,19 @@ export const processSetupIntentUpdated = async (
       `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
     )
   }
-  let organization: Organization.Record | null = null
   let price: Price.Record | null = null
   let purchase: Purchase.Record | null = null
-  let customer: Customer.Record | null = null
   const result = await processCheckoutSessionSetupIntent(
     setupIntent,
     transaction
   )
   const { product, checkoutSession } = result
-  organization = result.organization
-  price = result.price
-  purchase = result.purchase
-  customer = result.customer
+  let organization = result.organization
+  let customer = result.customer
+  if (result.product) {
+    price = result.price
+    purchase = result.purchase
+  }
   const stripeCustomerId = setupIntent.customer
     ? stripeIdFromObjectOrId(setupIntent.customer)
     : null
@@ -134,11 +152,26 @@ export const processSetupIntentUpdated = async (
   const paymentMethod = await paymentMethodForStripePaymentMethodId(
     {
       stripePaymentMethodId,
-      livemode: purchase.livemode,
+      livemode: checkoutSession.livemode,
       customerId: customer.id,
     },
     transaction
   )
+  /**
+   * If the price, product, or purchase are not found,
+   * we don't need to create a subscription because that means
+   * the checkout session was for adding a payment method
+   */
+  if (!price || !product || !purchase) {
+    return {
+      purchase,
+      checkoutSession,
+      price,
+      organization,
+      product,
+      customer,
+    }
+  }
   if (!price.intervalUnit) {
     throw new Error('Price interval unit is required')
   }
@@ -169,7 +202,7 @@ export const processSetupIntentUpdated = async (
       metadata: checkoutSession.outputMetadata,
       name: checkoutSession.outputName ?? undefined,
       product,
-      livemode: purchase.livemode,
+      livemode: checkoutSession.livemode,
     },
     transaction
   )

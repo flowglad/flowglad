@@ -77,6 +77,7 @@ export const upsertPaymentForStripeCharge = async (
   let livemode: boolean | null = null
   let customerId: string | null = null
   let currency: CurrencyCode | null = null
+  let subscriptionId: string | null = null
   if ('billingRunId' in paymentIntentMetadata) {
     const billingRun = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
@@ -103,6 +104,7 @@ export const upsertPaymentForStripeCharge = async (
     customerId = subscription.customerId
     organizationId = subscription.organizationId
     livemode = subscription.livemode
+    subscriptionId = subscription.id
   } else if ('invoiceId' in paymentIntentMetadata) {
     // TODO: the whole "invoiceId" block should be removed
     // we now support paying invoices through purchase sessions,
@@ -123,6 +125,7 @@ export const upsertPaymentForStripeCharge = async (
     taxCountry = invoice.taxCountry
     customerId = invoice.customerId
     livemode = invoice.livemode
+    subscriptionId = invoice.subscriptionId
   } else if ('checkoutSessionId' in paymentIntentMetadata) {
     const {
       checkoutSession,
@@ -137,7 +140,11 @@ export const upsertPaymentForStripeCharge = async (
     )
     if (checkoutSession.type === CheckoutSessionType.Invoice) {
       throw new Error(
-        'Invoice checkout flow does not support charges'
+        `Cannot process paymentIntent with metadata.checkoutSessionId ${
+          paymentIntentMetadata.checkoutSessionId
+        } when checkoutSession type is ${
+          CheckoutSessionType.Invoice
+        }. Payment intent metadata should be an invoiceId in this case.`
       )
     }
     invoiceId = invoice?.id ?? null
@@ -148,6 +155,9 @@ export const upsertPaymentForStripeCharge = async (
     purchaseId = purchase?.id ?? null
     livemode = checkoutSession.livemode
     customerId = purchase?.customerId || invoice?.customerId || null
+    // hard assumption
+    // checkoutSessionId payment intents are only for anonymous single payment purchases
+    subscriptionId = null
   } else {
     throw new Error(
       'No invoice, purchase, or subscription found for payment intent'

@@ -109,7 +109,8 @@ export const inputClassNames = clsx(
   'autofill:hover:bg-transparent',
   'autofill:focus:bg-transparent',
   'autofill:active:bg-transparent',
-  'autofill:text-inherit'
+  'autofill:text-inherit',
+  'text-sm'
   // '[&::-webkit-autofill]:bg-yellow-50',
   // '[&::-webkit-autofill]:shadow-[0_0_0px_1000px_theme(colors.yellow.50)_inset]',
   // '[&::-webkit-autofill]:hover:bg-yellow-50',

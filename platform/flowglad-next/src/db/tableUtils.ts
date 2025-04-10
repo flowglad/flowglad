@@ -238,6 +238,7 @@ export const createSelectFunction = <
       const parsed = selectSchema.safeParse(item)
       if (!parsed.success) {
         console.error(parsed.error.issues)
+        console.error(item)
         throw Error(
           `createSelectFunction: Error parsing result: ${JSON.stringify(
             item
@@ -802,3 +803,5 @@ export const createPaginatedListQuerySchema = <T extends z.ZodType>(
     hasMore: boolean
   }>
 }
+
+export const metadataSchema = z.record(z.string(), z.any())

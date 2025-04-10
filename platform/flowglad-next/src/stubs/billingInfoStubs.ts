@@ -38,6 +38,7 @@ const checkoutSession: CheckoutSession.Record = {
   quantity: 1,
   invoiceId: null,
   type: CheckoutSessionType.Product,
+  targetSubscriptionId: null,
 }
 
 const billingInfoDefaults = {

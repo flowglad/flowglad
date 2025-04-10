@@ -130,7 +130,7 @@ const processCheckoutSession = async (
 const processSetupIntent = async (
   setupIntentId: string
 ): Promise<{
-  purchase: Purchase.Record
+  purchase: Purchase.Record | null
   url: string | URL | null
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
@@ -138,7 +138,9 @@ const processSetupIntent = async (
     await adminTransaction(async ({ transaction }) => {
       return processSetupIntentUpdated(setupIntent, transaction)
     })
-  await executeBillingRun(billingRun.id)
+  if (billingRun) {
+    await executeBillingRun(billingRun.id)
+  }
   const url = checkoutSession.successUrl
     ? new URL(checkoutSession.successUrl)
     : null
@@ -192,7 +194,26 @@ export const GET = async (request: NextRequest) => {
         paymentIntentResult.payment?.id
       )
     } else if (setupIntentId) {
-      result = await processSetupIntent(setupIntentId)
+      const setupIntentResult =
+        await processSetupIntent(setupIntentId)
+      if (setupIntentResult.url) {
+        return Response.redirect(setupIntentResult.url, 303)
+      }
+
+      if (!setupIntentResult.purchase) {
+        return Response.json(
+          {
+            success: false,
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+      result = setupIntentResult as {
+        purchase: Purchase.Record
+        url: string | URL | null
+      }
     } else {
       throw new Error(
         'post-payment: No payment_intent, setup_intent, or purchase_session id provided'

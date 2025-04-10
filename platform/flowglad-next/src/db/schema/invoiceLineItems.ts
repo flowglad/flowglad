@@ -11,6 +11,7 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import {
   Invoice,

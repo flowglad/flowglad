@@ -12,6 +12,7 @@ import { logger, task } from '@trigger.dev/sdk/v3'
 import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'
+import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../send-customer-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
@@ -77,6 +78,11 @@ export const stripePaymentIntentSucceededTask = task({
           { organizationId: organization.id },
           transaction
         )
+
+      await safelyIncrementDiscountRedemptionSubscriptionPayment(
+        payment,
+        transaction
+      )
 
       return {
         invoice: invoice.invoice,

@@ -4,6 +4,7 @@ import {
   enhancedCreateInsertSchema,
   constructIndex,
   tableBase,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
@@ -55,3 +56,4 @@ export const usersUpdateSchema = usersInsertSchema.partial().extend({
 export type UserInsert = z.infer<typeof usersInsertSchema>
 export type UserUpdate = z.infer<typeof usersUpdateSchema>
 export type UserRecord = z.infer<typeof usersSelectSchema>
+export type Where = SelectConditions<typeof users>

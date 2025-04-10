@@ -9,6 +9,7 @@ import {
   createUpdateSchema,
   notNullStringForeignKey,
   livemodePolicy,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { products } from '@/db/schema/products'
@@ -98,6 +99,7 @@ export namespace Link {
   export type ClientInsert = z.infer<typeof linkClientInsertSchema>
   export type ClientUpdate = z.infer<typeof linkClientUpdateSchema>
   export type ClientRecord = z.infer<typeof linkClientSelectSchema>
+  export type Where = SelectConditions<typeof links>
 }
 
 export const createLinkInputSchema = z.object({

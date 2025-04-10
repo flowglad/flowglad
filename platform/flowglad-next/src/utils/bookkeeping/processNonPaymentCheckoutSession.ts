@@ -27,7 +27,13 @@ export const processNonPaymentCheckoutSession = async (
   )
   if (checkoutSession.type === CheckoutSessionType.Invoice) {
     throw new Error(
-      'Invoice checkout flow does not support non-payment purchase sessions. If the invoice had 0 balance due, the invoice should have been paid automatically.'
+      `Invoice checkout flow does not support non-payment checkout sessions. If the invoice had 0 balance due, the invoice should have been paid automatically. ${checkoutSession.id}`
+    )
+  }
+
+  if (checkoutSession.type === CheckoutSessionType.AddPaymentMethod) {
+    throw new Error(
+      `Add payment method checkout flow does not support non-payment checkout sessions, which are reserved for purchases rather than payment method additions. ${checkoutSession.id}`
     )
   }
 

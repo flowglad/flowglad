@@ -160,16 +160,37 @@ export const findInvoiceCheckoutSession = async (
   )
 }
 
+interface CreateNonInvoiceCheckoutSessionBaseParams {
+  price: Price.Record
+  organizationId: string
+}
+
+interface CreatePurchaseCheckoutSessionParams
+  extends CreateNonInvoiceCheckoutSessionBaseParams {
+  purchase?: Purchase.Record
+  targetSubscriptionId?: never
+  customerId?: never
+}
+
+interface CreateAddPaymentMethodCheckoutSessionParams
+  extends CreateNonInvoiceCheckoutSessionBaseParams {
+  purchase?: never
+  targetSubscriptionId: string
+  customerId: string
+}
+
+type CreateNonInvoiceCheckoutSessionParams =
+  | CreatePurchaseCheckoutSessionParams
+  | CreateAddPaymentMethodCheckoutSessionParams
+
 export const createNonInvoiceCheckoutSession = async (
   {
     price,
     purchase,
     organizationId,
-  }: {
-    price: Price.Record
-    purchase?: Purchase.Record
-    organizationId: string
-  },
+    targetSubscriptionId,
+    customerId,
+  }: CreateNonInvoiceCheckoutSessionParams,
   transaction: DbTransaction
 ) => {
   const checkoutSessionInsertCore = {
@@ -181,21 +202,31 @@ export const createNonInvoiceCheckoutSession = async (
     productId: price.productId,
   } as const
 
-  const purchaseSesionInsert: CheckoutSession.Insert = purchase
-    ? {
-        ...checkoutSessionInsertCore,
-        purchaseId: purchase.id,
-        invoiceId: null,
-        type: CheckoutSessionType.Purchase,
-      }
-    : {
-        ...checkoutSessionInsertCore,
-        invoiceId: null,
-        type: CheckoutSessionType.Product,
-      }
+  let checkoutSessionInsert: CheckoutSession.Insert = {
+    ...checkoutSessionInsertCore,
+    invoiceId: null,
+    type: CheckoutSessionType.Product,
+    targetSubscriptionId: null,
+  }
+  if (purchase) {
+    checkoutSessionInsert = {
+      ...checkoutSessionInsertCore,
+      purchaseId: purchase.id,
+      invoiceId: null,
+      type: CheckoutSessionType.Purchase,
+      targetSubscriptionId: null,
+    }
+  } else if (targetSubscriptionId) {
+    checkoutSessionInsert = {
+      ...checkoutSessionInsertCore,
+      customerId,
+      targetSubscriptionId,
+      type: CheckoutSessionType.AddPaymentMethod,
+    }
+  }
 
   const checkoutSession = await insertCheckoutSession(
-    purchaseSesionInsert,
+    checkoutSessionInsert,
     transaction
   )
   const organization = await selectOrganizationById(
@@ -281,7 +312,13 @@ export const findOrCreateCheckoutSession = async (
     checkoutSession.priceId !== price.id
   ) {
     return createNonInvoiceCheckoutSession(
-      { price, organizationId, purchase },
+      {
+        price,
+        organizationId,
+        purchase,
+        targetSubscriptionId: undefined,
+        customerId: undefined,
+      },
       transaction
     )
   }
@@ -317,6 +354,7 @@ const createInvoiceCheckoutSession = async (
       purchaseId: null,
       priceId: null,
       outputMetadata: null,
+      targetSubscriptionId: null,
     },
     transaction
   )

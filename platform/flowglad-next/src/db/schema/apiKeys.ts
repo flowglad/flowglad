@@ -18,6 +18,7 @@ import {
   idInputSchema,
   pgEnumColumn,
   ommittedColumnsForInsertSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
@@ -110,7 +111,7 @@ export const apiKeyClientSelectSchema =
   apiKeysSelectSchema.omit(hiddenColumns)
 
 export const apiKeyClientWhereClauseSchema =
-  apiKeyClientSelectSchema.partial()
+  apiKeysSelectSchema.partial()
 
 export namespace ApiKey {
   export type Insert = z.infer<typeof apiKeysInsertSchema>
@@ -122,6 +123,7 @@ export namespace ApiKey {
   export type ClientWhereClause = z.infer<
     typeof apiKeyClientWhereClauseSchema
   >
+  export type Where = SelectConditions<typeof apiKeys>
 }
 
 export const createApiKeyInputSchema = z.object({

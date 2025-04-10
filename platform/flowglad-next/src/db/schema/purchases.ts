@@ -16,6 +16,8 @@ import {
   newBaseZodSelectSchemaColumns,
   tableBase,
   livemodePolicy,
+  metadataSchema,
+  SelectConditions,
 } from '@/db/tableUtils'
 import {
   Customer,
@@ -113,7 +115,7 @@ const zodSchemaEnhancementColumns = {
   quantity: core.safeZodPositiveInteger,
   status: core.createSafeZodEnum(PurchaseStatus),
   priceType: core.createSafeZodEnum(PriceType),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: metadataSchema.nullable(),
 }
 
 const baseSelectSchema = createSelectSchema(purchases, {
@@ -366,6 +368,8 @@ export namespace Purchase {
   export type ClientRecord = z.infer<
     typeof purchaseClientSelectSchema
   >
+
+  export type Where = SelectConditions<typeof purchases>
 
   export interface PurchaseTableRowData {
     purchase: Purchase.ClientRecord

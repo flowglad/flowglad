@@ -8,6 +8,7 @@ import {
   enhancedCreateInsertSchema,
   createUpdateSchema,
   livemodePolicy,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -117,4 +118,5 @@ export namespace ProperNoun {
   export type ClientRecord = z.infer<
     typeof properNounClientSelectSchema
   >
+  export type Where = SelectConditions<typeof properNouns>
 }

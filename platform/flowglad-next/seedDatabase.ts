@@ -137,6 +137,7 @@ export const setupPaymentMethod = async (params: {
   customerId: string
   livemode?: boolean
   paymentMethodData?: Record<string, any>
+  default?: boolean
   type?: PaymentMethodType
 }) => {
   return adminTransaction(async ({ transaction }) => {
