@@ -7,19 +7,13 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import ErrorBoundary from './ErrorBoundary'
 
-function DateDisplay({ label }: { label: string }) {
-  return (
-    <ErrorBoundary fallback={<div>{label}</div>}>
-      <div>
-        {!isNaN(Date.parse(label))
-          ? core.formatDate(new Date(label))
-          : label}
-      </div>
-    </ErrorBoundary>
-  )
+function DateLabel({ label }: { label: string }) {
+  const date = new Date(label)
+  const formattedDate = core.formatDate(date)
+  return <div>{formattedDate}</div>
 }
 
-function RevenueTooltip({
+function InnerRevenueTooltip({
   active,
   payload,
   label,
@@ -52,11 +46,19 @@ function RevenueTooltip({
             style={{ width: '10px', height: '10px' }}
           />
         </div>
-        <DateDisplay label={label} />
+        <ErrorBoundary fallback={<div>{label}</div>}>
+          <DateLabel label={label} />
+        </ErrorBoundary>
         <div className="text-right">{formattedValue}</div>
       </div>
     </div>
   )
 }
 
-export { RevenueTooltip }
+export function RevenueTooltip(props: TooltipCallbackProps) {
+  return (
+    <ErrorBoundary fallback={<div>Error</div>}>
+      <InnerRevenueTooltip {...props} />
+    </ErrorBoundary>
+  )
+}

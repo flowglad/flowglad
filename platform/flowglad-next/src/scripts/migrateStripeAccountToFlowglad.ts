@@ -16,7 +16,6 @@ import {
 } from '@/migration-helpers/stripeMigrations'
 import { selectDefaultCatalog } from '@/db/tableMethods/catalogMethods'
 import {
-  bulkInsertOrDoNothingProducts,
   bulkInsertOrDoNothingProductsByExternalId,
   selectProducts,
 } from '@/db/tableMethods/productMethods'
@@ -260,6 +259,24 @@ const migrateStripeSubscriptionDataToFlowglad = async (
       (paymentMethod) => paymentMethod.customerId!,
       paymentMethodRecords
     )
+    const productsForOrganization = await selectProducts(
+      {
+        organizationId: flowgladOrganizationId,
+      },
+      transaction
+    )
+    const pricesForOrganization = await selectPrices(
+      {
+        productId: productsForOrganization.map(
+          (product) => product.id
+        ),
+      },
+      transaction
+    )
+    const pricesByOldStripePriceId = new Map<string, Price.Record>(
+      pricesForOrganization.map((price) => [price.externalId!, price])
+    )
+
     const subscriptionInserts: Subscription.Insert[] =
       await Promise.all(
         stripeSubscriptions.map(async (subscription) => {
@@ -270,6 +287,9 @@ const migrateStripeSubscriptionDataToFlowglad = async (
             subscription,
             customerRecord,
             paymentMethodRecordsByCustomerId[customerRecord.id] ?? [],
+            pricesByOldStripePriceId.get(
+              stripeIdFromObjectOrId(subscription.items.data[0].price)
+            )!,
             {
               livemode: true,
               organizationId: flowgladOrganizationId,
@@ -333,7 +353,10 @@ const migrateStripeSubscriptionDataToFlowglad = async (
                 stripeIdFromObjectOrId(subscription.id)
               )!
             if (!subscriptionRecord) {
-              console.error('Error: subscription record not found')
+              console.error(
+                'Error: subscription record not found for subscription item',
+                item
+              )
               process.exit(1)
             }
             return stripeSubscriptionItemToSubscriptionItemInsert(
@@ -537,8 +560,8 @@ async function migrateStripeAccountToFlowglad(
     flowgladOrganizationId,
     stripeAccountId,
   }
-  await migrateStripeCatalogDataToFlowglad(migrationParams)
-  await migrateStripeCustomerDataToFlowglad(migrationParams)
+  // await migrateStripeCatalogDataToFlowglad(migrationParams)
+  // await migrateStripeCustomerDataToFlowglad(migrationParams)
   await migrateStripeSubscriptionDataToFlowglad(migrationParams)
 }
 
