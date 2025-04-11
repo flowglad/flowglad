@@ -38,6 +38,7 @@ import { usageMetersRouter } from './routers/usageMetersRouter'
 import { usageEventsRouter } from './routers/usageEventsRouter'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { t } from './coreTrpcObject'
+import { apiKeysRouter } from './routers/apiKeysRouter'
 
 const purchasesRouter = router({
   create: createPurchase,
@@ -92,6 +93,7 @@ export const appRouter = router({
     get: getApiKeys,
     create: createApiKey,
     rotate: rotateApiKeyProcedure,
+    getTableRows: apiKeysRouter.getTableRows,
   }),
   subscriptions: subscriptionsRouter,
   paymentMethods: paymentMethodsRouter,

@@ -6,7 +6,7 @@ import PageTitle from './PageTitle'
 import Breadcrumb from '../navigation/Breadcrumb'
 
 export interface TabData {
-  label: React.ReactNode
+  label: string
   subPath: string
   Component: React.FC<{}>
   alwaysMounted?: boolean

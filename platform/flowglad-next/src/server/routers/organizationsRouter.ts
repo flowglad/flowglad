@@ -52,29 +52,49 @@ const generateSubdomainSlug = (name: string) => {
   ) // Fallback if result is empty
 }
 
-const getMembers = protectedProcedure.query(async ({ ctx }) => {
-  if (!ctx.organizationId) {
-    throw new Error('organizationId is required')
-  }
-  const members = await adminTransaction(async ({ transaction }) => {
-    return selectMembershipsAndUsersByMembershipWhere(
-      { organizationId: ctx.organizationId },
-      transaction
-    )
-  })
+const getMembers = protectedProcedure
+  .input(
+    z.object({
+      cursor: z.string(),
+      limit: z.number(),
+    })
+  )
+  .query(async ({ ctx, input }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+    const { cursor, limit } = input
+    const offset = parseInt(cursor) * limit
 
-  return {
-    /**
-     * Sort members by date of creation, newest first
-     */
-    members: members.sort((a, b) => {
+    const members = await adminTransaction(
+      async ({ transaction }) => {
+        return selectMembershipsAndUsersByMembershipWhere(
+          { organizationId: ctx.organizationId },
+          transaction
+        )
+      }
+    )
+
+    // Sort members by date of creation, newest first
+    const sortedMembers = members.sort((a, b) => {
       return (
         new Date(b.membership.createdAt).getTime() -
         new Date(a.membership.createdAt).getTime()
       )
-    }),
-  }
-})
+    })
+
+    // Apply pagination
+    const paginatedMembers = sortedMembers.slice(
+      offset,
+      offset + limit
+    )
+    const total = sortedMembers.length
+
+    return {
+      data: paginatedMembers,
+      total,
+    }
+  })
 
 const getFocusedMembership = protectedProcedure.query(
   async ({ ctx }) => {
