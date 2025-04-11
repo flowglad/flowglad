@@ -30,18 +30,20 @@ const TableRoot = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={twMerge(
-        clsx(
-          'w-full caption-bottom table-fixed overflow-hidden rounded-radius bg-nav',
-          className
-        )
-      )}
-      style={{ borderCollapse: 'collapse' }}
-      {...props}
-    />
+  <div className="relative w-full">
+    <div className="overflow-auto">
+      <table
+        ref={ref}
+        className={twMerge(
+          clsx(
+            'w-full caption-bottom table-fixed rounded-radius bg-nav',
+            className
+          )
+        )}
+        style={{ borderCollapse: 'collapse' }}
+        {...props}
+      />
+    </div>
   </div>
 ))
 TableRoot.displayName = 'Table'

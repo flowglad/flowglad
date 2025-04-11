@@ -309,6 +309,7 @@ export const stripeSubscriptionToSubscriptionInsert = async (
   stripeSubscription: Stripe.Subscription,
   customer: Customer.Record,
   paymentMethodsForCustomer: PaymentMethod.Record[],
+  price: Price.Record,
   params: CoreMigrationParams,
   stripe: Stripe
 ): Promise<Subscription.Insert> => {
@@ -355,7 +356,7 @@ export const stripeSubscriptionToSubscriptionInsert = async (
       ? dateFromStripeTimestamp(stripeSubscription.cancel_at)
       : null,
     runBillingAtPeriodStart: null,
-    priceId: null,
+    priceId: price.id,
   }
 }
 

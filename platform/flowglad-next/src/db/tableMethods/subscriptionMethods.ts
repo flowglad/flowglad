@@ -15,7 +15,17 @@ import {
   subscriptionsTableRowDataSchema,
   subscriptionsUpdateSchema,
 } from '@/db/schema/subscriptions'
-import { and, lte, gte, eq, desc, gt, isNull, or } from 'drizzle-orm'
+import {
+  and,
+  lte,
+  gte,
+  eq,
+  desc,
+  gt,
+  isNull,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { customers } from '../schema/customers'
@@ -172,11 +182,23 @@ export const bulkInsertOrDoNothingSubscriptionsByExternalId = (
   subscriptionInserts: Subscription.Insert[],
   transaction: DbTransaction
 ) => {
-  return bulkInsertOrDoNothingSubscriptions(
-    subscriptionInserts,
-    [subscriptions.externalId, subscriptions.organizationId],
-    transaction
-  )
+  return transaction
+    .insert(subscriptions)
+    .values(subscriptionInserts)
+    .onConflictDoUpdate({
+      target: [
+        subscriptions.externalId,
+        subscriptions.organizationId,
+      ],
+      set: {
+        priceId: sql`excluded.price_id`,
+      },
+    })
+  // return bulkInsertOrDoNothingSubscriptions(
+  //   subscriptionInserts,
+  //   [subscriptions.externalId, subscriptions.organizationId],
+  //   transaction
+  // )
 }
 
 export const getActiveSubscriptionsForPeriod = async (
