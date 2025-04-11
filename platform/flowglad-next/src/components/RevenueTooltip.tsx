@@ -5,12 +5,19 @@ import core from '@/utils/core'
 import { getColorClassName } from '@/utils/chartStyles'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import ErrorBoundary from './ErrorBoundary'
 
-export const RevenueTooltip = ({
+function DateLabel({ label }: { label: string }) {
+  const date = new Date(label)
+  const formattedDate = core.formatDate(date)
+  return <div>{formattedDate}</div>
+}
+
+function InnerRevenueTooltip({
   active,
   payload,
   label,
-}: TooltipCallbackProps) => {
+}: TooltipCallbackProps) {
   const { organization } = useAuthenticatedContext()
   if (!active || !payload?.[0] || !organization) {
     return null
@@ -21,7 +28,6 @@ export const RevenueTooltip = ({
       organization.defaultCurrency,
       value
     )
-
   return (
     <div
       className={twMerge(
@@ -40,9 +46,19 @@ export const RevenueTooltip = ({
             style={{ width: '10px', height: '10px' }}
           />
         </div>
-        <div>{core.formatDate(new Date(label))}</div>
+        <ErrorBoundary fallback={<div>{label}</div>}>
+          <DateLabel label={label} />
+        </ErrorBoundary>
         <div className="text-right">{formattedValue}</div>
       </div>
     </div>
+  )
+}
+
+export function RevenueTooltip(props: TooltipCallbackProps) {
+  return (
+    <ErrorBoundary fallback={<div>Error</div>}>
+      <InnerRevenueTooltip {...props} />
+    </ErrorBoundary>
   )
 }
