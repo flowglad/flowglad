@@ -48,6 +48,7 @@ const tabClassnames = cva(
 
 interface TabProps {
   title?: string
+  children?: React.ReactNode
   state: 'selected' | 'default'
 }
 
@@ -55,13 +56,13 @@ const Tab = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> &
     TabProps
->(({ className, title, ...props }, ref) => (
+>(({ className, title, children, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
     className={clsx(tabClassnames({ state: props.state }), className)}
     {...props}
   >
-    {title}
+    {title || children}
   </TabsPrimitive.Trigger>
 ))
 Tab.displayName = TabsPrimitive.Trigger.displayName
