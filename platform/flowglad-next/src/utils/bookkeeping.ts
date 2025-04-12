@@ -7,6 +7,7 @@ import {
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
+  insertCustomer,
   selectCustomerById,
   selectCustomers,
   updateCustomer,
@@ -322,8 +323,7 @@ export const createOpenPurchase = async (
 
   /**
    * If the purchase is a single payment or installments,
-   * we need to create an invoice for the payment and make
-   * that invoice's payment intent id the purchase's payment intent id
+   * we need to create an invoice for the payment.
    * Subscriptions need to have their invoices created AFTER the subscription is created
    */
   if (price.type === PriceType.SinglePayment) {
@@ -334,24 +334,6 @@ export const createOpenPurchase = async (
         },
         transaction
       )
-    const paymentIntent = await createPaymentIntentForInvoice({
-      invoice,
-      invoiceLineItems: invoiceLineItems,
-      organization: membershipsAndOrganization.organization,
-      stripeCustomerId: customer.stripeCustomerId!,
-    })
-    stripePaymentIntentId = paymentIntent.id
-    await updateInvoice(
-      {
-        id: invoice.id,
-        stripePaymentIntentId,
-        type: InvoiceType.Purchase,
-        purchaseId: purchase.id,
-        billingPeriodId: null,
-        subscriptionId: null,
-      },
-      transaction
-    )
   }
   return purchase
 }
@@ -435,6 +417,12 @@ export const editOpenPurchase = async (
       purchase.organizationId,
       transaction
     )
+    /**
+     * Create a payment intent for the invoice,
+     * but don't attach it to the invoice directly.
+     * Instead, it should attach to the checkout session,
+     * to enforce our invariant that all payment intents have a corresponding checkout session.
+     */
     const paymentIntent = await createPaymentIntentForInvoice({
       invoice: {
         ...invoice,
@@ -444,18 +432,6 @@ export const editOpenPurchase = async (
       organization,
       stripeCustomerId: customer.stripeCustomerId!,
     })
-    await updateInvoice(
-      {
-        id: invoice.id,
-        stripePaymentIntentId: paymentIntent.id,
-        bankPaymentOnly,
-        type: InvoiceType.Purchase,
-        purchaseId: purchase.id,
-        billingPeriodId: null,
-        subscriptionId: null,
-      },
-      transaction
-    )
 
     const openCheckoutSessions =
       await selectOpenNonExpiredCheckoutSessions(
@@ -483,16 +459,13 @@ export const editOpenPurchase = async (
   )
 }
 
-export const createOrUpdateCustomer = async (
+export const createCustomerBookkeeping = async (
   payload: {
     customer: Customer.Insert
   },
   { transaction }: AuthenticatedTransactionParams
 ) => {
-  let customer = await upsertCustomerByEmailAndOrganizationId(
-    payload.customer,
-    transaction
-  )
+  let customer = await insertCustomer(payload.customer, transaction)
   if (!customer.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
       payload.customer

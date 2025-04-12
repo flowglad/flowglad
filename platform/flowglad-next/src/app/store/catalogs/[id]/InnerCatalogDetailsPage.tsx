@@ -47,7 +47,11 @@ function InnerCatalogDetailsPage({
                   label: 'Products',
                   subPath: 'products',
                   Component: () => (
-                    <ProductsTable products={products} />
+                    <ProductsTable
+                      filters={{
+                        catalogId: catalog.id,
+                      }}
+                    />
                   ),
                 },
               ]}

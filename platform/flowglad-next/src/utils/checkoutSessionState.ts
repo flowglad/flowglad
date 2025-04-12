@@ -250,10 +250,14 @@ export const createNonInvoiceCheckoutSession = async (
       price.type === PriceType.Subscription ||
       price.type === PriceType.Usage
     ) {
+      const customer = customerId
+        ? await selectCustomerById(customerId, transaction)
+        : undefined
       const setupIntent = await createSetupIntentForCheckoutSession({
         organization,
         checkoutSession,
         purchase,
+        customer,
       })
       stripeSetupIntentId = setupIntent.id
     } else {

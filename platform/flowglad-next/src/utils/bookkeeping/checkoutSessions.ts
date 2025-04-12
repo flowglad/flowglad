@@ -45,7 +45,9 @@ import {
 } from '@/db/tableMethods/feeCalculationMethods'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
+  insertCustomer,
   selectCustomers,
+  updateCustomer,
   upsertCustomerByEmailAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
@@ -208,7 +210,7 @@ export const editCheckoutSession = async (
  * Handles the bookkeeping operations for a checkout session, managing customer, purchase, and fee records.
  *
  * @param checkoutSession - The checkout session record to process
- * @param providedStripecustomerId - Optional Stripe customer ID to link with the customer
+ * @param providedStripeCustomerId - Optional Stripe customer ID to link with the customer
  * @param transaction - Database transaction for ensuring data consistency
  *
  * Operations performed:
@@ -235,7 +237,7 @@ export const editCheckoutSession = async (
 export const processPurchaseBookkeepingForCheckoutSession = async (
   {
     checkoutSession,
-    stripeCustomerId: providedStripecustomerId,
+    stripeCustomerId: providedStripeCustomerId,
   }: {
     checkoutSession: CheckoutSession.Record
     stripeCustomerId: string | null
@@ -258,22 +260,31 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       purchase.customerId!,
       transaction
     )
-  } else {
-    // First try to find existing customer
-    const result = await selectCustomers(
+  }
+  if (providedStripeCustomerId) {
+    const [customerWithStripeCustomerId] = await selectCustomers(
       {
-        email: checkoutSession.customerEmail!,
-        organizationId: product.organizationId,
+        stripeCustomerId: providedStripeCustomerId,
       },
       transaction
     )
-    customer = result[0]
+    customer = customerWithStripeCustomerId
   }
   if (!customer) {
-    customer = await upsertCustomerByEmailAndOrganizationId(
+    /**
+     * Create a new customer if one doesn't exist.
+     * Note: This knowingly creates customers with duplicate emails in the same organization.
+     * Unfortunately this is the least worst option.
+     * The alternative would be essentially allowing anonymous users
+     * write access on existing customer organizations simply by guessing / inserting
+     * the customer email.
+     */
+    customer = await insertCustomer(
       {
         email: checkoutSession.customerEmail!,
-        name: checkoutSession.customerName!,
+        name:
+          checkoutSession.customerName ??
+          checkoutSession.customerEmail!,
         organizationId: product.organizationId,
         billingAddress: checkoutSession.billingAddress,
         externalId: core.nanoid(),
@@ -281,11 +292,8 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       },
       transaction
     )
-    let stripeCustomerId: string | null = providedStripecustomerId
-    if (!stripeCustomerId) {
-      stripeCustomerId = customer.stripeCustomerId
-    }
-    // If no existing customer, create new customer
+    let stripeCustomerId: string | null = providedStripeCustomerId
+    // If no existing stripe customer, create new customer
     if (!stripeCustomerId) {
       const stripeCustomer = await createStripeCustomer({
         email: checkoutSession.customerEmail!,
@@ -294,15 +302,10 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       })
       stripeCustomerId = stripeCustomer.id
     }
-    customer = await upsertCustomerByEmailAndOrganizationId(
+    customer = await updateCustomer(
       {
-        email: checkoutSession.customerEmail!,
-        name: checkoutSession.customerName!,
-        organizationId: product.organizationId,
-        billingAddress: checkoutSession.billingAddress,
+        id: customer.id,
         stripeCustomerId,
-        externalId: core.nanoid(),
-        livemode: checkoutSession.livemode,
       },
       transaction
     )

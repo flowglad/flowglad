@@ -1,8 +1,7 @@
 import * as R from 'ramda'
 import { protectedProcedure } from '../trpc'
-import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { createOrUpdateCustomer as createCustomerBookkeeping } from '@/utils/bookkeeping'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import { createCustomerOutputSchema } from '@/db/schema/purchases'
@@ -20,12 +19,6 @@ export const createCustomer = protectedProcedure
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    // if (1 > 0) {
-    //   throw new TRPCError({
-    //     code: 'BAD_REQUEST',
-    //     message: 'test error!',
-    //   })
-    // }
     const organizationId = ctx.organizationId
     if (!organizationId) {
       throw new Error('organizationId is required')

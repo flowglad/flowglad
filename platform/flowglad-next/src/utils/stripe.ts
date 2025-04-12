@@ -21,6 +21,7 @@ import { calculateTotalFeeAmount } from './bookkeeping/fees'
 import { calculateTotalDueAmount } from './bookkeeping/fees'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Country } from '@/db/schema/countries'
+import { Customer } from '@/db/schema/customers'
 
 const DIGITAL_TAX_CODE = 'txcd_10000000'
 
@@ -1174,8 +1175,9 @@ export const createSetupIntentForCheckoutSession = async (params: {
   organization: Organization.Record
   checkoutSession: CheckoutSession.Record
   purchase?: Purchase.Record
+  customer?: Customer.Record
 }) => {
-  const { checkoutSession, organization, purchase } = params
+  const { checkoutSession, organization, purchase, customer } = params
   const metadata: CheckoutSessionStripeIntentMetadata = {
     checkoutSessionId: checkoutSession.id,
     type: IntentMetadataType.CheckoutSession,
@@ -1217,6 +1219,7 @@ export const createSetupIntentForCheckoutSession = async (params: {
 
   return stripe(checkoutSession.livemode).setupIntents.create({
     ...bankPaymentOnlyParams,
+    customer: customer?.stripeCustomerId ?? undefined,
     metadata,
     on_behalf_of: onBehalfOf,
   })

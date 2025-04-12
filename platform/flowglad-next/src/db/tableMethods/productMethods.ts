@@ -19,6 +19,10 @@ import {
 } from '@/db/schema/products'
 import { ProperNoun } from '../schema/properNouns'
 import { DbTransaction } from '../types'
+import { Price } from '@/db/schema/prices'
+import { Catalog } from '@/db/schema/catalogs'
+import { selectPricesProductsAndCatalogsForOrganization } from './priceMethods'
+import { selectMembershipAndOrganizations } from './membershipMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof products,
@@ -82,4 +86,105 @@ export const bulkInsertOrDoNothingProductsByExternalId = (
     [products.externalId],
     transaction
   )
+}
+
+export interface ProductRow {
+  prices: Price.ClientRecord[]
+  product: Product.ClientRecord
+  catalog?: Catalog.ClientRecord
+}
+
+export const getProductTableRows = async (
+  {
+    cursor,
+    limit = 10,
+    filters = {},
+  }: {
+    cursor: string
+    limit?: number
+    filters?: {
+      active?: boolean
+      organizationId?: string
+    }
+  },
+  transaction: DbTransaction,
+  userId: string
+): Promise<{
+  data: ProductRow[]
+  total: number
+  hasMore: boolean
+}> => {
+  // Get the user's organization
+  const [membership] = await selectMembershipAndOrganizations(
+    {
+      userId,
+      focused: true,
+    },
+    transaction
+  )
+
+  // Get products with prices and catalogs
+  const productsResult =
+    await selectPricesProductsAndCatalogsForOrganization(
+      {},
+      membership.organization.id,
+      transaction
+    )
+
+  // Apply filters
+  let filteredProducts = productsResult
+
+  if (filters.active !== undefined) {
+    filteredProducts = filteredProducts.filter(
+      (p) => p.product.active === filters.active
+    )
+  }
+
+  // Group prices by product ID
+  const pricesByProductId = new Map<string, Price.ClientRecord[]>()
+  filteredProducts.forEach((p) => {
+    pricesByProductId.set(p.product.id, [
+      ...(pricesByProductId.get(p.product.id) ?? []),
+      p.price,
+    ])
+  })
+
+  // Get unique products
+  const uniqueProducts = R.uniqBy(
+    (p) => p.id,
+    filteredProducts.map((p) => p.product)
+  )
+
+  // Group catalogs by product ID
+  const catalogsByProductId = new Map<string, Catalog.ClientRecord>()
+  filteredProducts.forEach((p) => {
+    if (p.catalog) {
+      catalogsByProductId.set(p.product.id, p.catalog)
+    }
+  })
+
+  // Format products with prices and catalogs
+  const products = uniqueProducts.map((product) => ({
+    product,
+    prices: pricesByProductId.get(product.id) ?? [],
+    catalog: catalogsByProductId.get(product.id),
+  }))
+
+  // Sort products by creation date
+  products.sort(
+    (a, b) =>
+      b.product.createdAt.getTime() - a.product.createdAt.getTime()
+  )
+
+  // Apply pagination
+  const pageIndex = parseInt(cursor) || 0
+  const startIndex = pageIndex * limit
+  const endIndex = startIndex + limit
+  const paginatedProducts = products.slice(startIndex, endIndex)
+
+  return {
+    data: paginatedProducts,
+    total: products.length,
+    hasMore: endIndex < products.length,
+  }
 }

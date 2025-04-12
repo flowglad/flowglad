@@ -17,7 +17,7 @@ import {
 } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
-import { createOrUpdateCustomer as createCustomerBookkeeping } from '@/utils/bookkeeping'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
 import {
   createCustomerInputSchema,
