@@ -153,6 +153,12 @@ const TotalBillingDetails = React.forwardRef<
     feeCalculation,
     flowType,
   } = checkoutPageContext
+  /**
+   * Consider throwing an error here
+   */
+  if (flowType === CheckoutFlowType.AddPaymentMethod) {
+    return null
+  }
   let afterwardsTotal: number | null = null
   let afterwardsTotalLabel = ''
   if (subscriptionDetails?.trialPeriodDays) {

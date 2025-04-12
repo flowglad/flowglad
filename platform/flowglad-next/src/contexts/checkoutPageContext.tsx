@@ -115,6 +115,18 @@ const subscriptionDetailsFromBillingInfoCore = (
   return subscriptionDetails
 }
 
+const currencyFromBillingInfoCore = (
+  billingInfo: BillingInfoCore
+): CurrencyCode => {
+  if (billingInfo.flowType === CheckoutFlowType.Invoice) {
+    return billingInfo.invoice.currency
+  }
+  if (billingInfo.flowType === CheckoutFlowType.AddPaymentMethod) {
+    return billingInfo.sellerOrganization.defaultCurrency
+  }
+  return billingInfo.price.currency
+}
+
 export const useCheckoutPageContext =
   (): CheckoutPageContextValues => {
     const checkoutInfo = useContext(CheckoutPageContext)
@@ -125,14 +137,12 @@ export const useCheckoutPageContext =
     const clearDiscountCode = trpc.discounts.clear.useMutation()
     const router = useRouter()
     const checkoutBlocked = editCheckoutSession.isPending ?? false
-    const currency: CurrencyCode =
-      billingInfo.flowType === CheckoutFlowType.Invoice
-        ? billingInfo.invoice.currency
-        : billingInfo.price.currency
+    const currency = currencyFromBillingInfoCore(billingInfo)
+    const subscriptionDetails =
+      subscriptionDetailsFromBillingInfoCore(billingInfo)
     return {
       ...billingInfo,
-      subscriptionDetails:
-        subscriptionDetailsFromBillingInfoCore(billingInfo),
+      subscriptionDetails,
       attemptDiscountCode: async (input) => {
         const result = await attemptDiscountCode.mutateAsync(input)
         router.refresh()

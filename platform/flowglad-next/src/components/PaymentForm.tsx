@@ -373,17 +373,16 @@ const PaymentForm = () => {
               },
             },
           }}
-          onChange={(e) => {
-            setPaymentInfoComplete(e.complete)
-
+          onChange={async (e) => {
             if (e.complete) {
-              editCheckoutSession({
+              await editCheckoutSession({
                 checkoutSession: {
                   ...checkoutSession,
                   paymentMethodType: e.value
                     .type as PaymentMethodType,
                 },
               })
+              setPaymentInfoComplete(true)
             }
           }}
           className={!embedsReady ? 'opacity-0' : ''}

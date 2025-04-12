@@ -6,19 +6,33 @@ import { UserRecord } from '@/db/schema/users'
 import { Membership } from '@/db/schema/memberships'
 import TableTitle from '@/components/ion/TableTitle'
 import { Plus } from 'lucide-react'
-import { FallbackSkeleton } from '@/components/ion/Skeleton'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
+import { trpc } from '@/app/_trpc/client'
 
 type OrganizationMembersTableProps = {
-  data: { user: UserRecord; membership: Membership.ClientRecord }[]
-  loading: boolean
+  loading?: boolean
+  data?: { user: UserRecord; membership: Membership.ClientRecord }[]
 }
 
 const OrganizationMembersTable = ({
-  data,
-  loading,
+  loading: externalLoading,
+  data: externalData,
 }: OrganizationMembersTableProps) => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.organizations.getMembers.useQuery({})
+
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = externalData || data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
+  const loading = externalLoading || isLoading
 
   const columns = useMemo(
     () =>
@@ -41,7 +55,10 @@ const OrganizationMembersTable = ({
             <span className="text-sm">{cellData.user.email}</span>
           ),
         },
-      ] as ColumnDef<OrganizationMembersTableProps['data'][number]>[],
+      ] as ColumnDef<{
+        user: UserRecord
+        membership: Membership.ClientRecord
+      }>[],
     []
   )
 
@@ -58,17 +75,20 @@ const OrganizationMembersTable = ({
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <FallbackSkeleton
-              showSkeleton={loading}
-              className="h-16 w-full"
-            >
-              <Table
-                columns={columns}
-                data={data ?? []}
-                className="bg-nav"
-                bordered
-              />
-            </FallbackSkeleton>
+            <Table
+              columns={columns}
+              data={tableData}
+              className="bg-nav"
+              bordered
+              pagination={{
+                pageIndex,
+                pageSize,
+                total,
+                onPageChange: handlePaginationChange,
+                isLoading,
+                isFetching,
+              }}
+            />
           </div>
         </div>
       </div>

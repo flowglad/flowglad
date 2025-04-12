@@ -434,6 +434,7 @@ export enum CheckoutFlowType {
   SinglePayment = 'single_payment',
   Subscription = 'subscription',
   Invoice = 'invoice',
+  AddPaymentMethod = 'add_payment_method',
 }
 
 export enum SupabasePayloadType {

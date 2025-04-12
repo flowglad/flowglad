@@ -16,7 +16,10 @@ export default function DiscountCodeInput() {
     discount?.code ?? ''
   )
 
-  if (flowType === CheckoutFlowType.Invoice) {
+  if (
+    flowType === CheckoutFlowType.Invoice ||
+    flowType === CheckoutFlowType.AddPaymentMethod
+  ) {
     return null
   }
 
