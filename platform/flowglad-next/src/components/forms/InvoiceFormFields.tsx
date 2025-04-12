@@ -160,8 +160,8 @@ const InvoiceFormFields = ({
               {...field}
               value={field.value?.toString()}
               fetchOptionData={async () => {
-                const { data: memberCursorData } = await refetch()
-                return memberCursorData?.data
+                const { data: membersData } = await refetch()
+                return membersData?.data
               }}
               label="Owner"
               mapDataToOptions={(data) => {
