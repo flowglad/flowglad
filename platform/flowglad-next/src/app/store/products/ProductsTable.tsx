@@ -32,6 +32,7 @@ export enum FocusedTab {
 export interface ProductsTableFilters {
   active?: boolean
   organizationId?: string
+  catalogId?: string
 }
 
 interface ProductRow {
