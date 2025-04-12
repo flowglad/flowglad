@@ -1,16 +1,18 @@
 import { protectedProcedure, router } from '../trpc'
-import { IntervalUnit, PriceType } from '@/types'
+import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
   subscriptionClientSelectSchema,
   subscriptionsPaginatedListSchema,
   subscriptionsPaginatedSelectSchema,
+  subscriptionsTableRowDataSchema,
 } from '@/db/schema/subscriptions'
 import {
   isSubscriptionCurrent,
   selectSubscriptionById,
   selectSubscriptionsPaginated,
+  selectSubscriptionsTableRowData,
 } from '@/db/tableMethods/subscriptionMethods'
 import { idInputSchema, metadataSchema } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
@@ -26,6 +28,7 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectSubscriptionCountsByStatus } from '@/db/tableMethods/subscriptionMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -317,10 +320,117 @@ const createSubscriptionProcedure = protectedProcedure
     )
   })
 
+const getCountsByStatusProcedure = protectedProcedure
+  .meta(openApiMetas.GET)
+  .input(z.object({}))
+  .output(
+    z.array(
+      z.object({
+        status: z.nativeEnum(SubscriptionStatus),
+        count: z.number(),
+      })
+    )
+  )
+  .query(async ({ ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionCountsByStatus(transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const getTableRowsProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/api/v1/subscriptions/table-rows',
+      summary: 'Get paginated subscription table rows',
+      tags: ['Subscriptions'],
+      protect: true,
+    },
+  })
+  .input(
+    z.object({
+      cursor: z.string().optional(),
+      limit: z.number().min(1).max(100).optional(),
+      filters: z
+        .object({
+          status: z.nativeEnum(SubscriptionStatus).optional(),
+          customerId: z.string().optional(),
+          organizationId: z.string().optional(),
+        })
+        .optional(),
+    })
+  )
+  .output(
+    z.object({
+      data: z.array(subscriptionsTableRowDataSchema),
+      currentCursor: z.string().optional(),
+      nextCursor: z.string().optional(),
+      hasMore: z.boolean(),
+      total: z.number(),
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { cursor, limit = 10, filters = {} } = input
+
+        // Get the user's organization if not provided in filters
+        if (!filters.organizationId && ctx.organizationId) {
+          filters.organizationId = ctx.organizationId
+        }
+
+        // Use the existing selectSubscriptionsTableRowData function
+        const subscriptionRows =
+          await selectSubscriptionsTableRowData(
+            filters.organizationId || '',
+            transaction
+          )
+
+        // Apply filters
+        let filteredRows = subscriptionRows
+        if (filters.status) {
+          filteredRows = filteredRows.filter(
+            (row) => row.subscription.status === filters.status
+          )
+        }
+        if (filters.customerId) {
+          filteredRows = filteredRows.filter(
+            (row) =>
+              row.subscription.customerId === filters.customerId
+          )
+        }
+
+        // Apply pagination
+        const startIndex = cursor ? parseInt(cursor, 10) : 0
+        const endIndex = startIndex + limit
+        const paginatedRows = filteredRows.slice(startIndex, endIndex)
+        const hasMore = endIndex < filteredRows.length
+
+        return {
+          data: paginatedRows,
+          currentCursor: cursor || '0',
+          nextCursor: hasMore ? endIndex.toString() : undefined,
+          hasMore,
+          total: filteredRows.length,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
   list: listSubscriptionsProcedure,
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,
+  getCountsByStatus: getCountsByStatusProcedure,
+  getTableRows: getTableRowsProcedure,
 })

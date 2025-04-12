@@ -9,6 +9,7 @@ import Badge, { BadgeColor } from '@/components/ion/Badge'
 import { sentenceCase } from 'change-case'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
+import { trpc } from '@/app/_trpc/client'
 
 const subscriptionStatusColors: Record<
   SubscriptionStatus,
@@ -64,11 +65,28 @@ const SubscriptionMoreMenuCell = ({
     </>
   )
 }
+
+export interface SubscriptionsTableFilters {
+  status?: SubscriptionStatus
+  customerId?: string
+  organizationId?: string
+}
+
 const SubscriptionsTable = ({
-  data,
+  filters = {},
 }: {
-  data: Subscription.TableRowData[]
+  filters?: SubscriptionsTableFilters
 }) => {
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.subscriptions.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
   const columns = useMemo(
     () =>
       [
@@ -141,21 +159,39 @@ const SubscriptionsTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <SubscriptionMoreMenuCell
-              subscription={cellData.subscription}
-            />
+            <div className="flex justify-end w-full">
+              <SubscriptionMoreMenuCell
+                subscription={cellData.subscription}
+              />
+            </div>
           ),
         },
       ] as ColumnDef<Subscription.TableRowData>[],
     []
   )
 
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
+
   return (
     <Table
       columns={columns}
-      data={data}
+      data={tableData}
       className="bg-nav"
       bordered
+      pagination={{
+        pageIndex,
+        pageSize,
+        total,
+        onPageChange: handlePaginationChange,
+        isLoading,
+        isFetching,
+      }}
     />
   )
 }

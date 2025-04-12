@@ -2,15 +2,15 @@
 
 import { PageHeader } from '@/components/ion/PageHeader'
 import type { TabData } from '@/components/ion/PageHeader'
-import DeveloperSettingsPage from './DeveloperSettingsTab'
 import TeammatesSettingsTab from './TeammatesSettingsTab'
 import InternalPageContainer from '@/components/InternalPageContainer'
+import ApiKeysTable from './ApiKeysTable'
 
 const tabs: TabData[] = [
   {
     label: 'Developers',
     subPath: 'developers',
-    Component: DeveloperSettingsPage,
+    Component: ApiKeysTable,
   },
   {
     label: 'Teammates',

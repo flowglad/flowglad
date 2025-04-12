@@ -174,6 +174,11 @@ const subscriptionBillingInfoSchema = z.object({
   product: productsSelectSchema,
 })
 
+const addPaymentMethodBillingInfoSchema = z.object({
+  checkoutSession: checkoutSessionClientSelectSchema,
+  flowType: z.literal(CheckoutFlowType.AddPaymentMethod),
+})
+
 export type SubscriptionBillingInfoCore = z.infer<
   typeof subscriptionBillingInfoSchema
 >
@@ -184,6 +189,10 @@ const singlePaymentBillingInfoSchema = z.object({
   flowType: z.literal(CheckoutFlowType.SinglePayment),
   product: productsSelectSchema,
 })
+
+export type SinglePaymentBillingInfoCore = z.infer<
+  typeof singlePaymentBillingInfoSchema
+>
 
 const invoiceBillingInfoSchema = z.object({
   invoice: invoicesClientSelectSchema,
@@ -196,6 +205,7 @@ export const billingInfoSchema = z
     subscriptionBillingInfoSchema,
     singlePaymentBillingInfoSchema,
     invoiceBillingInfoSchema,
+    addPaymentMethodBillingInfoSchema,
   ])
   .and(
     z.object({

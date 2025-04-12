@@ -25,6 +25,7 @@ import {
   isNull,
   or,
   sql,
+  count,
 } from 'drizzle-orm'
 import { SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
@@ -224,4 +225,21 @@ export const getActiveSubscriptionsForPeriod = async (
   return subscriptionRecords.map((subscription) =>
     subscriptionsSelectSchema.parse(subscription)
   )
+}
+
+export const selectSubscriptionCountsByStatus = async (
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      status: subscriptions.status,
+      count: count(),
+    })
+    .from(subscriptions)
+    .groupBy(subscriptions.status)
+
+  return result.map((item) => ({
+    status: item.status as SubscriptionStatus,
+    count: item.count,
+  }))
 }

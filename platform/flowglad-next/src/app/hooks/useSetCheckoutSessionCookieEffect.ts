@@ -43,7 +43,14 @@ export const useSetCheckoutSessionCookieEffect = (
     if (checkoutSessionType === CheckoutSessionType.Product) {
       if (billingInfo.flowType === CheckoutFlowType.Invoice) {
         throw Error(
-          `Flow type cannot be Invoice while purchase session type is Product. Purchase session id: ${checkoutSessionId}`
+          `Flow type cannot be Invoice while purchase session type is Product. Checkout session id: ${checkoutSessionId}`
+        )
+      }
+      if (
+        billingInfo.flowType === CheckoutFlowType.AddPaymentMethod
+      ) {
+        throw Error(
+          `Flow type cannot be AddPaymentMethod while purchase session type is Product. Checkout session id: ${checkoutSessionId}`
         )
       }
 

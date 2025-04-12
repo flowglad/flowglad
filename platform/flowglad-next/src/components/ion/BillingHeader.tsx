@@ -54,7 +54,10 @@ const BillingHeader = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const checkoutPageContext = useCheckoutPageContext()
 
-  if (checkoutPageContext.flowType === CheckoutFlowType.Invoice) {
+  if (
+    checkoutPageContext.flowType === CheckoutFlowType.Invoice ||
+    checkoutPageContext.flowType === CheckoutFlowType.AddPaymentMethod
+  ) {
     return null
   }
 

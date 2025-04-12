@@ -173,62 +173,100 @@ const TableCaption = React.forwardRef<
 ))
 TableCaption.displayName = 'TableCaption'
 
-const PaginationRow = ({ table }: { table: TableType<any> }) => {
+const PaginationRow = ({
+  table,
+  isLoading,
+  isFetching,
+}: {
+  table: TableType<any>
+  isLoading?: boolean
+  isFetching?: boolean
+}) => {
+  const pagination = table.getState().pagination
+  const total =
+    (table.options.meta as { total?: number })?.total ??
+    table.getRowCount()
+  const showingStart =
+    total === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1
+  const showingEnd = Math.min(
+    showingStart + pagination.pageSize - 1,
+    total
+  )
+
+  // Show skeleton when total isn't ready yet (initial load)
+  if (isLoading && total === 0) {
+    return (
+      <div className="flex items-center gap-2 w-full justify-between py-3">
+        <div className="text-sm text-secondary">
+          <div className="h-4 w-24 bg-stroke-subtle animate-pulse rounded" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center gap-2 w-full justify-between py-3">
       <div className="text-sm text-secondary">
-        {table.getRowCount().toLocaleString()} Results
+        {total === 0 ? (
+          'No Results'
+        ) : total === 1 ? (
+          '1 Result'
+        ) : (
+          <>{total.toLocaleString()} Results</>
+        )}
       </div>
-      <div className="flex flex-row items-center gap-2">
-        <div className="flex items-center gap-1">
+      {total > 0 && (
+        <div className="flex items-center gap-2">
           <Button
-            onClick={() => table.firstPage()}
-            disabled={!table.getCanPreviousPage()}
             variant="ghost"
-            iconLeading={<ChevronLeft />}
-            className="h-8 w-8 p-0"
-          />
+            onClick={() => table.setPageIndex(0)}
+            disabled={
+              !table.getCanPreviousPage() || isLoading || isFetching
+            }
+            size="sm"
+            className="p-0 h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 -ml-3" />
+          </Button>
           <Button
+            variant="ghost"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            variant="ghost"
-            iconLeading={<ArrowLeft />}
-            className="h-8 w-8 p-0"
-          />
+            disabled={
+              !table.getCanPreviousPage() || isLoading || isFetching
+            }
+            size="sm"
+            className="p-0 h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           <Button
+            variant="ghost"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            variant="ghost"
-            iconLeading={<ArrowRight />}
-            className="h-8 w-8 p-0"
-          />
+            disabled={
+              !table.getCanNextPage() || isLoading || isFetching
+            }
+            size="sm"
+            className="p-0 h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
           <Button
-            onClick={() => table.lastPage()}
-            disabled={!table.getCanNextPage()}
             variant="ghost"
-            iconLeading={<ChevronRight />}
-            className="h-8 w-8 p-0"
-          />
+            onClick={() =>
+              table.setPageIndex(table.getPageCount() - 1)
+            }
+            disabled={
+              !table.getCanNextPage() || isLoading || isFetching
+            }
+            size="sm"
+            className="p-0 h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 -ml-3" />
+          </Button>
         </div>
-        <span className="flex items-center gap-1 text-sm text-secondary">
-          <div>Page</div>
-          <strong>
-            {table.getState().pagination.pageIndex + 1} of{' '}
-            {table.getPageCount().toLocaleString()}
-          </strong>
-        </span>
-      </div>
-      {/* <Select
-        options={[10, 20, 30, 40, 50].map((pageSize) => ({
-          label: pageSize.toString(),
-          value: pageSize.toString(),
-        }))}
-        label="Show"
-        value={table.getState().pagination.pageSize.toString()}
-        onValueChange={(value) => {
-          table.setPageSize(Number(value))
-        }}
-      /> */}
+      )}
     </div>
   )
 }
@@ -243,6 +281,16 @@ export type ColumnDefWithWidth<TData, TValue> = ColumnDef<
   minWidth?: number
   maxWidth?: number
 }
+
+export interface PaginationProps {
+  pageIndex: number
+  pageSize: number
+  total: number
+  onPageChange: (pageIndex: number) => void
+  isLoading?: boolean
+  isFetching?: boolean
+}
+
 export interface TableProps<TData, TValue> {
   /** Table columns */
   columns: ColumnDefWithWidth<TData, TValue>[]
@@ -260,9 +308,27 @@ export interface TableProps<TData, TValue> {
    * @default false
    */
   borderlessRows?: boolean
+  /** Loading state of the table
+   * @default false
+   */
+  isLoading?: boolean
   onClickRow?: (row: TData) => void
   className?: string
+  /** Pagination props */
+  pagination?: PaginationProps
 }
+
+const LoadingRow = ({
+  columns,
+}: {
+  columns: ColumnDefWithWidth<any, any>[]
+}) => (
+  <TableRow className="animate-pulse border-none">
+    <TableCell colSpan={columns.length}>
+      <div className="h-8 bg-stroke-subtle rounded w-full" />
+    </TableCell>
+  </TableRow>
+)
 
 /* ---------------------------------- Component --------------------------------- */
 function Table<TData, TValue>({
@@ -274,6 +340,8 @@ function Table<TData, TValue>({
   className,
   onClickRow,
   borderlessRows = false,
+  pagination,
+  isLoading = false,
 }: TableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [rowSelection, setRowSelection] = useState({})
@@ -292,119 +360,215 @@ function Table<TData, TValue>({
     state: {
       sorting,
       rowSelection,
+      pagination: pagination
+        ? {
+            pageIndex: pagination.pageIndex,
+            pageSize: pagination.pageSize,
+          }
+        : undefined,
     },
+    manualPagination: !!pagination,
+    pageCount: pagination
+      ? Math.ceil(pagination.total / pagination.pageSize)
+      : undefined,
+    onPaginationChange: pagination
+      ? (updater) => {
+          if (typeof updater === 'function') {
+            const newState = updater({
+              pageIndex: pagination.pageIndex,
+              pageSize: pagination.pageSize,
+            })
+            pagination.onPageChange(newState.pageIndex)
+          } else {
+            pagination.onPageChange(updater.pageIndex)
+          }
+        }
+      : undefined,
+    meta: pagination ? { total: pagination.total } : undefined,
   })
   const rowLength = data.length
-  if (rowLength === 0) {
+
+  if (isLoading || pagination?.isLoading || pagination?.isFetching) {
+    return (
+      <div
+        className={clsx(
+          'w-full',
+          bordered &&
+            'border border-stroke rounded-radius overflow-hidden',
+          className
+        )}
+      >
+        <div className="overflow-auto">
+          <TableRoot className={clsx('w-full', 'table-fixed')}>
+            {caption && <TableCaption>{caption}</TableCaption>}
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow
+                  className="border-none"
+                  key={headerGroup.id}
+                >
+                  {headerGroup.headers.map((header) => {
+                    const columnDef = header.column
+                      .columnDef as ColumnDef<TData, TValue> & {
+                      width?: number | string
+                      minWidth?: number
+                      maxWidth?: number
+                    }
+
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        rounded={!bordered}
+                        style={{
+                          width: columnDef.width,
+                          minWidth: columnDef.minWidth,
+                          maxWidth: columnDef.maxWidth,
+                        }}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <LoadingRow key={i} columns={columns} />
+              ))}
+            </TableBody>
+          </TableRoot>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isLoading && rowLength === 0) {
     return (
       <div className="w-full border-dashed border-2 border-stroke-subtle rounded-radius flex items-center justify-center h-32 my-4">
         <span className="text-secondary">No items.</span>
       </div>
     )
   }
-  return (
-    <div
-      className={clsx(
-        'w-full',
-        bordered &&
-          'border border-stroke overflow-hidden rounded-radius',
-        className
-      )}
-    >
-      <TableRoot className={clsx('w-full', 'table-fixed')}>
-        {caption && <TableCaption>{caption}</TableCaption>}
-        {columns.some((column) => !!column.header) && (
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow className="border-none" key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const columnDef = header.column
-                    .columnDef as ColumnDef<TData, TValue> & {
-                    width?: number | string
-                    minWidth?: number
-                    maxWidth?: number
-                  }
 
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      rounded={!bordered}
-                      style={{
-                        width: columnDef.width,
-                        minWidth: columnDef.minWidth,
-                        maxWidth: columnDef.maxWidth,
-                      }}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
+  return (
+    <div className="w-full flex flex-col gap-0">
+      <div
+        className={clsx(
+          'w-full',
+          bordered &&
+            'border border-stroke rounded-radius overflow-hidden',
+          className
         )}
-        <TableBody>
-          {rowLength ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && 'selected'}
-                className={clsx(
-                  'hover:bg-list-item-background-hover first:border-t-0',
-                  row.getIsSelected() && 'bg-container-high',
-                  onClickRow && 'cursor-pointer'
-                )}
-                onClick={
-                  onClickRow
-                    ? () => onClickRow(row.original)
-                    : undefined
-                }
-                borderless={borderlessRows}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
+      >
+        <div className="overflow-auto">
+          <TableRoot className={clsx('w-full', 'table-fixed')}>
+            {caption && <TableCaption>{caption}</TableCaption>}
+            {columns.some((column) => !!column.header) && (
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow
+                    className="border-none"
+                    key={headerGroup.id}
+                  >
+                    {headerGroup.headers.map((header) => {
+                      const columnDef = header.column
+                        .columnDef as ColumnDef<TData, TValue> & {
+                        width?: number | string
+                        minWidth?: number
+                        maxWidth?: number
+                      }
+
+                      return (
+                        <TableHead
+                          key={header.id}
+                          colSpan={header.colSpan}
+                          rounded={!bordered}
+                          style={{
+                            width: columnDef.width,
+                            minWidth: columnDef.minWidth,
+                            maxWidth: columnDef.maxWidth,
+                          }}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      )
+                    })}
+                  </TableRow>
                 ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="text-center"
-              >
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-        {rowLength > 10 && (
-          <TableFooter>
-            <TableRow>
-              <TableCell colSpan={columns.length}>
-                <PaginationRow table={table} />
-              </TableCell>
-            </TableRow>
-          </TableFooter>
-        )}
-        {footer && (
-          <TableFooter>
-            <TableRow>
-              <TableCell colSpan={columns.length}>{footer}</TableCell>
-            </TableRow>
-          </TableFooter>
-        )}
-      </TableRoot>
+              </TableHeader>
+            )}
+            <TableBody>
+              {rowLength ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className={clsx(
+                      'hover:bg-list-item-background-hover first:border-t-0',
+                      row.getIsSelected() && 'bg-container-high',
+                      onClickRow && 'cursor-pointer'
+                    )}
+                    onClick={
+                      onClickRow
+                        ? () => onClickRow(row.original)
+                        : undefined
+                    }
+                    borderless={borderlessRows}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+            {footer && (
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={columns.length}>
+                    {footer}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
+          </TableRoot>
+        </div>
+      </div>
+      {(rowLength > 10 || pagination) && (
+        <div className="w-full px-4 pt-4">
+          <PaginationRow
+            table={table}
+            isLoading={pagination?.isLoading}
+            isFetching={pagination?.isFetching}
+          />
+        </div>
+      )}
     </div>
   )
 }

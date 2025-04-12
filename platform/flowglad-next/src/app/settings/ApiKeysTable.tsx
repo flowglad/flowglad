@@ -13,6 +13,7 @@ import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { FlowgladApiKeyType } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
+import { trpc } from '@/app/_trpc/client'
 
 const MoreMenuCell = ({
   apiKey,
@@ -61,13 +62,29 @@ const ApiKeyTokenCell = ({
     </span>
   )
 }
-export type ApiKeysTableProps =
-  | { data: ApiKey.ClientRecord[]; loading: false }
-  | { data: undefined; loading: true }
 
-const ApiKeysTable = ({ data, loading }: ApiKeysTableProps) => {
+export interface ApiKeysTableFilters {
+  type?: FlowgladApiKeyType
+  organizationId?: string
+}
+
+const ApiKeysTable = ({
+  filters = {},
+}: {
+  filters?: ApiKeysTableFilters
+}) => {
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const { livemode } = useAuthContext()
+
+  const { data, isLoading, isFetching } =
+    trpc.apiKeys.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
   const columns = useMemo(
     () =>
       [
@@ -82,7 +99,7 @@ const ApiKeysTable = ({ data, loading }: ApiKeysTableProps) => {
           id: 'name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm w-24 truncate">
-              {cellData.name}
+              {cellData.apiKey.name}
             </span>
           ),
         },
@@ -92,21 +109,9 @@ const ApiKeysTable = ({ data, loading }: ApiKeysTableProps) => {
           ),
           accessorKey: 'token',
           cell: ({ row: { original: cellData } }) => {
-            return <ApiKeyTokenCell apiKey={cellData} />
+            return <ApiKeyTokenCell apiKey={cellData.apiKey} />
           },
         },
-        // {
-        //   header: ({ column }) => (
-        //     <SortableColumnHeaderCell
-        //       title="Last Used"
-        //       column={column}
-        //     />
-        //   ),
-        //   accessorKey: 'lastUsed',
-        //   cell: ({ row: { original: cellData } }) => (
-        //     <span className="text-sm">{cellData.lastUsed ? core.formatDate(cellData.lastUsed) : 'Never'}</span>
-        //   ),
-        // },
         {
           header: ({ column }) => (
             <SortableColumnHeaderCell
@@ -116,22 +121,31 @@ const ApiKeysTable = ({ data, loading }: ApiKeysTableProps) => {
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.createdAt!)}</>
+            <>{core.formatDate(cellData.apiKey.createdAt!)}</>
           ),
         },
         {
           header: () => <div />,
           id: 'actions',
           cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell apiKey={cellData} />
+            <MoreMenuCell apiKey={cellData.apiKey} />
           ),
         },
-      ] as DisplayColumnDef<ApiKey.ClientRecord>[],
+      ] as DisplayColumnDef<{
+        apiKey: ApiKey.ClientRecord
+        organization: { id: string; name: string }
+      }>[],
     []
   )
-  /**
-   * In testmode, the user shouldn't be able to create API keys
-   */
+
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
+
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
       <TableTitle
@@ -145,17 +159,20 @@ const ApiKeysTable = ({ data, loading }: ApiKeysTableProps) => {
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <FallbackSkeleton
-              showSkeleton={loading}
-              className="h-16 w-full"
-            >
-              <Table
-                columns={columns}
-                data={data ?? []}
-                className="bg-nav"
-                bordered
-              />
-            </FallbackSkeleton>
+            <Table
+              columns={columns}
+              data={tableData}
+              className="bg-nav"
+              bordered
+              pagination={{
+                pageIndex,
+                pageSize,
+                total,
+                onPageChange: handlePaginationChange,
+                isLoading,
+                isFetching,
+              }}
+            />
           </div>
         </div>
       </div>
