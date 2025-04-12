@@ -121,6 +121,9 @@ const calculateTotalBillingDetails = (
   )
   let taxAmount: number | null = null
   let totalDueAmount: number = subtotalAmount - (discountAmount ?? 0)
+  if (price?.type === PriceType.Usage) {
+    totalDueAmount = 0
+  }
   if (feeCalculation) {
     return {
       baseAmount,
@@ -185,13 +188,8 @@ const TotalBillingDetails = React.forwardRef<
           invoice: undefined,
           feeCalculation,
         }
-  const {
-    subtotalAmount,
-    discountAmount,
-    taxAmount,
-    baseAmount,
-    totalDueAmount,
-  } = calculateTotalBillingDetails(totalBillingDetailsParams)
+  const { discountAmount, taxAmount, baseAmount, totalDueAmount } =
+    calculateTotalBillingDetails(totalBillingDetailsParams)
 
   return (
     <div

@@ -154,6 +154,13 @@ export const migrateSingleSubscriptionBillingPeriod = async (
   console.log(
     `Created billing period ${billingPeriod.id} for subscription ${subscription.id}`
   )
+  const stripeSubscription = await stripe.subscriptions.retrieve(
+    stripeSubscriptionId,
+    {
+      stripeAccount: stripeAccountId,
+    }
+  )
+
   // Pause the subscription in Stripe
   await stripe.subscriptions.update(
     stripeSubscriptionId,
@@ -161,6 +168,10 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       pause_collection: {
         behavior: 'void', // This prevents Stripe from collecting any payments
         resumes_at: undefined, // No automatic resumption
+      },
+      metadata: {
+        ...stripeSubscription.metadata,
+        migrated_to_flowglad_time_ms: Date.now(),
       },
     },
     {

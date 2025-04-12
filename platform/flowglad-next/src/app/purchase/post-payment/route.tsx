@@ -29,17 +29,25 @@ import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Invoice } from '@/db/schema/invoices'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { Payment } from '@/db/schema/payments'
+import { generatePaymentReceiptPdfIdempotently } from '@/trigger/generate-receipt-pdf'
 
 interface ProcessPostPaymentResult {
   purchase: Purchase.Record
   invoice: Invoice.Record
   payment: Payment.Record | null
-  url: string | URL | null
+  checkoutSession: CheckoutSession.Record
+  url: string | URL
 }
 
-const processPaymentIntent = async (
+interface ProcessPaymentIntentParams {
   paymentIntentId: string
-): Promise<ProcessPostPaymentResult> => {
+  request: NextRequest
+}
+
+const processPaymentIntent = async ({
+  paymentIntentId,
+  request,
+}: ProcessPaymentIntentParams): Promise<ProcessPostPaymentResult> => {
   const paymentIntent = await getPaymentIntent(paymentIntentId)
   if (!paymentIntent) {
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
@@ -72,6 +80,20 @@ const processPaymentIntent = async (
           metadata.checkoutSessionId,
           transaction
         )
+      } else {
+        const checkoutSessionsForPaymentIntent =
+          await selectCheckoutSessions(
+            {
+              stripePaymentIntentId: paymentIntentId,
+            },
+            transaction
+          )
+        checkoutSession = checkoutSessionsForPaymentIntent[0]
+        if (!checkoutSession) {
+          throw new Error(
+            `Post-payment: Checkout session not found for payment intent: ${paymentIntentId}`
+          )
+        }
       }
       return { payment, purchase, checkoutSession, invoice }
     })
@@ -79,15 +101,30 @@ const processPaymentIntent = async (
     purchase,
     invoice,
     payment,
+    checkoutSession,
     url: checkoutSession?.successUrl
       ? new URL(checkoutSession.successUrl)
-      : null,
+      : new URL(
+          `/checkout/${checkoutSession.id}/success`,
+          request.url
+        ),
   }
 }
 
-const processCheckoutSession = async (
+interface ProcessCheckoutSessionResult
+  extends ProcessPostPaymentResult {
+  checkoutSession: CheckoutSession.Record
+}
+
+interface ProcessCheckoutSessionParams {
   checkoutSessionId: string
-): Promise<ProcessPostPaymentResult> => {
+  request: NextRequest
+}
+
+const processCheckoutSession = async ({
+  checkoutSessionId,
+  request,
+}: ProcessCheckoutSessionParams): Promise<ProcessCheckoutSessionResult> => {
   const result = await adminTransaction(async ({ transaction }) => {
     const [checkoutSession] = await selectCheckoutSessions(
       {
@@ -117,9 +154,13 @@ const processCheckoutSession = async (
    */
   const url = result.checkoutSession.successUrl
     ? new URL(result.checkoutSession.successUrl)
-    : null
+    : new URL(
+        `/checkout/${result.checkoutSession.id}/success`,
+        request.url
+      )
 
   return {
+    checkoutSession: result.checkoutSession,
     purchase: result.purchase,
     url,
     invoice: result.invoice,
@@ -127,11 +168,18 @@ const processCheckoutSession = async (
   }
 }
 
-const processSetupIntent = async (
+interface ProcessSetupIntentParams {
   setupIntentId: string
-): Promise<{
+  request: NextRequest
+}
+
+const processSetupIntent = async ({
+  setupIntentId,
+  request,
+}: ProcessSetupIntentParams): Promise<{
   purchase: Purchase.Record | null
-  url: string | URL | null
+  url: string | URL
+  checkoutSession: CheckoutSession.Record
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
   const { purchase, checkoutSession, billingRun } =
@@ -143,17 +191,21 @@ const processSetupIntent = async (
   }
   const url = checkoutSession.successUrl
     ? new URL(checkoutSession.successUrl)
-    : null
-  return { purchase, url }
+    : new URL(`/checkout/${checkoutSession.id}/success`, request.url)
+  return { purchase, url, checkoutSession }
 }
-
-const idempotentGenerateInvoicePdf = async (
-  invoiceId: string,
-  paymentId?: string
-) => {
-  return await generateInvoicePdfIdempotently(invoiceId)
-}
-
+/**
+ * This route is built on a very important assumption:
+ * that all payment intents and setup intents, regardless of the flow that
+ * originated them, have a corresponding Flowglad checkout session.
+ * If this route is ever accessed via a payment intent or setup intent that
+ * has no backing checkout session - it will crash. But also, that should never happen.
+ *
+ * The only code paths that create Stripe intents set this route as redirect.
+ * And those codepaths all require (or should require) a checkoutSession.
+ * @param request
+ * @returns
+ */
 export const GET = async (request: NextRequest) => {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -171,31 +223,38 @@ export const GET = async (request: NextRequest) => {
     }
 
     let result: {
-      purchase: Purchase.Record
-      url: string | URL | null
+      purchase: Purchase.Record | null
+      url: string | URL
+      checkoutSession: CheckoutSession.Record
     }
 
     if (checkoutSessionId) {
-      const checkoutSessionResult =
-        await processCheckoutSession(checkoutSessionId)
-      const { invoice } = checkoutSessionResult
+      const checkoutSessionResult = await processCheckoutSession({
+        checkoutSessionId,
+        request,
+      })
+      const { invoice, payment } = checkoutSessionResult
       result = checkoutSessionResult
-      await idempotentGenerateInvoicePdf(
-        invoice.id,
-        checkoutSessionResult.payment?.id
-      )
+      await generateInvoicePdfIdempotently(invoice.id)
+      if (payment) {
+        await generatePaymentReceiptPdfIdempotently(payment.id)
+      }
     } else if (paymentIntentId) {
-      const paymentIntentResult =
-        await processPaymentIntent(paymentIntentId)
-      const { invoice } = paymentIntentResult
+      const paymentIntentResult = await processPaymentIntent({
+        paymentIntentId,
+        request,
+      })
+      const { invoice, payment } = paymentIntentResult
       result = paymentIntentResult
-      await idempotentGenerateInvoicePdf(
-        invoice.id,
-        paymentIntentResult.payment?.id
-      )
+      await generateInvoicePdfIdempotently(invoice.id)
+      if (payment) {
+        await generatePaymentReceiptPdfIdempotently(payment.id)
+      }
     } else if (setupIntentId) {
-      const setupIntentResult =
-        await processSetupIntent(setupIntentId)
+      const setupIntentResult = await processSetupIntent({
+        setupIntentId,
+        request,
+      })
       if (setupIntentResult.url) {
         return Response.redirect(setupIntentResult.url, 303)
       }
@@ -210,10 +269,7 @@ export const GET = async (request: NextRequest) => {
           }
         )
       }
-      result = setupIntentResult as {
-        purchase: Purchase.Record
-        url: string | URL | null
-      }
+      result = setupIntentResult
     } else {
       throw new Error(
         'post-payment: No payment_intent, setup_intent, or purchase_session id provided'
@@ -234,8 +290,11 @@ export const GET = async (request: NextRequest) => {
     }
 
     let url = result.url
-    if (isNil(url)) {
-      url = new URL(`/purchase/access/${purchase.id}`, request.url)
+    if (isNil(url) && result.checkoutSession) {
+      url = new URL(
+        `/checkout/success/${result.checkoutSession.id}`,
+        request.url
+      )
     }
 
     const purchaseId = purchase.id

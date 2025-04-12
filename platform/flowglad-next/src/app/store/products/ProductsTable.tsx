@@ -12,6 +12,7 @@ import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import DeleteProductModal from '@/components/forms/DeleteProductModal'
 import EditProductModal from '@/components/forms/EditProductModal'
+import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
@@ -20,6 +21,7 @@ import PricingCellView from '@/components/PricingCellView'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { Catalog } from '@/db/schema/catalogs'
+import { trpc } from '@/app/_trpc/client'
 
 export enum FocusedTab {
   All = 'all',
@@ -27,8 +29,9 @@ export enum FocusedTab {
   Archived = 'archived',
 }
 
-type Props = {
-  products: (ProductWithPrices & { catalog?: Catalog.ClientRecord })[]
+export interface ProductsTableFilters {
+  active?: boolean
+  organizationId?: string
 }
 
 interface ProductRow {
@@ -62,6 +65,12 @@ const MoreMenuCell = ({
       label: 'Copy purchase link',
       handler: copyPurchaseLinkHandler,
     },
+    {
+      label: product.active
+        ? 'Deactivate product'
+        : 'Activate product',
+      handler: () => setIsArchiveOpen(true),
+    },
   ]
   if (product.active) {
     items.push({
@@ -87,14 +96,34 @@ const MoreMenuCell = ({
         setIsOpen={setIsCreatePriceOpen}
         productId={product.id}
       />
+      <ArchiveProductModal
+        isOpen={isArchiveOpen}
+        setIsOpen={setIsArchiveOpen}
+        product={{
+          id: product.id,
+          active: product.active,
+        }}
+      />
       <TableRowPopoverMenu items={items} />
     </>
   )
 }
 
 export const ProductsTable = ({
-  products,
-}: Pick<Props, 'products'>) => {
+  filters = {},
+}: {
+  filters?: ProductsTableFilters
+}) => {
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.products.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
   const columns = useMemo(
     () =>
       [
@@ -203,21 +232,34 @@ export const ProductsTable = ({
     []
   )
   const router = useRouter()
+
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
+
   return (
     <div className="flex-1 h-full w-full flex flex-col gap-6 pb-10">
       <div className="w-full flex flex-col gap-5">
         <Table
           columns={columns}
-          data={products.map((product) => ({
-            product,
-            prices: product.prices,
-            catalog: product.catalog,
-          }))}
+          data={tableData}
           onClickRow={(row) => {
             router.push(`/store/products/${row.product.id}`)
           }}
           className="bg-nav"
           bordered
+          pagination={{
+            pageIndex,
+            pageSize,
+            total,
+            onPageChange: handlePaginationChange,
+            isLoading,
+            isFetching,
+          }}
         />
       </div>
     </div>
