@@ -53,18 +53,11 @@ const generateSubdomainSlug = (name: string) => {
 }
 
 const getMembers = protectedProcedure
-  .input(
-    z.object({
-      cursor: z.string(),
-      limit: z.number(),
-    })
-  )
+  .input(z.object({}))
   .query(async ({ ctx, input }) => {
     if (!ctx.organizationId) {
       throw new Error('organizationId is required')
     }
-    const { cursor, limit } = input
-    const offset = parseInt(cursor) * limit
 
     const members = await adminTransaction(
       async ({ transaction }) => {
@@ -82,16 +75,10 @@ const getMembers = protectedProcedure
         new Date(a.membership.createdAt).getTime()
       )
     })
-
-    // Apply pagination
-    const paginatedMembers = sortedMembers.slice(
-      offset,
-      offset + limit
-    )
     const total = sortedMembers.length
 
     return {
-      data: paginatedMembers,
+      data: sortedMembers,
       total,
     }
   })

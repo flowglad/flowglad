@@ -54,8 +54,9 @@ const InvoiceFormFields = ({
       },
     }),
   })
+
   const { refetch } = trpc.organizations.getMembers.useQuery(
-    undefined,
+    {},
     {
       enabled: false,
     }
@@ -159,8 +160,8 @@ const InvoiceFormFields = ({
               {...field}
               value={field.value?.toString()}
               fetchOptionData={async () => {
-                const { data } = await refetch()
-                return data?.members
+                const { data: memberCursorData } = await refetch()
+                return memberCursorData?.data
               }}
               label="Owner"
               mapDataToOptions={(data) => {

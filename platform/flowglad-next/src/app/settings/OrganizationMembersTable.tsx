@@ -23,10 +23,7 @@ const OrganizationMembersTable = ({
   const pageSize = 10
 
   const { data, isLoading, isFetching } =
-    trpc.organizations.getMembers.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-    })
+    trpc.organizations.getMembers.useQuery({})
 
   const handlePaginationChange = (newPageIndex: number) => {
     setPageIndex(newPageIndex)
