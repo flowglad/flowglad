@@ -4,8 +4,9 @@ import { useState } from 'react'
 import Button from '@/components/ion/Button'
 import { PageHeader } from '@/components/ion/PageHeader'
 import CreateDiscountModal from '@/components/forms/CreateDiscountModal'
-import DiscountsTable from './DiscountsTable'
-import { Discount } from '@/db/schema/discounts'
+import DiscountsTable, {
+  DiscountsTableFilters,
+} from './DiscountsTable'
 import InternalPageContainer from '@/components/InternalPageContainer'
 
 export enum FocusedTab {
@@ -14,22 +15,10 @@ export enum FocusedTab {
   Inactive = 'inactive',
 }
 
-type Props = {
-  discounts: Discount.ClientRecord[]
-}
-
-function InternalDiscountsPage({ discounts }: Props) {
+function InternalDiscountsPage() {
   const [isCreateDiscountOpen, setIsCreateDiscountOpen] =
     useState(false)
 
-  const activeDiscounts = discounts.filter(
-    (discount) => discount.active
-  )
-  const inactiveDiscounts = discounts.filter(
-    (discount) => !discount.active
-  )
-  const activeDiscountsCount = activeDiscounts.length
-  const inactiveDiscountsCount = inactiveDiscounts.length
   return (
     <InternalPageContainer>
       <PageHeader
@@ -38,20 +27,20 @@ function InternalDiscountsPage({ discounts }: Props) {
           {
             label: 'All',
             subPath: 'all',
-            Component: () => <DiscountsTable discounts={discounts} />,
+            Component: () => <DiscountsTable />,
           },
           {
-            label: `${activeDiscountsCount} Active`,
+            label: 'Active',
             subPath: 'active',
             Component: () => (
-              <DiscountsTable discounts={activeDiscounts} />
+              <DiscountsTable filters={{ active: true }} />
             ),
           },
           {
-            label: `${inactiveDiscountsCount} Inactive`,
+            label: 'Inactive',
             subPath: 'inactive',
             Component: () => (
-              <DiscountsTable discounts={inactiveDiscounts} />
+              <DiscountsTable filters={{ active: false }} />
             ),
           },
         ]}

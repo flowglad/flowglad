@@ -3,6 +3,7 @@ import { editDiscountInputSchema } from '@/db/schema/discounts'
 import {
   selectDiscountById,
   updateDiscount,
+  selectDiscountsTableRowData,
 } from '@/db/tableMethods/discountMethods'
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
@@ -11,6 +12,7 @@ import {
   discountClientSelectSchema,
   discountsPaginatedSelectSchema,
   discountsPaginatedListSchema,
+  discountsTableRowDataSchema,
 } from '@/db/schema/discounts'
 
 import { protectedProcedure } from '@/server/trpc'
@@ -83,6 +85,72 @@ const listDiscountsProcedure = protectedProcedure
     )
   })
 
+const getTableRowsProcedure = protectedProcedure
+  .input(
+    z.object({
+      cursor: z.string().optional(),
+      limit: z.number().min(1).max(100).optional(),
+      filters: z
+        .object({
+          active: z.boolean().optional(),
+          organizationId: z.string().optional(),
+        })
+        .optional(),
+    })
+  )
+  .output(
+    z.object({
+      data: z.array(discountsTableRowDataSchema),
+      currentCursor: z.string().optional(),
+      nextCursor: z.string().optional(),
+      hasMore: z.boolean(),
+      total: z.number(),
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { cursor, limit = 10, filters = {} } = input
+
+        // Get the user's organization if not provided in filters
+        if (!filters.organizationId && ctx.organizationId) {
+          filters.organizationId = ctx.organizationId
+        }
+
+        // Use the existing selectDiscountsTableRowData function
+        const discountRows = await selectDiscountsTableRowData(
+          filters.organizationId || '',
+          transaction
+        )
+
+        // Apply filters
+        let filteredRows = discountRows
+        if (filters.active !== undefined) {
+          filteredRows = filteredRows.filter(
+            (row) => row.discount.active === filters.active
+          )
+        }
+
+        // Apply pagination
+        const startIndex = cursor ? parseInt(cursor, 10) : 0
+        const endIndex = startIndex + limit
+        const paginatedRows = filteredRows.slice(startIndex, endIndex)
+        const hasMore = endIndex < filteredRows.length
+
+        return {
+          data: paginatedRows,
+          currentCursor: cursor || '0',
+          nextCursor: hasMore ? endIndex.toString() : undefined,
+          hasMore,
+          total: filteredRows.length,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const editDiscount = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editDiscountInputSchema)
@@ -141,4 +209,5 @@ export const discountsRouter = router({
   attempt: attemptDiscountCode,
   clear: clearDiscountCode,
   list: listDiscountsProcedure,
+  getTableRows: getTableRowsProcedure,
 })
