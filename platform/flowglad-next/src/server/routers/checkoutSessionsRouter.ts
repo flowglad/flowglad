@@ -238,6 +238,7 @@ export const createCheckoutSession = protectedProcedure
             await createSetupIntentForCheckoutSession({
               organization,
               checkoutSession,
+              customer,
             })
           stripeSetupIntentId = stripeSetupIntent.id
         } else if (

@@ -4,6 +4,8 @@ import {
   updateProduct,
   selectProductsPaginated,
   selectProductById,
+  getProductTableRows,
+  ProductRow,
 } from '@/db/tableMethods/productMethods'
 import {
   createProductTransaction,
@@ -25,6 +27,10 @@ import {
   productsPaginatedSelectSchema,
 } from '@/db/schema/products'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectPricesProductsAndCatalogsForOrganization } from '@/db/tableMethods/priceMethods'
+import * as R from 'ramda'
+import { Price } from '@/db/schema/prices'
+import { Catalog } from '@/db/schema/catalogs'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Product',
@@ -142,9 +148,106 @@ export const getProduct = protectedProcedure
     )
   })
 
+const getTableRowsSchema = z.object({
+  cursor: z.string(),
+  limit: z.number().optional(),
+  filters: z
+    .object({
+      active: z.boolean().optional(),
+      organizationId: z.string().optional(),
+      catalogId: z.string().optional(),
+    })
+    .optional(),
+})
+
+const getTableRowsOutputSchema = z.object({
+  data: z.array(
+    z.object({
+      product: productsClientSelectSchema,
+      prices: z.array(z.any()),
+      catalog: z.any().optional(),
+    })
+  ),
+  total: z.number(),
+  hasMore: z.boolean(),
+})
+
+export const getTableRows = protectedProcedure
+  .input(getTableRowsSchema)
+  .output(getTableRowsOutputSchema)
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        return getProductTableRows(input, transaction, userId)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const getCountsByStatusSchema = z.object({})
+
+export const getCountsByStatus = protectedProcedure
+  .input(getCountsByStatusSchema)
+  .output(
+    z.array(
+      z.object({
+        status: z.string(),
+        count: z.number(),
+      })
+    )
+  )
+  .query(async ({ ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        // Get the user's organization
+        const [membership] = await selectMembershipAndOrganizations(
+          {
+            userId,
+            focused: true,
+          },
+          transaction
+        )
+
+        // Get products with prices and catalogs
+        const productsResult =
+          await selectPricesProductsAndCatalogsForOrganization(
+            {},
+            membership.organization.id,
+            transaction
+          )
+
+        // Get unique products
+        const uniqueProducts = R.uniqBy(
+          (p) => p.id,
+          productsResult.map((p) => p.product)
+        )
+
+        // Count active and inactive products
+        const activeCount = uniqueProducts.filter(
+          (p) => p.active
+        ).length
+        const inactiveCount = uniqueProducts.filter(
+          (p) => !p.active
+        ).length
+
+        return [
+          { status: 'active', count: activeCount },
+          { status: 'inactive', count: inactiveCount },
+        ]
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const productsRouter = router({
   list: listProducts,
   get: getProduct,
   create: createProduct,
   edit: editProduct,
+  getTableRows,
+  getCountsByStatus,
 })
