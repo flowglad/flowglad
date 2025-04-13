@@ -23,6 +23,7 @@ import {
   selectDiscountsPaginated,
 } from '@/db/tableMethods/discountMethods'
 import {
+  createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
@@ -90,16 +91,11 @@ const listDiscountsProcedure = protectedProcedure
 
 const getTableRowsProcedure = protectedProcedure
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-      filters: z
-        .object({
-          active: z.boolean().optional(),
-          organizationId: z.string().optional(),
-        })
-        .optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        active: z.boolean().optional(),
+      })
+    )
   )
   .output(
     createPaginatedTableRowOutputSchema(discountsTableRowDataSchema)
@@ -109,14 +105,8 @@ const getTableRowsProcedure = protectedProcedure
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Get the user's organization if not provided in filters
-        if (!filters.organizationId && ctx.organizationId) {
-          filters.organizationId = ctx.organizationId
-        }
-
-        // Use the existing selectDiscountsTableRowData function
         const discountRows = await selectDiscountsTableRowData(
-          filters.organizationId || '',
+          ctx.organizationId || '',
           transaction
         )
 

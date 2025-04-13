@@ -10,21 +10,19 @@ import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
 import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
 import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
 import { PurchaseStatus } from '@/types'
-import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
 
 const getTableRows = protectedProcedure
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-      filters: z
-        .object({
-          status: z.nativeEnum(PurchaseStatus).optional(),
-          customerId: z.string().optional(),
-          organizationId: z.string().optional(),
-        })
-        .optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        status: z.nativeEnum(PurchaseStatus).optional(),
+        customerId: z.string().optional(),
+      })
+    )
   )
   .output(
     createPaginatedTableRowOutputSchema(purchasesTableRowDataSchema)
@@ -34,14 +32,9 @@ const getTableRows = protectedProcedure
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Get the user's organization if not provided in filters
-        if (!filters.organizationId && ctx.organizationId) {
-          filters.organizationId = ctx.organizationId
-        }
-
         // Use the selectPurchasesTableRowData function
         const purchaseRows = await selectPurchasesTableRowData(
-          filters.organizationId || '',
+          ctx.organizationId || '',
           {
             customerId: filters.customerId,
             status: filters.status,

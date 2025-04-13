@@ -7,6 +7,7 @@ import {
 } from '@/db/tableMethods/apiKeyMethods'
 import {
   createPaginatedTableRowOutputSchema,
+  createPaginatedTableRowInputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
@@ -23,10 +24,11 @@ export const apiKeysRouteConfigs = [...routeConfigs]
 const listApiKeysProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        type: z.nativeEnum(FlowgladApiKeyType).optional(),
+      })
+    )
   )
   .output(
     createPaginatedTableRowOutputSchema(apiKeyClientSelectSchema)
@@ -91,16 +93,11 @@ const getApiKeyProcedure = protectedProcedure
 
 const getTableRowsProcedure = protectedProcedure
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-      filters: z
-        .object({
-          type: z.nativeEnum(FlowgladApiKeyType).optional(),
-          organizationId: z.string().optional(),
-        })
-        .optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        type: z.nativeEnum(FlowgladApiKeyType).optional(),
+      })
+    )
   )
   .output(
     createPaginatedTableRowOutputSchema(
@@ -118,14 +115,9 @@ const getTableRowsProcedure = protectedProcedure
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Get the user's organization if not provided in filters
-        if (!filters.organizationId && ctx.organizationId) {
-          filters.organizationId = ctx.organizationId
-        }
-
         // Use the existing selectApiKeysTableRowData function
         const apiKeyRows = await selectApiKeysTableRowData(
-          filters.organizationId || '',
+          ctx.organizationId || '',
           transaction
         )
 

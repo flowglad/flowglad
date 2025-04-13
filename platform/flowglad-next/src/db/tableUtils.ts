@@ -819,3 +819,15 @@ export const createPaginatedTableRowOutputSchema = <
     total: z.number(),
   })
 }
+
+export const createPaginatedTableRowInputSchema = <
+  T extends z.ZodType,
+>(
+  filterSchema: T
+) => {
+  return z.object({
+    cursor: z.string().optional(),
+    limit: z.number().min(1).max(100).optional(),
+    filters: filterSchema.optional(),
+  })
+}

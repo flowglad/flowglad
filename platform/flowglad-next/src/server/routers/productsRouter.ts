@@ -156,7 +156,6 @@ const getTableRowsSchema = z.object({
   filters: z
     .object({
       active: z.boolean().optional(),
-      organizationId: z.string().optional(),
       catalogId: z.string().optional(),
     })
     .optional(),

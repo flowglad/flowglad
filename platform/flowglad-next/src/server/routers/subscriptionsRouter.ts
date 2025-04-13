@@ -15,6 +15,7 @@ import {
   selectSubscriptionsTableRowData,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
+  createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
   metadataSchema,
@@ -357,17 +358,12 @@ const getTableRowsProcedure = protectedProcedure
     },
   })
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-      filters: z
-        .object({
-          status: z.nativeEnum(SubscriptionStatus).optional(),
-          customerId: z.string().optional(),
-          organizationId: z.string().optional(),
-        })
-        .optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        status: z.nativeEnum(SubscriptionStatus).optional(),
+        customerId: z.string().optional(),
+      })
+    )
   )
   .output(
     createPaginatedTableRowOutputSchema(
@@ -379,15 +375,10 @@ const getTableRowsProcedure = protectedProcedure
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Get the user's organization if not provided in filters
-        if (!filters.organizationId && ctx.organizationId) {
-          filters.organizationId = ctx.organizationId
-        }
-
         // Use the existing selectSubscriptionsTableRowData function
         const subscriptionRows =
           await selectSubscriptionsTableRowData(
-            filters.organizationId || '',
+            ctx.organizationId || '',
             transaction
           )
 

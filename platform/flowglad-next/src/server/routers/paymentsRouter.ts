@@ -16,6 +16,7 @@ import {
 import {
   idInputSchema,
   createPaginatedTableRowOutputSchema,
+  createPaginatedTableRowInputSchema,
 } from '@/db/tableUtils'
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
@@ -69,17 +70,12 @@ const getPaymentProcedure = protectedProcedure
 
 const getTableRowsProcedure = protectedProcedure
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-      filters: z
-        .object({
-          status: z.nativeEnum(PaymentStatus).optional(),
-          customerId: z.string().optional(),
-          organizationId: z.string().optional(),
-        })
-        .optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        status: z.nativeEnum(PaymentStatus).optional(),
+        customerId: z.string().optional(),
+      })
+    )
   )
   .output(
     createPaginatedTableRowOutputSchema(paymentsTableRowDataSchema)
@@ -89,14 +85,8 @@ const getTableRowsProcedure = protectedProcedure
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Get the user's organization if not provided in filters
-        if (!filters.organizationId && ctx.organizationId) {
-          filters.organizationId = ctx.organizationId
-        }
-
-        // Use the existing selectPaymentsTableRowData function
         const paymentRows = await selectPaymentsTableRowData(
-          filters.organizationId || '',
+          ctx.organizationId || '',
           transaction
         )
 

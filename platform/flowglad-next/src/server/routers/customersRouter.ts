@@ -39,6 +39,7 @@ import {
 import {
   externalIdInputSchema,
   createPaginatedTableRowOutputSchema,
+  createPaginatedTableRowInputSchema,
 } from '@/db/tableUtils'
 import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
@@ -330,16 +331,11 @@ const listCustomersProcedure = protectedProcedure
 
 const getTableRowsProcedure = protectedProcedure
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-      filters: z
-        .object({
-          archived: z.boolean().optional(),
-          organizationId: z.string().optional(),
-        })
-        .optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        archived: z.boolean().optional(),
+      })
+    )
   )
   .output(
     createPaginatedTableRowOutputSchema(
@@ -355,15 +351,8 @@ const getTableRowsProcedure = protectedProcedure
     return authenticatedTransaction(
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
-
-        // Get the user's organization if not provided in filters
-        if (!filters.organizationId && ctx.organizationId) {
-          filters.organizationId = ctx.organizationId
-        }
-
-        // Use the existing selectCustomersTableRowData function
         const customerRows = await selectCustomersTableRowData(
-          filters.organizationId || '',
+          ctx.organizationId || '',
           transaction
         )
 
