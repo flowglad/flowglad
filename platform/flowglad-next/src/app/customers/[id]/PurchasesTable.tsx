@@ -201,22 +201,20 @@ const PurchasesTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <div className="w-full flex flex-col gap-5 pb-20">
-        <Table
-          columns={columns}
-          data={tableData}
-          className="bg-nav w-full"
-          bordered
-          pagination={{
-            pageIndex,
-            pageSize,
-            total,
-            onPageChange: handlePaginationChange,
-            isLoading,
-            isFetching,
-          }}
-        />
-      </div>
+      <Table
+        columns={columns}
+        data={tableData}
+        className="bg-nav w-full"
+        bordered
+        pagination={{
+          pageIndex,
+          pageSize,
+          total,
+          onPageChange: handlePaginationChange,
+          isLoading,
+          isFetching,
+        }}
+      />
     </div>
   )
 }

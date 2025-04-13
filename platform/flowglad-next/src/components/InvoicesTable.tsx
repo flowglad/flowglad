@@ -131,8 +131,6 @@ const InvoicesTable = ({
   filters?: InvoicesTableFilters
   customer?: Customer.ClientRecord
 }) => {
-  const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
-    useState(false)
   const [pageIndex, setPageIndex] = useState(0)
   const pageSize = 10
 
@@ -246,32 +244,19 @@ const InvoicesTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <TableTitle
-        title="Invoices"
-        buttonLabel="Create Invoice"
-        buttonIcon={<Plus size={16} />}
-        buttonOnClick={() => setCreateInvoiceModalOpen(true)}
-      />
-      <div className="w-full flex flex-col gap-5 pb-20">
-        <Table
-          columns={columns}
-          data={tableData}
-          className="w-full rounded-radius"
-          bordered
-          pagination={{
-            pageIndex,
-            pageSize,
-            total,
-            onPageChange: handlePaginationChange,
-            isLoading,
-            isFetching,
-          }}
-        />
-      </div>
-      <CreateInvoiceModal
-        isOpen={createInvoiceModalOpen}
-        setIsOpen={setCreateInvoiceModalOpen}
-        customer={customer}
+      <Table
+        columns={columns}
+        data={tableData}
+        className="w-full rounded-radius"
+        bordered
+        pagination={{
+          pageIndex,
+          pageSize,
+          total,
+          onPageChange: handlePaginationChange,
+          isLoading,
+          isFetching,
+        }}
       />
     </div>
   )
