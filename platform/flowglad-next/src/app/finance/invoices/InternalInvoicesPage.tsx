@@ -1,65 +1,76 @@
 'use client'
 
-import { PageHeader } from '@/components/ion/PageHeader'
-import InvoicesTable from '@/components/InvoicesTable'
+import { useState } from 'react'
 import { InvoiceStatus } from '@/types'
-import { ClientInvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
-import InternalPageContainer from '@/components/InternalPageContainer'
+import { InvoiceStatusTab } from './components/InvoiceStatusTab'
+import InvoicesTable from '@/components/InvoicesTable'
+import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
+import { Tabs, TabsContent, TabsList } from '@/components/ion/Tab'
 
-interface InternalInvoicesPageProps {
-  invoices: ClientInvoiceWithLineItems[]
-}
+const InternalInvoicesPage = () => {
+  const [selectedStatus, setSelectedStatus] = useState<
+    InvoiceStatus | 'all'
+  >('all')
+  const { isLoading, getCountForStatus } =
+    useInvoiceCountsByStatusMap()
 
-export default function InternalInvoicesPage({
-  invoices,
-}: InternalInvoicesPageProps) {
+  const handleTabChange = (value: string) => {
+    setSelectedStatus(value as InvoiceStatus | 'all')
+  }
+
+  const filters =
+    selectedStatus !== 'all' ? { status: selectedStatus } : {}
+
   return (
-    <InternalPageContainer>
-      <PageHeader
-        title="Invoices"
-        tabs={[
-          {
-            label: 'All',
-            subPath: 'all',
-            Component: () => (
-              <InvoicesTable invoicesAndLineItems={invoices} />
-            ),
-          },
-          {
-            label: 'Open',
-            subPath: 'open',
-            Component: () => (
-              <InvoicesTable
-                invoicesAndLineItems={invoices.filter(
-                  (item) => item.invoice.status === InvoiceStatus.Open
-                )}
-              />
-            ),
-          },
-          {
-            label: 'Paid',
-            subPath: 'paid',
-            Component: () => (
-              <InvoicesTable
-                invoicesAndLineItems={invoices.filter(
-                  (item) => item.invoice.status === InvoiceStatus.Paid
-                )}
-              />
-            ),
-          },
-          {
-            label: 'Void',
-            subPath: 'void',
-            Component: () => (
-              <InvoicesTable
-                invoicesAndLineItems={invoices.filter(
-                  (item) => item.invoice.status === InvoiceStatus.Void
-                )}
-              />
-            ),
-          },
-        ]}
-      />
-    </InternalPageContainer>
+    <div className="w-full flex flex-col gap-5 p-5">
+      <h1 className="text-2xl font-bold">Invoices</h1>
+
+      <Tabs value={selectedStatus} onValueChange={handleTabChange}>
+        <TabsList>
+          <InvoiceStatusTab
+            status="all"
+            isActive={selectedStatus === 'all'}
+            count={getCountForStatus('all')}
+            isLoading={isLoading}
+          />
+          <InvoiceStatusTab
+            status={InvoiceStatus.Draft}
+            isActive={selectedStatus === InvoiceStatus.Draft}
+            count={getCountForStatus(InvoiceStatus.Draft)}
+            isLoading={isLoading}
+          />
+          <InvoiceStatusTab
+            status={InvoiceStatus.Open}
+            isActive={selectedStatus === InvoiceStatus.Open}
+            count={getCountForStatus(InvoiceStatus.Open)}
+            isLoading={isLoading}
+          />
+          <InvoiceStatusTab
+            status={InvoiceStatus.Paid}
+            isActive={selectedStatus === InvoiceStatus.Paid}
+            count={getCountForStatus(InvoiceStatus.Paid)}
+            isLoading={isLoading}
+          />
+          <InvoiceStatusTab
+            status={InvoiceStatus.Uncollectible}
+            isActive={selectedStatus === InvoiceStatus.Uncollectible}
+            count={getCountForStatus(InvoiceStatus.Uncollectible)}
+            isLoading={isLoading}
+          />
+          <InvoiceStatusTab
+            status={InvoiceStatus.Void}
+            isActive={selectedStatus === InvoiceStatus.Void}
+            count={getCountForStatus(InvoiceStatus.Void)}
+            isLoading={isLoading}
+          />
+        </TabsList>
+
+        <TabsContent value={selectedStatus}>
+          <InvoicesTable filters={filters} />
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }
+
+export default InternalInvoicesPage

@@ -23,6 +23,7 @@ import { InvoiceStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { Plus } from 'lucide-react'
 import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
+import { trpc } from '@/app/_trpc/client'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -118,18 +119,31 @@ const MoreMenuCell = ({
   )
 }
 
+export interface InvoicesTableFilters {
+  status?: InvoiceStatus
+  customerId?: string
+}
+
 const InvoicesTable = ({
-  invoicesAndLineItems,
+  filters = {},
   customer,
 }: {
-  invoicesAndLineItems: ClientInvoiceWithLineItems[]
+  filters?: InvoicesTableFilters
   customer?: Customer.ClientRecord
-  showOwners?: boolean
 }) => {
   const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
     useState(false)
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
 
-  const columns_1 = useMemo(
+  const { data, isLoading, isFetching } =
+    trpc.invoices.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
+  const columns = useMemo(
     () =>
       [
         {
@@ -145,10 +159,8 @@ const InvoicesTable = ({
               <span className="font-bold text-sm">
                 {stripeCurrencyAmountToHumanReadableCurrencyAmount(
                   cellData.invoice.currency,
-                  cellData.invoiceLineItems.reduce(
-                    (acc, item) => acc + item.price * item.quantity,
-                    0
-                  )
+                  0
+                  // cellData.invoice.amount
                 )}
               </span>
             </>
@@ -212,14 +224,25 @@ const InvoicesTable = ({
             >
               <MoreMenuCell
                 invoice={cellData.invoice}
-                invoiceLineItems={cellData.invoiceLineItems}
+                invoiceLineItems={[]} // We'll need to fetch these separately if needed
               />
             </div>
           ),
         },
-      ] as ColumnDef<ClientInvoiceWithLineItems>[],
+      ] as ColumnDef<{
+        invoice: Invoice.ClientRecord
+        customer: { id: string; name: string }
+      }>[],
     []
   )
+
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="w-full flex flex-col gap-5">
@@ -231,10 +254,18 @@ const InvoicesTable = ({
       />
       <div className="w-full flex flex-col gap-5 pb-20">
         <Table
-          columns={columns_1}
-          data={invoicesAndLineItems}
+          columns={columns}
+          data={tableData}
           className="w-full rounded-radius"
           bordered
+          pagination={{
+            pageIndex,
+            pageSize,
+            total,
+            onPageChange: handlePaginationChange,
+            isLoading,
+            isFetching,
+          }}
         />
       </div>
       <CreateInvoiceModal

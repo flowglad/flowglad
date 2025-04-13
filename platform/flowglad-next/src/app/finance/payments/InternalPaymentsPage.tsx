@@ -9,6 +9,16 @@ import { PaymentsTab } from './components/PaymentsTab'
 export default function InternalPaymentsPage() {
   const [activeTab, setActiveTab] = useState<string>('all')
 
+  const getFiltersForTab = (tab: string) => {
+    if (tab === 'all') {
+      return {}
+    }
+
+    return {
+      status: tab as PaymentStatus,
+    }
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 h-full w-full flex flex-col p-6">
@@ -42,40 +52,8 @@ export default function InternalPaymentsPage() {
             />
           </TabsList>
 
-          <TabsContent value="all">
-            <PaymentsTable />
-          </TabsContent>
-
-          <TabsContent value={PaymentStatus.Succeeded}>
-            <PaymentsTable
-              filters={{
-                status: PaymentStatus.Succeeded,
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value={PaymentStatus.Processing}>
-            <PaymentsTable
-              filters={{
-                status: PaymentStatus.Processing,
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value={PaymentStatus.Refunded}>
-            <PaymentsTable
-              filters={{
-                status: PaymentStatus.Refunded,
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value={PaymentStatus.Canceled}>
-            <PaymentsTable
-              filters={{
-                status: PaymentStatus.Canceled,
-              }}
-            />
+          <TabsContent value={activeTab}>
+            <PaymentsTable filters={getFiltersForTab(activeTab)} />
           </TabsContent>
         </Tabs>
       </div>
