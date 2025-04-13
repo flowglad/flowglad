@@ -4,18 +4,24 @@ import {
   usageMeterPaginatedListSchema,
   usageMeterPaginatedSelectSchema,
   createUsageMeterSchema,
+  usageMetersTableRowDataSchema,
 } from '@/db/schema/usageMeters'
 import {
   selectUsageMeterById,
   updateUsageMeter,
   selectUsageMetersPaginated,
+  selectUsageMeterTableRows,
 } from '@/db/tableMethods/usageMeterMethods'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { usageMetersClientSelectSchema } from '@/db/schema/usageMeters'
 
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
-import { idInputSchema } from '@/db/tableUtils'
+import {
+  idInputSchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
 import { FeatureFlag } from '@/types'
@@ -113,9 +119,55 @@ const getUsageMeter = usageProcedure
     return { usageMeter }
   })
 
+const getTableRowsProcedure = usageProcedure
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        catalogId: z.string().optional(),
+      })
+    )
+  )
+  .output(
+    createPaginatedTableRowOutputSchema(usageMetersTableRowDataSchema)
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { cursor, limit = 10, filters = {} } = input
+
+        // Use the existing selectUsageMeterTableRows function
+        const usageMeterRows = await selectUsageMeterTableRows(
+          filters,
+          transaction
+        )
+
+        // Apply pagination
+        const startIndex = cursor ? parseInt(cursor, 10) : 0
+        const endIndex = startIndex + limit
+        const paginatedRows = usageMeterRows.slice(
+          startIndex,
+          endIndex
+        )
+        const hasMore = endIndex < usageMeterRows.length
+
+        return {
+          data: paginatedRows,
+          currentCursor: cursor || '0',
+          nextCursor: hasMore ? endIndex.toString() : undefined,
+          hasMore,
+          total: usageMeterRows.length,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const usageMetersRouter = router({
   get: getUsageMeter,
   create: createUsageMeter,
   update: editUsageMeter,
   list: listUsageMetersProcedure,
+  getTableRows: getTableRowsProcedure,
 })
