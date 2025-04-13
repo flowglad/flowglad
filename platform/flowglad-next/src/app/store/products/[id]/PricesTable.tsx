@@ -16,18 +16,18 @@ import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import EditPriceModal from '@/components/forms/EditPriceModal'
 import ArchivePriceModal from '@/components/forms/ArchivePriceModal'
 import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
-import { Product } from '@/db/schema/products'
 import PricingCellView from '@/components/PricingCellView'
 import { PriceType } from '@/types'
 import TableTitle from '@/components/ion/TableTitle'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import { trpc } from '@/app/_trpc/client'
 
 const MoreMenuCell = ({
   price,
   otherPrices,
 }: {
-  price: Price.Record
-  otherPrices: Price.Record[]
+  price: Price.ClientRecord
+  otherPrices: Price.ClientRecord[]
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
@@ -131,16 +131,31 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
   }
 }
 
-const PricesTable = ({
-  prices,
-  product,
+export interface PaginatedPricesTableFilters {
+  productId?: string
+  type?: PriceType
+  isDefault?: boolean
+}
+
+const PaginatedPricesTable = ({
+  filters = {},
+  productId,
 }: {
-  product: Product.ClientRecord
-  prices: Price.Record[]
+  productId: string
+  filters?: PaginatedPricesTableFilters
 }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
 
-  const columns_1 = useMemo(
+  const { data, isLoading, isFetching } =
+    trpc.prices.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
+  const columns = useMemo(
     () =>
       [
         {
@@ -149,7 +164,7 @@ const PricesTable = ({
           ),
           accessorKey: 'price',
           cell: ({ row: { original: cellData } }) => (
-            <>{cellData.name}</>
+            <>{cellData.price.name}</>
           ),
         },
         {
@@ -158,7 +173,7 @@ const PricesTable = ({
           ),
           accessorKey: 'type',
           cell: ({ row: { original: cellData } }) => (
-            <PriceTypeCellView type={cellData.type} />
+            <PriceTypeCellView type={cellData.price.type} />
           ),
         },
         {
@@ -170,7 +185,7 @@ const PricesTable = ({
           ),
           accessorKey: 'pricing',
           cell: ({ row: { original: cellData } }) => (
-            <PricingCellView prices={[cellData]} />
+            <PricingCellView prices={[cellData.price]} />
           ),
         },
         {
@@ -197,7 +212,7 @@ const PricesTable = ({
           cell: ({ row: { original: cellData } }) => (
             <div className="flex items-center gap-3">
               <Checkbox
-                checked={cellData.isDefault}
+                checked={cellData.price.isDefault}
                 aria-label="Select row"
                 className="cursor-default"
               />
@@ -213,45 +228,68 @@ const PricesTable = ({
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.createdAt)}</>
+            <>{core.formatDate(cellData.price.createdAt)}</>
           ),
         },
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
-              price={cellData}
-              otherPrices={prices.filter((p) => p.id !== cellData.id)}
+              price={cellData.price}
+              otherPrices={
+                data?.data
+                  .filter((p) => p.price.id !== cellData.price.id)
+                  .map((p) => p.price) || []
+              }
             />
           ),
         },
-      ] as ColumnDef<Price.Record>[],
-    [prices]
+      ] as ColumnDef<{
+        price: Price.ClientRecord
+        product: { id: string; name: string }
+      }>[],
+    [data]
   )
+
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
       <CreatePriceModal
         isOpen={isCreateOpen}
         setIsOpen={setIsCreateOpen}
-        productId={prices[0]?.productId} // Assuming all prices belong to same product
+        productId={productId}
       />
       <TableTitle
         title="Prices"
         buttonLabel="Create Price"
         buttonIcon={<Plus size={8} strokeWidth={2} />}
         buttonOnClick={() => setIsCreateOpen(true)}
-        buttonDisabled={!product.active}
-        buttonDisabledTooltip="Product must be active"
+        buttonDisabled={!filters.productId}
+        buttonDisabledTooltip="Product must be selected"
       />
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
             <Table
-              columns={columns_1}
-              data={prices}
+              columns={columns}
+              data={tableData}
               className="bg-nav"
               bordered
+              pagination={{
+                pageIndex,
+                pageSize,
+                total,
+                onPageChange: handlePaginationChange,
+                isLoading,
+                isFetching,
+              }}
             />
           </div>
         </div>
@@ -260,4 +298,4 @@ const PricesTable = ({
   )
 }
 
-export default PricesTable
+export default PaginatedPricesTable

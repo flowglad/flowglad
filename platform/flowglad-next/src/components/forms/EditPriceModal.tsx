@@ -8,7 +8,7 @@ import { trpc } from '@/app/_trpc/client'
 interface EditPriceModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  price: Price.Record
+  price: Price.ClientRecord
 }
 
 const EditPriceModal: React.FC<EditPriceModalProps> = ({
