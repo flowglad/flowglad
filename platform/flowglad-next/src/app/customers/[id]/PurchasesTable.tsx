@@ -17,6 +17,7 @@ import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { Payment } from '@/db/schema/payments'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode } from '@/types'
+import { trpc } from '@/app/_trpc/client'
 
 const MoreMenuCell = ({
   purchase,
@@ -74,22 +75,32 @@ const PurchaseStatusCell = ({
   return <Badge color={badgeColor}>{badgeLabel}</Badge>
 }
 
+export interface PurchasesTableFilters {
+  customerId?: string
+  status?: string
+  organizationId?: string
+}
+
 const PurchasesTable = ({
-  purchases,
-  payments,
+  filters = {},
 }: {
-  purchases: Purchase.ClientRecord[]
-  payments: Payment.ClientRecord[]
+  filters?: PurchasesTableFilters
 }) => {
-  const [createPurchaseModalOpen, setCreatePurchaseModalOpen] =
-    useState(false)
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.purchases.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
   const paymentsByPurchaseId = useMemo(
     () => new Map<string, Payment.ClientRecord[]>(),
     []
   )
-  payments.forEach((payment) => {
-    paymentsByPurchaseId.set(payment.purchaseId ?? '-1', [payment])
-  })
+
   const columns = useMemo(
     () =>
       [
@@ -101,7 +112,7 @@ const PurchasesTable = ({
           cell: ({ row: { original: cellData } }) => {
             return (
               <span className="text-sm font-medium w-[25ch] truncate">
-                {cellData.name}
+                {cellData.purchase.name}
               </span>
             )
           },
@@ -110,7 +121,7 @@ const PurchasesTable = ({
           header: 'Status',
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => {
-            return <PurchaseStatusCell purchase={cellData} />
+            return <PurchaseStatusCell purchase={cellData.purchase} />
           },
         },
         {
@@ -127,7 +138,7 @@ const PurchasesTable = ({
                 {stripeCurrencyAmountToHumanReadableCurrencyAmount(
                   CurrencyCode.USD,
                   paymentsByPurchaseId
-                    .get(cellData.id)
+                    .get(cellData.purchase.id)
                     ?.reduce(
                       (acc, payment) => acc + payment.amount,
                       0
@@ -147,8 +158,8 @@ const PurchasesTable = ({
           accessorKey: 'startDate',
           cell: ({ row: { original: cellData } }) => (
             <>
-              {cellData.purchaseDate
-                ? core.formatDate(cellData.purchaseDate)
+              {cellData.purchase.purchaseDate
+                ? core.formatDate(cellData.purchase.purchaseDate)
                 : '-'}
             </>
           ),
@@ -162,7 +173,7 @@ const PurchasesTable = ({
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.createdAt)}</>
+            <>{core.formatDate(cellData.purchase.createdAt)}</>
           ),
         },
         {
@@ -172,13 +183,21 @@ const PurchasesTable = ({
               className="w-fit"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreMenuCell purchase={cellData} />
+              <MoreMenuCell purchase={cellData.purchase} />
             </div>
           ),
         },
-      ] as ColumnDef<Purchase.ClientRecord>[],
+      ] as ColumnDef<Purchase.PurchaseTableRowData>[],
     [paymentsByPurchaseId]
   )
+
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="w-full flex flex-col gap-5">
@@ -192,9 +211,17 @@ const PurchasesTable = ({
       <div className="w-full flex flex-col gap-5 pb-20">
         <Table
           columns={columns}
-          data={purchases}
+          data={tableData}
           className="bg-nav w-full"
           bordered
+          pagination={{
+            pageIndex,
+            pageSize,
+            total,
+            onPageChange: handlePaginationChange,
+            isLoading,
+            isFetching,
+          }}
         />
       </div>
     </div>

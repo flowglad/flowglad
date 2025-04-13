@@ -14,7 +14,11 @@ import {
   selectSubscriptionsPaginated,
   selectSubscriptionsTableRowData,
 } from '@/db/tableMethods/subscriptionMethods'
-import { idInputSchema, metadataSchema } from '@/db/tableUtils'
+import {
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+  metadataSchema,
+} from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import { adjustSubscriptionInputSchema } from '@/subscriptions/schemas'
 import {
@@ -366,13 +370,9 @@ const getTableRowsProcedure = protectedProcedure
     })
   )
   .output(
-    z.object({
-      data: z.array(subscriptionsTableRowDataSchema),
-      currentCursor: z.string().optional(),
-      nextCursor: z.string().optional(),
-      hasMore: z.boolean(),
-      total: z.number(),
-    })
+    createPaginatedTableRowOutputSchema(
+      subscriptionsTableRowDataSchema
+    )
   )
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(

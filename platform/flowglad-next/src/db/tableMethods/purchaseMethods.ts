@@ -282,3 +282,43 @@ export const selectPurchaseRowDataForOrganization = async (
     customer: customersSelectSchema.parse(item.customer),
   }))
 }
+
+export const selectPurchasesTableRowData = async (
+  organizationId: string,
+  filters: {
+    customerId?: string
+    status?: string
+  } = {},
+  transaction: DbTransaction
+): Promise<Purchase.PurchaseTableRowData[]> => {
+  // Build where conditions
+  const whereConditions = [
+    eq(purchases.organizationId, organizationId),
+  ]
+
+  if (filters.customerId) {
+    whereConditions.push(eq(purchases.customerId, filters.customerId))
+  }
+
+  if (filters.status) {
+    whereConditions.push(eq(purchases.status, filters.status))
+  }
+
+  const result = await transaction
+    .select({
+      purchase: purchases,
+      product: products,
+      customer: customers,
+    })
+    .from(purchases)
+    .innerJoin(prices, eq(purchases.priceId, prices.id))
+    .innerJoin(products, eq(prices.productId, products.id))
+    .innerJoin(customers, eq(purchases.customerId, customers.id))
+    .where(and(...whereConditions))
+
+  return result.map((item) => ({
+    purchase: purchasesSelectSchema.parse(item.purchase),
+    product: productsSelectSchema.parse(item.product),
+    customer: customersSelectSchema.parse(item.customer),
+  }))
+}

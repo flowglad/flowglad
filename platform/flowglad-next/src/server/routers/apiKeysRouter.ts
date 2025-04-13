@@ -5,7 +5,10 @@ import {
   selectApiKeyById,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
-import { idInputSchema } from '@/db/tableUtils'
+import {
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@/db/tableUtils'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
@@ -26,13 +29,7 @@ const listApiKeysProcedure = protectedProcedure
     })
   )
   .output(
-    z.object({
-      data: z.array(apiKeyClientSelectSchema),
-      currentCursor: z.string().optional(),
-      nextCursor: z.string().optional(),
-      hasMore: z.boolean(),
-      total: z.number(),
-    })
+    createPaginatedTableRowOutputSchema(apiKeyClientSelectSchema)
   )
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
@@ -106,21 +103,15 @@ const getTableRowsProcedure = protectedProcedure
     })
   )
   .output(
-    z.object({
-      data: z.array(
-        z.object({
-          apiKey: apiKeyClientSelectSchema,
-          organization: z.object({
-            id: z.string(),
-            name: z.string(),
-          }),
-        })
-      ),
-      currentCursor: z.string().optional(),
-      nextCursor: z.string().optional(),
-      hasMore: z.boolean(),
-      total: z.number(),
-    })
+    createPaginatedTableRowOutputSchema(
+      z.object({
+        apiKey: apiKeyClientSelectSchema,
+        organization: z.object({
+          id: z.string(),
+          name: z.string(),
+        }),
+      })
+    )
   )
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(

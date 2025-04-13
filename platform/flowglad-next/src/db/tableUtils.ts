@@ -805,3 +805,17 @@ export const createPaginatedListQuerySchema = <T extends z.ZodType>(
 }
 
 export const metadataSchema = z.record(z.string(), z.any())
+
+export const createPaginatedTableRowOutputSchema = <
+  T extends z.ZodType,
+>(
+  schema: T
+) => {
+  return z.object({
+    data: z.array(schema),
+    currentCursor: z.string().optional(),
+    nextCursor: z.string().optional(),
+    hasMore: z.boolean(),
+    total: z.number(),
+  })
+}

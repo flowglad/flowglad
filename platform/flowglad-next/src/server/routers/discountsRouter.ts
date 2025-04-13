@@ -22,7 +22,10 @@ import {
   insertDiscount,
   selectDiscountsPaginated,
 } from '@/db/tableMethods/discountMethods'
-import { idInputSchema } from '@/db/tableUtils'
+import {
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@/db/tableUtils'
 import { deleteDiscount as deleteDiscountMethod } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
@@ -99,13 +102,7 @@ const getTableRowsProcedure = protectedProcedure
     })
   )
   .output(
-    z.object({
-      data: z.array(discountsTableRowDataSchema),
-      currentCursor: z.string().optional(),
-      nextCursor: z.string().optional(),
-      hasMore: z.boolean(),
-      total: z.number(),
-    })
+    createPaginatedTableRowOutputSchema(discountsTableRowDataSchema)
   )
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
