@@ -55,7 +55,11 @@ export const CustomerBillingSubPage = ({
               </div>
             </div>
           </div>
-          <PurchasesTable purchases={purchases} payments={payments} />
+          <PurchasesTable
+            filters={{
+              customerId: customer.id,
+            }}
+          />
           <InvoicesTable
             invoicesAndLineItems={invoices}
             customer={customer}

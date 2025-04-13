@@ -16,7 +16,7 @@ import EndPurchaseModal from '@/components/forms/EndPurchaseModal'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { Payment } from '@/db/schema/payments'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, PurchaseStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'
 
 const MoreMenuCell = ({
@@ -77,7 +77,7 @@ const PurchaseStatusCell = ({
 
 export interface PurchasesTableFilters {
   customerId?: string
-  status?: string
+  status?: PurchaseStatus
   organizationId?: string
 }
 

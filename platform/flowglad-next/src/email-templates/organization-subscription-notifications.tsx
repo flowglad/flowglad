@@ -76,8 +76,7 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
             </Link>
           </Section>
           <Text style={footerText}>
-            You can manage this customer's subscription and access
-            their information through your dashboard.
+            {`You can manage this customer's subscription and access their information through your dashboard.`}
           </Text>
         </Container>
       </Body>
@@ -137,8 +136,7 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
             </Link>
           </Section>
           <Text style={footerText}>
-            You can review this customer's history and manage their
-            account through your dashboard.
+            {`You can review this customer's history and manage their account through your dashboard.`}
           </Text>
         </Container>
       </Body>
