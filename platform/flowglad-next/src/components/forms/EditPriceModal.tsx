@@ -1,7 +1,11 @@
 'use client'
 
 import FormModal from '@/components/forms/FormModal'
-import { editPriceSchema, Price } from '@/db/schema/prices'
+import {
+  EditPriceInput,
+  editPriceSchema,
+  Price,
+} from '@/db/schema/prices'
 import PriceFormFields from './PriceFormFields'
 import { trpc } from '@/app/_trpc/client'
 
@@ -17,7 +21,11 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
   price,
 }) => {
   const editPrice = trpc.prices.edit.useMutation()
-  const defaultValues = editPriceSchema.parse({ price })
+  const editPriceInput: EditPriceInput = {
+    id: price.id,
+    price,
+  }
+  const defaultValues = editPriceSchema.parse(editPriceInput)
   return (
     <FormModal
       isOpen={isOpen}

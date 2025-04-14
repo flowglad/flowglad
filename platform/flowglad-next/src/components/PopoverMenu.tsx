@@ -53,7 +53,7 @@ const PopoverMenuItem = ({
       >
         <div
           className={core.cn(
-            'font-bold',
+            'font-bold whitespace-normal break-words',
             state === PopoverMenuItemState.Danger
               ? 'text-danger'
               : 'text-foreground'
@@ -62,7 +62,9 @@ const PopoverMenuItem = ({
           {children}
         </div>
         {helperText && (
-          <p className="text-xs text-foreground/50">{helperText}</p>
+          <p className="text-xs text-foreground/50 whitespace-normal break-words">
+            {helperText}
+          </p>
         )}
       </div>
     </PopoverClose>

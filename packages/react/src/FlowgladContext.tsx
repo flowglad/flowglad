@@ -282,10 +282,8 @@ export const FlowgladContextProvider = ({
   serverRoute = '/api/flowglad',
   loadBilling,
   requestConfig,
-  darkMode,
 }: {
   loadBilling?: boolean
-  darkMode?: boolean
   serverRoute?: string
   requestConfig?: RequestConfig
   children: React.ReactNode
@@ -384,7 +382,7 @@ export const FlowgladContextProvider = ({
 
   return (
     <FlowgladContext.Provider value={value}>
-      <FlowgladTheme darkMode={darkMode}>{children}</FlowgladTheme>
+      {children}
     </FlowgladContext.Provider>
   )
 }
