@@ -12,7 +12,7 @@ import {
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
-import { CheckoutSessionStatus } from '@/types'
+import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
 import { Customer } from '@/db/schema/customers'
 import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
 import { idInputSchema } from '@/db/tableUtils'
@@ -53,7 +53,11 @@ export const confirmCheckoutSession = publicProcedure
           },
           transaction
         )
-      if (!finalFeeCalculation) {
+
+      if (
+        !finalFeeCalculation &&
+        checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
+      ) {
         const feeReadySession =
           feeReadyCheckoutSessionSelectSchema.parse(checkoutSession)
         finalFeeCalculation =
@@ -143,7 +147,12 @@ export const confirmCheckoutSession = publicProcedure
           },
           checkoutSession.livemode
         )
-      } else if (checkoutSession.stripePaymentIntentId) {
+      } else if (
+        checkoutSession.stripePaymentIntentId &&
+        checkoutSession.type !==
+          CheckoutSessionType.AddPaymentMethod &&
+        finalFeeCalculation
+      ) {
         const finalizedFeeCalculation = await finalizeFeeCalculation(
           finalFeeCalculation,
           transaction
