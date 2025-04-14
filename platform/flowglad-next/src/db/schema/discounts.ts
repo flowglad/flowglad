@@ -272,6 +272,11 @@ export const discountsPaginatedSelectSchema =
 export const discountsPaginatedListSchema =
   createPaginatedListQuerySchema(discountClientSelectSchema)
 
+export const discountsTableRowDataSchema = z.object({
+  discount: discountClientSelectSchema,
+  discountRedemptionsCount: z.number(),
+})
+
 export namespace Discount {
   export type Insert = z.infer<typeof discountsInsertSchema>
   export type Update = z.infer<typeof discountsUpdateSchema>
@@ -289,6 +294,9 @@ export namespace Discount {
     typeof discountsPaginatedListSchema
   >
   export type Where = SelectConditions<typeof discounts>
+  export type TableRowData = z.infer<
+    typeof discountsTableRowDataSchema
+  >
 }
 
 export const createDiscountInputSchema = z.object({

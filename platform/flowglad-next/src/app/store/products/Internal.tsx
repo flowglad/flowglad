@@ -14,6 +14,7 @@ import InternalPageContainer from '@/components/InternalPageContainer'
 import { Tabs, TabsContent, TabsList } from '@/components/ion/Tab'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
+import { ProductStatusTab } from './components/ProductStatusTab'
 
 export enum FocusedTab {
   All = 'all',
@@ -31,14 +32,6 @@ function InternalProductsPage({ products: initialProducts }: Props) {
   const [activeTab, setActiveTab] = useState<string>('all')
   const { data } = trpc.catalogs.getDefault.useQuery({})
   const defaultCatalog = data?.catalog
-
-  const { data: countsData } =
-    trpc.products.getCountsByStatus.useQuery({})
-
-  const countsByStatus = countsData || []
-  const countsByStatusMap = new Map(
-    countsByStatus.map((item) => [item.status, item.count])
-  )
 
   const getFilterForTab = (tab: string): ProductsTableFilters => {
     if (tab === 'all') {
@@ -69,27 +62,22 @@ function InternalProductsPage({ products: initialProducts }: Props) {
           className="w-full"
         >
           <TabsList className="mb-4">
-            <TabsContent value="all" className="px-4 py-2">
-              All
-            </TabsContent>
-            <TabsContent value="active" className="px-4 py-2">
-              {countsByStatusMap.get('active') || 0} Active
-            </TabsContent>
-            <TabsContent value="inactive" className="px-4 py-2">
-              {countsByStatusMap.get('inactive') || 0} Inactive
-            </TabsContent>
+            <ProductStatusTab
+              status="all"
+              isActive={activeTab === 'all'}
+            />
+            <ProductStatusTab
+              status="active"
+              isActive={activeTab === 'active'}
+            />
+            <ProductStatusTab
+              status="inactive"
+              isActive={activeTab === 'inactive'}
+            />
           </TabsList>
 
-          <TabsContent value="all">
-            <ProductsTable filters={getFilterForTab('all')} />
-          </TabsContent>
-
-          <TabsContent value="active">
-            <ProductsTable filters={getFilterForTab('active')} />
-          </TabsContent>
-
-          <TabsContent value="inactive">
-            <ProductsTable filters={getFilterForTab('inactive')} />
+          <TabsContent value={activeTab}>
+            <ProductsTable filters={getFilterForTab(activeTab)} />
           </TabsContent>
         </Tabs>
       </div>

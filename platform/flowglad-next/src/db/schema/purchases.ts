@@ -27,10 +27,13 @@ import {
 } from '@/db/schema/customers'
 import { organizations } from '@/db/schema/organizations'
 import { prices } from '@/db/schema/prices'
+import {
+  Product,
+  productsClientSelectSchema,
+} from '@/db/schema/products'
 import core from '@/utils/core'
 import { z } from 'zod'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
-import { Product } from './products'
 
 export const PURCHASES_TABLE_NAME = 'purchases'
 
@@ -395,4 +398,14 @@ export const createCustomerOutputSchema = z.object({
 
 export type CreateCustomerOutputSchema = z.infer<
   typeof createCustomerOutputSchema
+>
+
+export const purchasesTableRowDataSchema = z.object({
+  purchase: purchaseClientSelectSchema,
+  product: productsClientSelectSchema,
+  customer: customerClientSelectSchema,
+})
+
+export type PurchaseTableRowData = z.infer<
+  typeof purchasesTableRowDataSchema
 >

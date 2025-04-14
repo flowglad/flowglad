@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   createSelectById,
   createInsertFunction,
@@ -16,8 +17,14 @@ import {
 } from '@/db/schema/invoices'
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, count, desc } from 'drizzle-orm'
 import { BillingInfoCore } from './purchaseMethods'
+import { customers } from '@/db/schema/customers'
+import {
+  InvoiceLineItem,
+  invoiceLineItems,
+  invoiceLineItemsSelectSchema,
+} from '../schema/invoiceLineItems'
 
 const config: ORMMethodCreatorConfig<
   typeof invoices,
@@ -99,3 +106,70 @@ export const selectInvoicesPaginated = createPaginatedSelectFunction(
   invoices,
   config
 )
+
+export const selectInvoiceCountsByStatus = async (
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      status: invoices.status,
+      count: count(),
+    })
+    .from(invoices)
+    .groupBy(invoices.status)
+
+  return result.map((item) => ({
+    status: item.status as InvoiceStatus,
+    count: item.count,
+  }))
+}
+
+export const selectInvoicesTableRowData = async (
+  organizationId: string,
+  transaction: DbTransaction
+) => {
+  const invoiceRows = await transaction
+    .select({
+      invoice: invoices,
+      customer: customers,
+      invoiceLineItems: invoiceLineItems,
+    })
+    .from(invoices)
+    .innerJoin(customers, eq(invoices.customerId, customers.id))
+    .leftJoin(
+      invoiceLineItems,
+      eq(invoices.id, invoiceLineItems.invoiceId)
+    )
+    .where(eq(invoices.organizationId, organizationId))
+    .orderBy(desc(invoices.createdAt))
+
+  const invoiceLineItemRows: InvoiceLineItem.Record[] = invoiceRows
+    .filter((row) => row.invoiceLineItems !== null)
+    .map((row) => row.invoiceLineItems as InvoiceLineItem.Record)
+
+  // Group invoice line items by invoice id
+  const invoiceLineItemsByInvoiceId = R.groupBy(
+    (row) => row?.invoiceId,
+    invoiceLineItemRows
+  )
+
+  // Get unique invoices
+  const uniqueInvoices = Array.from(
+    new Map(
+      invoiceRows.map((row) => [
+        row.invoice.id,
+        {
+          invoice: invoicesSelectSchema.parse(row.invoice),
+          invoiceLineItems:
+            invoiceLineItemsByInvoiceId[row.invoice.id] || [],
+          customer: {
+            id: row.customer.id,
+            name: row.customer.name,
+          },
+        },
+      ])
+    ).values()
+  )
+
+  return uniqueInvoices
+}

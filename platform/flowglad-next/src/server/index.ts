@@ -39,16 +39,7 @@ import { usageEventsRouter } from './routers/usageEventsRouter'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { t } from './coreTrpcObject'
 import { apiKeysRouter } from './routers/apiKeysRouter'
-
-const purchasesRouter = router({
-  create: createPurchase,
-  update: editPurchase,
-  // Purchase session management
-  createSession: setCheckoutSessionCookie,
-  updateSession: editCheckoutSession,
-  confirmSession: confirmCheckoutSession,
-  requestAccess: requestPurchaseAccessSession,
-})
+import { purchasesRouter } from './routers/purchasesRouter'
 
 const filesRouter = router({
   create: createFile,

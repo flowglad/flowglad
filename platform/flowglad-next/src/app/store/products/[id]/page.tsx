@@ -21,5 +21,4 @@ const ProductPage = async ({ params }: ProductPageProps) => {
     <InternalProductDetailsPage product={product} prices={prices} />
   )
 }
-
 export default ProductPage

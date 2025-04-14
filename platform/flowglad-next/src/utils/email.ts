@@ -12,13 +12,12 @@ import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification
 import {
   OrganizationPaymentNotificationEmail,
   OrganizationPaymentNotificationEmailProps,
-} from '@/email-templates/organization-payment-succeeded'
+} from '@/email-templates/organization/organization-payment-succeeded'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 import { CurrencyCode } from '@/types'
 import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
-import { DemoOfferEmail } from '@/email-templates/demo-offer-email'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
-import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization-payment-awaiting-confirmation'
+import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
 import { kebabCase } from 'change-case'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))

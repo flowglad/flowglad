@@ -13,10 +13,16 @@ import {
   insertPrice,
   selectPrices,
   selectPricesPaginated,
+  selectPricesTableRowData,
 } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { z } from 'zod'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
+import { PriceType } from '@/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Price',
@@ -106,8 +112,79 @@ export const editPrice = protectedProcedure
     )
   })
 
+export const getTableRows = protectedProcedure
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        productId: z.string().optional(),
+        type: z.nativeEnum(PriceType).optional(),
+        isDefault: z.boolean().optional(),
+      })
+    )
+  )
+  .output(
+    createPaginatedTableRowOutputSchema(
+      z.object({
+        price: pricesClientSelectSchema,
+        product: z.object({
+          id: z.string(),
+          name: z.string(),
+        }),
+      })
+    )
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { cursor, limit = 10, filters = {} } = input
+
+        // Use the existing selectPricesTableRowData function
+        const priceRows = await selectPricesTableRowData(
+          ctx.organizationId || '',
+          transaction
+        )
+
+        // Apply filters
+        let filteredRows = priceRows
+        if (filters.productId) {
+          filteredRows = filteredRows.filter(
+            (row) => row.price.productId === filters.productId
+          )
+        }
+        if (filters.type) {
+          filteredRows = filteredRows.filter(
+            (row) => row.price.type === filters.type
+          )
+        }
+        if (filters.isDefault !== undefined) {
+          filteredRows = filteredRows.filter(
+            (row) => row.price.isDefault === filters.isDefault
+          )
+        }
+
+        // Apply pagination
+        const startIndex = cursor ? parseInt(cursor, 10) : 0
+        const endIndex = startIndex + limit
+        const paginatedRows = filteredRows.slice(startIndex, endIndex)
+        const hasMore = endIndex < filteredRows.length
+
+        return {
+          data: paginatedRows,
+          currentCursor: cursor || '0',
+          nextCursor: hasMore ? endIndex.toString() : undefined,
+          hasMore,
+          total: filteredRows.length,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const pricesRouter = router({
   list: listPrices,
   create: createPrice,
   edit: editPrice,
+  getTableRows,
 })

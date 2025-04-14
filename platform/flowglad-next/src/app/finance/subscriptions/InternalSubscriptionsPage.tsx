@@ -75,25 +75,9 @@ const InternalSubscriptionsPage = ({
             />
           </TabsList>
 
-          <TabsContent value="all">
-            <SubscriptionsTable filters={getFilterForTab('all')} />
-          </TabsContent>
-
-          <TabsContent value={SubscriptionStatus.Active}>
+          <TabsContent value={activeTab}>
             <SubscriptionsTable
-              filters={getFilterForTab(SubscriptionStatus.Active)}
-            />
-          </TabsContent>
-
-          <TabsContent value={SubscriptionStatus.Trialing}>
-            <SubscriptionsTable
-              filters={getFilterForTab(SubscriptionStatus.Trialing)}
-            />
-          </TabsContent>
-
-          <TabsContent value={SubscriptionStatus.Canceled}>
-            <SubscriptionsTable
-              filters={getFilterForTab(SubscriptionStatus.Canceled)}
+              filters={getFilterForTab(activeTab)}
             />
           </TabsContent>
         </Tabs>

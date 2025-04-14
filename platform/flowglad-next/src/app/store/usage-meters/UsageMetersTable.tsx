@@ -7,12 +7,27 @@ import { core } from '@/utils/core'
 import TableTitle from '@/components/ion/TableTitle'
 import { Plus } from 'lucide-react'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
+import { trpc } from '@/app/_trpc/client'
+
+export interface UsageMetersTableFilters {
+  catalogId?: string
+}
 
 const UsageMetersTable = ({
-  data,
+  filters = {},
 }: {
-  data: UsageMeter.TableRow[]
+  filters?: UsageMetersTableFilters
 }) => {
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.usageMeters.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
   const columns = useMemo(
     () =>
       [
@@ -73,12 +88,28 @@ const UsageMetersTable = ({
     []
   )
 
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
+
   return (
     <Table
       columns={columns}
-      data={data}
+      data={tableData}
       className="bg-nav"
       bordered
+      pagination={{
+        pageIndex,
+        pageSize,
+        total,
+        onPageChange: handlePaginationChange,
+        isLoading,
+        isFetching,
+      }}
     />
   )
 }

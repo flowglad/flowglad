@@ -7,6 +7,7 @@ import {
   selectCustomers,
   selectCustomersPaginated,
   updateCustomer,
+  selectCustomersTableRowData,
 } from '@/db/tableMethods/customerMethods'
 import {
   customerClientSelectSchema,
@@ -14,6 +15,8 @@ import {
   editCustomerInputSchema,
   customersPaginatedSelectSchema,
   customersPaginatedListSchema,
+  CustomerTableRowData,
+  InferredCustomerStatus,
 } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
@@ -33,7 +36,11 @@ import {
   trpcToRest,
   RouteConfig,
 } from '@/utils/openapi'
-import { externalIdInputSchema } from '@/db/tableUtils'
+import {
+  externalIdInputSchema,
+  createPaginatedTableRowOutputSchema,
+  createPaginatedTableRowInputSchema,
+} from '@/db/tableUtils'
 import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
@@ -322,6 +329,61 @@ const listCustomersProcedure = protectedProcedure
     )
   })
 
+const getTableRowsProcedure = protectedProcedure
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        archived: z.boolean().optional(),
+      })
+    )
+  )
+  .output(
+    createPaginatedTableRowOutputSchema(
+      z.object({
+        customer: customerClientSelectSchema,
+        totalSpend: z.number().optional(),
+        payments: z.number().optional(),
+        status: z.nativeEnum(InferredCustomerStatus),
+      })
+    )
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { cursor, limit = 10, filters = {} } = input
+        const customerRows = await selectCustomersTableRowData(
+          ctx.organizationId || '',
+          transaction
+        )
+
+        // Apply filters
+        let filteredRows = customerRows
+        if (filters.archived !== undefined) {
+          filteredRows = filteredRows.filter(
+            (row) => row.customer.archived === filters.archived
+          )
+        }
+
+        // Apply pagination
+        const startIndex = cursor ? parseInt(cursor, 10) : 0
+        const endIndex = startIndex + limit
+        const paginatedRows = filteredRows.slice(startIndex, endIndex)
+        const hasMore = endIndex < filteredRows.length
+        console.log('paginatedRows', paginatedRows)
+        return {
+          data: paginatedRows,
+          currentCursor: cursor || '0',
+          nextCursor: hasMore ? endIndex.toString() : undefined,
+          hasMore,
+          total: filteredRows.length,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const customersRouter = router({
   create: createCustomerProcedure,
   edit: editCustomer,
@@ -329,4 +391,5 @@ export const customersRouter = router({
   get: getCustomer,
   internal__getById: getCustomerById,
   list: listCustomersProcedure,
+  getTableRows: getTableRowsProcedure,
 })

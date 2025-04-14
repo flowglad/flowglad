@@ -1,10 +1,9 @@
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { selectPurchaseRowDataForOrganization } from '@/db/tableMethods/purchaseMethods'
 import InnerPurchasesPage from './InnerPurchasesPage'
 
 const PurchasesPage = async () => {
-  const purchases = await authenticatedTransaction(
+  const organizationId = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       const memberships = await selectMembershipAndOrganizations(
         { userId, focused: true },
@@ -13,15 +12,11 @@ const PurchasesPage = async () => {
       if (memberships.length === 0) {
         throw new Error('No memberships found')
       }
-      const organizationId = memberships[0].organization.id
-      return selectPurchaseRowDataForOrganization(
-        organizationId,
-        transaction
-      )
+      return memberships[0].organization.id
     }
   )
 
-  return <InnerPurchasesPage purchases={purchases} />
+  return <InnerPurchasesPage organizationId={organizationId} />
 }
 
 export default PurchasesPage

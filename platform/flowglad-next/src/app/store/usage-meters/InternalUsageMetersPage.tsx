@@ -1,20 +1,18 @@
 'use client'
 import { PageHeader } from '@/components/ion/PageHeader'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import UsageMetersTable from './UsageMetersTable'
+import UsageMetersTable, {
+  UsageMetersTableFilters,
+} from './UsageMetersTable'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import Button from '@/components/ion/Button'
 
-export default function UsageMetersPage({
-  usageMeters,
-}: {
-  usageMeters: UsageMeter.TableRow[]
-}) {
+export default function UsageMetersPage() {
   const [createUsageMeterModalOpen, setCreateUsageMeterModalOpen] =
     useState(false)
+  const [filters, setFilters] = useState<UsageMetersTableFilters>({})
 
   return (
     <InternalPageContainer>
@@ -24,7 +22,7 @@ export default function UsageMetersPage({
           {
             label: 'Usage Meters',
             subPath: '/usage-meters',
-            Component: () => <UsageMetersTable data={usageMeters} />,
+            Component: () => <UsageMetersTable filters={filters} />,
           },
         ]}
         primaryButton={

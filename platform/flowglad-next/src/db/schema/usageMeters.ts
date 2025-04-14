@@ -102,6 +102,14 @@ export const usageMeterPaginatedSelectSchema =
 export const usageMeterPaginatedListSchema =
   createPaginatedListQuerySchema(usageMetersClientSelectSchema)
 
+export const usageMetersTableRowDataSchema = z.object({
+  usageMeter: usageMetersClientSelectSchema,
+  catalog: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+})
+
 export namespace UsageMeter {
   export type Insert = z.infer<typeof usageMetersInsertSchema>
   export type Update = z.infer<typeof usageMetersUpdateSchema>
@@ -118,10 +126,7 @@ export namespace UsageMeter {
   export type PaginatedList = z.infer<
     typeof usageMeterPaginatedListSchema
   >
-  export type TableRow = {
-    usageMeter: ClientRecord
-    catalog: Catalog.ClientRecord
-  }
+  export type TableRow = z.infer<typeof usageMetersTableRowDataSchema>
   export type Where = SelectConditions<typeof usageMeters>
 }
 

@@ -2,10 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  selectPurchaseById,
-  selectPurchases,
-} from '@/db/tableMethods/purchaseMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import core from '@/utils/core'

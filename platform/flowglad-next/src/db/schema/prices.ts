@@ -480,7 +480,7 @@ export type CreateProductSchema = z.infer<typeof createProductSchema>
 
 export const editProductSchema = z.object({
   product: productsUpdateSchema,
-  price: pricesUpdateSchema,
+  price: pricesUpdateSchema.optional(),
   id: z.string(),
 })
 

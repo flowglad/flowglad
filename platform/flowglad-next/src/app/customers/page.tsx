@@ -1,15 +1,14 @@
-import Internal from './Internal'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
+import Internal from './Internal'
 
 const CustomersPage = async ({
   params,
 }: {
   params: Promise<{ focusedTab: string }>
 }) => {
-  const { customers, variants } = await authenticatedTransaction(
+  const { organizationId, variants } = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       // First, get the user's membership and organization
       const [{ organization }] =
@@ -20,27 +19,18 @@ const CustomersPage = async ({
           },
           transaction
         )
-      // Then, use the organizationId to fetch customers
-      const customers = await selectCustomerAndCustomerTableRows(
-        { organizationId: organization.id },
-        transaction
-      )
+
       const variants = await selectPricesAndProductsForOrganization(
         {},
         organization.id,
         transaction
       )
-      return { customers, variants }
+
+      return { organizationId: organization.id, variants }
     }
   )
 
-  return (
-    <Internal
-      params={await params}
-      customers={customers}
-      prices={variants.filter(({ product }) => product.active)}
-    />
-  )
+  return <Internal />
 }
 
 export default CustomersPage

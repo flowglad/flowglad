@@ -766,12 +766,14 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 'fill-gray-500 dark:fill-gray-500'
               )}
               ticks={
-                startEndOnlyYAxis
-                  ? [0, maxValue || 0]
-                  : minValue !== undefined &&
-                      maxValue !== undefined &&
-                      minValue === maxValue
-                    ? [minValue]
+                minValue !== undefined &&
+                maxValue !== undefined &&
+                minValue === maxValue
+                  ? [minValue]
+                  : startEndOnlyYAxis
+                    ? maxValue === 0
+                      ? [0]
+                      : [0, maxValue || 0]
                     : undefined
               }
               allowDecimals={allowDecimals}

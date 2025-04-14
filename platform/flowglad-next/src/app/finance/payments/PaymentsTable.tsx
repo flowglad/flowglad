@@ -15,6 +15,7 @@ import { sentenceCase } from 'change-case'
 import RefundPaymentModal from './RefundPaymentModal'
 import { Check, Hourglass, X, RotateCcw } from 'lucide-react'
 import { formatDate } from '@/utils/core'
+import { trpc } from '@/app/_trpc/client'
 
 const MoreMenuCell = ({
   payment,
@@ -66,12 +67,28 @@ const PaymentStatusBadge = ({
     </Badge>
   )
 }
+
+export interface PaymentsTableFilters {
+  status?: PaymentStatus
+  customerId?: string
+  organizationId?: string
+}
+
 const PaymentsTable = ({
-  data,
+  filters = {},
 }: {
-  data: Payment.TableRowData[]
+  filters?: PaymentsTableFilters
 }) => {
   const router = useRouter()
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.payments.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
 
   const columns = useMemo(
     () =>
@@ -147,15 +164,28 @@ const PaymentsTable = ({
     []
   )
 
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
+
   return (
     <Table
       columns={columns}
-      data={data}
+      data={tableData}
       className="bg-nav"
       bordered
-      // onClickRow={(row) =>
-      //   router.push(`/finance/payments/${row.payment.id}`)
-      // }
+      pagination={{
+        pageIndex,
+        pageSize,
+        total,
+        onPageChange: handlePaginationChange,
+        isLoading,
+        isFetching,
+      }}
     />
   )
 }

@@ -19,7 +19,7 @@ import {
   createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
-import { and, asc, eq, SQLWrapper } from 'drizzle-orm'
+import { and, asc, eq, SQLWrapper, desc } from 'drizzle-orm'
 import {
   Product,
   products,
@@ -261,6 +261,26 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
   prices,
   config
 )
+
+export const selectPricesTableRowData = async (
+  organizationId: string,
+  transaction: DbTransaction
+) => {
+  const pricesRowData = await transaction
+    .select({
+      price: prices,
+      product: products,
+    })
+    .from(prices)
+    .innerJoin(products, eq(prices.productId, products.id))
+    .where(eq(products.organizationId, organizationId))
+    .orderBy(desc(prices.createdAt))
+
+  return pricesRowData.map((row) => ({
+    price: pricesSelectSchema.parse(row.price),
+    product: productsSelectSchema.parse(row.product),
+  }))
+}
 
 export const makePriceDefault = async (
   priceOrId: Price.Record | string,

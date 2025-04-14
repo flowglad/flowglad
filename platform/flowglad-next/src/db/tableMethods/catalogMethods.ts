@@ -17,7 +17,7 @@ import {
   catalogsUpdateSchema,
 } from '@/db/schema/catalogs'
 import { DbTransaction } from '@/db/types'
-import { count, eq } from 'drizzle-orm'
+import { count, eq, and } from 'drizzle-orm'
 import { products } from '../schema/products'
 import { selectPricesAndProductsByProductWhere } from './priceMethods'
 import { CatalogWithProductsAndUsageMeters } from '../schema/prices'
@@ -98,9 +98,54 @@ export const makeCatalogDefault = async (
 }
 
 export const selectCatalogsTableRows = async (
-  where: SelectConditions<typeof catalogs>,
+  {
+    cursor,
+    limit = 10,
+    filters = {},
+  }: {
+    cursor?: string
+    limit?: number
+    filters?: {
+      organizationId?: string
+      isDefault?: boolean
+    }
+  },
   transaction: DbTransaction
-): Promise<Catalog.TableRow[]> => {
+): Promise<{
+  data: Catalog.TableRow[]
+  currentCursor: string
+  nextCursor?: string
+  hasMore: boolean
+  total: number
+}> => {
+  // Build where clause based on filters
+  const whereConditions = []
+
+  if (filters.organizationId) {
+    whereConditions.push(
+      eq(catalogs.organizationId, filters.organizationId)
+    )
+  }
+
+  if (filters.isDefault !== undefined) {
+    whereConditions.push(eq(catalogs.isDefault, filters.isDefault))
+  }
+
+  // Get total count for pagination
+  const totalCountResult = await transaction
+    .select({ count: count() })
+    .from(catalogs)
+    .where(
+      whereConditions.length > 0 ? and(...whereConditions) : undefined
+    )
+
+  const total = Number(totalCountResult[0]?.count || 0)
+
+  // Apply pagination
+  const startIndex = cursor ? parseInt(cursor, 10) : 0
+  const endIndex = startIndex + limit
+
+  // Get paginated results
   const results = await transaction
     .select({
       catalog: catalogs,
@@ -108,14 +153,26 @@ export const selectCatalogsTableRows = async (
     })
     .from(catalogs)
     .leftJoin(products, eq(catalogs.id, products.catalogId))
-    .where(whereClauseFromObject(catalogs, where))
+    .where(
+      whereConditions.length > 0 ? and(...whereConditions) : undefined
+    )
     .groupBy(catalogs.id)
     .orderBy(catalogs.createdAt)
+    .limit(limit)
+    .offset(startIndex)
 
-  return results.map(({ catalog, productsCount }) => ({
-    catalog: catalogsClientSelectSchema.parse(catalog),
-    productsCount: productsCount || 0,
-  }))
+  const hasMore = endIndex < total
+
+  return {
+    data: results.map(({ catalog, productsCount }) => ({
+      catalog: catalogsClientSelectSchema.parse(catalog),
+      productsCount: productsCount || 0,
+    })),
+    currentCursor: cursor || '0',
+    nextCursor: hasMore ? endIndex.toString() : undefined,
+    hasMore,
+    total,
+  }
 }
 
 export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
