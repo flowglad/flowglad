@@ -200,18 +200,10 @@ const invoiceBillingInfoSchema = z.object({
   flowType: z.literal(CheckoutFlowType.Invoice),
 })
 
-const usageBillingInfoSchema = z.object({
-  purchase: subscriptionPurchaseSelectSchema.nullish(),
-  price: usagePriceSelectSchema,
-  flowType: z.literal(CheckoutFlowType.Subscription),
-  product: productsSelectSchema,
-})
-
 export const billingInfoSchema = z
   .discriminatedUnion('flowType', [
     subscriptionBillingInfoSchema,
     singlePaymentBillingInfoSchema,
-    usageBillingInfoSchema,
     invoiceBillingInfoSchema,
     addPaymentMethodBillingInfoSchema,
   ])
