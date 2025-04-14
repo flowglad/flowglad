@@ -16,12 +16,17 @@ import {
   makeCatalogDefault,
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectDefaultCatalog,
+  selectCatalogsTableRows,
 } from '@/db/tableMethods/catalogMethods'
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'catalog',
@@ -207,6 +212,39 @@ const cloneCatalogProcedure = protectedProcedure
     )
   })
 
+const getTableRowsProcedure = protectedProcedure
+  .input(createPaginatedTableRowInputSchema(z.object({})))
+  .output(
+    createPaginatedTableRowOutputSchema(
+      z.object({
+        catalog: catalogsClientSelectSchema,
+        productsCount: z.number(),
+      })
+    )
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { cursor, limit = 10, filters = {} } = input
+
+        return selectCatalogsTableRows(
+          {
+            cursor,
+            limit,
+            filters: {
+              ...filters,
+              organizationId: ctx.organizationId,
+            },
+          },
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const catalogsRouter = router({
   list: listCatalogsProcedure,
   get: getCatalogProcedure,
@@ -214,4 +252,5 @@ export const catalogsRouter = router({
   create: createCatalogProcedure,
   update: editCatalogProcedure,
   clone: cloneCatalogProcedure,
+  getTableRows: getTableRowsProcedure,
 })

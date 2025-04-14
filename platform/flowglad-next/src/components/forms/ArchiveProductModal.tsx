@@ -4,7 +4,10 @@ import Modal from '@/components/ion/Modal'
 import Button from '@/components/ion/Button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
-import { editProductSchema } from '@/db/schema/prices'
+import {
+  EditProductInput,
+  editProductSchema,
+} from '@/db/schema/prices'
 
 interface ArchiveProductModalProps {
   trigger?: React.ReactNode
@@ -26,11 +29,12 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
   const editProduct = trpc.products.edit.useMutation()
 
   const handleArchive = async () => {
-    const data = {
+    const data: EditProductInput = {
       product: {
         id: product.id,
         active: !product.active,
       },
+      id: product.id,
     }
 
     const parsed = editProductSchema.safeParse(data)

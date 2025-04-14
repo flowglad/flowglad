@@ -11,6 +11,7 @@ import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import EditCatalogModal from '@/components/forms/EditCatalogModal'
 import CloneCatalogModal from '@/components/forms/CloneCatalogModal'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
+import { trpc } from '@/app/_trpc/client'
 
 const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -42,7 +43,26 @@ const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
   )
 }
 
-const CatalogsTable = ({ data }: { data: Catalog.TableRow[] }) => {
+export interface CatalogsTableFilters {
+  organizationId?: string
+  isDefault?: boolean
+}
+
+const CatalogsTable = ({
+  filters = {},
+}: {
+  filters?: CatalogsTableFilters
+}) => {
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.catalogs.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
   const columns = useMemo(
     () =>
       [
@@ -89,12 +109,28 @@ const CatalogsTable = ({ data }: { data: Catalog.TableRow[] }) => {
     []
   )
 
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
+
   return (
     <Table
       columns={columns}
-      data={data}
+      data={tableData}
       className="bg-nav"
       bordered
+      pagination={{
+        pageIndex,
+        pageSize,
+        total,
+        onPageChange: handlePaginationChange,
+        isLoading,
+        isFetching,
+      }}
     />
   )
 }

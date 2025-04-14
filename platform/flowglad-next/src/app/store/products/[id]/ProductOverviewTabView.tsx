@@ -10,6 +10,7 @@ import TableTitle from '@/components/ion/TableTitle'
 import { Price } from '@/db/schema/prices'
 import Label from '@/components/ion/Label'
 import PricingCellView from '@/components/PricingCellView'
+import PricesTable from './PricesTable'
 
 interface ProductDetailsOverviewProps {
   product: Product.ClientRecord
@@ -95,7 +96,12 @@ const ProductOverviewTabView = ({
           </div>
         </div>
       </div>
-      {/* <PricesTable prices={prices} product={product} /> */}
+      <PricesTable
+        productId={product.id}
+        filters={{
+          productId: product.id,
+        }}
+      />
     </>
   )
 }

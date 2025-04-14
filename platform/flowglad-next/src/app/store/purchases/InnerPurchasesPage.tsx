@@ -1,12 +1,11 @@
 'use client'
 import { PageHeader } from '@/components/ion/PageHeader'
-import PurchasesTable from './PurchasesTable'
-import { Purchase } from '@/db/schema/purchases'
+import PurchasesTable from '@/app/customers/[id]/PurchasesTable'
 
 const InnerPurchasesPage = ({
-  purchases,
+  organizationId,
 }: {
-  purchases: Purchase.PurchaseTableRowData[]
+  organizationId: string
 }) => {
   return (
     <div className="h-full flex justify-between items-center gap-2.5">
@@ -17,7 +16,7 @@ const InnerPurchasesPage = ({
             {
               label: 'All',
               subPath: '',
-              Component: () => <PurchasesTable data={purchases} />,
+              Component: () => <PurchasesTable />,
             },
           ]}
           hideTabs

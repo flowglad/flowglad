@@ -7,6 +7,12 @@ import InvoicesTable from '@/components/InvoicesTable'
 import core from '@/utils/core'
 import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
+import TableTitle from '@/components/ion/TableTitle'
+import { Plus } from 'lucide-react'
+import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
+import { useState } from 'react'
+import PaymentsTable from '@/app/finance/payments/PaymentsTable'
 
 export interface CustomerBillingSubPageProps {
   customer: Customer.ClientRecord
@@ -21,6 +27,9 @@ export const CustomerBillingSubPage = ({
   invoices,
   payments,
 }: CustomerBillingSubPageProps) => {
+  const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
+    useState(false)
+
   return (
     <>
       <div className="w-full flex items-start">
@@ -55,13 +64,40 @@ export const CustomerBillingSubPage = ({
               </div>
             </div>
           </div>
-          <PurchasesTable purchases={purchases} payments={payments} />
-          <InvoicesTable
-            invoicesAndLineItems={invoices}
-            customer={customer}
-          />
+          <div className="w-full flex flex-col gap-5 pb-20">
+            <TableTitle title="Subscriptions" noButtons />
+            <SubscriptionsTable
+              filters={{
+                customerId: customer.id,
+              }}
+            />
+            <TableTitle title="Payments" noButtons />
+            <PaymentsTable
+              filters={{
+                customerId: customer.id,
+              }}
+            />
+            <TableTitle title="Purchases" noButtons />
+            <PurchasesTable
+              filters={{
+                customerId: customer.id,
+              }}
+            />
+            <TableTitle
+              title="Invoices"
+              buttonLabel="Create Invoice"
+              buttonIcon={<Plus size={16} />}
+              buttonOnClick={() => setCreateInvoiceModalOpen(true)}
+            />
+            <InvoicesTable customer={customer} />
+          </div>
         </div>
       </div>
+      <CreateInvoiceModal
+        isOpen={createInvoiceModalOpen}
+        setIsOpen={setCreateInvoiceModalOpen}
+        customer={customer}
+      />
     </>
   )
 }

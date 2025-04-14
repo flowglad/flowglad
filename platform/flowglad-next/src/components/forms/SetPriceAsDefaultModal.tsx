@@ -10,7 +10,7 @@ interface SetPriceAsDefaultProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  price: Price.Record
+  price: Price.ClientRecord
 }
 
 const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({

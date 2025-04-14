@@ -9,8 +9,14 @@ import {
   insertInvoice,
   selectInvoiceById,
   selectInvoicesPaginated,
+  selectInvoiceCountsByStatus,
+  selectInvoicesTableRowData,
 } from '@/db/tableMethods/invoiceMethods'
-import { idInputSchema } from '@/db/tableUtils'
+import {
+  idInputSchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
 import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
@@ -35,6 +41,7 @@ import {
 } from '@/utils/email'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
+import { InvoiceStatus } from '@/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',
@@ -221,10 +228,98 @@ const sendInvoiceReminderProcedure = protectedProcedure
     )
   })
 
+const getCountsByStatusProcedure = protectedProcedure
+  .input(z.object({}))
+  .output(
+    z.array(
+      z.object({
+        status: z.nativeEnum(InvoiceStatus),
+        count: z.number(),
+      })
+    )
+  )
+  .query(async ({ ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectInvoiceCountsByStatus(transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+const getTableRowsProcedure = protectedProcedure
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        status: z.nativeEnum(InvoiceStatus).optional(),
+        customerId: z.string().optional(),
+      })
+    )
+  )
+  .output(
+    createPaginatedTableRowOutputSchema(
+      z.object({
+        invoice: invoicesClientSelectSchema,
+        invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
+        customer: z.object({
+          id: z.string(),
+          name: z.string(),
+        }),
+      })
+    )
+  )
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const { cursor, limit = 10, filters = {} } = input
+
+        // Use the existing selectInvoicesTableRowData function
+        const invoiceRows = await selectInvoicesTableRowData(
+          ctx.organizationId || '',
+          transaction
+        )
+
+        // Apply filters
+        let filteredRows = invoiceRows
+        if (filters.status) {
+          filteredRows = filteredRows.filter(
+            (row) => row.invoice.status === filters.status
+          )
+        }
+        if (filters.customerId) {
+          filteredRows = filteredRows.filter(
+            (row) => row.invoice.customerId === filters.customerId
+          )
+        }
+
+        // Apply pagination
+        const startIndex = cursor ? parseInt(cursor, 10) : 0
+        const endIndex = startIndex + limit
+        const paginatedRows = filteredRows.slice(startIndex, endIndex)
+        const hasMore = endIndex < filteredRows.length
+
+        return {
+          data: paginatedRows,
+          hasMore,
+          total: filteredRows.length,
+          currentCursor: cursor || '0',
+          nextCursor: hasMore ? endIndex.toString() : undefined,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const invoicesRouter = router({
   list: listInvoicesProcedure,
   create: createInvoiceProcedure,
   get: getInvoiceProcedure,
   update: updateInvoiceProcedure,
   sendReminder: sendInvoiceReminderProcedure,
+  getCountsByStatus: getCountsByStatusProcedure,
+  getTableRows: getTableRowsProcedure,
 })

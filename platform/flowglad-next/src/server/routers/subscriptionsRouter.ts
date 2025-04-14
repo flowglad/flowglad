@@ -14,7 +14,12 @@ import {
   selectSubscriptionsPaginated,
   selectSubscriptionsTableRowData,
 } from '@/db/tableMethods/subscriptionMethods'
-import { idInputSchema, metadataSchema } from '@/db/tableUtils'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+  metadataSchema,
+} from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import { adjustSubscriptionInputSchema } from '@/subscriptions/schemas'
 import {
@@ -353,41 +358,27 @@ const getTableRowsProcedure = protectedProcedure
     },
   })
   .input(
-    z.object({
-      cursor: z.string().optional(),
-      limit: z.number().min(1).max(100).optional(),
-      filters: z
-        .object({
-          status: z.nativeEnum(SubscriptionStatus).optional(),
-          customerId: z.string().optional(),
-          organizationId: z.string().optional(),
-        })
-        .optional(),
-    })
+    createPaginatedTableRowInputSchema(
+      z.object({
+        status: z.nativeEnum(SubscriptionStatus).optional(),
+        customerId: z.string().optional(),
+      })
+    )
   )
   .output(
-    z.object({
-      data: z.array(subscriptionsTableRowDataSchema),
-      currentCursor: z.string().optional(),
-      nextCursor: z.string().optional(),
-      hasMore: z.boolean(),
-      total: z.number(),
-    })
+    createPaginatedTableRowOutputSchema(
+      subscriptionsTableRowDataSchema
+    )
   )
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Get the user's organization if not provided in filters
-        if (!filters.organizationId && ctx.organizationId) {
-          filters.organizationId = ctx.organizationId
-        }
-
         // Use the existing selectSubscriptionsTableRowData function
         const subscriptionRows =
           await selectSubscriptionsTableRowData(
-            filters.organizationId || '',
+            ctx.organizationId || '',
             transaction
           )
 

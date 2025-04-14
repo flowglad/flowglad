@@ -18,6 +18,7 @@ import StatusBadge from '@/components/StatusBadge'
 import { RotateCw, Infinity } from 'lucide-react'
 import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { trpc } from '@/app/_trpc/client'
 
 const MoreMenuCell = ({
   discount,
@@ -94,11 +95,26 @@ const DiscountTableAmountCell = ({
   return <span className="text-sm">{amountText}</span>
 }
 
+export interface DiscountsTableFilters {
+  active?: boolean
+  organizationId?: string
+}
+
 const DiscountsTable = ({
-  discounts,
+  filters = {},
 }: {
-  discounts: Discount.Record[]
+  filters?: DiscountsTableFilters
 }) => {
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+
+  const { data, isLoading, isFetching } =
+    trpc.discounts.getTableRows.useQuery({
+      cursor: pageIndex.toString(),
+      limit: pageSize,
+      filters,
+    })
+
   const columns = useMemo(
     () =>
       [
@@ -106,18 +122,18 @@ const DiscountsTable = ({
           header: ({ column }) => (
             <SortableColumnHeaderCell title="Name" column={column} />
           ),
-          accessorKey: 'name',
+          accessorKey: 'discount.name',
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.name}</span>
+            <span className="text-sm">{cellData.discount.name}</span>
           ),
         },
         {
           header: ({ column }) => (
             <SortableColumnHeaderCell title="Code" column={column} />
           ),
-          accessorKey: 'code',
+          accessorKey: 'discount.code',
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.code}</span>
+            <span className="text-sm">{cellData.discount.code}</span>
           ),
         },
         {
@@ -127,9 +143,9 @@ const DiscountsTable = ({
               column={column}
             />
           ),
-          accessorKey: 'amount',
+          accessorKey: 'discount.amount',
           cell: ({ row: { original: cellData } }) => (
-            <DiscountTableAmountCell amount={cellData} />
+            <DiscountTableAmountCell amount={cellData.discount} />
           ),
         },
         {
@@ -139,9 +155,23 @@ const DiscountsTable = ({
               column={column}
             />
           ),
-          accessorKey: 'duration',
+          accessorKey: 'discount.duration',
           cell: ({ row: { original: cellData } }) => (
-            <DiscountTableDurationCell duration={cellData} />
+            <DiscountTableDurationCell duration={cellData.discount} />
+          ),
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell
+              title="Redemptions"
+              column={column}
+            />
+          ),
+          accessorKey: 'discountRedemptionsCount',
+          cell: ({ row: { original: cellData } }) => (
+            <span className="text-sm">
+              {cellData.discountRedemptionsCount}
+            </span>
           ),
         },
         {
@@ -151,9 +181,9 @@ const DiscountsTable = ({
               column={column}
             />
           ),
-          accessorKey: 'active',
+          accessorKey: 'discount.active',
           cell: ({ row: { original: cellData } }) => (
-            <StatusBadge active={cellData.active} />
+            <StatusBadge active={cellData.discount.active} />
           ),
         },
         {
@@ -163,9 +193,9 @@ const DiscountsTable = ({
               column={column}
             />
           ),
-          accessorKey: 'createdAt',
+          accessorKey: 'discount.createdAt',
           cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.createdAt!)}</>
+            <>{core.formatDate(cellData.discount.createdAt!)}</>
           ),
         },
         {
@@ -175,20 +205,36 @@ const DiscountsTable = ({
               className="justify-end flex"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreMenuCell discount={cellData} />
+              <MoreMenuCell discount={cellData.discount} />
             </div>
           ),
         },
-      ] as ColumnDef<Discount.Record>[],
+      ] as ColumnDef<Discount.TableRowData>[],
     []
   )
+
+  const handlePaginationChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+  }
+
+  const tableData = data?.data || []
+  const total = data?.total || 0
+  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <Table
       columns={columns}
-      data={discounts}
+      data={tableData}
       className="bg-nav"
       bordered
+      pagination={{
+        pageIndex,
+        pageSize,
+        total,
+        onPageChange: handlePaginationChange,
+        isLoading,
+        isFetching,
+      }}
     />
   )
 }

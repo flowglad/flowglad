@@ -89,10 +89,12 @@ export const editProduct = protectedProcedure
         if (!updatedProduct) {
           throw new Error('Product not found or update failed')
         }
-        await editPriceTransaction(
-          { price: input.price },
-          transaction
-        )
+        if (input.price) {
+          await editPriceTransaction(
+            { price: input.price },
+            transaction
+          )
+        }
         return {
           product: updatedProduct,
         }
@@ -154,7 +156,6 @@ const getTableRowsSchema = z.object({
   filters: z
     .object({
       active: z.boolean().optional(),
-      organizationId: z.string().optional(),
       catalogId: z.string().optional(),
     })
     .optional(),

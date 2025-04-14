@@ -560,7 +560,8 @@ function Table<TData, TValue>({
           </TableRoot>
         </div>
       </div>
-      {(rowLength > 10 || pagination) && (
+      {((pagination && pagination.total > pagination.pageSize) ||
+        (!pagination && rowLength > 10)) && (
         <div className="w-full px-4 pt-4">
           <PaginationRow
             table={table}

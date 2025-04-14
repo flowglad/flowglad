@@ -21,7 +21,7 @@ import {
 } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, sql, count } from 'drizzle-orm'
 import { invoices } from '../schema/invoices'
 import { GetRevenueDataInput } from '../schema/payments'
 import { customers } from '../schema/customers'
@@ -395,5 +395,22 @@ export const selectPaymentsAndPaymentMethodsByPaymentsWhere = async (
     paymentMethod: row.paymentMethod
       ? paymentMethodsSelectSchema.parse(row.paymentMethod)
       : null,
+  }))
+}
+
+export const selectPaymentCountsByStatus = async (
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      status: payments.status,
+      count: count(),
+    })
+    .from(payments)
+    .groupBy(payments.status)
+
+  return result.map((item) => ({
+    status: item.status as PaymentStatus,
+    count: item.count,
   }))
 }
