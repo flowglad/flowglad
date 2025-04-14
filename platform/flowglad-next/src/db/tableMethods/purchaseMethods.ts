@@ -201,6 +201,7 @@ const invoiceBillingInfoSchema = z.object({
 })
 
 const usageBillingInfoSchema = z.object({
+  purchase: subscriptionPurchaseSelectSchema.nullish(),
   price: usagePriceSelectSchema,
   flowType: z.literal(CheckoutFlowType.Subscription),
   product: productsSelectSchema,
