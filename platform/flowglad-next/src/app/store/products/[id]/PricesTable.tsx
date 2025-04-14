@@ -144,7 +144,6 @@ const PaginatedPricesTable = ({
   productId: string
   filters?: PaginatedPricesTableFilters
 }) => {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [pageIndex, setPageIndex] = useState(0)
   const pageSize = 10
 
@@ -257,23 +256,9 @@ const PaginatedPricesTable = ({
 
   const tableData = data?.data || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
-      <CreatePriceModal
-        isOpen={isCreateOpen}
-        setIsOpen={setIsCreateOpen}
-        productId={productId}
-      />
-      <TableTitle
-        title="Prices"
-        buttonLabel="Create Price"
-        buttonIcon={<Plus size={8} strokeWidth={2} />}
-        buttonOnClick={() => setIsCreateOpen(true)}
-        buttonDisabled={!filters.productId}
-        buttonDisabledTooltip="Product must be selected"
-      />
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
