@@ -156,7 +156,8 @@ const CheckoutSessionPage = async ({
     feeCalculation,
     clientSecret,
     flowType:
-      price.type === PriceType.Subscription
+      price.type === PriceType.Subscription ||
+      price.type === PriceType.Usage
         ? 'subscription'
         : 'single_payment',
   })

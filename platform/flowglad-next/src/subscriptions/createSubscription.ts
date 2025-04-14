@@ -121,6 +121,10 @@ export const insertSubscriptionAndItems = async (
     canceledAt: null,
     metadata: metadata ?? null,
     trialEnd: trialEnd ?? null,
+    /**
+     * For subscription prices, billing runs at the start of each period
+     * For usage-based prices, billing runs at the end of each period after usage is collected
+     */
     runBillingAtPeriodStart:
       price.type === PriceType.Subscription ? true : false,
     name:
@@ -250,7 +254,11 @@ const safelyProcessCreationForExistingSubscription = async (
           transaction
         )
       : undefined)
-
+  /**
+   * Billing timing depends on the price type:
+   * - For subscription prices: billing runs at period start
+   * - For usage-based prices: billing runs at period end
+   */
   if (subscription.runBillingAtPeriodStart) {
     await attemptBillingRunTask.trigger({
       billingRun,
