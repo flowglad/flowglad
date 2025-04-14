@@ -174,6 +174,8 @@ const paymentFormButtonLabel = ({
 }) => {
   if (checkoutBlocked) {
     return 'Processing'
+  } else if (flowType === CheckoutFlowType.AddPaymentMethod) {
+    return 'Add Payment Method'
   } else if (subscriptionDetails?.trialPeriodDays) {
     return `Start ${subscriptionDetails.trialPeriodDays} day trial`
   } else if (feeCalculation && !core.isNil(totalDueAmount)) {
