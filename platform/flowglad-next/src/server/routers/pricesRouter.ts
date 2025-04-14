@@ -23,6 +23,7 @@ import {
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
 import { PriceType } from '@/types'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Price',
@@ -77,8 +78,19 @@ export const createPrice = protectedProcedure
               'There must be exactly one default price per product',
           })
         }
-
-        const newPrice = await insertPrice(price, transaction)
+        const organization = await selectOrganizationById(
+          ctx.organizationId!,
+          transaction
+        )
+        const newPrice = await insertPrice(
+          {
+            ...price,
+            livemode: ctx.livemode,
+            currency: organization.defaultCurrency,
+            externalId: null,
+          },
+          transaction
+        )
         return {
           price: newPrice,
         }

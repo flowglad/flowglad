@@ -442,14 +442,14 @@ export namespace Price {
 }
 
 export const editPriceSchema = z.object({
-  price: pricesUpdateSchema,
+  price: pricesClientUpdateSchema,
   id: z.string(),
 })
 
 export type EditPriceInput = z.infer<typeof editPriceSchema>
 
 export const createPriceSchema = z.object({
-  price: pricesInsertSchema,
+  price: pricesClientInsertSchema,
 })
 
 export type CreatePriceInput = z.infer<typeof createPriceSchema>

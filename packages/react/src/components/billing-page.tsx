@@ -13,6 +13,7 @@ import {
 } from '../FlowgladContext'
 import { useCallback } from 'react'
 import { CreateCheckoutSessionParams } from '@flowglad/shared'
+import { FlowgladTheme } from '@/FlowgladTheme'
 
 const SectionTitle = ({
   children,
@@ -101,66 +102,75 @@ const CurrentSubscriptionOrPricingTable = ({
   )
 }
 
-export function BillingPage({ className }: { className?: string }) {
+export function BillingPage({
+  className,
+  darkMode,
+}: {
+  className?: string
+  darkMode?: boolean
+}) {
   const billing = useBilling()
   if (!billing.loadBilling || !billing.loaded || !billing.catalog) {
     return <div>Loading...</div>
   }
 
   return (
-    <div
-      className={cn(
-        'flowglad-flex flowglad-flex-col flowglad-gap-4 flowglad-p-4',
-        className
-      )}
-    >
-      <Section>
-        <CurrentSubscriptionOrPricingTable
-          catalog={billing.catalog!}
-          currentSubscriptions={billing.currentSubscriptions}
-        />
-      </Section>
-      <Section>
-        <SectionTitle>Payment Methods</SectionTitle>
-        <PaymentMethods paymentMethods={billing.paymentMethods} />
-      </Section>
-      <Section>
-        <SectionTitle>Billing Details</SectionTitle>
-        <CustomerBillingDetails
-          name={billing.customer.name ?? ''}
-          email={billing.customer.email}
-          billingAddress={
-            !billing.customer.billingAddress
-              ? undefined
-              : {
-                  line1:
-                    billing.customer.billingAddress.address.line1,
-                  line2:
-                    billing.customer.billingAddress.address.line2 ??
-                    undefined,
-                  city: billing.customer.billingAddress.address.city,
-                  state:
-                    billing.customer.billingAddress.address.state,
-                  postalCode:
-                    billing.customer.billingAddress.address
-                      .postal_code,
-                  country:
-                    billing.customer.billingAddress.address.country,
-                }
-          }
-        />
-      </Section>
-      <Section>
-        <SectionTitle>Invoices</SectionTitle>
-        <Invoices
-          invoices={billing.invoices.map(
-            ({ invoice, invoiceLineItems }) => ({
-              ...invoice,
-              lineItems: invoiceLineItems,
-            })
-          )}
-        />
-      </Section>
-    </div>
+    <FlowgladTheme darkMode={darkMode}>
+      <div
+        className={cn(
+          'flowglad-flex flowglad-flex-col flowglad-gap-4 flowglad-p-4',
+          className
+        )}
+      >
+        <Section>
+          <CurrentSubscriptionOrPricingTable
+            catalog={billing.catalog!}
+            currentSubscriptions={billing.currentSubscriptions}
+          />
+        </Section>
+        <Section>
+          <SectionTitle>Payment Methods</SectionTitle>
+          <PaymentMethods paymentMethods={billing.paymentMethods} />
+        </Section>
+        <Section>
+          <SectionTitle>Billing Details</SectionTitle>
+          <CustomerBillingDetails
+            name={billing.customer.name ?? ''}
+            email={billing.customer.email}
+            billingAddress={
+              !billing.customer.billingAddress
+                ? undefined
+                : {
+                    line1:
+                      billing.customer.billingAddress.address.line1,
+                    line2:
+                      billing.customer.billingAddress.address.line2 ??
+                      undefined,
+                    city: billing.customer.billingAddress.address
+                      .city,
+                    state:
+                      billing.customer.billingAddress.address.state,
+                    postalCode:
+                      billing.customer.billingAddress.address
+                        .postal_code,
+                    country:
+                      billing.customer.billingAddress.address.country,
+                  }
+            }
+          />
+        </Section>
+        <Section>
+          <SectionTitle>Invoices</SectionTitle>
+          <Invoices
+            invoices={billing.invoices.map(
+              ({ invoice, invoiceLineItems }) => ({
+                ...invoice,
+                lineItems: invoiceLineItems,
+              })
+            )}
+          />
+        </Section>
+      </div>
+    </FlowgladTheme>
   )
 }

@@ -1,4 +1,4 @@
-// eslint-disable no-console
+/* eslint-disable no-console */
 /*
 Run the script using the following command:
 NODE_ENV=production pnpm tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...

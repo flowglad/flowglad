@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Pencil } from 'lucide-react'
+import { Image as ImageIcon, Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import StatusBadge from '@/components/StatusBadge'
 import EditProductModal from '@/components/forms/EditProductModal'
@@ -11,6 +11,7 @@ import { Price } from '@/db/schema/prices'
 import Label from '@/components/ion/Label'
 import PricingCellView from '@/components/PricingCellView'
 import PricesTable from './PricesTable'
+import CreatePriceModal from '@/components/forms/CreatePriceModal'
 
 interface ProductDetailsOverviewProps {
   product: Product.ClientRecord
@@ -78,6 +79,7 @@ const ProductOverviewTabView = ({
   prices,
 }: ProductDetailsOverviewProps) => {
   const { organization } = useAuthenticatedContext()
+  const [isCreatePriceOpen, setIsCreatePriceOpen] = useState(false)
   return (
     <>
       <div className="w-full flex flex-row gap-4">
@@ -96,11 +98,23 @@ const ProductOverviewTabView = ({
           </div>
         </div>
       </div>
+      <TableTitle
+        title="Prices"
+        buttonLabel="Create Price"
+        buttonIcon={<Plus size={8} strokeWidth={2} />}
+        buttonOnClick={() => setIsCreatePriceOpen(true)}
+        buttonDisabledTooltip="Product must be selected"
+      />
       <PricesTable
         productId={product.id}
         filters={{
           productId: product.id,
         }}
+      />
+      <CreatePriceModal
+        isOpen={isCreatePriceOpen}
+        setIsOpen={setIsCreatePriceOpen}
+        productId={product.id}
       />
     </>
   )

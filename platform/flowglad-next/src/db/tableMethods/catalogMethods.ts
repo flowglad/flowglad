@@ -276,5 +276,8 @@ export const selectCatalogForCustomer = async (
       { isDefault: true, organizationId: customer.organizationId },
       transaction
     )
-  return catalog
+  return {
+    ...catalog,
+    products: catalog.products.filter((product) => product.active),
+  }
 }

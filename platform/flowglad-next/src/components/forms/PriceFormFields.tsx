@@ -188,6 +188,7 @@ const PriceFormFields = ({
     register,
     formState: { errors },
   } = usePriceFormContext()
+  console.log('errors', errors)
   const type = watch('price.type')
   let typeFields = <></>
   const { organization } = useAuthContext()
@@ -234,6 +235,7 @@ const PriceFormFields = ({
                 if (isPriceTypeSubscription(value as PriceType)) {
                   setValue('price.intervalCount', 1)
                   setValue('price.intervalUnit', IntervalUnit.Month)
+                  setValue('price.setupFeeAmount', null)
                 }
                 if (value === PriceType.SinglePayment) {
                   setValue('price.intervalCount', null)
