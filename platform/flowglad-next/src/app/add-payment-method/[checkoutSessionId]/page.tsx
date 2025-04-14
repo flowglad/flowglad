@@ -17,13 +17,13 @@ import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 const CheckoutSessionPage = async ({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ checkoutSessionId: string }>
 }) => {
-  const { id } = await params
+  const { checkoutSessionId } = await params
   const { checkoutSession, sellerOrganization, customer } =
     await adminTransaction(async ({ transaction }) => {
       const checkoutSession = await selectCheckoutSessionById(
-        id,
+        checkoutSessionId,
         transaction
       )
       if (

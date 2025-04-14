@@ -18,11 +18,12 @@ const InnerPricingTable = () => {
           createCheckoutSession({
             successUrl: `${window.location.origin}/billing`,
             cancelUrl: `${window.location.origin}/billing`,
-            priceId: product.prices[0].id,
             autoRedirect: true,
             outputMetadata: {
               testMetadata: 'test____!!'
-            }
+            },
+            type: 'add_payment_method',
+            targetSubscriptionId: ''
           });
         },
         secondaryButtonText: 'Learn More',
