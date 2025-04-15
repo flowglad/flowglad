@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.10.5
+
+### Patch Changes
+
+- Rm list subscriptions
+
 ## 0.10.4
 
 ### Patch Changes

@@ -211,7 +211,6 @@ export class FlowgladServer {
   public createAddPaymentMethodCheckoutSession = async (
     params: CreateAddPaymentMethodCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
-    this.flowgladNode.subscriptions.list()
     return this.createCheckoutSession({
       ...params,
       type: 'add_payment_method',

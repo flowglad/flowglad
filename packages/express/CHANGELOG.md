@@ -1,5 +1,15 @@
 # @flowglad/express
 
+## 0.10.5
+
+### Patch Changes
+
+- Rm list subscriptions
+- Updated dependencies
+  - @flowglad/server@0.10.5
+  - @flowglad/shared@0.10.5
+  - @flowglad/react@0.10.5
+
 ## 0.10.4
 
 ### Patch Changes

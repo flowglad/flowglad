@@ -1,8 +1,6 @@
 'use client'
 
-import Button from '@/components/ion/Button'
-import { trpc } from '../_trpc/client'
-import { IntervalUnit, PriceType } from '@/types'
+import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 
 type RichCustomer = {
   subscription: {
@@ -26,29 +24,16 @@ const InternalDemoPage = () => {
     }
   }
 
-  const { data: customersData } = trpc.customers.list.useQuery({})
-  const createSubscriptionMutation =
-    trpc.subscriptions.create.useMutation()
   return (
     <div style={{ padding: '20px' }}>
       <h1>Internal Demo Page</h1>
-      <Button
-        onClick={async () => {
-          if (!customersData?.data.length) {
-            return
-          }
-          const customer = customersData.data[0]
-          await createSubscriptionMutation.mutateAsync({
-            customerId: customer.id,
-            priceId: '',
-            trialEnd: new Date(
-              Date.now() + 1000 * 60 * 60 * 24 * 30
-            ).getTime(),
-          })
-        }}
-      >
-        Create Customer
-      </Button>
+      <OrganizationSubscriptionCreatedNotificationEmail
+        organizationName="Test Organization"
+        subscriptionName="Test Subscription"
+        customerId="cust_test12345234"
+        customerName="Test McTestface"
+        customerEmail="test@test.com"
+      />
     </div>
   )
 }

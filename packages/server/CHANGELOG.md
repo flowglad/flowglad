@@ -1,5 +1,13 @@
 # @flowglad/server
 
+## 0.10.5
+
+### Patch Changes
+
+- Rm list subscriptions
+- Updated dependencies
+  - @flowglad/shared@0.10.5
+
 ## 0.10.4
 
 ### Patch Changes
