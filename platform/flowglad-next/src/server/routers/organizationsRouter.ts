@@ -37,6 +37,11 @@ import {
   SubscriberCalculationOptions,
 } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { RevenueChartIntervalUnit } from '@/types'
+import {
+  selectMembershipsAndOrganizationsByMembershipWhere,
+  updateMembership,
+} from '@/db/tableMethods/membershipMethods'
+import { TRPCError } from '@trpc/server'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -256,6 +261,29 @@ const getCurrentSubscribers = protectedProcedure.query(
   }
 )
 
+const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
+  return authenticatedTransaction(
+    async ({ transaction, userId }) => {
+      // Get all memberships and organizations for the user
+      const membershipsAndOrganizations =
+        await selectMembershipsAndOrganizationsByMembershipWhere(
+          { userId },
+          transaction
+        )
+
+      // Extract just the organizations
+      const organizations = membershipsAndOrganizations.map(
+        ({ organization }) => organization
+      )
+
+      return organizations
+    },
+    {
+      apiKey: ctx.apiKey,
+    }
+  )
+})
+
 const createOrganization = protectedProcedure
   .input(createOrganizationSchema)
   .output(
@@ -309,12 +337,68 @@ const editOrganization = protectedProcedure
     )
   })
 
+const updateFocusedMembershipSchema = z.object({
+  organizationId: z.string(),
+})
+
+const updateFocusedMembership = protectedProcedure
+  .input(updateFocusedMembershipSchema)
+  .mutation(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        // First, get all memberships for this user
+        const userMemberships =
+          await selectMembershipsAndOrganizationsByMembershipWhere(
+            { userId },
+            transaction
+          )
+
+        // Set all memberships to not focused
+        for (const membership of userMemberships) {
+          await updateMembership(
+            {
+              id: membership.membership.id,
+              focused: false,
+            },
+            transaction
+          )
+        }
+
+        // Find the membership to focus
+        const membershipToFocus = userMemberships.find(
+          (m) => m.membership.organizationId === input.organizationId
+        )
+
+        if (!membershipToFocus) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Membership not found',
+          })
+        }
+
+        // Set the selected membership to focused
+        return updateMembership(
+          {
+            id: membershipToFocus.membership.id,
+            focused: true,
+          },
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const organizationsRouter = router({
   create: createOrganization,
   update: editOrganization,
   requestStripeConnect: requestStripeConnectOnboardingLink,
   getMembers: getMembers,
   getFocusedMembership: getFocusedMembership,
+  updateFocusedMembership: updateFocusedMembership,
+  getOrganizations: getOrganizations,
   inviteUser: inviteUserToOrganization,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,

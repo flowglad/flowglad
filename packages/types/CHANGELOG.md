@@ -1,5 +1,35 @@
 # @flowglad/types
 
+## 0.10.5
+
+### Patch Changes
+
+- Rm list subscriptions
+
+## 0.10.4
+
+### Patch Changes
+
+- Remove darkmode logging
+
+## 0.10.3
+
+### Patch Changes
+
+- Expose a reload billing component
+
+## 0.10.2
+
+### Patch Changes
+
+- Fix file path for FlowgladTheme import
+
+## 0.10.1
+
+### Patch Changes
+
+- Move FlowgladTheme to billing-page only for now
+
 ## 0.10.0
 
 ### Minor Changes

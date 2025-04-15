@@ -13,7 +13,7 @@ import {
 } from '../FlowgladContext'
 import { useCallback } from 'react'
 import { CreateCheckoutSessionParams } from '@flowglad/shared'
-import { FlowgladTheme } from '@/FlowgladTheme'
+import { FlowgladTheme } from '../FlowgladTheme'
 
 const SectionTitle = ({
   children,
@@ -113,7 +113,6 @@ export function BillingPage({
   if (!billing.loadBilling || !billing.loaded || !billing.catalog) {
     return <div>Loading...</div>
   }
-
   return (
     <FlowgladTheme darkMode={darkMode}>
       <div

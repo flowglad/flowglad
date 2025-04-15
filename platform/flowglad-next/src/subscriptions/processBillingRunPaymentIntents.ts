@@ -48,7 +48,7 @@ import {
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/send-customer-payment-succeeded-notification'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent

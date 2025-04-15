@@ -4,11 +4,11 @@ import {
   subscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import { subscribablePriceClientSelectSchema } from '@/db/schema/prices'
 import {
-  subscribablePriceClientSelectSchema,
-  subscriptionPriceClientSelectSchema,
-} from '@/db/schema/prices'
-import { SubscriptionAdjustmentTiming } from '@/types'
+  SubscriptionAdjustmentTiming,
+  SubscriptionCancellationArrangement,
+} from '@/types'
 import { z } from 'zod'
 
 export const adjustSubscriptionImmediatelySchema = z.object({
@@ -63,4 +63,33 @@ export type RichSubscriptionItem = z.infer<
 
 export type RichSubscription = z.infer<
   typeof richSubscriptionClientSelectSchema
+>
+
+export const subscriptionCancellationParametersSchema =
+  z.discriminatedUnion('timing', [
+    z.object({
+      timing: z.literal(
+        SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
+      ),
+    }),
+    z.object({
+      timing: z.literal(
+        SubscriptionCancellationArrangement.AtFutureDate
+      ),
+      endDate: z.date(),
+    }),
+    z.object({
+      timing: z.literal(
+        SubscriptionCancellationArrangement.Immediately
+      ),
+    }),
+  ])
+
+export const scheduleSubscriptionCancellationSchema = z.object({
+  id: z.string(),
+  cancellation: subscriptionCancellationParametersSchema,
+})
+
+export type ScheduleSubscriptionCancellationParams = z.infer<
+  typeof scheduleSubscriptionCancellationSchema
 >

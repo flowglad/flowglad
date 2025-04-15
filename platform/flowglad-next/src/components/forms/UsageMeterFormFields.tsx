@@ -18,7 +18,6 @@ export default function UsageMeterFormFields({
     control,
     formState: { errors },
   } = useFormContext<CreateUsageMeterInput>()
-  console.log('errors...', errors)
   return (
     <div className="space-y-4">
       <Input

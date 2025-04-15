@@ -57,7 +57,7 @@ export const insertMembership = createInsertFunction(
 )
 
 export const selectMembershipAndOrganizations = async (
-  selectConditions: Partial<Membership.Record>,
+  selectConditions: Membership.Where,
   transaction: DbTransaction
 ) => {
   let query = transaction
@@ -84,7 +84,7 @@ export const selectMembershipAndOrganizations = async (
 }
 
 export const selectMembershipsAndUsersByMembershipWhere = async (
-  whereConditions: Partial<Membership.Record>,
+  whereConditions: Membership.Where,
   transaction: DbTransaction
 ) => {
   let query = transaction
@@ -106,6 +106,34 @@ export const selectMembershipsAndUsersByMembershipWhere = async (
     user: usersSelectSchema.parse(user),
   }))
 }
+
+export const selectMembershipsAndOrganizationsByMembershipWhere =
+  async (
+    whereConditions: Partial<Membership.Record>,
+    transaction: DbTransaction
+  ) => {
+    let query = transaction
+      .select({
+        membership: memberships,
+        organization: organizations,
+      })
+      .from(memberships)
+      .innerJoin(
+        organizations,
+        eq(memberships.organizationId, organizations.id)
+      )
+      .$dynamic()
+    if (!R.isEmpty(whereConditions)) {
+      query = query.where(
+        whereClauseFromObject(memberships, whereConditions)
+      )
+    }
+    const result = await query
+    return result.map(({ membership, organization }) => ({
+      membership: membershipsSelectSchema.parse(membership),
+      organization: organizationsSelectSchema.parse(organization),
+    }))
+  }
 
 export const selectFocusedMembershipAndOrganization = async (
   userId: string,

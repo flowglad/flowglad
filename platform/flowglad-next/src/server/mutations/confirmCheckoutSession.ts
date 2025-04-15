@@ -92,7 +92,7 @@ export const confirmCheckoutSession = publicProcedure
       if (!customer) {
         if (!checkoutSession.customerEmail) {
           throw new Error(
-            `Purchase session has no customer email, and no purchase: ${input.id}`
+            `Checkout session has no customer email, and no purchase: ${input.id}`
           )
         }
         // Create new customer
@@ -115,7 +115,7 @@ export const confirmCheckoutSession = publicProcedure
       if (!stripeCustomerId) {
         if (!checkoutSession.customerEmail) {
           throw new Error(
-            `Purchase session has no customer email: ${input.id}`
+            `Checkout session has no customer email: ${input.id}`
           )
         }
         // Create stripe customer if customer exists but has no stripe ID

@@ -227,20 +227,6 @@ const totalAmountStyle = {
   margin: '8px 0',
 }
 
-const button = {
-  backgroundColor: '#7C3AED',
-  borderRadius: '3px',
-  color: '#fff',
-  fontSize: '16px',
-  padding: '8px 24px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
-  margin: '30px 0',
-}
-
 const signature = {
   fontSize: '14px',
   margin: '0 0 4px',

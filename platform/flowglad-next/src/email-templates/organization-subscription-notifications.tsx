@@ -11,6 +11,7 @@ import {
   Text,
 } from '@react-email/components'
 import * as React from 'react'
+import { EmailButton } from './components/EmailButton'
 
 export interface OrganizationSubscriptionCreatedNotificationEmailProps {
   organizationName: string
@@ -52,7 +53,7 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
             alt="Flowglad Logo"
             style={logo}
           />
-          <Heading style={h1}>New Subscription Alert</Heading>
+          <Heading style={h1}>New Subscription</Heading>
           <Text style={text}>
             A new customer has subscribed to your {subscriptionName}{' '}
             plan.
@@ -68,12 +69,11 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
             <Text style={detailsValue}>Active</Text>
           </Section>
           <Section style={buttonContainer}>
-            <Link
-              style={button}
+            <EmailButton
               href={`https://app.flowglad.com/customers/${customerId}`}
             >
               View Customer Profile
-            </Link>
+            </EmailButton>
           </Section>
           <Text style={footerText}>
             {`You can manage this customer's subscription and access their information through your dashboard.`}
@@ -128,12 +128,11 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
             </Text>
           </Section>
           <Section style={buttonContainer}>
-            <Link
-              style={button}
+            <EmailButton
               href={`https://app.flowglad.com/customers/${customerId}`}
             >
               View Customer Profile
-            </Link>
+            </EmailButton>
           </Section>
           <Text style={footerText}>
             {`You can review this customer's history and manage their account through your dashboard.`}
@@ -151,7 +150,7 @@ const main = {
 }
 
 const container = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#f6f9fc',
   margin: '0 auto',
   padding: '20px 0 48px',
   marginBottom: '64px',
@@ -200,18 +199,6 @@ const detailsValue = {
 const buttonContainer = {
   textAlign: 'center' as const,
   marginTop: '32px',
-}
-
-const button = {
-  backgroundColor: '#000',
-  borderRadius: '4px',
-  color: '#ffffff',
-  fontSize: '14px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
 }
 
 const footerText = {

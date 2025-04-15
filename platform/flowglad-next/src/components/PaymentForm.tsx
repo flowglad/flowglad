@@ -284,7 +284,8 @@ const PaymentForm = () => {
         }
 
         const confirmationFunction =
-          flowType === CheckoutFlowType.Subscription
+          flowType === CheckoutFlowType.Subscription ||
+          flowType === CheckoutFlowType.AddPaymentMethod
             ? stripe.confirmSetup
             : stripe.confirmPayment
         const hasEmail = customer?.email

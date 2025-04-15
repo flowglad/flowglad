@@ -46,17 +46,17 @@ export default async function RootLayout({
   }
   const userJson = user?.toClientJson()
   return (
-    <StackProvider app={stackServerApp}>
-      <StackTheme>
-        <Providers
-          authContext={{
-            organization,
-            livemode,
-            user: userJson,
-          }}
-        >
-          <html lang="en" className="dark h-full">
-            <body className={cn(inter.className, 'dark', 'h-full')}>
+    <html lang="en" className="dark h-full">
+      <body className={cn(inter.className, 'dark', 'h-full')}>
+        <StackProvider app={stackServerApp}>
+          <StackTheme>
+            <Providers
+              authContext={{
+                organization,
+                livemode,
+                user: userJson,
+              }}
+            >
               {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
@@ -65,10 +65,10 @@ export default async function RootLayout({
             <AIModal />
           </ChatActionsProvider> */}
               {children}
-            </body>
-          </html>
-        </Providers>
-      </StackTheme>
-    </StackProvider>
+            </Providers>
+          </StackTheme>
+        </StackProvider>
+      </body>
+    </html>
   )
 }

@@ -188,7 +188,6 @@ const PriceFormFields = ({
     register,
     formState: { errors },
   } = usePriceFormContext()
-  console.log('errors', errors)
   const type = watch('price.type')
   let typeFields = <></>
   const { organization } = useAuthContext()

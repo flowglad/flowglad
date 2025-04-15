@@ -204,6 +204,10 @@ export const singlePaymentPurchaseSelectSchema = baseSelectSchema
   .extend(singlePaymentColumns)
   .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
 
+export const usagePurchaseSelectSchema = baseSelectSchema
+  .extend(usageColumns)
+  .describe(USAGE_PURCHASE_DESCRIPTION)
+
 const singlePaymentPurchaseUpdateSchema =
   singlePaymentPurchaseInsertSchema
     .partial()
@@ -212,11 +216,13 @@ const singlePaymentPurchaseUpdateSchema =
       priceType: z.literal(PriceType.SinglePayment),
     })
     .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
+
 const usagePurchaseUpdateSchema = singlePaymentPurchaseUpdateSchema
   .extend({
     priceType: z.literal(PriceType.Usage),
   })
   .describe(USAGE_PURCHASE_DESCRIPTION)
+
 export const purchasesUpdateSchema = z.union([
   subscriptionPurchaseUpdateSchema,
   singlePaymentPurchaseUpdateSchema,
@@ -227,6 +233,7 @@ export const purchasesSelectSchema = z
   .discriminatedUnion('priceType', [
     subscriptionPurchaseSelectSchema,
     singlePaymentPurchaseSelectSchema,
+    usagePurchaseSelectSchema,
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
 

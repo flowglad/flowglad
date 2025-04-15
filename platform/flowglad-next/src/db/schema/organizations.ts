@@ -189,3 +189,11 @@ export const editOrganizationSchema = z.object({
 export type EditOrganizationInput = z.infer<
   typeof editOrganizationSchema
 >
+
+export const updateFocusedMembershipSchema = z.object({
+  organizationId: z.string(),
+})
+
+export type UpdateFocusedMembershipInput = z.infer<
+  typeof updateFocusedMembershipSchema
+>

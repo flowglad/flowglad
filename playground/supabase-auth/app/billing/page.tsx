@@ -7,7 +7,7 @@ import { BillingPage } from '@flowglad/react';
 export default async () => {
   const billing = await flowgladServer.getBilling();
   if (billing.currentSubscriptions?.length) {
-    return <BillingPage />;
+    return <BillingPage darkMode={true} />;
   }
   return <InnerPricingTable />;
 };

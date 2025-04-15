@@ -1,5 +1,9 @@
 import { Subscription } from '@/db/schema/subscriptions'
 import {
+  scheduleSubscriptionCancellationSchema,
+  ScheduleSubscriptionCancellationParams,
+} from '@/subscriptions/schemas'
+import {
   safelyUpdateBillingPeriodStatus,
   selectBillingPeriods,
   selectCurrentBillingPeriodForSubscription,
@@ -18,6 +22,7 @@ import {
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { z } from 'zod'
+import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
 
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
@@ -93,34 +98,6 @@ export const cancelSubscriptionImmediately = async (
   }
   return updatedSubscription
 }
-
-const cancellationParametersSchema = z.discriminatedUnion('timing', [
-  z.object({
-    timing: z.literal(
-      SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
-    ),
-  }),
-  z.object({
-    timing: z.literal(
-      SubscriptionCancellationArrangement.AtFutureDate
-    ),
-    endDate: z.date(),
-  }),
-  z.object({
-    timing: z.literal(
-      SubscriptionCancellationArrangement.Immediately
-    ),
-  }),
-])
-
-export const scheduleSubscriptionCancellationSchema = z.object({
-  id: z.string(),
-  cancellation: cancellationParametersSchema,
-})
-
-export type ScheduleSubscriptionCancellationParams = z.infer<
-  typeof scheduleSubscriptionCancellationSchema
->
 
 // Schedule a subscription cancellation for the future
 export const scheduleSubscriptionCancellation = async (
@@ -218,5 +195,8 @@ export const scheduleSubscriptionCancellation = async (
   if (result) {
     updatedSubscription = result
   }
+  await idempotentSendOrganizationSubscriptionCanceledNotification(
+    updatedSubscription
+  )
   return updatedSubscription
 }
