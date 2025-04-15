@@ -103,9 +103,12 @@ const processCheckoutSessionSetupIntent = async (
 
 const calculateTrialEnd = (params: {
   hasHadTrial: boolean
-  trialPeriodDays: number
-}) => {
+  trialPeriodDays: number | null
+}): Date | undefined => {
   const { hasHadTrial, trialPeriodDays } = params
+  if (trialPeriodDays === null) {
+    return undefined
+  }
   return hasHadTrial
     ? undefined
     : new Date(
@@ -217,7 +220,7 @@ export const processSetupIntentUpdated = async (
        */
       trialEnd: calculateTrialEnd({
         hasHadTrial,
-        trialPeriodDays: price.trialPeriodDays ?? 0,
+        trialPeriodDays: price.trialPeriodDays,
       }),
       startDate: new Date(),
       quantity: checkoutSession.quantity,

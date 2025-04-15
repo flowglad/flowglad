@@ -30,6 +30,7 @@ import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
@@ -364,6 +365,12 @@ const listCheckoutSessionsProcedure = protectedProcedure
         apiKey: ctx.apiKey,
       }
     )
+  })
+
+export const getIntentStatusProcedure = protectedProcedure
+  .input(getIntentStatusInputSchema)
+  .query(async ({ input, ctx }) => {
+    return adminTransaction(async ({ transaction }) => {})
   })
 
 export const checkoutSessionsRouter = router({
