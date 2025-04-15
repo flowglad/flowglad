@@ -85,6 +85,13 @@ export const CustomerBillingSubPage = ({
                 customerId: customer.id,
               }}
             />
+            <TableTitle
+              title="Invoices"
+              buttonLabel="Create Invoice"
+              buttonIcon={<Plus size={16} />}
+              buttonOnClick={() => setCreateInvoiceModalOpen(true)}
+            />
+            <InvoicesTable customer={customer} />
             <TableTitle title="Payments" noButtons />
             <PaymentsTable
               filters={{
@@ -97,13 +104,6 @@ export const CustomerBillingSubPage = ({
                 customerId: customer.id,
               }}
             />
-            <TableTitle
-              title="Invoices"
-              buttonLabel="Create Invoice"
-              buttonIcon={<Plus size={16} />}
-              buttonOnClick={() => setCreateInvoiceModalOpen(true)}
-            />
-            <InvoicesTable customer={customer} />
           </div>
         </div>
       </div>
