@@ -1,5 +1,21 @@
 # @flowglad/server
 
+## 0.10.4
+
+### Patch Changes
+
+- Remove darkmode logging
+- Updated dependencies
+  - @flowglad/shared@0.10.4
+
+## 0.10.3
+
+### Patch Changes
+
+- Expose a reload billing component
+- Updated dependencies
+  - @flowglad/shared@0.10.3
+
 ## 0.10.2
 
 ### Patch Changes

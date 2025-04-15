@@ -1,5 +1,17 @@
 # @flowglad/types
 
+## 0.10.4
+
+### Patch Changes
+
+- Remove darkmode logging
+
+## 0.10.3
+
+### Patch Changes
+
+- Expose a reload billing component
+
 ## 0.10.2
 
 ### Patch Changes

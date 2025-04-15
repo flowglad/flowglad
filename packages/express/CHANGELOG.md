@@ -1,5 +1,25 @@
 # @flowglad/express
 
+## 0.10.4
+
+### Patch Changes
+
+- Remove darkmode logging
+- Updated dependencies
+  - @flowglad/server@0.10.4
+  - @flowglad/shared@0.10.4
+  - @flowglad/react@0.10.4
+
+## 0.10.3
+
+### Patch Changes
+
+- Expose a reload billing component
+- Updated dependencies
+  - @flowglad/server@0.10.3
+  - @flowglad/shared@0.10.3
+  - @flowglad/react@0.10.3
+
 ## 0.10.2
 
 ### Patch Changes
