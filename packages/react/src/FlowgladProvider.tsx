@@ -20,14 +20,12 @@ export const FlowgladProvider = ({
   loadBilling,
   serverRoute,
   requestConfig,
-  darkMode,
 }: {
   children: React.ReactNode
   appearance?: Appearance
   requestConfig?: RequestConfig
   serverRoute?: string
   loadBilling: boolean
-  darkMode?: boolean
 }) => {
   validateUrl(serverRoute, 'serverRoute', true)
   return (
@@ -35,7 +33,6 @@ export const FlowgladProvider = ({
       <FlowgladContextProvider
         serverRoute={serverRoute}
         loadBilling={loadBilling}
-        darkMode={darkMode}
         requestConfig={requestConfig}
       >
         {children}

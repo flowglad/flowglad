@@ -1,5 +1,17 @@
 # @flowglad/types
 
+## 0.10.2
+
+### Patch Changes
+
+- Fix file path for FlowgladTheme import
+
+## 0.10.1
+
+### Patch Changes
+
+- Move FlowgladTheme to billing-page only for now
+
 ## 0.10.0
 
 ### Minor Changes

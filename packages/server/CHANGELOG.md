@@ -1,5 +1,21 @@
 # @flowglad/server
 
+## 0.10.2
+
+### Patch Changes
+
+- Fix file path for FlowgladTheme import
+- Updated dependencies
+  - @flowglad/shared@0.10.2
+
+## 0.10.1
+
+### Patch Changes
+
+- Move FlowgladTheme to billing-page only for now
+- Updated dependencies
+  - @flowglad/shared@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes
