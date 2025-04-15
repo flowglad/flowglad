@@ -71,6 +71,9 @@ export const createUsageEvent = usageProcedure
             billingPeriodId: billingPeriod.id,
             livemode,
             properties: input.usageEvent.properties ?? {},
+            usageDate: input.usageEvent.usageDate
+              ? new Date(input.usageEvent.usageDate)
+              : undefined,
           },
           transaction
         )
@@ -120,7 +123,6 @@ export const getUsageEvent = usageProcedure
   })
 
 export const bulkInsertUsageEventsProcedure = usageProcedure
-  .meta(openApiMetas.POST)
   .input(bulkInsertUsageEventsSchema)
   .output(
     z.object({ usageEvents: z.array(usageEventsClientSelectSchema) })
@@ -161,6 +163,9 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
             billingPeriodId: billingPeriodsMap.get(
               usageEvent.subscriptionId
             )?.id!,
+            usageDate: usageEvent.usageDate
+              ? new Date(usageEvent.usageDate)
+              : undefined,
           }))
         return await bulkInsertOrDoNothingUsageEventsByTransactionId(
           usageInsertsWithBillingPeriodId,
@@ -173,8 +178,10 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
     )
     return { usageEvents }
   })
+
 export const usageEventsRouter = router({
   get: getUsageEvent,
   create: createUsageEvent,
   update: editUsageEvent,
+  bulkInsert: bulkInsertUsageEventsProcedure,
 })

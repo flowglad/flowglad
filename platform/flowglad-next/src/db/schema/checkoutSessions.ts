@@ -326,7 +326,6 @@ export type EditCheckoutSessionInput = z.infer<
 >
 const hiddenColumns = {
   expires: true,
-  status: true,
   stripePaymentIntentId: true,
   stripeSetupIntentId: true,
 } as const
@@ -488,3 +487,31 @@ export namespace CheckoutSession {
     typeof addPaymentMethodCheckoutSessionClientUpdateSchema
   >
 }
+
+export const getPaymentIntentStatusInputSchema = z.object({
+  paymentIntentId: z.string(),
+  type: z.literal('paymentIntent'),
+})
+
+export const getSetupIntentStatusInputSchema = z.object({
+  setupIntentId: z.string(),
+  type: z.literal('setupIntent'),
+})
+
+export const getCheckoutIntentStatusInputSchema = z.object({
+  checkoutSessionId: z.string(),
+  type: z.literal('checkoutSession'),
+})
+
+export const getIntentStatusInputSchema = z.discriminatedUnion(
+  'type',
+  [
+    getPaymentIntentStatusInputSchema,
+    getSetupIntentStatusInputSchema,
+    getCheckoutIntentStatusInputSchema,
+  ]
+)
+
+export type GetIntentStatusInput = z.infer<
+  typeof getIntentStatusInputSchema
+>

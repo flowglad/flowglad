@@ -24,6 +24,7 @@ import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
+import { usage } from '@trigger.dev/sdk/v3'
 
 const TABLE_NAME = 'usage_events'
 
@@ -149,8 +150,16 @@ export const usageEventsClientUpdateSchema =
     ...createOnlyColumns,
   })
 
-export const usageEventsClientInsertSchema =
-  usageEventsInsertSchema.omit(readOnlyColumns)
+export const usageEventsClientInsertSchema = usageEventsInsertSchema
+  .omit(readOnlyColumns)
+  .extend({
+    usageDate: z
+      .number()
+      .optional()
+      .describe(
+        'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
+      ),
+  })
 
 export namespace UsageEvent {
   export type Insert = z.infer<typeof usageEventsInsertSchema>

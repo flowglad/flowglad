@@ -1,6 +1,8 @@
 'use client'
 
+import Button from '@/components/ion/Button'
 import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
+import { trpc } from '../_trpc/client'
 
 type RichCustomer = {
   subscription: {
@@ -23,16 +25,8 @@ const InternalDemoPage = () => {
       },
     }
   }
-
-  return (
-    <OrganizationSubscriptionCreatedNotificationEmail
-      organizationName="Test Organization"
-      subscriptionName="Test Subscription"
-      customerId="cust_test12345234"
-      customerName="Test McTestface"
-      customerEmail="test@test.com"
-    />
-  )
+  const createUsageEvent = trpc.usageEvents.create.useMutation()
+  return <Button onClick={async () => {}}>Test</Button>
 }
 
 export default InternalDemoPage
