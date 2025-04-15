@@ -4,6 +4,8 @@ import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
+import { PriceType } from '@/types'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 
 interface SubscriptionCheckoutSuccessPageProps {
   checkoutSession: CheckoutSession.Record
@@ -21,11 +23,11 @@ const SubscriptionCheckoutSuccessPage = async ({
     throw new Error('No price ID found for checkout session')
   }
 
-  let org = organization
-  let prc = price
+  let innerOrganization = organization
+  let innerPrice = price
 
   // If we don't have the price and organization, fetch them
-  if (!org || !prc) {
+  if (!innerOrganization || !innerPrice) {
     const result = await adminTransaction(async ({ transaction }) => {
       const [data] =
         await selectPriceProductAndOrganizationByPriceWhere(
@@ -35,14 +37,25 @@ const SubscriptionCheckoutSuccessPage = async ({
       return data
     })
 
-    if (!org) org = result.organization
-    if (!prc) prc = result.price
+    if (!innerOrganization) {
+      innerOrganization = result.organization
+    }
+    if (!innerPrice) {
+      innerPrice = result.price
+    }
   }
-
+  if (innerPrice?.type === PriceType.Usage) {
+    return (
+      <SuccessPageContainer
+        title="Thanks for subscribing"
+        message={`A payment to ${innerOrganization.name} will appear on your statement, based on your usage.`}
+      />
+    )
+  }
   return (
     <SuccessPageContainer
       title="Thanks for subscribing"
-      message={`A payment to ${org.name} will appear on your statement.`}
+      message={`A payment to ${innerOrganization.name} will appear on your statement.`}
     />
   )
 }

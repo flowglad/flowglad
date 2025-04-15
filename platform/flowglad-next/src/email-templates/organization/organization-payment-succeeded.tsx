@@ -13,6 +13,7 @@ import {
   Text,
 } from '@react-email/components'
 import * as React from 'react'
+import { EmailButton } from '../components/EmailButton'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -69,12 +70,11 @@ export const OrganizationPaymentNotificationEmail = ({
             )}
           </Section>
           <Section style={buttonContainer}>
-            <Link
-              style={button}
+            <EmailButton
               href={`https://app.flowglad.com/customers/${customerId}`}
             >
               View in Dashboard
-            </Link>
+            </EmailButton>
           </Section>
           <Text style={footerText}>
             This payment was processed by Flowglad on behalf of{' '}
@@ -142,18 +142,6 @@ const detailsValue = {
 const buttonContainer = {
   textAlign: 'center' as const,
   marginTop: '32px',
-}
-
-const button = {
-  backgroundColor: '#000',
-  borderRadius: '4px',
-  color: '#ffffff',
-  fontSize: '14px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
 }
 
 const footerText = {

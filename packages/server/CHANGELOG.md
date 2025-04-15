@@ -1,5 +1,45 @@
 # @flowglad/server
 
+## 0.10.5
+
+### Patch Changes
+
+- Rm list subscriptions
+- Updated dependencies
+  - @flowglad/shared@0.10.5
+
+## 0.10.4
+
+### Patch Changes
+
+- Remove darkmode logging
+- Updated dependencies
+  - @flowglad/shared@0.10.4
+
+## 0.10.3
+
+### Patch Changes
+
+- Expose a reload billing component
+- Updated dependencies
+  - @flowglad/shared@0.10.3
+
+## 0.10.2
+
+### Patch Changes
+
+- Fix file path for FlowgladTheme import
+- Updated dependencies
+  - @flowglad/shared@0.10.2
+
+## 0.10.1
+
+### Patch Changes
+
+- Move FlowgladTheme to billing-page only for now
+- Updated dependencies
+  - @flowglad/shared@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes

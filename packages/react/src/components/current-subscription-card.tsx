@@ -51,7 +51,8 @@ export const CurrentSubscriptionCard = ({
   const isPastDue = subscription.status === 'past_due'
   const billing = useBilling()
   const shouldShowBillingPeriodEnd =
-    !subscription.cancelScheduledAt ||
+    (subscription.status !== 'trialing' &&
+      !subscription.cancelScheduledAt) ||
     (subscription.cancelScheduledAt &&
       new Date(subscription.cancelScheduledAt) >
         new Date(subscription.currentBillingPeriodEnd))

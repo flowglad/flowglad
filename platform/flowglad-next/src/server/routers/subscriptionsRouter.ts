@@ -1,5 +1,10 @@
 import { protectedProcedure, router } from '../trpc'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
+import {
+  IntervalUnit,
+  PriceType,
+  SubscriptionCancellationArrangement,
+  SubscriptionStatus,
+} from '@/types'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -21,10 +26,13 @@ import {
   metadataSchema,
 } from '@/db/tableUtils'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
-import { adjustSubscriptionInputSchema } from '@/subscriptions/schemas'
 import {
-  scheduleSubscriptionCancellation,
+  adjustSubscriptionInputSchema,
   scheduleSubscriptionCancellationSchema,
+} from '@/subscriptions/schemas'
+import {
+  cancelSubscriptionImmediately,
+  scheduleSubscriptionCancellation,
 } from '@/subscriptions/cancelSubscription'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
@@ -105,6 +113,28 @@ const cancelSubscriptionProcedure = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
+        if (
+          input.cancellation.timing ===
+          SubscriptionCancellationArrangement.Immediately
+        ) {
+          const subscription = await selectSubscriptionById(
+            input.id,
+            transaction
+          )
+          const updatedSubscription =
+            await cancelSubscriptionImmediately(
+              subscription,
+              transaction
+            )
+          return {
+            subscription: {
+              ...updatedSubscription,
+              current: isSubscriptionCurrent(
+                updatedSubscription.status
+              ),
+            },
+          }
+        }
         const subscription = await scheduleSubscriptionCancellation(
           input,
           transaction

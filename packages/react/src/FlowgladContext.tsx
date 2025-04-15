@@ -12,7 +12,6 @@ import {
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
-import { FlowgladTheme } from './FlowgladTheme'
 
 export type FrontendCreateCheckoutSessionParams = z.infer<
   typeof createCheckoutSessionSchema
@@ -32,6 +31,7 @@ export type LoadedFlowgladContextValues =
   Flowglad.CustomerRetrieveBillingResponse & {
     loaded: true
     loadBilling: true
+    reload: () => Promise<void>
     cancelSubscription: (
       params: CancelSubscriptionParams
     ) => Promise<{
@@ -63,6 +63,7 @@ export interface NonPresentContextValues {
   subscriptions: null
   createCheckoutSession: null
   createAddPaymentMethodCheckoutSession: null
+  reload: null
   catalog: null
   invoices: []
   paymentMethods: []
@@ -103,6 +104,7 @@ const notPresentContextValues: NonPresentContextValues = {
   subscriptions: null,
   createCheckoutSession: null,
   createAddPaymentMethodCheckoutSession: null,
+  reload: null,
   catalog: null,
   invoices: [],
   paymentMethods: [],
@@ -346,6 +348,11 @@ export const FlowgladContextProvider = ({
     }
   } else if (billing) {
     const billingData = billing.data
+    const reload = async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [FlowgladActionKey.GetCustomerBilling],
+      })
+    }
     value = {
       loaded: true,
       loadBilling,
@@ -357,6 +364,7 @@ export const FlowgladContextProvider = ({
       subscriptions: billingData.subscriptions,
       purchases: billingData.purchases,
       errors: null,
+      reload,
       invoices: billingData.invoices,
       paymentMethods: billingData.paymentMethods,
       currentSubscriptions: billingData.currentSubscriptions,

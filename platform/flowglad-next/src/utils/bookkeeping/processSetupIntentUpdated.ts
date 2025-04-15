@@ -22,6 +22,7 @@ import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 
 const processCheckoutSessionSetupIntent = async (
   setupIntent: Stripe.SetupIntent,
@@ -98,6 +99,18 @@ const processCheckoutSessionSetupIntent = async (
     feeCalculation,
     discountRedemption,
   }
+}
+
+const calculateTrialEnd = (params: {
+  hasHadTrial: boolean
+  trialPeriodDays: number
+}) => {
+  const { hasHadTrial, trialPeriodDays } = params
+  return hasHadTrial
+    ? undefined
+    : new Date(
+        new Date().getTime() + trialPeriodDays * 24 * 60 * 60 * 1000
+      )
 }
 
 export const processSetupIntentUpdated = async (
@@ -178,6 +191,17 @@ export const processSetupIntentUpdated = async (
   if (!price.intervalCount) {
     throw new Error('Price interval count is required')
   }
+
+  const subscriptionsForCustomer = await selectSubscriptions(
+    {
+      customerId: customer.id,
+    },
+    transaction
+  )
+  const hasHadTrial = subscriptionsForCustomer.some(
+    (subscription) => subscription.trialEnd
+  )
+
   const { billingRun } = await createSubscriptionWorkflow(
     {
       stripeSetupIntentId: setupIntent.id,
@@ -189,14 +213,12 @@ export const processSetupIntentUpdated = async (
       intervalCount: price.intervalCount,
       /**
        * If the price has a trial period, set the trial end date to the
-       * end of the period.
+       * end of the period
        */
-      trialEnd: price.trialPeriodDays
-        ? new Date(
-            new Date().getTime() +
-              price.trialPeriodDays * 24 * 60 * 60 * 1000
-          )
-        : undefined,
+      trialEnd: calculateTrialEnd({
+        hasHadTrial,
+        trialPeriodDays: price.trialPeriodDays ?? 0,
+      }),
       startDate: new Date(),
       quantity: checkoutSession.quantity,
       metadata: checkoutSession.outputMetadata,

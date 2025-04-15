@@ -15,6 +15,7 @@ import {
 import * as React from 'react'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import { EmailButton } from './components/EmailButton'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -87,12 +88,11 @@ export const InvoiceNotificationEmail = ({
             Please review and process payment at your earliest
             convenience.
           </Text>
-          <Button
-            style={button}
-            href={`${baseUrl}/invoices/${invoice.id}`}
+          <EmailButton
+            href={`${baseUrl}/invoice/view/${invoice.organizationId}/${invoice.id}`}
           >
             View Invoice →
-          </Button>
+          </EmailButton>
 
           <Text style={signature}>Best regards,</Text>
           <Text style={signature}>{organizationName}</Text>
@@ -162,20 +162,6 @@ const totalAmountStyle = {
 const thankYouText = {
   fontSize: '14px',
   margin: '30px 0 10px',
-}
-
-const button = {
-  backgroundColor: '#7C3AED',
-  borderRadius: '3px',
-  color: '#fff',
-  fontSize: '16px',
-  padding: '8px 24px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
-  margin: '30px 0',
 }
 
 const signature = {

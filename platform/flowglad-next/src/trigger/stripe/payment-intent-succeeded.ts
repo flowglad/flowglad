@@ -13,7 +13,7 @@ import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
-import { sendCustomerPaymentSucceededNotificationIdempotently } from '../send-customer-payment-succeeded-notification'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',

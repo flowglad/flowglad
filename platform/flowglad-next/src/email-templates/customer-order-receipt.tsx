@@ -17,6 +17,7 @@ import {
   Text,
 } from '@react-email/components'
 import * as React from 'react'
+import { EmailButton } from './components/EmailButton'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -105,12 +106,9 @@ export const OrderReceiptEmail = ({
 
           <Text style={thankYouText}>Thanks for the purchase!</Text>
           {/* TODO: create customer portal.... */}
-          <Button
-            style={button}
-            href="https://example.com/view-order"
-          >
+          <EmailButton href="https://example.com/view-order">
             View Order →
-          </Button>
+          </EmailButton>
 
           <Text style={signature}>Thanks,</Text>
           <Text style={signature}>{organizationName}</Text>
@@ -221,20 +219,6 @@ const link = {
   color: '#2754C5',
   fontSize: '14px',
   textDecoration: 'underline',
-}
-
-const button = {
-  backgroundColor: '#7C3AED',
-  borderRadius: '3px',
-  color: '#fff',
-  fontSize: '16px',
-  padding: '8px 24px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
-  margin: '30px 0',
 }
 
 const signature = {

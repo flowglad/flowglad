@@ -5,7 +5,7 @@ import { SubscriptionCancellationArrangement } from '@/types'
 import { Label } from '@radix-ui/react-label'
 import Datepicker from '@/components/ion/Datepicker'
 import { cn } from '@/utils/core'
-import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/cancelSubscription'
+import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 
 // Define the available radio options
 const options = [

@@ -21,6 +21,25 @@ export interface CustomerBillingSubPageProps {
   payments: Payment.ClientRecord[]
 }
 
+export function CustomerDetailsItem({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}) {
+  return (
+    <div className="w-fit flex flex-col gap-0.5">
+      <div className="text-xs font-medium text-secondary">
+        {label}
+      </div>
+      <div className="text-sm font-semibold text-on-primary-hover">
+        {value}
+      </div>
+    </div>
+  )
+}
+
 export const CustomerBillingSubPage = ({
   customer,
   purchases,
@@ -39,29 +58,24 @@ export const CustomerBillingSubPage = ({
               Details
             </div>
             <div className="w-fit flex items-start gap-16">
-              <div className="w-fit flex flex-col gap-0.5">
-                <div className="text-xs font-medium text-secondary">
-                  Customer Since
-                </div>
-                <div className="text-sm font-semibold text-on-primary-hover">
-                  {core.formatDate(customer.createdAt)}
-                </div>
-              </div>
-              <div className="w-fit flex flex-col gap-0.5">
-                <div className="text-xs font-medium text-secondary">
-                  Total Spend
-                </div>
-                <div className="text-sm font-semibold text-on-primary-hover">
-                  $
-                  {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                    payments[0]?.currency ?? CurrencyCode.USD,
-                    payments.reduce(
-                      (acc, payment) => acc + payment.amount,
-                      0
-                    )
-                  )}
-                </div>
-              </div>
+              <CustomerDetailsItem
+                label="Customer Since"
+                value={core.formatDate(customer.createdAt)}
+              />
+              <CustomerDetailsItem
+                label="Total Spend"
+                value={stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  payments[0]?.currency ?? CurrencyCode.USD,
+                  payments.reduce(
+                    (acc, payment) => acc + payment.amount,
+                    0
+                  )
+                )}
+              />
+              <CustomerDetailsItem
+                label="Email"
+                value={customer.email}
+              />
             </div>
           </div>
           <div className="w-full flex flex-col gap-5 pb-20">
@@ -71,6 +85,13 @@ export const CustomerBillingSubPage = ({
                 customerId: customer.id,
               }}
             />
+            <TableTitle
+              title="Invoices"
+              buttonLabel="Create Invoice"
+              buttonIcon={<Plus size={16} />}
+              buttonOnClick={() => setCreateInvoiceModalOpen(true)}
+            />
+            <InvoicesTable customer={customer} />
             <TableTitle title="Payments" noButtons />
             <PaymentsTable
               filters={{
@@ -83,13 +104,6 @@ export const CustomerBillingSubPage = ({
                 customerId: customer.id,
               }}
             />
-            <TableTitle
-              title="Invoices"
-              buttonLabel="Create Invoice"
-              buttonIcon={<Plus size={16} />}
-              buttonOnClick={() => setCreateInvoiceModalOpen(true)}
-            />
-            <InvoicesTable customer={customer} />
           </div>
         </div>
       </div>

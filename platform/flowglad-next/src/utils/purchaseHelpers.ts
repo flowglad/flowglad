@@ -50,7 +50,7 @@ export const projectPriceFieldsOntoPurchaseFields = (
       trialPeriodDays: price.trialPeriodDays ?? 0,
       firstInvoiceValue: price.trialPeriodDays ? 0 : price.unitPrice,
       totalPurchaseValue: null,
-      priceType: PriceType.Subscription,
+      priceType: price.type,
     } as const
   } else if (price?.type == PriceType.SinglePayment) {
     enhancements = {
@@ -58,6 +58,16 @@ export const projectPriceFieldsOntoPurchaseFields = (
       totalPurchaseValue: price.unitPrice,
       ...nulledSubsriptionFields,
       priceType: PriceType.SinglePayment,
+    } as const
+  } else if (price?.type == PriceType.Usage) {
+    enhancements = {
+      intervalUnit: price.intervalUnit,
+      intervalCount: price.intervalCount,
+      pricePerBillingCycle: price.unitPrice,
+      trialPeriodDays: price.trialPeriodDays ?? 0,
+      firstInvoiceValue: price.trialPeriodDays ? 0 : price.unitPrice,
+      totalPurchaseValue: 0,
+      priceType: PriceType.Usage,
     } as const
   }
 
