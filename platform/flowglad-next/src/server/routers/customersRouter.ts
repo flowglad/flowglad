@@ -15,7 +15,6 @@ import {
   editCustomerInputSchema,
   customersPaginatedSelectSchema,
   customersPaginatedListSchema,
-  CustomerTableRowData,
   InferredCustomerStatus,
 } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
@@ -369,7 +368,6 @@ const getTableRowsProcedure = protectedProcedure
         const endIndex = startIndex + limit
         const paginatedRows = filteredRows.slice(startIndex, endIndex)
         const hasMore = endIndex < filteredRows.length
-        console.log('paginatedRows', paginatedRows)
         return {
           data: paginatedRows,
           currentCursor: cursor || '0',

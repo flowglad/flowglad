@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   cancelSubscriptionImmediately,
   scheduleSubscriptionCancellation,
-  ScheduleSubscriptionCancellationParams,
 } from '@/subscriptions/cancelSubscription'
+import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import {
   SubscriptionCancellationArrangement,
   SubscriptionStatus,

@@ -26,7 +26,11 @@ import {
   customers,
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
-import { IntervalUnit, SubscriptionStatus } from '@/types'
+import {
+  IntervalUnit,
+  SubscriptionCancellationArrangement,
+  SubscriptionStatus,
+} from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'

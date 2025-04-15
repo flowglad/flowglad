@@ -36,6 +36,7 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -401,6 +402,10 @@ export const createSubscriptionWorkflow = async (
         transaction
       )
     : undefined
+
+  await idempotentSendOrganizationSubscriptionCreatedNotification(
+    subscription
+  )
 
   return {
     subscription,

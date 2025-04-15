@@ -48,7 +48,7 @@ export const ActiveSubscribersChart = ({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
-
+  const firstPayloadValue = tooltipData?.payload?.[0]?.value
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
     return subscriberData.map((item) => {
@@ -57,7 +57,7 @@ export const ActiveSubscribersChart = ({
         subscribers: item.count,
       }
     })
-  }, [subscriberData])
+  }, [subscriberData, firstPayloadValue])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -74,67 +74,16 @@ export const ActiveSubscribersChart = ({
     /**
      * If the tooltip is active, we use the value from the tooltip
      */
-    if (tooltipData?.payload?.[0]?.value) {
-      return tooltipData?.payload?.[0]?.value.toString()
+    if (firstPayloadValue) {
+      return firstPayloadValue.toString()
     }
     /**
      * If the tooltip is not active, we use the last value in the chart
      */
     const count = subscriberData[subscriberData.length - 1].count
     return count.toString()
-  }, [subscriberData, tooltipData?.payload?.[0]?.value])
+  }, [subscriberData, firstPayloadValue, tooltipData?.payload])
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
-  const intervalOptions = React.useMemo(() => {
-    const options = []
-
-    // Only show years if span is >= 1 year
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Year]
-    ) {
-      options.push({
-        label: 'year',
-        value: RevenueChartIntervalUnit.Year,
-      })
-    }
-
-    // Only show months if span is >= 1 month
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Month]
-    ) {
-      options.push({
-        label: 'month',
-        value: RevenueChartIntervalUnit.Month,
-      })
-    }
-
-    // Only show weeks if span is >= 1 week
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Week]
-    ) {
-      options.push({
-        label: 'week',
-        value: RevenueChartIntervalUnit.Week,
-      })
-    }
-
-    // Always show days and hours
-    options.push(
-      {
-        label: 'day',
-        value: RevenueChartIntervalUnit.Day,
-      },
-      {
-        label: 'hour',
-        value: RevenueChartIntervalUnit.Hour,
-      }
-    )
-
-    return options
-  }, [timespanInHours])
   const tooltipLabel = tooltipData?.label
   let isTooltipLabelDate: boolean = false
   if (tooltipLabel) {

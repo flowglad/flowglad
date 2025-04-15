@@ -1,7 +1,7 @@
 import React from 'react'
 import FormModal from '@/components/forms/FormModal'
 import CancelSubscriptionFormFields from '@/components/forms/CancelSubscriptionFormFields'
-import { scheduleSubscriptionCancellationSchema } from '@/subscriptions/cancelSubscription'
+import { scheduleSubscriptionCancellationSchema } from '@/subscriptions/schemas'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { trpc } from '@/app/_trpc/client'
 

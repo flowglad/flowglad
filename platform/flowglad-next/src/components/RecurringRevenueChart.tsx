@@ -49,14 +49,14 @@ export const RecurringRevenueChart = ({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
-
+  const defaultCurrency = organization?.defaultCurrency
   const chartData = React.useMemo(() => {
     if (!mrrData) return []
-    if (!organization?.defaultCurrency) return []
+    if (!defaultCurrency) return []
     return mrrData.map((item) => {
       const formattedRevenue =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          organization.defaultCurrency,
+          defaultCurrency,
           item.amount
         )
       return {
@@ -65,7 +65,7 @@ export const RecurringRevenueChart = ({
         revenue: Number(item.amount).toFixed(2),
       }
     })
-  }, [mrrData, organization?.defaultCurrency])
+  }, [mrrData, defaultCurrency])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -74,18 +74,18 @@ export const RecurringRevenueChart = ({
     const max = Math.max(...mrrData.map((item) => item.amount))
     return max
   }, [mrrData])
-
+  const firstPayloadValue = tooltipData?.payload?.[0]?.value
   const formattedMRRValue = React.useMemo(() => {
-    if (!mrrData?.length || !organization?.defaultCurrency) {
+    if (!mrrData?.length || !defaultCurrency) {
       return '0.00'
     }
     /**
      * If the tooltip is active, we use the value from the tooltip
      */
-    if (tooltipData?.payload?.[0]?.value) {
+    if (firstPayloadValue) {
       return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-        organization.defaultCurrency,
-        tooltipData?.payload?.[0]?.value
+        defaultCurrency,
+        firstPayloadValue
       )
     }
     /**
@@ -93,66 +93,12 @@ export const RecurringRevenueChart = ({
      */
     const amount = mrrData[mrrData.length - 1].amount
     return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      organization.defaultCurrency,
+      defaultCurrency,
       amount
     )
-  }, [
-    mrrData,
-    organization?.defaultCurrency,
-    tooltipData?.payload?.[0]?.value,
-  ])
+  }, [mrrData, defaultCurrency, firstPayloadValue])
 
   const timespanInHours = differenceInHours(toDate, fromDate)
-  const intervalOptions = React.useMemo(() => {
-    const options = []
-
-    // Only show years if span is >= 1 year
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Year]
-    ) {
-      options.push({
-        label: 'year',
-        value: RevenueChartIntervalUnit.Year,
-      })
-    }
-
-    // Only show months if span is >= 1 month
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Month]
-    ) {
-      options.push({
-        label: 'month',
-        value: RevenueChartIntervalUnit.Month,
-      })
-    }
-
-    // Only show weeks if span is >= 1 week
-    if (
-      timespanInHours >=
-      minimumUnitInHours[RevenueChartIntervalUnit.Week]
-    ) {
-      options.push({
-        label: 'week',
-        value: RevenueChartIntervalUnit.Week,
-      })
-    }
-
-    // Always show days and hours
-    options.push(
-      {
-        label: 'day',
-        value: RevenueChartIntervalUnit.Day,
-      },
-      {
-        label: 'hour',
-        value: RevenueChartIntervalUnit.Hour,
-      }
-    )
-
-    return options
-  }, [timespanInHours])
   const tooltipLabel = tooltipData?.label
   let isTooltipLabelDate: boolean = false
   if (tooltipLabel) {

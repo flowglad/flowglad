@@ -116,8 +116,6 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
   const parsedData = inserts.map((insert) => {
     const result = config.insertSchema.safeParse(insert)
     if (!result.success) {
-      console.log('error for insert: ', insert)
-      console.error(result.error)
       throw new Error(result.error.message)
     }
     return result.data

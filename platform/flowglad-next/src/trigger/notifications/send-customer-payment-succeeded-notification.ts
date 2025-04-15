@@ -5,8 +5,8 @@ import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { sendReceiptEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { generateInvoicePdfTask } from './generate-invoice-pdf'
-import { generatePaymentReceiptPdfTask } from './generate-receipt-pdf'
+import { generateInvoicePdfTask } from '../generate-invoice-pdf'
+import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 
 export const sendCustomerPaymentSucceededNotificationTask = task({

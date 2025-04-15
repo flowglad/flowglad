@@ -25,16 +25,13 @@ const InternalDemoPage = () => {
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Internal Demo Page</h1>
-      <OrganizationSubscriptionCreatedNotificationEmail
-        organizationName="Test Organization"
-        subscriptionName="Test Subscription"
-        customerId="cust_test12345234"
-        customerName="Test McTestface"
-        customerEmail="test@test.com"
-      />
-    </div>
+    <OrganizationSubscriptionCreatedNotificationEmail
+      organizationName="Test Organization"
+      subscriptionName="Test Subscription"
+      customerId="cust_test12345234"
+      customerName="Test McTestface"
+      customerEmail="test@test.com"
+    />
   )
 }
 

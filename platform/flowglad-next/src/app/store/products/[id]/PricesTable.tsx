@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { ChartColumnIncreasing, Plus } from 'lucide-react'
 import Badge from '@/components/ion/Badge'
 import Checkbox from '@/components/ion/Checkbox'
 import { RotateCw, Check } from 'lucide-react'
@@ -123,6 +123,15 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
         <div className="flex items-center gap-3">
           <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
             Single Payment
+          </div>
+        </div>
+      )
+    case PriceType.Usage:
+      return (
+        <div className="flex items-center gap-3">
+          <ChartColumnIncreasing size={16} strokeWidth={2} />
+          <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
+            Usage
           </div>
         </div>
       )
