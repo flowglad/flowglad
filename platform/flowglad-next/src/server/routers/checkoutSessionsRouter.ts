@@ -18,6 +18,7 @@ import {
   checkoutSessionClientSelectSchema,
   checkoutSessionsPaginatedListSchema,
   checkoutSessionsPaginatedSelectSchema,
+  getIntentStatusInputSchema,
 } from '@/db/schema/checkoutSessions'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
@@ -31,6 +32,7 @@ import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { adminTransaction } from '@/db/adminTransaction'
+import { getIntentStatus } from '@/utils/bookkeeping/intentStatus'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
@@ -370,7 +372,9 @@ const listCheckoutSessionsProcedure = protectedProcedure
 export const getIntentStatusProcedure = protectedProcedure
   .input(getIntentStatusInputSchema)
   .query(async ({ input, ctx }) => {
-    return adminTransaction(async ({ transaction }) => {})
+    return adminTransaction(async ({ transaction }) => {
+      return getIntentStatus(input, transaction)
+    })
   })
 
 export const checkoutSessionsRouter = router({
@@ -378,4 +382,5 @@ export const checkoutSessionsRouter = router({
   edit: editCheckoutSession,
   get: getCheckoutSessionProcedure,
   list: listCheckoutSessionsProcedure,
+  getIntentStatus: getIntentStatusProcedure,
 })

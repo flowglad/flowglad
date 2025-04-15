@@ -326,7 +326,6 @@ export type EditCheckoutSessionInput = z.infer<
 >
 const hiddenColumns = {
   expires: true,
-  status: true,
   stripePaymentIntentId: true,
   stripeSetupIntentId: true,
 } as const

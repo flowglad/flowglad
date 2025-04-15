@@ -5,29 +5,48 @@ import {
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentStatus,
   SubscriptionStatus,
 } from '@/types'
 import { getSetupIntent, stripeIdFromObjectOrId } from '../stripe'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
+import {
+  PaymentMethod,
+  paymentMethodClientSelectSchema,
+} from '@/db/schema/paymentMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import {
+  checkoutSessionClientSelectSchema,
+  GetIntentStatusInput,
+} from '@/db/schema/checkoutSessions'
+import { z } from 'zod'
 
 export const getCheckoutSessionIntentStatus = async (
   checkoutSessionId: string,
   transaction: DbTransaction
-) => {
+): Promise<z.infer<typeof getCheckoutSessionIntentStatusOutput>> => {
   const checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
     transaction
   )
+  if (!checkoutSession) {
+    throw new Error(
+      `Checkout session not found for checkout session id ${checkoutSessionId}`
+    )
+  }
+  return {
+    type: 'checkoutSession',
+    checkoutSession: checkoutSession,
+    status: checkoutSession.status,
+  }
 }
 
 export async function getSetupIntentStatus(
   setupIntentId: string,
   transaction: DbTransaction
-): Promise<PaymentMethod.Record | SubscriptionStatus> {
+): Promise<z.infer<typeof getSetupIntentIntentStatusOutput>> {
   const [checkoutSession] = await selectCheckoutSessions(
     {
       stripeSetupIntentId: setupIntentId,
@@ -52,7 +71,13 @@ export async function getSetupIntentStatus(
       },
       transaction
     )
-    return paymentMethod
+    return {
+      type: 'setupIntent',
+      setupIntentId: setupIntentId,
+      checkoutSession: checkoutSession,
+      status: null,
+      paymentMethod: paymentMethod,
+    }
   } else if (
     checkoutSession.type === CheckoutSessionType.Product ||
     checkoutSession.type === CheckoutSessionType.Purchase
@@ -68,7 +93,13 @@ export async function getSetupIntentStatus(
         `Subscription not found for setup intent ${setupIntentId}`
       )
     }
-    return subscription.status
+    return {
+      type: 'setupIntent',
+      setupIntentId: setupIntentId,
+      checkoutSession: checkoutSession,
+      status: subscription.status,
+      paymentMethod: null,
+    }
   } else if (checkoutSession.type === CheckoutSessionType.Invoice) {
     throw new Error(
       `Invoice checkout sessions are not supported for setup intents`
@@ -83,7 +114,7 @@ export async function getSetupIntentStatus(
 export const getPaymentIntentStatus = async (
   paymentIntentId: string,
   transaction: DbTransaction
-): Promise<PaymentStatus> => {
+): Promise<z.infer<typeof getPaymentIntentIntentStatusOutput>> => {
   const checkoutSessions = await selectCheckoutSessions(
     {
       stripePaymentIntentId: paymentIntentId,
@@ -106,5 +137,55 @@ export const getPaymentIntentStatus = async (
       `Payment not found for payment intent ${paymentIntentId}`
     )
   }
-  return payment.status
+  return {
+    type: 'paymentIntent',
+    paymentIntentId: paymentIntentId,
+    checkoutSession: checkoutSessions[0],
+    status: payment.status,
+  }
+}
+
+export const getCheckoutSessionIntentStatusOutput = z.object({
+  type: z.literal('checkoutSession'),
+  checkoutSession: checkoutSessionClientSelectSchema,
+  status: z.nativeEnum(CheckoutSessionStatus),
+})
+
+export const getPaymentIntentIntentStatusOutput = z.object({
+  type: z.literal('paymentIntent'),
+  paymentIntentId: z.string(),
+  checkoutSession: checkoutSessionClientSelectSchema,
+  status: z.nativeEnum(PaymentStatus),
+})
+
+export const getSetupIntentIntentStatusOutput = z.object({
+  type: z.literal('setupIntent'),
+  setupIntentId: z.string(),
+  checkoutSession: checkoutSessionClientSelectSchema,
+  status: z.nativeEnum(SubscriptionStatus).nullish(),
+  paymentMethod: paymentMethodClientSelectSchema.nullish(),
+})
+
+export const getIntentStatusOutput = z.discriminatedUnion('type', [
+  getCheckoutSessionIntentStatusOutput,
+  getPaymentIntentIntentStatusOutput,
+  getSetupIntentIntentStatusOutput,
+])
+
+export const getIntentStatus = async (
+  params: GetIntentStatusInput,
+  transaction: DbTransaction
+): Promise<z.infer<typeof getIntentStatusOutput>> => {
+  if (params.type === 'paymentIntent') {
+    return getPaymentIntentStatus(params.paymentIntentId, transaction)
+  } else if (params.type === 'setupIntent') {
+    return getSetupIntentStatus(params.setupIntentId, transaction)
+  } else if (params.type === 'checkoutSession') {
+    return getCheckoutSessionIntentStatus(
+      params.checkoutSessionId,
+      transaction
+    )
+  } else {
+    throw new Error(`Unsupported intent params: ${params}`)
+  }
 }
