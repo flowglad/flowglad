@@ -30,20 +30,22 @@ import {
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : ''
-export interface OrganizationPaymentConfirmationEmailProps {
+
+export interface OrganizationPaymentFailedNotificationEmailProps {
   organizationName: string
   amount: number
   invoiceNumber?: string
-  customerId: string
   currency: CurrencyCode
+  customerId: string
 }
-export const OrganizationPaymentConfirmationEmail = ({
+
+export const OrganizationPaymentFailedNotificationEmail = ({
   organizationName,
   amount,
   invoiceNumber,
-  customerId,
   currency,
-}: OrganizationPaymentConfirmationEmailProps) => {
+  customerId,
+}: OrganizationPaymentFailedNotificationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
       currency,
@@ -52,32 +54,32 @@ export const OrganizationPaymentConfirmationEmail = ({
   return (
     <Html>
       <Head />
-      <Preview>Awaiting Confirmation for Payment</Preview>
+      <Preview>Payment Failed - Action Required</Preview>
       <Body style={main}>
         <Container style={container}>
           <Img
-            src={
-              // TODO: add Flowglad logo
-              `${baseUrl}/static/flowglad-logo.png`
-            }
-            width="49"
-            height="21"
+            src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
+            width="543"
+            height="200"
             alt="Flowglad Logo"
             style={logo}
           />
-          <Heading style={h1}>Payment Pending Confirmation</Heading>
+          <Heading style={h1}>Payment Failed</Heading>
           <Text style={text}>
-            A payment of ${humanReadableAmount} is awaiting
-            confirmation. We will notify you once the payment has been
-            successfully processed.
+            A payment of ${humanReadableAmount} has failed to process.
+            Please review your payment details and try again.
           </Text>
           <Section style={details}>
             <Text style={detailsText}>Payment</Text>
-            <Text style={detailsValue}>${humanReadableAmount}</Text>
+            <Text style={detailsValue}>{humanReadableAmount}</Text>
             <Text style={detailsText}>Status</Text>
-            <Text style={detailsValue}>Pending Confirmation</Text>
-            <Text style={detailsText}>Invoice #</Text>
-            <Text style={detailsValue}>{invoiceNumber}</Text>
+            <Text style={detailsValue}>Failed</Text>
+            {invoiceNumber && (
+              <>
+                <Text style={detailsText}>Invoice #</Text>
+                <Text style={detailsValue}>{invoiceNumber}</Text>
+              </>
+            )}
           </Section>
           <Section style={buttonContainer}>
             <EmailButton
@@ -87,9 +89,9 @@ export const OrganizationPaymentConfirmationEmail = ({
             </EmailButton>
           </Section>
           <Text style={footerText}>
-            This payment is being processed by Flowglad on behalf of{' '}
-            {organizationName}. You will receive another notification
-            once the payment is confirmed.
+            This payment was attempted to be processed by Flowglad on
+            behalf of {organizationName}. Please update your payment
+            information to ensure future transactions are successful.
           </Text>
         </Container>
       </Body>
