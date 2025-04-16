@@ -147,10 +147,6 @@ describe('Process setup intent', async () => {
       quantity: 1,
       livemode: true,
     })
-    console.log(
-      'checkoutSession.billingAddress',
-      checkoutSession.billingAddress
-    )
     purchase = await setupPurchase({
       customerId: customer.id,
       organizationId: organization.id,

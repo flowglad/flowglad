@@ -707,7 +707,6 @@ export const setupCheckoutSession = async ({
     }
   }
   return adminTransaction(async ({ transaction }) => {
-    console.log('checkout session insert', insert)
     const checkoutSession = await insertCheckoutSession(
       insert,
       transaction
