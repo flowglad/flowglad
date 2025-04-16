@@ -24,7 +24,8 @@ export default function Provider({
             refetchOnMount: false,
             refetchOnReconnect: false,
             staleTime: 1000 * 60 * 5,
-            retry: false,
+            retry: 3,
+            retryDelay: 600,
           },
         },
       })
