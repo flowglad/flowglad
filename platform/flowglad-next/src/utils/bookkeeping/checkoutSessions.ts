@@ -261,6 +261,20 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       transaction
     )
   }
+  if (checkoutSession.customerId) {
+    customer = await selectCustomerById(
+      checkoutSession.customerId,
+      transaction
+    )
+  }
+  if (
+    customer &&
+    providedStripeCustomerId !== customer.stripeCustomerId
+  ) {
+    throw Error(
+      `Attempting to process checkout session ${checkoutSession.id} with a different stripe customer ${providedStripeCustomerId} than the checkout session customer ${customer.stripeCustomerId} already linked to the purchase`
+    )
+  }
   if (providedStripeCustomerId) {
     const [customerWithStripeCustomerId] = await selectCustomers(
       {
