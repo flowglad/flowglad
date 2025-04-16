@@ -34,6 +34,17 @@ import {
 import { IntentMetadataType, StripeIntentMetadata } from '../stripe'
 import core from '../core'
 
+const succeededCharge = {
+  status: 'succeeded',
+  failure_code: null,
+  failure_message: null,
+} as const
+
+const failedCharge = {
+  status: 'failed',
+  failure_code: 'insufficient_funds',
+  failure_message: 'Insufficient funds',
+} as const
 /**
  * TODO: many test cases in this file are commented out
  * because we do not have an easy way to set up payment intents with associated charges
@@ -106,7 +117,7 @@ describe('Process payment intent status updated', async () => {
         async ({ transaction }) => {
           return updatePaymentToReflectLatestChargeStatus(
             fakePayment,
-            'succeeded',
+            succeededCharge,
             transaction
           )
         }
@@ -119,7 +130,7 @@ describe('Process payment intent status updated', async () => {
       const result = await adminTransaction(async ({ transaction }) =>
         updatePaymentToReflectLatestChargeStatus(
           fakePayment,
-          'succeeded',
+          succeededCharge,
           transaction
         )
       )
@@ -134,7 +145,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(async ({ transaction }) => {
         await updatePaymentToReflectLatestChargeStatus(
           fakePayment,
-          'succeeded',
+          succeededCharge,
           transaction
         )
         const invoice = await selectInvoiceById(
@@ -160,7 +171,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(async ({ transaction }) => {
         await updatePaymentToReflectLatestChargeStatus(
           updatedPayment,
-          'succeeded',
+          succeededCharge,
           transaction
         )
         const updatedPurchase = await selectPurchaseById(
@@ -178,7 +189,7 @@ describe('Process payment intent status updated', async () => {
         adminTransaction(async ({ transaction }) =>
           updatePaymentToReflectLatestChargeStatus(
             fakePayment,
-            'succeeded',
+            succeededCharge,
             transaction
           )
         )
@@ -194,7 +205,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(async ({ transaction }) => {
         const result = await updatePaymentToReflectLatestChargeStatus(
           fakePayment,
-          'succeeded',
+          succeededCharge,
           transaction
         )
         expect(result.status).toEqual(PaymentStatus.Succeeded)
@@ -207,16 +218,42 @@ describe('Process payment intent status updated', async () => {
         const result1 =
           await updatePaymentToReflectLatestChargeStatus(
             fakePayment,
-            'succeeded',
+            succeededCharge,
             transaction
           )
         const result2 =
           await updatePaymentToReflectLatestChargeStatus(
             fakePayment,
-            'succeeded',
+            succeededCharge,
             transaction
           )
         expect(result1).toEqual(result2)
+      })
+    })
+
+    it('updates the payment status to Failed when the charge status is failed', async () => {
+      fakePayment.status = PaymentStatus.Processing
+      await adminTransaction(async ({ transaction }) => {
+        const result = await updatePaymentToReflectLatestChargeStatus(
+          fakePayment,
+          failedCharge,
+          transaction
+        )
+        expect(result.status).toEqual(PaymentStatus.Failed)
+      })
+    })
+
+    it('updates the failure message when the charge status is failed', async () => {
+      fakePayment.status = PaymentStatus.Processing
+      await adminTransaction(async ({ transaction }) => {
+        const result = await updatePaymentToReflectLatestChargeStatus(
+          fakePayment,
+          failedCharge,
+          transaction
+        )
+        expect(result.failureMessage).toEqual(
+          failedCharge.failure_message
+        )
       })
     })
   })
