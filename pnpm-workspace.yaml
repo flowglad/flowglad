@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - '!playground/**'  # Exclude playground directory
   - '!platform/**'
+
 catalogs:
   # Can be referenced through "catalog:react"
   react:

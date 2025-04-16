@@ -16,7 +16,7 @@
     "lint": "eslint && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
@@ -24,8 +24,8 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "eslint": "catalog:repo",
-    "typescript": "catalog:repo",
+    "eslint": "8.57.0",
+    "typescript": "5.8.2",
     "vitest": "^3.0.5",
     "msw": "^2.7.0"
   },
