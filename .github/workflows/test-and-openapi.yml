@@ -48,6 +48,9 @@ jobs:
       - name: Set up Docker Compose
         uses: ndeloof/install-compose-action@v0.0.1
       
+      - name: Generate OpenAPI documentation
+        run: pnpm tsx src/scripts/openApiDoc.ts
+      
       - name: Setup Docker for tests
         run: |
           docker-compose -f docker-compose.test.yml down --volumes || true
@@ -61,7 +64,4 @@ jobs:
         run: pnpm test
       
       - name: Run test teardown
-        run: pnpm test:teardown
-      
-      - name: Generate OpenAPI documentation
-        run: NODE_ENV=production pnpm tsx src/scripts/openApiDoc.ts 
+        run: pnpm test:teardown 
