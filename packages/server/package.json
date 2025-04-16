@@ -16,7 +16,7 @@
     "lint": "eslint && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
