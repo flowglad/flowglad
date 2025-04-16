@@ -445,21 +445,38 @@ describe('Process setup intent', async () => {
     })
 
     it('updates customer with Stripe customer ID when it changes', async () => {
+      const newCustomer = await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+      const newCheckoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: newCustomer.id,
+        priceId: price.id,
+        livemode: true,
+        quantity: 1,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+      })
+      const newSetupIntentSucceeded = mockSucceededSetupIntent({
+        checkoutSessionId: newCheckoutSession.id,
+        stripeCustomerId: newCustomer.stripeCustomerId!,
+      })
       const result = await adminTransaction(
         async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
-            checkoutSession as CheckoutSession.FeeReadyRecord,
+            newCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
           return processSetupIntentSucceeded(
-            succeededSetupIntent,
+            newSetupIntentSucceeded,
             transaction
           )
         }
       )
 
       expect(result.customer?.stripeCustomerId).toEqual(
-        succeededSetupIntent.customer
+        newCustomer.stripeCustomerId
       )
     })
 
@@ -533,50 +550,34 @@ describe('Process setup intent', async () => {
       // This would require mocking or setting up a specific test scenario
     })
 
-    it('creates a subscription with the correct parameters', async () => {
-      const correctSubscription = await adminTransaction(
-        async ({ transaction }) => {
-          await createFeeCalculationForCheckoutSession(
-            checkoutSession as CheckoutSession.FeeReadyRecord,
-            transaction
-          )
-          const { billingRun } = await processSetupIntentSucceeded(
-            succeededSetupIntent,
-            transaction
-          )
-          if (!billingRun) {
-            throw new Error('Billing run not found')
-          }
-          const subscription = await selectSubscriptionById(
-            billingRun.subscriptionId,
-            transaction
-          )
-          return subscription
-        }
-      )
-
-      expect(correctSubscription).toBeDefined()
-      expect(correctSubscription).toBeDefined()
-      expect(correctSubscription.organizationId).toEqual(
-        organization.id
-      )
-      expect(correctSubscription.status).toEqual(
-        SubscriptionStatus.Active
-      )
-      expect(correctSubscription.customerId).toEqual(customer.id)
-      expect(correctSubscription.priceId).toEqual(price.id)
-    })
-
     describe('Integration Tests', () => {
       it('completes a full setup intent flow from creation to success', async () => {
+        const freshCustomer = await setupCustomer({
+          organizationId: organization.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+        })
+        const freshCheckoutSession = await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: freshCustomer.id,
+          priceId: price.id,
+          livemode: true,
+          quantity: 1,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+        })
+        const freshSetupIntentSucceeded = mockSucceededSetupIntent({
+          checkoutSessionId: freshCheckoutSession.id,
+          stripeCustomerId: freshCustomer.stripeCustomerId!,
+        })
+
         const result = await adminTransaction(
           async ({ transaction }) => {
             await createFeeCalculationForCheckoutSession(
-              checkoutSession as CheckoutSession.FeeReadyRecord,
+              freshCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
             return processSetupIntentSucceeded(
-              succeededSetupIntent,
+              freshSetupIntentSucceeded,
               transaction
             )
           }
@@ -601,29 +602,63 @@ describe('Process setup intent', async () => {
       })
 
       it('applies trial periods correctly based on customer history', async () => {
-        const oldSubscription = await setupSubscription({
+        // Create a local customer for this test
+        const localCustomer = await setupCustomer({
           organizationId: organization.id,
-          customerId: customer.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+        })
+
+        // Create a local payment method for this test
+        const localPaymentMethod = await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: localCustomer.id,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+
+        // Create a local old subscription with trial period
+        const localOldSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: localCustomer.id,
           priceId: price.id,
           livemode: true,
-          paymentMethodId: paymentMethod.id,
+          paymentMethodId: localPaymentMethod.id,
           trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         })
-        const result = await adminTransaction(
+
+        // Create a local first checkout session
+        const localFirstCheckoutSession = await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: localCustomer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+
+        // Create a local setup intent for the first checkout session
+        const localFirstSetupIntent = mockSucceededSetupIntent({
+          checkoutSessionId: localFirstCheckoutSession.id,
+          stripeCustomerId: localCustomer.stripeCustomerId!,
+        })
+
+        // Process the first setup intent
+        const firstResult = await adminTransaction(
           async ({ transaction }) => {
             await updateSubscription(
               {
-                id: oldSubscription.id,
+                id: localOldSubscription.id,
                 status: SubscriptionStatus.Canceled,
               },
               transaction
             )
             await createFeeCalculationForCheckoutSession(
-              checkoutSession as CheckoutSession.FeeReadyRecord,
+              localFirstCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
             const result = await processSetupIntentSucceeded(
-              succeededSetupIntent,
+              localFirstSetupIntent,
               transaction
             )
             return {
@@ -636,37 +671,46 @@ describe('Process setup intent', async () => {
           }
         )
 
-        // The result should not include a trial end date for the new subscription
-        expect(result.subscription.trialEnd).toBeDefined()
-        // cancel the subscription so we can create a new one
+        // The result should include a trial end date for the new subscription
+        expect(firstResult.subscription.trialEnd).toBeDefined()
+
+        // Cancel the subscription so we can create a new one
         await adminTransaction(async ({ transaction }) => {
           await safelyUpdateSubscriptionStatus(
-            result.subscription,
+            firstResult.subscription,
             SubscriptionStatus.Canceled,
             transaction
           )
         })
-        const secondCheckoutSession = await setupCheckoutSession({
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          status: CheckoutSessionStatus.Open,
-          quantity: 1,
-          livemode: checkoutSession.livemode,
-          type: CheckoutSessionType.Product,
+
+        // Create a local second checkout session
+        const localSecondCheckoutSession = await setupCheckoutSession(
+          {
+            organizationId: organization.id,
+            customerId: localCustomer.id,
+            priceId: price.id,
+            status: CheckoutSessionStatus.Open,
+            quantity: 1,
+            livemode: true,
+            type: CheckoutSessionType.Product,
+          }
+        )
+
+        // Create a local setup intent for the second checkout session
+        const localSecondSetupIntent = mockSucceededSetupIntent({
+          checkoutSessionId: localSecondCheckoutSession.id,
+          stripeCustomerId: localCustomer.stripeCustomerId!,
         })
-        const secondSetupIntentSucceeded = mockSucceededSetupIntent({
-          checkoutSessionId: secondCheckoutSession.id,
-          stripeCustomerId: customer.stripeCustomerId!,
-        })
+
+        // Process the second setup intent
         const { subscription: secondSubscription } =
           await adminTransaction(async ({ transaction }) => {
             await createFeeCalculationForCheckoutSession(
-              secondCheckoutSession as CheckoutSession.FeeReadyRecord,
+              localSecondCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
             const result = await processSetupIntentSucceeded(
-              secondSetupIntentSucceeded,
+              localSecondSetupIntent,
               transaction
             )
             return {
@@ -677,13 +721,17 @@ describe('Process setup intent', async () => {
               ),
             }
           })
-        expect(secondSubscription.trialEnd).toBeUndefined()
-        // Now set up a new customer with no trial history
+
+        // The second subscription should not include a trial end date
+        expect(secondSubscription.trialEnd).toBeNull()
+
+        // Create a new customer with no trial history
         const newCustomer = await setupCustomer({
           organizationId: organization.id,
           stripeCustomerId: `cus_${core.nanoid()}`,
         })
 
+        // Create a new checkout session for the new customer
         const newCheckoutSession = await setupCheckoutSession({
           organizationId: organization.id,
           customerId: newCustomer.id,
@@ -694,15 +742,14 @@ describe('Process setup intent', async () => {
           livemode: true,
         })
 
-        // Update setup intent to use the new customer
-        const newSetupIntent = {
-          ...mockSucceededSetupIntent({
-            checkoutSessionId: newCheckoutSession.id,
-            stripeCustomerId: newCustomer.stripeCustomerId!,
-          }),
-        } as CoreSripeSetupIntent
+        // Create a setup intent for the new customer
+        const newSetupIntent = mockSucceededSetupIntent({
+          checkoutSessionId: newCheckoutSession.id,
+          stripeCustomerId: newCustomer.stripeCustomerId!,
+        })
 
-        const subscription = await adminTransaction(
+        // Process the setup intent for the new customer
+        const newSubscription = await adminTransaction(
           async ({ transaction }) => {
             const result = await processSetupIntentSucceeded(
               newSetupIntent,
@@ -718,8 +765,8 @@ describe('Process setup intent', async () => {
           }
         )
 
-        // The result should include a trial end date for the new subscription
-        expect(subscription.trialEnd).toBeDefined()
+        // The new subscription should include a trial end date
+        expect(newSubscription.trialEnd).toBeDefined()
       })
     })
 

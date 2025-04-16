@@ -677,6 +677,7 @@ export const setupCheckoutSession = async ({
       outputMetadata: {},
       purchaseId: 'test',
     }
+
   let insert: CheckoutSession.Insert
   if (type === CheckoutSessionType.AddPaymentMethod) {
     insert = addPaymentMethodCheckoutSessionInsert
@@ -684,6 +685,26 @@ export const setupCheckoutSession = async ({
     insert = productCheckoutSessionInsert
   } else if (type === CheckoutSessionType.Purchase) {
     insert = purchaseCheckoutSessionInsert
+  } else if (type === CheckoutSessionType.Invoice) {
+    const invoice = await setupInvoice({
+      customerId: customerId,
+      organizationId: organizationId,
+      priceId: priceId,
+    })
+
+    insert = {
+      ...coreFields,
+      priceId: null,
+      status: CheckoutSessionStatus.Open,
+      type: CheckoutSessionType.Invoice,
+      quantity,
+      livemode,
+      targetSubscriptionId: null,
+      outputName: null,
+      invoiceId: invoice.id,
+      purchaseId: null,
+      outputMetadata: null,
+    }
   }
   return adminTransaction(async ({ transaction }) => {
     console.log('checkout session insert', insert)
