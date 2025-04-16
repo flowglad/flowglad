@@ -93,7 +93,11 @@ jobs:
         run: |
           cd platform/flowglad-next
           pnpm test:setup
-      
+
+      - name: Install vercel cli
+        run: |
+          npm install -g vercel
+
       - name: Pull flowglad-next environment variables
         run: |
           cd platform/flowglad-next
