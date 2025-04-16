@@ -560,6 +560,9 @@ describe('Process setup intent', async () => {
       expect(correctSubscription.organizationId).toEqual(
         organization.id
       )
+      expect(correctSubscription.status).toEqual(
+        SubscriptionStatus.Active
+      )
       expect(correctSubscription.customerId).toEqual(customer.id)
       expect(correctSubscription.priceId).toEqual(price.id)
     })
@@ -598,7 +601,7 @@ describe('Process setup intent', async () => {
       })
 
       it('applies trial periods correctly based on customer history', async () => {
-        await setupSubscription({
+        const oldSubscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
           priceId: price.id,
@@ -608,6 +611,13 @@ describe('Process setup intent', async () => {
         })
         const result = await adminTransaction(
           async ({ transaction }) => {
+            await updateSubscription(
+              {
+                id: oldSubscription.id,
+                status: SubscriptionStatus.Canceled,
+              },
+              transaction
+            )
             await createFeeCalculationForCheckoutSession(
               checkoutSession as CheckoutSession.FeeReadyRecord,
               transaction
