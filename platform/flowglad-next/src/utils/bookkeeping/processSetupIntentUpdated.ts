@@ -3,7 +3,11 @@ import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
-import { CheckoutSessionType, PurchaseStatus } from '@/types'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PurchaseStatus,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   StripeIntentMetadata,
@@ -15,7 +19,10 @@ import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  selectCheckoutSessionById,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { Price } from '@/db/schema/prices'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -23,6 +30,23 @@ import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+
+const setupIntentStatusToCheckoutSessionStatus = (
+  status: Stripe.SetupIntent.Status
+): CheckoutSessionStatus => {
+  switch (status) {
+    case 'succeeded':
+      return CheckoutSessionStatus.Succeeded
+    case 'processing':
+      return CheckoutSessionStatus.Pending
+    case 'canceled':
+      return CheckoutSessionStatus.Failed
+    case 'requires_payment_method':
+      return CheckoutSessionStatus.Pending
+    default:
+      return CheckoutSessionStatus.Pending
+  }
+}
 
 const processCheckoutSessionSetupIntent = async (
   setupIntent: Stripe.SetupIntent,
@@ -40,8 +64,17 @@ const processCheckoutSessionSetupIntent = async (
     )
   }
   const checkoutSessionId = metadata.checkoutSessionId
-  const checkoutSession = await selectCheckoutSessionById(
+  const initialCheckoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
+    transaction
+  )
+  const checkoutSession = await updateCheckoutSession(
+    {
+      ...initialCheckoutSession,
+      status: setupIntentStatusToCheckoutSessionStatus(
+        setupIntent.status
+      ),
+    },
     transaction
   )
   if (!checkoutSession) {

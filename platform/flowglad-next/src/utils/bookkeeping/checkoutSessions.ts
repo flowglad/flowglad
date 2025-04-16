@@ -1,3 +1,4 @@
+// checkoutSessions.ts
 import {
   FeeCalculationType,
   InvoiceStatus,
@@ -48,7 +49,6 @@ import {
   insertCustomer,
   selectCustomers,
   updateCustomer,
-  upsertCustomerByEmailAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
