@@ -3,7 +3,6 @@ name: FlowgladServer Integration Tests
 on:
   push:
     branches:
-      # TODO: uncomment these when we have the test suite working
       - main
       - staging
 
