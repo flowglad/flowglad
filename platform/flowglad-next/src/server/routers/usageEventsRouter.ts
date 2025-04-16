@@ -96,6 +96,9 @@ export const editUsageEvent = usageProcedure
           {
             ...input.usageEvent,
             id: input.id,
+            usageDate: input.usageEvent.usageDate
+              ? new Date(input.usageEvent.usageDate)
+              : undefined,
           },
           transaction
         )

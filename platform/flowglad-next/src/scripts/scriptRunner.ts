@@ -8,6 +8,9 @@ The script runner does the following:
  - Runs the script provided
 
 Post script run regardless of the script's success or failure, the script runner will pull development environment variables from Vercel
+
+To skip the environment pull step, add --skip-env-pull as an argument:
+NODE_ENV=production yarn tsx scripts/example.ts --skip-env-pull
 */
 
 import core from '@/utils/core'
@@ -39,23 +42,31 @@ export default async function runScript(
   scriptMethod: (db: PostgresJsDatabase) => Promise<void>
 ) {
   const env = process.env.NODE_ENV ?? 'development'
+  const skipEnvPull = process.argv.includes('--skip-env-pull')
 
   try {
-    rmDevelopmentEnvVars()
-    execSync(`vercel env pull --environment=${env}`, {
-      stdio: 'inherit',
-    })
-    // eslint-disable-next-line no-console
-    console.info(
-      `📥 Successfully ran vercel env pull command for ${env}`
-    )
+    if (!skipEnvPull) {
+      rmDevelopmentEnvVars()
+      execSync(`vercel env pull --environment=${env}`, {
+        stdio: 'inherit',
+      })
+      // eslint-disable-next-line no-console
+      console.info(
+        `📥 Successfully ran vercel env pull command for ${env}`
+      )
+    } else {
+      // eslint-disable-next-line no-console
+      console.info('⏩ Skipping environment pull as requested')
+    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(
       `❌ Error running vercel env pull command for ${env}:`,
       error
     )
-    pullDevelopmentEnvVars()
+    if (!skipEnvPull) {
+      pullDevelopmentEnvVars()
+    }
     process.exit(1)
   }
 
@@ -71,12 +82,16 @@ export default async function runScript(
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('❌ Error running script:', error)
-    pullDevelopmentEnvVars()
+    if (!skipEnvPull) {
+      pullDevelopmentEnvVars()
+    }
     process.exit(1)
   } finally {
     // eslint-disable-next-line no-console
     console.log('Script has finished running successfully.')
-    pullDevelopmentEnvVars()
+    if (!skipEnvPull) {
+      pullDevelopmentEnvVars()
+    }
     process.exit(0)
   }
 }

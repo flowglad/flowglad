@@ -1,0 +1,75 @@
+name: Flowglad Next Test and OpenAPI Documentation
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  test-and-openapi:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/flowglad-next
+    env:
+      NEXT_PUBLIC_STACK_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_STACK_PROJECT_ID }}
+      NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: ${{ secrets.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY }}
+      STACK_SECRET_SERVER_KEY: ${{ secrets.STACK_SECRET_SERVER_KEY }}
+      STRIPE_TEST_MODE_SECRET_KEY: ${{ secrets.STRIPE_TEST_MODE_SECRET_KEY }}
+      TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
+      UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
+      UNKEY_API_ID: ${{ secrets.UNKEY_API_ID }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install dependencies
+        run: pnpm install-packages
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Set up Docker Compose
+        uses: ndeloof/install-compose-action@v0.0.1
+      
+      - name: Generate OpenAPI documentation
+        run: pnpm tsx src/scripts/openApiDoc.ts --skip-env-pull
+      
+      - name: Setup Docker for tests
+        run: |
+          docker-compose -f docker-compose.test.yml down --volumes || true
+          docker-compose -f docker-compose.test.yml up --build -d
+          docker-compose -f docker-compose.test.yml ps
+      
+      - name: Run test setup
+        run: pnpm test:setup
+      
+      - name: Run tests
+        run: pnpm test
+      
+      - name: Run test teardown
+        run: pnpm test:teardown 
