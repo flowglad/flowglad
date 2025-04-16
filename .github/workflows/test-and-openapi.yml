@@ -54,7 +54,7 @@ jobs:
         uses: ndeloof/install-compose-action@v0.0.1
       
       - name: Generate OpenAPI documentation
-        run: pnpm tsx src/scripts/openApiDoc.ts
+        run: pnpm tsx src/scripts/openApiDoc.ts --skip-env-pull
       
       - name: Setup Docker for tests
         run: |
