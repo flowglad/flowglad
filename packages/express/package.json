@@ -24,9 +24,9 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@types/react": "catalog:react",
-    "eslint": "catalog:repo",
-    "typescript": "catalog:repo"
+    "@types/react": "18.3.12",
+    "eslint": "8.57.0",
+    "typescript": "5.6.3"
   },
   "exports": {
     ".": {
