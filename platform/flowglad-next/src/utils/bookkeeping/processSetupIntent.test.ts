@@ -737,7 +737,7 @@ describe('Process setup intent', async () => {
           customerId: newCustomer.id,
           priceId: price.id,
           status: CheckoutSessionStatus.Open,
-          type: CheckoutSessionType.Purchase,
+          type: CheckoutSessionType.Product,
           quantity: 1,
           livemode: true,
         })
@@ -751,6 +751,10 @@ describe('Process setup intent', async () => {
         // Process the setup intent for the new customer
         const newSubscription = await adminTransaction(
           async ({ transaction }) => {
+            await createFeeCalculationForCheckoutSession(
+              newCheckoutSession as CheckoutSession.FeeReadyRecord,
+              transaction
+            )
             const result = await processSetupIntentSucceeded(
               newSetupIntent,
               transaction

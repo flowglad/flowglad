@@ -119,7 +119,7 @@ export const editCheckoutSession = async (
   }
 
   if (previousCheckoutSession.status !== CheckoutSessionStatus.Open) {
-    throw new Error('Purchase session is not open')
+    throw new Error('Checkout session is not open')
   }
   /**
    * If the tax calculation has changed,
