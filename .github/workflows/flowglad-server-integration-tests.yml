@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - staging
+      - fix-workflows
 
 run: |
   echo "todo: implement"
