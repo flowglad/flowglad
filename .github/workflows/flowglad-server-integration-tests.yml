@@ -65,7 +65,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       
-      - name: Build server package
+      - name: Build published packages
         run:  pnpm build && pnpm build:declarations
       
       - name: Set up Docker Buildx
@@ -89,6 +89,7 @@ jobs:
       - name: Start flowglad-next server
         run: |
           cd platform/flowglad-next
+          pnpm install-packages
           pnpm dev &
           echo "Waiting for server to start..."
           sleep 30
