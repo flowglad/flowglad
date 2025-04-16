@@ -44,3 +44,5 @@ next-env.d.ts
 # data
 src/scripts/data/*.csv
 src/scripts/data/*.json
+
+.ion-target
