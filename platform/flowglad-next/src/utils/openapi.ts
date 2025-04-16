@@ -278,6 +278,18 @@ export const trpcToRest = (
           }),
         },
       }
+    case 'edit':
+      const editIdKey = params?.routeParams?.[0] ?? 'id'
+      return {
+        [`PUT /${entity}/:${editIdKey}`]: {
+          procedure: procedureName,
+          pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
+          mapParams: (matches, body) => ({
+            [editIdKey]: matches[1],
+            ...body,
+          }),
+        },
+      }
 
     case 'delete':
       const deleteIdKey = params?.routeParams?.[0] ?? 'id'

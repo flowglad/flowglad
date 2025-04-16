@@ -175,14 +175,18 @@ const handler = withUnkey(
               JSON.stringify({ json: {} })
             )
           }
-
+          /**
+           * TRPC expects a POST requests for all mutations.
+           * So even if we have a PUT in the OpenAPI spec, we need to convert it to a POST
+           * when mapping to TRPC.
+           */
           if (
             (input && req.method === 'POST') ||
             req.method === 'PUT'
           ) {
             newReq = new Request(newUrl, {
               headers: req.headers,
-              method: req.method,
+              method: 'POST',
               body: JSON.stringify({
                 json: input,
               }),

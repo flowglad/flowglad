@@ -17,7 +17,7 @@ import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-
+import EditCustomerModal from '@/components/forms/EditCustomerModal'
 const customerStatusColors: Record<
   InferredCustomerStatus,
   BadgeColor
@@ -52,34 +52,37 @@ const CustomerMoreMenuCell = ({
   }[]
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isArchiveCustomerOpen, setIsArchiveCustomerOpen] =
-    useState(false)
-  const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] =
-    useState(false)
+  // const [isArchiveCustomerOpen, setIsArchiveCustomerOpen] =
+  //   useState(false)
+  // const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] =
+  //   useState(false)
 
   const basePopoverMenuItems = [
     {
       label: 'Edit Customer',
       handler: () => setIsEditOpen(true),
     },
-    {
-      label: 'Archive Customer',
-      state: 'danger',
-      handler: () => setIsArchiveCustomerOpen(true),
-    },
+    // {
+    //   label: 'Archive Customer',
+    //   state: 'danger',
+    //   handler: () => setIsArchiveCustomerOpen(true),
+    // },
   ]
 
-  const maybeNewInvoiceItem = [
-    {
-      label: 'New Invoice',
-      handler: () => setIsCreateInvoiceOpen(true),
-    },
-  ]
+  // const maybeNewInvoiceItem = [
+  //   {
+  //     label: 'New Invoice',
+  //     handler: () => setIsCreateInvoiceOpen(true),
+  //   },
+  // ]
 
   return (
     <>
-      <TableRowPopoverMenu
-        items={[...maybeNewInvoiceItem, ...basePopoverMenuItems]}
+      <TableRowPopoverMenu items={[...basePopoverMenuItems]} />
+      <EditCustomerModal
+        isOpen={isEditOpen}
+        setIsOpen={setIsEditOpen}
+        customer={customer}
       />
     </>
   )
@@ -173,7 +176,10 @@ const CustomersTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="flex justify-end w-full">
+            <div
+              className="flex justify-end w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
               <CustomerMoreMenuCell
                 customer={cellData.customer}
                 prices={[]}
