@@ -60,6 +60,7 @@ export const discounts = pgTable(
       enumBase: DiscountDuration,
     }).notNull(),
     numberOfPayments: integer('number_of_payments'),
+    // externalId: text('external_id').notNull(),
   },
   (table) => {
     return [

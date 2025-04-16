@@ -389,7 +389,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
   }
 }
 
-const checkoutSessionStatusFromStripeCharge = (
+export const checkoutSessionStatusFromStripeCharge = (
   charge: Stripe.Charge
 ): CheckoutSessionStatus => {
   let checkoutSessionStatus = CheckoutSessionStatus.Succeeded
@@ -402,7 +402,7 @@ const checkoutSessionStatusFromStripeCharge = (
 }
 
 /**
- * Processes a Stripe charge for an invoice-based purchase session.
+ * Processes a Stripe charge for an invoice-based checkout session.
  *
  * This function handles the bookkeeping when a charge is processed for an invoice:
  * 1. Validates the purchase session is for an invoice
@@ -423,14 +423,11 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
     checkoutSession,
     charge,
   }: {
-    checkoutSession: CheckoutSession.Record
+    checkoutSession: CheckoutSession.InvoiceRecord
     charge: Stripe.Charge
   },
   transaction: DbTransaction
 ) => {
-  if (checkoutSession.type !== CheckoutSessionType.Invoice) {
-    throw new Error('Invoice checkout flow does not support charges')
-  }
   const invoice = await selectInvoiceById(
     checkoutSession.invoiceId,
     transaction

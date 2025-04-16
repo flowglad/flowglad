@@ -32,6 +32,9 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PurchaseStatus,
+  DiscountAmountType,
+  DiscountDuration,
+  FeeCalculationType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -53,6 +56,8 @@ import { insertCatalog } from '@/db/tableMethods/catalogMethods'
 import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { BillingAddress } from '@/db/schema/organizations'
+import { insertDiscount } from '@/db/tableMethods/discountMethods'
+import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 
 const insertCountries = async () => {
   await db
@@ -712,5 +717,114 @@ export const setupCheckoutSession = async ({
       transaction
     )
     return checkoutSession
+  })
+}
+
+export const setupDiscount = async ({
+  organizationId,
+  name,
+  amount,
+  amountType = DiscountAmountType.Percent,
+  livemode = true,
+  code,
+}: {
+  organizationId: string
+  name: string
+  amount: number
+  code: string
+  amountType?: DiscountAmountType
+  livemode?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertDiscount(
+      {
+        organizationId,
+        name,
+        amount,
+        livemode,
+        amountType: DiscountAmountType.Percent,
+        duration: DiscountDuration.Forever,
+        numberOfPayments: null,
+        active: true,
+        code,
+        // externalId: core.nanoid(),
+      },
+      transaction
+    )
+  })
+}
+
+export const setupInvoiceLineItem = async ({
+  invoiceId,
+  priceId,
+  quantity = 1,
+  price = 1000,
+  livemode = true,
+}: {
+  invoiceId: string
+  priceId: string
+  quantity?: number
+  price?: number
+  livemode?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertInvoiceLineItem(
+      {
+        invoiceId,
+        priceId,
+        quantity,
+        price,
+        livemode,
+        description: 'Test Description',
+      },
+      transaction
+    )
+  })
+}
+
+export const setupFeeCalculation = async ({
+  checkoutSessionId,
+  organizationId,
+  priceId,
+  livemode = true,
+}: {
+  checkoutSessionId: string
+  organizationId: string
+  priceId: string
+  livemode?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertFeeCalculation(
+      {
+        checkoutSessionId,
+        organizationId,
+        priceId,
+        livemode,
+        currency: CurrencyCode.USD,
+        type: FeeCalculationType.CheckoutSessionPayment,
+        billingAddress: {
+          address: {
+            line1: '123 Test St',
+            line2: 'Apt 1',
+            city: 'Test City',
+            state: 'Test State',
+            postal_code: '12345',
+            country: CountryCode.US,
+          },
+        },
+        billingPeriodId: null,
+        paymentMethodType: PaymentMethodType.Card,
+        discountAmountFixed: 0,
+        discountId: null,
+        paymentMethodFeeFixed: 0,
+        baseAmount: 1000,
+        internationalFeePercentage: '0',
+        flowgladFeePercentage: '0.65',
+        taxAmountFixed: 0,
+        pretaxTotal: 1000,
+        internalNotes: 'Test Fee Calculation',
+      },
+      transaction
+    )
   })
 }
