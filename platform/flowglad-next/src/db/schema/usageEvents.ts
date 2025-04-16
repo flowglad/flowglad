@@ -30,6 +30,9 @@ const TABLE_NAME = 'usage_events'
 
 const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
 
+const usageEventSubscriptionMustMatchCustomer = sql`"subscription_id" in (select "id" from "subscriptions" where "subscriptions"."customer_id" = "customer_id")`
+
+const usageEventBillingPeriodMustMatchSubscription = sql`"billing_period_id" in (select "id" from "billing_periods" where "billing_periods"."subscription_id" = "subscription_id")`
 export const usageEvents = pgTable(
   TABLE_NAME,
   {
@@ -88,6 +91,42 @@ export const usageEvents = pgTable(
           using: usageEventPriceMustMatchUsageMeter,
         }
       ),
+      pgPolicy(
+        'On insert, only allow usage events for subscriptions with matching customer',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'insert',
+          withCheck: usageEventSubscriptionMustMatchCustomer,
+        }
+      ),
+      pgPolicy(
+        'On update, only allow usage events for subscriptions with matching customer',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'update',
+          withCheck: usageEventSubscriptionMustMatchCustomer,
+        }
+      ),
+      pgPolicy(
+        'On insert, only allow usage events for billing periods with matching subscription',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'insert',
+          withCheck: usageEventBillingPeriodMustMatchSubscription,
+        }
+      ),
+      pgPolicy(
+        'On update, only allow usage events for billing periods with matching subscription',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'update',
+          withCheck: usageEventBillingPeriodMustMatchSubscription,
+        }
+      ),
       livemodePolicy(),
     ]
   }
@@ -133,12 +172,13 @@ export const usageEventsUpdateSchema = createUpdateSchema(
 const readOnlyColumns = {
   livemode: true,
   billingPeriodId: true,
+  customerId: true,
 } as const
 
 const createOnlyColumns = {
-  customerId: true,
   usageMeterId: true,
   subscriptionId: true,
+  transactionId: true,
 } as const
 
 export const usageEventsClientSelectSchema =

@@ -1,5 +1,5 @@
 import { adminTransaction } from '@/db/adminTransaction'
-import { processSetupIntentUpdated } from '@/utils/bookkeeping/processSetupIntentUpdated'
+import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import Stripe from 'stripe'
 
@@ -8,7 +8,7 @@ export const setupIntentSucceededTask = task({
   run: async (payload: Stripe.SetupIntentSucceededEvent, { ctx }) => {
     logger.log('Setup intent succeeded', { payload, ctx })
     await adminTransaction(async ({ transaction }) => {
-      return processSetupIntentUpdated(
+      return processSetupIntentSucceeded(
         payload.data.object,
         transaction
       )

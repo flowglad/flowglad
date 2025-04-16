@@ -278,12 +278,8 @@ const verifyCanCreateSubscription = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
-  const {
-    customer,
-    defaultPaymentMethod,
-    backupPaymentMethod,
-    stripeSetupIntentId,
-  } = params
+  const { customer, defaultPaymentMethod, backupPaymentMethod } =
+    params
   const currentSubscriptionsForCustomer = await selectSubscriptions(
     {
       customerId: customer.id,
@@ -359,7 +355,6 @@ export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
-  await verifyCanCreateSubscription(params, transaction)
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(
       {
@@ -377,6 +372,7 @@ export const createSubscriptionWorkflow = async (
       )
     }
   }
+  await verifyCanCreateSubscription(params, transaction)
   const defaultPaymentMethod =
     await maybeDefaultPaymentMethodForSubscription(
       {

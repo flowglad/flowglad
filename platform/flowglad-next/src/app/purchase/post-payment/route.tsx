@@ -1,6 +1,5 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { PurchaseAccessSessionSource } from '@/types'
-import { processSetupIntentUpdated } from '@/utils/bookkeeping/processSetupIntentUpdated'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import {
   getPaymentIntent,
@@ -30,6 +29,7 @@ import { Invoice } from '@/db/schema/invoices'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { Payment } from '@/db/schema/payments'
 import { generatePaymentReceiptPdfIdempotently } from '@/trigger/generate-receipt-pdf'
+import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'
 
 interface ProcessPostPaymentResult {
   purchase: Purchase.Record
@@ -184,7 +184,7 @@ const processSetupIntent = async ({
   const setupIntent = await getSetupIntent(setupIntentId)
   const { purchase, checkoutSession, billingRun } =
     await adminTransaction(async ({ transaction }) => {
-      return processSetupIntentUpdated(setupIntent, transaction)
+      return processSetupIntentSucceeded(setupIntent, transaction)
     })
   if (billingRun) {
     await executeBillingRun(billingRun.id)

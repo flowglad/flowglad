@@ -1,9 +1,12 @@
-import { Organization } from '@/db/schema/organizations'
 import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
-import { CheckoutSessionType, PurchaseStatus } from '@/types'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PurchaseStatus,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   StripeIntentMetadata,
@@ -15,7 +18,11 @@ import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  checkouSessionIsInTerminalState,
+  selectCheckoutSessionById,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { Price } from '@/db/schema/prices'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -24,10 +31,35 @@ import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 
-const processCheckoutSessionSetupIntent = async (
-  setupIntent: Stripe.SetupIntent,
+export const setupIntentStatusToCheckoutSessionStatus = (
+  status: Stripe.SetupIntent.Status
+): CheckoutSessionStatus => {
+  switch (status) {
+    case 'succeeded':
+      return CheckoutSessionStatus.Succeeded
+    case 'processing':
+      return CheckoutSessionStatus.Pending
+    case 'canceled':
+      return CheckoutSessionStatus.Failed
+    case 'requires_payment_method':
+      return CheckoutSessionStatus.Pending
+    default:
+      return CheckoutSessionStatus.Pending
+  }
+}
+
+export type CoreSripeSetupIntent = Pick<
+  Stripe.SetupIntent,
+  'id' | 'metadata' | 'status' | 'customer' | 'payment_method'
+>
+
+export const processCheckoutSessionSetupIntent = async (
+  setupIntent: CoreSripeSetupIntent,
   transaction: DbTransaction
 ) => {
+  if (!setupIntent.metadata) {
+    throw new Error('No metadata found')
+  }
   const metadata = stripeIntentMetadataSchema.parse(
     setupIntent.metadata
   )
@@ -40,13 +72,36 @@ const processCheckoutSessionSetupIntent = async (
     )
   }
   const checkoutSessionId = metadata.checkoutSessionId
-  const checkoutSession = await selectCheckoutSessionById(
+  const initialCheckoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
     transaction
   )
-  if (!checkoutSession) {
-    throw new Error('Purchase session not found')
+
+  if (checkouSessionIsInTerminalState(initialCheckoutSession)) {
+    const organization = await selectOrganizationById(
+      initialCheckoutSession.organizationId,
+      transaction
+    )
+    const customer = await selectCustomerById(
+      initialCheckoutSession.customerId!,
+      transaction
+    )
+    return {
+      checkoutSession: initialCheckoutSession,
+      organization,
+      customer,
+    }
   }
+
+  const checkoutSession = await updateCheckoutSession(
+    {
+      ...initialCheckoutSession,
+      status: setupIntentStatusToCheckoutSessionStatus(
+        setupIntent.status
+      ),
+    },
+    transaction
+  )
   if (checkoutSession.type === CheckoutSessionType.Invoice) {
     throw new Error(
       'Invoice checkout flow does not support setup intents'
@@ -101,7 +156,7 @@ const processCheckoutSessionSetupIntent = async (
   }
 }
 
-const calculateTrialEnd = (params: {
+export const calculateTrialEnd = (params: {
   hasHadTrial: boolean
   trialPeriodDays: number | null
 }): Date | undefined => {
@@ -116,8 +171,8 @@ const calculateTrialEnd = (params: {
       )
 }
 
-export const processSetupIntentUpdated = async (
-  setupIntent: Stripe.SetupIntent,
+export const processSetupIntentSucceeded = async (
+  setupIntent: CoreSripeSetupIntent,
   transaction: DbTransaction
 ) => {
   const metadata: StripeIntentMetadata =
@@ -173,12 +228,7 @@ export const processSetupIntentUpdated = async (
     },
     transaction
   )
-  /**
-   * If the price, product, or purchase are not found,
-   * we don't need to create a subscription because that means
-   * the checkout session was for adding a payment method
-   */
-  if (!price || !product || !purchase) {
+  if (checkoutSession.type === CheckoutSessionType.AddPaymentMethod) {
     return {
       purchase,
       checkoutSession,
@@ -188,9 +238,33 @@ export const processSetupIntentUpdated = async (
       customer,
     }
   }
+  /**
+   * If the price, product, or purchase are not found,
+   * we don't need to create a subscription because that means
+   * the checkout session was for adding a payment method
+   */
+  if (!price) {
+    throw new Error(
+      `Price not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+    )
+  }
+
+  if (!product) {
+    throw new Error(
+      `Product not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+    )
+  }
+
+  if (!purchase) {
+    throw new Error(
+      `Purchase not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+    )
+  }
+
   if (!price.intervalUnit) {
     throw new Error('Price interval unit is required')
   }
+
   if (!price.intervalCount) {
     throw new Error('Price interval count is required')
   }
@@ -223,6 +297,7 @@ export const processSetupIntentUpdated = async (
         trialPeriodDays: price.trialPeriodDays,
       }),
       startDate: new Date(),
+      autoStart: true,
       quantity: checkoutSession.quantity,
       metadata: checkoutSession.outputMetadata,
       name: checkoutSession.outputName ?? undefined,

@@ -73,7 +73,7 @@ export const OrderReceiptEmail = ({
           <Section style={orderDetails}>
             <Text style={orderItem}>Invoice #: {invoiceNumber}</Text>
             <Text style={orderItem}>Date: {orderDate}</Text>
-            <Text style={orderItem}>Payment: ${totalAmount}</Text>
+            <Text style={orderItem}>Payment: {totalAmount}</Text>
           </Section>
 
           {lineItems.map((item, index) => (

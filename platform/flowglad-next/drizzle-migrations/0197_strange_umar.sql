@@ -1,1 +1,0 @@
-ALTER TABLE "checkout_sessions" ADD COLUMN "target_subscription_id" text;
