@@ -6,9 +6,11 @@ import {
   selectCustomers,
   insertCustomer,
   updateCustomer,
+  selectCustomerById,
 } from '@/db/tableMethods/customerMethods'
 import {
   createStripeCustomer,
+  getSetupIntent,
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
@@ -68,16 +70,12 @@ export const confirmCheckoutSession = publicProcedure
       }
 
       let customer: Customer.Record | null = null
-      if (checkoutSession.customerEmail) {
+      if (checkoutSession.customerId) {
         // Find customer
-        const result = await selectCustomers(
-          {
-            email: checkoutSession.customerEmail,
-            organizationId: checkoutSession.organizationId,
-          },
+        customer = await selectCustomerById(
+          checkoutSession.customerId,
           transaction
         )
-        customer = result[0]
       } else if (checkoutSession.purchaseId) {
         const purchaseAndCustomer =
           await selectPurchaseAndCustomersByPurchaseWhere(
@@ -138,15 +136,19 @@ export const confirmCheckoutSession = publicProcedure
         )
       }
 
-      // Update setup intent if it exists
       if (checkoutSession.stripeSetupIntentId) {
-        await updateSetupIntent(
-          checkoutSession.stripeSetupIntentId,
-          {
-            customer: stripeCustomerId,
-          },
-          checkoutSession.livemode
+        const setupIntent = await getSetupIntent(
+          checkoutSession.stripeSetupIntentId
         )
+        if (!setupIntent.customer) {
+          await updateSetupIntent(
+            checkoutSession.stripeSetupIntentId,
+            {
+              customer: stripeCustomerId,
+            },
+            checkoutSession.livemode
+          )
+        }
       } else if (
         checkoutSession.stripePaymentIntentId &&
         checkoutSession.type !==
