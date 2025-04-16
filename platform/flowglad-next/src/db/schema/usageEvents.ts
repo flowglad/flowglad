@@ -98,7 +98,7 @@ const columnRefinements = {
   usageDate: z
     .date()
     .describe(
-      'The date the usage occurred. Currently should always the current date. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing peirod.'
+      'The date the usage occurred. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing peirod.'
     ),
   billingPeriodId: z
     .string()
@@ -144,8 +144,16 @@ const createOnlyColumns = {
 export const usageEventsClientSelectSchema =
   usageEventsSelectSchema.omit(readOnlyColumns)
 
-export const usageEventsClientUpdateSchema =
-  usageEventsUpdateSchema.omit({
+export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
+  .extend({
+    usageDate: z
+      .number()
+      .optional()
+      .describe(
+        'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
+      ),
+  })
+  .omit({
     ...readOnlyColumns,
     ...createOnlyColumns,
   })

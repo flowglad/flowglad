@@ -356,7 +356,6 @@ const createSubscriptionProcedure = protectedProcedure
   })
 
 const getCountsByStatusProcedure = protectedProcedure
-  .meta(openApiMetas.GET)
   .input(z.object({}))
   .output(
     z.array(
@@ -378,15 +377,6 @@ const getCountsByStatusProcedure = protectedProcedure
   })
 
 const getTableRowsProcedure = protectedProcedure
-  .meta({
-    openapi: {
-      method: 'GET',
-      path: '/api/v1/subscriptions/table-rows',
-      summary: 'Get paginated subscription table rows',
-      tags: ['Subscriptions'],
-      protect: true,
-    },
-  })
   .input(
     createPaginatedTableRowInputSchema(
       z.object({

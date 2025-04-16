@@ -26,6 +26,7 @@ const EditCustomerModal = ({
       title="Edit Customer"
       formSchema={editCustomerInputSchema}
       defaultValues={{
+        externalId: customer.externalId,
         customer: {
           ...customer,
         },

@@ -215,7 +215,7 @@ const PaginationRow = ({
           <>{total.toLocaleString()} Results</>
         )}
       </div>
-      {total > 0 && (
+      {total > 10 && (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -560,8 +560,7 @@ function Table<TData, TValue>({
           </TableRoot>
         </div>
       </div>
-      {((pagination && pagination.total > pagination.pageSize) ||
-        (!pagination && rowLength > 10)) && (
+      {(rowLength > 10 || pagination) && (
         <div className="w-full px-4 pt-4">
           <PaginationRow
             table={table}
