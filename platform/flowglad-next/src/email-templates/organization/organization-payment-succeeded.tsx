@@ -14,6 +14,18 @@ import {
 } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from '../components/EmailButton'
+import {
+  main,
+  container,
+  logo,
+  h1,
+  text,
+  details,
+  detailsText,
+  detailsValue,
+  buttonContainer,
+  footerText,
+} from '@/email-templates/styles/coreEmailStyles'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -84,70 +96,4 @@ export const OrganizationPaymentNotificationEmail = ({
       </Body>
     </Html>
   )
-}
-
-const main = {
-  backgroundColor: '#f6f9fc',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
-}
-
-const container = {
-  backgroundColor: '#ffffff',
-  margin: '0 auto',
-  padding: '20px 0 48px',
-  marginBottom: '64px',
-}
-
-const logo = {
-  margin: '0 auto',
-  marginBottom: '32px',
-}
-
-const h1 = {
-  color: '#32325d',
-  fontSize: '24px',
-  fontWeight: 'normal',
-  textAlign: 'center' as const,
-  margin: '30px 0',
-}
-
-const text = {
-  color: '#525f7f',
-  fontSize: '16px',
-  lineHeight: '24px',
-  textAlign: 'center' as const,
-}
-
-const details = {
-  backgroundColor: '#f6f9fc',
-  borderRadius: '4px',
-  marginTop: '30px',
-  padding: '24px',
-}
-
-const detailsText = {
-  color: '#525f7f',
-  fontSize: '14px',
-  marginBottom: '4px',
-}
-
-const detailsValue = {
-  color: '#32325d',
-  fontSize: '16px',
-  fontWeight: 'bold',
-  marginBottom: '16px',
-}
-
-const buttonContainer = {
-  textAlign: 'center' as const,
-  marginTop: '32px',
-}
-
-const footerText = {
-  color: '#525f7f',
-  fontSize: '14px',
-  lineHeight: '20px',
-  textAlign: 'center' as const,
-  marginTop: '24px',
 }

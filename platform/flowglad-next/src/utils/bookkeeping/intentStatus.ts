@@ -151,12 +151,20 @@ export const getCheckoutSessionIntentStatusOutput = z.object({
   status: z.nativeEnum(CheckoutSessionStatus),
 })
 
+export type GetCheckoutSessionIntentStatusOutput = z.infer<
+  typeof getCheckoutSessionIntentStatusOutput
+>
+
 export const getPaymentIntentIntentStatusOutput = z.object({
   type: z.literal('paymentIntent'),
   paymentIntentId: z.string(),
   checkoutSession: checkoutSessionClientSelectSchema,
   status: z.nativeEnum(PaymentStatus),
 })
+
+export type GetPaymentIntentIntentStatusOutput = z.infer<
+  typeof getPaymentIntentIntentStatusOutput
+>
 
 export const getSetupIntentIntentStatusOutput = z.object({
   type: z.literal('setupIntent'),
@@ -166,11 +174,19 @@ export const getSetupIntentIntentStatusOutput = z.object({
   paymentMethod: paymentMethodClientSelectSchema.nullish(),
 })
 
+export type GetSetupIntentIntentStatusOutput = z.infer<
+  typeof getSetupIntentIntentStatusOutput
+>
+
 export const getIntentStatusOutput = z.discriminatedUnion('type', [
   getCheckoutSessionIntentStatusOutput,
   getPaymentIntentIntentStatusOutput,
   getSetupIntentIntentStatusOutput,
 ])
+
+export type GetIntentStatusOutput = z.infer<
+  typeof getIntentStatusOutput
+>
 
 export const getIntentStatus = async (
   params: GetIntentStatusInput,

@@ -14,6 +14,7 @@ import { BusinessOnboardingStatus } from '@/types'
 import { stripePaymentIntentPaymentFailedTask } from '@/trigger/stripe/payment-intent-payment-failed'
 import { stripePaymentIntentCanceledTask } from '@/trigger/stripe/payment-intent-canceled'
 import { setupIntentSucceededTask } from '@/trigger/stripe/setup-intent-succeeded'
+import { stripeChargeFailedTask } from '@/trigger/stripe/charge-failed'
 
 export const handleStripePrimaryWebhookEvent = async (
   event: Stripe.Event
@@ -43,6 +44,7 @@ export const handleStripePrimaryWebhookEvent = async (
       await stripePaymentIntentSucceededTask.trigger(event)
       break
     case 'charge.failed': {
+      await stripeChargeFailedTask.trigger(event)
       break
     }
     case 'setup_intent.succeeded': {

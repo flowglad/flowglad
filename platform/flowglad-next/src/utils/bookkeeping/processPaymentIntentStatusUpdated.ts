@@ -15,6 +15,7 @@ import {
 } from '../stripe'
 import {
   safelyUpdatePaymentStatus,
+  updatePayment,
   upsertPaymentByStripeChargeId,
 } from '@/db/tableMethods/paymentMethods'
 import Stripe from 'stripe'
@@ -33,6 +34,7 @@ import {
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
@@ -226,7 +228,7 @@ export const upsertPaymentForStripeCharge = async (
   const latestPayment =
     await updatePaymentToReflectLatestChargeStatus(
       payment,
-      charge.status,
+      charge,
       transaction
     )
   return latestPayment
@@ -240,10 +242,13 @@ export const upsertPaymentForStripeCharge = async (
  */
 export const updatePaymentToReflectLatestChargeStatus = async (
   payment: Payment.Record,
-  chargeStatus: Stripe.Charge.Status,
+  charge: Pick<
+    Stripe.Charge,
+    'status' | 'failure_code' | 'failure_message'
+  >,
   transaction: DbTransaction
 ) => {
-  const newPaymentStatus = chargeStatusToPaymentStatus(chargeStatus)
+  const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
   if (payment.status !== newPaymentStatus) {
     updatedPayment = await safelyUpdatePaymentStatus(
@@ -251,6 +256,19 @@ export const updatePaymentToReflectLatestChargeStatus = async (
       newPaymentStatus,
       transaction
     )
+    if (newPaymentStatus === PaymentStatus.Failed) {
+      updatedPayment = await updatePayment(
+        {
+          id: payment.id,
+          failureCode: charge.failure_code,
+          failureMessage: charge.failure_message,
+        },
+        transaction
+      )
+      await sendCustomerPaymentFailedNotificationIdempotently(
+        updatedPayment
+      )
+    }
   }
   /**
    * Update associated invoice if it exists

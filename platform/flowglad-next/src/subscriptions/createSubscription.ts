@@ -278,8 +278,12 @@ const verifyCanCreateSubscription = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
-  const { customer, defaultPaymentMethod, backupPaymentMethod } =
-    params
+  const {
+    customer,
+    defaultPaymentMethod,
+    backupPaymentMethod,
+    stripeSetupIntentId,
+  } = params
   const currentSubscriptionsForCustomer = await selectSubscriptions(
     {
       customerId: customer.id,
@@ -287,6 +291,14 @@ const verifyCanCreateSubscription = async (
     },
     transaction
   )
+  // if (
+  //   stripeSetupIntentId &&
+  //   currentSubscriptionsForCustomer.some(
+  //     (subscription) => subscription.setupIntent === stripeSetupIntentId
+  //   )
+  // ) {
+  //   return false
+  // }
   if (currentSubscriptionsForCustomer.length > 0) {
     const organization = await selectOrganizationById(
       customer.organizationId,

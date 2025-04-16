@@ -1,6 +1,6 @@
 {
-  "id": "996ede4d-66b7-403d-9ecb-099c22c24282",
-  "prevId": "fcb2ebfb-0c45-4c74-8562-5163777a9901",
+  "id": "60ab6c39-cac1-4a3b-8630-31c72465e36e",
+  "prevId": "996ede4d-66b7-403d-9ecb-099c22c24282",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -4557,6 +4557,18 @@
         "refunded_at": {
           "name": "refunded_at",
           "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure_message": {
+          "name": "failure_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure_code": {
+          "name": "failure_code",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }

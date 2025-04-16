@@ -95,6 +95,8 @@ export const payments = pgTable(
     refunded: boolean('refunded').notNull().default(false),
     refundedAmount: integer('refunded_amount'),
     refundedAt: timestamp('refunded_at'),
+    failureMessage: text('failure_message'),
+    failureCode: text('failure_code'),
   },
   (table) => {
     return [

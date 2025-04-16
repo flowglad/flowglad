@@ -1,14 +1,21 @@
 'use client'
-import { useSearchParams } from 'next/navigation'
+import { redirect, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { GetIntentStatusInput } from '@/db/schema/checkoutSessions'
+import {
+  CheckoutSession,
+  GetIntentStatusInput,
+} from '@/db/schema/checkoutSessions'
 import {
   getCheckoutSessionIntentStatusOutput,
   getPaymentIntentIntentStatusOutput,
   getSetupIntentIntentStatusOutput,
+  GetCheckoutSessionIntentStatusOutput,
+  GetPaymentIntentIntentStatusOutput,
+  GetSetupIntentIntentStatusOutput,
 } from '@/utils/bookkeeping/intentStatus'
 import { z } from 'zod'
+import { CheckoutSessionStatus } from '@/types'
 
 const getIntentStatusInput = (
   searchParams: URLSearchParams
@@ -28,6 +35,24 @@ const getIntentStatusInput = (
   throw new Error('No intent ID found in URL parameters')
 }
 
+const successUrlForCheckoutSession = (
+  checkoutSession: CheckoutSession.ClientRecord
+) => {
+  return (
+    checkoutSession.successUrl ??
+    `/checkout/${checkoutSession.id}/success`
+  )
+}
+
+const failureUrlForCheckoutSession = (
+  checkoutSession: CheckoutSession.ClientRecord
+) => {
+  return (
+    checkoutSession.cancelUrl ??
+    `/checkout/${checkoutSession.id}/failure`
+  )
+}
+
 function CheckoutSessionStatusPage({
   input,
   intentStatus,
@@ -36,6 +61,15 @@ function CheckoutSessionStatusPage({
   intentStatus: z.infer<typeof getCheckoutSessionIntentStatusOutput>
 }) {
   const { checkoutSession } = intentStatus
+  if (checkoutSession.status === CheckoutSessionStatus.Succeeded) {
+    const successUrl = successUrlForCheckoutSession(checkoutSession)
+    redirect(successUrl)
+  } else if (
+    checkoutSession.status === CheckoutSessionStatus.Failed
+  ) {
+    const failureUrl = failureUrlForCheckoutSession(checkoutSession)
+    redirect(failureUrl)
+  }
   return <div>Checkout session status: {checkoutSession.status}</div>
 }
 
@@ -94,9 +128,7 @@ function VerifyCheckoutPage() {
       <CheckoutSessionStatusPage
         input={intentStatusInput}
         intentStatus={
-          intentStatus as z.infer<
-            typeof getCheckoutSessionIntentStatusOutput
-          >
+          intentStatus as GetCheckoutSessionIntentStatusOutput
         }
       />
     )
@@ -106,9 +138,7 @@ function VerifyCheckoutPage() {
       <PaymentIntentStatusPage
         input={intentStatusInput}
         intentStatus={
-          intentStatus as z.infer<
-            typeof getPaymentIntentIntentStatusOutput
-          >
+          intentStatus as GetPaymentIntentIntentStatusOutput
         }
       />
     )
@@ -118,9 +148,7 @@ function VerifyCheckoutPage() {
       <SetupIntentStatusPage
         input={intentStatusInput}
         intentStatus={
-          intentStatus as z.infer<
-            typeof getSetupIntentIntentStatusOutput
-          >
+          intentStatus as GetSetupIntentIntentStatusOutput
         }
       />
     )
