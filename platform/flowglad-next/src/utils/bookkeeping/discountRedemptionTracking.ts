@@ -1,8 +1,6 @@
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { Payment } from '@/db/schema/payments'
-import { Subscription } from '@/db/schema/subscriptions'
 import {
-  selectDiscountRedemptionById,
   selectDiscountRedemptions,
   updateDiscountRedemption,
 } from '@/db/tableMethods/discountRedemptionMethods'

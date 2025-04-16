@@ -61,6 +61,29 @@ export const stripeHandlers = [
       },
     })
   }),
+  http.get('https://api.stripe.com/v1/payment_methods/:id', (req) => {
+    const { id } = req.params
+    return HttpResponse.json({
+      id,
+      type: PaymentMethodType.Card,
+      billing_details: {
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        address: {
+          line1: '123 Test St',
+          line2: 'Apt 1',
+          city: 'Test City',
+          state: 'Test State',
+          postal_code: '12345',
+          country: 'US',
+        },
+      },
+      card: {
+        brand: 'visa',
+        last4: '1234',
+      },
+    })
+  }),
 ]
 
 export const stripeServer = setupServer(...stripeHandlers)

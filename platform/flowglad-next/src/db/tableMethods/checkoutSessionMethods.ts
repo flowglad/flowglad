@@ -167,3 +167,39 @@ export const deleteIncompleteCheckoutSessionsForInvoice = async (
       )
     )
 }
+
+export const terminalCheckoutSessionStatuses = [
+  CheckoutSessionStatus.Succeeded,
+  CheckoutSessionStatus.Failed,
+  CheckoutSessionStatus.Expired,
+]
+
+export const checkouSessionIsInTerminalState = (
+  checkoutSession: CheckoutSession.Record
+) => {
+  return terminalCheckoutSessionStatuses.includes(
+    checkoutSession.status
+  )
+}
+
+export const safelyUpdateCheckoutSessionStatus = async (
+  checkoutSession: CheckoutSession.Record,
+  status: CheckoutSessionStatus,
+  transaction: DbTransaction
+) => {
+  if (checkoutSession.status === status) {
+    return checkoutSession
+  }
+  if (checkouSessionIsInTerminalState(checkoutSession)) {
+    throw new Error(
+      `Cannot update checkout session ${checkoutSession.id} status to ${status} because it is in terminal state ${checkoutSession.status}`
+    )
+  }
+  return updateCheckoutSession(
+    {
+      ...checkoutSession,
+      status,
+    },
+    transaction
+  )
+}

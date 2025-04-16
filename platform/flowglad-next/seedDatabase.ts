@@ -29,6 +29,9 @@ import {
   PaymentStatus,
   CurrencyCode,
   CountryCode,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PurchaseStatus,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -47,6 +50,10 @@ import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
 import { Payment } from '@/db/schema/payments'
 import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
 import { insertCatalog } from '@/db/tableMethods/catalogMethods'
+import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { BillingAddress } from '@/db/schema/organizations'
+
 const insertCountries = async () => {
   await db
     .insert(countries)
@@ -138,6 +145,7 @@ export const setupPaymentMethod = async (params: {
   livemode?: boolean
   paymentMethodData?: Record<string, any>
   default?: boolean
+  stripePaymentMethodId?: string
   type?: PaymentMethodType
 }) => {
   return adminTransaction(async ({ transaction }) => {
@@ -162,7 +170,8 @@ export const setupPaymentMethod = async (params: {
         },
         paymentMethodData: params.paymentMethodData ?? {},
         metadata: {},
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        stripePaymentMethodId:
+          params.stripePaymentMethodId ?? `pm_${core.nanoid()}`,
       },
       transaction
     )
@@ -171,6 +180,7 @@ export const setupPaymentMethod = async (params: {
 
 export const setupCustomer = async (params: {
   organizationId: string
+  stripeCustomerId?: string
   livemode?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
@@ -182,6 +192,8 @@ export const setupCustomer = async (params: {
         name: email,
         externalId: core.nanoid(),
         livemode: params.livemode ?? true,
+        stripeCustomerId:
+          params.stripeCustomerId ?? `cus_${core.nanoid()}`,
       },
       transaction
     )
@@ -348,11 +360,13 @@ export const setupPurchase = async ({
   organizationId,
   livemode,
   priceId,
+  status = PurchaseStatus.Open,
 }: {
   customerId: string
   organizationId: string
   livemode?: boolean
   priceId: string
+  status?: PurchaseStatus
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(priceId, transaction)
@@ -368,6 +382,7 @@ export const setupPurchase = async ({
         totalPurchaseValue: price.unitPrice,
         quantity: 1,
         firstInvoiceValue: price.unitPrice,
+        status,
         ...purchaseFields,
       } as Purchase.Insert,
       transaction
@@ -586,5 +601,96 @@ export const setupCatalog = async ({
       },
       transaction
     )
+  })
+}
+
+export const setupCheckoutSession = async ({
+  organizationId,
+  customerId,
+  priceId,
+  status,
+  type,
+  quantity,
+  livemode,
+}: {
+  organizationId: string
+  customerId: string
+  priceId: string
+  status: CheckoutSessionStatus
+  type: CheckoutSessionType
+  quantity: number
+  livemode: boolean
+}) => {
+  const billingAddress: BillingAddress = {
+    address: {
+      line1: '123 Test St',
+      line2: 'Apt 1',
+      city: 'Test City',
+      state: 'Test State',
+      postal_code: '12345',
+      country: CountryCode.US,
+    },
+  }
+  const coreFields = {
+    organizationId,
+    customerId,
+    customerEmail: 'test@test.com',
+    customerName: 'Test Customer',
+    billingAddress,
+    paymentMethodType: PaymentMethodType.Card,
+  }
+  const addPaymentMethodCheckoutSessionInsert: CheckoutSession.AddPaymentMethodInsert =
+    {
+      ...coreFields,
+      priceId,
+      status: CheckoutSessionStatus.Open,
+      type: CheckoutSessionType.AddPaymentMethod,
+      livemode,
+      quantity: 1,
+      targetSubscriptionId: 'test',
+      outputName: null,
+      outputMetadata: {},
+    }
+  const productCheckoutSessionInsert: CheckoutSession.ProductInsert =
+    {
+      ...coreFields,
+      priceId,
+      status: CheckoutSessionStatus.Open,
+      type: CheckoutSessionType.Product,
+      quantity,
+      livemode,
+      targetSubscriptionId: null,
+      outputName: null,
+      invoiceId: null,
+      outputMetadata: {},
+    }
+  const purchaseCheckoutSessionInsert: CheckoutSession.PurchaseInsert =
+    {
+      ...coreFields,
+      priceId,
+      status: CheckoutSessionStatus.Open,
+      type: CheckoutSessionType.Purchase,
+      quantity,
+      livemode,
+      targetSubscriptionId: null,
+      outputName: null,
+      outputMetadata: {},
+      purchaseId: 'test',
+    }
+  let insert: CheckoutSession.Insert
+  if (type === CheckoutSessionType.AddPaymentMethod) {
+    insert = addPaymentMethodCheckoutSessionInsert
+  } else if (type === CheckoutSessionType.Product) {
+    insert = productCheckoutSessionInsert
+  } else if (type === CheckoutSessionType.Purchase) {
+    insert = purchaseCheckoutSessionInsert
+  }
+  return adminTransaction(async ({ transaction }) => {
+    console.log('checkout session insert', insert)
+    const checkoutSession = await insertCheckoutSession(
+      insert,
+      transaction
+    )
+    return checkoutSession
   })
 }

@@ -19,3 +19,7 @@ ALTER POLICY "On update, ensure usage meter belongs to same organization as prod
   )
 ));
 ALTER TABLE "usage_meters" DROP COLUMN IF EXISTS "product_id";--> statement-breakpoint
+
+ALTER TABLE "payments" ADD COLUMN "failure_message" text;--> statement-breakpoint
+ALTER TABLE "payments" ADD COLUMN "failure_code" text;
+ALTER TABLE "checkout_sessions" ADD COLUMN IF NOT EXISTS "target_subscription_id" text;

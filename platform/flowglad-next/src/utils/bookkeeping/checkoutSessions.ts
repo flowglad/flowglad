@@ -1,3 +1,4 @@
+// checkoutSessions.ts
 import {
   FeeCalculationType,
   InvoiceStatus,
@@ -48,7 +49,6 @@ import {
   insertCustomer,
   selectCustomers,
   updateCustomer,
-  upsertCustomerByEmailAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
@@ -259,6 +259,20 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     customer = await selectCustomerById(
       purchase.customerId!,
       transaction
+    )
+  }
+  if (checkoutSession.customerId) {
+    customer = await selectCustomerById(
+      checkoutSession.customerId,
+      transaction
+    )
+  }
+  if (
+    customer &&
+    providedStripeCustomerId !== customer.stripeCustomerId
+  ) {
+    throw Error(
+      `Attempting to process checkout session ${checkoutSession.id} with a different stripe customer ${providedStripeCustomerId} than the checkout session customer ${customer.stripeCustomerId} already linked to the purchase`
     )
   }
   if (providedStripeCustomerId) {

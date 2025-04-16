@@ -15,6 +15,7 @@ import { stripePaymentIntentPaymentFailedTask } from '@/trigger/stripe/payment-i
 import { stripePaymentIntentCanceledTask } from '@/trigger/stripe/payment-intent-canceled'
 import { setupIntentSucceededTask } from '@/trigger/stripe/setup-intent-succeeded'
 import { stripeChargeFailedTask } from '@/trigger/stripe/charge-failed'
+import { idempotencyKeys } from '@trigger.dev/sdk/v3'
 
 export const handleStripePrimaryWebhookEvent = async (
   event: Stripe.Event
@@ -48,7 +49,11 @@ export const handleStripePrimaryWebhookEvent = async (
       break
     }
     case 'setup_intent.succeeded': {
-      await setupIntentSucceededTask.trigger(event)
+      await setupIntentSucceededTask.trigger(event, {
+        idempotencyKey: await idempotencyKeys.create(
+          event.data.object.id
+        ),
+      })
       break
     }
     case 'setup_intent.setup_failed': {

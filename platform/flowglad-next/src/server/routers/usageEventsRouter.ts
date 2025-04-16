@@ -24,6 +24,10 @@ import {
   selectBillingPeriodsForSubscriptions,
   selectCurrentBillingPeriodForSubscription,
 } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectSubscriptionById,
+  selectSubscriptions,
+} from '@/db/tableMethods/subscriptionMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
@@ -65,10 +69,15 @@ export const createUsageEvent = usageProcedure
           }
           return existingUsageEvent
         }
+        const subscription = await selectSubscriptionById(
+          input.usageEvent.subscriptionId,
+          transaction
+        )
         return insertUsageEvent(
           {
             ...input.usageEvent,
             billingPeriodId: billingPeriod.id,
+            customerId: subscription.customerId,
             livemode,
             properties: input.usageEvent.properties ?? {},
             usageDate: input.usageEvent.usageDate
@@ -159,10 +168,24 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
             billingPeriod,
           ])
         )
-
+        const subscriptions = await selectSubscriptions(
+          {
+            id: uniqueSubscriptionIds,
+          },
+          transaction
+        )
+        const subscriptionsMap = new Map(
+          subscriptions.map((subscription) => [
+            subscription.id,
+            subscription,
+          ])
+        )
         const usageInsertsWithBillingPeriodId: UsageEvent.Insert[] =
           usageInsertsWithoutBillingPeriodId.map((usageEvent) => ({
             ...usageEvent,
+            customerId: subscriptionsMap.get(
+              usageEvent.subscriptionId
+            )?.customerId!,
             billingPeriodId: billingPeriodsMap.get(
               usageEvent.subscriptionId
             )?.id!,
