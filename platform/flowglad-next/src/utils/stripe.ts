@@ -549,6 +549,7 @@ export const stripeIntentMetadataSchema = z
     billingRunIntentMetadataSchema,
   ])
   .or(z.undefined())
+  .or(z.null())
 
 export type InvoiceStripeIntentMetadata = z.infer<
   typeof invoiceIntentMetadataSchema
