@@ -66,6 +66,6 @@
     "prettier": "^3.3.1",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "supabase": "^1.172.2",
-    "typescript": "5.6.3"
+    "typescript": "5.8.2"
   }
 }
