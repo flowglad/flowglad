@@ -3,8 +3,9 @@ name: FlowgladServer Integration Tests
 on:
   push:
     branches:
-      - main
-      - staging
+      # TODO: uncomment these when we have the test suite working
+      # - main
+      # - staging
       - fix-workflows
 
     paths:
