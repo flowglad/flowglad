@@ -1,13 +1,16 @@
 name: FlowgladServer Integration Tests
+      
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
 run: |
   echo "todo: implement"
   exit 0
 
-# on:
-#   push:
-#     branches:
-#       - main
-#       - staging
 #     paths:
 #       - 'packages/server/**'
 #       - 'platform/flowglad-next/**'
