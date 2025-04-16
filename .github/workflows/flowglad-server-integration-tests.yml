@@ -25,6 +25,9 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_STACK_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_STACK_PROJECT_ID }}
       NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: ${{ secrets.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY }}
       STACK_SECRET_SERVER_KEY: ${{ secrets.STACK_SECRET_SERVER_KEY }}
@@ -90,6 +93,11 @@ jobs:
         run: |
           cd platform/flowglad-next
           pnpm test:setup
+      
+      - name: Pull flowglad-next environment variables
+        run: |
+          cd platform/flowglad-next
+          pnpm vercel:env-pull --environment=development --token=${{ secrets.VERCEL_TOKEN }}
       
       - name: Start flowglad-next server
         run: |
