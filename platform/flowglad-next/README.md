@@ -2,10 +2,10 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-1. `vercel link` to link the repo to an existing Vercel project
+1. `vercel link` to link the repo to an existing Vercel project.
 2. Ask Agree to get you into the Trigger project.
-3. `pnpm vercel:env-pull` to pull the latest environment variables
-4. `pnpm dev` to start the development server
+3. `pnpm vercel:env-pull` to pull the latest environment variables.
+4. `pnpm dev` to start the development server.
 
 ```bash
 pnpm install
