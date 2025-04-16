@@ -66,7 +66,7 @@ export const OrganizationPaymentNotificationEmail = ({
           />
           <Heading style={h1}>Congratulations!</Heading>
           <Text style={text}>
-            You&apos;ve just received a payment for $
+            You&apos;ve just received a payment for
             {humanReadableAmount}!
           </Text>
           <Section style={details}>

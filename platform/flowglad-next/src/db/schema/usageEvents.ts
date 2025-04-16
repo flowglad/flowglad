@@ -172,6 +172,7 @@ export const usageEventsUpdateSchema = createUpdateSchema(
 const readOnlyColumns = {
   livemode: true,
   billingPeriodId: true,
+  usageMeterId: true,
   customerId: true,
 } as const
 

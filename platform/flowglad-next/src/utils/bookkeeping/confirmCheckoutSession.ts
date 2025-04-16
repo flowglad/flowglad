@@ -38,7 +38,7 @@ export const confirmCheckoutSessionTransaction = async (
     throw new Error(`Purchase session not found: ${input.id}`)
   }
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
-    throw new Error(`Purchase session is not open: ${input.id}`)
+    throw new Error(`Checkout session is not open: ${input.id}`)
   }
   let finalFeeCalculation: FeeCalculation.Record | null =
     await selectLatestFeeCalculation(

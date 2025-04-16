@@ -132,12 +132,6 @@ const AuthenticationElement = ({
       onMouseDown={preventInteraction}
       onKeyDown={preventInteraction}
     >
-      {readonlyCustomerEmail && (
-        <div
-          className="absolute inset-0 z-10 bg-transparent"
-          aria-hidden="true"
-        />
-      )}
       <LinkAuthenticationElement
         options={
           readonlyCustomerEmail

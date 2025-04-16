@@ -28,6 +28,11 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import {
+  selectPriceById,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
+import { PriceType } from '@/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
@@ -51,10 +56,19 @@ export const createUsageEvent = usageProcedure
         if (!billingPeriod) {
           throw new Error('Billing period not found')
         }
+        const price = await selectPriceById(
+          input.usageEvent.priceId,
+          transaction
+        )
+        if (price.type !== PriceType.Usage) {
+          throw new Error(
+            `Price ${price.id} is not a usage price. Please provide a usage price id to create a usage event.`
+          )
+        }
         const [existingUsageEvent] = await selectUsageEvents(
           {
             transactionId: input.usageEvent.transactionId,
-            usageMeterId: input.usageEvent.usageMeterId,
+            usageMeterId: price.usageMeterId,
           },
           transaction
         )
@@ -73,9 +87,11 @@ export const createUsageEvent = usageProcedure
           input.usageEvent.subscriptionId,
           transaction
         )
+
         return insertUsageEvent(
           {
             ...input.usageEvent,
+            usageMeterId: price.usageMeterId,
             billingPeriodId: billingPeriod.id,
             customerId: subscription.customerId,
             livemode,
@@ -180,6 +196,31 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
             subscription,
           ])
         )
+        const uniquePriceIds = [
+          ...new Set(
+            usageInsertsWithoutBillingPeriodId.map(
+              (usageEvent) => usageEvent.priceId
+            )
+          ),
+        ]
+        const prices = await selectPrices(
+          {
+            id: uniquePriceIds,
+          },
+          transaction
+        )
+        const pricesMap = new Map(
+          prices.map((price) => [price.id, price])
+        )
+
+        prices.forEach((price) => {
+          if (price.type !== PriceType.Usage) {
+            throw new Error(
+              `Received a usage event insert with priceId ${price.id}, which is not a usage price. Please ensure all priceIds provided are usage prices.`
+            )
+          }
+        })
+
         const usageInsertsWithBillingPeriodId: UsageEvent.Insert[] =
           usageInsertsWithoutBillingPeriodId.map((usageEvent) => ({
             ...usageEvent,
@@ -189,6 +230,8 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
             billingPeriodId: billingPeriodsMap.get(
               usageEvent.subscriptionId
             )?.id!,
+            usageMeterId: pricesMap.get(usageEvent.priceId)
+              ?.usageMeterId!,
             usageDate: usageEvent.usageDate
               ? new Date(usageEvent.usageDate)
               : undefined,
