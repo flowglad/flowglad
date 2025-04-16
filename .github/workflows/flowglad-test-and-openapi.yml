@@ -1,4 +1,4 @@
-name: Test and OpenAPI Documentation
+name: Flowglad Next Test and OpenAPI Documentation
 
 on:
   push:
