@@ -17,6 +17,7 @@ jobs:
       STACK_SECRET_SERVER_KEY: ${{ secrets.STACK_SECRET_SERVER_KEY }}
       STRIPE_TEST_MODE_SECRET_KEY: ${{ secrets.STRIPE_TEST_MODE_SECRET_KEY }}
       TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
+      UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
     
     steps:
       - name: Checkout repository
