@@ -73,7 +73,8 @@ const mockSucceededSetupIntent = ({
 })
 
 const mockProcessingSetupIntent = (
-  checkoutSessionId: string
+  checkoutSessionId: string,
+  stripeCustomerId: string
 ): CoreSripeSetupIntent => ({
   status: 'processing',
   id: `seti_${core.nanoid()}`,
@@ -86,7 +87,8 @@ const mockProcessingSetupIntent = (
 })
 
 const mockCanceledSetupIntent = (
-  checkoutSessionId: string
+  checkoutSessionId: string,
+  stripeCustomerId: string
 ): CoreSripeSetupIntent => ({
   status: 'canceled',
   id: `seti_${core.nanoid()}`,
@@ -99,7 +101,8 @@ const mockCanceledSetupIntent = (
 })
 
 const mockRequiresPaymentMethodSetupIntent = (
-  checkoutSessionId: string
+  checkoutSessionId: string,
+  stripeCustomerId: string
 ): CoreSripeSetupIntent => ({
   status: 'requires_payment_method',
   id: `seti_${core.nanoid()}`,
@@ -286,6 +289,10 @@ describe('Process setup intent', async () => {
     it('updates checkout session status based on setup intent status', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
           return processCheckoutSessionSetupIntent(
             succeededSetupIntent,
             transaction
@@ -329,7 +336,7 @@ describe('Process setup intent', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
-            checkoutSession,
+            checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
           return processCheckoutSessionSetupIntent(
@@ -405,7 +412,10 @@ describe('Process setup intent', async () => {
       await expect(
         adminTransaction(async ({ transaction }) => {
           return processSetupIntentSucceeded(
-            mockProcessingSetupIntent(checkoutSession.id),
+            mockProcessingSetupIntent(
+              checkoutSession.id,
+              customer.stripeCustomerId!
+            ),
             transaction
           )
         })
@@ -414,7 +424,10 @@ describe('Process setup intent', async () => {
 
     it('throws an error when metadata type is not CheckoutSession', async () => {
       const invalidSetupIntent = {
-        ...mockSucceededSetupIntent(checkoutSession.id),
+        ...mockSucceededSetupIntent({
+          checkoutSessionId: checkoutSession.id,
+          stripeCustomerId: customer.stripeCustomerId!,
+        }),
         metadata: {
           type: IntentMetadataType.Invoice,
           invoiceId: `inv_${core.nanoid()}`,
@@ -434,6 +447,10 @@ describe('Process setup intent', async () => {
     it('updates customer with Stripe customer ID when it changes', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
           return processSetupIntentSucceeded(
             succeededSetupIntent,
             transaction
@@ -520,7 +537,7 @@ describe('Process setup intent', async () => {
       const correctSubscription = await adminTransaction(
         async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
-            checkoutSession,
+            checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
           const { billingRun } = await processSetupIntentSucceeded(
@@ -552,7 +569,7 @@ describe('Process setup intent', async () => {
         const result = await adminTransaction(
           async ({ transaction }) => {
             await createFeeCalculationForCheckoutSession(
-              checkoutSession,
+              checkoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
             return processSetupIntentSucceeded(
@@ -592,7 +609,7 @@ describe('Process setup intent', async () => {
         const result = await adminTransaction(
           async ({ transaction }) => {
             await createFeeCalculationForCheckoutSession(
-              checkoutSession,
+              checkoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
             const result = await processSetupIntentSucceeded(
@@ -635,7 +652,7 @@ describe('Process setup intent', async () => {
         const { subscription: secondSubscription } =
           await adminTransaction(async ({ transaction }) => {
             await createFeeCalculationForCheckoutSession(
-              secondCheckoutSession,
+              secondCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
             const result = await processSetupIntentSucceeded(
