@@ -81,6 +81,11 @@ jobs:
           docker-compose -f docker-compose.test.yml up --build -d
           docker-compose -f docker-compose.test.yml ps
       
+      - name: Install Flowglad Next packages
+        run: |
+          cd platform/flowglad-next
+          pnpm install-packages
+      
       - name: Run test setup
         run: |
           cd platform/flowglad-next
@@ -89,7 +94,6 @@ jobs:
       - name: Start flowglad-next server
         run: |
           cd platform/flowglad-next
-          pnpm install-packages
           pnpm dev &
           echo "Waiting for server to start..."
           sleep 30
