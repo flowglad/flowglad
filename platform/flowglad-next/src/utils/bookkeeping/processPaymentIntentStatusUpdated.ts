@@ -242,7 +242,10 @@ export const upsertPaymentForStripeCharge = async (
  */
 export const updatePaymentToReflectLatestChargeStatus = async (
   payment: Payment.Record,
-  charge: Stripe.Charge,
+  charge: Pick<
+    Stripe.Charge,
+    'status' | 'failure_code' | 'failure_message'
+  >,
   transaction: DbTransaction
 ) => {
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
@@ -254,7 +257,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
       transaction
     )
     if (newPaymentStatus === PaymentStatus.Failed) {
-      await updatePayment(
+      updatedPayment = await updatePayment(
         {
           id: payment.id,
           failureCode: charge.failure_code,
