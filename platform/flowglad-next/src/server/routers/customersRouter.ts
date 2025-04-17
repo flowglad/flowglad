@@ -52,6 +52,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import { selectCatalogForCustomer } from '@/db/tableMethods/catalogMethods'
+import { InvoiceStatus } from '@/types'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -268,9 +269,19 @@ export const getCustomerBilling = protectedProcedure
           customer,
           transaction
         )
+        const customerFacingInvoiceStatuses: InvoiceStatus[] = [
+          InvoiceStatus.AwaitingPaymentConfirmation,
+          InvoiceStatus.Paid,
+          InvoiceStatus.PartiallyRefunded,
+          InvoiceStatus.Open,
+          InvoiceStatus.FullyRefunded,
+        ]
         const invoices =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-            { customerId: customer.id },
+            {
+              customerId: customer.id,
+              status: customerFacingInvoiceStatuses,
+            },
             transaction
           )
         const paymentMethods = await selectPaymentMethods(

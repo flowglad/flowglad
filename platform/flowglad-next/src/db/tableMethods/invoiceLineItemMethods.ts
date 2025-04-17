@@ -103,7 +103,7 @@ const transformInvoiceLineItemAndInvoiceTuplesToInvoicesWithLineItems =
   }
 
 export const selectInvoiceLineItemsAndInvoicesByInvoiceWhere = async (
-  whereConditions: Partial<Invoice.Record>,
+  whereConditions: Invoice.Where,
   transaction: DbTransaction
 ) => {
   const result = await transaction
