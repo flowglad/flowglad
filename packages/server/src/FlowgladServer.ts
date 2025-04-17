@@ -228,8 +228,8 @@ export class FlowgladServer {
   ): Promise<FlowgladNode.Subscriptions.SubscriptionCancelResponse> => {
     const { subscription } =
       await this.flowgladNode.subscriptions.retrieve(params.id)
-    if (subscription.status !== 'active') {
-      throw new Error('Subscription is not active')
+    if (subscription.status === 'canceled') {
+      throw new Error('Subscription is already canceled')
     }
     const { customer } = await this.getCustomer()
     if (subscription.customerId !== customer.id) {

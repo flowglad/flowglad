@@ -57,7 +57,7 @@ export const PriceLabel = ({
   }
 
   return (
-    <div className={cn(className)} id="lol2">
+    <div className={cn(className)}>
       {humanReadableCurrencyAmount(price.currency, price.unitPrice)}
     </div>
   )

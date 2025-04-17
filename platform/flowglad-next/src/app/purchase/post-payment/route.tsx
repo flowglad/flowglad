@@ -292,7 +292,7 @@ export const GET = async (request: NextRequest) => {
     let url = result.url
     if (isNil(url) && result.checkoutSession) {
       url = new URL(
-        `/checkout/success/${result.checkoutSession.id}`,
+        `/checkout/${result.checkoutSession.id}/success`,
         request.url
       )
     }
