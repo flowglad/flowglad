@@ -15,9 +15,19 @@ import {
   setupCheckoutSession,
 } from '../../../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
-import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
+import {
+  deleteExpiredCheckoutSessionsAndFeeCalculations,
+  selectCheckoutSessionById,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  selectCustomerById,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
+import {
+  selectFeeCalculations,
+  selectLatestFeeCalculation,
+} from '@/db/tableMethods/feeCalculationMethods'
 import {
   createStripeCustomer,
   getSetupIntent,
@@ -25,8 +35,16 @@ import {
   updateSetupIntent,
 } from '@/utils/stripe'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
+import {
+  FeeCalculation,
+  feeCalculations,
+} from '@/db/schema/feeCalculations'
 import { Purchase } from '@/db/schema/purchases'
+import {
+  calculateTotalDueAmount,
+  calculateTotalFeeAmount,
+  finalizeFeeCalculation,
+} from '@/utils/bookkeeping/fees'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import Stripe from 'stripe'
@@ -644,6 +662,46 @@ describe('confirmCheckoutSessionTransaction', () => {
         {
           customer: customer.stripeCustomerId,
           amount: price.unitPrice,
+          application_fee_amount: 59,
+        },
+        updatedCheckoutSession.livemode
+      )
+    })
+
+    it('should update payment intent with amount only (no application fee) when total amount due is zero', async () => {
+      // Update checkout session to have stripePaymentIntentId
+      const updatedCheckoutSession = await adminTransaction(
+        async ({ transaction }) => {
+          return await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              stripePaymentIntentId: `pi_${core.nanoid()}`,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        }
+      )
+
+      // Mock calculateTotalFeeAmount and calculateTotalDueAmount
+      const mockFinalFeeAmount = 100
+      const mockTotalAmountDue = 0
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return confirmCheckoutSessionTransaction(
+            { id: updatedCheckoutSession.id },
+            transaction
+          )
+        }
+      )
+
+      expect(result.customer).toBeDefined()
+      // Verify that updatePaymentIntent was called with the correct parameters
+      expect(updatePaymentIntent).toHaveBeenCalledWith(
+        updatedCheckoutSession.stripePaymentIntentId,
+        {
+          customer: customer.stripeCustomerId,
+          amount: 1000,
           application_fee_amount: 59,
         },
         updatedCheckoutSession.livemode
