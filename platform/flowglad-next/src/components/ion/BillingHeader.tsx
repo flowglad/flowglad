@@ -14,7 +14,7 @@ import { sentenceCase } from 'change-case'
 import core from '@/utils/core'
 import Image from 'next/image'
 import CheckoutMarkdownView from './CheckoutMarkdownView'
-
+import { Price } from '@/db/schema/prices'
 export interface BillingHeaderProps
   extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -48,6 +48,19 @@ const subscriptionSubtitle = (
   return `Then ${humanReadablePrice} ${subtitle}`
 }
 
+const pricingSubtitleForSubscriptionFlow = (
+  price: Price.ClientSubscribablePriceRecord,
+  subscriptionDetails: SubscriptionCheckoutDetails
+) => {
+  if (price.type === PriceType.Usage) {
+    return `Pay as you go, billed ${intervalLabel(subscriptionDetails)}`
+  }
+
+  return `${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+    subscriptionDetails.currency,
+    subscriptionDetails.pricePerBillingCycle
+  )} billed ${intervalLabel(subscriptionDetails)}`
+}
 const BillingHeader = React.forwardRef<
   HTMLDivElement,
   BillingHeaderProps
@@ -72,10 +85,10 @@ const BillingHeader = React.forwardRef<
         : purchase.firstInvoiceValue
     )}`
   } else if (flowType === CheckoutFlowType.Subscription) {
-    mainTitleSuffix = `${stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      price.currency,
-      subscriptionDetails.pricePerBillingCycle
-    )} billed ${intervalLabel(subscriptionDetails)}`
+    mainTitleSuffix = pricingSubtitleForSubscriptionFlow(
+      price,
+      subscriptionDetails
+    )
   }
   let subTitle: string | null = null
   if (flowType === CheckoutFlowType.Subscription) {

@@ -190,25 +190,29 @@ const TotalBillingDetails = React.forwardRef<
         }
   const { discountAmount, taxAmount, baseAmount, totalDueAmount } =
     calculateTotalBillingDetails(totalBillingDetailsParams)
-
+  const hideTotalLabels =
+    flowType === CheckoutFlowType.Subscription &&
+    checkoutPageContext.price.type === PriceType.Usage
   return (
     <div
       ref={ref}
       className={clsx('relative flex flex-col pb-4 gap-2', className)}
       {...props}
     >
-      <div className="w-full relative flex justify-between border-opacity-10 border-white py-4 gap-4 text-sm leading-tight text-white">
-        <div>Subtotal</div>
-        <div
-          className="font-bold"
-          data-testid="billing-info-subtotal-amount"
-        >
-          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-            currency,
-            baseAmount
-          )}
+      {!hideTotalLabels && (
+        <div className="w-full relative flex justify-between border-opacity-10 border-white py-4 gap-4 text-sm leading-tight text-white">
+          <div>Subtotal</div>
+          <div
+            className="font-bold"
+            data-testid="billing-info-subtotal-amount"
+          >
+            {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+              currency,
+              baseAmount
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {discount ? (
         <PurchasSessionDependentLine
           label="Discount"
@@ -239,29 +243,33 @@ const TotalBillingDetails = React.forwardRef<
         </div>
       )}
 
-      <div className="w-full relative flex justify-between items-end border-opacity-10 border-t border-white pt-8 text-white">
-        <div
-          className="text-sm font-bold leading-tight pt-[1px] pb-0.5"
-          data-testid="billing-info-total-due-label"
-        >
-          {`Total Due${
-            flowType === CheckoutFlowType.Subscription ? ' Today' : ''
-          }`}
-        </div>
-        <FallbackSkeleton showSkeleton={editCheckoutSessionLoading}>
+      {!hideTotalLabels && (
+        <div className="w-full relative flex justify-between items-end border-opacity-10 border-t border-white pt-8 text-white">
           <div
-            className="text-base leading-5 font-bold"
-            data-testid="billing-info-total-due-amount"
+            className="text-sm font-bold leading-tight pt-[1px] pb-0.5"
+            data-testid="billing-info-total-due-label"
           >
-            {isNil(totalDueAmount)
-              ? ''
-              : stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                  currency,
-                  totalDueAmount
-                )}
+            {`Total Due${
+              flowType === CheckoutFlowType.Subscription
+                ? ' Today'
+                : ''
+            }`}
           </div>
-        </FallbackSkeleton>
-      </div>
+          <FallbackSkeleton showSkeleton={editCheckoutSessionLoading}>
+            <div
+              className="text-base leading-5 font-bold"
+              data-testid="billing-info-total-due-amount"
+            >
+              {isNil(totalDueAmount)
+                ? ''
+                : stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                    currency,
+                    totalDueAmount
+                  )}
+            </div>
+          </FallbackSkeleton>
+        </div>
+      )}
     </div>
   )
 })

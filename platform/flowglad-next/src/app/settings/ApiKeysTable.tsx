@@ -128,7 +128,14 @@ const ApiKeysTable = ({
           header: () => <div />,
           id: 'actions',
           cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell apiKey={cellData.apiKey} />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreMenuCell apiKey={cellData.apiKey} />
+              </div>
+            </div>
           ),
         },
       ] as DisplayColumnDef<{

@@ -216,14 +216,16 @@ const InvoicesTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div
-              className="w-fit"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreMenuCell
-                invoice={cellData.invoice}
-                invoiceLineItems={[]} // We'll need to fetch these separately if needed
-              />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreMenuCell
+                  invoice={cellData.invoice}
+                  invoiceLineItems={[]} // We'll need to fetch these separately if needed
+                />
+              </div>
             </div>
           ),
         },
