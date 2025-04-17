@@ -3,3 +3,4 @@ CREATE POLICY "On update, only allow usage events for subscriptions with matchin
 CREATE POLICY "On insert, only allow usage events for billing periods with matching subscription" ON "usage_events" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ("billing_period_id" in (select "id" from "billing_periods" where "billing_periods"."subscription_id" = "subscription_id"));--> statement-breakpoint
 CREATE POLICY "On update, only allow usage events for billing periods with matching subscription" ON "usage_events" AS PERMISSIVE FOR UPDATE TO "authenticated" WITH CHECK ("billing_period_id" in (select "id" from "billing_periods" where "billing_periods"."subscription_id" = "subscription_id"));
 ALTER TABLE "checkout_sessions" ADD COLUMN IF NOT EXISTS "target_subscription_id" text;
+ALTER TABLE "discounts" DROP COLUMN IF EXISTS "externalId";
