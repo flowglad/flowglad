@@ -1,5 +1,15 @@
 # @flowglad/nextjs
 
+## 0.10.6
+
+### Patch Changes
+
+- Current Subscription Card Usage variant
+- Updated dependencies
+  - @flowglad/react@0.10.6
+  - @flowglad/server@0.10.6
+  - @flowglad/shared@0.10.6
+
 ## 0.10.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.10.6
+
+### Patch Changes
+
+- Current Subscription Card Usage variant
+
 ## 0.10.5
 
 ### Patch Changes
