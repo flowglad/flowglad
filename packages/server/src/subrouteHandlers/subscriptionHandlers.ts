@@ -1,6 +1,7 @@
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
 import { SubRouteHandler, SubRouteHandlerResultData } from './types'
 import { FlowgladServer } from '../FlowgladServer'
+import Flowglad from '@flowglad/node'
 
 export const cancelSubscription: SubRouteHandler<
   FlowgladActionKey.CancelSubscription
@@ -23,16 +24,25 @@ export const cancelSubscription: SubRouteHandler<
       error,
     }
   }
-  console.log(
-    '====subscriptionHandlers.cancelSubscription params',
-    params
-  )
-  const subscription = await flowgladServer.cancelSubscription(
-    params.data
-  )
-
-  return {
-    data: subscription,
-    status: 200,
+  let subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
+  try {
+    subscription = await flowgladServer.cancelSubscription(
+      params.data
+    )
+    return {
+      data: subscription,
+      status: 200,
+    }
+  } catch (error) {
+    return {
+      data: {},
+      status: 500,
+      error: {
+        code: 'subscription_cancel_failed',
+        json: {
+          message: (error as Error).message,
+        },
+      },
+    }
   }
 }
