@@ -154,10 +154,17 @@ const PaymentsTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell
-              payment={cellData.payment}
-              customer={cellData.customer}
-            />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreMenuCell
+                  payment={cellData.payment}
+                  customer={cellData.customer}
+                />
+              </div>
+            </div>
           ),
         },
       ] as DisplayColumnDef<Payment.TableRowData>[],

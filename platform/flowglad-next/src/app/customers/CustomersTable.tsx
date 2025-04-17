@@ -176,14 +176,16 @@ const CustomersTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div
-              className="flex justify-end w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <CustomerMoreMenuCell
-                customer={cellData.customer}
-                prices={[]}
-              />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <CustomerMoreMenuCell
+                  customer={cellData.customer}
+                  prices={[]}
+                />
+              </div>
             </div>
           ),
         },

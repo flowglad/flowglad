@@ -242,14 +242,21 @@ const PaginatedPricesTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell
-              price={cellData.price}
-              otherPrices={
-                data?.data
-                  .filter((p) => p.price.id !== cellData.price.id)
-                  .map((p) => p.price) || []
-              }
-            />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreMenuCell
+                  price={cellData.price}
+                  otherPrices={
+                    data?.data
+                      .filter((p) => p.price.id !== cellData.price.id)
+                      .map((p) => p.price) || []
+                  }
+                />
+              </div>
+            </div>
           ),
         },
       ] as ColumnDef<{
