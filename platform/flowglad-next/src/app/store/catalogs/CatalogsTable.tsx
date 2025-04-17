@@ -100,8 +100,13 @@ const CatalogsTable = ({
           id: '_',
           width: '10%',
           cell: ({ row: { original: cellData } }) => (
-            <div className="flex justify-end">
-              <MoreMenuCell catalog={cellData.catalog} />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreMenuCell catalog={cellData.catalog} />
+              </div>
             </div>
           ),
         },

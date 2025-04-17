@@ -179,11 +179,13 @@ const PurchasesTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div
-              className="w-fit"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreMenuCell purchase={cellData.purchase} />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreMenuCell purchase={cellData.purchase} />
+              </div>
             </div>
           ),
         },

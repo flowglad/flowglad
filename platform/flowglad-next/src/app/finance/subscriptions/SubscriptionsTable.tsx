@@ -159,10 +159,15 @@ const SubscriptionsTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="flex justify-end w-full">
-              <SubscriptionMoreMenuCell
-                subscription={cellData.subscription}
-              />
+            <div className="w-full flex justify-end">
+              <div
+                className="w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SubscriptionMoreMenuCell
+                  subscription={cellData.subscription}
+                />
+              </div>
             </div>
           ),
         },
