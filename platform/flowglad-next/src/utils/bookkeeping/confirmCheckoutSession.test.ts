@@ -49,6 +49,8 @@ import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import Stripe from 'stripe'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
+import { Organization } from '@/db/schema/organizations'
+import { Price } from '@/db/schema/prices'
 
 type StripeCustomer = Stripe.Customer
 type SetupIntent = Stripe.SetupIntent
@@ -63,8 +65,8 @@ vi.mock('@/utils/stripe', () => ({
 
 describe('confirmCheckoutSessionTransaction', () => {
   // Common variables for all tests
-  let organization: any
-  let price: any
+  let organization: Organization.Record
+  let price: Price.Record
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
   let paymentMethod: PaymentMethod.Record
@@ -659,7 +661,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         updatedCheckoutSession.stripePaymentIntentId,
         {
           customer: customer.stripeCustomerId,
-          amount: 1000,
+          amount: price.unitPrice,
           application_fee_amount: 59,
         },
         updatedCheckoutSession.livemode
