@@ -172,6 +172,8 @@ const paymentFormButtonLabel = ({
     return 'Add Payment Method'
   } else if (subscriptionDetails?.trialPeriodDays) {
     return `Start ${subscriptionDetails.trialPeriodDays} day trial`
+  } else if (subscriptionDetails?.type === PriceType.Usage) {
+    return `Start plan`
   } else if (feeCalculation && !core.isNil(totalDueAmount)) {
     if (flowType === CheckoutFlowType.SinglePayment) {
       return `Pay ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -179,9 +181,6 @@ const paymentFormButtonLabel = ({
         totalDueAmount
       )}`
     } else if (flowType === CheckoutFlowType.Subscription) {
-      if (subscriptionDetails?.type === PriceType.Usage) {
-        return `Start plan`
-      }
       return `Start ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
         currency,
         totalDueAmount
