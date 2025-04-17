@@ -30,6 +30,7 @@ import {
 } from '@/contexts/checkoutPageContext'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
+import ErrorLabel from './ErrorLabel'
 
 export const PaymentLoadingForm = ({
   disableAnimation,
@@ -275,6 +276,7 @@ const PaymentForm = () => {
         const { error: submitError } = await elements.submit()
         if (submitError) {
           setErrorMessage(submitError.message)
+          setIsSubmitting(false)
           return
         }
 
@@ -435,6 +437,7 @@ const PaymentForm = () => {
             >
               {buttonLabel}
             </Button>
+            {errorMessage && <ErrorLabel error={errorMessage} />}
             {!product?.livemode && (
               <div className="p-2 bg-orange-600 justify-center items-center text-center w-full flex mt-4 rounded-md">
                 <div className="text-white text-sm">
@@ -447,7 +450,6 @@ const PaymentForm = () => {
           </div>
         </>
       )}
-      {/* {errorMessage && <ErrorLabel message={errorMessage} />} */}
     </form>
   )
 }
