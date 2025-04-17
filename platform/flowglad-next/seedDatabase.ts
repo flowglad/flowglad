@@ -742,7 +742,7 @@ export const setupDiscount = async ({
         name,
         amount,
         livemode,
-        amountType: DiscountAmountType.Percent,
+        amountType,
         duration: DiscountDuration.Forever,
         numberOfPayments: null,
         active: true,

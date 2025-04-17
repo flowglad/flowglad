@@ -15,19 +15,9 @@ import {
   setupCheckoutSession,
 } from '../../../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  deleteExpiredCheckoutSessionsAndFeeCalculations,
-  selectCheckoutSessionById,
-  updateCheckoutSession,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
-  selectCustomerById,
-  updateCustomer,
-} from '@/db/tableMethods/customerMethods'
-import {
-  selectFeeCalculations,
-  selectLatestFeeCalculation,
-} from '@/db/tableMethods/feeCalculationMethods'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import {
   createStripeCustomer,
   getSetupIntent,
@@ -35,20 +25,14 @@ import {
   updateSetupIntent,
 } from '@/utils/stripe'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import {
-  FeeCalculation,
-  feeCalculations,
-} from '@/db/schema/feeCalculations'
+import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Purchase } from '@/db/schema/purchases'
-import {
-  calculateTotalDueAmount,
-  calculateTotalFeeAmount,
-  finalizeFeeCalculation,
-} from '@/utils/bookkeeping/fees'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import Stripe from 'stripe'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
+import { Organization } from '@/db/schema/organizations'
+import { Price } from '@/db/schema/prices'
 
 type StripeCustomer = Stripe.Customer
 type SetupIntent = Stripe.SetupIntent
@@ -63,8 +47,8 @@ vi.mock('@/utils/stripe', () => ({
 
 describe('confirmCheckoutSessionTransaction', () => {
   // Common variables for all tests
-  let organization: any
-  let price: any
+  let organization: Organization.Record
+  let price: Price.Record
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
   let paymentMethod: PaymentMethod.Record
@@ -659,47 +643,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         updatedCheckoutSession.stripePaymentIntentId,
         {
           customer: customer.stripeCustomerId,
-          amount: 1000,
-          application_fee_amount: 59,
-        },
-        updatedCheckoutSession.livemode
-      )
-    })
-
-    it('should update payment intent with amount only (no application fee) when total amount due is zero', async () => {
-      // Update checkout session to have stripePaymentIntentId
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripePaymentIntentId: `pi_${core.nanoid()}`,
-            } as CheckoutSession.Update,
-            transaction
-          )
-        }
-      )
-
-      // Mock calculateTotalFeeAmount and calculateTotalDueAmount
-      const mockFinalFeeAmount = 100
-      const mockTotalAmountDue = 0
-
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return confirmCheckoutSessionTransaction(
-            { id: updatedCheckoutSession.id },
-            transaction
-          )
-        }
-      )
-
-      expect(result.customer).toBeDefined()
-      // Verify that updatePaymentIntent was called with the correct parameters
-      expect(updatePaymentIntent).toHaveBeenCalledWith(
-        updatedCheckoutSession.stripePaymentIntentId,
-        {
-          customer: customer.stripeCustomerId,
-          amount: 1000,
+          amount: price.unitPrice,
           application_fee_amount: 59,
         },
         updatedCheckoutSession.livemode

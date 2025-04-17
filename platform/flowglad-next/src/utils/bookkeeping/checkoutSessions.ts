@@ -39,7 +39,10 @@ import {
   createCheckoutSessionFeeCalculation,
 } from './fees'
 import { calculateTotalDueAmount } from './fees'
-import { upsertDiscountRedemptionForPurchaseAndDiscount } from '@/db/tableMethods/discountRedemptionMethods'
+import {
+  selectDiscountRedemptions,
+  upsertDiscountRedemptionForPurchaseAndDiscount,
+} from '@/db/tableMethods/discountRedemptionMethods'
 import {
   selectLatestFeeCalculation,
   updateFeeCalculation,
@@ -271,6 +274,8 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     customer &&
     providedStripeCustomerId !== customer.stripeCustomerId
   ) {
+    customer
+
     throw Error(
       `Attempting to process checkout session ${checkoutSession.id} with a different stripe customer ${providedStripeCustomerId} than the checkout session customer ${customer.stripeCustomerId} already linked to the purchase`
     )
@@ -365,6 +370,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       purchaseId: purchase.id,
       type: FeeCalculationType.CheckoutSessionPayment,
       priceId: price.id,
+      discountId: checkoutSession.discountId,
       billingPeriodId: null,
     },
     transaction
@@ -374,11 +380,22 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       feeCalculation.discountId,
       transaction
     )
-    await upsertDiscountRedemptionForPurchaseAndDiscount(
-      purchase,
-      discount,
-      transaction
-    )
+    discountRedemption =
+      await upsertDiscountRedemptionForPurchaseAndDiscount(
+        purchase,
+        discount,
+        transaction
+      )
+    if (!discountRedemption) {
+      const redemptions = await selectDiscountRedemptions(
+        {
+          purchaseId: purchase.id,
+          discountId: feeCalculation.discountId,
+        },
+        transaction
+      )
+      discountRedemption = redemptions[0]
+    }
   }
   return {
     purchase,
@@ -390,7 +407,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
 }
 
 export const checkoutSessionStatusFromStripeCharge = (
-  charge: Stripe.Charge
+  charge: Pick<Stripe.Charge, 'status'>
 ): CheckoutSessionStatus => {
   let checkoutSessionStatus = CheckoutSessionStatus.Succeeded
   if (charge.status === 'pending') {
@@ -424,7 +441,7 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
     charge,
   }: {
     checkoutSession: CheckoutSession.InvoiceRecord
-    charge: Stripe.Charge
+    charge: Pick<Stripe.Charge, 'status' | 'amount'>
   },
   transaction: DbTransaction
 ) => {
@@ -508,13 +525,28 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
   }
 }
 
+/**
+ *
+ * This method is used to process a Stripe charge for a checkout session.
+ * It handles the bookkeeping for both invoice and product-based checkout sessions.
+ * It will create the invoice for the checkout, but it will not modify the status of the invoice.
+ *
+ * That happens in methods that consume this one, or downstream in the codepath.
+ * @param checkoutSessionId - The ID of the checkout session to process
+ * @param charge - The Stripe charge object containing payment details
+ * @param transaction - Database transaction to use for all DB operations
+ * @returns Updated purchase, invoice, and checkout session records
+ */
 export const processStripeChargeForCheckoutSession = async (
   {
     checkoutSessionId,
     charge,
   }: {
     checkoutSessionId: string
-    charge: Stripe.Charge
+    charge: Pick<
+      Stripe.Charge,
+      'status' | 'amount' | 'customer' | 'billing_details'
+    >
   },
   transaction: DbTransaction
 ): Promise<{
