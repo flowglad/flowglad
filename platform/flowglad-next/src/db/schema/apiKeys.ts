@@ -38,12 +38,15 @@ export const apiKeys = pgTable(
     name: text('name').notNull(),
     token: text('token').notNull(),
     active: boolean('active').notNull().default(true),
-    unkeyId: text('unkey_id').notNull(),
+    unkeyId: text('unkey_id'),
     type: pgEnumColumn({
       enumName: 'apiKeyType',
       columnName: 'type',
       enumBase: FlowgladApiKeyType,
     }).notNull(),
+    expiresAt: timestamp('expires_at', {
+      withTimezone: true,
+    }),
   },
   (table) => {
     return [

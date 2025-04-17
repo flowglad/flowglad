@@ -263,9 +263,16 @@ export const selectByIds = <TTable extends PgTableWithId>(
 
 export const activeColumn = () =>
   boolean('active').notNull().default(true)
+
 export const descriptionColumn = () => text('description')
+
 export const createdAtColumn = () =>
-  timestamp('created_at').notNull().defaultNow()
+  timestamp('created_at', {
+    withTimezone: true,
+  })
+    .notNull()
+    .defaultNow()
+
 export const sequenceNumberColumn = () => integer('sequence_number')
 
 export const tableBase = (idPrefix?: string) => ({
@@ -277,7 +284,9 @@ export const tableBase = (idPrefix?: string) => ({
     )
     .notNull(),
   createdAt: createdAtColumn(),
-  updatedAt: timestamp('updated_at')
+  updatedAt: timestamp('updated_at', {
+    withTimezone: true,
+  })
     .defaultNow()
     .$onUpdate(() => new Date()),
   livemode: boolean('livemode').notNull(),
