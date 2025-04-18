@@ -261,7 +261,7 @@ const PaymentForm = () => {
           await confirmCheckoutSession.mutateAsync({
             id: checkoutSession.id,
           })
-        } catch (error: Error) {
+        } catch (error: unknown) {
           setIsSubmitting(false)
           setErrorMessage((error as Error).message)
         }
