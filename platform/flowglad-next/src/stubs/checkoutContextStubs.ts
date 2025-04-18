@@ -62,6 +62,12 @@ const functionStubs = {
   attemptDiscountCode: async () => ({ isValid: true }),
   clearDiscountCode,
   feeCalculation: null,
+  editCheckoutSessionPaymentMethodType: async () =>
+    Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
+  editCheckoutSessionCustomerEmail: async () =>
+    Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
+  editCheckoutSessionBillingAddress: async () =>
+    Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
 }
 
 export const subscriptionCheckoutPageContextValuesWithTrial: CheckoutPageContextValues =

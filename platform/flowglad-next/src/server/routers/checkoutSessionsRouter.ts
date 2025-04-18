@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { protectedProcedure, router } from '@/server/trpc'
+import {
+  protectedProcedure,
+  publicProcedure,
+  router,
+} from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
 import {
   insertCheckoutSession,
@@ -7,9 +11,16 @@ import {
   selectCheckoutSessions,
   selectCheckoutSessionsPaginated,
   updateCheckoutSession,
+  updateCheckoutSessionBillingAddress,
+  updateCheckoutSessionCustomerEmail,
+  updateCheckoutSessionPaymentMethodType,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PaymentMethodType,
+} from '@/types'
 import { PriceType } from '@/types'
 import { TRPCError } from '@trpc/server'
 import {
@@ -27,7 +38,10 @@ import {
   createSetupIntentForCheckoutSession,
 } from '@/utils/stripe'
 import { Customer } from '@/db/schema/customers'
-import { Organization } from '@/db/schema/organizations'
+import {
+  billingAddressSchema,
+  Organization,
+} from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -377,10 +391,66 @@ export const getIntentStatusProcedure = protectedProcedure
     })
   })
 
+/***
+ * We need to isolate payment method type updates from other checkout session updates
+ * to prevent race conditions caused by Link.
+ */
+export const setPaymentMethodTypeProcedure = publicProcedure
+  .input(
+    z.object({
+      id: z.string(),
+      paymentMethodType: z.nativeEnum(PaymentMethodType),
+    })
+  )
+  .mutation(async ({ input, ctx }) => {
+    return adminTransaction(async ({ transaction }) => {
+      const checkoutSession =
+        await updateCheckoutSessionPaymentMethodType(
+          {
+            id: input.id,
+            paymentMethodType: input.paymentMethodType,
+          },
+          transaction
+        )
+      return {
+        checkoutSession,
+      }
+    })
+  })
+
+export const setCustomerEmailProcedure = publicProcedure
+  .input(z.object({ id: z.string(), customerEmail: z.string() }))
+  .mutation(async ({ input, ctx }) => {
+    return adminTransaction(async ({ transaction }) => {
+      const checkoutSession =
+        await updateCheckoutSessionCustomerEmail(input, transaction)
+      return {
+        checkoutSession,
+      }
+    })
+  })
+
+export const setBillingAddressProcedure = publicProcedure
+  .input(
+    z.object({ id: z.string(), billingAddress: billingAddressSchema })
+  )
+  .mutation(async ({ input, ctx }) => {
+    return adminTransaction(async ({ transaction }) => {
+      const checkoutSession =
+        await updateCheckoutSessionBillingAddress(input, transaction)
+      return {
+        checkoutSession,
+      }
+    })
+  })
+
 export const checkoutSessionsRouter = router({
   create: createCheckoutSession,
   edit: editCheckoutSession,
   get: getCheckoutSessionProcedure,
   list: listCheckoutSessionsProcedure,
   getIntentStatus: getIntentStatusProcedure,
+  setPaymentMethodType: setPaymentMethodTypeProcedure,
+  setCustomerEmail: setCustomerEmailProcedure,
+  setBillingAddress: setBillingAddressProcedure,
 })
