@@ -40,7 +40,7 @@ import {
   createSelectSchema,
   createInsertSchema as zodCreateInsertSchema,
 } from 'drizzle-zod'
-import { snakeCase } from 'change-case'
+import { noCase, sentenceCase, snakeCase } from 'change-case'
 
 type ZodTableUnionOrType<
   T extends
@@ -63,6 +63,7 @@ export interface ORMMethodCreatorConfig<
   selectSchema: S
   insertSchema: I
   updateSchema: U
+  tableName: string
 }
 
 export const createSelectById = <
@@ -90,7 +91,7 @@ export const createSelectById = <
       .where(eq(table.id, id))
     if (results.length === 0) {
       throw Error(
-        `selectById: No results found for ${table._.name}, id: ${id}`
+        `No ${noCase(config.tableName)} found with id: ${id}`
       )
     }
     const result = results[0]
@@ -263,9 +264,16 @@ export const selectByIds = <TTable extends PgTableWithId>(
 
 export const activeColumn = () =>
   boolean('active').notNull().default(true)
+
 export const descriptionColumn = () => text('description')
+
 export const createdAtColumn = () =>
-  timestamp('created_at').notNull().defaultNow()
+  timestamp('created_at', {
+    withTimezone: true,
+  })
+    .notNull()
+    .defaultNow()
+
 export const sequenceNumberColumn = () => integer('sequence_number')
 
 export const tableBase = (idPrefix?: string) => ({
@@ -277,7 +285,9 @@ export const tableBase = (idPrefix?: string) => ({
     )
     .notNull(),
   createdAt: createdAtColumn(),
-  updatedAt: timestamp('updated_at')
+  updatedAt: timestamp('updated_at', {
+    withTimezone: true,
+  })
     .defaultNow()
     .$onUpdate(() => new Date()),
   livemode: boolean('livemode').notNull(),

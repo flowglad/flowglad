@@ -33,6 +33,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: productsSelectSchema,
   insertSchema: productsInsertSchema,
   updateSchema: productsUpdateSchema,
+  tableName: 'products',
 }
 
 export const selectProductById = createSelectById(products, config)

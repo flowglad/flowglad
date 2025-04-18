@@ -23,6 +23,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: feeCalculationsSelectSchema,
   insertSchema: feeCalculationsInsertSchema,
   updateSchema: feeCalculationsUpdateSchema,
+  tableName: 'fee_calculations',
 }
 
 export const selectFeeCalculationById = createSelectById(

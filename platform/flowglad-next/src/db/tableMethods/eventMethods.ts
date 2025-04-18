@@ -22,6 +22,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: eventsSelectSchema,
   insertSchema: eventsInsertSchema,
   updateSchema: eventsUpdateSchema,
+  tableName: 'events',
 }
 
 export const selectEventById = createSelectById(events, config)

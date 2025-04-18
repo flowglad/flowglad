@@ -35,6 +35,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: invoicesSelectSchema,
   insertSchema: invoicesInsertSchema,
   updateSchema: invoicesUpdateSchema,
+  tableName: 'invoices',
 }
 
 export const selectInvoiceById = createSelectById(invoices, config)

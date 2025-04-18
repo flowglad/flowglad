@@ -33,6 +33,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: discountRedemptionsSelectSchema,
   insertSchema: discountRedemptionsInsertSchema,
   updateSchema: discountRedemptionsUpdateSchema,
+  tableName: 'discount_redemptions',
 }
 
 export const selectDiscountRedemptionById = createSelectById(

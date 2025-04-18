@@ -24,6 +24,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: usageEventsSelectSchema,
   insertSchema: usageEventsInsertSchema,
   updateSchema: usageEventsUpdateSchema,
+  tableName: 'usage_events',
 }
 
 export const selectUsageEventById = createSelectById(

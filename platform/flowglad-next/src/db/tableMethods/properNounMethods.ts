@@ -25,6 +25,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: properNounsSelectSchema,
   insertSchema: properNounsInsertSchema,
   updateSchema: properNounsUpdateSchema,
+  tableName: 'proper_nouns',
 }
 
 export const selectProperNounById = createSelectById(

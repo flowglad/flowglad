@@ -35,6 +35,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: billingPeriodsSelectSchema,
   insertSchema: billingPeriodsInsertSchema,
   updateSchema: billingPeriodsUpdateSchema,
+  tableName: 'billing_periods',
 }
 
 export const selectBillingPeriodById = createSelectById(

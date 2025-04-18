@@ -29,6 +29,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: usageMetersSelectSchema,
   insertSchema: usageMetersInsertSchema,
   updateSchema: usageMetersUpdateSchema,
+  tableName: 'usage_meters',
 }
 
 export const selectUsageMeterById = createSelectById(
