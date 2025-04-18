@@ -22,6 +22,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: purchaseAccessSessionsSelectSchema,
   insertSchema: purchaseAccessSessionsInsertSchema,
   updateSchema: purchaseAccessSessionsUpdateSchema,
+  tableName: 'purchase_access_sessions',
 }
 
 export const selectPurchaseAccessSessionById = createSelectById(

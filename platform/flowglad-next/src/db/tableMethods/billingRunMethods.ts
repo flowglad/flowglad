@@ -24,6 +24,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: billingRunsSelectSchema,
   insertSchema: billingRunsInsertSchema,
   updateSchema: billingRunsUpdateSchema,
+  tableName: 'billing_runs',
 }
 
 export const selectBillingRunById = createSelectById(

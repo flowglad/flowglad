@@ -25,6 +25,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: apiKeysSelectSchema,
   insertSchema: apiKeysInsertSchema,
   updateSchema: apiKeysUpdateSchema,
+  tableName: 'api_keys',
 }
 
 export const selectApiKeyById = createSelectById(apiKeys, config)

@@ -474,6 +474,14 @@ export const titleCase = (str: string) => {
     .join(' ')
 }
 
+export const keysToCamelCase = <T extends Record<string, unknown>>(
+  obj: T
+): { [K in keyof T]: T[K] } => {
+  return Object.fromEntries(
+    Object.entries(obj).map(([key, value]) => [camelCase(key), value])
+  ) as { [K in keyof T]: T[K] }
+}
+
 export const core = {
   IS_PROD,
   IS_TEST,

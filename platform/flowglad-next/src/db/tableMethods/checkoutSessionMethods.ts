@@ -28,6 +28,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: checkoutSessionsSelectSchema,
   insertSchema: checkoutSessionsInsertSchema,
   updateSchema: checkoutSessionsUpdateSchema,
+  tableName: 'checkout_sessions',
 }
 
 export const selectCheckoutSessionById = createSelectById(

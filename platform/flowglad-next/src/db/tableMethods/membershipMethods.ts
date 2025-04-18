@@ -32,6 +32,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: membershipsSelectSchema,
   insertSchema: membershipsInsertSchema,
   updateSchema: membershipsUpdateSchema,
+  tableName: 'memberships',
 }
 
 export const selectMembershipById = createSelectById(

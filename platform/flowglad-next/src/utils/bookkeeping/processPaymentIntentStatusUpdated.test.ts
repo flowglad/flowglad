@@ -722,7 +722,7 @@ describe('Process payment intent status updated', async () => {
           adminTransaction(async ({ transaction }) =>
             processPaymentIntentStatusUpdated(fakePI, transaction)
           )
-        ).rejects.toThrow(/Cannot read properties of undefined/)
+        ).rejects.toThrow(/No billing runs found with id: br_err/)
       })
     })
 
