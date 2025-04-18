@@ -14,7 +14,11 @@ import {
   checkoutSessionsSelectSchema,
   checkoutSessionsUpdateSchema,
 } from '@/db/schema/checkoutSessions'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  PaymentMethodType,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq, inArray, lt, not } from 'drizzle-orm'
 import { feeCalculations } from '../schema/feeCalculations'
@@ -203,4 +207,46 @@ export const safelyUpdateCheckoutSessionStatus = async (
     },
     transaction
   )
+}
+
+export const updateCheckoutSessionPaymentMethodType = async (
+  update: Pick<CheckoutSession.Record, 'id' | 'paymentMethodType'>,
+  transaction: DbTransaction
+): Promise<CheckoutSession.Record> => {
+  const [checkoutSession] = await transaction
+    .update(checkoutSessions)
+    .set({
+      paymentMethodType: update.paymentMethodType,
+    })
+    .where(eq(checkoutSessions.id, update.id))
+    .returning()
+  return checkoutSessionsSelectSchema.parse(checkoutSession)
+}
+
+export const updateCheckoutSessionCustomerEmail = async (
+  update: Pick<CheckoutSession.Record, 'id' | 'customerEmail'>,
+  transaction: DbTransaction
+): Promise<CheckoutSession.Record> => {
+  const [checkoutSession] = await transaction
+    .update(checkoutSessions)
+    .set({
+      customerEmail: update.customerEmail,
+    })
+    .where(eq(checkoutSessions.id, update.id))
+    .returning()
+  return checkoutSessionsSelectSchema.parse(checkoutSession)
+}
+
+export const updateCheckoutSessionBillingAddress = async (
+  update: Pick<CheckoutSession.Record, 'id' | 'billingAddress'>,
+  transaction: DbTransaction
+): Promise<CheckoutSession.Record> => {
+  const [checkoutSession] = await transaction
+    .update(checkoutSessions)
+    .set({
+      billingAddress: update.billingAddress,
+    })
+    .where(eq(checkoutSessions.id, update.id))
+    .returning()
+  return checkoutSessionsSelectSchema.parse(checkoutSession)
 }
