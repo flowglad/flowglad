@@ -40,6 +40,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: invoiceLineItemsSelectSchema,
   insertSchema: invoiceLineItemsInsertSchema,
   updateSchema: invoiceLineItemsUpdateSchema,
+  tableName: 'invoice_line_items',
 }
 
 export const selectInvoiceLineItemById = createSelectById(

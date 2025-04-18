@@ -27,6 +27,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: discountsSelectSchema,
   insertSchema: discountsInsertSchema,
   updateSchema: discountsUpdateSchema,
+  tableName: 'discounts',
 }
 
 export const selectDiscountById = createSelectById(discounts, config)

@@ -257,9 +257,14 @@ const PaymentForm = () => {
 
         setIsSubmitting(true)
 
-        await confirmCheckoutSession.mutateAsync({
-          id: checkoutSession.id,
-        })
+        try {
+          await confirmCheckoutSession.mutateAsync({
+            id: checkoutSession.id,
+          })
+        } catch (error: Error) {
+          setIsSubmitting(false)
+          setErrorMessage((error as Error).message)
+        }
         /**
          * If the total due amount is 0, and the price type is a single payment,
          * we cannot attempt to confirm a $0 payment. So we can redirect to the purchase page.
