@@ -59,6 +59,15 @@ export type CheckoutPageContextValues = {
   editCheckoutSession: ReturnType<
     typeof trpc.purchases.updateSession.useMutation
   >['mutateAsync']
+  editCheckoutSessionPaymentMethodType: ReturnType<
+    typeof trpc.checkoutSessions.setPaymentMethodType.useMutation
+  >['mutateAsync']
+  editCheckoutSessionCustomerEmail: ReturnType<
+    typeof trpc.checkoutSessions.setCustomerEmail.useMutation
+  >['mutateAsync']
+  editCheckoutSessionBillingAddress: ReturnType<
+    typeof trpc.checkoutSessions.setBillingAddress.useMutation
+  >['mutateAsync']
   attemptDiscountCode: ReturnType<
     typeof trpc.discounts.attempt.useMutation
   >['mutateAsync']
@@ -133,6 +142,12 @@ export const useCheckoutPageContext =
     const billingInfo = billingInfoSchema.parse(checkoutInfo)
     const editCheckoutSession =
       trpc.purchases.updateSession.useMutation()
+    const editCheckoutSessionPaymentMethodType =
+      trpc.checkoutSessions.setPaymentMethodType.useMutation()
+    const editCheckoutSessionCustomerEmail =
+      trpc.checkoutSessions.setCustomerEmail.useMutation()
+    const editCheckoutSessionBillingAddress =
+      trpc.checkoutSessions.setBillingAddress.useMutation()
     const attemptDiscountCode = trpc.discounts.attempt.useMutation()
     const clearDiscountCode = trpc.discounts.clear.useMutation()
     const router = useRouter()
@@ -152,6 +167,29 @@ export const useCheckoutPageContext =
       currency,
       editCheckoutSession: debounce(async (input) => {
         const result = await editCheckoutSession.mutateAsync(input)
+        router.refresh()
+        return result
+      }, 500),
+      editCheckoutSessionPaymentMethodType: debounce(
+        async (input) => {
+          const result =
+            await editCheckoutSessionPaymentMethodType.mutateAsync(
+              input
+            )
+          router.refresh()
+          return result
+        },
+        500
+      ),
+      editCheckoutSessionBillingAddress: debounce(async (input) => {
+        const result =
+          await editCheckoutSessionBillingAddress.mutateAsync(input)
+        router.refresh()
+        return result
+      }, 500),
+      editCheckoutSessionCustomerEmail: debounce(async (input) => {
+        const result =
+          await editCheckoutSessionCustomerEmail.mutateAsync(input)
         router.refresh()
         return result
       }, 500),

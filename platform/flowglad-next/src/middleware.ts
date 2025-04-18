@@ -24,6 +24,9 @@ const publicRoutes = [
    * otherwise anon users will hit 307 redirects.
    */
   '/api/trpc/purchases.(.*)Session',
+  '/api/trpc/checkoutSessions.setPaymentMethodType',
+  '/api/trpc/checkoutSessions.setCustomerEmail',
+  '/api/trpc/checkoutSessions.setBillingAddress',
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/discounts.attempt',
   '/api/trpc/discounts.clear',
@@ -57,7 +60,7 @@ export default async function middleware(req: NextRequest) {
       }
     )
   }
-
+  console.log('req.url', req.url)
   const user = await stackServerApp.getUser()
   const isProtectedRoute = !isPublicRoute(req)
 

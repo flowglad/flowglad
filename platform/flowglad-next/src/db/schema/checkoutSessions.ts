@@ -83,7 +83,7 @@ const columns = {
     .$defaultFn(() => new Date(Date.now() + 1000 * 60 * 60 * 24)),
   paymentMethodType: pgEnumColumn({
     enumName: 'PaymentMethodType',
-    columnName: 'paymentMethodType',
+    columnName: 'payment_method_type',
     enumBase: PaymentMethodType,
   }),
   discountId: nullableStringForeignKey('discount_id', discounts),
