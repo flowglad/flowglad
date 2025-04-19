@@ -252,12 +252,6 @@ export async function testDatabaseEnums(db: PostgresJsDatabase) {
 
     // Invoices table
     await testEnumColumn(invoices, invoices.status, InvoiceStatus, tx)
-    await testEnumColumn(
-      invoices,
-      invoices.billingInterval,
-      IntervalUnit,
-      tx
-    )
     await testEnumColumn(invoices, invoices.type, InvoiceType, tx)
     await testEnumColumn(
       invoices,
