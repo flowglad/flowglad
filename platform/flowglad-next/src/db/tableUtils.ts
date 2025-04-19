@@ -841,3 +841,26 @@ export const createPaginatedTableRowInputSchema = <
     filters: filterSchema.optional(),
   })
 }
+
+/**
+ * A simple tester function to verify that our typescript column mappings map to the
+ * enum values in the database.
+ * @param table
+ * @param column
+ * @param enumValues
+ * @param transaction
+ * @returns
+ */
+export const testEnumColumn = async <T extends PgTableWithId>(
+  table: T,
+  column: PgColumn,
+  enumValues: Record<string, string>,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(table)
+    .where(inArray(column, Object.values(enumValues)))
+    .limit(1)
+  return result
+}
