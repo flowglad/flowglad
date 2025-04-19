@@ -206,7 +206,9 @@ const PaymentForm = () => {
     flowType,
     subscriptionDetails,
     customer,
-    editCheckoutSession,
+    editCheckoutSessionCustomerEmail,
+    editCheckoutSessionPaymentMethodType,
+    editCheckoutSessionBillingAddress,
     checkoutBlocked,
     feeCalculation,
     readonlyCustomerEmail,
@@ -257,9 +259,14 @@ const PaymentForm = () => {
 
         setIsSubmitting(true)
 
-        await confirmCheckoutSession.mutateAsync({
-          id: checkoutSession.id,
-        })
+        try {
+          await confirmCheckoutSession.mutateAsync({
+            id: checkoutSession.id,
+          })
+        } catch (error: unknown) {
+          setIsSubmitting(false)
+          setErrorMessage((error as Error).message)
+        }
         /**
          * If the total due amount is 0, and the price type is a single payment,
          * we cannot attempt to confirm a $0 payment. So we can redirect to the purchase page.
@@ -344,11 +351,9 @@ const PaymentForm = () => {
               return
             }
             if (event.complete) {
-              await editCheckoutSession({
-                checkoutSession: {
-                  ...checkoutSession,
-                  customerEmail: event.value.email,
-                },
+              await editCheckoutSessionCustomerEmail({
+                id: checkoutSession.id,
+                customerEmail: event.value.email,
               })
               setEmailComplete(true)
               router.refresh()
@@ -375,12 +380,9 @@ const PaymentForm = () => {
           }}
           onChange={async (e) => {
             if (e.complete) {
-              await editCheckoutSession({
-                checkoutSession: {
-                  ...checkoutSession,
-                  paymentMethodType: e.value
-                    .type as PaymentMethodType,
-                },
+              await editCheckoutSessionPaymentMethodType({
+                id: checkoutSession.id,
+                paymentMethodType: e.value.type as PaymentMethodType,
               })
               setPaymentInfoComplete(true)
             }
@@ -400,11 +402,9 @@ const PaymentForm = () => {
           }}
           onChange={async (event) => {
             if (event.complete) {
-              await editCheckoutSession({
-                checkoutSession: {
-                  ...checkoutSession,
-                  billingAddress: event.value,
-                },
+              await editCheckoutSessionBillingAddress({
+                id: checkoutSession.id,
+                billingAddress: event.value,
               })
             }
           }}

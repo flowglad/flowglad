@@ -25,6 +25,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: organizationsSelectSchema,
   insertSchema: organizationsInsertSchema,
   updateSchema: organizationsUpdateSchema,
+  tableName: 'organizations',
 }
 
 export const selectOrganizationById = createSelectById(

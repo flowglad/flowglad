@@ -37,6 +37,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: catalogsSelectSchema,
   insertSchema: catalogsInsertSchema,
   updateSchema: catalogsUpdateSchema,
+  tableName: 'catalogs',
 }
 
 export const selectCatalogById = createSelectById(catalogs, config)

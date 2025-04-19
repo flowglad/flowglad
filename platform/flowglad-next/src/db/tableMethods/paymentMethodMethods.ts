@@ -27,6 +27,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: paymentMethodsSelectSchema,
   insertSchema: paymentMethodsInsertSchema,
   updateSchema: paymentMethodsUpdateSchema,
+  tableName: 'payment_methods',
 }
 
 export const selectPaymentMethodById = createSelectById(

@@ -40,6 +40,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: invoiceLineItemsSelectSchema,
   insertSchema: invoiceLineItemsInsertSchema,
   updateSchema: invoiceLineItemsUpdateSchema,
+  tableName: 'invoice_line_items',
 }
 
 export const selectInvoiceLineItemById = createSelectById(
@@ -103,7 +104,7 @@ const transformInvoiceLineItemAndInvoiceTuplesToInvoicesWithLineItems =
   }
 
 export const selectInvoiceLineItemsAndInvoicesByInvoiceWhere = async (
-  whereConditions: Partial<Invoice.Record>,
+  whereConditions: Invoice.Where,
   transaction: DbTransaction
 ) => {
   const result = await transaction

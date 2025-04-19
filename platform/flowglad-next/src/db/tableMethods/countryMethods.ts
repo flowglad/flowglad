@@ -21,6 +21,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: countriesSelectSchema,
   insertSchema: countriesInsertSchema,
   updateSchema: countriesUpdateSchema,
+  tableName: 'countries',
 }
 
 export const selectCountryById = createSelectById(countries, config)

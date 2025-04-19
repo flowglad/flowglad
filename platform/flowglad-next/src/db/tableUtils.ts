@@ -40,7 +40,7 @@ import {
   createSelectSchema,
   createInsertSchema as zodCreateInsertSchema,
 } from 'drizzle-zod'
-import { snakeCase } from 'change-case'
+import { noCase, sentenceCase, snakeCase } from 'change-case'
 
 type ZodTableUnionOrType<
   T extends
@@ -63,6 +63,7 @@ export interface ORMMethodCreatorConfig<
   selectSchema: S
   insertSchema: I
   updateSchema: U
+  tableName: string
 }
 
 export const createSelectById = <
@@ -90,7 +91,7 @@ export const createSelectById = <
       .where(eq(table.id, id))
     if (results.length === 0) {
       throw Error(
-        `selectById: No results found for ${table._.name}, id: ${id}`
+        `No ${noCase(config.tableName)} found with id: ${id}`
       )
     }
     const result = results[0]

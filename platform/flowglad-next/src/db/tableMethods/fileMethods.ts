@@ -23,6 +23,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: filesSelectSchema,
   insertSchema: filesInsertSchema,
   updateSchema: filesUpdateSchema,
+  tableName: 'files',
 }
 
 export const selectFileById = createSelectById(files, config)

@@ -41,6 +41,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: paymentsSelectSchema,
   insertSchema: paymentsInsertSchema,
   updateSchema: paymentsUpdateSchema,
+  tableName: 'payments',
 }
 
 export const selectPaymentById = createSelectById(payments, config)

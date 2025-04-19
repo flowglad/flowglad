@@ -24,6 +24,7 @@ const config: ORMMethodCreatorConfig<
   selectSchema: linksSelectSchema,
   insertSchema: linksInsertSchema,
   updateSchema: linksUpdateSchema,
+  tableName: 'links',
 }
 
 export const selectLinkById = createSelectById(links, config)
