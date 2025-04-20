@@ -9,15 +9,13 @@ import {
   livemodePolicy,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
-  constructUniqueIndex,
   pgEnumColumn,
   SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import { UsageMeterAggregationType } from '@/types'
-import { Catalog, catalogs } from '@/db/schema/catalogs'
-import { products } from '@/db/schema/products'
+import { catalogs } from '@/db/schema/catalogs'
 
 const TABLE_NAME = 'usage_meters'
 
@@ -76,6 +74,11 @@ export const usageMetersUpdateSchema = usageMetersSelectSchema
     id: z.string(),
   })
 
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
+
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
@@ -84,17 +87,18 @@ const readOnlyColumns = {
 const createOnlyColumns = {
   catalogId: true,
 } as const
-export const usageMetersClientSelectSchema =
-  usageMetersSelectSchema.omit(readOnlyColumns)
+export const usageMetersClientSelectSchema = usageMetersSelectSchema
+  .omit(readOnlyColumns)
+  .omit(hiddenColumns)
 
-export const usageMetersClientUpdateSchema =
-  usageMetersUpdateSchema.omit({
-    ...readOnlyColumns,
-    ...createOnlyColumns,
-  })
+export const usageMetersClientUpdateSchema = usageMetersUpdateSchema
+  .omit(readOnlyColumns)
+  .omit(createOnlyColumns)
+  .omit(hiddenColumns)
 
-export const usageMetersClientInsertSchema =
-  usageMetersInsertSchema.omit(readOnlyColumns)
+export const usageMetersClientInsertSchema = usageMetersInsertSchema
+  .omit(readOnlyColumns)
+  .omit(hiddenColumns)
 
 export const usageMeterPaginatedSelectSchema =
   createPaginatedSelectSchema(usageMetersClientSelectSchema)

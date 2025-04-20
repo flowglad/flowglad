@@ -1408,6 +1408,13 @@
       "when": 1745087478534,
       "tag": "0201_gifted_power_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 202,
+      "version": "7",
+      "when": 1745176708046,
+      "tag": "0202_stormy_katie_power",
+      "breakpoints": true
     }
   ]
 }

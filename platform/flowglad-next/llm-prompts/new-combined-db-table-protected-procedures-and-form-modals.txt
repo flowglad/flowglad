@@ -133,10 +133,8 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
 
       const hiddenColumns = {
         superSecretColumn: true,
-      } as const
-
-      const hiddenColumns = {
-        superSecretColumn: true,
+        createdByCommit: true,
+        updateByCommit: true
       } as const
       
       const nonClientEditableColumns = {

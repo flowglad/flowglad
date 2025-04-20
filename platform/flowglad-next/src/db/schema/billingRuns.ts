@@ -103,6 +103,8 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   stripePaymentIntentId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 const createOnlyColumns = {} as const

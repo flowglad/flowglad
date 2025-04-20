@@ -42,6 +42,8 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   externalId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 const nonClientEditableColumns = {

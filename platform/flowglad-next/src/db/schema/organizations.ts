@@ -130,6 +130,8 @@ const hiddenColumns = {
   stripeAccountId: true,
   stripeConnectContractType: true,
   externalId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 const readOnlyColumns = {

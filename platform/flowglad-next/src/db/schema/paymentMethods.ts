@@ -112,6 +112,8 @@ const readOnlyColumns = {
 const hiddenColumns = {
   stripePaymentMethodId: true,
   externalId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 const nonClientEditableColumns = {

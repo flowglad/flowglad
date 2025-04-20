@@ -162,6 +162,8 @@ const hiddenColumns = {
   stripePaymentIntentId: true,
   stripeTaxCalculationId: true,
   stripeTaxTransactionId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 export const paymentsClientSelectSchema = paymentsSelectSchema

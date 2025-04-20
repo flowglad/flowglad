@@ -9,8 +9,6 @@ import {
   tableBase,
   notNullStringForeignKey,
   livemodePolicy,
-  createSupabaseWebhookSchema,
-  ommittedColumnsForInsertSchema,
   SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
@@ -85,6 +83,8 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   etag: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 const nonClientEditableColumns = {

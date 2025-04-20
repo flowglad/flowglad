@@ -71,7 +71,10 @@ export const membershipsUpdateSchema = createUpdateSchema(
   columnRefinements
 )
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
 
 const readOnlyColumns = {
   userId: true,

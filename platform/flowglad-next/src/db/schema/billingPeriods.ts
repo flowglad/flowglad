@@ -79,7 +79,10 @@ const readOnlyColumns = {
   subscriptionId: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
 
 const createOnlyColumns = {} as const
 

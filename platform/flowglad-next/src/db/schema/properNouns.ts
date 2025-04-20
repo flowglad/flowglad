@@ -13,22 +13,6 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
-import {
-  productsSupabaseUpdatePayloadSchema,
-  productsSupabaseInsertPayloadSchema,
-} from './products'
-import {
-  pricesSupabaseUpdatePayloadSchema,
-  pricesSupabaseInsertPayloadSchema,
-} from './prices'
-import {
-  customersSupabaseInsertPayloadSchema,
-  customersSupabaseUpdatePayloadSchema,
-} from './customers'
-import {
-  discountsSupabaseInsertPayloadSchema,
-  discountsSupabaseUpdatePayloadSchema,
-} from './discounts'
 
 const TABLE_NAME = 'proper_nouns'
 
@@ -97,19 +81,30 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
+
 /*
  * client schemas
  */
 export const properNounClientInsertSchema =
-  properNounsInsertSchema.omit(readOnlyColumns)
+  properNounsInsertSchema.omit({
+    ...hiddenColumns,
+    ...readOnlyColumns,
+    ...createOnlyColumns,
+  })
 
 export const properNounClientUpdateSchema =
   properNounsUpdateSchema.omit({
     ...readOnlyColumns,
     ...createOnlyColumns,
+    ...hiddenColumns,
   })
 
-export const properNounClientSelectSchema = properNounsSelectSchema
+export const properNounClientSelectSchema =
+  properNounsSelectSchema.omit(hiddenColumns)
 
 export namespace ProperNoun {
   export type Insert = z.infer<typeof properNounsInsertSchema>

@@ -204,7 +204,10 @@ export const discountsUpdateSchema = z
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
 
 const readOnlyColumns = {
   organizationId: true,

@@ -482,6 +482,17 @@ export const keysToCamelCase = <T extends Record<string, unknown>>(
   ) as { [K in keyof T]: T[K] }
 }
 
+export const gitCommitId = () => {
+  const commitId = envVariable('VERCEL_GIT_COMMIT_SHA')
+  if (IS_DEV && !commitId) {
+    return '__DEV__'
+  }
+  if (!commitId) {
+    throw new Error('VERCEL_GIT_COMMIT_SHA is not set')
+  }
+  return commitId
+}
+
 export const core = {
   IS_PROD,
   IS_TEST,
@@ -520,6 +531,7 @@ export const core = {
   authorizationHeaderTokenMatchesEnvToken,
   createInvoiceNumber,
   formatDateRange,
+  gitCommitId,
   safeZodNullOrUndefined,
   safeZodPositiveInteger,
   safeZodDate,

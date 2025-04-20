@@ -9,16 +9,13 @@ import {
 import {
   insertCustomer,
   selectCustomerById,
-  selectCustomers,
   updateCustomer,
-  upsertCustomerByEmailAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
 import {
   deleteOpenInvoicesForPurchase,
   insertInvoice,
   safelyUpdateInvoiceStatus,
   selectInvoices,
-  updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import {
   AuthenticatedTransactionParams,
@@ -54,7 +51,6 @@ import {
   selectOpenNonExpiredCheckoutSessions,
   updateCheckoutSessionsForOpenPurchase,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,

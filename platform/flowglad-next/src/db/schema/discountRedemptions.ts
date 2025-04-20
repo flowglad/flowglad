@@ -91,6 +91,21 @@ const baseSelectSchema = createSelectSchema(
   discountRedemptions,
   columnRefinements
 )
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
+
+const readOnlyColumns = {
+  purchaseId: true,
+  discountId: true,
+  discountName: true,
+  discountCode: true,
+  discountAmount: true,
+  discountAmountType: true,
+  numberOfPayments: true,
+  livemode: true,
+} as const
 
 // Duration-specific select schemas
 export const defaultDiscountRedemptionsSelectSchema = baseSelectSchema
@@ -189,22 +204,88 @@ export const discountRedemptionsUpdateSchema = z
   ])
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
-const readOnlyColumns = {
-  purchaseId: true,
-  discountId: true,
-  discountName: true,
-  discountCode: true,
-  discountAmount: true,
-  discountAmountType: true,
-  duration: true,
-  numberOfPayments: true,
-  livemode: true,
-} as const
+// Client select schemas for each duration type
+export const defaultDiscountRedemptionsClientSelectSchema =
+  defaultDiscountRedemptionsSelectSchema
+    .omit(hiddenColumns)
+    .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
 
-// Client schemas
-export const discountRedemptionsClientSelectSchema =
-  discountRedemptionsSelectSchema
+export const numberOfPaymentsDiscountRedemptionsClientSelectSchema =
+  numberOfPaymentsDiscountRedemptionsSelectSchema
+    .omit(hiddenColumns)
+    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
 
+export const foreverDiscountRedemptionsClientSelectSchema =
+  foreverDiscountRedemptionsSelectSchema
+    .omit(hiddenColumns)
+    .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
+
+// Combined client select schema
+export const discountRedemptionsClientSelectSchema = z
+  .discriminatedUnion('duration', [
+    defaultDiscountRedemptionsClientSelectSchema,
+    numberOfPaymentsDiscountRedemptionsClientSelectSchema,
+    foreverDiscountRedemptionsClientSelectSchema,
+  ])
+  .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
+
+// Client insert schemas for each duration type
+export const defaultDiscountRedemptionsClientInsertSchema =
+  defaultDiscountRedemptionsInsertSchema
+    .omit(hiddenColumns)
+    .omit(readOnlyColumns)
+    .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
+
+export const numberOfPaymentsDiscountRedemptionsClientInsertSchema =
+  numberOfPaymentsDiscountRedemptionsInsertSchema
+    .omit(hiddenColumns)
+    .omit(readOnlyColumns)
+    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
+
+export const foreverDiscountRedemptionsClientInsertSchema =
+  foreverDiscountRedemptionsInsertSchema
+    .omit(hiddenColumns)
+    .omit(readOnlyColumns)
+    .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
+
+// Combined client insert schema
+export const discountRedemptionsClientInsertSchema = z
+  .discriminatedUnion('duration', [
+    defaultDiscountRedemptionsClientInsertSchema,
+    numberOfPaymentsDiscountRedemptionsClientInsertSchema,
+    foreverDiscountRedemptionsClientInsertSchema,
+  ])
+  .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
+
+// Client update schemas for each duration type
+export const defaultDiscountRedemptionsClientUpdateSchema =
+  defaultDiscountRedemptionsUpdateSchema
+    .omit(hiddenColumns)
+    .omit(readOnlyColumns)
+    .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
+
+export const numberOfPaymentsDiscountRedemptionsClientUpdateSchema =
+  numberOfPaymentsDiscountRedemptionsUpdateSchema
+    .omit(hiddenColumns)
+    .omit(readOnlyColumns)
+    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
+
+export const foreverDiscountRedemptionsClientUpdateSchema =
+  foreverDiscountRedemptionsUpdateSchema
+    .omit(hiddenColumns)
+    .omit(readOnlyColumns)
+    .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
+
+// Combined client update schema
+export const discountRedemptionsClientUpdateSchema = z
+  .discriminatedUnion('duration', [
+    defaultDiscountRedemptionsClientUpdateSchema,
+    numberOfPaymentsDiscountRedemptionsClientUpdateSchema,
+    foreverDiscountRedemptionsClientUpdateSchema,
+  ])
+  .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
+
+// Update the namespace to include client types
 export namespace DiscountRedemption {
   export type Insert = z.infer<typeof discountRedemptionsInsertSchema>
   export type Update = z.infer<typeof discountRedemptionsUpdateSchema>
@@ -213,4 +294,13 @@ export namespace DiscountRedemption {
     typeof discountRedemptionsClientSelectSchema
   >
   export type Where = SelectConditions<typeof discountRedemptions>
+  export type ClientInsert = z.infer<
+    typeof discountRedemptionsClientInsertSchema
+  >
+  export type ClientUpdate = z.infer<
+    typeof discountRedemptionsClientUpdateSchema
+  >
+  export type ClientSelect = z.infer<
+    typeof discountRedemptionsClientSelectSchema
+  >
 }

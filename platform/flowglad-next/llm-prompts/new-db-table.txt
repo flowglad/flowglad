@@ -129,6 +129,8 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
 
       const hiddenColumns = {
         superSecretColumn: true,
+        createdByCommit: true, // always include
+        updatedByCommit: true, // always include
       } as const
       
       const nonClientEditableColumns = {

@@ -169,6 +169,11 @@ export const usageEventsUpdateSchema = createUpdateSchema(
   columnRefinements
 )
 
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
+
 const readOnlyColumns = {
   livemode: true,
   billingPeriodId: true,
@@ -182,8 +187,9 @@ const createOnlyColumns = {
   transactionId: true,
 } as const
 
-export const usageEventsClientSelectSchema =
-  usageEventsSelectSchema.omit(readOnlyColumns)
+export const usageEventsClientSelectSchema = usageEventsSelectSchema
+  .omit(readOnlyColumns)
+  .omit(hiddenColumns)
 
 export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
   .extend({
@@ -197,6 +203,7 @@ export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
   .omit({
     ...readOnlyColumns,
     ...createOnlyColumns,
+    ...hiddenColumns,
   })
 
 export const usageEventsClientInsertSchema = usageEventsInsertSchema
@@ -209,6 +216,7 @@ export const usageEventsClientInsertSchema = usageEventsInsertSchema
         'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
       ),
   })
+  .omit(hiddenColumns)
 
 export namespace UsageEvent {
   export type Insert = z.infer<typeof usageEventsInsertSchema>

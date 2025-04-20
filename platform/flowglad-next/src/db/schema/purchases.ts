@@ -248,9 +248,13 @@ export const subscriptionPurchaseClientInsertSchema =
       billingAddress: true,
     })
 
-const clientSelectOmits = {} as const
+const hiddenColumns = {
+  createdByCommit: true,
+  updatedByCommit: true,
+} as const
 
 const clientWriteOmits = {
+  ...hiddenColumns,
   billingAddress: true,
   organizationId: true,
   livemode: true,
@@ -260,7 +264,7 @@ export const subscriptionPurchaseClientUpdateSchema =
   subscriptionPurchaseUpdateSchema.omit(clientWriteOmits)
 
 export const subscriptionPurchaseClientSelectSchema =
-  subscriptionPurchaseSelectSchema.omit(clientSelectOmits)
+  subscriptionPurchaseSelectSchema.omit(hiddenColumns)
 
 // Client Single Payment Schemas
 export const singlePaymentPurchaseClientInsertSchema =
@@ -278,14 +282,14 @@ export const usagePurchaseClientUpdateSchema =
     .describe(USAGE_PURCHASE_DESCRIPTION)
 
 export const singlePaymentPurchaseClientSelectSchema =
-  singlePaymentPurchaseSelectSchema.omit(clientSelectOmits)
+  singlePaymentPurchaseSelectSchema.omit(hiddenColumns)
 
 export const usagePurchaseClientSelectSchema =
   singlePaymentPurchaseSelectSchema
     .extend({
       priceType: z.literal(PriceType.Usage),
     })
-    .omit(clientSelectOmits)
+    .omit(hiddenColumns)
     .describe(USAGE_PURCHASE_DESCRIPTION)
 
 // Combined Client Schemas
