@@ -92,10 +92,7 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
+const hiddenColumns = {} as const
 
 export const messagesClientSelectSchema =
   messagesSelectSchema.omit(hiddenColumns)

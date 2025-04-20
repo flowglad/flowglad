@@ -20,6 +20,7 @@ import {
   constructUniqueIndex,
   metadataSchema,
   SelectConditions,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -137,11 +138,7 @@ const columnRefinements = {
 export const subscriptionsInsertSchema = createSelectSchema(
   subscriptions,
   columnRefinements
-).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-})
+).omit(ommittedColumnsForInsertSchema)
 
 export const subscriptionsSelectSchema =
   createSelectSchema(subscriptions).extend(columnRefinements)
@@ -166,8 +163,6 @@ const readOnlyColumns = {
 const hiddenColumns = {
   stripeSetupIntentId: true,
   externalId: true,
-  createdByCommit: true,
-  updatedByCommit: true,
 } as const
 
 const nonClientEditableColumns = {

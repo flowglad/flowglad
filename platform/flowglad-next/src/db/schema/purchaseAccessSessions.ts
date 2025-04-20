@@ -80,10 +80,7 @@ const readonlyColumns = {
   token: true,
 } as const
 
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
+const hiddenColumns = {} as const
 
 const purchaseAccessSessionsClientSelectSchema =
   purchaseAccessSessionsSelectSchema.omit(hiddenColumns)

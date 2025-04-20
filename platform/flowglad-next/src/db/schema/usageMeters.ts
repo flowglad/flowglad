@@ -74,10 +74,7 @@ export const usageMetersUpdateSchema = usageMetersSelectSchema
     id: z.string(),
   })
 
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
+const hiddenColumns = {} as const
 
 const readOnlyColumns = {
   organizationId: true,

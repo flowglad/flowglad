@@ -91,10 +91,7 @@ const baseSelectSchema = createSelectSchema(
   discountRedemptions,
   columnRefinements
 )
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
+const hiddenColumns = {} as const
 
 const readOnlyColumns = {
   purchaseId: true,

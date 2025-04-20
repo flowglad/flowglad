@@ -248,10 +248,7 @@ export const subscriptionPurchaseClientInsertSchema =
       billingAddress: true,
     })
 
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
+const hiddenColumns = {} as const
 
 const clientWriteOmits = {
   ...hiddenColumns,

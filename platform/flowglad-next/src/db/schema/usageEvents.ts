@@ -169,10 +169,7 @@ export const usageEventsUpdateSchema = createUpdateSchema(
   columnRefinements
 )
 
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
+const hiddenColumns = {} as const
 
 const readOnlyColumns = {
   livemode: true,

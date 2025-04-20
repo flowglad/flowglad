@@ -83,8 +83,6 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   etag: true,
-  createdByCommit: true,
-  updatedByCommit: true,
 } as const
 
 const nonClientEditableColumns = {

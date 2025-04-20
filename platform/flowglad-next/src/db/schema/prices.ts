@@ -18,6 +18,7 @@ import {
   createPaginatedListQuerySchema,
   nullableStringForeignKey,
   SelectConditions,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import {
   products,
@@ -42,8 +43,6 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   externalId: true,
-  createdByCommit: true,
-  updatedByCommit: true,
 } as const
 
 const nonClientEditableColumns = {
@@ -192,6 +191,8 @@ export const subscriptionPriceInsertSchema =
       id: true,
       createdAt: true,
       updatedAt: true,
+      createdByCommit: true,
+      updatedByCommit: true,
     })
     .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
@@ -221,11 +222,7 @@ export const singlePaymentPriceSelectSchema = basePriceSelectSchema
 
 export const singlePaymentPriceInsertSchema =
   singlePaymentPriceSelectSchema
-    .omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-    })
+    .omit(ommittedColumnsForInsertSchema)
     .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
 
 export const singlePaymentPriceUpdateSchema =

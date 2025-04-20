@@ -17,6 +17,7 @@ import {
   constructUniqueIndex,
   metadataSchema,
   SelectConditions,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -83,11 +84,7 @@ const columnRefinements = {
 export const paymentMethodsInsertSchema = createSelectSchema(
   paymentMethods,
   columnRefinements
-).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-})
+).omit(ommittedColumnsForInsertSchema)
 
 export const paymentMethodsSelectSchema =
   createSelectSchema(paymentMethods).extend(columnRefinements)
@@ -112,8 +109,6 @@ const readOnlyColumns = {
 const hiddenColumns = {
   stripePaymentMethodId: true,
   externalId: true,
-  createdByCommit: true,
-  updatedByCommit: true,
 } as const
 
 const nonClientEditableColumns = {

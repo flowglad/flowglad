@@ -16,6 +16,7 @@ import {
   insertInvoice,
   safelyUpdateInvoiceStatus,
   selectInvoices,
+  updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import {
   AuthenticatedTransactionParams,

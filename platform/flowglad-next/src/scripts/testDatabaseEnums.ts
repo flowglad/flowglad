@@ -52,10 +52,11 @@ import {
 } from '@/types'
 
 export async function testDatabaseEnums(db: PostgresJsDatabase) {
+  // eslint-disable-next-line no-console
   console.log('Testing database enum columns...')
 
   // Create a transaction
-  const transaction = await db.transaction(async (tx) => {
+  await db.transaction(async (tx) => {
     // Payments table
     await testEnumColumn(
       payments,
@@ -277,7 +278,7 @@ export async function testDatabaseEnums(db: PostgresJsDatabase) {
     )
     await testEnumColumn(prices, prices.type, PriceType, tx)
     await testEnumColumn(prices, prices.currency, CurrencyCode, tx)
-
+    // eslint-disable-next-line no-console
     console.log('All enum columns tested successfully!')
   })
 }

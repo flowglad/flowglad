@@ -35,7 +35,7 @@ async function main() {
   await migrateDb()
   // eslint-disable-next-line no-console
   console.info('Validating database enums...')
-  // await testDatabaseEnums(db)
+  await testDatabaseEnums(db)
   // eslint-disable-next-line no-console
   console.info('Database enums validated successfully.')
   process.exit(0)

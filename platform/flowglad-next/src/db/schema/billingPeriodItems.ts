@@ -79,10 +79,7 @@ const createOnlyColumns = {
 
 const readOnlyColumns = {} as const
 
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
+const hiddenColumns = {} as const
 
 const nonClientEditableColumns = {
   ...hiddenColumns,

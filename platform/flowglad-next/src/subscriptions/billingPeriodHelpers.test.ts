@@ -453,6 +453,8 @@ describe('Subscription Billing Period Transition', async () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         externalId: null,
+        createdByCommit: 'test',
+        updatedByCommit: 'test',
       } as SubscriptionItem.Record
     })
 

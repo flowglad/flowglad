@@ -492,6 +492,8 @@ export const ommittedColumnsForInsertSchema = {
   id: true,
   createdAt: true,
   updatedAt: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 type SchemaRefinements<T extends PgTableWithId> = Parameters<
