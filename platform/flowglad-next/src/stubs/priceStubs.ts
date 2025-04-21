@@ -19,4 +19,6 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   currency: CurrencyCode.USD,
   externalId: null,
   usageMeterId: null,
+  createdByCommit: 'test',
+  updatedByCommit: 'test',
 }

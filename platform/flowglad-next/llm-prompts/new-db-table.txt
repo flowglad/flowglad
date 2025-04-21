@@ -129,6 +129,8 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
 
       const hiddenColumns = {
         superSecretColumn: true,
+        createdByCommit: true, // always include
+        updatedByCommit: true, // always include
       } as const
       
       const nonClientEditableColumns = {
@@ -263,3 +265,28 @@ We use "edit" instead of "update" to make it clear that this update may have sid
   const unicornRiderInsertSchema = z.union([firstUnicornRiderInsertSchema, secondUnicornRiderInsertSchema])
   const unicornRiderSelectSchema = z.union([firstUnicornRiderSelectSchema, secondUnicornRiderSelectSchema])
   ```
+
+# Update testDatabaseEnums.ts Script
+
+After creating the new table schema, you must update the testDatabaseEnums.ts script to test any enum columns in your new table. This ensures that all enum columns are properly validated against their expected values.
+
+For each enum column in your new table, add a test call to the testDatabaseEnums.ts script's transaction. Here's how to do it:
+
+1. Open the file `./src/scripts/testDatabaseEnums.ts`
+2. Import your new table and any enum types you've created:
+   ```typescript
+   import { unicornRiders } from '@/db/schema/unicornRiders'
+   import { UnicornRiderStatus } from '@/types'
+   ```
+3. Add a test call for each enum column in your table within the transaction block:
+   ```typescript
+   // UnicornRiders table
+   await testEnumColumn(
+     unicornRiders,
+     unicornRiders.status,
+     UnicornRiderStatus,
+     tx
+   )
+   ```
+
+Make sure to add these test calls for all enum columns in your new table. This ensures that the enum values in your database match the expected values defined in your TypeScript code.

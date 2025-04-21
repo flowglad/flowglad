@@ -74,6 +74,8 @@ const coreSubscriptionValues = {
   runBillingAtPeriodStart: false,
   stripeSetupIntentId: null,
   trialEnd: null,
+  createdByCommit: 'test',
+  updatedByCommit: 'test',
 } as const
 
 // Helper function to create subscription objects with all required properties

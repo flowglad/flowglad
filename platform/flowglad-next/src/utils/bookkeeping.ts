@@ -9,9 +9,7 @@ import {
 import {
   insertCustomer,
   selectCustomerById,
-  selectCustomers,
   updateCustomer,
-  upsertCustomerByEmailAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
 import {
   deleteOpenInvoicesForPurchase,
@@ -54,7 +52,6 @@ import {
   selectOpenNonExpiredCheckoutSessions,
   updateCheckoutSessionsForOpenPurchase,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { generatePaymentReceiptPdfTask } from '@/trigger/generate-receipt-pdf'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,

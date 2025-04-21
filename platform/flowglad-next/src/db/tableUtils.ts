@@ -13,7 +13,7 @@ import {
   count,
   SQL,
 } from 'drizzle-orm'
-import core from '@/utils/core'
+import core, { gitCommitId } from '@/utils/core'
 import {
   boolean,
   integer,
@@ -75,7 +75,7 @@ export const createSelectById = <
   table: T,
   config: ORMMethodCreatorConfig<T, S, I, U>
 ) => {
-  const selectSchema = config?.selectSchema
+  const selectSchema = config.selectSchema
 
   return async (
     id: InferSelectModel<T>['id'] extends string ? string : number,
@@ -95,7 +95,7 @@ export const createSelectById = <
       )
     }
     const result = results[0]
-    return selectSchema ? selectSchema.parse(result) : result
+    return selectSchema.parse(result)
   }
 }
 
@@ -290,6 +290,8 @@ export const tableBase = (idPrefix?: string) => ({
   })
     .defaultNow()
     .$onUpdate(() => new Date()),
+  createdByCommit: text('created_by_commit').$defaultFn(gitCommitId),
+  updatedByCommit: text('updated_by_commit').$defaultFn(gitCommitId),
   livemode: boolean('livemode').notNull(),
 })
 
@@ -490,6 +492,8 @@ export const ommittedColumnsForInsertSchema = {
   id: true,
   createdAt: true,
   updatedAt: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 type SchemaRefinements<T extends PgTableWithId> = Parameters<
@@ -840,4 +844,27 @@ export const createPaginatedTableRowInputSchema = <
     limit: z.number().min(1).max(100).optional(),
     filters: filterSchema.optional(),
   })
+}
+
+/**
+ * A simple tester function to verify that our typescript column mappings map to the
+ * enum values in the database.
+ * @param table
+ * @param column
+ * @param enumValues
+ * @param transaction
+ * @returns
+ */
+export const testEnumColumn = async <T extends PgTableWithId>(
+  table: T,
+  column: PgColumn,
+  enumValues: Record<string, string>,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(table)
+    .where(inArray(column, Object.values(enumValues)))
+    .limit(1)
+  return result
 }

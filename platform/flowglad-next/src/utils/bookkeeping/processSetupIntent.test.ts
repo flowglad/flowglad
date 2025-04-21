@@ -440,7 +440,7 @@ describe('Process setup intent', async () => {
       ).rejects.toThrow('Metadata type is not checkout_session')
     })
 
-    it('updates customer with Stripe customer ID when it changes', async () => {
+    it('throws when the stripe customer from the setup intent does not match the customer stripe customer id', async () => {
       const newCustomer = await setupCustomer({
         organizationId: organization.id,
         stripeCustomerId: `cus_${core.nanoid()}`,
@@ -456,10 +456,10 @@ describe('Process setup intent', async () => {
       })
       const newSetupIntentSucceeded = mockSucceededSetupIntent({
         checkoutSessionId: newCheckoutSession.id,
-        stripeCustomerId: newCustomer.stripeCustomerId!,
+        stripeCustomerId: 'newcust_' + core.nanoid(),
       })
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             newCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -468,12 +468,8 @@ describe('Process setup intent', async () => {
             newSetupIntentSucceeded,
             transaction
           )
-        }
-      )
-
-      expect(result.customer?.stripeCustomerId).toEqual(
-        newCustomer.stripeCustomerId
-      )
+        })
+      ).rejects.toThrow(/^Attempting to process checkout session/)
     })
 
     it('returns early for AddPaymentMethod checkout session type', async () => {

@@ -23,4 +23,6 @@ export const dummyOrganization: Organization.Record = {
   featureFlags: {},
   allowMultipleSubscriptionsPerCustomer: false,
   externalId: '___',
+  createdByCommit: 'test',
+  updatedByCommit: 'test',
 }

@@ -1,6 +1,6 @@
 /* 
 Run scripts using the script runner using the following command:
-NODE_ENV=production yarn tsx scripts/example.ts
+NODE_ENV=production pnpm tsx scripts/example.ts
 
 The script runner does the following:
  - Pulls environment variables from Vercel based on target env chosen
@@ -10,7 +10,10 @@ The script runner does the following:
 Post script run regardless of the script's success or failure, the script runner will pull development environment variables from Vercel
 
 To skip the environment pull step, add --skip-env-pull as an argument:
-NODE_ENV=production yarn tsx scripts/example.ts --skip-env-pull
+NODE_ENV=production pnpm tsx scripts/example.ts --skip-env-pull
+
+To use a custom database URL, pass it as the second argument:
+NODE_ENV=production pnpm tsx scripts/example.ts --skip-env-pull "postgresql://user:password@host:port/database"
 */
 
 import core from '@/utils/core'
@@ -39,7 +42,8 @@ function rmDevelopmentEnvVars() {
 }
 
 export default async function runScript(
-  scriptMethod: (db: PostgresJsDatabase) => Promise<void>
+  scriptMethod: (db: PostgresJsDatabase) => Promise<void>,
+  databaseUrl?: string
 ) {
   const env = process.env.NODE_ENV ?? 'development'
   const skipEnvPull = process.argv.includes('--skip-env-pull')
@@ -74,7 +78,9 @@ export default async function runScript(
   // To load env vars in the script
   loadEnvConfig(projectDir)
 
-  const client = postgres(core.envVariable('DATABASE_URL'))
+  // Use custom database URL if provided, otherwise use the default from environment variables
+  const dbUrl = databaseUrl || core.envVariable('DATABASE_URL')
+  const client = postgres(dbUrl)
   const db = drizzle(client, { logger: true })
 
   try {

@@ -140,6 +140,7 @@ function DialogTitle({
   )
 }
 
+// todo : coloring
 function DialogDescription({
   className,
   ...props

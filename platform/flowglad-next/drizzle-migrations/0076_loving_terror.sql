@@ -1,5 +1,5 @@
 DO $$ BEGIN
-    CREATE TYPE "FlowgladEventType" AS ENUM ('scheduler.event.created');
+    CREATE TYPE "FlowgladEventType" AS ENUM ('scheduler.event.created', 'customer.created', 'customer.updated', 'purchase.completed', 'payment.failed', 'payment.succeeded', 'subscription.created', 'subscription.updated', 'subscription.cancelled');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -17,7 +17,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-    CREATE TYPE "EventNoun" AS ENUM ('CustomerProfile', 'User', 'Purchase', 'Invoice', 'Payment', 'Flow', 'Form', 'FormSubmission', 'Product', 'Testimonial');
+    CREATE TYPE "EventNoun" AS ENUM ('Customer', 'User', 'Purchase', 'Invoice', 'Payment', 'Product');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

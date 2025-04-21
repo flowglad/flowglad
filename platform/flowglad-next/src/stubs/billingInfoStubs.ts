@@ -39,6 +39,8 @@ const checkoutSession: CheckoutSession.Record = {
   invoiceId: null,
   type: CheckoutSessionType.Product,
   targetSubscriptionId: null,
+  createdByCommit: 'test',
+  updatedByCommit: 'test',
 }
 
 const billingInfoDefaults = {

@@ -328,6 +328,8 @@ const hiddenColumns = {
   expires: true,
   stripePaymentIntentId: true,
   stripeSetupIntentId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 const CHECKOUT_SESSION_CLIENT_SELECT_SCHEMA_DESCRIPTION =

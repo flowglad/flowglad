@@ -15,6 +15,7 @@ import {
   constructUniqueIndex,
   metadataSchema,
   SelectConditions,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -77,11 +78,7 @@ const columnRefinements = {
 export const subscriptionItemsInsertSchema = createSelectSchema(
   subscriptionItems,
   columnRefinements
-).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-})
+).omit(ommittedColumnsForInsertSchema)
 
 export const subscriptionItemsSelectSchema =
   createSelectSchema(subscriptionItems).extend(columnRefinements)

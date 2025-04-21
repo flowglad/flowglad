@@ -216,6 +216,8 @@ const hiddenColumns = {
   stripeTaxCalculationId: true,
   stripeTaxTransactionId: true,
   internalNotes: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 export const subscriptionFeeCalculationClientSelectSchema =

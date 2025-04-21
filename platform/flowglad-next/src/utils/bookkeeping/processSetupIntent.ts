@@ -317,10 +317,5 @@ export const processSetupIntentSucceeded = async (
     transaction
   )
 
-  return {
-    purchase: updatedPurchase,
-    checkoutSession,
-    billingRun,
-    customer,
-  }
+  return { purchase: updatedPurchase, checkoutSession, billingRun }
 }

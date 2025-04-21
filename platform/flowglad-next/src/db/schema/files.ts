@@ -9,8 +9,6 @@ import {
   tableBase,
   notNullStringForeignKey,
   livemodePolicy,
-  createSupabaseWebhookSchema,
-  ommittedColumnsForInsertSchema,
   SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'

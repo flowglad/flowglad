@@ -15,11 +15,6 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
-import {
-  products,
-  productsClientSelectSchema,
-} from '@/db/schema/products'
-
 const TABLE_NAME = 'catalogs'
 
 export const catalogs = pgTable(

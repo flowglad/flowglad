@@ -15,4 +15,6 @@ export const dummyProduct: Product.Record = {
   pluralQuantityLabel: null,
   catalogId: 'catalog_111____',
   externalId: null,
+  createdByCommit: 'test',
+  updatedByCommit: 'test',
 }

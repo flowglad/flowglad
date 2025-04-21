@@ -145,6 +145,8 @@ describe('calculateOverlapPercentage', () => {
       livemode: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      createdByCommit: 'test',
+      updatedByCommit: 'test',
     }
   }
 
@@ -360,6 +362,8 @@ describe('calculateBillingPeriodItemsValue', () => {
       livemode: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      createdByCommit: 'test',
+      updatedByCommit: 'test',
     }
   }
 
@@ -1042,6 +1046,8 @@ describe('Edge Cases and Error Handling', () => {
       livemode: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      createdByCommit: 'test',
+      updatedByCommit: 'test',
     }
 
     const feb2024 = new Date('2024-02-15T05:00:00.000Z')
@@ -1068,6 +1074,8 @@ describe('Edge Cases and Error Handling', () => {
       livemode: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      createdByCommit: 'test',
+      updatedByCommit: 'test',
     }
 
     // Calculate overlap with February
@@ -1104,6 +1112,8 @@ describe('Edge Cases and Error Handling', () => {
       livemode: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      createdByCommit: 'test',
+      updatedByCommit: 'test',
     }
 
     // Calculate overlap with January 2024

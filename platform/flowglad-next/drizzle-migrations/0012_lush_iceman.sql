@@ -1,5 +1,5 @@
 DO $$ BEGIN
-    CREATE TYPE "InvoiceStatus" AS ENUM ('draft', 'open', 'paid', 'void', 'uncollectible');
+    CREATE TYPE "InvoiceStatus" AS ENUM ('draft', 'open', 'paid', 'uncollectible', 'void', 'refunded', 'partially_refunded', 'awaiting_payment_confirmation');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

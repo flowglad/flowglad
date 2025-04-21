@@ -1,5 +1,5 @@
 DO $$ BEGIN
-    CREATE TYPE "PaymentMethod" AS ENUM ('card', 'bank', 'other');
+    CREATE TYPE "PaymentMethod" AS ENUM ('card', 'us_bank_account', 'sepa_debit', 'link');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -11,7 +11,7 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE "PaymentStatus" AS ENUM ('canceled', 'processing', 'succeeded');
+    CREATE TYPE "PaymentStatus" AS ENUM ('canceled', 'processing', 'succeeded', 'requires_confirmation', 'requires_action');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

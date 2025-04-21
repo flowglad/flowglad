@@ -28,6 +28,8 @@ export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchas
     billingAddress: null,
     livemode: false,
     metadata: null,
+    createdByCommit: 'test',
+    updatedByCommit: 'test',
   }
 
 export const subscriptionWithTrialDummyPurchase: Purchase.SubscriptionPurchaseRecord =
