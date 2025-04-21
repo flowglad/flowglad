@@ -51,6 +51,8 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   cancelUrl: null,
   type: CheckoutSessionType.Product,
   targetSubscriptionId: null,
+  createdByCommit: 'test',
+  updatedByCommit: 'test',
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =

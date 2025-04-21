@@ -20,6 +20,8 @@ jobs:
       TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
       UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
       UNKEY_API_ID: ${{ secrets.UNKEY_API_ID }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
     
     steps:
       - name: Checkout repository
@@ -73,4 +75,14 @@ jobs:
         run: pnpm test
       
       - name: Run test teardown
-        run: pnpm test:teardown 
+        run: pnpm test:teardown
+        
+      # - name: Run database enum tests
+      #   if: always()
+      #   run: |
+      #     if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+      #       echo "Running database enum tests against production database"
+      #       NODE_ENV=production pnpm tsx src/scripts/testDatabaseEnums.ts --skip-env-pull "${{ env.PROD_DATABASE_URL }}"
+      #     else
+      #       echo "Running database enum tests against staging database"
+      #       NODE_ENV=production pnpm tsx src/scripts/testDatabaseEnums.ts --skip-env-pull "${{ env.STAGING_DATABASE_URL }}" 

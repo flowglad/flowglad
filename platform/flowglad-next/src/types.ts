@@ -558,7 +558,6 @@ export enum FlowgladEventType {
   SchedulerEventCreated = 'scheduler.event.created',
   CustomerCreated = 'customer.created',
   CustomerUpdated = 'customer.updated',
-  OpenPurchaseCreated = 'purchase.open.created',
   PurchaseCompleted = 'purchase.completed',
   PaymentFailed = 'payment.failed',
   PaymentSucceeded = 'payment.succeeded',
