@@ -307,19 +307,27 @@ const PaymentForm = () => {
         console.log(
           'about to call confirm',
           `flowType === CheckoutFlowType.Subscription ||
-          flowType === CheckoutFlowType.AddPaymentMethod`
+          flowType === CheckoutFlowType.AddPaymentMethod`,
+          useConfirmSetup
         )
         let error: StripeError | undefined
         if (useConfirmSetup) {
-          console.log('using confirmSetup')
-          const { error: confirmationError } =
-            await stripe.confirmSetup({
-              elements,
-              confirmParams: {
-                return_url: redirectUrl,
-              },
-            })
-          error = confirmationError
+          try {
+            console.log('using confirmSetup')
+            const { error: confirmationError } =
+              await stripe.confirmSetup({
+                elements,
+                confirmParams: {
+                  return_url: redirectUrl,
+                },
+              })
+            error = confirmationError
+          } catch (e) {
+            console.error('confirmSetup threw error:', e)
+            setErrorMessage((e as Error).message)
+            setIsSubmitting(false)
+            return
+          }
         } else {
           console.log('using confirmPayment')
           const { error: confirmationError } =
