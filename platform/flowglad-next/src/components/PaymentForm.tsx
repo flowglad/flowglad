@@ -319,6 +319,15 @@ const PaymentForm = () => {
                 elements,
                 confirmParams: {
                   return_url: redirectUrl,
+                  payment_method_data: readonlyCustomerEmail
+                    ? {
+                        billing_details: {
+                          email: hasEmail
+                            ? customer.email
+                            : undefined,
+                        },
+                      }
+                    : undefined,
                 },
               })
             error = confirmationError
