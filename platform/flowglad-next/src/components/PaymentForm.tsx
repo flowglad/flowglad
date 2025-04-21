@@ -31,6 +31,7 @@ import {
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
+import { StripeError } from '@stripe/stripe-js'
 
 export const PaymentLoadingForm = ({
   disableAnimation,
@@ -278,46 +279,66 @@ const PaymentForm = () => {
           window.location.href = `${redirectUrl}?checkout_session=${checkoutPageContext.checkoutSession.id}`
           return
         }
-
         // Trigger form validation and wallet collection
-        const { error: submitError } = await elements.submit()
+        const submitResult = await elements.submit()
+        const { error: submitError } = submitResult
         if (submitError) {
           setErrorMessage(submitError.message)
           setIsSubmitting(false)
           return
         }
-
-        const confirmationFunction =
-          flowType === CheckoutFlowType.Subscription ||
-          flowType === CheckoutFlowType.AddPaymentMethod
-            ? stripe.confirmSetup
-            : stripe.confirmPayment
-        const hasEmail = customer?.email
         // Create the ConfirmationToken using the details collected by the Payment Element
         // and additional shipping information
-        const { error: confirmationError } =
-          await confirmationFunction({
-            elements,
-            confirmParams: {
-              return_url: redirectUrl,
-              /**
-               * If we have a customer (which only happens when there's an open purchase),
-               * we want to use the customer email.
-               * Otherwise, we want to use the email collected from the email element.
-               */
-              payment_method_data: {
-                billing_details: {
-                  email: hasEmail ? customer.email : undefined,
+        const useConfirmSetup =
+          flowType === CheckoutFlowType.Subscription ||
+          flowType === CheckoutFlowType.AddPaymentMethod
+        let error: StripeError | undefined
+        if (useConfirmSetup) {
+          try {
+            const { error: confirmationError } =
+              await stripe.confirmSetup({
+                elements,
+                confirmParams: {
+                  return_url: redirectUrl,
+                  payment_method_data: readonlyCustomerEmail
+                    ? {
+                        billing_details: {
+                          email: readonlyCustomerEmail,
+                        },
+                      }
+                    : undefined,
+                },
+              })
+            error = confirmationError
+          } catch (e) {
+            setErrorMessage((e as Error).message)
+            setIsSubmitting(false)
+            return
+          }
+        } else {
+          const { error: confirmationError } =
+            await stripe.confirmPayment({
+              elements,
+              confirmParams: {
+                return_url: redirectUrl,
+                /**
+                 * If we have a customer we want to use the customer email.
+                 * Otherwise, we want to use the email collected from the email element.
+                 */
+                payment_method_data: {
+                  billing_details: {
+                    email: readonlyCustomerEmail,
+                  },
                 },
               },
-            },
-          })
-
-        if (confirmationError) {
+            })
+          error = confirmationError
+        }
+        if (error) {
           // This point will only be reached if there is an immediate error when
           // confirming the payment. Show error to your customer (for example, payment
           // details incomplete)
-          setErrorMessage(confirmationError.message)
+          setErrorMessage(error?.message)
         } else {
           // Your customer will be redirected to your `return_url`. For some payment
           // methods like iDEAL, your customer will be redirected to an intermediate
