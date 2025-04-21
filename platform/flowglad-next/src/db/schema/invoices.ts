@@ -83,19 +83,12 @@ export const invoices = pgTable(
     })
       .notNull()
       .default(InvoiceStatus.Draft),
-    billingInterval: pgEnumColumn({
-      enumName: 'interval',
-      columnName: 'billing_interval',
-      enumBase: IntervalUnit,
-    }),
     subscriptionId: nullableStringForeignKey(
       'subscription_id',
       subscriptions
     ),
     billingPeriodStartDate: timestamp('billing_period_start_date'),
     billingPeriodEndDate: timestamp('billing_period_end_date'),
-    billingIntervalCount: integer('billing_interval_count'),
-    billingAnchorDate: timestamp('billing_anchor_date'),
     ownerMembershipId: nullableStringForeignKey(
       'owner_membership_id',
       memberships
