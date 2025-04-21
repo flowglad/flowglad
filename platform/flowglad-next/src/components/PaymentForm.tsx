@@ -341,7 +341,7 @@ const PaymentForm = () => {
           // site first to authorize the payment, then redirected to the `return_url`.
         }
         setIsSubmitting(false)
-        console.log('submitting is false')
+        console.log('submitting is false..')
       }}
     >
       {
