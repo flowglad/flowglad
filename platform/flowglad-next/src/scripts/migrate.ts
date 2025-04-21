@@ -3,7 +3,7 @@ import { loadEnvConfig } from '@next/env'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import { testDatabaseEnums } from './testDatabaseEnums'
+import { testDatabaseEnums } from '@/db/testEnums'
 
 const projectDir = process.cwd()
 // To load env vars in a script
@@ -35,7 +35,9 @@ async function main() {
   await migrateDb()
   // eslint-disable-next-line no-console
   console.info('Validating database enums...')
-  // await testDatabaseEnums(db)
+  // await db.transaction(async (tx) => {
+  //   await testDatabaseEnums(tx)
+  // })
   // eslint-disable-next-line no-console
   console.info('Database enums validated successfully.')
   process.exit(0)
