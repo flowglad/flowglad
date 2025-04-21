@@ -12,6 +12,7 @@ describe('FlowgladServer Billing Integration Tests', () => {
       }),
       baseURL:
         process.env.FLOWGLAD_BASE_URL || 'http://localhost:3000',
+      apiKey: process.env.FLOWGLAD_SECRET_KEY,
     }
 
     const server = new FlowgladServer(params)
