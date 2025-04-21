@@ -11,7 +11,10 @@ on:
       - 'packages/server/**'
       - 'platform/flowglad-next/**'
       - '.github/workflows/flowglad-server-integration-tests.yml'
+  
+  # Run on pull requests to main and staging
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - main
       - staging
@@ -19,6 +22,7 @@ on:
       - 'packages/server/**'
       - 'platform/flowglad-next/**'
       - '.github/workflows/flowglad-server-integration-tests.yml'
+  
   workflow_dispatch:
 
 jobs:
@@ -122,10 +126,10 @@ jobs:
           echo "Server started successfully"
       
       # TODO: uncomment this when we have the test suite working
-      # - name: Run FlowgladServer integration tests
-      #   run: |
-      #     cd packages/server
-      #     pnpm test:integration
+      - name: Run FlowgladServer integration tests
+        run: |
+          cd packages/server
+          pnpm test:integration
       
       - name: Run test teardown
         run: |
