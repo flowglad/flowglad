@@ -287,12 +287,6 @@ const PaymentForm = () => {
           setIsSubmitting(false)
           return
         }
-        const confirmationFunction =
-          flowType === CheckoutFlowType.Subscription ||
-          flowType === CheckoutFlowType.AddPaymentMethod
-            ? stripe.confirmSetup
-            : stripe.confirmPayment
-        const hasEmail = customer?.email
         // Create the ConfirmationToken using the details collected by the Payment Element
         // and additional shipping information
         const useConfirmSetup =
