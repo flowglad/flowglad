@@ -266,7 +266,6 @@ const PaymentForm = () => {
           })
         } catch (error: unknown) {
           setIsSubmitting(false)
-          console.log('confirmCheckoutSession error', error)
           setErrorMessage((error as Error).message)
         }
         /**
@@ -277,22 +276,17 @@ const PaymentForm = () => {
           totalDueAmount === 0 &&
           flowType === CheckoutFlowType.SinglePayment
         ) {
-          console.log('redirecting to', redirectUrl)
           window.location.href = `${redirectUrl}?checkout_session=${checkoutPageContext.checkoutSession.id}`
           return
         }
-        console.log('about to submit elements', elements)
         // Trigger form validation and wallet collection
         const submitResult = await elements.submit()
-        console.log('submitted elements', submitResult)
         const { error: submitError } = submitResult
         if (submitError) {
           setErrorMessage(submitError.message)
           setIsSubmitting(false)
-          console.log('submit error', submitError)
           return
         }
-        console.log('flowType', flowType)
         const confirmationFunction =
           flowType === CheckoutFlowType.Subscription ||
           flowType === CheckoutFlowType.AddPaymentMethod
@@ -304,16 +298,9 @@ const PaymentForm = () => {
         const useConfirmSetup =
           flowType === CheckoutFlowType.Subscription ||
           flowType === CheckoutFlowType.AddPaymentMethod
-        console.log(
-          'about to call confirm',
-          `flowType === CheckoutFlowType.Subscription ||
-          flowType === CheckoutFlowType.AddPaymentMethod`,
-          useConfirmSetup
-        )
         let error: StripeError | undefined
         if (useConfirmSetup) {
           try {
-            console.log('using confirmSetup')
             const { error: confirmationError } =
               await stripe.confirmSetup({
                 elements,
@@ -336,7 +323,6 @@ const PaymentForm = () => {
             return
           }
         } else {
-          console.log('using confirmPayment')
           const { error: confirmationError } =
             await stripe.confirmPayment({
               elements,
@@ -355,24 +341,17 @@ const PaymentForm = () => {
             })
           error = confirmationError
         }
-        console.log('confirmation error', error)
         if (error) {
           // This point will only be reached if there is an immediate error when
           // confirming the payment. Show error to your customer (for example, payment
           // details incomplete)
-          console.log(
-            'setting confirmation error message',
-            error?.message
-          )
           setErrorMessage(error?.message)
         } else {
-          console.log('no confirmation error')
           // Your customer will be redirected to your `return_url`. For some payment
           // methods like iDEAL, your customer will be redirected to an intermediate
           // site first to authorize the payment, then redirected to the `return_url`.
         }
         setIsSubmitting(false)
-        console.log('submitting is false..')
       }}
     >
       {
