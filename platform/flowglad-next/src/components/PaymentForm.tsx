@@ -322,9 +322,7 @@ const PaymentForm = () => {
                   payment_method_data: readonlyCustomerEmail
                     ? {
                         billing_details: {
-                          email: hasEmail
-                            ? customer.email
-                            : undefined,
+                          email: readonlyCustomerEmail,
                         },
                       }
                     : undefined,
@@ -350,7 +348,7 @@ const PaymentForm = () => {
                  */
                 payment_method_data: {
                   billing_details: {
-                    email: hasEmail ? customer.email : undefined,
+                    email: readonlyCustomerEmail,
                   },
                 },
               },
