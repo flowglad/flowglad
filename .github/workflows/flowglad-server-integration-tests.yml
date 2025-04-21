@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - staging
+      - integration-tests
 
     paths:
       - 'packages/server/**'
