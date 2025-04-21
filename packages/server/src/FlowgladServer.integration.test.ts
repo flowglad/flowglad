@@ -7,7 +7,7 @@ describe('FlowgladServer Integration Tests', () => {
   describe('getRequestingcustomerId', () => {
     it('should return the customer ID', async () => {
       const customerId =
-        await flowgladServer.getRequestingcustomerId()
+        await flowgladServer.getRequestingCustomerId()
       expect(customerId).toBe('test-user-id')
     })
   })

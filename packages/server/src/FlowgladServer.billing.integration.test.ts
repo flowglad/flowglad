@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { FlowgladServer } from '../FlowgladServer'
-import { BaseFlowgladServerSessionParams } from '../types'
+import { FlowgladServer } from './FlowgladServer'
+import { BaseFlowgladServerSessionParams } from './types'
 
-describe('FlowgladServer Integration Tests', () => {
+describe('FlowgladServer Billing Integration Tests', () => {
   it('should initialize with default configuration', async () => {
     const params: BaseFlowgladServerSessionParams = {
       getRequestingCustomer: async () => ({
