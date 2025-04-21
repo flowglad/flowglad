@@ -1,5 +1,5 @@
 {
-  "id": "438ea32f-f2d9-46ad-a6e7-a26417acc8bc",
+  "id": "104cfd5d-3ecd-479e-b449-a17162a6af07",
   "prevId": "af99c50c-7881-4f31-a5f3-b691162e3603",
   "version": "7",
   "dialect": "postgresql",
@@ -27,6 +27,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -161,6 +173,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -322,6 +346,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -464,6 +500,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -670,6 +718,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -799,6 +859,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -1196,6 +1268,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -1293,6 +1377,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -1606,6 +1702,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -1836,6 +1944,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -2018,6 +2138,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -2333,6 +2465,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -2663,6 +2807,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -2849,6 +3005,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -2993,6 +3161,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -3404,6 +3584,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -3552,6 +3744,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -3707,6 +3911,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -3903,6 +4119,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "name": {
           "name": "name",
@@ -4173,6 +4401,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -4348,6 +4588,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -4850,6 +5102,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -5101,6 +5365,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -5300,6 +5576,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -5514,6 +5802,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -5653,6 +5953,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -5931,6 +6243,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -6117,6 +6441,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "livemode": {
           "name": "livemode",
@@ -6464,6 +6800,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -6802,6 +7150,18 @@
           "notNull": false,
           "default": "now()"
         },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "livemode": {
           "name": "livemode",
           "type": "boolean",
@@ -6951,6 +7311,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "name": {
           "name": "name",
