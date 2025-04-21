@@ -108,6 +108,10 @@ jobs:
           cd platform/flowglad-next
           pnpm setup:integration-test-server
 
+      - name: Log FLOWGLAD_SECRET_KEY
+        run: |
+          echo "FLOWGLAD_SECRET_KEY is set to: $FLOWGLAD_SECRET_KEY"
+
       - name: Start flowglad-next server
         run: |
           cd platform/flowglad-next
