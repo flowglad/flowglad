@@ -28,7 +28,6 @@ const eventTypeToRetentionPolicy: Record<
     EventRetentionPolicy.Short,
   [FlowgladEventType.CustomerCreated]: EventRetentionPolicy.Short,
   [FlowgladEventType.CustomerUpdated]: EventRetentionPolicy.Short,
-  [FlowgladEventType.OpenPurchaseCreated]: EventRetentionPolicy.Short,
   [FlowgladEventType.PurchaseCompleted]: EventRetentionPolicy.Short,
   [FlowgladEventType.PaymentFailed]: EventRetentionPolicy.Short,
   [FlowgladEventType.PaymentSucceeded]:

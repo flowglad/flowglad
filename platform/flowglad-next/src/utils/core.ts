@@ -534,6 +534,7 @@ export const core = {
   authorizationHeaderTokenMatchesEnvToken,
   createInvoiceNumber,
   formatDateRange,
+  gitCommitId,
   safeZodNullOrUndefined,
   safeZodPositiveInteger,
   safeZodDate,

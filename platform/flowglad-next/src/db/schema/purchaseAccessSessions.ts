@@ -80,14 +80,22 @@ const readonlyColumns = {
   token: true,
 } as const
 
+const hiddenColumns = {} as const
+
 const purchaseAccessSessionsClientSelectSchema =
-  purchaseAccessSessionsSelectSchema
+  purchaseAccessSessionsSelectSchema.omit(hiddenColumns)
 
 const purchaseAccessSessionsClientInsertSchema =
-  purchaseAccessSessionsInsertSchema.omit(readonlyColumns)
+  purchaseAccessSessionsInsertSchema.omit({
+    ...readonlyColumns,
+    ...hiddenColumns,
+  })
 
 const purchaseAccessSessionsClientUpdateSchema =
-  purchaseAccessSessionsUpdateSchema.omit(readonlyColumns)
+  purchaseAccessSessionsUpdateSchema.omit({
+    ...readonlyColumns,
+    ...hiddenColumns,
+  })
 
 export namespace PurchaseAccessSession {
   export type Insert = z.infer<
