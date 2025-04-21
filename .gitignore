@@ -21,3 +21,5 @@ dist
 generated/styles.ts
 .turbo
 .cursor
+
+.ion-target
