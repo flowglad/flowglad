@@ -101,7 +101,12 @@ jobs:
         run: |
           cd platform/flowglad-next
           pnpm vercel:env-pull --environment=development --token=${{ secrets.VERCEL_TOKEN }}
-      
+
+      - name: Setup integration test server
+        run: |
+          cd platform/flowglad-next
+          pnpm setup:integration-test-server
+
       - name: Start flowglad-next server
         run: |
           cd platform/flowglad-next

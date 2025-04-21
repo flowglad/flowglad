@@ -35,6 +35,7 @@ import {
   DiscountAmountType,
   DiscountDuration,
   FeeCalculationType,
+  FlowgladApiKeyType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -58,6 +59,7 @@ import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { BillingAddress } from '@/db/schema/organizations'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
 
 const insertCountries = async () => {
   await db
@@ -823,6 +825,30 @@ export const setupFeeCalculation = async ({
         taxAmountFixed: 0,
         pretaxTotal: 1000,
         internalNotes: 'Test Fee Calculation',
+      },
+      transaction
+    )
+  })
+}
+
+export const setupApiKey = async ({
+  organizationId,
+  name,
+  livemode = true,
+}: {
+  organizationId: string
+  name: string
+  livemode?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertApiKey(
+      {
+        organizationId,
+        name,
+        livemode,
+        token: core.nanoid(),
+        type: FlowgladApiKeyType.Secret,
+        unkeyId: `uk_${core.nanoid()}`,
       },
       transaction
     )
