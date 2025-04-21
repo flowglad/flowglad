@@ -317,7 +317,6 @@ const PaymentForm = () => {
               })
             error = confirmationError
           } catch (e) {
-            console.error('confirmSetup threw error:', e)
             setErrorMessage((e as Error).message)
             setIsSubmitting(false)
             return
