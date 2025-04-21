@@ -31,6 +31,7 @@ import {
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
+import { StripeError } from '@stripe/stripe-js'
 
 export const PaymentLoadingForm = ({
   disableAnimation,
@@ -300,40 +301,55 @@ const PaymentForm = () => {
         const hasEmail = customer?.email
         // Create the ConfirmationToken using the details collected by the Payment Element
         // and additional shipping information
-
+        const useConfirmSetup =
+          flowType === CheckoutFlowType.Subscription ||
+          flowType === CheckoutFlowType.AddPaymentMethod
         console.log(
           'about to call confirm',
           `flowType === CheckoutFlowType.Subscription ||
-          flowType === CheckoutFlowType.AddPaymentMethod`,
-          flowType === CheckoutFlowType.Subscription ||
-            flowType === CheckoutFlowType.AddPaymentMethod
+          flowType === CheckoutFlowType.AddPaymentMethod`
         )
-        const { error: confirmationError } =
-          await confirmationFunction({
-            elements,
-            confirmParams: {
-              return_url: redirectUrl,
-              /**
-               * If we have a customer we want to use the customer email.
-               * Otherwise, we want to use the email collected from the email element.
-               */
-              payment_method_data: {
-                billing_details: {
-                  email: hasEmail ? customer.email : undefined,
+        let error: StripeError | undefined
+        if (useConfirmSetup) {
+          console.log('using confirmSetup')
+          const { error: confirmationError } =
+            await stripe.confirmSetup({
+              elements,
+              confirmParams: {
+                return_url: redirectUrl,
+              },
+            })
+          error = confirmationError
+        } else {
+          console.log('using confirmPayment')
+          const { error: confirmationError } =
+            await stripe.confirmPayment({
+              elements,
+              confirmParams: {
+                return_url: redirectUrl,
+                /**
+                 * If we have a customer we want to use the customer email.
+                 * Otherwise, we want to use the email collected from the email element.
+                 */
+                payment_method_data: {
+                  billing_details: {
+                    email: hasEmail ? customer.email : undefined,
+                  },
                 },
               },
-            },
-          })
-        console.log('confirmation error', confirmationError)
-        if (confirmationError) {
+            })
+          error = confirmationError
+        }
+        console.log('confirmation error', error)
+        if (error) {
           // This point will only be reached if there is an immediate error when
           // confirming the payment. Show error to your customer (for example, payment
           // details incomplete)
           console.log(
             'setting confirmation error message',
-            confirmationError.message
+            error?.message
           )
-          setErrorMessage(confirmationError.message)
+          setErrorMessage(error?.message)
         } else {
           console.log('no confirmation error')
           // Your customer will be redirected to your `return_url`. For some payment
