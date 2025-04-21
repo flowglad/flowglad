@@ -1,5 +1,5 @@
 {
-  "id": "e1450064-cc26-4ad3-8ae7-0bc2b6394bc0",
+  "id": "af99c50c-7881-4f31-a5f3-b691162e3603",
   "prevId": "c9b101eb-323e-4905-9623-4d82973695ed",
   "version": "7",
   "dialect": "postgresql",
@@ -63,7 +63,7 @@
           "name": "unkey_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "type": {
           "name": "type",
@@ -71,12 +71,6 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -3063,13 +3057,6 @@
           "notNull": true,
           "default": "'draft'"
         },
-        "billing_interval": {
-          "name": "billing_interval",
-          "type": "interval",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
         "subscription_id": {
           "name": "subscription_id",
           "type": "text",
@@ -3084,18 +3071,6 @@
         },
         "billing_period_end_date": {
           "name": "billing_period_end_date",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "billing_interval_count": {
-          "name": "billing_interval_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "billing_anchor_date": {
-          "name": "billing_anchor_date",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
@@ -4394,7 +4369,7 @@
         },
         "payment_method": {
           "name": "payment_method",
-          "type": "PaymentMethodType",
+          "type": "PaymentMethod",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true

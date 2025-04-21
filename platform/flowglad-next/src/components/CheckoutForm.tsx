@@ -97,6 +97,11 @@ function CheckoutForm() {
               borderRadius: '8px',
             },
             rules: {
+              '.CodeInput': {
+                border: '1px solid var(--colorBackground)',
+                color: 'var(--colorText)',
+                backgroundColor: '#1f1f1f',
+              },
               '.Input': {
                 border: '1px solid var(--colorBackground)',
                 color: 'var(--colorText)',

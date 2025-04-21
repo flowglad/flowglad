@@ -487,6 +487,9 @@ export const gitCommitId = () => {
   if (IS_DEV && !commitId) {
     return '__DEV__'
   }
+  if (IS_TEST && !commitId) {
+    return '__TEST__'
+  }
   if (!commitId) {
     throw new Error('VERCEL_GIT_COMMIT_SHA is not set')
   }
