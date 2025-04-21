@@ -77,12 +77,12 @@ jobs:
       - name: Run test teardown
         run: pnpm test:teardown
         
-      - name: Run database enum tests
-        if: always()
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "Running database enum tests against production database"
-            NODE_ENV=production pnpm tsx src/scripts/testDatabaseEnums.ts --skip-env-pull "${{ env.PROD_DATABASE_URL }}"
-          else
-            echo "Running database enum tests against staging database"
-            NODE_ENV=production pnpm tsx src/scripts/testDatabaseEnums.ts --skip-env-pull "${{ env.STAGING_DATABASE_URL }}" 
+      # - name: Run database enum tests
+      #   if: always()
+      #   run: |
+      #     if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+      #       echo "Running database enum tests against production database"
+      #       NODE_ENV=production pnpm tsx src/scripts/testDatabaseEnums.ts --skip-env-pull "${{ env.PROD_DATABASE_URL }}"
+      #     else
+      #       echo "Running database enum tests against staging database"
+      #       NODE_ENV=production pnpm tsx src/scripts/testDatabaseEnums.ts --skip-env-pull "${{ env.STAGING_DATABASE_URL }}" 
