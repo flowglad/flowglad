@@ -4,7 +4,7 @@ import { createTestFlowgladServer, retry } from './test/helpers'
 describe('FlowgladServer Integration Tests', () => {
   const flowgladServer = createTestFlowgladServer()
 
-  describe('getRequestingcustomerId', () => {
+  describe('getRequestingCustomerId', () => {
     it('should return the customer ID', async () => {
       const customerId =
         await flowgladServer.getRequestingCustomerId()

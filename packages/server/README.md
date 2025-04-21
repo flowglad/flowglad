@@ -31,7 +31,7 @@ const flowgladServer = new FlowgladServer({
 })
 
 // Get the customer ID
-const customerId = await flowgladServer.getRequestingcustomerId()
+const customerId = await flowgladServer.getRequestingCustomerId()
 
 // Get the customer session
 const session = await flowgladServer.getSession()
