@@ -35,7 +35,6 @@ import {
   DiscountAmountType,
   DiscountDuration,
   FeeCalculationType,
-  FlowgladApiKeyType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -59,7 +58,6 @@ import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { BillingAddress } from '@/db/schema/organizations'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
 
 const insertCountries = async () => {
   await db
@@ -84,7 +82,7 @@ export const dropDatabase = async () => {
   await db.delete(countries)
 }
 
-export const setupOrg = async (params?: { livemode?: boolean }) => {
+export const setupOrg = async () => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
     const [country] = await selectCountries({}, transaction)
@@ -96,38 +94,20 @@ export const setupOrg = async (params?: { livemode?: boolean }) => {
       },
       transaction
     )
-
     const catalog = await insertCatalog(
       {
         name: 'Flowglad Test Catalog',
         organizationId: organization.id,
-        livemode:
-          typeof params?.livemode === 'boolean'
-            ? params.livemode
-            : true,
+        livemode: true,
         isDefault: true,
       },
       transaction
     )
-    const { product, price } = await setupProduct({
-      organizationId: organization.id,
-      catalogId: catalog.id,
-    })
-    return { organization, product, price, catalog }
-  })
-}
 
-export const setupProduct = async (params: {
-  organizationId: string
-  livemode?: boolean
-  active?: boolean
-  catalogId: string
-}) => {
-  return adminTransaction(async ({ transaction }) => {
     const product = await insertProduct(
       {
         name: 'Flowglad Test Product',
-        organizationId: params.organizationId,
+        organizationId: organization.id,
         livemode: true,
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
@@ -135,7 +115,7 @@ export const setupProduct = async (params: {
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        catalogId: params.catalogId,
+        catalogId: catalog.id,
         externalId: null,
       },
       transaction
@@ -160,7 +140,7 @@ export const setupProduct = async (params: {
       },
       transaction
     )
-    return { product, price }
+    return { organization, product, price, catalog }
   })
 }
 
@@ -843,30 +823,6 @@ export const setupFeeCalculation = async ({
         taxAmountFixed: 0,
         pretaxTotal: 1000,
         internalNotes: 'Test Fee Calculation',
-      },
-      transaction
-    )
-  })
-}
-
-export const setupApiKey = async ({
-  organizationId,
-  name,
-  livemode = true,
-}: {
-  organizationId: string
-  name: string
-  livemode?: boolean
-}) => {
-  return adminTransaction(async ({ transaction }) => {
-    return insertApiKey(
-      {
-        organizationId,
-        name,
-        livemode,
-        token: core.nanoid(),
-        type: FlowgladApiKeyType.Secret,
-        unkeyId: `uk_${core.nanoid()}`,
       },
       transaction
     )
