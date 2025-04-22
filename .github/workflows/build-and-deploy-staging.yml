@@ -48,7 +48,7 @@ jobs:
         working-directory: platform/flowglad-next
 
       - name: Install Vercel CLI
-        run: pnpm install --global vercel@latest
+        run: pnpm install --global vercel@41.6.2
         
       - name: Pull Vercel Environment Variables
         run: |
@@ -77,3 +77,4 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prebuilt'
           vercel-project-name: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
+          vercel-version: 41.6.2
