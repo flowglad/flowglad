@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:test": "export FORCE_TEST_MODE=true && next dev",
-    "build": "pnpm trigger:deploy && pnpm lint && pnpm migrations:push && next build",
+    "build": "pnpm lint && pnpm migrations:push && next build && pnpm trigger:deploy",
     "start": "next start",
     "lint": "next lint && tsc --noEmit",
     "install-packages": "pnpm install --ignore-workspace",
@@ -18,7 +17,6 @@
     "vercel:env-pull": "vercel env pull .env.local",
     "postvercel:env-pull": "chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.local",
     "vercel:env-rm": "rm -rf .env.local",
-    "setup:integration-test-server": "export NODE_ENV=test && tsx ./src/scripts/setupIntegrationTestServer.ts",
     "trigger:dev": "dotenvx run -f .env.local -- npx trigger.dev@3.3.16 dev",
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
@@ -121,6 +119,7 @@
     "posthog-js": "^1.157.2",
     "posthog-node": "^4.1.1",
     "puppeteer": "^24.4.0",
+    "puppeteer-core": "^21.5.2",
     "query-string": "^9.1.1",
     "ramda": "^0.30.1",
     "react": "19.0.0",
@@ -181,8 +180,7 @@
   },
   "pnpm": {
     "overrides": {
-      "esbuild": "0.25.0",
-      "chromium-bidi": "2.1.2"
+      "esbuild": "0.25.0"
     },
     "patchedDependencies": {
       "trpc-swagger@1.2.6": "src/patches/trpc-swagger@1.2.6.patch"
