@@ -9,6 +9,7 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
   VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
   NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
+  TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
 
 jobs:
   deploy:
@@ -60,6 +61,8 @@ jobs:
       - name: Deploy Trigger
         run: export TRIGGER_ENV=staging && pnpm trigger:deploy
         working-directory: platform/flowglad-next
+        env:
+          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
 
       - name: Run migrations
         run: pnpm migrations:push
