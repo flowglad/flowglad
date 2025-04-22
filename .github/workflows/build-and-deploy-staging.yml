@@ -56,7 +56,7 @@ jobs:
 
       - name: Run migrations
         run: pnpm migrations:push
-          working-directory: platform/flowglad-next
+        working-directory: platform/flowglad-next
 
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
