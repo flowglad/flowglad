@@ -53,7 +53,7 @@ jobs:
         
       - name: Pull Vercel Environment Variables
         run: |
-          vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }} && cp .vercel/.env.local .env.local
+          vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }} && cp .vercel/.env.preview.local .env.local
       - name: Run lint
         run: pnpm lint
 
