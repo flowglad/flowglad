@@ -20,7 +20,7 @@ jobs:
     secrets: inherit
 
   merge-main-to-stable:
-    needs: deploy-staging  # This addresses point 2 - will only run after deploy-staging succeeds
+    needs: deploy-staging  # This will only run after deploy-staging succeeds
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
