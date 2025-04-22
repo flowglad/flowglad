@@ -20,63 +20,7 @@ env:
 
 jobs:
   deploy-stable-to-prod:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-      
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-      
-      - name: Install dependencies
-        run: pnpm install-packages
-        working-directory: platform/flowglad-next
-
-      - name: Install Vercel CLI
-        run: pnpm install --global vercel@41.6.2
-        
-      - name: Pull Vercel Environment Variables
-        run: |
-          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          cp .vercel/.env.production.local .env
-          cp .vercel/.env.production.local platform/flowglad-next/.env
-
-      - name: Run migrations
-        run: pnpm migrations:push
-        working-directory: platform/flowglad-next
-
-      - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-      
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-project-name: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
-          vercel-args: '--prebuilt --prod'
-          vercel-version: 41.6.2
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      environment: production
+    secrets: inherit
