@@ -1,0 +1,96 @@
+name: Merge to stable and deploy prod
+
+# This workflow is triggered by a push to the main branch with changes to the platform/flowglad-next directory
+# and merges main into staging
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'platform/flowglad-next/**'
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  NEXT_PUBLIC_CDN_URL: cdn-flowglad.com
+
+jobs:
+  merge-main-to-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email agree.ahmed@gmail.com
+
+      - name: Merge main to stable
+        run: |
+          git checkout stable
+          git merge --no-ff main -m "Merge main into stable ($(git log -1 --pretty=format:'%h - %s' main))"
+          git push "https://${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install dependencies
+        run: pnpm install-packages
+        working-directory: platform/flowglad-next
+
+      - name: Install Vercel CLI
+        run: pnpm install --global vercel@latest
+        
+      - name: Pull Vercel Environment Variables
+        run: |
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          cp .vercel/.env.production.local .env
+          cp .vercel/.env.production.local platform/flowglad-next/.env
+
+      - name: Run migrations
+        run: pnpm migrations:push
+        working-directory: platform/flowglad-next
+
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prebuilt --prod'
+
