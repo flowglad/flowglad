@@ -1,5 +1,5 @@
 import { defineConfig } from '@trigger.dev/sdk/v3'
-// import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
+import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
 import {
   additionalFiles,
   additionalPackages,
@@ -25,7 +25,7 @@ export default defineConfig({
   build: {
     extensions: [
       syncVercelEnvVars(),
-      // puppeteer(),
+      puppeteer(),
       additionalFiles({
         files: ['./public/fonts/**'],
       }),
