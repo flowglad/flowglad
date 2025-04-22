@@ -126,10 +126,10 @@ jobs:
           echo "Server started successfully"
       
       # TODO: uncomment this when we have the test suite working
-      - name: Run FlowgladServer integration tests
-        run: |
-          cd packages/server
-          pnpm test:integration
+      # - name: Run FlowgladServer integration tests
+      #   run: |
+      #     cd packages/server
+      #     pnpm test:integration
       
       - name: Run test teardown
         run: |

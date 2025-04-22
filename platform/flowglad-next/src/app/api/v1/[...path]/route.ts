@@ -29,6 +29,7 @@ import {
   refundPaymentRouteConfig,
 } from '@/server/routers/paymentsRouter'
 import core from '@/utils/core'
+import { testAPIHandlerWrapper } from './testWrapper'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -244,11 +245,9 @@ const innerHandler = async (
   )
 }
 
-const handlerWrapper = core.IS_TEST
-  ? innerHandler
+const handler = core.IS_TEST
+  ? testAPIHandlerWrapper(innerHandler)
   : withUnkey(innerHandler)
-
-const handler = handlerWrapper
 
 export {
   handler as GET,

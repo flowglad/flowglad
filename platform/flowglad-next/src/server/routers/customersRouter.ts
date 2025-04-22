@@ -53,6 +53,7 @@ import {
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import { selectCatalogForCustomer } from '@/db/tableMethods/catalogMethods'
 import { InvoiceStatus } from '@/types'
+import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -257,55 +258,13 @@ export const getCustomerBilling = protectedProcedure
       subscriptions,
     } = await authenticatedTransaction(
       async ({ transaction }) => {
-        const [customer] = await selectCustomers(
-          { ...input, organizationId },
+        return customerBillingTransaction(
+          {
+            externalId: input.externalId,
+            organizationId,
+          },
           transaction
         )
-        const subscriptions = await selectRichSubscriptions(
-          { customerId: customer.id },
-          transaction
-        )
-        const catalog = await selectCatalogForCustomer(
-          customer,
-          transaction
-        )
-        const customerFacingInvoiceStatuses: InvoiceStatus[] = [
-          InvoiceStatus.AwaitingPaymentConfirmation,
-          InvoiceStatus.Paid,
-          InvoiceStatus.PartiallyRefunded,
-          InvoiceStatus.Open,
-          InvoiceStatus.FullyRefunded,
-        ]
-        const invoices =
-          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-            {
-              customerId: customer.id,
-              status: customerFacingInvoiceStatuses,
-            },
-            transaction
-          )
-        const paymentMethods = await selectPaymentMethods(
-          { customerId: customer.id },
-          transaction
-        )
-        const purchases = await selectPurchases(
-          { customerId: customer.id },
-          transaction
-        )
-        const currentSubscriptions = subscriptions.filter((item) => {
-          return isSubscriptionCurrent(item.status)
-        })
-        return {
-          customer,
-          purchases,
-          invoices,
-          paymentMethods,
-          catalog,
-          subscriptions: subscriptions.map(subscriptionWithCurrent),
-          currentSubscriptions: currentSubscriptions.map(
-            subscriptionWithCurrent
-          ),
-        }
       },
       {
         apiKey: ctx.apiKey,

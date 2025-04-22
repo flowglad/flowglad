@@ -1,5 +1,6 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import core from '@/utils/core'
 import {
   NextContext,
@@ -29,16 +30,23 @@ export function testAPIHandlerWrapper(
         { status: 401 }
       )
     }
-    const [apiKeyRecord] = await adminTransaction(
-      async ({ transaction }) => {
-        return await selectApiKeys(
+    const { apiKeyRecord, membershipAndUser } =
+      await adminTransaction(async ({ transaction }) => {
+        const [apiKeyRecord] = await selectApiKeys(
           {
             token: apiKeyFromHeader,
           },
           transaction
         )
-      }
-    )
+        const [membershipAndUser] =
+          await selectMembershipsAndUsersByMembershipWhere(
+            {
+              organizationId: apiKeyRecord.organizationId,
+            },
+            transaction
+          )
+        return { apiKeyRecord, membershipAndUser }
+      })
     if (!apiKeyRecord) {
       return NextResponse.json(
         { error: 'Invalid API key' },
@@ -50,14 +58,18 @@ export function testAPIHandlerWrapper(
       environment: 'test',
       keyId: apiKeyFromHeader,
       expires: undefined,
-      meta: {},
+      meta: {
+        userId: membershipAndUser.user.id,
+      },
       name: 'testmode-key',
       valid: true,
       code: 'VALID',
       identity: {
         id: 'testmode-identity',
         externalId: apiKeyRecord.id,
-        meta: {},
+        meta: {
+          userId: membershipAndUser.user.id,
+        },
       },
     }
     return handler(

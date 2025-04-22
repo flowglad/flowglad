@@ -7,10 +7,13 @@ import db from './client'
 import { and, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
-import core, { isNil } from '@/utils/core'
+import core, { error, isNil } from '@/utils/core'
 import { memberships } from './schema/memberships'
 import { stackServerApp } from '@/stack'
 import { users } from './schema/users'
+import { selectApiKeys } from './tableMethods/apiKeyMethods'
+import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
+import { organizations } from './schema/organizations'
 
 type SessionUser = Session['user']
 
@@ -19,6 +22,62 @@ export interface JWTClaim extends JwtPayload {
   app_metadata: SessionUser['app_metadata']
   email: string
   role: string
+}
+
+/**
+ * Returns the userId of the user associated with the key, or undefined if the key is invalid.
+ * @param key
+ * @returns
+ */
+const keyVerify = async (
+  key: string
+): Promise<{
+  userId?: string
+  ownerId?: string
+  environment?: string
+}> => {
+  if (!core.IS_TEST) {
+    const { result, error } = await verifyKey({
+      key,
+      apiId: core.envVariable('UNKEY_API_ID'),
+    })
+    if (error) {
+      throw error
+    }
+    if (!result) {
+      throw new Error('No result')
+    }
+    return {
+      userId: result.meta!.userId as string,
+      ownerId: result.ownerId as string,
+      environment: result.environment as string,
+    }
+  }
+  const { membershipAndUser, organizationId } =
+    await adminTransaction(async ({ transaction }) => {
+      const [apiKeyRecord] = await selectApiKeys(
+        {
+          token: key,
+        },
+        transaction
+      )
+      const [membershipAndUser] =
+        await selectMembershipsAndUsersByMembershipWhere(
+          {
+            organizationId: apiKeyRecord.organizationId,
+          },
+          transaction
+        )
+      return {
+        membershipAndUser,
+        organizationId: apiKeyRecord.organizationId,
+      }
+    })
+  return {
+    userId: membershipAndUser.user.id,
+    ownerId: organizationId,
+    environment: 'test',
+  }
 }
 
 export const authenticatedTransaction = async <T>(
@@ -74,17 +133,13 @@ export const authenticatedTransaction = async <T>(
   }
 
   if (apiKey) {
-    const { result, error } = await verifyKey({
-      key: apiKey,
-      apiId: core.envVariable('UNKEY_API_ID'),
-    })
-    if (error) {
-      throw error
+    const result = await keyVerify(apiKey)
+    if (!result.userId) {
+      throw new Error('Invalid API key,')
     }
-    if (!result) {
-      throw new Error('No result')
+    if (!result.ownerId) {
+      throw new Error('Invalid API key, no ownerId')
     }
-    const apiKeyMetadataUserId = result.meta?.userId
     const membershipsForOrganization = await db
       .select()
       .from(memberships)
@@ -93,14 +148,13 @@ export const authenticatedTransaction = async <T>(
         and(
           eq(memberships.organizationId, result.ownerId!),
           or(
-            eq(memberships.userId, `${apiKeyMetadataUserId}`),
-            eq(users.clerkId, `${apiKeyMetadataUserId}`)
+            eq(memberships.userId, `${result.userId}`),
+            eq(users.clerkId, `${result.userId}`)
           )
         )
       )
     userId =
-      membershipsForOrganization[0].users.id ??
-      `${result.meta?.userId}`
+      membershipsForOrganization[0].users.id ?? `${result.userId}`
     livemode = result.environment === 'live'
     jwtClaim = {
       role: 'authenticated',

@@ -1,0 +1,2 @@
+CREATE POLICY "Enable all actions for own organizations" ON "customers" AS PERMISSIVE FOR ALL TO "authenticated" USING ("organization_id" in (select "organization_id" from "memberships"));--> statement-breakpoint
+CREATE POLICY "Disallow deletion" ON "customers" AS RESTRICTIVE FOR DELETE TO "authenticated" USING (false);

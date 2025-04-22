@@ -84,7 +84,7 @@ export const dropDatabase = async () => {
   await db.delete(countries)
 }
 
-export const setupOrg = async () => {
+export const setupOrg = async (params?: { livemode?: boolean }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
     const [country] = await selectCountries({}, transaction)
@@ -96,20 +96,38 @@ export const setupOrg = async () => {
       },
       transaction
     )
+
     const catalog = await insertCatalog(
       {
         name: 'Flowglad Test Catalog',
         organizationId: organization.id,
-        livemode: true,
+        livemode:
+          typeof params?.livemode === 'boolean'
+            ? params.livemode
+            : true,
         isDefault: true,
       },
       transaction
     )
+    const { product, price } = await setupProduct({
+      organizationId: organization.id,
+      catalogId: catalog.id,
+    })
+    return { organization, product, price, catalog }
+  })
+}
 
+export const setupProduct = async (params: {
+  organizationId: string
+  livemode?: boolean
+  active?: boolean
+  catalogId: string
+}) => {
+  return adminTransaction(async ({ transaction }) => {
     const product = await insertProduct(
       {
         name: 'Flowglad Test Product',
-        organizationId: organization.id,
+        organizationId: params.organizationId,
         livemode: true,
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
@@ -117,7 +135,7 @@ export const setupOrg = async () => {
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        catalogId: catalog.id,
+        catalogId: params.catalogId,
         externalId: null,
       },
       transaction
@@ -142,7 +160,7 @@ export const setupOrg = async () => {
       },
       transaction
     )
-    return { organization, product, price, catalog }
+    return { product, price }
   })
 }
 

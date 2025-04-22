@@ -151,7 +151,6 @@ export class FlowgladServer {
       const getResult = await this.getCustomer()
       customer = getResult.customer
     } catch (error) {
-      console.log('server error', error)
       if ((error as any).error.code === 'NOT_FOUND') {
         const session = await getSessionFromParams(
           this.createHandlerParams

@@ -207,7 +207,7 @@ export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
       string,
       UsageMeter.ClientRecord[]
     >()
-
+    console.log('====catalogResults', catalogResults)
     catalogResults.forEach(({ catalog, usageMeter }) => {
       uniqueCatalogsMap.set(
         catalog.id,
