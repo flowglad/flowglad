@@ -54,15 +54,15 @@ jobs:
           cp .vercel/.env.preview.local .env.local
           cp .vercel/.env.preview.local platform/flowglad-next/.env.local
 
-      - name: Run migrations
-        run: pnpm migrations:push
-        working-directory: platform/flowglad-next
-
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-      
+
       - name: Deploy Trigger
         run: export TRIGGER_ENV=staging && pnpm trigger:deploy
+        working-directory: platform/flowglad-next
+
+      - name: Run migrations
+        run: pnpm migrations:push
         working-directory: platform/flowglad-next
 
       - name: Deploy to Vercel
