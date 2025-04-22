@@ -4,8 +4,8 @@ import { withLogtail } from '@logtail/next'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: [
-    'puppeteer-core',
-    '@sparticuz/chromium',
+    // 'puppeteer-core',
+    // '@sparticuz/chromium',
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
     'zlib-sync',
