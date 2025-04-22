@@ -20,8 +20,14 @@ jobs:
     secrets: inherit
 
   merge-main-to-stable:
+    needs: deploy-staging  # This addresses point 2 - will only run after deploy-staging succeeds
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Need full history for merging
+
       - name: Configure Git
         run: |
           git config user.name github-actions
@@ -32,6 +38,3 @@ jobs:
           git checkout stable
           git merge --no-ff main -m "Merge main into stable ($(git log -1 --pretty=format:'%h - %s' main))"
           git push "https://${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" stable
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
