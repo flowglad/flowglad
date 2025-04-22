@@ -32,7 +32,6 @@ import {
 import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
 import { cx } from '@/utils/core'
 
-// Add useContainerSize hook
 const useContainerSize = () => {
   const [size, setSize] = React.useState({ width: 0, height: 0 })
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -75,7 +74,6 @@ const LegendItem = ({
   return (
     <li
       className={cx(
-        // base
         'group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition',
         hasOnValueChange
           ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -98,9 +96,7 @@ const LegendItem = ({
       />
       <p
         className={cx(
-          // base
           'truncate whitespace-nowrap text-xs',
-          // text color
           'text-gray-700 dark:text-gray-300',
           hasOnValueChange &&
             'group-hover:text-gray-900 dark:group-hover:text-gray-50',
@@ -154,7 +150,6 @@ const ScrollButton = ({
     <button
       type="button"
       className={cx(
-        // base
         'group inline-flex size-5 items-center truncate rounded transition',
         disabled
           ? 'cursor-not-allowed text-gray-400 dark:text-gray-600'
@@ -327,9 +322,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
           <>
             <div
               className={cx(
-                // base
                 'absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1',
-                // background color
                 'bg-white dark:bg-gray-950'
               )}
             >
@@ -444,20 +437,15 @@ const ChartTooltip = ({
     return (
       <div
         className={cx(
-          // base
           'rounded-md border text-sm shadow-md',
-          // border color
           'border-gray-200 dark:border-gray-800',
-          // background color
           'bg-white dark:bg-gray-950'
         )}
       >
         <div className={cx('border-b border-inherit px-4 py-2')}>
           <p
             className={cx(
-              // base
               'font-medium',
-              // text color
               'text-gray-900 dark:text-gray-50'
             )}
           >
@@ -480,9 +468,7 @@ const ChartTooltip = ({
                 />
                 <p
                   className={cx(
-                    // base
                     'whitespace-nowrap text-right',
-                    // text color
                     'text-gray-700 dark:text-gray-300'
                   )}
                 >
@@ -491,9 +477,7 @@ const ChartTooltip = ({
               </div>
               <p
                 className={cx(
-                  // base
                   'whitespace-nowrap text-right font-medium tabular-nums',
-                  // text color
                   'text-gray-900 dark:text-gray-50'
                 )}
               >
@@ -554,11 +538,6 @@ interface LineChartProps
   customTooltip?: React.ComponentType<TooltipProps>
   startEndOnlyYAxis?: boolean
 }
-
-/**
- * Warning! This file is fully copied from Tremor's AreaChart component.
- * It's not a good idea to edit it. It will probably break.
- */
 
 const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
   (props, ref) => {
@@ -699,28 +678,35 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 <linearGradient
                   key={`gradient-${category}`}
                   id={`gradient-${category}`}
-                  x1="1"
+                  x1="0"
                   y1="0"
                   x2="0"
-                  y2="0"
+                  y2="1"
                 >
                   <stop
                     offset="0%"
-                    stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
-                    stopOpacity="1"
+                    stopColor="#FFD700"
+                    stopOpacity="0.2"
                   />
                   <stop
                     offset="100%"
-                    stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
+                    stopColor="#FFD700"
                     stopOpacity="0"
                   />
                 </linearGradient>
               ))}
             </defs>
 
+            <CartesianGrid
+              vertical={true}
+              horizontal={false}
+              stroke="#2b2b2b"
+              strokeWidth={1}
+            />
+
             <XAxis
+              hide={true}
               padding={{ left: paddingValue, right: paddingValue }}
-              hide={!showXAxis}
               dataKey={index}
               interval={
                 startEndOnly ? 'preserveStartEnd' : intervalType
@@ -734,9 +720,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               fill=""
               stroke=""
               className={cx(
-                // base
                 'text-xs',
-                // text fill
                 'fill-gray-500 dark:fill-gray-500'
               )}
               tickLine={false}
@@ -755,7 +739,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             </XAxis>
             <YAxis
               width={yAxisWidth}
-              hide={!showYAxis}
+              hide={true}
               axisLine={false}
               tickLine={false}
               type="number"
@@ -763,9 +747,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               fill=""
               stroke=""
               className={cx(
-                // base
                 'text-xs',
-                // text fill
                 'fill-gray-500 dark:fill-gray-500'
               )}
               ticks={
@@ -871,111 +853,35 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             ) : null}
             {categories.map((category, index) => (
               <Line
-                className={cx(
-                  getColorClassName(
-                    categoryColors.get(
-                      category
-                    ) as AvailableChartColorsKeys,
-                    'stroke'
-                  )
-                )}
-                strokeOpacity={
-                  activeDot ||
-                  (activeLegend && activeLegend !== category)
-                    ? 0.3
-                    : 1
-                }
-                activeDot={(props: any) => {
-                  const {
-                    cx: cxCoord,
-                    cy: cyCoord,
-                    stroke,
-                    strokeLinecap,
-                    strokeLinejoin,
-                    strokeWidth,
-                    dataKey,
-                  } = props
-                  return (
-                    <Dot
-                      className={cx(
-                        'stroke-white dark:stroke-gray-950',
-                        onValueChange ? 'cursor-pointer' : '',
-                        getColorClassName(
-                          categoryColors.get(
-                            dataKey
-                          ) as AvailableChartColorsKeys,
-                          'fill'
-                        )
-                      )}
-                      cx={cxCoord}
-                      cy={cyCoord}
-                      r={5}
-                      fill=""
-                      stroke={stroke}
-                      strokeLinecap={strokeLinecap}
-                      strokeLinejoin={strokeLinejoin}
-                      strokeWidth={strokeWidth}
-                      onClick={(_, event) => onDotClick(props, event)}
-                    />
-                  )
-                }}
+                key={category}
+                type="monotone"
+                dataKey={category}
+                stroke="#FFD700"
+                strokeWidth={2}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+                connectNulls={connectNulls}
+                fill={`url(#gradient-${category})`}
                 dot={(props: any) => {
                   const {
-                    stroke,
-                    strokeLinecap,
-                    strokeLinejoin,
-                    strokeWidth,
                     cx: cxCoord,
                     cy: cyCoord,
-                    dataKey,
                     index: dotIndex,
                   } = props
 
-                  if (
-                    dotIndex === data.length - 1 ||
-                    (hasOnlyOneValueForKey(data, category) &&
-                      !(
-                        activeDot ||
-                        (activeLegend && activeLegend !== category)
-                      )) ||
-                    (activeDot?.index === dotIndex &&
-                      activeDot?.dataKey === category)
-                  ) {
+                  if (dotIndex === data.length - 1) {
                     return (
-                      <Dot
-                        key={dotIndex}
+                      <circle
                         cx={cxCoord}
                         cy={cyCoord}
-                        r={5}
-                        stroke={stroke}
-                        fill=""
-                        strokeLinecap={strokeLinecap}
-                        strokeLinejoin={strokeLinejoin}
-                        strokeWidth={strokeWidth}
-                        className={cx(
-                          'stroke-white dark:stroke-gray-950',
-                          onValueChange ? 'cursor-pointer' : '',
-                          getColorClassName(
-                            categoryColors.get(
-                              dataKey
-                            ) as AvailableChartColorsKeys,
-                            'fill'
-                          )
-                        )}
+                        r={2}
+                        fill="#FFD700"
                       />
                     )
                   }
-                  return <React.Fragment key={dotIndex}></React.Fragment>
+                  return null
                 }}
-                key={category}
-                name={category}
-                type="linear"
-                dataKey={category}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                isAnimationActive={false}
-                connectNulls={connectNulls}
               />
             ))}
           </RechartsLineChart>
