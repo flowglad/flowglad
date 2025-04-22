@@ -699,9 +699,10 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
 
             <CartesianGrid
               vertical={true}
-              horizontal={false}
+              horizontal={true}
               stroke="#2b2b2b"
-              strokeWidth={1}
+              strokeWidth={0.5}
+              strokeDasharray="4 4"
             />
 
             <XAxis
@@ -857,7 +858,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 type="monotone"
                 dataKey={category}
                 stroke="#FFD700"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 dot={false}
                 activeDot={false}
                 isAnimationActive={false}
@@ -875,8 +876,10 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                       <circle
                         cx={cxCoord}
                         cy={cyCoord}
-                        r={2}
+                        r={3}
                         fill="#FFD700"
+                        stroke="#1b1b1b"
+                        strokeWidth={1}
                       />
                     )
                   }
