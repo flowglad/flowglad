@@ -1,70 +1,65 @@
 'use client'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import {
-  NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
-  NavigationMenuList,
 } from '@/components/ion/Navigation'
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useState, type ReactNode } from 'react'
 
-type NavigationChild = {
-  label: string
-  href: string
-}
-
-type ParentChildNavigationItemProps = {
+interface ParentChildNavigationItemProps {
   parentLabel: string
-  parentLeadingIcon: ReactNode
-  childItems: NavigationChild[]
+  parentLeadingIcon?: React.ReactNode
+  childItems: {
+    label: string
+    href: string
+  }[]
   basePath: string
 }
 
-const ParentChildNavigationItem = ({
+export default function ParentChildNavigationItem({
   parentLabel,
   parentLeadingIcon,
   childItems,
   basePath,
-}: ParentChildNavigationItemProps) => {
+}: ParentChildNavigationItemProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
-  const [isOpen, setIsOpen] = useState(pathname.startsWith(basePath))
+  const isSelected = pathname.startsWith(basePath)
+
   return (
     <NavigationMenuItem>
       <NavigationMenuLink
         iconLeading={parentLeadingIcon}
-        iconTrailing={
-          isOpen ? (
-            <ChevronUp size={16} strokeWidth={2} />
-          ) : (
-            <ChevronDown size={16} strokeWidth={2} />
-          )
-        }
+        iconTrailing={isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         className="w-full"
+        selected={isSelected}
         onClick={() => setIsOpen(!isOpen)}
       >
         {parentLabel}
       </NavigationMenuLink>
       {isOpen && (
-        <NavigationMenu>
-          <NavigationMenuList className="w-full flex flex-col gap-1 pl-[26px]">
-            {childItems.map((child) => (
-              <NavigationMenuItem key={child.href}>
-                <NavigationMenuLink
-                  className="w-full"
-                  isChild
-                  href={child.href}
-                  selected={pathname.startsWith(child.href)}
-                >
-                  {child.label}
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            ))}
-          </NavigationMenuList>
-        </NavigationMenu>
+        <div className="relative ml-7 mt-1 flex flex-col gap-1">
+          {/* Vertical line */}
+          <div className="absolute left-[7px] top-0 h-full w-[1px] bg-stroke-subtle" />
+          
+          {childItems.map((item) => (
+            <NavigationMenuLink
+              key={item.href}
+              href={item.href}
+              selected={pathname === item.href}
+              isChild
+              className="relative pl-6"
+            >
+              {/* Dot */}
+              <div className="absolute left-[3px] top-1/2 h-3 w-3 -translate-y-1/2">
+                <div className={`h-[5px] w-[5px] rounded-full ${pathname === item.href ? 'bg-on-primary-container' : 'bg-subtle'}`} />
+              </div>
+              {item.label}
+            </NavigationMenuLink>
+          ))}
+        </div>
       )}
     </NavigationMenuItem>
   )
 }
-
-export default ParentChildNavigationItem
