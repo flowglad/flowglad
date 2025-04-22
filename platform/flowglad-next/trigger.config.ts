@@ -29,6 +29,10 @@ export default defineConfig({
       additionalFiles({
         files: ['./public/fonts/**'],
       }),
+      /**
+       * These packages don't get bundled when building in a Github Action environment
+       * so we have to include them here.
+       */
       additionalPackages({
         packages: [
           'puppeteer@24.4.0',
