@@ -8,7 +8,7 @@ permissions:
 on:
   push:
     branches:
-      - main
+      - stable
     paths:
       - 'platform/flowglad-next/**'
 
@@ -56,7 +56,7 @@ jobs:
         working-directory: platform/flowglad-next
 
       - name: Install Vercel CLI
-        run: pnpm install --global vercel@latest
+        run: pnpm install --global vercel@41.6.2
         
       - name: Pull Vercel Environment Variables
         run: |
@@ -77,4 +77,6 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-project-name: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
           vercel-args: '--prebuilt --prod'
+          vercel-version: 41.6.2
