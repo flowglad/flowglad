@@ -23,14 +23,12 @@ export default defineConfig({
     },
   },
   build: {
+    external: ['chromium-bidi'],
     extensions: [
       syncVercelEnvVars(),
       puppeteer(),
       additionalFiles({
         files: ['./public/fonts/**'],
-      }),
-      additionalPackages({
-        packages: ['chromium-bidi'],
       }),
     ],
   },
