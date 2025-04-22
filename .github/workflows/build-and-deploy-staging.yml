@@ -13,9 +13,6 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: platform/flowglad-next
 
     steps:
       - name: Checkout repository
@@ -52,13 +49,15 @@ jobs:
         
       - name: Pull Vercel Environment Variables
         run: |
+          cd platform/flowglad-next
           vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }} && cp .vercel/.env.preview.local .env.local
       # - name: Run lint
       #   run: pnpm lint
 
       - name: Run migrations
         run: pnpm migrations:push
-      
+          working-directory: platform/flowglad-next
+
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
       
@@ -69,7 +68,9 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prebuilt'
+          working-directory: platform/flowglad-next
           # alias-domains: 'staging.flowglad.com'
 
       - name: Deploy Trigger.dev
         run: pnpm trigger:deploy
+          working-directory: platform/flowglad-next
