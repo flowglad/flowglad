@@ -12,8 +12,7 @@ function SignupSideBar({ className = '' }: SignupSideBarProps) {
   const searchParams = useSearchParams()
   const flow = searchParams.get('flow')
   let tagline = 'Drop-in payments and billing for developers'
-  let taglineDescription =
-    'Make more sales, convert more customers, and grow faster.'
+  let taglineDescription = "Set up your product's billing in seconds. 100% open source."
 
   return (
     <div
