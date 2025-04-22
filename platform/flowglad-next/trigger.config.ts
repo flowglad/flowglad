@@ -23,6 +23,7 @@ export default defineConfig({
     },
   },
   build: {
+    external: ['chromium-bidi', '@sparticuz/chromium'],
     extensions: [
       syncVercelEnvVars(),
       // puppeteer(),
