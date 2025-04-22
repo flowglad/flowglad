@@ -39,22 +39,22 @@ export default function ParentChildNavigationItem({
         {parentLabel}
       </NavigationMenuLink>
       {isOpen && (
-        <div className="relative ml-[26px] mt-1 flex flex-col gap-1">
-          {/* Vertical line that only spans between first and last dots */}
-          <div className="absolute left-[8px] top-[10px] bottom-[10px] w-[1px] bg-stroke-subtle" />
+        <div className="relative ml-[26px] mt-1 flex flex-col">
+          {/* Vertical line that starts at first dot and ends at last dot */}
+          <div className="absolute left-[10px] top-[10px] bottom-[10px] w-[1px] bg-stroke-subtle" />
           
-          {childItems.map((item, index) => (
+          {childItems.map((item) => (
             <NavigationMenuLink
               key={item.href}
               href={item.href}
               selected={pathname === item.href}
               isChild
-              className="relative pl-7 h-7 flex items-center"
+              className="relative pl-7 h-8 flex items-center"
             >
               {/* Dot centered with line and parent icon */}
-              <div className="absolute left-[6px] top-1/2 -translate-y-1/2 flex items-center justify-center">
+              <div className="absolute left-[7px] top-1/2 -translate-y-1/2">
                 <div 
-                  className={`h-[5px] w-[5px] rounded-full ${
+                  className={`h-[6px] w-[6px] rounded-full ${
                     pathname === item.href ? 'bg-on-primary-container' : 'bg-subtle'
                   }`} 
                 />
