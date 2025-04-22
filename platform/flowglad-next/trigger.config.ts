@@ -2,6 +2,7 @@ import { defineConfig } from '@trigger.dev/sdk/v3'
 import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
 import {
   additionalFiles,
+  additionalPackages,
   syncVercelEnvVars,
 } from '@trigger.dev/build/extensions/core'
 
@@ -27,6 +28,9 @@ export default defineConfig({
       puppeteer(),
       additionalFiles({
         files: ['./public/fonts/**'],
+      }),
+      additionalPackages({
+        packages: ['chromium-bidi'],
       }),
     ],
   },
