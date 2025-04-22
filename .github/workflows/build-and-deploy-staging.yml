@@ -13,7 +13,7 @@ env:
   FLOWGLAD_NEXT_VERCEL_PROJECT_NAME: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
 
 jobs:
-  deploy:
+  deploy-staging:
     runs-on: ubuntu-latest
 
     steps:
@@ -78,3 +78,18 @@ jobs:
           vercel-args: '--prebuilt'
           vercel-project-name: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
           vercel-version: 41.6.2
+    
+    merge-main-to-stable:
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email agree.ahmed@gmail.com
+
+      - name: Merge main to stable
+        run: |
+          git checkout stable
+          git merge --no-ff main -m "Merge main into stable ($(git log -1 --pretty=format:'%h - %s' main))"
+          git push "https://${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" stable
+
+      - name: Checkout repository
+        uses: actions/checkout@v3

@@ -19,7 +19,7 @@ env:
   NEXT_PUBLIC_CDN_URL: cdn-flowglad.com
 
 jobs:
-  merge-main-to-stable:
+  deploy-stable-to-prod:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,20 +27,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}
-
-      - name: Configure Git
-        run: |
-          git config user.name github-actions
-          git config user.email agree.ahmed@gmail.com
-
-      - name: Merge main to stable
-        run: |
-          git checkout stable
-          git merge --no-ff main -m "Merge main into stable ($(git log -1 --pretty=format:'%h - %s' main))"
-          git push "https://${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" stable
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -92,4 +78,3 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prebuilt --prod'
-
