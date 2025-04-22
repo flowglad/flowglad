@@ -30,7 +30,11 @@ export default defineConfig({
         files: ['./public/fonts/**'],
       }),
       additionalPackages({
-        packages: ['chromium-bidi', 'puppeteer-core'],
+        packages: [
+          'chromium-bidi',
+          'puppeteer-core',
+          '@sparticuz/chromium',
+        ],
       }),
     ],
   },
