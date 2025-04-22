@@ -31,6 +31,7 @@ export default defineConfig({
       }),
       additionalPackages({
         packages: [
+          'puppeteer',
           'chromium-bidi',
           'puppeteer-core',
           '@sparticuz/chromium',
