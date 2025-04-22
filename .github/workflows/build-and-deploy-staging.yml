@@ -43,7 +43,8 @@ jobs:
       
       - name: Install dependencies
         run: pnpm install-packages
-      
+        working-directory: platform/flowglad-next
+
       - name: Install Vercel CLI
         run: pnpm install --global vercel@latest
         
