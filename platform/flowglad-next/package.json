@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm trigger:deploy && pnpm lint && pnpm migrations:push && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint && tsc --noEmit",
     "install-packages": "pnpm install --ignore-workspace",
