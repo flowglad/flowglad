@@ -11,8 +11,7 @@
 body {
   color: rgb(var(--foreground-rgb));
   transition: background-color 0.3s ease;
-  /* TODO: change to "rgb(var(--background))" - right now, hardcoded because this doesn't consider .dark (?) */
-  background: '#1b1b1b';
+  background: #1b1b1b;
   overscroll-behavior: none;
 }
 
