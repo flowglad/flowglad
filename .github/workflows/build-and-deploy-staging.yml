@@ -60,11 +60,26 @@ jobs:
       - name: Run migrations
         run: pnpm migrations:push
 
-      - name: Build Next.js App
+      - name: Install Vercel CLI
+        run: pnpm install --global vercel@latest
+      
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: packages/flowglad-next
+      
+      - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-
+        working-directory: packages/flowglad-next
+      
       - name: Deploy to Vercel
-        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prebuilt'
+          # alias-domains: 'staging.flowglad.com'
+          working-directory: packages/flowglad-next
 
       - name: Deploy Trigger.dev
         run: pnpm trigger:deploy

@@ -13,6 +13,7 @@ const envDir = process.env.GITHUB_ACTIONS
   ? path.join(projectDir, '.vercel')
   : projectDir
 
+console.log('envDir', envDir)
 // To load env vars in a script
 loadEnvConfig(envDir)
 
