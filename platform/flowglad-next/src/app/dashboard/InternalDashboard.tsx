@@ -7,6 +7,9 @@ import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
 import { DateRangePicker } from '@/components/ion/Datepicker'
+import { Dashboard as DashboardIcon } from '@mui/icons-material'
+import Button from '@/components/ion/Button'
+import { Plus } from 'lucide-react'
 
 const ChartContainer = ({
   children,
@@ -39,25 +42,53 @@ function InternalDashboardPage({
       <div className="bg-internal flex-1 flex items-start gap-6 p-6 h-full w-full overflow-y-scroll">
         <div className="w-full flex flex-col gap-10 rounded-radius-sm">
           <div className="flex justify-between items-center">
-            <PageTitle>Dashboard</PageTitle>
-            <DateRangePicker
-              fromDate={range.from}
-              toDate={range.to}
-              minDate={new Date(organizationCreatedAt)}
-              maxDate={new Date()}
-              onSelect={(newRange) => {
-                if (newRange) {
-                  setRange({
-                    from:
-                      newRange.from ??
-                      new Date(organizationCreatedAt),
-                    to: newRange.to ?? new Date(),
-                  })
-                }
-              }}
-              mode="range"
-            />
+            <div className="flex items-center gap-2">
+              <DashboardIcon className="text-foreground" />
+              <PageTitle>Dashboard</PageTitle>
+            </div>
+            <div className="flex items-center gap-4">
+              <DateRangePicker
+                fromDate={range.from}
+                toDate={range.to}
+                minDate={new Date(organizationCreatedAt)}
+                maxDate={new Date()}
+                onSelect={(newRange) => {
+                  if (newRange) {
+                    setRange({
+                      from: newRange.from ?? new Date(organizationCreatedAt),
+                      to: newRange.to ?? new Date(),
+                    })
+                  }
+                }}
+                mode="range"
+              />
+              <Button
+                iconLeading={<Plus size={16} />}
+                variant="filled"
+                color="primary"
+              >
+                Create Product
+              </Button>
+            </div>
           </div>
+
+          <div className="flex gap-2 border-b border-stroke pb-2">
+            <Button
+              variant="ghost"
+              color="primary"
+              className="!text-foreground"
+            >
+              Payments
+            </Button>
+            <Button
+              variant="ghost"
+              color="primary"
+              className="!text-subtle"
+            >
+              Billing
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 gap-6">
             <ChartContainer>
               <DateRangeRevenueChart
