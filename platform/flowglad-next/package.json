@@ -181,7 +181,8 @@
   },
   "pnpm": {
     "overrides": {
-      "esbuild": "0.25.0"
+      "esbuild": "0.25.0",
+      "chromium-bidi": "2.1.2"
     },
     "patchedDependencies": {
       "trpc-swagger@1.2.6": "src/patches/trpc-swagger@1.2.6.patch"

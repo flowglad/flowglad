@@ -23,12 +23,15 @@ export default defineConfig({
     },
   },
   build: {
-    external: ['chromium-bidi', '@sparticuz/chromium'],
+    external: ['@sparticuz/chromium'],
     extensions: [
       syncVercelEnvVars(),
       // puppeteer(),
       additionalFiles({
         files: ['./public/fonts/**'],
+      }),
+      additionalPackages({
+        packages: ['chromium-bidi', 'puppeteer-core'],
       }),
     ],
   },
