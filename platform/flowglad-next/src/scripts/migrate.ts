@@ -5,10 +5,17 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { testDatabaseEnums } from '@/db/testEnums'
 import { sql } from 'drizzle-orm'
+import path from 'path'
 
 const projectDir = process.cwd()
+// Load from .vercel directory if in GitHub Actions
+const envDir = process.env.GITHUB_ACTIONS
+  ? path.join(projectDir, '.vercel')
+  : projectDir
+
 // To load env vars in a script
-loadEnvConfig(projectDir)
+loadEnvConfig(envDir)
+
 const TEST_DB_URL = 'postgresql://test:test@localhost:5432/test_db'
 
 const dbUrl = core.IS_TEST
