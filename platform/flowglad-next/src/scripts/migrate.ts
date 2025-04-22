@@ -8,14 +8,9 @@ import { sql } from 'drizzle-orm'
 import path from 'path'
 
 const projectDir = process.cwd()
-// Load from .vercel directory if in GitHub Actions
-const envDir = process.env.GITHUB_ACTIONS
-  ? path.join(projectDir, '.vercel')
-  : projectDir
 
-console.log('envDir', envDir)
 // To load env vars in a script
-loadEnvConfig(envDir)
+loadEnvConfig(projectDir)
 
 const TEST_DB_URL = 'postgresql://test:test@localhost:5432/test_db'
 
