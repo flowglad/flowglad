@@ -28,21 +28,21 @@ export const migrateDb = async () => {
   // eslint-disable-next-line no-console
   console.info('Applying migrations...')
   await migrate(db, { migrationsFolder: 'drizzle-migrations' })
-  if (core.IS_TEST) {
-    console.log(
-      '[testmode only] Granting permissions to authenticated user...'
-    )
-    await db.execute(
-      sql`
--- Grant SELECT, INSERT, UPDATE permissions on all existing tables
-GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO authenticated;
+  //   if (core.IS_TEST) {
+  //     console.log(
+  //       '[testmode only] Granting permissions to authenticated user...'
+  //     )
+  //     await db.execute(
+  //       sql`
+  // -- Grant SELECT, INSERT, UPDATE permissions on all existing tables
+  // GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO authenticated;
 
--- For future tables (make sure new tables automatically get these permissions)
-ALTER DEFAULT PRIVILEGES IN SCHEMA public 
-GRANT SELECT, INSERT, UPDATE ON TABLES TO authenticated;
-`
-    )
-  }
+  // -- For future tables (make sure new tables automatically get these permissions)
+  // ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  // GRANT SELECT, INSERT, UPDATE ON TABLES TO authenticated;
+  // `
+  //     )
+  //   }
   // eslint-disable-next-line no-console
   console.info('Migrations applied successfully.')
 }
