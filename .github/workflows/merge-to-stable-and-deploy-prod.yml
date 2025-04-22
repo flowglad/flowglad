@@ -39,7 +39,6 @@ jobs:
           git merge --no-ff main -m "Merge main into stable ($(git log -1 --pretty=format:'%h - %s' main))"
           git push "https://${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" staging
 
-    steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       
