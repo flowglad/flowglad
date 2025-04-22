@@ -673,17 +673,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
         tremor-id="tremor-raw"
         {...other}
       >
-        {/*
-         * Chart Sizing Mechanism:
-         * 1. The outer div is set to h-80 (20rem) and w-full by default, making it fill its parent's width
-         * 2. ResponsiveContainer wraps the chart and is set to 100% width and height, so it fills the outer div
-         * 3. useContainerSize hook uses ResizeObserver to track the actual pixel dimensions of the outer div
-         * 4. These dimensions (width & height) are passed to RechartsLineChart, which uses them for internal calculations
-         * 5. When the container resizes:
-         *    - ResizeObserver detects the change and updates width/height state
-         *    - These new dimensions flow to RechartsLineChart
-         *    - ResponsiveContainer ensures smooth transitions and maintains aspect ratio
-         */}
         <ResponsiveContainer width={'100%'} height={'100%'}>
           <RechartsLineChart
             data={data}
@@ -710,25 +699,20 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 <linearGradient
                   key={`gradient-${category}`}
                   id={`gradient-${category}`}
-                  x1="0"
+                  x1="1"
                   y1="0"
-                  x2="1"
+                  x2="0"
                   y2="0"
                 >
                   <stop
                     offset="0%"
-                    stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
-                    stopOpacity="0"
-                  />
-                  <stop
-                    offset="20%"
                     stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
                     stopOpacity="1"
                   />
                   <stop
                     offset="100%"
                     stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
-                    stopOpacity="1"
+                    stopOpacity="0"
                   />
                 </linearGradient>
               ))}
@@ -963,14 +947,13 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                         key={dotIndex}
                         cx={cxCoord}
                         cy={cyCoord}
-                        r={dotIndex === data.length - 1 ? 2 : 5}
+                        r={dotIndex === data.length - 1 ? 1 : 5}
                         stroke={stroke}
-                        fill=""
+                        fill={stroke}
                         strokeLinecap={strokeLinecap}
                         strokeLinejoin={strokeLinejoin}
                         strokeWidth={strokeWidth}
                         className={cx(
-                          'stroke-white dark:stroke-gray-950',
                           onValueChange ? 'cursor-pointer' : '',
                           getColorClassName(
                             categoryColors.get(
