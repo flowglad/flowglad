@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:test": "export FORCE_TEST_MODE=true && next dev",
-    "build": "pnpm lint && pnpm migrations:push && next build && pnpm trigger:deploy",
+    "build": "pnpm lint && pnpm trigger:deploy && pnpm migrations:push && next build",
     "start": "next start",
     "lint": "next lint && tsc --noEmit",
     "install-packages": "pnpm install --ignore-workspace",
