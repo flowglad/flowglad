@@ -7,7 +7,6 @@ import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
 import { DateRangePicker } from '@/components/ion/Datepicker'
-import { Dashboard as DashboardIcon } from '@mui/icons-material'
 import Button from '@/components/ion/Button'
 import { Plus } from 'lucide-react'
 
@@ -43,7 +42,6 @@ function InternalDashboardPage({
         <div className="w-full flex flex-col gap-10 rounded-radius-sm">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <DashboardIcon className="text-foreground" />
               <PageTitle>Dashboard</PageTitle>
             </div>
             <div className="flex items-center gap-4">
