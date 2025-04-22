@@ -61,6 +61,10 @@ jobs:
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
       
+      - name: Deploy Trigger
+        run: export TRIGGER_ENV=staging && pnpm trigger:deploy
+        working-directory: platform/flowglad-next
+
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
         with:
