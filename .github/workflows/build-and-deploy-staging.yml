@@ -56,6 +56,9 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
+      - name: Run migrations
+        run: pnpm migrations:push
+
       - name: Build Next.js App
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
 
