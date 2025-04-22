@@ -131,7 +131,7 @@ const OnboardingPage = async () => {
         <div className="flex flex-col items-center justify-center gap-2">
           <h2 className="text-2xl font-semibold">Set Up</h2>
           <p className="text-md text-foreground">
-            Complete just a few steps to get up and running.
+            Complete just a few steps to get up and running
           </p>
         </div>
         <OnboardingStatusTable
