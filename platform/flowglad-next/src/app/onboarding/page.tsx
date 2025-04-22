@@ -115,21 +115,6 @@ const OnboardingPage = async () => {
   }
 
   const onboardingChecklistItems: OnboardingChecklistItem[] = [
-    // {
-    //   title: 'Create your first product',
-    //   description: `Make the first product you'll sell to your customers.`,
-    //   completed: Boolean(products && products.length > 0),
-    //   action: 'Create Product',
-    //   type: OnboardingItemType.Product,
-    // },
-    // {
-    //   title: 'Add a discount',
-    //   description:
-    //     'Close customers who are on the fence with a discount',
-    //   completed: Boolean(discounts && discounts.length > 0),
-    //   action: 'Create Discount',
-    //   type: OnboardingItemType.Discount,
-    // },
     {
       title: 'Connect your Stripe account',
       description:
@@ -139,27 +124,40 @@ const OnboardingPage = async () => {
       type: OnboardingItemType.Stripe,
     },
   ]
-  // if (
-  //   organization.onboardingStatus ===
-  //   BusinessOnboardingStatus.FullyOnboarded
-  // ) {
-  //   return redirect('/dashboard')
-  // }
+
   return (
     <div className="flex flex-col gap-4 p-8 w-full justify-center items-center m-auto max-w-2xl">
-      <div className="flex flex-col items-center justify-center w-full gap-4">
+      <div className="flex flex-col items-center justify-center w-full gap-8">
         <div className="flex flex-col items-center justify-center gap-2">
-          <h2 className="text-2xl font-semibold">Set Up</h2>
+          <h2 className="text-2xl font-semibold">Step 1: Welcome</h2>
           <p className="text-md text-foreground">
             Complete just a few steps to get up and running.
           </p>
         </div>
-        <OnboardingStatusTable
-          onboardingChecklistItems={onboardingChecklistItems}
-          countries={countries}
-          publishableApiKey={publishableApiKey.token}
-          secretApiKey={secretApiKey.token}
-        />
+
+        <div className="flex flex-col items-center justify-center gap-2">
+          <h2 className="text-2xl font-semibold">Step 2: Connect Stripe</h2>
+          <p className="text-md text-foreground">
+            Set up your payment processing to start accepting payments.
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center justify-center gap-2">
+          <h2 className="text-2xl font-semibold">Step 3: API Keys</h2>
+          <p className="text-md text-foreground">
+            Get your API keys to integrate with your application.
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center justify-center gap-2">
+          <h2 className="text-2xl font-semibold">Step 4: Final Steps</h2>
+          <OnboardingStatusTable
+            onboardingChecklistItems={onboardingChecklistItems}
+            countries={countries}
+            publishableApiKey={publishableApiKey.token}
+            secretApiKey={secretApiKey.token}
+          />
+        </div>
       </div>
     </div>
   )
