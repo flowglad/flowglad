@@ -73,4 +73,4 @@ jobs:
 
       - name: Deploy Trigger.dev
         run: pnpm trigger:deploy
-          working-directory: platform/flowglad-next
+        working-directory: platform/flowglad-next
