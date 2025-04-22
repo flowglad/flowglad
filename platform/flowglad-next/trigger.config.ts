@@ -31,10 +31,10 @@ export default defineConfig({
       }),
       additionalPackages({
         packages: [
-          'puppeteer',
-          'chromium-bidi',
-          'puppeteer-core',
-          '@sparticuz/chromium',
+          'puppeteer@24.4.0',
+          'chromium-bidi@2.1.2',
+          'puppeteer-core@21.11.0',
+          '@sparticuz/chromium@119.0.2',
         ],
       }),
     ],
