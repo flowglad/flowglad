@@ -1,11 +1,11 @@
 'use client'
 import {
-  Settings,
-  Gauge,
-  Store,
-  Users,
-  CircleDollarSign,
-} from 'lucide-react'
+  Settings as SettingsIcon,
+  Dashboard as DashboardIcon,
+  Store as StoreIcon,
+  People as PeopleIcon,
+  AttachMoney as MoneyIcon,
+} from '@mui/icons-material'
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -80,18 +80,18 @@ export const SideNavigation = () => {
             <StandaloneNavigationItem
               title="Dashboard"
               href="/dashboard"
-              icon={<Gauge size={16} />}
+              icon={<DashboardIcon sx={{ fontSize: 20 }} />}
               basePath="/dashboard"
             />
             <StandaloneNavigationItem
               title="Customers"
               href="/customers"
-              icon={<Users size={16} />}
+              icon={<PeopleIcon sx={{ fontSize: 20 }} />}
               basePath="/customers"
             />
             <ParentChildNavigationItem
               parentLabel="Store"
-              parentLeadingIcon={<Store size={16} />}
+              parentLeadingIcon={<StoreIcon sx={{ fontSize: 20 }} />}
               childItems={[
                 {
                   label: 'Catalogs',
@@ -118,7 +118,7 @@ export const SideNavigation = () => {
             />
             <ParentChildNavigationItem
               parentLabel="Finance"
-              parentLeadingIcon={<CircleDollarSign size={16} />}
+              parentLeadingIcon={<MoneyIcon sx={{ fontSize: 20 }} />}
               childItems={[
                 {
                   label: 'Payments',
@@ -137,7 +137,7 @@ export const SideNavigation = () => {
             />
             <NavigationMenuItem>
               <NavigationMenuLink
-                iconLeading={<Settings size={14} />}
+                iconLeading={<SettingsIcon sx={{ fontSize: 20 }} />}
                 className="w-full"
                 selected={selectedPath.startsWith('settings')}
                 href="/settings"
@@ -176,7 +176,6 @@ export const SideNavigation = () => {
         <div className="flex-0 w-full flex items-center">
           <FallbackSkeleton
             showSkeleton={!user}
-            // We don't need h-12 here anymore since the component handles its own height
             className="w-full h-12"
           >
             <div className="flex h-full items-center gap-3">
