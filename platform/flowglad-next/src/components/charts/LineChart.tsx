@@ -885,7 +885,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     ? 0.3
                     : 1
                 }
-                stroke={`url(#gradient-${category})`}
                 activeDot={(props: any) => {
                   const {
                     cx: cxCoord,
@@ -947,13 +946,14 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                         key={dotIndex}
                         cx={cxCoord}
                         cy={cyCoord}
-                        r={dotIndex === data.length - 1 ? 1 : 5}
+                        r={5}
                         stroke={stroke}
-                        fill={stroke}
+                        fill=""
                         strokeLinecap={strokeLinecap}
                         strokeLinejoin={strokeLinejoin}
                         strokeWidth={strokeWidth}
                         className={cx(
+                          'stroke-white dark:stroke-gray-950',
                           onValueChange ? 'cursor-pointer' : '',
                           getColorClassName(
                             categoryColors.get(
