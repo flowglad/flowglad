@@ -4,10 +4,14 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { testDatabaseEnums } from '@/db/testEnums'
+import { sql } from 'drizzle-orm'
+import path from 'path'
 
 const projectDir = process.cwd()
+
 // To load env vars in a script
 loadEnvConfig(projectDir)
+
 const TEST_DB_URL = 'postgresql://test:test@localhost:5432/test_db'
 
 const dbUrl = core.IS_TEST
@@ -26,7 +30,26 @@ const db = drizzle(client)
 export const migrateDb = async () => {
   // eslint-disable-next-line no-console
   console.info('Applying migrations...')
+  console.log(
+    'NEXT_PUBLIC_STACK_PROJECT_ID',
+    core.envVariable('NEXT_PUBLIC_STACK_PROJECT_ID')
+  )
   await migrate(db, { migrationsFolder: 'drizzle-migrations' })
+  //   if (core.IS_TEST) {
+  //     console.log(
+  //       '[testmode only] Granting permissions to authenticated user...'
+  //     )
+  //     await db.execute(
+  //       sql`
+  // -- Grant SELECT, INSERT, UPDATE permissions on all existing tables
+  // GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO authenticated;
+
+  // -- For future tables (make sure new tables automatically get these permissions)
+  // ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  // GRANT SELECT, INSERT, UPDATE ON TABLES TO authenticated;
+  // `
+  //     )
+  //   }
   // eslint-disable-next-line no-console
   console.info('Migrations applied successfully.')
 }

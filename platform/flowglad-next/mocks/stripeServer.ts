@@ -1,6 +1,6 @@
 // src/mocks/handlers.ts
 import { PaymentMethodType } from '@/types'
-import core from '@/utils/core'
+import { nanoid } from 'nanoid'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import Stripe from 'stripe'
@@ -49,7 +49,7 @@ export const stripeHandlers = [
       payment_intent: 'pi_mock123',
       created: new Date().getTime() / 1000,
       payment_method_details: {
-        id: `pm_${core.nanoid()}`,
+        id: `pm_${nanoid()}`,
         type: PaymentMethodType.Card,
       },
       billing_details: {
@@ -114,7 +114,7 @@ const paymentIntentStatusToChargeStatus = (
 export const createStripePaymentIntentAndChargeId = (params: {
   paymentIntentStatus: Stripe.PaymentIntent.Status
 }) => {
-  const coreId = core.nanoid()
+  const coreId = nanoid()
   const paymentIntentId = `pi_${coreId}__${params.paymentIntentStatus}`
   const chargeId = `ch_${coreId}__${paymentIntentStatusToChargeStatus(
     params.paymentIntentStatus

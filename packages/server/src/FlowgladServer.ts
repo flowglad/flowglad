@@ -112,7 +112,7 @@ export class FlowgladServer {
     })
   }
 
-  public getRequestingcustomerId = async (): Promise<string> => {
+  public getRequestingCustomerId = async (): Promise<string> => {
     if (this.createHandlerParams.getRequestingCustomer) {
       const customer =
         await this.createHandlerParams.getRequestingCustomer()

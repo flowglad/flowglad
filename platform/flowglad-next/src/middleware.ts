@@ -60,7 +60,6 @@ export default async function middleware(req: NextRequest) {
       }
     )
   }
-  console.log('req.url', req.url)
   const user = await stackServerApp.getUser()
   const isProtectedRoute = !isPublicRoute(req)
 

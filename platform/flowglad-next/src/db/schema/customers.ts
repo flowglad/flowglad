@@ -1,4 +1,10 @@
-import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  jsonb,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
   constructIndex,
@@ -22,6 +28,7 @@ import { createInvoiceNumberBase } from '@/utils/core'
 import { z } from 'zod'
 import { users } from './users'
 import { catalogs } from './catalogs'
+import { sql } from 'drizzle-orm'
 
 const TABLE_NAME = 'customers'
 
@@ -77,9 +84,21 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       table.invoiceNumberBase,
     ]),
     constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
+    pgPolicy('Enable all actions for own organizations', {
+      as: 'permissive',
+      to: 'authenticated',
+      for: 'all',
+      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+    }),
+    pgPolicy('Disallow deletion', {
+      as: 'restrictive',
+      to: 'authenticated',
+      for: 'delete',
+      using: sql`false`,
+    }),
     livemodePolicy(),
   ]
-})
+}).enableRLS()
 
 const readonlyColumns = {
   livemode: true,

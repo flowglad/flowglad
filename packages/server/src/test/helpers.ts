@@ -1,4 +1,5 @@
 import { FlowgladServer } from '../FlowgladServer'
+import { FlowgladServerAdmin } from '../FlowgladServerAdmin'
 import { CoreCustomerUser } from '../types'
 
 /**
@@ -6,7 +7,6 @@ import { CoreCustomerUser } from '../types'
  */
 export const createTestFlowgladServer = () => {
   return new FlowgladServer({
-    apiKey: process.env.FLOWGLAD_API_KEY || 'test-api-key',
     baseURL: process.env.FLOWGLAD_BASE_URL || 'http://localhost:3000',
     getRequestingCustomer: async (): Promise<CoreCustomerUser> => {
       return {
@@ -46,4 +46,10 @@ export const retry = async <T>(
   }
 
   throw lastError
+}
+
+export const createTestFlowgladServerAdmin = () => {
+  return new FlowgladServerAdmin({
+    baseURL: process.env.FLOWGLAD_BASE_URL || 'http://localhost:3000',
+  })
 }
