@@ -1,7 +1,7 @@
 name: Merge to stable and deploy prod
 
 # This workflow is triggered by a push to the main branch with changes to the platform/flowglad-next directory
-# and merges main into staging
+# and merges main into stable
 permissions:
   contents: write
 
@@ -19,7 +19,7 @@ env:
   NEXT_PUBLIC_CDN_URL: cdn-flowglad.com
 
 jobs:
-  merge-main-to-staging:
+  merge-main-to-stable:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -37,7 +37,7 @@ jobs:
         run: |
           git checkout stable
           git merge --no-ff main -m "Merge main into stable ($(git log -1 --pretty=format:'%h - %s' main))"
-          git push "https://${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" staging
+          git push "https://${{ secrets.AGREE_PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" stable
 
       - name: Checkout repository
         uses: actions/checkout@v3
