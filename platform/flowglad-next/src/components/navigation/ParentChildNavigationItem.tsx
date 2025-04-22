@@ -39,9 +39,9 @@ export default function ParentChildNavigationItem({
         {parentLabel}
       </NavigationMenuLink>
       {isOpen && (
-        <div className="relative ml-[26px] mt-1 flex flex-col">
+        <div className="relative ml-[22px] mt-1 flex flex-col">
           {/* Vertical line aligned with parent icon */}
-          <div className="absolute left-[6px] top-[6px] bottom-[6px] w-[1px] bg-stroke-subtle" />
+          <div className="absolute left-[6px] h-[calc(100%-12px)] top-[6px] w-[1px] bg-stroke-subtle" />
           
           {childItems.map((item) => (
             <NavigationMenuLink
@@ -49,7 +49,7 @@ export default function ParentChildNavigationItem({
               href={item.href}
               selected={pathname === item.href}
               isChild
-              className="relative pl-7 h-8 flex items-center"
+              className="relative pl-[26px] h-8 flex items-center"
             >
               {/* Dot aligned with vertical line */}
               <div className="absolute left-[3.5px] top-1/2 -translate-y-1/2">
