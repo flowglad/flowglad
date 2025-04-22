@@ -15,6 +15,8 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Customized,
+  defs,
 } from 'recharts'
 import { AxisDomain } from 'recharts/types/util/types'
 import { mergeRefs } from 'react-merge-refs'
@@ -136,7 +138,9 @@ const ScrollButton = ({
     } else {
       clearInterval(intervalRef.current as NodeJS.Timeout)
     }
-    return () => clearInterval(intervalRef.current as NodeJS.Timeout)
+    return () => {
+      clearInterval(intervalRef.current as NodeJS.Timeout)
+    }
   }, [isPressed, onClick])
 
   React.useEffect(() => {
@@ -701,15 +705,35 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               top: 5,
             }}
           >
-            {/* {showGridLines ? (
-              <CartesianGrid
-                className={cx(
-                  'stroke-gray-200 stroke-1 dark:stroke-gray-800'
-                )}
-                // horizontal={true}
-                vertical={false}
-              />
-            ) : null} */}
+            <defs>
+              {categories.map((category, index) => (
+                <linearGradient
+                  key={`gradient-${category}`}
+                  id={`gradient-${category}`}
+                  x1="0"
+                  y1="0"
+                  x2="1"
+                  y2="0"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
+                    stopOpacity="0"
+                  />
+                  <stop
+                    offset="20%"
+                    stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
+                    stopOpacity="1"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={`hsl(var(--flowglad-chart-${index + 1}))`}
+                    stopOpacity="1"
+                  />
+                </linearGradient>
+              ))}
+            </defs>
+
             <XAxis
               padding={{ left: paddingValue, right: paddingValue }}
               hide={!showXAxis}
@@ -745,11 +769,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 </Label>
               )}
             </XAxis>
-            {/* Y-Axis Configuration:
-             * - Shows only a single tick when minValue equals maxValue to avoid redundant labels
-             * - This improves readability when all data points have the same value
-             * - Otherwise uses default ticks or [0, maxValue] when startEndOnlyYAxis is true
-             */}
             <YAxis
               width={yAxisWidth}
               hide={!showYAxis}
@@ -866,7 +885,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 }
               />
             ) : null}
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <Line
                 className={cx(
                   getColorClassName(
@@ -882,6 +901,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     ? 0.3
                     : 1
                 }
+                stroke={`url(#gradient-${category})`}
                 activeDot={(props: any) => {
                   const {
                     cx: cxCoord,
@@ -925,24 +945,25 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     cx: cxCoord,
                     cy: cyCoord,
                     dataKey,
-                    index,
+                    index: dotIndex,
                   } = props
 
                   if (
+                    dotIndex === data.length - 1 ||
                     (hasOnlyOneValueForKey(data, category) &&
                       !(
                         activeDot ||
                         (activeLegend && activeLegend !== category)
                       )) ||
-                    (activeDot?.index === index &&
+                    (activeDot?.index === dotIndex &&
                       activeDot?.dataKey === category)
                   ) {
                     return (
                       <Dot
-                        key={index}
+                        key={dotIndex}
                         cx={cxCoord}
                         cy={cyCoord}
-                        r={5}
+                        r={dotIndex === data.length - 1 ? 2 : 5}
                         stroke={stroke}
                         fill=""
                         strokeLinecap={strokeLinecap}
@@ -961,13 +982,12 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                       />
                     )
                   }
-                  return <React.Fragment key={index}></React.Fragment>
+                  return <React.Fragment key={dotIndex}></React.Fragment>
                 }}
                 key={category}
                 name={category}
                 type="linear"
                 dataKey={category}
-                stroke=""
                 strokeWidth={2}
                 strokeLinejoin="round"
                 strokeLinecap="round"
@@ -975,30 +995,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 connectNulls={connectNulls}
               />
             ))}
-            {/* hidden lines to increase clickable target area */}
-            {onValueChange
-              ? categories.map((category) => (
-                  <Line
-                    className={cx('cursor-pointer')}
-                    strokeOpacity={0}
-                    key={category}
-                    name={category}
-                    type="linear"
-                    dataKey={category}
-                    stroke="transparent"
-                    fill="transparent"
-                    legendType="none"
-                    tooltipType="none"
-                    strokeWidth={12}
-                    connectNulls={connectNulls}
-                    onClick={(props: any, event) => {
-                      event.stopPropagation()
-                      const { name } = props
-                      onCategoryClick(name)
-                    }}
-                  />
-                ))
-              : null}
           </RechartsLineChart>
         </ResponsiveContainer>
       </div>
