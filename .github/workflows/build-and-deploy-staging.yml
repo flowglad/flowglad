@@ -2,7 +2,7 @@ name: Deploy Next.js to Vercel Staging
 
 on:
   push:
-    branches: [main, rm-integration-tests]  # Adjust this to match your primary branch
+    branches: [main]  # Adjust this to match your primary branch
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
