@@ -23,6 +23,7 @@ import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { Catalog } from '@/db/schema/catalogs'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 export enum FocusedTab {
   All = 'all',
@@ -215,6 +216,17 @@ export const ProductsTable = ({
             }
             return <div className="w-fit">-</div>
           },
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'product.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.product.id}>
+              {cellData.product.id}
+            </CopyableTextTableCell>
+          ),
         },
         {
           id: '_',

@@ -19,6 +19,7 @@ import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 const customerStatusColors: Record<
   InferredCustomerStatus,
   BadgeColor
@@ -150,6 +151,17 @@ const CustomersTable = ({
             <span className="text-sm">
               {core.formatDate(cellData.customer.createdAt!)}
             </span>
+          ),
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'customer.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.customer.id}>
+              {cellData.customer.id}
+            </CopyableTextTableCell>
           ),
         },
         {

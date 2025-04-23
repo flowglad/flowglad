@@ -22,6 +22,7 @@ import TableTitle from '@/components/ion/TableTitle'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const MoreMenuCell = ({
   price,
@@ -235,6 +236,17 @@ const PaginatedPricesTable = ({
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.price.createdAt)}</>
+          ),
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'price.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.price.id}>
+              {cellData.price.id}
+            </CopyableTextTableCell>
           ),
         },
         {

@@ -5,6 +5,7 @@ import type { TabData } from '@/components/ion/PageHeader'
 import TeammatesSettingsTab from './TeammatesSettingsTab'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import ApiKeysTable from './ApiKeysTable'
+import OrganizationDetailsTab from './OrganizationDetailsTab'
 
 const tabs: TabData[] = [
   {
@@ -16,6 +17,11 @@ const tabs: TabData[] = [
     label: 'Teammates',
     subPath: 'teammates',
     Component: TeammatesSettingsTab,
+  },
+  {
+    label: 'Organization Details',
+    subPath: 'organization-details',
+    Component: OrganizationDetailsTab,
   },
 ]
 

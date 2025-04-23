@@ -11,6 +11,7 @@ import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const subscriptionStatusColors: Record<
   SubscriptionStatus,
@@ -154,6 +155,19 @@ const SubscriptionsTable = ({
                 ? core.formatDate(cellData.subscription.canceledAt)
                 : '-'}
             </>
+          ),
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'subscription.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell
+              copyText={cellData.subscription.id}
+            >
+              {cellData.subscription.id}
+            </CopyableTextTableCell>
           ),
         },
         {

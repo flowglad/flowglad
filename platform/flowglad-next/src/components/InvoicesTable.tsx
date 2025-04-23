@@ -1,4 +1,4 @@
-import Table from '@/components/ion/Table'
+import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
 import TableTitle from '@/components/ion/TableTitle'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
@@ -24,6 +24,7 @@ import { Plus } from 'lucide-react'
 import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -151,6 +152,7 @@ const InvoicesTable = ({
             />
           ),
           accessorKey: 'amount',
+          width: '10%',
           cell: ({ row: { original: cellData } }) => (
             <>
               <span className="font-bold text-sm">
@@ -192,6 +194,7 @@ const InvoicesTable = ({
             <SortableColumnHeaderCell title="Due" column={column} />
           ),
           accessorKey: 'due',
+          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>
               {cellData.invoice.dueDate
@@ -208,12 +211,26 @@ const InvoicesTable = ({
             />
           ),
           accessorKey: 'createdAt',
+          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.invoice.createdAt)}</>
           ),
         },
         {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'invoice.id',
+          width: '15%',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.invoice.id}>
+              {cellData.invoice.id}
+            </CopyableTextTableCell>
+          ),
+        },
+        {
           id: '_',
+          width: '10%',
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               invoice={cellData.invoice}
@@ -221,10 +238,13 @@ const InvoicesTable = ({
             />
           ),
         },
-      ] as ColumnDef<{
-        invoice: Invoice.ClientRecord
-        customer: { id: string; name: string }
-      }>[],
+      ] as ColumnDefWithWidth<
+        {
+          invoice: Invoice.ClientRecord
+          customer: { id: string; name: string }
+        },
+        string
+      >[],
     []
   )
 

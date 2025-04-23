@@ -13,31 +13,13 @@ import { Plus } from 'lucide-react'
 import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 import { useState } from 'react'
 import PaymentsTable from '@/app/finance/payments/PaymentsTable'
+import { DetailLabel } from '@/components/DetailLabel'
 
 export interface CustomerBillingSubPageProps {
   customer: Customer.ClientRecord
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
-}
-
-export function CustomerDetailsItem({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
-  return (
-    <div className="w-fit flex flex-col gap-0.5">
-      <div className="text-xs font-medium text-secondary">
-        {label}
-      </div>
-      <div className="text-sm font-semibold text-on-primary-hover">
-        {value}
-      </div>
-    </div>
-  )
 }
 
 export const CustomerBillingSubPage = ({
@@ -58,11 +40,11 @@ export const CustomerBillingSubPage = ({
               Details
             </div>
             <div className="w-fit flex items-start gap-16">
-              <CustomerDetailsItem
+              <DetailLabel
                 label="Customer Since"
                 value={core.formatDate(customer.createdAt)}
               />
-              <CustomerDetailsItem
+              <DetailLabel
                 label="Total Spend"
                 value={stripeCurrencyAmountToHumanReadableCurrencyAmount(
                   payments[0]?.currency ?? CurrencyCode.USD,
@@ -72,10 +54,7 @@ export const CustomerBillingSubPage = ({
                   )
                 )}
               />
-              <CustomerDetailsItem
-                label="Email"
-                value={customer.email}
-              />
+              <DetailLabel label="Email" value={customer.email} />
             </div>
           </div>
           <div className="w-full flex flex-col gap-5 pb-20">

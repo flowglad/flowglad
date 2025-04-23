@@ -12,6 +12,7 @@ import CloneCatalogModal from '@/components/forms/CloneCatalogModal'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -93,6 +94,18 @@ const CatalogsTable = ({
           width: '30%',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.productsCount}</span>
+          ),
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'catalog.id',
+          width: '30%',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.catalog.id}>
+              {cellData.catalog.id}
+            </CopyableTextTableCell>
           ),
         },
         {

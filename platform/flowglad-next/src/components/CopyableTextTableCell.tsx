@@ -19,10 +19,10 @@ const CopyableTextTableCell = ({
         copyTextHandler()
       }}
     >
-      <span className="text-sm font-mono cursor-pointer truncate hover:underline hover:decoration-dotted">
+      <span className="text-sm font-mono cursor-pointer truncate group-hover:underline group-hover:decoration-dotted">
         {children}
       </span>
-      <ClipboardIcon className="w-4 h-4 opacity-0 group-hover:opacity-100" />
+      <ClipboardIcon className="w-8 h-8 opacity-0 group-hover:opacity-100" />
     </div>
   )
 }

@@ -65,7 +65,6 @@ const ApiKeysTable = ({
   const [pageIndex, setPageIndex] = useState(0)
   const pageSize = 10
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const { livemode } = useAuthContext()
 
   const { data, isLoading, isFetching } =
     trpc.apiKeys.getTableRows.useQuery({
@@ -113,13 +112,13 @@ const ApiKeysTable = ({
             <>{core.formatDate(cellData.apiKey.createdAt!)}</>
           ),
         },
-        {
-          header: () => <div />,
-          id: 'actions',
-          cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell apiKey={cellData.apiKey} />
-          ),
-        },
+        // {
+        //   header: () => <div />,
+        //   id: 'actions',
+        //   cell: ({ row: { original: cellData } }) => (
+        //     <MoreMenuCell apiKey={cellData.apiKey} />
+        //   ),
+        // },
       ] as DisplayColumnDef<{
         apiKey: ApiKey.ClientRecord
         organization: { id: string; name: string }

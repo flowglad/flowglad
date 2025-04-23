@@ -17,6 +17,7 @@ import { Check, Hourglass, X, RotateCcw } from 'lucide-react'
 import { formatDate } from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const MoreMenuCell = ({
   payment,
@@ -149,6 +150,17 @@ const PaymentsTable = ({
             <span className="text-sm">
               {formatDate(cellData.payment.chargeDate, true)}
             </span>
+          ),
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'payment.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.payment.id}>
+              {cellData.payment.id}
+            </CopyableTextTableCell>
           ),
         },
         {

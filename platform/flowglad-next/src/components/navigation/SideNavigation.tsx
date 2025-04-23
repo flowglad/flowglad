@@ -29,7 +29,14 @@ export const SideNavigation = () => {
   const pathname = usePathname()
   const selectedPath = pathname
   const { user, organization } = useAuthContext()
-  const toggleTestMode = trpc.utils.toggleTestMode.useMutation()
+  const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
+    onSuccess: async () => {
+      await invalidateTRPC()
+      await focusedMembership.refetch()
+      router.refresh()
+    },
+  })
+  const { invalidate: invalidateTRPC } = trpc.useUtils()
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
   const [
@@ -160,8 +167,6 @@ export const SideNavigation = () => {
               await toggleTestMode.mutateAsync({
                 livemode: !Boolean(livemode),
               })
-              await focusedMembership.refetch()
-              router.refresh()
             }}
             disabled={
               toggleTestMode.isPending || focusedMembership.isPending

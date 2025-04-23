@@ -19,6 +19,7 @@ import Table from '@/components/ion/Table'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 // the prompt may provider another source for the type - if so, import it from there
 import { UnicornRiderRecord } from '@/db/schema/unicorn-riders'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const UnicornRidersTable = ({ data }: { data: UnicornRiderRecord[] }) => {
   const columns = useMemo(() => [
@@ -73,6 +74,17 @@ const UnicornRidersTable = ({ data }: { data: UnicornRiderRecord[] }) => {
                 <>{core.formatDate(cellData.createdAt!)}</>
             ),
         },
+        {
+            header: ({ column }) => (
+                <SortableColumnHeaderCell title="ID" column={column} />
+            ),
+            accessorKey: 'id',
+            cell: ({ row: { original: cellData } }) => (
+                <CopyableTextTableCell copyText={cellData.id}>
+                    {cellData.id}
+                </CopyableTextTableCell>
+            ),
+        },
     ] as ColumnDef<UnicornRiderRecord>[],
     []),
   return <Table columns={columns} data={data} className="bg-nav" bordered />
@@ -115,4 +127,24 @@ import TableTitleRow from '@/components/TableTitleRow'
       </div>
     </div>
     }
+```
+
+# Additional Instructions
+- Always include an ID column using CopyableTextTableCell before any MoreMenuCell column. This allows users to easily copy the ID of any record.
+- The ID column should be formatted as follows:
+```
+{
+  header: ({ column }) => (
+    <SortableColumnHeaderCell
+      title="ID"
+      column={column}
+    />
+  ),
+  accessorKey: 'record.id', // Replace 'record' with the appropriate object name
+  cell: ({ row: { original: cellData } }) => (
+    <CopyableTextTableCell copyText={cellData.record.id}>
+      {cellData.record.id}
+    </CopyableTextTableCell>
+  ),
+}
 ```
