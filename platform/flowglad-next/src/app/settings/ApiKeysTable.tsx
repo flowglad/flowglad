@@ -14,6 +14,7 @@ import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { FlowgladApiKeyType } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 
 const MoreMenuCell = ({
   apiKey,
@@ -35,11 +36,7 @@ const MoreMenuCell = ({
       handler: () => setIsDeleteOpen(true),
     })
   }
-  return (
-    <>
-      <TableRowPopoverMenu items={[...basePopoverMenuItems]} />
-    </>
-  )
+  return <MoreMenuTableCell items={[...basePopoverMenuItems]} />
 }
 
 const ApiKeyTokenCell = ({
@@ -128,14 +125,7 @@ const ApiKeysTable = ({
           header: () => <div />,
           id: 'actions',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell apiKey={cellData.apiKey} />
-              </div>
-            </div>
+            <MoreMenuCell apiKey={cellData.apiKey} />
           ),
         },
       ] as DisplayColumnDef<{

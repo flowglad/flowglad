@@ -12,7 +12,6 @@ import CreateInvoiceModal from './forms/CreateInvoiceModal'
 import {
   ClientInvoiceWithLineItems,
   InvoiceLineItem,
-  InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
 import { PopoverMenuItem } from './PopoverMenu'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
@@ -24,6 +23,7 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import { Plus } from 'lucide-react'
 import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -100,8 +100,7 @@ const MoreMenuCell = ({
   }
 
   return (
-    <>
-      <TableRowPopoverMenu items={items} />
+    <MoreMenuTableCell items={items}>
       <EditInvoiceModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
@@ -115,7 +114,7 @@ const MoreMenuCell = ({
         setIsOpen={setIsSendReminderEmailOpen}
         invoiceId={invoice.id}
       />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -216,17 +215,10 @@ const InvoicesTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell
-                  invoice={cellData.invoice}
-                  invoiceLineItems={[]} // We'll need to fetch these separately if needed
-                />
-              </div>
-            </div>
+            <MoreMenuCell
+              invoice={cellData.invoice}
+              invoiceLineItems={[]} // We'll need to fetch these separately if needed
+            />
           ),
         },
       ] as ColumnDef<{

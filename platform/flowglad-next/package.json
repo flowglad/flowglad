@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "pnpm lint && pnpm migrations:push && next build",
+    "dev": "next dev --turbopack",
+    "build": "pnpm lint && pnpm migrations:push && next build --turbopack",
     "start": "next start",
     "lint": "next lint && tsc --noEmit",
     "install-packages": "pnpm install --ignore-workspace",
@@ -175,7 +175,9 @@
     "typescript": "5.5.4",
     "vite": "6.0.11",
     "vitest": "3.0.5",
-    "zlib-sync": "^0.1.9"
+    "zlib-sync": "^0.1.9",
+    "import-in-the-middle": "1.11.2",
+    "require-in-the-middle": "7.4.0"
   },
   "pnpm": {
     "overrides": {

@@ -10,6 +10,7 @@ import { sentenceCase } from 'change-case'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 
 const subscriptionStatusColors: Record<
   SubscriptionStatus,
@@ -55,14 +56,13 @@ const SubscriptionMoreMenuCell = ({
     },
   ]
   return (
-    <>
+    <MoreMenuTableCell items={items}>
       <CancelSubscriptionModal
         isOpen={cancelOpen}
         setIsOpen={setCancelOpen}
         subscriptionId={subscription.id}
       />
-      <TableRowPopoverMenu items={items} />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -159,16 +159,9 @@ const SubscriptionsTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <SubscriptionMoreMenuCell
-                  subscription={cellData.subscription}
-                />
-              </div>
-            </div>
+            <SubscriptionMoreMenuCell
+              subscription={cellData.subscription}
+            />
           ),
         },
       ] as ColumnDef<Subscription.TableRowData>[],

@@ -15,7 +15,7 @@ interface LoginFormProps {
 export function BillingPortalSigninForm({
   organizationId,
   customerId,
-}): React.FC<LoginFormProps> {
+}: LoginFormProps) {
   const [isSuccess, setIsSuccess] = useState(false)
 
   const {
@@ -43,11 +43,10 @@ export function BillingPortalSigninForm({
     return (
       <div className="text-center">
         <p className="mb-4">
-          If there is a customer with this email, we have sent them a
-          login link.
+          {`If there is a customer with this email, we have sent them a login link.`}
         </p>
         <p className="text-subtle">
-          Didn't receive your email?{' '}
+          {`Didn't receive your email?`}
           <button
             onClick={() => setIsSuccess(false)}
             className="text-primary hover:underline cursor-pointer"

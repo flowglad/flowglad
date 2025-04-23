@@ -1,4 +1,4 @@
-import { BillingPortalSigninForm } from '@/components/BillingPortalSigninForm'
+import { BillingPortalSigninForm } from './BillingPortalSignInForm'
 
 interface BillingPortalSigninPageProps {
   params: {
@@ -18,5 +18,3 @@ export default async function BillingPortalSigninPage({
     />
   )
 }
-
-export default BillingPortalSigninPage

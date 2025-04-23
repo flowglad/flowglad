@@ -19,6 +19,7 @@ import { RotateCw, Infinity } from 'lucide-react'
 import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 
 const MoreMenuCell = ({
   discount,
@@ -38,7 +39,7 @@ const MoreMenuCell = ({
     },
   ]
   return (
-    <>
+    <MoreMenuTableCell items={items}>
       <EditDiscountModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
@@ -49,8 +50,7 @@ const MoreMenuCell = ({
         isOpen={isDeleteOpen}
         setIsOpen={setIsDeleteOpen}
       />
-      <TableRowPopoverMenu items={items} />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -201,14 +201,7 @@ const DiscountsTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell discount={cellData.discount} />
-              </div>
-            </div>
+            <MoreMenuCell discount={cellData.discount} />
           ),
         },
       ] as ColumnDef<Discount.TableRowData>[],

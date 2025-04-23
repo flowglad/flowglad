@@ -21,6 +21,7 @@ import { PriceType } from '@/types'
 import TableTitle from '@/components/ion/TableTitle'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 
 const MoreMenuCell = ({
   price,
@@ -84,7 +85,7 @@ const MoreMenuCell = ({
     },
   })
   return (
-    <>
+    <MoreMenuTableCell items={items}>
       <EditPriceModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
@@ -100,10 +101,7 @@ const MoreMenuCell = ({
         setIsOpen={setIsSetDefaultOpen}
         price={price}
       />
-      <div className="w-fit" onClick={(e) => e.stopPropagation()}>
-        <TableRowPopoverMenu items={items} />
-      </div>
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -242,21 +240,14 @@ const PaginatedPricesTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell
-                  price={cellData.price}
-                  otherPrices={
-                    data?.data
-                      .filter((p) => p.price.id !== cellData.price.id)
-                      .map((p) => p.price) || []
-                  }
-                />
-              </div>
-            </div>
+            <MoreMenuCell
+              price={cellData.price}
+              otherPrices={
+                data?.data
+                  .filter((p) => p.price.id !== cellData.price.id)
+                  .map((p) => p.price) || []
+              }
+            />
           ),
         },
       ] as ColumnDef<{
