@@ -32,12 +32,21 @@ const TabsContent = React.forwardRef<
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
 const tabClassnames = cva(
-  'flex justify-center items-center px-2 pt-2 pb-4 text-2xl font-semibold',
+  'flex justify-center items-center px-2 pt-2 pb-4 text-2xl font-semibold relative',
   {
     variants: {
       state: {
         default: 'text-subtle',
-        selected: 'border-b border-[#dfdfdf] text-[#dfdfdf]',
+        selected: [
+          'text-[#dfdfdf]',
+          'after:absolute',
+          'after:bottom-0',
+          'after:left-1/2',
+          'after:-translate-x-1/2',
+          'after:w-full',
+          'after:h-[1px]',
+          'after:bg-[#dfdfdf]'
+        ],
       },
     },
     defaultVariants: {
