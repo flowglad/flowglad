@@ -1,14 +1,8 @@
-import { z } from 'zod'
 import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { stackServerApp } from '@/stack'
-
-const requestBillingPortalLinkSchema = z.object({
-  customerId: z.string(),
-  organizationId: z.string(),
-  email: z.string().email(),
-})
+import { requestBillingPortalLinkSchema } from '@/db/schema/customers'
 
 export const requestBillingPortalLink = publicProcedure
   .input(requestBillingPortalLinkSchema)
