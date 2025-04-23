@@ -7,14 +7,12 @@ import core from '@/utils/core'
 import TableTitle from '@/components/ion/TableTitle'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import { Plus } from 'lucide-react'
-import { FallbackSkeleton } from '@/components/ion/Skeleton'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { FlowgladApiKeyType } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const MoreMenuCell = ({
   apiKey,
@@ -44,19 +42,13 @@ const ApiKeyTokenCell = ({
 }: {
   apiKey: ApiKey.ClientRecord
 }) => {
-  const copyTextHandler = useCopyTextHandler({
-    text: apiKey.token,
-  })
   if (apiKey.livemode) {
     return <span className="text-sm">{apiKey.token}</span>
   }
   return (
-    <span
-      className="text-sm cursor-pointer"
-      onClick={copyTextHandler}
-    >
+    <CopyableTextTableCell copyText={apiKey.token}>
       {apiKey.token}
-    </span>
+    </CopyableTextTableCell>
   )
 }
 
