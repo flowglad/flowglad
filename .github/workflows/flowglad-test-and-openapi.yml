@@ -20,6 +20,7 @@ jobs:
       TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
       UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
       UNKEY_API_ID: ${{ secrets.UNKEY_API_ID }}
+      NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
     
     steps:
       - name: Checkout repository
@@ -60,6 +61,9 @@ jobs:
       - name: Generate OpenAPI documentation
         run: pnpm tsx src/scripts/openApiDoc.ts --skip-env-pull
       
+      - name: Run lint
+        run: pnpm lint
+
       - name: Setup Docker for tests
         run: |
           docker-compose -f docker-compose.test.yml down --volumes || true
