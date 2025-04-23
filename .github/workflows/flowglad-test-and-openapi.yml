@@ -60,6 +60,9 @@ jobs:
       - name: Generate OpenAPI documentation
         run: pnpm tsx src/scripts/openApiDoc.ts --skip-env-pull
       
+      - name: Run lint
+        run: pnpm lint
+
       - name: Setup Docker for tests
         run: |
           docker-compose -f docker-compose.test.yml down --volumes || true
