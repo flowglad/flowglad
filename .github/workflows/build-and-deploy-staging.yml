@@ -34,10 +34,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge main to stable
+      - name: Rebase stable onto main
         run: |
           git fetch origin stable
           git checkout stable
           git pull origin stable
-          git merge --no-ff origin/main -m "Merge main into stable ($(git log -1 --pretty=format:'%h - %s' origin/main))"
-          git push origin stable
+          git rebase origin/main
+          git push --force-with-lease origin stable
