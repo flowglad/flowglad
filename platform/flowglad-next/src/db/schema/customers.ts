@@ -217,3 +217,13 @@ export interface CustomerTableRowData {
   payments?: number
   status: InferredCustomerStatus
 }
+
+export const requestBillingPortalLinkSchema = z.object({
+  customerId: z.string(),
+  organizationId: z.string(),
+  email: z.string().email(),
+})
+
+export type RequestBillingPortalLinkInput = z.infer<
+  typeof requestBillingPortalLinkSchema
+>

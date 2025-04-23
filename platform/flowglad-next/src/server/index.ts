@@ -1,11 +1,5 @@
 import { router } from './trpc'
 import { pong } from '@/server/mutations/pong'
-import { createPurchase } from '@/server/mutations/createPurchase'
-import { editPurchase } from '@/server/mutations/editPurchase'
-import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
-import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
-import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
-import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
 import { editFile } from '@/server/mutations/editFile'
@@ -37,10 +31,9 @@ import { catalogsRouter } from './routers/catalogsRouter'
 import { usageMetersRouter } from './routers/usageMetersRouter'
 import { usageEventsRouter } from './routers/usageEventsRouter'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
-import { t } from './coreTrpcObject'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
-
+import { requestBillingPortalLink } from './mutations/requestBillingPortalLink'
 const filesRouter = router({
   create: createFile,
   update: editFile,
@@ -79,6 +72,7 @@ export const appRouter = router({
     getPresignedURL,
     toggleTestMode,
     inviteUserToOrganization,
+    requestBillingPortalLink,
   }),
   apiKeys: router({
     get: getApiKeys,
