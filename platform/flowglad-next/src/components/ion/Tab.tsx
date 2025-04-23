@@ -41,10 +41,8 @@ const tabClassnames = cva(
           'text-[#dfdfdf]',
           'after:absolute',
           'after:bottom-0',
-          'after:left-0',
-          'after:right-0',
-          'after:w-[calc(100%-16px)]',
-          'after:mx-auto',
+          'after:left-[8px]',
+          'after:right-[8px]',
           'after:h-[1px]',
           'after:bg-[#dfdfdf]'
         ],
