@@ -5,8 +5,6 @@ import { beforeAll, afterAll } from 'vitest'
 
 beforeAll(() => {
   // Set up any global test environment variables or configurations
-  process.env.FLOWGLAD_API_KEY =
-    process.env.FLOWGLAD_API_KEY || 'test-api-key'
   process.env.FLOWGLAD_BASE_URL =
     process.env.FLOWGLAD_BASE_URL || 'http://localhost:3000'
 })

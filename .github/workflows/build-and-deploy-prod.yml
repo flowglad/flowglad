@@ -1,0 +1,26 @@
+name: Merge to stable and deploy prod
+
+# This workflow is triggered by a push to the main branch with changes to the platform/flowglad-next directory
+# and merges main into stable
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - stable
+    paths:
+      - 'platform/flowglad-next/**'
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  NEXT_PUBLIC_CDN_URL: cdn-flowglad.com
+
+jobs:
+  deploy-stable-to-prod:
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      environment: production
+    secrets: inherit

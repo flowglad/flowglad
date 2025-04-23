@@ -1,6 +1,6 @@
 {
-  "id": "1ba0eae6-007b-4fbe-9329-a8f710c87828",
-  "prevId": "104cfd5d-3ecd-479e-b449-a17162a6af07",
+  "id": "f2bb1e76-6b00-40fc-9be9-da69ee683dc2",
+  "prevId": "1ba0eae6-007b-4fbe-9329-a8f710c87828",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -75,7 +75,7 @@
           "name": "unkey_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "type": {
           "name": "type",
@@ -83,6 +83,12 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1694,7 +1700,7 @@
         }
       },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.discount_redemptions": {
       "name": "discount_redemptions",

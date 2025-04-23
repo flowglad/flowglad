@@ -1,0 +1,88 @@
+name: Reusable Build and Deploy Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: 'Environment to deploy to (preview/production)'
+    secrets:
+      VERCEL_ORG_ID:
+        required: true
+      VERCEL_PROJECT_ID:
+        required: true
+      VERCEL_TOKEN:
+        required: true
+      NEXT_PUBLIC_CDN_URL:
+        required: true
+      TRIGGER_ACCESS_TOKEN:
+        required: true
+      FLOWGLAD_NEXT_VERCEL_PROJECT_NAME:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install dependencies
+        run: pnpm install-packages
+        working-directory: platform/flowglad-next
+
+      - name: Install Vercel CLI
+        run: pnpm install --global vercel@41.6.2
+        
+      - name: Pull Vercel Environment Variables
+        run: |
+          vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
+          cp .vercel/.env.${{ inputs.environment }}.local .env.local
+          cp .vercel/.env.${{ inputs.environment }}.local platform/flowglad-next/.env.local
+
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Trigger
+        run: export TRIGGER_ENV=${{ inputs.environment == 'production' && 'prod' || 'staging' }} && pnpm trigger:deploy
+        working-directory: platform/flowglad-next
+        env:
+          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
+
+      - name: Run migrations
+        run: pnpm migrations:push
+        working-directory: platform/flowglad-next
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25.2.0
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ inputs.environment == 'prod' && '--prebuilt --prod' || '--prebuilt' }}
+          vercel-project-name: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
+          vercel-version: 41.6.2 

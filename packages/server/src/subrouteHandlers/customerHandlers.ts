@@ -52,7 +52,7 @@ export const findOrCreateCustomer: SubRouteHandler<
   }
   let customer
   const requestingcustomerId =
-    await flowgladServer.getRequestingcustomerId()
+    await flowgladServer.getRequestingCustomerId()
   try {
     customer = await flowgladServer.getCustomer()
   } catch (error) {

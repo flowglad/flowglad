@@ -2,6 +2,7 @@ import { defineConfig } from '@trigger.dev/sdk/v3'
 import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
 import {
   additionalFiles,
+  additionalPackages,
   syncVercelEnvVars,
 } from '@trigger.dev/build/extensions/core'
 
@@ -27,6 +28,18 @@ export default defineConfig({
       puppeteer(),
       additionalFiles({
         files: ['./public/fonts/**'],
+      }),
+      /**
+       * These packages don't get bundled when building in a Github Action environment
+       * so we have to include them here.
+       */
+      additionalPackages({
+        packages: [
+          'puppeteer@24.4.0',
+          'chromium-bidi@2.1.2',
+          'puppeteer-core@21.11.0',
+          '@sparticuz/chromium@119.0.2',
+        ],
       }),
     ],
   },

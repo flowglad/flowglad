@@ -9,6 +9,7 @@ const nextConfig = {
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
     'zlib-sync',
+    'chromium-bidi',
   ],
   images: {
     remotePatterns: [
@@ -51,6 +52,16 @@ const nextConfig = {
       // This is the asset module.
       type: 'asset/source',
     })
+
+    // Add resolve aliases for chromium-bidi
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'chromium-bidi/lib/cjs/bidiMapper/BidiMapper.js':
+        'chromium-bidi/lib/esm/bidiMapper/BidiMapper.js',
+      'chromium-bidi/lib/cjs/protocol/protocol.js':
+        'chromium-bidi/lib/esm/protocol/protocol.js',
+    }
+
     return config
   },
 }

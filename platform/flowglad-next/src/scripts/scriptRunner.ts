@@ -43,10 +43,11 @@ function rmDevelopmentEnvVars() {
 
 export default async function runScript(
   scriptMethod: (db: PostgresJsDatabase) => Promise<void>,
-  databaseUrl?: string
+  params?: { databaseUrl?: string; skipEnvPull?: boolean }
 ) {
   const env = process.env.NODE_ENV ?? 'development'
-  const skipEnvPull = process.argv.includes('--skip-env-pull')
+  const skipEnvPull =
+    params?.skipEnvPull ?? process.argv.includes('--skip-env-pull')
 
   try {
     if (!skipEnvPull) {
@@ -79,7 +80,8 @@ export default async function runScript(
   loadEnvConfig(projectDir)
 
   // Use custom database URL if provided, otherwise use the default from environment variables
-  const dbUrl = databaseUrl || core.envVariable('DATABASE_URL')
+  const dbUrl =
+    params?.databaseUrl || core.envVariable('DATABASE_URL')
   const client = postgres(dbUrl)
   const db = drizzle(client, { logger: true })
 

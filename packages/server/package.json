@@ -24,6 +24,7 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "eslint": "8.57.0",
     "typescript": "5.8.2",
     "vitest": "^3.0.5",
