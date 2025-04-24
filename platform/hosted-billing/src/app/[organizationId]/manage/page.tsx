@@ -17,7 +17,7 @@ export default async function BillingPortalManagePage({
 
   if (!user) {
     return redirect(
-      `/billing/${organizationId}/${customerId}/sign-in`
+      `/billing/${organizationId}/sign-in?externalId=${encodeURIComponent(customerId)}`
     )
   }
 
@@ -25,7 +25,7 @@ export default async function BillingPortalManagePage({
 
   if (!customer) {
     return redirect(
-      `/billing/${organizationId}/${customerId}/sign-in`
+      `/billing/${organizationId}/sign-in?externalId=${encodeURIComponent(customerId)}`
     )
   }
 

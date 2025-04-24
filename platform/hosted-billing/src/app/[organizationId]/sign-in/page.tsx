@@ -6,7 +6,7 @@ interface BillingPortalSigninPageProps {
     organizationId: string
   }
   searchParams: {
-    id?: string
+    externalId?: string
   }
 }
 
@@ -16,11 +16,13 @@ export default async function BillingPortalSigninPage({
 }: BillingPortalSigninPageProps) {
   const { organizationId } = params
 
-  if (!searchParams.id) {
+  if (!searchParams.externalId) {
     notFound()
   }
 
-  const customerExternalId = decodeURIComponent(searchParams.id)
+  const customerExternalId = decodeURIComponent(
+    searchParams.externalId
+  )
 
   return (
     <BillingPortalSigninForm
