@@ -21,11 +21,9 @@ export const validateBillingAuthentication = async (
   }
   try {
     const { payload } = await jose.jwtVerify(accessToken, jwks)
-    console.log('Authenticated user with ID:', payload.sub)
     return true
   } catch (error) {
-    console.error()
-    console.log('validateBillingAuthentication: Invalid user', error)
+    console.error(error)
     throw new Error('Invalid user')
   }
 }

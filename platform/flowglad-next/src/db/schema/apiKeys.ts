@@ -239,14 +239,14 @@ export namespace ApiKey {
   // Secret API Key types
   export type SecretInsert = z.infer<typeof secretApiKeysInsertSchema>
   export type SecretUpdate = z.infer<typeof secretApiKeysUpdateSchema>
-  export type SecretSelect = z.infer<typeof secretApiKeysSelectSchema>
+  export type SecretRecord = z.infer<typeof secretApiKeysSelectSchema>
   export type SecretClientInsert = z.infer<
     typeof secretApiKeysClientInsertSchema
   >
   export type SecretClientUpdate = z.infer<
     typeof secretApiKeysClientUpdateSchema
   >
-  export type SecretClientSelect = z.infer<
+  export type SecretClientRecord = z.infer<
     typeof secretApiKeysClientSelectSchema
   >
 
@@ -257,7 +257,7 @@ export namespace ApiKey {
   export type PublishableUpdate = z.infer<
     typeof publishableApiKeysUpdateSchema
   >
-  export type PublishableSelect = z.infer<
+  export type PublishableRecord = z.infer<
     typeof publishableApiKeysSelectSchema
   >
   export type PublishableClientInsert = z.infer<
@@ -266,7 +266,7 @@ export namespace ApiKey {
   export type PublishableClientUpdate = z.infer<
     typeof publishableApiKeysClientUpdateSchema
   >
-  export type PublishableClientSelect = z.infer<
+  export type PublishableClientRecord = z.infer<
     typeof publishableApiKeysClientSelectSchema
   >
 
@@ -277,7 +277,7 @@ export namespace ApiKey {
   export type BillingPortalUpdate = z.infer<
     typeof hostedBillingPortalApiKeysUpdateSchema
   >
-  export type BillingPortalSelect = z.infer<
+  export type BillingPortalRecord = z.infer<
     typeof hostedBillingPortalApiKeysSelectSchema
   >
   export type BillingPortalClientInsert = z.infer<
@@ -286,7 +286,7 @@ export namespace ApiKey {
   export type BillingPortalClientUpdate = z.infer<
     typeof hostedBillingPortalApiKeysClientUpdateSchema
   >
-  export type BillingPortalClientSelect = z.infer<
+  export type BillingPortalClientRecord = z.infer<
     typeof hostedBillingPortalApiKeysClientSelectSchema
   >
   export type Where = SelectConditions<typeof apiKeys>

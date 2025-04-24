@@ -263,6 +263,7 @@ export const stripePaymentMethodToPaymentMethodInsert = (
     stripePaymentMethod.type !== 'link' &&
     stripePaymentMethod.type !== 'card'
   ) {
+    // eslint-disable-next-line no-console
     console.log(
       'card stripePaymentMethod without `card` prop:',
       stripePaymentMethod
