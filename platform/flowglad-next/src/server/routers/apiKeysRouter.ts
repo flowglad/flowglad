@@ -1,8 +1,9 @@
 import { protectedProcedure, router } from '../trpc'
 import { authenticatedTransaction } from '@/db/databaseMethods'
-import { apiKeyClientSelectSchema } from '@/db/schema/apiKeys'
+import { apiKeysClientSelectSchema } from '@/db/schema/apiKeys'
 import {
   selectApiKeyById,
+  selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
 import {
@@ -14,6 +15,7 @@ import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
+import { TRPCError } from '@trpc/server'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'apiKey',
@@ -32,7 +34,7 @@ const listApiKeysProcedure = protectedProcedure
     )
   )
   .output(
-    createPaginatedTableRowOutputSchema(apiKeyClientSelectSchema)
+    createPaginatedTableRowOutputSchema(apiKeysClientSelectSchema)
   )
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
@@ -41,10 +43,16 @@ const listApiKeysProcedure = protectedProcedure
 
         // Get the user's organization
         const organizationId = ctx.organizationId
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'You are not authorized to access this resource',
+          })
+        }
 
         // Use the existing selectApiKeysTableRowData function
-        const apiKeyRows = await selectApiKeysTableRowData(
-          organizationId || '',
+        const apiKeyRows = await selectApiKeys(
+          { organizationId },
           transaction
         )
 
@@ -55,10 +63,7 @@ const listApiKeysProcedure = protectedProcedure
         const hasMore = endIndex < apiKeyRows.length
 
         return {
-          data: paginatedRows.map((row) => ({
-            ...row.apiKey,
-            type: row.apiKey.type as FlowgladApiKeyType,
-          })),
+          data: paginatedRows,
           currentCursor: cursor || '0',
           nextCursor: hasMore ? endIndex.toString() : undefined,
           hasMore,
@@ -74,16 +79,13 @@ const listApiKeysProcedure = protectedProcedure
 const getApiKeyProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
-  .output(z.object({ apiKey: apiKeyClientSelectSchema }))
+  .output(z.object({ apiKey: apiKeysClientSelectSchema }))
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
         const apiKey = await selectApiKeyById(input.id, transaction)
         return {
-          apiKey: {
-            ...apiKey,
-            type: apiKey.type as FlowgladApiKeyType,
-          },
+          apiKey,
         }
       },
       {
@@ -103,7 +105,7 @@ const getTableRowsProcedure = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(
       z.object({
-        apiKey: apiKeyClientSelectSchema,
+        apiKey: apiKeysClientSelectSchema,
         organization: z.object({
           id: z.string(),
           name: z.string(),
@@ -137,13 +139,7 @@ const getTableRowsProcedure = protectedProcedure
         const hasMore = endIndex < filteredRows.length
 
         return {
-          data: paginatedRows.map((row) => ({
-            ...row,
-            apiKey: {
-              ...row.apiKey,
-              type: row.apiKey.type as FlowgladApiKeyType,
-            },
-          })),
+          data: paginatedRows,
           currentCursor: cursor || '0',
           nextCursor: hasMore ? endIndex.toString() : undefined,
           hasMore,

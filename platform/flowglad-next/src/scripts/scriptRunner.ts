@@ -23,7 +23,7 @@ import { PostgresJsDatabase, drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
 function pullDevelopmentEnvVars() {
-  execSync(`vercel env pull --environment='development'`, {
+  execSync(`vercel env pull .env.local`, {
     stdio: 'inherit',
   })
   execSync('pnpm postvercel:env-pull', {
@@ -50,6 +50,13 @@ export default async function runScript(
     params?.skipEnvPull ?? process.argv.includes('--skip-env-pull')
 
   try {
+    // Set git commit SHA environment variable
+    const gitCommitSha = execSync('git rev-parse HEAD')
+      .toString()
+      .trim()
+    process.env.VERCEL_GIT_COMMIT_SHA = gitCommitSha
+    // eslint-disable-next-line no-console
+    console.info(`🔍 Set VERCEL_GIT_COMMIT_SHA to ${gitCommitSha}`)
     if (!skipEnvPull) {
       rmDevelopmentEnvVars()
       execSync(`vercel env pull --environment=${env}`, {

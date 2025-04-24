@@ -8,6 +8,7 @@ import {
 import {
   ApiKey,
   apiKeys,
+  apiKeysClientSelectSchema,
   apiKeysInsertSchema,
   apiKeysSelectSchema,
   apiKeysUpdateSchema,
@@ -54,7 +55,7 @@ export const selectApiKeysTableRowData = async (
     .orderBy(desc(apiKeys.createdAt))
 
   return apiKeysRowData.map((row) => ({
-    apiKey: row.apiKey,
+    apiKey: apiKeysClientSelectSchema.parse(row.apiKey),
     organization: row.organization,
   }))
 }

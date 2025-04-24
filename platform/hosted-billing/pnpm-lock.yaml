@@ -17,6 +17,9 @@ importers:
       '@stackframe/stack':
         specifier: ^2.7.27
         version: 2.8.8(@babel/core@7.26.10)(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.3.1(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(tailwindcss@4.1.4)
+      '@tanstack/react-query':
+        specifier: 5.66.0
+        version: 5.66.0(react@19.1.0)
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
