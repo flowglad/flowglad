@@ -5,7 +5,7 @@ import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import PurchasesTable from './PurchasesTable'
 import InvoicesTable from '@/components/InvoicesTable'
 import core from '@/utils/core'
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
 import TableTitle from '@/components/ion/TableTitle'
@@ -14,6 +14,7 @@ import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 import { useState } from 'react'
 import PaymentsTable from '@/app/finance/payments/PaymentsTable'
 import { DetailLabel } from '@/components/DetailLabel'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 export interface CustomerBillingSubPageProps {
   customer: Customer.ClientRecord
@@ -48,13 +49,24 @@ export const CustomerBillingSubPage = ({
                 label="Total Spend"
                 value={stripeCurrencyAmountToHumanReadableCurrencyAmount(
                   payments[0]?.currency ?? CurrencyCode.USD,
-                  payments.reduce(
-                    (acc, payment) => acc + payment.amount,
-                    0
-                  )
+                  payments
+                    .filter(
+                      (payment) =>
+                        payment.status === PaymentStatus.Succeeded ||
+                        payment.status === PaymentStatus.Processing
+                    )
+                    .reduce((acc, payment) => acc + payment.amount, 0)
                 )}
               />
               <DetailLabel label="Email" value={customer.email} />
+              <DetailLabel
+                label="ID"
+                value={
+                  <CopyableTextTableCell copyText={customer.id}>
+                    {customer.id}
+                  </CopyableTextTableCell>
+                }
+              />
             </div>
           </div>
           <div className="w-full flex flex-col gap-5 pb-20">

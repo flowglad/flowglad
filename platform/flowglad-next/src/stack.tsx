@@ -10,3 +10,8 @@ export const stackServerApp = new StackServerApp({
     accountSettings: '/account-settings',
   },
 })
+
+export const hostedBillingStackServerApp = new StackServerApp({
+  tokenStore: 'nextjs-cookie',
+  projectId: 'hosted-billing',
+})

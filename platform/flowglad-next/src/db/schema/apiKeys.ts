@@ -47,6 +47,9 @@ export const apiKeys = pgTable(
     expiresAt: timestamp('expires_at', {
       withTimezone: true,
     }),
+    stackAuthHostedBillingUserId: text(
+      'stack_auth_hosted_billing_user_id'
+    ),
   },
   (table) => {
     return [
@@ -69,20 +72,75 @@ const columnRefinements = {
 /*
  * database schemas
  */
-export const apiKeysInsertSchema = createInsertSchema(
+export const coreApiKeysInsertSchema = createInsertSchema(
   apiKeys,
   columnRefinements
 ).omit(ommittedColumnsForInsertSchema)
 
-export const apiKeysSelectSchema = createSelectSchema(
+export const coreApiKeysSelectSchema = createSelectSchema(
   apiKeys,
   columnRefinements
 ).extend(columnRefinements)
 
-export const apiKeysUpdateSchema = createUpdateSchema(
+export const coreApiKeysUpdateSchema = createUpdateSchema(
   apiKeys,
   columnRefinements
 )
+
+const hostedBillingApiKeyColumns = {
+  type: z.literal(FlowgladApiKeyType.BillingPortalToken),
+  expiresAt: z.date(),
+  stackAuthHostedBillingUserId: z.string(),
+}
+
+// Hosted billing portal schemas
+export const hostedBillingPortalApiKeysInsertSchema =
+  coreApiKeysInsertSchema.extend(hostedBillingApiKeyColumns)
+export const hostedBillingPortalApiKeysSelectSchema =
+  coreApiKeysSelectSchema.extend(hostedBillingApiKeyColumns)
+export const hostedBillingPortalApiKeysUpdateSchema =
+  coreApiKeysUpdateSchema.extend(hostedBillingApiKeyColumns)
+
+// Secret API key schemas
+const secretApiKeyColumns = {
+  type: z.literal(FlowgladApiKeyType.Secret),
+}
+export const secretApiKeysInsertSchema =
+  coreApiKeysInsertSchema.extend(secretApiKeyColumns)
+export const secretApiKeysSelectSchema =
+  coreApiKeysSelectSchema.extend(secretApiKeyColumns)
+export const secretApiKeysUpdateSchema =
+  coreApiKeysUpdateSchema.extend(secretApiKeyColumns)
+
+// Publishable API key schemas
+const publishableApiKeyColumns = {
+  type: z.literal(FlowgladApiKeyType.Publishable),
+}
+export const publishableApiKeysInsertSchema =
+  coreApiKeysInsertSchema.extend(publishableApiKeyColumns)
+export const publishableApiKeysSelectSchema =
+  coreApiKeysSelectSchema.extend(publishableApiKeyColumns)
+export const publishableApiKeysUpdateSchema =
+  coreApiKeysUpdateSchema.extend(publishableApiKeyColumns)
+
+// Combined discriminated union schemas
+export const apiKeysInsertSchema = z.discriminatedUnion('type', [
+  secretApiKeysInsertSchema,
+  publishableApiKeysInsertSchema,
+  hostedBillingPortalApiKeysInsertSchema,
+])
+
+export const apiKeysSelectSchema = z.discriminatedUnion('type', [
+  secretApiKeysSelectSchema,
+  publishableApiKeysSelectSchema,
+  hostedBillingPortalApiKeysSelectSchema,
+])
+
+export const apiKeysUpdateSchema = z.discriminatedUnion('type', [
+  secretApiKeysUpdateSchema,
+  publishableApiKeysUpdateSchema,
+  hostedBillingPortalApiKeysUpdateSchema,
+])
 
 const readOnlyColumns = {
   organizationId: true,
@@ -99,38 +157,143 @@ const nonClientEditableColumns = {
   ...readOnlyColumns,
 } as const
 
+// Client schemas
+export const secretApiKeysClientInsertSchema =
+  secretApiKeysInsertSchema.omit(nonClientEditableColumns)
+export const secretApiKeysClientSelectSchema =
+  secretApiKeysSelectSchema.omit(hiddenColumns)
+export const secretApiKeysClientUpdateSchema =
+  secretApiKeysUpdateSchema.omit({
+    ...nonClientEditableColumns,
+    expiresAt: true,
+  })
+
+export const publishableApiKeysClientInsertSchema =
+  publishableApiKeysInsertSchema.omit(nonClientEditableColumns)
+export const publishableApiKeysClientSelectSchema =
+  publishableApiKeysSelectSchema.omit(hiddenColumns)
+export const publishableApiKeysClientUpdateSchema =
+  publishableApiKeysUpdateSchema.omit({
+    ...nonClientEditableColumns,
+    expiresAt: true,
+  })
+
+export const hostedBillingPortalApiKeysClientInsertSchema =
+  hostedBillingPortalApiKeysInsertSchema.omit(
+    nonClientEditableColumns
+  )
+export const hostedBillingPortalApiKeysClientSelectSchema =
+  hostedBillingPortalApiKeysSelectSchema.omit(hiddenColumns)
+export const hostedBillingPortalApiKeysClientUpdateSchema =
+  hostedBillingPortalApiKeysUpdateSchema.omit({
+    ...nonClientEditableColumns,
+    expiresAt: true,
+  })
+
 /*
  * client schemas
  */
-export const apiKeyClientInsertSchema = apiKeysInsertSchema.omit(
-  nonClientEditableColumns
+// Combined client discriminated union schemas
+export const apiKeysClientInsertSchema = z.discriminatedUnion(
+  'type',
+  [
+    secretApiKeysClientInsertSchema,
+    publishableApiKeysClientInsertSchema,
+    hostedBillingPortalApiKeysClientInsertSchema,
+  ]
 )
 
-export const apiKeyClientUpdateSchema = apiKeysUpdateSchema.omit(
-  nonClientEditableColumns
+export const apiKeysClientSelectSchema = z.discriminatedUnion(
+  'type',
+  [
+    secretApiKeysClientSelectSchema,
+    publishableApiKeysClientSelectSchema,
+    hostedBillingPortalApiKeysClientSelectSchema,
+  ]
 )
 
-export const apiKeyClientSelectSchema =
-  apiKeysSelectSchema.omit(hiddenColumns)
+export const apiKeysClientUpdateSchema = z.discriminatedUnion(
+  'type',
+  [
+    secretApiKeysClientUpdateSchema,
+    publishableApiKeysClientUpdateSchema,
+    hostedBillingPortalApiKeysClientUpdateSchema,
+  ]
+)
 
 export const apiKeyClientWhereClauseSchema =
-  apiKeysSelectSchema.partial()
+  coreApiKeysSelectSchema.partial()
 
 export namespace ApiKey {
+  // Base types
   export type Insert = z.infer<typeof apiKeysInsertSchema>
   export type Update = z.infer<typeof apiKeysUpdateSchema>
   export type Record = z.infer<typeof apiKeysSelectSchema>
-  export type ClientInsert = z.infer<typeof apiKeyClientInsertSchema>
-  export type ClientUpdate = z.infer<typeof apiKeyClientUpdateSchema>
-  export type ClientRecord = z.infer<typeof apiKeyClientSelectSchema>
+  export type ClientInsert = z.infer<typeof apiKeysClientInsertSchema>
+  export type ClientUpdate = z.infer<typeof apiKeysClientUpdateSchema>
+  export type ClientRecord = z.infer<typeof apiKeysClientSelectSchema>
   export type ClientWhereClause = z.infer<
     typeof apiKeyClientWhereClauseSchema
+  >
+
+  // Secret API Key types
+  export type SecretInsert = z.infer<typeof secretApiKeysInsertSchema>
+  export type SecretUpdate = z.infer<typeof secretApiKeysUpdateSchema>
+  export type SecretSelect = z.infer<typeof secretApiKeysSelectSchema>
+  export type SecretClientInsert = z.infer<
+    typeof secretApiKeysClientInsertSchema
+  >
+  export type SecretClientUpdate = z.infer<
+    typeof secretApiKeysClientUpdateSchema
+  >
+  export type SecretClientSelect = z.infer<
+    typeof secretApiKeysClientSelectSchema
+  >
+
+  // Publishable API Key types
+  export type PublishableInsert = z.infer<
+    typeof publishableApiKeysInsertSchema
+  >
+  export type PublishableUpdate = z.infer<
+    typeof publishableApiKeysUpdateSchema
+  >
+  export type PublishableSelect = z.infer<
+    typeof publishableApiKeysSelectSchema
+  >
+  export type PublishableClientInsert = z.infer<
+    typeof publishableApiKeysClientInsertSchema
+  >
+  export type PublishableClientUpdate = z.infer<
+    typeof publishableApiKeysClientUpdateSchema
+  >
+  export type PublishableClientSelect = z.infer<
+    typeof publishableApiKeysClientSelectSchema
+  >
+
+  // Billing Portal API Key types
+  export type BillingPortalInsert = z.infer<
+    typeof hostedBillingPortalApiKeysInsertSchema
+  >
+  export type BillingPortalUpdate = z.infer<
+    typeof hostedBillingPortalApiKeysUpdateSchema
+  >
+  export type BillingPortalSelect = z.infer<
+    typeof hostedBillingPortalApiKeysSelectSchema
+  >
+  export type BillingPortalClientInsert = z.infer<
+    typeof hostedBillingPortalApiKeysClientInsertSchema
+  >
+  export type BillingPortalClientUpdate = z.infer<
+    typeof hostedBillingPortalApiKeysClientUpdateSchema
+  >
+  export type BillingPortalClientSelect = z.infer<
+    typeof hostedBillingPortalApiKeysClientSelectSchema
   >
   export type Where = SelectConditions<typeof apiKeys>
 }
 
 export const createApiKeyInputSchema = z.object({
-  apiKey: apiKeyClientInsertSchema,
+  apiKey: apiKeysClientInsertSchema,
 })
 
 export type CreateApiKeyInput = z.infer<
@@ -138,7 +301,7 @@ export type CreateApiKeyInput = z.infer<
 >
 
 export const editApiKeyInputSchema = z.object({
-  apiKey: apiKeyClientUpdateSchema,
+  apiKey: apiKeysClientUpdateSchema,
 })
 
 export type EditApiKeyInput = z.infer<typeof editApiKeyInputSchema>

@@ -53,6 +53,9 @@ const columns = {
   externalId: text('external_id').notNull(),
   userId: nullableStringForeignKey('user_id', users),
   catalogId: nullableStringForeignKey('catalog_id', catalogs),
+  stackAuthHostedBillingUserId: text(
+    'stack_auth_hosted_billing_user_id'
+  ),
 }
 
 export const customers = pgTable(TABLE_NAME, columns, (table) => {
@@ -110,6 +113,7 @@ const readonlyColumns = {
 const hiddenColumns = {
   stripeCustomerId: true,
   taxId: true,
+  stackAuthHostedBillingUserId: true,
 } as const
 
 const nonClientEditableColumns = {
