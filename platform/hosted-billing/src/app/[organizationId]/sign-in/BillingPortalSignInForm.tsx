@@ -19,8 +19,12 @@ export function BillingPortalSigninForm({
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<RequestBillingPortalLinkInput>({
+    formState: { errors, isSubmitting },
+  } = useForm<{
+    email: string
+    organizationId: string
+    customerExternalId: string
+  }>({
     defaultValues: {
       organizationId,
       customerExternalId,
@@ -28,12 +32,7 @@ export function BillingPortalSigninForm({
     },
   })
 
-  const requestPortalLink =
-    trpc.utils.requestBillingPortalLink.useMutation({})
-
-  const loading = requestPortalLink.isPending
-  const onSubmit = async (data: RequestBillingPortalLinkInput) => {
-    await requestPortalLink.mutateAsync(data)
+  const onSubmit = async () => {
     setIsSuccess(true)
   }
 
@@ -66,11 +65,11 @@ export function BillingPortalSigninForm({
       />
       <Button
         type="submit"
-        disabled={loading}
+        disabled={isSubmitting}
         className="w-full"
-        loading={loading}
+        loading={isSubmitting}
       >
-        {loading ? 'Sending...' : 'Send login link'}
+        {isSubmitting ? 'Sending...' : 'Send login link'}
       </Button>
       {errors.root && (
         <p className="text-red-500">{errors.root?.message}</p>
