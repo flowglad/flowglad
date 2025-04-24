@@ -21,6 +21,7 @@ import {
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { PaymentStatus } from '@/types'
+import { retryPaymentTransaction } from '@/utils/paymentHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Payment',
@@ -144,10 +145,24 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   })
 
+export const retryPayment = protectedProcedure
+  .input(z.object({ id: z.string() }))
+  .mutation(async ({ ctx, input }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        return retryPaymentTransaction(input, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const paymentsRouter = router({
   refund: refundPayment,
   list: listPaymentsProcedure,
   get: getPaymentProcedure,
   getTableRows: getTableRowsProcedure,
   getCountsByStatus: getCountsByStatusProcedure,
+  retry: retryPayment,
 })
