@@ -27,8 +27,6 @@ export const POST = async (request: NextRequest) => {
     )
   }
 
-  console.log('Using API key:', apiKey.substring(0, 5) + '...')
-
   const response = await axios.post(
     `${process.env.THIRD_PARTY_API_BASE_URL}/api/hosted-billing/request-magic-link`,
     parsedBody,
@@ -38,7 +36,6 @@ export const POST = async (request: NextRequest) => {
       },
     }
   )
-  console.log('response.request.headers', response.request.headers)
   if (response.status !== 200) {
     return NextResponse.json(
       { error: 'Failed to send magic link' },

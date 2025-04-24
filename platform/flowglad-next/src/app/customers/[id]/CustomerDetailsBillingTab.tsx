@@ -58,12 +58,29 @@ export const CustomerBillingSubPage = ({
                     .reduce((acc, payment) => acc + payment.amount, 0)
                 )}
               />
-              <DetailLabel label="Email" value={customer.email} />
+              <DetailLabel
+                label="Email"
+                value={
+                  <CopyableTextTableCell copyText={customer.email}>
+                    {customer.email}
+                  </CopyableTextTableCell>
+                }
+              />
               <DetailLabel
                 label="ID"
                 value={
                   <CopyableTextTableCell copyText={customer.id}>
                     {customer.id}
+                  </CopyableTextTableCell>
+                }
+              />
+              <DetailLabel
+                label="External ID"
+                value={
+                  <CopyableTextTableCell
+                    copyText={customer.externalId}
+                  >
+                    {customer.externalId}
                   </CopyableTextTableCell>
                 }
               />
