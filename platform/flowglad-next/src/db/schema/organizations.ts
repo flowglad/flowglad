@@ -80,7 +80,9 @@ const billingAddressSchemaColumns = {
   name: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  email: z.string().email().optional(),
   address: z.object({
+    name: z.string().optional(),
     line1: z.string().nullable(),
     line2: z.string().nullable(),
     city: z.string().nullable(),
