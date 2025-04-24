@@ -43,7 +43,11 @@ export const validateBillingApiRequest = async (
       error: string
     }
 > => {
-  const authHeader = request.headers.get('authorization')
+  console.log(
+    'validateBillingApiRequest',
+    request.headers.values().toArray()
+  )
+  const authHeader = request.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     return {
       valid: false,
@@ -53,8 +57,12 @@ export const validateBillingApiRequest = async (
   const secretKey = authHeader.split(' ')[1] // Remove 'Bearer ' prefix
 
   if (
-    secretKey !== core.envVariable('HOSTED_BILLING_API_SECRET_KEY')
+    secretKey !==
+      core.envVariable('HOSTED_BILLING_LIVEMODE_SECRET_KEY') &&
+    secretKey !==
+      core.envVariable('HOSTED_BILLING_TESTMODE_SECRET_KEY')
   ) {
+    console.error('Invalid API key', secretKey)
     return {
       valid: false,
       error: 'Invalid API key',
@@ -74,7 +82,7 @@ export const validateBillingApiRequest = async (
   return {
     valid: true,
     livemode:
-      core.envVariable('LIVEMODE_BILLING_HOSTED_API_KEY') ===
+      core.envVariable('HOSTED_BILLING_LIVEMODE_SECRET_KEY') ===
       secretKey,
   }
 }

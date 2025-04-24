@@ -36,7 +36,7 @@
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.43.4",
     "@tanstack/react-query": "5.66.0",
-    "axios": "1.8.2",
+    "axios": "1.8.4",
     "class-variance-authority": "^0.7.0",
     "classnames": "^2.5.1",
     "clsx": "2.1.1",
@@ -49,8 +49,8 @@
     "react-merge-refs": "^2.1.1",
     "tailwind-merge": "3.0.2",
     "tailwindcss": "^3.4.4",
-    "tailwindcss-animate": "^1.0.7",
-    "zod": "3.23.8"
+    "tailwindcss-animate": "1.0.7",
+    "zod": "3.24.3"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

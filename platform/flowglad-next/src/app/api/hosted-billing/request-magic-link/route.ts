@@ -11,6 +11,7 @@ import { hostedBillingStackServerApp } from '@/stack'
 const requestSchema = z.object({
   organizationId: z.string(),
   customerEmail: z.string().email(),
+  customerExternalId: z.string(),
 })
 
 const createUserAndSendMagicLink = async (params: {
@@ -41,7 +42,7 @@ export const POST = withBillingApiRequestValidation(
   async (request) => {
     try {
       const body = await request.json()
-      const { organizationId, customerEmail } =
+      const { organizationId, customerEmail, customerExternalId } =
         requestSchema.parse(body)
 
       const customer = await adminTransaction(
@@ -50,6 +51,7 @@ export const POST = withBillingApiRequestValidation(
             {
               organizationId,
               email: customerEmail,
+              externalId: customerExternalId,
             },
             transaction
           )

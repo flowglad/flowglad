@@ -1422,6 +1422,13 @@
       "when": 1745369918747,
       "tag": "0203_mighty_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 204,
+      "version": "7",
+      "when": 1745527975952,
+      "tag": "0204_majestic_red_skull",
+      "breakpoints": true
     }
   ]
 }

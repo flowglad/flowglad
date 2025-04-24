@@ -2,27 +2,26 @@ import { BillingPortalSigninForm } from './BillingPortalSignInForm'
 import { notFound } from 'next/navigation'
 
 interface BillingPortalSigninPageProps {
-  params: {
+  params: Promise<{
     organizationId: string
-  }
-  searchParams: {
+  }>
+  searchParams: Promise<{
     externalId?: string
-  }
+  }>
 }
 
 export default async function BillingPortalSigninPage({
   params,
   searchParams,
 }: BillingPortalSigninPageProps) {
-  const { organizationId } = params
+  const { organizationId } = await params
+  const { externalId } = await searchParams
 
-  if (!searchParams.externalId) {
+  if (!externalId) {
     notFound()
   }
 
-  const customerExternalId = decodeURIComponent(
-    searchParams.externalId
-  )
+  const customerExternalId = decodeURIComponent(externalId)
 
   return (
     <BillingPortalSigninForm

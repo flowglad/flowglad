@@ -29,8 +29,8 @@
     "date-fns": "4.1.0",
     "lucide-react": "0.479.0",
     "tailwind-merge": "3.0.2",
-    "tailwindcss-animate": "^1.0.7",
-    "zod": "3.23.8"
+    "tailwindcss-animate": "1.0.7",
+    "zod": "3.24.3"
   },
   "devDependencies": {
     "@flowglad/types": "workspace:*",
