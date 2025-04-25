@@ -59,6 +59,12 @@ import { BillingAddress } from '@/db/schema/organizations'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 
+if (process.env.VERCEL_ENV === 'production') {
+  throw new Error(
+    'attempted to access seedDatabase.ts in production. This should never happen.'
+  )
+}
+
 const insertCountries = async () => {
   await db
     .insert(countries)

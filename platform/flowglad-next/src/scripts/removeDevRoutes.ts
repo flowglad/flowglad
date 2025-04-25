@@ -2,7 +2,6 @@
 import fs from 'fs'
 import path from 'path'
 
-console.log('====process.env.VERCEL_ENV', process.env.VERCEL_ENV)
 if (process.env.VERCEL_ENV === 'production') {
   console.log('Removing development routes for production build...')
   const devRoutesPath = path.join(
@@ -11,7 +10,6 @@ if (process.env.VERCEL_ENV === 'production') {
     'app',
     '(non-prod)'
   )
-  console.log('devRoutesPath', devRoutesPath)
   if (fs.existsSync(devRoutesPath)) {
     // Create a temporary backup (in case you need it)
     console.log('Creating backup of development routes...')
