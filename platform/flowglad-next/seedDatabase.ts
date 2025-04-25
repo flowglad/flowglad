@@ -192,6 +192,7 @@ export const setupPaymentMethod = async (params: {
 export const setupCustomer = async (params: {
   organizationId: string
   stripeCustomerId?: string
+  invoiceNumberBase?: string
   livemode?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
@@ -205,6 +206,7 @@ export const setupCustomer = async (params: {
         livemode: params.livemode ?? true,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
+        invoiceNumberBase: params.invoiceNumberBase ?? core.nanoid(),
       },
       transaction
     )

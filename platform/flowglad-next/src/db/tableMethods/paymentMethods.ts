@@ -276,30 +276,6 @@ export const safelyUpdatePaymentForRefund = async (
   return updatedPayment
 }
 
-export const sumNetTotalSettledPaymentsForBillingPeriod = async (
-  billingPeriodId: string,
-  transaction: DbTransaction
-) => {
-  const payments = await selectPayments(
-    { billingPeriodId },
-    transaction
-  )
-  const total = payments.reduce((acc, payment) => {
-    if (payment.status === PaymentStatus.Succeeded) {
-      return acc + payment.amount
-    }
-    if (payment.status === PaymentStatus.Refunded) {
-      return acc + (payment.amount - (payment.refundedAmount ?? 0))
-    }
-    return acc
-  }, 0)
-
-  return {
-    payments,
-    total,
-  }
-}
-
 /**
  * Payment statuses for payments which have been fully processed,
  * and the funds have left the customer's account.
