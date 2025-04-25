@@ -18,6 +18,8 @@ import { Product } from '@/db/schema/products'
 import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 const customerStatusColors: Record<
   InferredCustomerStatus,
   BadgeColor
@@ -43,48 +45,26 @@ const CustomerStatusCell = ({
 
 const CustomerMoreMenuCell = ({
   customer,
-  prices,
 }: {
   customer: Customer.ClientRecord
-  prices: {
-    price: Price.Record
-    product: Product.ClientRecord
-  }[]
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
-  // const [isArchiveCustomerOpen, setIsArchiveCustomerOpen] =
-  //   useState(false)
-  // const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] =
-  //   useState(false)
 
   const basePopoverMenuItems = [
     {
       label: 'Edit Customer',
       handler: () => setIsEditOpen(true),
     },
-    // {
-    //   label: 'Archive Customer',
-    //   state: 'danger',
-    //   handler: () => setIsArchiveCustomerOpen(true),
-    // },
   ]
 
-  // const maybeNewInvoiceItem = [
-  //   {
-  //     label: 'New Invoice',
-  //     handler: () => setIsCreateInvoiceOpen(true),
-  //   },
-  // ]
-
   return (
-    <>
-      <TableRowPopoverMenu items={[...basePopoverMenuItems]} />
+    <MoreMenuTableCell items={basePopoverMenuItems}>
       <EditCustomerModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
         customer={customer}
       />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -174,19 +154,20 @@ const CustomersTable = ({
           ),
         },
         {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'customer.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.customer.id}>
+              {cellData.customer.id}
+            </CopyableTextTableCell>
+          ),
+        },
+        {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <CustomerMoreMenuCell
-                  customer={cellData.customer}
-                  prices={[]}
-                />
-              </div>
-            </div>
+            <CustomerMoreMenuCell customer={cellData.customer} />
           ),
         },
       ] as ColumnDef<CustomerTableRowData>[],

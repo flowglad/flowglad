@@ -1,4 +1,4 @@
-name: Merge to stable and deploy prod
+name: Build and deploy Next.js to Vercel Prod
 
 # This workflow is triggered by a push to the main branch with changes to the platform/flowglad-next directory
 # and merges main into stable
@@ -11,6 +11,12 @@ on:
       - stable
     paths:
       - 'platform/flowglad-next/**'
+  workflow_run:
+    workflows: ["Build and deploy Next.js to Vercel Staging"]
+    types:
+      - completed
+    branches:
+      - main
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

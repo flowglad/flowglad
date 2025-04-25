@@ -35,7 +35,7 @@ export const rotateApiKeyProcedure = protectedProcedure
         // Deactivate old key in our database
         await updateApiKey(
           {
-            id: existingApiKey.id,
+            ...existingApiKey,
             active: false,
           },
           transaction

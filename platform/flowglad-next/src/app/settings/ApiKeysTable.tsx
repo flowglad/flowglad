@@ -7,13 +7,12 @@ import core from '@/utils/core'
 import TableTitle from '@/components/ion/TableTitle'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import { Plus } from 'lucide-react'
-import { FallbackSkeleton } from '@/components/ion/Skeleton'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { FlowgladApiKeyType } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const MoreMenuCell = ({
   apiKey,
@@ -35,11 +34,7 @@ const MoreMenuCell = ({
       handler: () => setIsDeleteOpen(true),
     })
   }
-  return (
-    <>
-      <TableRowPopoverMenu items={[...basePopoverMenuItems]} />
-    </>
-  )
+  return <MoreMenuTableCell items={[...basePopoverMenuItems]} />
 }
 
 const ApiKeyTokenCell = ({
@@ -47,19 +42,13 @@ const ApiKeyTokenCell = ({
 }: {
   apiKey: ApiKey.ClientRecord
 }) => {
-  const copyTextHandler = useCopyTextHandler({
-    text: apiKey.token,
-  })
   if (apiKey.livemode) {
     return <span className="text-sm">{apiKey.token}</span>
   }
   return (
-    <span
-      className="text-sm cursor-pointer"
-      onClick={copyTextHandler}
-    >
+    <CopyableTextTableCell copyText={apiKey.token}>
       {apiKey.token}
-    </span>
+    </CopyableTextTableCell>
   )
 }
 
@@ -76,7 +65,6 @@ const ApiKeysTable = ({
   const [pageIndex, setPageIndex] = useState(0)
   const pageSize = 10
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const { livemode } = useAuthContext()
 
   const { data, isLoading, isFetching } =
     trpc.apiKeys.getTableRows.useQuery({
@@ -124,20 +112,13 @@ const ApiKeysTable = ({
             <>{core.formatDate(cellData.apiKey.createdAt!)}</>
           ),
         },
-        {
-          header: () => <div />,
-          id: 'actions',
-          cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell apiKey={cellData.apiKey} />
-              </div>
-            </div>
-          ),
-        },
+        // {
+        //   header: () => <div />,
+        //   id: 'actions',
+        //   cell: ({ row: { original: cellData } }) => (
+        //     <MoreMenuCell apiKey={cellData.apiKey} />
+        //   ),
+        // },
       ] as DisplayColumnDef<{
         apiKey: ApiKey.ClientRecord
         organization: { id: string; name: string }

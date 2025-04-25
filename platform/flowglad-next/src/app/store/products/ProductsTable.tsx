@@ -22,6 +22,8 @@ import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { Catalog } from '@/db/schema/catalogs'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 export enum FocusedTab {
   All = 'all',
@@ -80,7 +82,7 @@ const MoreMenuCell = ({
     })
   }
   return (
-    <>
+    <MoreMenuTableCell items={items}>
       <EditProductModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
@@ -105,8 +107,7 @@ const MoreMenuCell = ({
           active: product.active,
         }}
       />
-      <TableRowPopoverMenu items={items} />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -217,16 +218,20 @@ export const ProductsTable = ({
           },
         },
         {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'product.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.product.id}>
+              {cellData.product.id}
+            </CopyableTextTableCell>
+          ),
+        },
+        {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell product={cellData.product} />
-              </div>
-            </div>
+            <MoreMenuCell product={cellData.product} />
           ),
         },
       ] as ColumnDef<ProductRow>[],

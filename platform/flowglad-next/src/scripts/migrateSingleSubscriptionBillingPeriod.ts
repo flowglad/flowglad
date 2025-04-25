@@ -85,8 +85,10 @@ export const migrateSingleSubscriptionBillingPeriod = async (
     return {
       success: false,
       reason: 'subscription_in_terminal_state',
-      subscriptionId: subscription.id,
       status: subscription.status,
+      stripeSubscriptionId,
+      flowgladSubscriptionId: subscription.id,
+      flowgladCustomerId: subscription.customerId,
     }
   }
 
@@ -102,6 +104,8 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       success: false,
       reason: 'no_payment_method',
       subscriptionId: subscription.id,
+      flowgladSubscriptionId: subscription.id,
+      flowgladCustomerId: subscription.customerId,
     }
   }
 
@@ -119,6 +123,8 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       success: false,
       reason: 'no_subscription_items',
       subscriptionId: subscription.id,
+      flowgladSubscriptionId: subscription.id,
+      flowgladCustomerId: subscription.customerId,
     }
   }
 
@@ -137,6 +143,8 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       reason: 'billing_periods_exist',
       subscriptionId: subscription.id,
       billingPeriodCount: existingBillingPeriods.length,
+      flowgladSubscriptionId: subscription.id,
+      flowgladCustomerId: subscription.customerId,
     }
   }
 
@@ -186,6 +194,8 @@ export const migrateSingleSubscriptionBillingPeriod = async (
     subscriptionId: subscription.id,
     billingPeriodId: billingPeriod.id,
     stripeSubscriptionId,
+    flowgladSubscriptionId: subscription.id,
+    flowgladCustomerId: subscription.customerId,
   }
 }
 

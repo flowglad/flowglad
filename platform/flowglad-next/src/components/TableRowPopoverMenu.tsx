@@ -6,7 +6,11 @@ import {
 } from '@/components/ion/Popover'
 import PopoverMenu, { PopoverMenuProps } from './PopoverMenu'
 
-const TableRowPopoverMenu = ({ items }: PopoverMenuProps) => {
+export type TableRowPopoverMenuProps = PopoverMenuProps
+
+export function TableRowPopoverMenu({
+  items,
+}: TableRowPopoverMenuProps) {
   return (
     /**
      * This will prevent clicks on this button from bubbling up to the table row

@@ -30,10 +30,6 @@ const db = drizzle(client)
 export const migrateDb = async () => {
   // eslint-disable-next-line no-console
   console.info('Applying migrations...')
-  console.log(
-    'NEXT_PUBLIC_STACK_PROJECT_ID',
-    core.envVariable('NEXT_PUBLIC_STACK_PROJECT_ID')
-  )
   await migrate(db, { migrationsFolder: 'drizzle-migrations' })
   //   if (core.IS_TEST) {
   //     console.log(

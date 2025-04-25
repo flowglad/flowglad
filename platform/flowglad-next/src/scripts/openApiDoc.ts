@@ -1,6 +1,6 @@
 /* Example script with targeted environment
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/open.ts
+NODE_ENV=production pnpm tsx src/scripts/openApiDoc.ts
 */
 
 import { createFlowgladOpenApiDocument } from '@/server/swagger'

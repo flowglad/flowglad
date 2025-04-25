@@ -19,7 +19,7 @@
     "access": "public"
   },
   "dependencies": {
-    "zod": "3.23.8",
+    "zod": "3.24.3",
     "date-fns": "4.1.0",
     "@flowglad/node": "0.14.0"
   },

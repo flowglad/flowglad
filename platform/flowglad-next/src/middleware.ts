@@ -33,6 +33,7 @@ const publicRoutes = [
   '/apple-touch-icon(.*).png',
   '/api/v1/(.*)',
   '/api/openapi',
+  '/api/hosted-billing/(.*)',
   '/invoice/view/(.*)',
 ]
 
@@ -64,6 +65,11 @@ export default async function middleware(req: NextRequest) {
   const isProtectedRoute = !isPublicRoute(req)
 
   if (!user && isProtectedRoute) {
+    if (req.nextUrl.pathname.startsWith('/billing/org_')) {
+      return NextResponse.redirect(
+        new URL('/billing/sign-in', req.url)
+      )
+    }
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
   return NextResponse.next()

@@ -7,11 +7,12 @@ import Table, {
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import Badge from '@/components/ion/Badge'
 import { Catalog } from '@/db/schema/catalogs'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import EditCatalogModal from '@/components/forms/EditCatalogModal'
 import CloneCatalogModal from '@/components/forms/CloneCatalogModal'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -27,7 +28,7 @@ const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
     },
   ]
   return (
-    <>
+    <MoreMenuTableCell items={menuItems}>
       <EditCatalogModal
         catalog={catalog}
         isOpen={isEditOpen}
@@ -38,8 +39,7 @@ const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
         setIsOpen={setIsCloneOpen}
         catalog={catalog}
       />
-      <TableRowPopoverMenu items={menuItems} />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -97,17 +97,22 @@ const CatalogsTable = ({
           ),
         },
         {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'catalog.id',
+          width: '30%',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.catalog.id}>
+              {cellData.catalog.id}
+            </CopyableTextTableCell>
+          ),
+        },
+        {
           id: '_',
           width: '10%',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell catalog={cellData.catalog} />
-              </div>
-            </div>
+            <MoreMenuCell catalog={cellData.catalog} />
           ),
         },
       ] as ColumnDefWithWidth<Catalog.TableRow, string>[],

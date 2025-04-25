@@ -45,11 +45,18 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
+      /**
+       * Assert that no publishable keys are created
+       * - we don't support the type right now.
+       */
       expect(
         testmodeKeys.some(
           (key) => key.type === FlowgladApiKeyType.Publishable
         )
-      ).toBe(true)
+      ).toBe(false)
+      /**
+       * Assert that a secret key is created
+       */
       expect(
         testmodeKeys.some(
           (key) => key.type === FlowgladApiKeyType.Secret
@@ -62,10 +69,11 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(livemodeKeys.length).toBe(1)
-      expect(livemodeKeys[0].type).toBe(
-        FlowgladApiKeyType.Publishable
-      )
+      /**
+       * Assert that no livemode keys are created -
+       * they can only be created once the organization has payouts enabled.
+       */
+      expect(livemodeKeys.length).toBe(0)
     })
   })
 })

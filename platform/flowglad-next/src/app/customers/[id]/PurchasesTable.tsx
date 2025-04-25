@@ -18,6 +18,7 @@ import { Payment } from '@/db/schema/payments'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode, PurchaseStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 
 const MoreMenuCell = ({
   purchase,
@@ -42,14 +43,13 @@ const MoreMenuCell = ({
   }
 
   return (
-    <>
+    <MoreMenuTableCell items={items}>
       <EndPurchaseModal
         isOpen={isEndOpen}
         setIsOpen={setIsEndOpen}
         purchase={purchase}
       />
-      <TableRowPopoverMenu items={items} />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -179,14 +179,7 @@ const PurchasesTable = ({
         {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell purchase={cellData.purchase} />
-              </div>
-            </div>
+            <MoreMenuCell purchase={cellData.purchase} />
           ),
         },
       ] as ColumnDef<Purchase.PurchaseTableRowData>[],

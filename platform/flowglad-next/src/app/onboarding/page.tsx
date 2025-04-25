@@ -60,28 +60,10 @@ const OnboardingPage = async () => {
       )
     }
   )
-  let publishableApiKey = testmodeApiKeys.find(
-    (key) => key.type === FlowgladApiKeyType.Publishable
-  )
-  let secretApiKey = testmodeApiKeys.find(
-    (key) => key.type === FlowgladApiKeyType.Secret
-  )
-  if (!publishableApiKey) {
-    publishableApiKey = await adminTransaction(
-      async ({ transaction }): Promise<ApiKey.Record> => {
-        const { apiKey } = await createApiKeyTransaction(
-          {
-            apiKey: {
-              name: 'Publishable Testmode Key',
-              type: FlowgladApiKeyType.Publishable,
-            },
-          },
-          { transaction, livemode: false, userId: user!.id }
-        )
-        return apiKey
-      }
+  let secretApiKey: ApiKey.ClientRecord | undefined =
+    testmodeApiKeys.find(
+      (key) => key.type === FlowgladApiKeyType.Secret
     )
-  }
   if (!secretApiKey) {
     secretApiKey = await adminTransaction(
       async ({ transaction }): Promise<ApiKey.Record> => {
@@ -157,7 +139,6 @@ const OnboardingPage = async () => {
         <OnboardingStatusTable
           onboardingChecklistItems={onboardingChecklistItems}
           countries={countries}
-          publishableApiKey={publishableApiKey.token}
           secretApiKey={secretApiKey.token}
         />
       </div>

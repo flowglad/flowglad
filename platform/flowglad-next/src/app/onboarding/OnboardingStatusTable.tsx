@@ -153,12 +153,10 @@ const REACT_INSTALL_COMMAND = `pnpm install @flowglad/react @flowglad/server`
 const OnboardingStatusTable = ({
   onboardingChecklistItems,
   countries,
-  publishableApiKey,
   secretApiKey,
 }: {
   onboardingChecklistItems: OnboardingChecklistItem[]
   countries: Country.Record[]
-  publishableApiKey: string
   secretApiKey: string
 }) => {
   const [isNounVerbModalOpen, setIsNounVerbModalOpen] =
@@ -174,9 +172,7 @@ const OnboardingStatusTable = ({
     isRequestStripeConnectOnboardingLinkModalOpen,
     setIsRequestStripeConnectOnboardingLinkModalOpen,
   ] = useState(false)
-  const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"
-NEXT_PUBLIC_FLOWGLAD_PUBLISHABLE_KEY="${publishableApiKey}"
-`
+  const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
 
   return (
     <div className="flex flex-col border border-stroke-subtle rounded-lg w-full">

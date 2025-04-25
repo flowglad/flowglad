@@ -1,4 +1,4 @@
-import Table from '@/components/ion/Table'
+import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
 import TableTitle from '@/components/ion/TableTitle'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
@@ -12,7 +12,6 @@ import CreateInvoiceModal from './forms/CreateInvoiceModal'
 import {
   ClientInvoiceWithLineItems,
   InvoiceLineItem,
-  InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
 import { PopoverMenuItem } from './PopoverMenu'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
@@ -24,6 +23,8 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import { Plus } from 'lucide-react'
 import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -100,8 +101,7 @@ const MoreMenuCell = ({
   }
 
   return (
-    <>
-      <TableRowPopoverMenu items={items} />
+    <MoreMenuTableCell items={items}>
       <EditInvoiceModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
@@ -115,7 +115,7 @@ const MoreMenuCell = ({
         setIsOpen={setIsSendReminderEmailOpen}
         invoiceId={invoice.id}
       />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -152,6 +152,7 @@ const InvoicesTable = ({
             />
           ),
           accessorKey: 'amount',
+          width: '10%',
           cell: ({ row: { original: cellData } }) => (
             <>
               <span className="font-bold text-sm">
@@ -193,6 +194,7 @@ const InvoicesTable = ({
             <SortableColumnHeaderCell title="Due" column={column} />
           ),
           accessorKey: 'due',
+          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>
               {cellData.invoice.dueDate
@@ -209,30 +211,40 @@ const InvoicesTable = ({
             />
           ),
           accessorKey: 'createdAt',
+          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.invoice.createdAt)}</>
           ),
         },
         {
-          id: '_',
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'invoice.id',
+          width: '15%',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell
-                  invoice={cellData.invoice}
-                  invoiceLineItems={[]} // We'll need to fetch these separately if needed
-                />
-              </div>
-            </div>
+            <CopyableTextTableCell copyText={cellData.invoice.id}>
+              {cellData.invoice.id}
+            </CopyableTextTableCell>
           ),
         },
-      ] as ColumnDef<{
-        invoice: Invoice.ClientRecord
-        customer: { id: string; name: string }
-      }>[],
+        {
+          id: '_',
+          width: '10%',
+          cell: ({ row: { original: cellData } }) => (
+            <MoreMenuCell
+              invoice={cellData.invoice}
+              invoiceLineItems={[]} // We'll need to fetch these separately if needed
+            />
+          ),
+        },
+      ] as ColumnDefWithWidth<
+        {
+          invoice: Invoice.ClientRecord
+          customer: { id: string; name: string }
+        },
+        string
+      >[],
     []
   )
 

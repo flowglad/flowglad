@@ -16,6 +16,8 @@ import RefundPaymentModal from './RefundPaymentModal'
 import { Check, Hourglass, X, RotateCcw } from 'lucide-react'
 import { formatDate } from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
+import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const MoreMenuCell = ({
   payment,
@@ -30,14 +32,13 @@ const MoreMenuCell = ({
     },
   ]
   return (
-    <>
+    <MoreMenuTableCell items={items}>
       <RefundPaymentModal
         isOpen={isRefundOpen}
         setIsOpen={setIsRefundOpen}
         payment={payment}
       />
-      <TableRowPopoverMenu items={items} />
-    </>
+    </MoreMenuTableCell>
   )
 }
 
@@ -152,19 +153,23 @@ const PaymentsTable = ({
           ),
         },
         {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'payment.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.payment.id}>
+              {cellData.payment.id}
+            </CopyableTextTableCell>
+          ),
+        },
+        {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
-            <div className="w-full flex justify-end">
-              <div
-                className="w-fit"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreMenuCell
-                  payment={cellData.payment}
-                  customer={cellData.customer}
-                />
-              </div>
-            </div>
+            <MoreMenuCell
+              payment={cellData.payment}
+              customer={cellData.customer}
+            />
           ),
         },
       ] as DisplayColumnDef<Payment.TableRowData>[],

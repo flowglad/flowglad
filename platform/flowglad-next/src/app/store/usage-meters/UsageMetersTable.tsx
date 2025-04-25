@@ -8,6 +8,7 @@ import TableTitle from '@/components/ion/TableTitle'
 import { Plus } from 'lucide-react'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { trpc } from '@/app/_trpc/client'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 export interface UsageMetersTableFilters {
   catalogId?: string
@@ -82,6 +83,17 @@ const UsageMetersTable = ({
             <span className="text-sm">
               {core.formatDate(cellData.usageMeter.createdAt)}
             </span>
+          ),
+        },
+        {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'usageMeter.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.usageMeter.id}>
+              {cellData.usageMeter.id}
+            </CopyableTextTableCell>
           ),
         },
       ] as ColumnDef<UsageMeter.TableRow>[],

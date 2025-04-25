@@ -1,4 +1,4 @@
-name: Deploy Next.js to Vercel Staging
+name: Build and deploy Next.js to Vercel Staging
 
 on:
   push:

@@ -668,6 +668,7 @@ export type ApiEnvironment = 'test' | 'live'
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
   Secret = 'secret',
+  BillingPortalToken = 'hosted_billing_portal',
 }
 
 export enum StripeConnectContractType {
