@@ -575,8 +575,11 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   organization,
   paymentLink,
 }) => {
-  const subtotal = invoice.subtotal ?? 0
-  const taxAmount = invoice.taxAmount || 0
+  const subtotal = invoiceLineItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  )
+  const taxAmount = invoice.taxAmount ?? 0
   const total = subtotal + taxAmount
   const billingAddress = customer.billingAddress
 
