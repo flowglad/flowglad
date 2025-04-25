@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "prebuild": "dotenvx run -f .env.local -- pnpm tsx src/scripts/removeDevRoutes.ts",
-    "build": "pnpm lint && pnpm migrations:push && next build",
+    "build": "pnpm lint && next build",
     "start": "next start",
     "lint": "next lint && tsc --noEmit",
     "install-packages": "pnpm install --ignore-workspace",

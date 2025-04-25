@@ -2,6 +2,12 @@
 import fs from 'fs'
 import path from 'path'
 
+if (process.env.VERCEL_ENV !== 'production') {
+  console.log(
+    `Vercel environment is not production (env: ${process.env.VERCEL_ENV}). Preserving dev routes in bundle.`
+  )
+}
+
 if (process.env.VERCEL_ENV === 'production') {
   console.log('Removing development routes for production build...')
   const devRoutesPath = path.join(
