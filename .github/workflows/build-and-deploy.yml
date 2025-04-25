@@ -64,8 +64,12 @@ jobs:
           cp .vercel/.env.${{ inputs.environment }}.local .env.local
           cp .vercel/.env.${{ inputs.environment }}.local platform/flowglad-next/.env.local
 
+      - name: Attempt to remove dev routes if production
+        run: pnpm prebuild
+        working-directory: platform/flowglad-next
+
       - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
 
       - name: Deploy Trigger
         run: export TRIGGER_ENV=${{ inputs.environment == 'production' && 'prod' || 'staging' }} && pnpm trigger:deploy
