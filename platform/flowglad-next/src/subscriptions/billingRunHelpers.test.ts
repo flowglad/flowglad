@@ -25,7 +25,10 @@ import {
 import {
   BillingPeriodStatus,
   BillingRunStatus,
+  CurrencyCode,
   InvoiceStatus,
+  InvoiceType,
+  PaymentMethodType,
 } from '@/types'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -50,6 +53,8 @@ import {
 } from '@/db/tableMethods/paymentMethodMethods'
 import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
+import core from '@/utils/core'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 
 describe('billingRunHelpers', async () => {
   const { organization, price } = await setupOrg()
@@ -270,6 +275,289 @@ describe('billingRunHelpers', async () => {
         billingPeriodItems,
       })
       expect(lineItems.length).toBe(billingPeriodItems.length)
+    })
+  })
+
+  describe('createInvoiceInsertForBillingRun', () => {
+    it('should create an invoice with the correct properties', async () => {
+      const invoiceInsert = await adminTransaction(
+        ({ transaction }) =>
+          createInvoiceInsertForBillingRun(
+            {
+              billingPeriod,
+              organization,
+              customer,
+              currency: price.currency,
+            },
+            transaction
+          )
+      )
+
+      // Check all required properties are set correctly
+      expect(invoiceInsert.customerId).toBe(customer.id)
+      expect(invoiceInsert.organizationId).toBe(organization.id)
+      expect(invoiceInsert.currency).toBe(price.currency)
+      expect(invoiceInsert.livemode).toBe(billingPeriod.livemode)
+      expect(invoiceInsert.status).toBe(InvoiceStatus.Draft)
+      expect(invoiceInsert.type).toBe(InvoiceType.Subscription)
+      expect(invoiceInsert.billingPeriodId).toBe(billingPeriod.id)
+      expect(invoiceInsert.subscriptionId).toBe(
+        billingPeriod.subscriptionId
+      )
+      expect(invoiceInsert.purchaseId).toBeNull()
+
+      // Check dates are set
+      expect(invoiceInsert.invoiceDate).toBeInstanceOf(Date)
+      expect(invoiceInsert.dueDate).toBeInstanceOf(Date)
+      expect(invoiceInsert.billingPeriodStartDate).toEqual(
+        billingPeriod.startDate
+      )
+      expect(invoiceInsert.billingPeriodEndDate).toEqual(
+        billingPeriod.endDate
+      )
+    })
+
+    it('should generate invoice number based on customer invoice number base and count', async () => {
+      // Create a customer with a specific invoice number base
+      const invoiceNumberBase = `TEST-${core.nanoid()}`
+      const testCustomer = await setupCustomer({
+        organizationId: organization.id,
+        invoiceNumberBase,
+      })
+
+      // Create some existing invoices for this customer
+      await setupInvoice({
+        customerId: testCustomer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+      })
+      await setupInvoice({
+        customerId: testCustomer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+      })
+
+      const invoiceInsert = await adminTransaction(
+        ({ transaction }) =>
+          createInvoiceInsertForBillingRun(
+            {
+              billingPeriod,
+              organization,
+              customer: testCustomer,
+              currency: price.currency,
+            },
+            transaction
+          )
+      )
+
+      // The invoice number should be based on the customer's invoice number base and the count of existing invoices
+      expect(invoiceInsert.invoiceNumber).toContain(invoiceNumberBase)
+      expect(invoiceInsert.invoiceNumber).toContain('2') // Should be the 3rd invoice (index 2)
+    })
+
+    it('should handle different currencies', async () => {
+      const testCurrency = CurrencyCode.EUR
+
+      const invoiceInsert = await adminTransaction(
+        ({ transaction }) =>
+          createInvoiceInsertForBillingRun(
+            {
+              billingPeriod,
+              organization,
+              customer,
+              currency: testCurrency,
+            },
+            transaction
+          )
+      )
+
+      expect(invoiceInsert.currency).toBe(testCurrency)
+    })
+
+    it('should set the correct livemode value from the billing period', async () => {
+      // Create a test billing period with a specific livemode value
+      const testBillingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: subscription.currentBillingPeriodStart,
+        endDate: subscription.currentBillingPeriodEnd,
+        status: BillingPeriodStatus.Active,
+        livemode: true, // Set to true for testing
+      })
+
+      const invoiceInsert = await adminTransaction(
+        ({ transaction }) =>
+          createInvoiceInsertForBillingRun(
+            {
+              billingPeriod: testBillingPeriod,
+              organization,
+              customer,
+              currency: price.currency,
+            },
+            transaction
+          )
+      )
+
+      expect(invoiceInsert.livemode).toBe(true)
+    })
+
+    it('should set the correct billing period dates', async () => {
+      // Create a test billing period with specific dates
+      const startDate = new Date('2023-01-01')
+      const endDate = new Date('2023-01-31')
+
+      const testBillingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate,
+        endDate,
+        status: BillingPeriodStatus.Active,
+      })
+
+      const invoiceInsert = await adminTransaction(
+        ({ transaction }) =>
+          createInvoiceInsertForBillingRun(
+            {
+              billingPeriod: testBillingPeriod,
+              organization,
+              customer,
+              currency: price.currency,
+            },
+            transaction
+          )
+      )
+
+      expect(invoiceInsert.billingPeriodStartDate).toEqual(startDate)
+      expect(invoiceInsert.billingPeriodEndDate).toEqual(endDate)
+    })
+  })
+
+  describe('calculateFeeAndTotalAmountDueForBillingPeriod', () => {
+    it('should calculate fee and total amount due correctly', async () => {
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod,
+            billingPeriodItems,
+            organization,
+            paymentMethod,
+          },
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation).toBeDefined()
+      expect(result.totalDueAmount).toBeGreaterThan(0)
+      expect(result.totalDueAmount).toBe(
+        billingPeriodItems.reduce(
+          (acc, item) => acc + item.unitPrice * item.quantity,
+          0
+        )
+      )
+    })
+
+    it('should handle different currencies correctly', async () => {
+      // Create an organization with a different default currency
+      const originalOrg = await setupOrg()
+      const orgWithDifferentCurrency = await adminTransaction(
+        async ({ transaction }) => {
+          return await updateOrganization(
+            {
+              id: originalOrg.organization.id,
+              defaultCurrency: CurrencyCode.EUR,
+            },
+            transaction
+          )
+        }
+      )
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod,
+            billingPeriodItems,
+            organization: orgWithDifferentCurrency,
+            paymentMethod,
+          },
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation.currency).toBe(CurrencyCode.EUR)
+    })
+
+    it('should handle different billing period items correctly', async () => {
+      // Create billing period items with different prices and quantities
+      const testBillingPeriodItems = await setupBillingPeriodItems({
+        billingPeriodId: billingPeriod.id,
+        quantity: 2,
+        unitPrice: 150,
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod,
+            billingPeriodItems: testBillingPeriodItems,
+            organization,
+            paymentMethod,
+          },
+          transaction
+        )
+      )
+
+      expect(result.totalDueAmount).toBe(300) // 2 * 150
+    })
+
+    it('should handle livemode correctly', async () => {
+      // Create a test billing period with a specific livemode value
+      const testBillingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: subscription.currentBillingPeriodStart,
+        endDate: subscription.currentBillingPeriodEnd,
+        status: BillingPeriodStatus.Active,
+        livemode: true, // Set to true for testing
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod: testBillingPeriod,
+            billingPeriodItems,
+            organization,
+            paymentMethod,
+          },
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation.livemode).toBe(true)
+    })
+
+    it('should handle different payment methods correctly', async () => {
+      // Create a different payment method
+      const testPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod,
+            billingPeriodItems,
+            organization,
+            paymentMethod: testPaymentMethod,
+          },
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation.paymentMethodType).toBe(
+        testPaymentMethod.type
+      )
     })
   })
 

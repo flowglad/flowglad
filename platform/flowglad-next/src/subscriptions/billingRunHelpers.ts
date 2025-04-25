@@ -486,7 +486,7 @@ export const calculateTotalAmountToCharge = (params: {
   totalAmountPaid: number
   payments: Payment.Record[]
 }) => {
-  const { totalDueAmount, totalAmountPaid, payments } = params
+  const { totalDueAmount, totalAmountPaid } = params
   return Math.max(0, totalDueAmount - totalAmountPaid)
 }
 /**
