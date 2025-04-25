@@ -34,6 +34,7 @@ import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
 import { requestBillingPortalLink } from './mutations/requestBillingPortalLink'
+
 const filesRouter = router({
   create: createFile,
   update: editFile,
@@ -74,12 +75,7 @@ export const appRouter = router({
     inviteUserToOrganization,
     requestBillingPortalLink,
   }),
-  apiKeys: router({
-    get: getApiKeys,
-    create: createApiKey,
-    rotate: rotateApiKeyProcedure,
-    getTableRows: apiKeysRouter.getTableRows,
-  }),
+  apiKeys: apiKeysRouter,
   subscriptions: subscriptionsRouter,
   paymentMethods: paymentMethodsRouter,
   usageMeters: usageMetersRouter,

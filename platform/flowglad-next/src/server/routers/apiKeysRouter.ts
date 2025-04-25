@@ -15,6 +15,7 @@ import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
+import { createApiKey } from '../mutations/createApiKey'
 import { TRPCError } from '@trpc/server'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -157,4 +158,5 @@ export const apiKeysRouter = router({
   get: getApiKeyProcedure,
   getTableRows: getTableRowsProcedure,
   rotate: rotateApiKeyProcedure,
+  create: createApiKey,
 })
