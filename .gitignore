@@ -21,3 +21,6 @@ dist
 generated/styles.ts
 .turbo
 .cursor
+
+# used to temporarily backup development routes in case of accidental deletion
+.dev-routes-backup

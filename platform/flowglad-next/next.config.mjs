@@ -1,8 +1,6 @@
 import { withSentryConfig } from '@sentry/nextjs'
 import { withLogtail } from '@logtail/next'
 
-console.log('====process.env.VERCEL_ENV', process.env.VERCEL_ENV)
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: [
