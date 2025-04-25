@@ -154,7 +154,7 @@ const getTableRowsProcedure = protectedProcedure
   })
 
 export const apiKeysRouter = router({
-  list: listApiKeysProcedure,
+  // list: listApiKeysProcedure,
   get: getApiKeyProcedure,
   getTableRows: getTableRowsProcedure,
   rotate: rotateApiKeyProcedure,

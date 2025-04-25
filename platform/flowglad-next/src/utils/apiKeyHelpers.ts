@@ -6,7 +6,7 @@ import {
 } from '@/db/types'
 import { createApiKey as createApiKeyUnkey } from '@/utils/unkey'
 import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
-import { ApiKey, CreateApiKeyInput } from '@/db/schema/apiKeys'
+import { CreateApiKeyInput } from '@/db/schema/apiKeys'
 import { Organization } from '@/db/schema/organizations'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
