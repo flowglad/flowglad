@@ -83,6 +83,6 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: ${{ inputs.environment == 'prod' && '--prebuilt --prod' || '--prebuilt' }}
+          vercel-args: ${{ inputs.environment == 'production' && '--prebuilt --prod' || '--prebuilt' }}
           vercel-project-name: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
           vercel-version: 41.6.2 
