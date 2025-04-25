@@ -20,4 +20,20 @@ describe('billing address schema parser', () => {
     expect(output.success).toBe(true)
     expect(output.data).toEqual(input)
   })
+  it('should parse nested billing address input', () => {
+    const input = {
+      name: 'a',
+      email: '_____@example.com',
+      address: {
+        city: 'New York',
+        line1: '___ ____ ____',
+        line2: null,
+        state: '___ ____',
+        country: 'US',
+        postal_code: '00000',
+      },
+    }
+    const output = billingAddressSchema.parse(input)
+    expect(output).toEqual(input)
+  })
 })
