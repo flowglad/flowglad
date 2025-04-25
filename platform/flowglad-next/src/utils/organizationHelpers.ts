@@ -162,25 +162,6 @@ export const createOrganizationTransaction = async (
     },
     { transaction, livemode: false, userId }
   )
-  await createApiKeyTransaction(
-    {
-      apiKey: {
-        name: 'Publishable Testmode Key',
-        type: FlowgladApiKeyType.Publishable,
-      },
-    },
-    { transaction, livemode: false, userId }
-  )
-  await createApiKeyTransaction(
-    {
-      apiKey: {
-        name: 'Publishable Livemode Key',
-        type: FlowgladApiKeyType.Publishable,
-      },
-    },
-    { transaction, livemode: true, userId }
-  )
-
   return {
     organization: organizationsClientSelectSchema.parse(
       organizationRecord
