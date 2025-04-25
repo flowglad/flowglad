@@ -32,9 +32,9 @@ import {
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   insertPayment,
-  sumNetTotalSettledPaymentsForBillingPeriod,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -449,6 +449,8 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     paymentMethod: paymentMethod.type,
     stripePaymentIntentId: `placeholder____${core.nanoid()}`,
     livemode: billingPeriod.livemode,
+    subscriptionId: billingPeriod.subscriptionId,
+    billingPeriodId: billingPeriod.id,
   }
 
   const payment = await insertPayment(paymentInsert, transaction)
