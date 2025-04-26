@@ -7,11 +7,8 @@ import {
   billingPortalApiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
-import { encrypt } from './encryption'
-import { kebabCase } from 'change-case'
-import * as R from 'ramda'
 
-const unkey = () =>
+export const unkey = () =>
   new Unkey({
     rootKey: core.envVariable('UNKEY_ROOT_KEY'),
   })
