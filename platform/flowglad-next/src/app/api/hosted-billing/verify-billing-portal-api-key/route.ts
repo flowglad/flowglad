@@ -28,7 +28,6 @@ export const POST = withBillingApiRequestValidation(
   async (request) => {
     try {
       const body = await request.json()
-      const headerKeys = request.headers.keys().toArray()
       const { organizationId } = requestSchema.parse(body)
       const stackAuthUserId = request.authData?.sub
       if (!stackAuthUserId) {
