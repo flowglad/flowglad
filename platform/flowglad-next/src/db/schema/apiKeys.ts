@@ -223,16 +223,22 @@ export const apiKeysClientUpdateSchema = z.discriminatedUnion(
 export const apiKeyClientWhereClauseSchema =
   coreApiKeysSelectSchema.partial()
 
-export const billingPortalApikeyMetadataSchema = z.object({
+export const billingPortalApiKeyMetadataSchema = z.object({
   type: z.literal(FlowgladApiKeyType.BillingPortalToken),
   stackAuthHostedBillingUserId: z.string(),
-  organizationId: z.string(),
+  organizationId: z.string().optional(),
 })
 
-export const secretApikeyMetadataSchema = z.object({
+export const secretApiKeyMetadataSchema = z.object({
   type: z.literal(FlowgladApiKeyType.Secret),
   userId: z.string(),
+  organizationId: z.string().optional(),
 })
+
+export const apiKeyMetadataSchema = z.discriminatedUnion('type', [
+  secretApiKeyMetadataSchema,
+  billingPortalApiKeyMetadataSchema,
+])
 
 export namespace ApiKey {
   // Base types
@@ -259,7 +265,9 @@ export namespace ApiKey {
   export type SecretClientRecord = z.infer<
     typeof secretApiKeysClientSelectSchema
   >
-
+  export type SecretMetadata = z.infer<
+    typeof secretApiKeyMetadataSchema
+  >
   // Publishable API Key types
   export type PublishableInsert = z.infer<
     typeof publishableApiKeysInsertSchema
@@ -291,7 +299,7 @@ export namespace ApiKey {
     typeof hostedBillingPortalApiKeysSelectSchema
   >
   export type BillingPortalMetadata = z.infer<
-    typeof billingPortalApikeyMetadataSchema
+    typeof billingPortalApiKeyMetadataSchema
   >
   export type BillingPortalClientInsert = z.infer<
     typeof hostedBillingPortalApiKeysClientInsertSchema
@@ -302,6 +310,7 @@ export namespace ApiKey {
   export type BillingPortalClientRecord = z.infer<
     typeof hostedBillingPortalApiKeysClientSelectSchema
   >
+  export type ApiKeyMetadata = z.infer<typeof apiKeyMetadataSchema>
   export type Where = SelectConditions<typeof apiKeys>
 }
 

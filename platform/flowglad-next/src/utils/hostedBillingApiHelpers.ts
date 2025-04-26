@@ -7,6 +7,7 @@ import { logger } from '@/utils/logger'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { ServerUser, User } from '@stackframe/stack'
 import { z } from 'zod'
+import { ConsoleLogWriter } from 'drizzle-orm'
 export const validateBillingAuthentication = async (
   request: NextRequest
 ) => {
@@ -415,6 +416,14 @@ export const setHostedBillingCustomerExternalIdForStackAuthUser =
   }) => {
     const { stackAuthUser, organizationId, customerExternalId } =
       params
+    console.log(
+      'setHostedBillingCustomerExternalIdForStackAuthUser',
+      {
+        stackAuthUser,
+        organizationId,
+        customerExternalId,
+      }
+    )
     await stackAuthUser.update({
       serverMetadata: setCustomerExternalIdOnServerMetadata({
         existingServerMetadata: stackAuthUser.serverMetadata,

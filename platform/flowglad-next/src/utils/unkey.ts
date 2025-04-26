@@ -2,7 +2,11 @@ import { Unkey } from '@unkey/api'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
-import { ApiKey } from '@/db/schema/apiKeys'
+import {
+  ApiKey,
+  billingPortalApiKeyMetadataSchema,
+  secretApiKeyMetadataSchema,
+} from '@/db/schema/apiKeys'
 import { encrypt } from './encryption'
 import { kebabCase } from 'change-case'
 import * as R from 'ramda'
@@ -23,7 +27,7 @@ export const verifyApiKey = async (apiKey: string) => {
   return {
     keyId: result.keyId,
     valid: result.valid,
-    organizationId: result.ownerId,
+    ownerId: result.ownerId,
     environment: result.environment as ApiEnvironment,
   }
 }
@@ -59,6 +63,11 @@ export const secretApiKeyInputToUnkeyInput = (
   const { organization, apiEnvironment } = params
 
   const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
+  const unparsedMeta: ApiKey.SecretMetadata = {
+    userId: params.userId,
+    type: FlowgladApiKeyType.Secret,
+  }
+  const secretMeta = secretApiKeyMetadataSchema.parse(unparsedMeta)
 
   return {
     apiId: core.envVariable('UNKEY_API_ID'),
@@ -67,10 +76,7 @@ export const secretApiKeyInputToUnkeyInput = (
     expires: params.expiresAt?.getTime(),
     externalId: organization.id,
     prefix: [maybeStagingPrefix, 'sk_', apiEnvironment].join(''),
-    meta: {
-      userId: params.userId,
-      keyType: FlowgladApiKeyType.Secret,
-    },
+    meta: secretMeta,
   }
 }
 
@@ -98,7 +104,6 @@ export const createSecretApiKey = async (
   const token = livemode
     ? `sk_live_...${result.key.slice(-4)}`
     : result.key
-
   return {
     apiKeyInsert: {
       organizationId: params.organization.id,
@@ -124,17 +129,22 @@ export const billingPortalApiKeyInputToUnkeyInput = (
   } = params
 
   const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
+
+  const unparsedMeta: ApiKey.BillingPortalMetadata = {
+    organizationId: params.organization.id,
+    stackAuthHostedBillingUserId: params.stackAuthHostedBillingUserId,
+    type: FlowgladApiKeyType.BillingPortalToken,
+  }
+  const billingPortalMeta =
+    billingPortalApiKeyMetadataSchema.parse(unparsedMeta)
   return {
     apiId: core.envVariable('UNKEY_API_ID'),
     name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
     environment: apiEnvironment,
     expires: params.expiresAt.getTime(),
-    externalId: stackAuthHostedBillingUserId,
+    externalId: organization.id,
     prefix: [maybeStagingPrefix, 'bk_', apiEnvironment].join(''),
-    meta: {
-      userId: params.userId,
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-    },
+    meta: billingPortalMeta,
   }
 }
 
@@ -159,6 +169,7 @@ export const createBillingPortalApiKey = async (
   }
 
   const unkeyInput = billingPortalApiKeyInputToUnkeyInput(params)
+  console.log('unkeyInput', unkeyInput)
   const { result, error } = await unkey().keys.create(unkeyInput)
 
   if (error) {

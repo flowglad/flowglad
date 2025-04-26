@@ -3,16 +3,17 @@ import { Unkey, verifyKey } from '@unkey/api'
 import db from './client'
 import { and, asc, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
-import core, { error, isNil } from '@/utils/core'
+import core from '@/utils/core'
 import { memberships } from './schema/memberships'
 import { stackServerApp } from '@/stack'
 import { users } from './schema/users'
 import { selectApiKeys } from './tableMethods/apiKeyMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
-import { organizations } from './schema/organizations'
 import { ServerUser } from '@stackframe/stack'
 import { FlowgladApiKeyType } from '@/types'
 import { JwtPayload } from 'jsonwebtoken'
+import { customers } from './schema/customers'
+import { ApiKey, apiKeyMetadataSchema } from './schema/apiKeys'
 
 type SessionUser = Session['user']
 
@@ -23,9 +24,18 @@ export interface JWTClaim extends JwtPayload {
   role: string
 }
 
+interface KeyVerifyResult {
+  keyType: FlowgladApiKeyType
+  userId: string
+  ownerId: string
+  environment: string
+  metadata: ApiKey.ApiKeyMetadata
+}
+
 function backwardsCompatibleKeyTypeFromUnkeyApiKeyResult(
   result: Awaited<ReturnType<typeof verifyKey>>['result']
 ): FlowgladApiKeyType {
+  console.log('result', result)
   if (!result) {
     throw new Error('No result from unkey verifyKey')
   }
@@ -35,13 +45,19 @@ function backwardsCompatibleKeyTypeFromUnkeyApiKeyResult(
   return FlowgladApiKeyType.Secret
 }
 
-interface KeyVerifyResult {
-  keyType: FlowgladApiKeyType
-  userId: string
-  ownerId: string
-  environment: string
+const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
+  switch (meta.type) {
+    case FlowgladApiKeyType.Secret:
+      return (meta as ApiKey.SecretMetadata).userId
+    case FlowgladApiKeyType.BillingPortalToken:
+      return (meta as ApiKey.BillingPortalMetadata)
+        .stackAuthHostedBillingUserId
+    default:
+      throw new Error(
+        `userIdFromUnkeyMeta: received invalid API key type`
+      )
+  }
 }
-
 /**
  * Returns the userId of the user associated with the key, or undefined if the key is invalid.
  * @param key
@@ -59,12 +75,14 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     if (!result) {
       throw new Error('No result')
     }
+    const meta = apiKeyMetadataSchema.parse(result.meta)
+    console.log('keyVerify', result)
     return {
-      keyType:
-        backwardsCompatibleKeyTypeFromUnkeyApiKeyResult(result),
-      userId: result.meta!.userId as string,
+      keyType: meta.type,
+      userId: userIdFromUnkeyMeta(meta),
       ownerId: result.ownerId as string,
       environment: result.environment as string,
+      metadata: meta,
     }
   }
   const { membershipAndUser, organizationId, apiKeyType } =
@@ -93,6 +111,11 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     userId: membershipAndUser.user.id,
     ownerId: organizationId,
     environment: 'test',
+    metadata: {
+      type: apiKeyType as FlowgladApiKeyType.Secret,
+      userId: membershipAndUser.user.id,
+      organizationId: organizationId,
+    },
   }
 }
 
@@ -105,6 +128,7 @@ interface DatabaseAuthenticationInfo {
 async function dbAuthInfoForSecretApiKey(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
+  console.log(' authenticating for secret api key')
   if (verifyKeyResult.keyType !== FlowgladApiKeyType.Secret) {
     throw new Error(
       `dbAuthInfoForSecretApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
@@ -156,6 +180,7 @@ async function dbAuthInfoForSecretApiKey(
 async function dbAuthInfoForBillingPortalApiKey(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
+  console.log(' authenticating for billing portal api key')
   if (
     verifyKeyResult.keyType !== FlowgladApiKeyType.BillingPortalToken
   ) {
@@ -164,12 +189,46 @@ async function dbAuthInfoForBillingPortalApiKey(
     )
   }
   const livemode = verifyKeyResult.environment === 'live'
+  const billingMetadata =
+    verifyKeyResult.metadata as ApiKey.BillingPortalMetadata
+  if (!billingMetadata) {
+    throw new Error(
+      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
+    )
+  }
+  if (!billingMetadata.organizationId) {
+    throw new Error(
+      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
+    )
+  }
+  if (!billingMetadata.stackAuthHostedBillingUserId) {
+    throw new Error(
+      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
+    )
+  }
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(
+      and(
+        eq(customers.organizationId, billingMetadata.organizationId),
+        eq(
+          customers.stackAuthHostedBillingUserId,
+          billingMetadata.stackAuthHostedBillingUserId
+        )
+      )
+    )
+  if (!customer) {
+    throw new Error(
+      `Billing Portal Authentication Error: No customer found with externalId ${verifyKeyResult.ownerId}.`
+    )
+  }
   const membershipsForOrganization = await db
     .select()
     .from(memberships)
     .innerJoin(users, eq(memberships.userId, users.id))
     .where(
-      and(eq(memberships.organizationId, verifyKeyResult.ownerId!))
+      and(eq(memberships.organizationId, customer.organizationId))
     )
     .orderBy(asc(memberships.createdAt))
 
@@ -250,9 +309,10 @@ export async function databaseAuthenticationInfoForWebappRequest(
 export async function databaseAuthenticationInfoForApiKey(
   key: string
 ): Promise<DatabaseAuthenticationInfo> {
+  console.log(' authenticating for api key')
   const verifyKeyResult = await keyVerify(key)
   if (!verifyKeyResult.userId) {
-    throw new Error('Invalid API key,')
+    throw new Error('Invalid API key, no userId')
   }
   if (!verifyKeyResult.ownerId) {
     throw new Error('Invalid API key, no ownerId')

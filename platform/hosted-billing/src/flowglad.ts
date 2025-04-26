@@ -9,7 +9,6 @@ export const flowgladServer = (params: {
   organizationId: string
   billingPortalApiKey: string
 }) => {
-  console.log('===billingPortalApiKey', params.billingPortalApiKey)
   return new FlowgladServer({
     getRequestingCustomer: async () => {
       const user = await stackServerApp(

@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
-import { withBillingApiRequestValidation } from '@/utils/hostedBillingApiHelpers'
+import {
+  setApiKeyOnServerMetadata,
+  setHostedBillingApiKeyForStackAuthUser,
+  withBillingApiRequestValidation,
+} from '@/utils/hostedBillingApiHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { z } from 'zod'
@@ -92,17 +96,11 @@ export const POST = withBillingApiRequestValidation(
           { status: 401 }
         )
       }
-
-      await user.update({
-        serverMetadata: {
-          ...user.serverMetadata,
-          billingPortalApiKeys: {
-            ...user.serverMetadata.billingPortalMetadata,
-            [organizationId]: shownOnlyOnceKey,
-          },
-        },
+      await setHostedBillingApiKeyForStackAuthUser({
+        stackAuthUser: user,
+        organizationId,
+        apiKey: shownOnlyOnceKey,
       })
-
       return NextResponse.json({ success: true })
     } catch (error) {
       console.error('Error in request-magic-link:', error)
