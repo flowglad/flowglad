@@ -223,6 +223,17 @@ export const apiKeysClientUpdateSchema = z.discriminatedUnion(
 export const apiKeyClientWhereClauseSchema =
   coreApiKeysSelectSchema.partial()
 
+export const billingPortalApikeyMetadataSchema = z.object({
+  type: z.literal(FlowgladApiKeyType.BillingPortalToken),
+  stackAuthHostedBillingUserId: z.string(),
+  organizationId: z.string(),
+})
+
+export const secretApikeyMetadataSchema = z.object({
+  type: z.literal(FlowgladApiKeyType.Secret),
+  userId: z.string(),
+})
+
 export namespace ApiKey {
   // Base types
   export type Insert = z.infer<typeof apiKeysInsertSchema>
@@ -278,6 +289,9 @@ export namespace ApiKey {
   >
   export type BillingPortalRecord = z.infer<
     typeof hostedBillingPortalApiKeysSelectSchema
+  >
+  export type BillingPortalMetadata = z.infer<
+    typeof billingPortalApikeyMetadataSchema
   >
   export type BillingPortalClientInsert = z.infer<
     typeof hostedBillingPortalApiKeysClientInsertSchema
