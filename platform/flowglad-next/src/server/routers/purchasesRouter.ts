@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPurchasesTableRowData } from '@/db/tableMethods/purchaseMethods'
 import { purchasesTableRowDataSchema } from '@/db/schema/purchases'
 import { protectedProcedure, router } from '@/server/trpc'

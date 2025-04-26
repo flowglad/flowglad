@@ -39,7 +39,7 @@ export const invoiceLineItemUpdatedTask = task({
   },
 })
 ```
-- In the task, all of your database operations should be wrapped in an `adminTransaction` call. Import the `adminTransaction` function from `@/db/databaseMethods`:
+- In the task, all of your database operations should be wrapped in an `adminTransaction` call. Import the `adminTransaction` function from `@/db/authenticatedTransaction`:
 ```ts
     const result = await adminTransaction(async ({ transaction }) => {
       // all database operations here...

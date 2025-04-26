@@ -1,5 +1,5 @@
 import { protectedProcedure } from '../trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 

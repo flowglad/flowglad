@@ -1,5 +1,5 @@
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
 import { deleteFile } from '@/db/tableMethods/fileMethods'
 

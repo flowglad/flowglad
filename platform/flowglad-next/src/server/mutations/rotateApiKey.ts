@@ -1,5 +1,5 @@
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { rotateApiKeySchema } from '@/db/schema/apiKeys'
 import { decrypt } from '@/utils/encryption'
 import {

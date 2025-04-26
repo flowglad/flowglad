@@ -1,7 +1,7 @@
 import { router } from '@/server/trpc'
 import { protectedProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectMembershipsAndUsersByMembershipWhere,
   selectFocusedMembershipAndOrganization,

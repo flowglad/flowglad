@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { selectProperNounsByQuery } from '@/db/tableMethods/properNounMethods'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 
 export const GET = async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)

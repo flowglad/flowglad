@@ -15,7 +15,7 @@ import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
 
 import { usageProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'

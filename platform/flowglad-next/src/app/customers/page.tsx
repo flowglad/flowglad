@@ -1,4 +1,4 @@
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 import Internal from './Internal'

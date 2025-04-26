@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import cloudflareMethods from '@/utils/cloudflare'
 

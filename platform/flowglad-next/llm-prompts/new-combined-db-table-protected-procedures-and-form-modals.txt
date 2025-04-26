@@ -265,7 +265,7 @@ import {
 } from '@/db/schema/unicornRiders'
 
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertUnicornRider,
   selectUnicornRidersPaginated,

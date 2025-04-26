@@ -8,7 +8,7 @@ import {
 } from '@/utils/stripe'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { requestStripeConnectOnboardingLinkInputSchema } from '@/db/schema/countries'
 
 export const requestStripeConnectOnboardingLink = protectedProcedure

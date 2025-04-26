@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'

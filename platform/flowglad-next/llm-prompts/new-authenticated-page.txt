@@ -7,4 +7,4 @@ You're creating a Next.js 14 app directory React page. For example if the prompt
 2. Inside that file, create a new React page component called `ExamplePage`:
    - Implement any functionality that the prompt tells you to implement. Try to use existing functions, or modules wherever possible
 
-If any database calls need to be made, use the `authenticatedTransaction` function in `./src/db/databaseMethods.ts` to make them. You can safely assume that the user is authenticated here.
+If any database calls need to be made, use the `authenticatedTransaction` function in `./src/db/authenticatedTransaction.ts` to make them. You can safely assume that the user is authenticated here.

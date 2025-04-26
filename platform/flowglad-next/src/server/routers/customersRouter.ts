@@ -1,6 +1,6 @@
 import { router } from '../trpc'
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { z } from 'zod'
 import {
   selectCustomerById,

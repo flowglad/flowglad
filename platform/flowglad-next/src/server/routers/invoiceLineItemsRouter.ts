@@ -4,7 +4,7 @@ import {
   invoiceLineItemsPaginatedListSchema,
   invoiceLineItemsPaginatedSelectSchema,
 } from '@/db/schema/invoiceLineItems'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectInvoiceLineItemById,
   selectInvoiceLineItemsPaginated,

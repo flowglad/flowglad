@@ -4,7 +4,7 @@ import {
   invoicesPaginatedListSchema,
   invoicesPaginatedSelectSchema,
 } from '@/db/schema/invoices'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertInvoice,
   selectInvoiceById,

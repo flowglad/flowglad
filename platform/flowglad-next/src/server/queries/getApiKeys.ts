@@ -1,5 +1,5 @@
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { apiKeyClientWhereClauseSchema } from '@/db/schema/apiKeys'
 

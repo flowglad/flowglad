@@ -5,7 +5,7 @@ import {
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
 } from '@/types'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
   subscriptionClientSelectSchema,

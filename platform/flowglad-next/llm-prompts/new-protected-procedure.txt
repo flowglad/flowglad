@@ -7,7 +7,7 @@ You can rely on the other protectedProcedures the directory @/server/mutations a
 ```ts
 // in @/server/mutations/editCustomer.ts
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { editCustomerSchema } from '@/db/schema/customers'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 
