@@ -14,8 +14,9 @@ import {
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
+import { createApiKeyInputSchema } from '@/db/schema/apiKeys'
+import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
-import { createApiKey } from '../mutations/createApiKey'
 import { TRPCError } from '@trpc/server'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -151,6 +152,25 @@ const getTableRowsProcedure = protectedProcedure
         apiKey: ctx.apiKey,
       }
     )
+  })
+
+export const createApiKey = protectedProcedure
+  .input(createApiKeyInputSchema)
+  .mutation(async ({ input }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction, userId, livemode }) => {
+        return createSecretApiKeyTransaction(input, {
+          transaction,
+          userId,
+          livemode,
+        })
+      }
+    )
+
+    return {
+      apiKey: result.apiKey,
+      shownOnlyOnceKey: result.shownOnlyOnceKey,
+    }
   })
 
 export const apiKeysRouter = router({

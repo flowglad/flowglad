@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
-import { withBillingApiRequestValidation } from '@/utils/hostedBillingApiHelpers'
+import {
+  clearHostedBillingApiKeyFromStackAuthUser,
+  setHostedBillingApiKeyForStackAuthUser,
+  withBillingApiRequestValidation,
+} from '@/utils/hostedBillingApiHelpers'
 import { z } from 'zod'
 import { hostedBillingStackServerApp } from '@/stack'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -24,31 +28,38 @@ export const POST = withBillingApiRequestValidation(
   async (request) => {
     try {
       const body = await request.json()
+      const headerKeys = request.headers.keys().toArray()
       const { organizationId } = requestSchema.parse(body)
-
-      const user = await hostedBillingStackServerApp.getUser()
+      const stackAuthUserId = request.authData?.sub
+      if (!stackAuthUserId) {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 401 }
+        )
+      }
+      const user =
+        await hostedBillingStackServerApp.getUser(stackAuthUserId)
       if (!user) {
         return NextResponse.json(
           { error: 'User not found' },
           { status: 401 }
         )
       }
-
-      const apiKey = user.serverMetadata?.[organizationId]
-      if (!apiKey) {
-        return NextResponse.json(
-          { error: 'API key not found' },
-          { status: 401 }
-        )
+      const apiKey =
+        user.serverMetadata?.billingPortalMetadata?.[organizationId]
+          ?.apiKey
+      if (apiKey) {
+        const verifyResult = await verifyApiKey(apiKey)
+        if (verifyResult.valid) {
+          return NextResponse.json({ success: true })
+        }
       }
 
-      const verifyResult = await verifyApiKey(apiKey)
-      if (verifyResult.valid) {
-        return NextResponse.json({ success: true })
-      }
-      // Remove invalid key from metadata
-      const updatedMetadata = { ...user.serverMetadata }
-      delete updatedMetadata[organizationId]
+      // Remove invalid key from metadata if present
+      await clearHostedBillingApiKeyFromStackAuthUser({
+        stackAuthUser: user,
+        organizationId,
+      })
 
       // Create new API key
       const result = await adminTransaction(
@@ -77,11 +88,10 @@ export const POST = withBillingApiRequestValidation(
       const { shownOnlyOnceKey } = result
 
       // Update user metadata with new key
-      await user.update({
-        serverMetadata: {
-          ...updatedMetadata,
-          [organizationId]: shownOnlyOnceKey,
-        },
+      await setHostedBillingApiKeyForStackAuthUser({
+        stackAuthUser: user,
+        organizationId,
+        apiKey: shownOnlyOnceKey,
       })
       return NextResponse.json({ success: true })
     } catch (error) {

@@ -13,9 +13,11 @@ import {
   apiKeysSelectSchema,
   apiKeysUpdateSchema,
 } from '@/db/schema/apiKeys'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and } from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'
 import { organizations } from '../schema/organizations'
+import { FlowgladApiKeyType } from '@/types'
+import core from '@/utils/core'
 
 const config: ORMMethodCreatorConfig<
   typeof apiKeys,

@@ -20,7 +20,7 @@ describe('billing address schema parser', () => {
     expect(output.success).toBe(true)
     expect(output.data).toEqual(input)
   })
-  it('should parse nested billing address input', () => {
+  it('should parse nested billing address input (2)', () => {
     const input = {
       name: 'a',
       email: '_____@example.com',

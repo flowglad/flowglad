@@ -19,7 +19,7 @@ import { dummyProduct } from '@/stubs/productStubs'
 import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
-import { createApiKeyTransaction } from '@/utils/apiKeyHelpers'
+import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import {
   CreateOrganizationInput,
   Organization,
@@ -153,7 +153,7 @@ export const createOrganizationTransaction = async (
     },
     { transaction, livemode: false, userId }
   )
-  await createApiKeyTransaction(
+  await createSecretApiKeyTransaction(
     {
       apiKey: {
         name: 'Secret Testmode Key',

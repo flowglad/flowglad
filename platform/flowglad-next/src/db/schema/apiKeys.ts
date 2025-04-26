@@ -198,7 +198,6 @@ export const apiKeysClientInsertSchema = z.discriminatedUnion(
   'type',
   [
     secretApiKeysClientInsertSchema,
-    publishableApiKeysClientInsertSchema,
     hostedBillingPortalApiKeysClientInsertSchema,
   ]
 )

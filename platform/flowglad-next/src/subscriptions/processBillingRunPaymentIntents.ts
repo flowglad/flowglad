@@ -29,7 +29,7 @@ import {
 import { Customer } from '@/db/schema/customers'
 import { Organization } from '@/db/schema/organizations'
 import { Subscription } from '@/db/schema/subscriptions'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/db/tableMethods/paymentMethods'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
   sendOrganizationPaymentNotificationEmail,

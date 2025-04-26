@@ -6,7 +6,7 @@ import {
   setupOrg,
 } from '../../seedDatabase'
 import {
-  createApiKeyTransaction,
+  createSecretApiKeyTransaction,
   createBillingPortalApiKeyTransaction,
   verifyBillingPortalApiKeyTransaction,
 } from './apiKeyHelpers'
@@ -14,7 +14,10 @@ import { FlowgladApiKeyType } from '@/types'
 import { CreateApiKeyInput } from '@/db/schema/apiKeys'
 import { Organization } from '@/db/schema/organizations'
 import { User } from '@stackframe/stack'
-import { insertCustomer } from '@/db/tableMethods/customerMethods'
+import {
+  insertCustomer,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
 import {
   insertOrganization,
@@ -24,6 +27,7 @@ import {
   insertMembership,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
+import { nanoid } from './core'
 
 describe('apiKeyHelpers', () => {
   let organization: Organization.Record
@@ -50,7 +54,7 @@ describe('apiKeyHelpers', () => {
     userId = membership.userId
   })
 
-  describe('createApiKeyTransaction', () => {
+  describe('createSecretApiKeyTransaction', () => {
     it('should successfully create an API key', async () => {
       const input: CreateApiKeyInput = {
         apiKey: {
@@ -61,7 +65,7 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createApiKeyTransaction(input, {
+          return createSecretApiKeyTransaction(input, {
             transaction,
             userId,
             livemode: false,
@@ -98,7 +102,7 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createApiKeyTransaction(input, {
+          return createSecretApiKeyTransaction(input, {
             transaction,
             userId,
             livemode: false,
@@ -128,7 +132,7 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createApiKeyTransaction(input, {
+          return createSecretApiKeyTransaction(input, {
             transaction,
             userId,
             livemode: true,
@@ -160,7 +164,7 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createApiKeyTransaction(input, {
+          return createSecretApiKeyTransaction(input, {
             transaction,
             userId,
             livemode: false,
@@ -188,19 +192,22 @@ describe('apiKeyHelpers', () => {
       const input: CreateApiKeyInput = {
         apiKey: {
           name: 'Test API Key',
+          // @ts-expect-error - we know that publishable keys are not supported
           type: FlowgladApiKeyType.Publishable,
         },
       }
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createApiKeyTransaction(input, {
+          return createSecretApiKeyTransaction(input, {
             transaction,
             userId,
             livemode: true,
           })
         })
-      ).rejects.toThrow('Publishable keys are not supported')
+      ).rejects.toThrow(
+        'createSecretApiKeyTransaction: Only secret keys are supported. Received type: publishable'
+      )
     })
   })
 
@@ -231,14 +238,24 @@ describe('apiKeyHelpers', () => {
 
   describe('verifyBillingPortalApiKeyTransaction', () => {
     it('should successfully verify and create a billing portal API key', async () => {
+      const newId = nanoid()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
       const params = {
         organizationId: organization.id,
-        livemode: false,
-        user: { id: userId } as Pick<User, 'id'>,
+        livemode: customer.livemode,
+        user: { id: newId } as Pick<User, 'id'>,
       }
-
       const result = await adminTransaction(
         async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              stackAuthHostedBillingUserId: newId,
+            },
+            transaction
+          )
           return verifyBillingPortalApiKeyTransaction(
             params,
             transaction

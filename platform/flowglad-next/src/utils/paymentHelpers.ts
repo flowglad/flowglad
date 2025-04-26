@@ -5,8 +5,9 @@ import {
 import {
   insertPayment,
   safelyUpdatePaymentForRefund,
+  selectPayments,
+  selectPaymentById,
 } from '@/db/tableMethods/paymentMethods'
-import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -169,5 +170,37 @@ export const retryPaymentTransaction = async (
   } catch (error) {
     console.error('Error retrying charge:', error)
     throw error
+  }
+}
+
+export const sumNetTotalSettledPaymentsForPaymentSet = (
+  paymentSet: Pick<
+    Payment.Record,
+    'status' | 'amount' | 'refundedAmount'
+  >[]
+) => {
+  const total = paymentSet.reduce((acc, payment) => {
+    if (payment.status === PaymentStatus.Succeeded) {
+      return acc + payment.amount
+    }
+    if (payment.status === PaymentStatus.Refunded) {
+      return acc + (payment.amount - (payment.refundedAmount ?? 0))
+    }
+    return acc
+  }, 0)
+  return total
+}
+
+export const sumNetTotalSettledPaymentsForBillingPeriod = async (
+  billingPeriodId: string,
+  transaction: DbTransaction
+) => {
+  const payments = await selectPayments(
+    { billingPeriodId },
+    transaction
+  )
+  return {
+    payments,
+    total: sumNetTotalSettledPaymentsForPaymentSet(payments),
   }
 }

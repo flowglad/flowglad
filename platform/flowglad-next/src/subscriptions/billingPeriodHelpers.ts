@@ -16,7 +16,7 @@ import {
 } from '@/db/tableMethods/billingPeriodItemMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/db/tableMethods/paymentMethods'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   isSubscriptionInTerminalState,
   safelyUpdateSubscriptionStatus,

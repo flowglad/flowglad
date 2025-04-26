@@ -13,7 +13,7 @@ import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceM
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
-import { createApiKeyTransaction } from '@/utils/apiKeyHelpers'
+import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { ApiKey } from '@/db/schema/apiKeys'
 import { stackServerApp } from '@/stack'
 
@@ -67,7 +67,7 @@ const OnboardingPage = async () => {
   if (!secretApiKey) {
     secretApiKey = await adminTransaction(
       async ({ transaction }): Promise<ApiKey.Record> => {
-        const { apiKey } = await createApiKeyTransaction(
+        const { apiKey } = await createSecretApiKeyTransaction(
           {
             apiKey: {
               name: 'Secret Testmode Key',

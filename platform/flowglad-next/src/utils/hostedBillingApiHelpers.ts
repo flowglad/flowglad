@@ -1,10 +1,12 @@
+import * as R from 'ramda'
 import * as jose from 'jose'
 import { NextRequest } from 'next/server'
 import { core } from './core'
 import { headers } from 'next/headers'
 import { logger } from '@/utils/logger'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
-
+import { ServerUser, User } from '@stackframe/stack'
+import { z } from 'zod'
 export const validateBillingAuthentication = async (
   request: NextRequest
 ) => {
@@ -14,17 +16,15 @@ export const validateBillingAuthentication = async (
     async (span) => {
       try {
         // you need to install the jose library if it's not already installed
-
+        const hostedBillingJWTURL = `https://api.stack-auth.com/api/v1/projects/${core.envVariable('NEXT_PUBLIC_STACK_HOSTED_BILLING_PROJECT_ID')}/.well-known/jwks.json`
         // you can cache this and refresh it with a low frequency
         const jwks = jose.createRemoteJWKSet(
-          new URL(
-            `https://api.stack-auth.com/api/v1/projects/${core.envVariable('STACK_AUTH_HOSTED_BILLING_PROJECT_ID')}/.well-known/jwks.json`
-          )
+          new URL(hostedBillingJWTURL)
         )
 
-        const accessToken = (await headers()).get(
-          'x-stack-access-token'
-        )
+        const accessToken = JSON.parse(
+          (await headers()).get('x-stack-auth') ?? '{}'
+        ).accessToken
         if (!accessToken) {
           span.setStatus({
             code: SpanStatusCode.ERROR,
@@ -44,7 +44,7 @@ export const validateBillingAuthentication = async (
             userId: payload.sub,
             path: request.nextUrl.pathname,
           })
-          return true
+          return payload
         } catch (error) {
           span.setStatus({
             code: SpanStatusCode.ERROR,
@@ -76,10 +76,12 @@ export const validateBillingApiRequest = async (
   | {
       valid: true
       livemode: boolean
+      authData?: jose.JWTPayload
     }
   | {
       valid: false
       error: string
+      authData: null
     }
 > => {
   const tracer = trace.getTracer('billing-api')
@@ -116,6 +118,7 @@ export const validateBillingApiRequest = async (
           return {
             valid: false as const,
             error: 'Missing or invalid authorization header',
+            authData: null,
           }
         }
         const secretKey = authHeader.split(' ')[1] // Remove 'Bearer ' prefix
@@ -140,14 +143,14 @@ export const validateBillingApiRequest = async (
           return {
             valid: false as const,
             error: 'Invalid API key',
+            authData: null,
           }
         }
-
+        let authData: jose.JWTPayload | undefined
         if (additionalValidation?.authenticated) {
           try {
-            const userAuthenticated =
-              await validateBillingAuthentication(request)
-            if (!userAuthenticated) {
+            authData = await validateBillingAuthentication(request)
+            if (!authData) {
               span.setStatus({
                 code: SpanStatusCode.ERROR,
                 message: 'User not found',
@@ -162,6 +165,7 @@ export const validateBillingApiRequest = async (
               return {
                 valid: false as const,
                 error: 'User not found',
+                authData: null,
               }
             }
           } catch (error) {
@@ -191,6 +195,7 @@ export const validateBillingApiRequest = async (
                 error instanceof Error
                   ? error.message
                   : 'Authentication error',
+              authData: null,
             }
           }
         }
@@ -209,6 +214,7 @@ export const validateBillingApiRequest = async (
         return {
           valid: true as const,
           livemode,
+          authData,
         }
       } finally {
         span.end()
@@ -220,6 +226,7 @@ export const validateBillingApiRequest = async (
 export type NextRequestWithBillingApiRequestValidation =
   NextRequest & {
     livemode: boolean
+    authData?: jose.JWTPayload
   }
 
 export const withBillingApiRequestValidation = (
@@ -269,7 +276,7 @@ export const withBillingApiRequestValidation = (
             return new Response(result.error, { status: 401 })
           }
           request.livemode = result.livemode
-
+          request.authData = result.authData
           logger.info(
             'Billing API request validation successful, proceeding to handler',
             {
@@ -286,3 +293,162 @@ export const withBillingApiRequestValidation = (
     )
   }
 }
+
+const billingPortalMetadataSchema = z.object({
+  apiKey: z.string().optional(),
+  customerExternalId: z.string().optional(),
+})
+
+export const getHostedBillingMetadataFromStackAuthUser = (params: {
+  stackAuthUser: Pick<ServerUser, 'serverMetadata'>
+  organizationId: string
+}) => {
+  const { stackAuthUser, organizationId } = params
+  return billingPortalMetadataSchema.parse(
+    stackAuthUser.serverMetadata.billingPortalMetadata[
+      organizationId
+    ] ?? {}
+  )
+}
+
+export const clearHostedBillingApiKeyFromStackAuthUser =
+  async (params: {
+    stackAuthUser: ServerUser
+    organizationId: string
+  }) => {
+    const { stackAuthUser, organizationId } = params
+    await stackAuthUser.update({
+      serverMetadata: setApiKeyOnServerMetadata({
+        existingServerMetadata: stackAuthUser.serverMetadata,
+        organizationId,
+        apiKey: undefined,
+      }),
+    })
+  }
+
+export const setApiKeyOnServerMetadata = ({
+  existingServerMetadata,
+  organizationId,
+  apiKey,
+}: {
+  existingServerMetadata: Record<string, any>
+  organizationId: string
+  apiKey?: string
+}) => {
+  return R.assocPath(
+    ['billingPortalMetadata', organizationId, 'apiKey'],
+    apiKey,
+    existingServerMetadata
+  )
+}
+
+/**
+ * Sets the customerExternalId on the serverMetadata for the given organizationId
+ * If the customerExternalId is already set and changes for the given organizationId,
+ * we erase the apiKey for the given organizationId, as a hammer to prevent
+ * using another customer's api key.
+ * @param params - The parameters object containing existingServerMetadata, organizationId, and customerExternalId
+ * @returns The updated serverMetadata with the customerExternalId set
+ */
+export const setCustomerExternalIdOnServerMetadata = ({
+  existingServerMetadata,
+  organizationId,
+  customerExternalId,
+}: {
+  existingServerMetadata: Record<string, any>
+  organizationId: string
+  customerExternalId?: string
+}) => {
+  const existingCustomerExternalId = R.pathOr(
+    undefined,
+    ['billingPortalMetadata', organizationId, 'customerExternalId'],
+    existingServerMetadata
+  )
+  /**
+   * If the customerExternalId is already set and is not changing,
+   * return the existing serverMetadata.
+   */
+  if (
+    existingCustomerExternalId === customerExternalId &&
+    customerExternalId
+  ) {
+    return existingServerMetadata
+  }
+  /**
+   * Otherwise, set the customerExternalId on the serverMetadata for the given organizationId
+   * and erase the apiKey for the given organizationId, as a hammer to prevent
+   * using another customer's api key.
+   */
+  const metadataWithNewCustomerId = R.assocPath(
+    ['billingPortalMetadata', organizationId, 'customerExternalId'],
+    customerExternalId,
+    existingServerMetadata
+  )
+  const metadataWithoutApiKey = R.assocPath(
+    ['billingPortalMetadata', organizationId, 'apiKey'],
+    undefined,
+    metadataWithNewCustomerId
+  )
+  return metadataWithoutApiKey
+}
+
+export const setHostedBillingApiKeyForStackAuthUser = async (params: {
+  stackAuthUser: ServerUser
+  organizationId: string
+  apiKey: string
+}) => {
+  const { stackAuthUser, organizationId, apiKey } = params
+  await stackAuthUser.update({
+    serverMetadata: setApiKeyOnServerMetadata({
+      existingServerMetadata: stackAuthUser.serverMetadata,
+      organizationId,
+      apiKey,
+    }),
+  })
+}
+
+export const setHostedBillingCustomerExternalIdForStackAuthUser =
+  async (params: {
+    stackAuthUser: ServerUser
+    organizationId: string
+    customerExternalId: string
+  }) => {
+    const { stackAuthUser, organizationId, customerExternalId } =
+      params
+    await stackAuthUser.update({
+      serverMetadata: setCustomerExternalIdOnServerMetadata({
+        existingServerMetadata: stackAuthUser.serverMetadata,
+        organizationId,
+        customerExternalId,
+      }),
+    })
+  }
+
+export const getHostedBillingCustomerExternalIdForStackAuthUser =
+  async (params: {
+    stackAuthUser: ServerUser
+    organizationId: string
+  }) => {
+    const { stackAuthUser, organizationId } = params
+    const billingPortalMetadata =
+      await getHostedBillingMetadataFromStackAuthUser({
+        stackAuthUser,
+        organizationId,
+      })
+    return billingPortalMetadata.customerExternalId
+  }
+
+export const clearHostedBillingCustomerExternalIdForStackAuthUser =
+  async (params: {
+    stackAuthUser: ServerUser
+    organizationId: string
+  }) => {
+    const { stackAuthUser, organizationId } = params
+    await stackAuthUser.update({
+      serverMetadata: setCustomerExternalIdOnServerMetadata({
+        existingServerMetadata: stackAuthUser.serverMetadata,
+        organizationId,
+        customerExternalId: undefined,
+      }),
+    })
+  }

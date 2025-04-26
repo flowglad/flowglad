@@ -1,17 +1,33 @@
 import { FlowgladServer } from '@flowglad/nextjs/server'
-import { stackServerApp } from './stack'
+import {
+  getUserBillingPortalCustomerExternalId,
+  stackServerApp,
+} from './stack'
+import axios from 'axios'
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const user = await stackServerApp.getUser()
-    if (!user) {
-      throw new Error('User not found')
-    }
-    return {
-      email: user.primaryEmail!,
-      name: user.displayName!,
-      externalId: user.clientReadOnlyMetadata.externalId,
-    }
-  },
-  baseURL: process.env.API_BASE_URL,
-})
+export const flowgladServer = (params: {
+  organizationId: string
+  billingPortalApiKey: string
+}) => {
+  console.log('===billingPortalApiKey', params.billingPortalApiKey)
+  return new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const user = await stackServerApp(
+        params.organizationId
+      ).getUser()
+      if (!user) {
+        throw new Error('User not found')
+      }
+      return {
+        email: user.primaryEmail!,
+        name: user.displayName!,
+        externalId: getUserBillingPortalCustomerExternalId({
+          organizationId: params.organizationId,
+          user,
+        }),
+      }
+    },
+    baseURL: process.env.API_BASE_URL,
+    apiKey: params.billingPortalApiKey,
+  })
+}
