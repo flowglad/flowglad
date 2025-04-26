@@ -28,29 +28,50 @@ export const verifyApiKey = async (apiKey: string) => {
   }
 }
 
-interface StandardCreateApiKeyParams {
+export interface StandardCreateApiKeyParams {
   name: string
   apiEnvironment: ApiEnvironment
-  organization: Organization.Record
+  organization: Pick<Organization.Record, 'id'>
   userId: string
   type: FlowgladApiKeyType.Secret
   expiresAt?: Date
 }
 
-interface BillingPortalCreateApiKeyParams
+export interface BillingPortalCreateApiKeyParams
   extends Omit<StandardCreateApiKeyParams, 'type'> {
   type: FlowgladApiKeyType.BillingPortalToken
   stackAuthHostedBillingUserId: string
   expiresAt: Date
 }
 
-type CreateApiKeyParams =
-  | StandardCreateApiKeyParams
-  | BillingPortalCreateApiKeyParams
-
 interface CreateApiKeyResult {
   apiKeyInsert: ApiKey.Insert
   shownOnlyOnceKey: string
+}
+
+type UnkeyInput = Parameters<
+  ReturnType<typeof unkey>['keys']['create']
+>[0]
+
+export const secretApiKeyInputToUnkeyInput = (
+  params: StandardCreateApiKeyParams
+): UnkeyInput => {
+  const { organization, apiEnvironment } = params
+
+  const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
+
+  return {
+    apiId: core.envVariable('UNKEY_API_ID'),
+    name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
+    environment: apiEnvironment,
+    expires: params.expiresAt?.getTime(),
+    externalId: organization.id,
+    prefix: [maybeStagingPrefix, 'sk_', apiEnvironment].join(''),
+    meta: {
+      userId: params.userId,
+      keyType: FlowgladApiKeyType.Secret,
+    },
+  }
 }
 
 export const createSecretApiKey = async (
@@ -63,20 +84,8 @@ export const createSecretApiKey = async (
     )
   }
 
-  const { organization, apiEnvironment } = params
-
-  const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
-  const { result, error } = await unkey().keys.create({
-    apiId: core.envVariable('UNKEY_API_ID'),
-    name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
-    environment: apiEnvironment,
-    expires: params.expiresAt?.getTime(),
-    externalId: organization.id,
-    prefix: [maybeStagingPrefix, 'sk_', apiEnvironment].join(''),
-    meta: {
-      userId: params.userId,
-    },
-  })
+  const unkeyInput = secretApiKeyInputToUnkeyInput(params)
+  const { result, error } = await unkey().keys.create(unkeyInput)
 
   if (error) {
     throw error
@@ -105,6 +114,30 @@ export const createSecretApiKey = async (
   }
 }
 
+export const billingPortalApiKeyInputToUnkeyInput = (
+  params: BillingPortalCreateApiKeyParams
+): UnkeyInput => {
+  const {
+    organization,
+    apiEnvironment,
+    stackAuthHostedBillingUserId,
+  } = params
+
+  const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
+  return {
+    apiId: core.envVariable('UNKEY_API_ID'),
+    name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
+    environment: apiEnvironment,
+    expires: params.expiresAt.getTime(),
+    externalId: stackAuthHostedBillingUserId,
+    prefix: [maybeStagingPrefix, 'bk_', apiEnvironment].join(''),
+    meta: {
+      userId: params.userId,
+      keyType: FlowgladApiKeyType.BillingPortalToken,
+    },
+  }
+}
+
 export const createBillingPortalApiKey = async (
   params: BillingPortalCreateApiKeyParams
 ): Promise<CreateApiKeyResult> => {
@@ -125,22 +158,8 @@ export const createBillingPortalApiKey = async (
     throw new Error('expiresAt is required for billing portal tokens')
   }
 
-  const { organization, apiEnvironment } = params
-
-  const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
-  const { result, error } = await unkey().keys.create({
-    apiId: core.envVariable('UNKEY_API_ID'),
-    name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
-    environment: apiEnvironment,
-    expires: params.expiresAt.getTime(),
-    externalId: organization.id,
-    prefix: [maybeStagingPrefix, 'bill_', 'sk_', apiEnvironment].join(
-      ''
-    ),
-    meta: {
-      userId: params.userId,
-    },
-  })
+  const unkeyInput = billingPortalApiKeyInputToUnkeyInput(params)
+  const { result, error } = await unkey().keys.create(unkeyInput)
 
   if (error) {
     throw error
@@ -151,7 +170,7 @@ export const createBillingPortalApiKey = async (
    * Hide the key in live mode
    */
   const token = livemode
-    ? `sk_live_...${result.key.slice(-4)}`
+    ? `bk_live_...${result.key.slice(-4)}`
     : result.key
 
   return {

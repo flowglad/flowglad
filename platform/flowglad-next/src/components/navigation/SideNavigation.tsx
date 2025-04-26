@@ -24,6 +24,7 @@ import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/utils/core'
 import { useEffect, useState } from 'react'
 import { FallbackSkeleton } from '../ion/Skeleton'
+import { FeatureFlag } from '@/types'
 
 export const SideNavigation = () => {
   const pathname = usePathname()
@@ -63,6 +64,33 @@ export const SideNavigation = () => {
   ) : (
     <></>
   )
+  const storeChildItems = [
+    {
+      label: 'Catalogs',
+      href: '/store/catalogs',
+    },
+    {
+      label: 'Products',
+      href: '/store/products',
+    },
+    {
+      label: 'Discounts',
+      href: '/store/discounts',
+    },
+    {
+      label: 'Purchases',
+      href: '/store/purchases',
+    },
+  ]
+  if (
+    organization &&
+    organization.featureFlags?.[FeatureFlag.Usage]
+  ) {
+    storeChildItems.push({
+      label: 'Usage Meters',
+      href: '/store/usage-meters',
+    })
+  }
   return (
     <div className="bg-nav h-full w-fit max-w-[240px] min-w-[240px] flex flex-col gap-3 border-r border-container justify-between">
       <div className="flex-1 flex flex-col">
@@ -99,28 +127,7 @@ export const SideNavigation = () => {
             <ParentChildNavigationItem
               parentLabel="Store"
               parentLeadingIcon={<Store size={16} />}
-              childItems={[
-                {
-                  label: 'Catalogs',
-                  href: '/store/catalogs',
-                },
-                {
-                  label: 'Products',
-                  href: '/store/products',
-                },
-                {
-                  label: 'Discounts',
-                  href: '/store/discounts',
-                },
-                {
-                  label: 'Purchases',
-                  href: '/store/purchases',
-                },
-                {
-                  label: 'Usage Meters',
-                  href: '/store/usage-meters',
-                },
-              ]}
+              childItems={storeChildItems}
               basePath="/store"
             />
             <ParentChildNavigationItem

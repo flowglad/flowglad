@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { NextResponse } from 'next/server'
-import { withBillingApiRequestValidation } from '@/utils/hostedBillingApiHelpers'
+import {
+  setHostedBillingCustomerExternalIdForStackAuthUser,
+  withBillingApiRequestValidation,
+} from '@/utils/hostedBillingApiHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectCustomers,
@@ -9,6 +12,7 @@ import {
 import { hostedBillingStackServerApp } from '@/stack'
 import { logger } from '@/utils/logger'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
+import { ServerUser } from '@stackframe/stack'
 
 const requestSchema = z.object({
   organizationId: z.string(),
@@ -20,6 +24,8 @@ const createUserAndSendMagicLink = async (params: {
   customerEmail: string
   customerId: string
   customerName: string
+  organizationId: string
+  customerExternalId: string
 }) => {
   const tracer = trace.getTracer('magic-link')
   return tracer.startActiveSpan(
@@ -43,6 +49,12 @@ const createUserAndSendMagicLink = async (params: {
           primaryEmailAuthEnabled: true,
           displayName: params.customerName,
           otpAuthEnabled: true,
+        })
+
+        await setHostedBillingCustomerExternalIdForStackAuthUser({
+          stackAuthUser: user,
+          organizationId: params.organizationId,
+          customerExternalId: params.customerExternalId,
         })
 
         logger.info('User created successfully', {
@@ -103,62 +115,54 @@ const createUserAndSendMagicLink = async (params: {
 }
 
 async function sendEmailToExistingUser({
-  customerEmail,
   customerId,
-  customerName,
-  stackAuthUserId,
+  user,
+  organizationId,
 }: {
-  customerEmail: string
+  user: ServerUser
   customerId: string
   customerName: string
-  stackAuthUserId: string
+  organizationId: string
 }) {
   logger.info(
     'Customer already has Stack Auth user ID, sending magic link',
     {
       customerId,
-      stackAuthUserId,
+      stackAuthUserId: user.id,
     }
   )
-  const stackAuthUser =
-    await hostedBillingStackServerApp.getUser(stackAuthUserId)
-  if (!stackAuthUser) {
-    throw new Error(
-      'Stack Auth user not found, please contact support'
-    )
+  const emailAndUserId = {
+    primaryEmail: user.primaryEmail!,
+    stackAuthUserId: user.id,
   }
-
-  if (stackAuthUser.primaryEmailVerified) {
+  if (user.primaryEmailVerified) {
     await hostedBillingStackServerApp.sendMagicLinkEmail(
-      customerEmail,
+      user.primaryEmail!,
       {
-        callbackUrl: 'http://localhost:3001/validate-magic-link',
+        callbackUrl: `http://localhost:3001/api/${organizationId}/validate-magic-link`,
       }
     )
-    logger.info('Magic link email sent to existing user', {
-      customerEmail,
-      stackAuthUserId,
-    })
+    logger.info(
+      'Magic link email sent to existing user',
+      emailAndUserId
+    )
   } else {
-    const contactChannels = await stackAuthUser.listContactChannels()
+    const contactChannels = await user.listContactChannels()
     const primaryContactChannel = contactChannels.find(
       (channel) => channel.type === 'email' && channel.isPrimary
     )
     if (!primaryContactChannel) {
       logger.error(
         'No primary email contact channel found for stack auth user',
-        {
-          customerEmail,
-          stackAuthUserId,
-        }
+        emailAndUserId
       )
       throw new Error('No primary contact channel found')
     }
     await primaryContactChannel.sendVerificationEmail()
-    logger.info('Verification email sent to existing user', {
-      customerEmail,
-      stackAuthUserId,
-    })
+    logger.info(
+      'Verification email sent to existing user',
+      emailAndUserId
+    )
   }
 }
 
@@ -230,12 +234,22 @@ export const POST = withBillingApiRequestValidation(
               customerId: customer.id,
               customerEmail: customer.email,
             })
-
+            const user = await hostedBillingStackServerApp.getUser(
+              customer.stackAuthHostedBillingUserId
+            )
+            if (!user) {
+              throw new Error('Stack Auth user not found')
+            }
+            await setHostedBillingCustomerExternalIdForStackAuthUser({
+              stackAuthUser: user,
+              organizationId,
+              customerExternalId,
+            })
             await sendEmailToExistingUser({
-              customerEmail,
+              user,
               customerId: customer.id,
               customerName: customer.name,
-              stackAuthUserId: customer.stackAuthHostedBillingUserId,
+              organizationId,
             })
           } else {
             logger.info('Creating new user and sending magic link', {
@@ -247,6 +261,8 @@ export const POST = withBillingApiRequestValidation(
               customerEmail,
               customerId: customer.id,
               customerName: customer.name,
+              organizationId,
+              customerExternalId,
             })
           }
 

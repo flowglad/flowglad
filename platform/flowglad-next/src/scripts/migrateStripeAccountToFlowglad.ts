@@ -2,6 +2,8 @@
 run the following in the terminal
 NODE_ENV=production pnpm tsx src/scripts/migrateStripeAccountToFlowglad.ts connected_account_id=acct_...
 */
+/* eslint-disable no-console */
+
 import * as R from 'ramda'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'

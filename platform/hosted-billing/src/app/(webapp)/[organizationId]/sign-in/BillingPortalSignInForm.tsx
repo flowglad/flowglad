@@ -46,7 +46,7 @@ export function BillingPortalSigninForm({
   const requestMagicLinkMutation = useMutation({
     mutationFn: async (data: RequestMagicLinkBody) => {
       const response = await axios.post(
-        `/api/request-magic-link`,
+        `/api/${organizationId}/request-magic-link`,
         data
       )
       return response.data

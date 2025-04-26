@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // scripts/removeDevRoutes.ts
 import fs from 'fs'
 import path from 'path'

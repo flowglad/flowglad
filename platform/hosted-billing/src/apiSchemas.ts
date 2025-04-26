@@ -9,3 +9,12 @@ export const requestMagicLinkSchema = z.object({
 export type RequestMagicLinkBody = z.infer<
   typeof requestMagicLinkSchema
 >
+
+export const billingPortalMetadataSchema = z.object({
+  apiKey: z.string(),
+  customerExternalId: z.string(),
+})
+
+export type BillingPortalMetadata = z.infer<
+  typeof billingPortalMetadataSchema
+>

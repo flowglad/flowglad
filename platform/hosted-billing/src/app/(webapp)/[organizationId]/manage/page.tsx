@@ -1,5 +1,6 @@
 import { flowgladServer } from '@/flowglad'
-import { stackServerApp } from '@/stack'
+import { validateCurrentUserBillingPortalApiKeyForOrganization } from '@/flowgladHostedBillingApi'
+import { getUserBillingPortalApiKey, stackServerApp } from '@/stack'
 import { redirect } from 'next/navigation'
 
 interface BillingPortalManagePageProps {
@@ -13,7 +14,7 @@ export default async function BillingPortalManagePage({
   params,
 }: BillingPortalManagePageProps) {
   const { organizationId, customerId } = await params
-  const user = await stackServerApp.getUser()
+  const user = await stackServerApp(organizationId).getUser()
 
   if (!user) {
     return redirect(
@@ -21,7 +22,18 @@ export default async function BillingPortalManagePage({
     )
   }
 
-  const customer = await flowgladServer.getCustomer()
+  await validateCurrentUserBillingPortalApiKeyForOrganization({
+    organizationId,
+  })
+
+  const billingPortalApiKey = await getUserBillingPortalApiKey({
+    organizationId,
+    user,
+  })
+  const customer = await flowgladServer({
+    organizationId,
+    billingPortalApiKey,
+  }).getCustomer()
 
   if (!customer) {
     return redirect(

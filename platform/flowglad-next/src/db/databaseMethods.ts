@@ -2,7 +2,7 @@ import {
   AdminTransactionParams,
   AuthenticatedTransactionParams,
 } from '@/db/types'
-import { verifyKey } from '@unkey/api'
+import { Unkey, verifyKey } from '@unkey/api'
 import db from './client'
 import { and, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
@@ -14,6 +14,8 @@ import { users } from './schema/users'
 import { selectApiKeys } from './tableMethods/apiKeyMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
 import { organizations } from './schema/organizations'
+import { ServerUser } from '@stackframe/stack'
+import { FlowgladApiKeyType } from '@/types'
 
 type SessionUser = Session['user']
 
@@ -24,6 +26,18 @@ export interface JWTClaim extends JwtPayload {
   role: string
 }
 
+const backwardsCompatibleKeyTypeFromUnkeyApiKeyResult = (
+  result: Awaited<ReturnType<typeof verifyKey>>['result']
+): FlowgladApiKeyType => {
+  if (!result) {
+    throw new Error('No result from unkey verifyKey')
+  }
+  if (result.meta?.keyType) {
+    return result.meta.keyType as FlowgladApiKeyType
+  }
+  return FlowgladApiKeyType.Secret
+}
+
 /**
  * Returns the userId of the user associated with the key, or undefined if the key is invalid.
  * @param key
@@ -32,9 +46,10 @@ export interface JWTClaim extends JwtPayload {
 const keyVerify = async (
   key: string
 ): Promise<{
-  userId?: string
-  ownerId?: string
-  environment?: string
+  keyType: FlowgladApiKeyType
+  userId: string
+  ownerId: string
+  environment: string
 }> => {
   if (!core.IS_TEST) {
     const { result, error } = await verifyKey({
@@ -48,12 +63,14 @@ const keyVerify = async (
       throw new Error('No result')
     }
     return {
+      keyType:
+        backwardsCompatibleKeyTypeFromUnkeyApiKeyResult(result),
       userId: result.meta!.userId as string,
       ownerId: result.ownerId as string,
       environment: result.environment as string,
     }
   }
-  const { membershipAndUser, organizationId } =
+  const { membershipAndUser, organizationId, apiKeyType } =
     await adminTransaction(async ({ transaction }) => {
       const [apiKeyRecord] = await selectApiKeys(
         {
@@ -71,12 +88,103 @@ const keyVerify = async (
       return {
         membershipAndUser,
         organizationId: apiKeyRecord.organizationId,
+        apiKeyType: apiKeyRecord.type,
       }
     })
   return {
+    keyType: apiKeyType,
     userId: membershipAndUser.user.id,
     ownerId: organizationId,
     environment: 'test',
+  }
+}
+
+const databaseAuthenticationInfoForSecretApikey =
+  async (verifyKeyResult: {
+    userId: string
+    ownerId: string
+    environment: string
+  }) => {
+    const membershipsForOrganization = await db
+      .select()
+      .from(memberships)
+      .innerJoin(users, eq(memberships.userId, users.id))
+      .where(
+        and(
+          eq(memberships.organizationId, verifyKeyResult.ownerId!),
+          or(
+            eq(memberships.userId, `${verifyKeyResult.userId}`),
+            eq(users.clerkId, `${verifyKeyResult.userId}`)
+          )
+        )
+      )
+    const userId =
+      membershipsForOrganization[0].users.id ??
+      `${verifyKeyResult.userId}`
+    const livemode = verifyKeyResult.environment === 'live'
+    const jwtClaim = {
+      role: 'authenticated',
+      sub: userId,
+      email: 'apiKey@example.com',
+      session_id: 'mock_session_123',
+      user_metadata: {
+        id: userId,
+        user_metadata: {},
+        aud: 'stub',
+        email: 'apiKey@example.com',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        role: 'authenticated',
+        app_metadata: {
+          provider: 'apiKey',
+        },
+      },
+      app_metadata: { provider: 'apiKey' },
+    }
+    return {
+      userId,
+      livemode,
+      jwtClaim,
+    }
+  }
+
+const databaseAuthenticationInfoForWebappRequest = async (
+  user: ServerUser
+) => {
+  const userId = user.id
+  const [focusedMembership] = await db
+    .select()
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.userId, userId),
+        eq(memberships.focused, true)
+      )
+    )
+    .limit(1)
+  const livemode = focusedMembership?.livemode ?? false
+  const jwtClaim = {
+    role: 'authenticated',
+    sub: userId,
+    email: user?.primaryEmail ?? '',
+    user_metadata: {
+      id: userId,
+      user_metadata: {},
+      aud: 'stub',
+      email: user.primaryEmail ?? '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      role: 'authenticated',
+      app_metadata: {
+        provider: '',
+      },
+    },
+    app_metadata: { provider: 'apiKey' },
+  }
+  return {
+    userId,
+    livemode,
+    jwtClaim,
   }
 }
 
@@ -97,39 +205,11 @@ export const authenticatedTransaction = async <T>(
     if (!user) {
       throw new Error('No user found for a non-API key transaction')
     }
-    userId = user.id
-    if (!userId) {
-      throw new Error('No userId found for a non-API key transaction')
-    }
-    const [focusedMembership] = await db
-      .select()
-      .from(memberships)
-      .where(
-        and(
-          eq(memberships.userId, userId),
-          eq(memberships.focused, true)
-        )
-      )
-      .limit(1)
-    livemode = focusedMembership?.livemode ?? false
-    jwtClaim = {
-      role: 'authenticated',
-      sub: userId,
-      email: user?.primaryEmail ?? '',
-      user_metadata: {
-        id: userId,
-        user_metadata: {},
-        aud: 'stub',
-        email: user.primaryEmail ?? '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        role: 'authenticated',
-        app_metadata: {
-          provider: '',
-        },
-      },
-      app_metadata: { provider: 'apiKey' },
-    }
+    const authenticationInfo =
+      await databaseAuthenticationInfoForWebappRequest(user)
+    userId = authenticationInfo.userId
+    livemode = authenticationInfo.livemode
+    jwtClaim = authenticationInfo.jwtClaim
   }
 
   if (apiKey) {
@@ -140,41 +220,11 @@ export const authenticatedTransaction = async <T>(
     if (!result.ownerId) {
       throw new Error('Invalid API key, no ownerId')
     }
-    const membershipsForOrganization = await db
-      .select()
-      .from(memberships)
-      .innerJoin(users, eq(memberships.userId, users.id))
-      .where(
-        and(
-          eq(memberships.organizationId, result.ownerId!),
-          or(
-            eq(memberships.userId, `${result.userId}`),
-            eq(users.clerkId, `${result.userId}`)
-          )
-        )
-      )
-    userId =
-      membershipsForOrganization[0].users.id ?? `${result.userId}`
-    livemode = result.environment === 'live'
-    jwtClaim = {
-      role: 'authenticated',
-      sub: userId,
-      email: 'apiKey@example.com',
-      session_id: 'mock_session_123',
-      user_metadata: {
-        id: userId,
-        user_metadata: {},
-        aud: 'stub',
-        email: 'apiKey@example.com',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        role: 'authenticated',
-        app_metadata: {
-          provider: 'apiKey',
-        },
-      },
-      app_metadata: { provider: 'apiKey' },
-    }
+    const authenticationInfo =
+      await databaseAuthenticationInfoForSecretApikey(result)
+    userId = authenticationInfo.userId
+    livemode = authenticationInfo.livemode
+    jwtClaim = authenticationInfo.jwtClaim
   }
 
   return db.transaction(async (transaction) => {

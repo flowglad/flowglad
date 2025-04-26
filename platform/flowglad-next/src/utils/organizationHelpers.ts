@@ -1,8 +1,6 @@
 import { customAlphabet } from 'nanoid'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
   insertOrDoNothingOrganizationByExternalId,
-  insertOrganization,
   selectOrganizations,
 } from '@/db/tableMethods/organizationMethods'
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
@@ -176,5 +174,5 @@ export const hasFeatureFlag = (
   if (!organization) {
     return false
   }
-  return organization.featureFlags?.[featureFlag]
+  return organization.featureFlags?.[featureFlag] ?? false
 }

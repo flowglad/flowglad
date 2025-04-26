@@ -95,7 +95,11 @@ export const POST = withBillingApiRequestValidation(
 
       await user.update({
         serverMetadata: {
-          [apiKey.organizationId]: shownOnlyOnceKey,
+          ...user.serverMetadata,
+          billingPortalApiKeys: {
+            ...user.serverMetadata.billingPortalMetadata,
+            [organizationId]: shownOnlyOnceKey,
+          },
         },
       })
 
