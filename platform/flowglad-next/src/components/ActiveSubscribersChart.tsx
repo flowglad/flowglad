@@ -57,7 +57,7 @@ export const ActiveSubscribersChart = ({
         subscribers: item.count,
       }
     })
-  }, [subscriberData, firstPayloadValue])
+  }, [subscriberData])
 
   // Calculate max value for better visualization,
   // fitting the y axis to the max value in the data
@@ -82,7 +82,7 @@ export const ActiveSubscribersChart = ({
      */
     const count = subscriberData[subscriberData.length - 1].count
     return count.toString()
-  }, [subscriberData, firstPayloadValue, tooltipData?.payload])
+  }, [subscriberData, firstPayloadValue])
 
   const tooltipLabel = tooltipData?.label
   let isTooltipLabelDate: boolean = false
