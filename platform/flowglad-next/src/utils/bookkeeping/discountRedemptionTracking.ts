@@ -8,7 +8,7 @@ import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { DbTransaction } from '@/db/types'
 import { DiscountDuration, PaymentStatus } from '@/types'
 
-const incrementNumberOfPaymentsForDiscountRedemption = async (
+export const incrementNumberOfPaymentsForDiscountRedemption = async (
   discountRedemption: DiscountRedemption.Record,
   payment: Payment.Record,
   transaction: DbTransaction
@@ -45,12 +45,21 @@ export const safelyIncrementDiscountRedemptionSubscriptionPayment =
     if (!payment.subscriptionId && !payment.purchaseId) {
       return
     }
+    const selectConditions: {
+      subscriptionId?: string
+      purchaseId?: string
+      fullyRedeemed: boolean
+    } = {
+      fullyRedeemed: false,
+    }
+    if (payment.subscriptionId) {
+      selectConditions.subscriptionId = payment.subscriptionId
+    }
+    if (payment.purchaseId) {
+      selectConditions.purchaseId = payment.purchaseId
+    }
     const [discountRedemption] = await selectDiscountRedemptions(
-      {
-        subscriptionId: payment.subscriptionId,
-        purchaseId: payment.purchaseId ?? undefined,
-        fullyRedeemed: false,
-      },
+      selectConditions,
       transaction
     )
 

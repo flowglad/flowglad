@@ -422,7 +422,9 @@ export namespace CheckoutSession {
   >
 
   export type Record = z.infer<typeof checkoutSessionsSelectSchema>
-
+  export type SubscriptionCreatingRecord =
+    | ProductRecord
+    | PurchaseRecord
   export type PurchaseClientRecord = z.infer<
     typeof purchaseCheckoutSessionClientSelectSchema
   >

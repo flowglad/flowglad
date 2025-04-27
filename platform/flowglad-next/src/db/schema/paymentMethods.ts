@@ -67,6 +67,7 @@ export const paymentMethodBillingDetailsSchema = z.object({
   email: z.string().nullable(),
   address: z.object({
     ...billingAddressSchema.shape.address.shape,
+    // TODO: remove this
     address: billingAddressSchema.shape.address.nullish(),
   }),
 })

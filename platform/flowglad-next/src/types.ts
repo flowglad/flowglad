@@ -728,9 +728,14 @@ export enum SubscriptionAdjustmentTiming {
 export enum CheckoutSessionType {
   Product = 'product',
   Purchase = 'purchase',
-  Invoice = 'invoice',
   AddPaymentMethod = 'add_payment_method',
+  Invoice = 'invoice',
 }
+
+export type SetupIntentableCheckoutSessionType = Exclude<
+  CheckoutSessionType,
+  CheckoutSessionType.Invoice
+>
 
 export enum FeatureFlag {
   Usage = 'usage',

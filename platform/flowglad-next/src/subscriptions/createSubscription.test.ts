@@ -457,7 +457,7 @@ describe('createSubscription', async () => {
     expect(billingPeriod).toBeDefined()
 
     // Verify no billing run was created
-    expect(billingRun).toBeUndefined()
+    expect(billingRun).toBeNull()
   })
 
   it('should execute with a billingRun if customer has a default payment method but no defaultPaymentMethodId is provided', async () => {
