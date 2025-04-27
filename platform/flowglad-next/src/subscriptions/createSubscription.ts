@@ -412,7 +412,7 @@ export const createSubscriptionWorkflow = async (
         },
         transaction
       )
-    : undefined
+    : null
 
   await idempotentSendOrganizationSubscriptionCreatedNotification(
     subscription

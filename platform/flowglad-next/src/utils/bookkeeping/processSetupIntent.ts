@@ -20,6 +20,7 @@ import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
 import {
   checkoutSessionIsInTerminalState,
+  isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
@@ -37,6 +38,7 @@ import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
+import { BillingRun } from '@/db/schema/billingRuns'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -248,6 +250,7 @@ interface ProcessAddPaymentMethodSetupIntentSucceededResult {
   purchase: null
   price: null
   product: null
+  billingRun: null
   checkoutSession: CheckoutSession.Record
   organization: Organization.Record
   customer: Pick<
@@ -297,15 +300,41 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     checkoutSession.organizationId,
     transaction
   )
+
   return {
     type: CheckoutSessionType.AddPaymentMethod,
     purchase: null,
     price: null,
     product: null,
+    billingRun: null,
     checkoutSession,
     organization,
     customer,
   }
+}
+
+interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
+  type: CheckoutSessionType.Product | CheckoutSessionType.Purchase
+  purchase: Purchase.Record
+  price: Price.Record
+  product: Product.Record
+  billingRun: BillingRun.Record | null
+  checkoutSession: CheckoutSession.Record
+  organization: Organization.Record
+  customer: Pick<
+    Customer.Record,
+    'id' | 'stripeCustomerId' | 'livemode'
+  >
+}
+
+interface SetupIntentSucceededBookkeepingResult {
+  checkoutSession: CheckoutSession.Record
+  price: Price.Record
+  product: Product.Record
+  purchase: Purchase.Record
+  organization: Organization.Record
+  customer: Customer.Record
+  paymentMethod: PaymentMethod.Record
 }
 
 export const createSubscriptionFromSetupIntentableCheckoutSession =
@@ -319,18 +348,16 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       organization,
       customer,
       paymentMethod,
-    }: {
+    }: SetupIntentSucceededBookkeepingResult & {
       setupIntent: CoreSripeSetupIntent
-      checkoutSession: CheckoutSession.Record
-      price: Price.Record
-      product: Product.Record
-      purchase: Purchase.Record
-      organization: Organization.Record
-      customer: Customer.Record
-      paymentMethod: PaymentMethod.Record
     },
     transaction: DbTransaction
-  ) => {
+  ): Promise<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult> => {
+    if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
+      throw new Error(
+        `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
+      )
+    }
     /**
      * If the price, product, or purchase are not found,
      * we don't need to create a subscription because that means
@@ -410,7 +437,16 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       transaction
     )
 
-    return { purchase: updatedPurchase, checkoutSession, billingRun }
+    return {
+      purchase: updatedPurchase,
+      checkoutSession,
+      billingRun,
+      price,
+      product,
+      organization,
+      customer,
+      type: checkoutSession.type,
+    }
   }
 
 export const processSetupIntentSucceeded = async (
@@ -448,6 +484,7 @@ export const processSetupIntentSucceeded = async (
   const withSetupIntent = Object.assign(result, {
     setupIntent,
   })
+
   return await createSubscriptionFromSetupIntentableCheckoutSession(
     withSetupIntent,
     transaction

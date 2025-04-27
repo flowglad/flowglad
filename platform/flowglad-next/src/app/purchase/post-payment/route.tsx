@@ -12,6 +12,7 @@ import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods
 import { Purchase } from '@/db/schema/purchases'
 import { deleteCheckoutSessionCookie } from '@/utils/checkoutSessionState'
 import {
+  isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
   selectCheckoutSessions,
 } from '@/db/tableMethods/checkoutSessionMethods'
@@ -182,18 +183,26 @@ const processSetupIntent = async ({
   checkoutSession: CheckoutSession.Record
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
-  const { purchase, checkoutSession, billingRun } =
-    await adminTransaction(async ({ transaction }) => {
+  const setupSuceededResult = await adminTransaction(
+    async ({ transaction }) => {
       return processSetupIntentSucceeded(setupIntent, transaction)
-    })
-  if (billingRun) {
-    await executeBillingRun(billingRun.id)
+    }
+  )
+
+  const { purchase, checkoutSession } = setupSuceededResult
+  if (
+    isCheckoutSessionSubscriptionCreating(checkoutSession) &&
+    setupSuceededResult.billingRun?.id
+  ) {
+    await executeBillingRun(setupSuceededResult.billingRun.id)
   }
+
   const url = checkoutSession.successUrl
     ? new URL(checkoutSession.successUrl)
     : new URL(`/checkout/${checkoutSession.id}/success`, request.url)
   return { purchase, url, checkoutSession }
 }
+
 /**
  * This route is built on a very important assumption:
  * that all payment intents and setup intents, regardless of the flow that
