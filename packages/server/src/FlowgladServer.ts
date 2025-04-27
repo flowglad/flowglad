@@ -208,6 +208,21 @@ export class FlowgladServer {
     })
   }
 
+  public updateCustomer = async (
+    params: FlowgladNode.Customers.CustomerUpdateParams
+  ): Promise<FlowgladNode.Customers.CustomerUpdateResponse> => {
+    const session = await getSessionFromParams(
+      this.createHandlerParams
+    )
+    if (!session) {
+      throw new Error('User not authenticated')
+    }
+    return this.flowgladNode.customers.update(
+      session.externalId,
+      params
+    )
+  }
+
   public createAddPaymentMethodCheckoutSession = async (
     params: CreateAddPaymentMethodCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {

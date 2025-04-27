@@ -1,5 +1,9 @@
 import { FlowgladServer } from '../FlowgladServer'
-import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import {
+  FlowgladActionKey,
+  HTTPMethod,
+  updateCustomerSchema,
+} from '@flowglad/shared'
 import type { SubRouteHandler } from './types'
 
 export const getCustomerBilling: SubRouteHandler<
@@ -78,6 +82,29 @@ export const findOrCreateCustomer: SubRouteHandler<
       },
     }
   }
+  return {
+    data: customer,
+    status: 200,
+  }
+}
+
+export const updateCustomer: SubRouteHandler<
+  FlowgladActionKey.UpdateCustomer
+> = async (params, flowgladServer: FlowgladServer) => {
+  if (params.method !== HTTPMethod.POST) {
+    return {
+      data: {},
+      status: 405,
+      error: {
+        code: '405',
+        json: {
+          message: 'Method not allowed',
+        },
+      },
+    }
+  }
+  const parsedParams = updateCustomerSchema.parse(params.data)
+  const customer = await flowgladServer.updateCustomer(parsedParams)
   return {
     data: customer,
     status: 200,
