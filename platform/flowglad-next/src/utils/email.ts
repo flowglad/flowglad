@@ -96,7 +96,14 @@ export const sendOrganizationPaymentNotificationEmail = async (
       params.currency,
       params.amount
     )} from ${params.organizationName}!`,
-    react: OrganizationPaymentNotificationEmail(params),
+    /**
+     * NOTE: await needed to prevent
+     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+     * @see
+     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+     * https://github.com/resend/react-email/issues/868
+     */
+    react: await OrganizationPaymentNotificationEmail(params),
   })
 }
 
@@ -109,7 +116,14 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: 'Your Order Link',
-    react: SendPurchaseAccessSessionTokenEmail(params),
+    /**
+     * NOTE: await needed to prevent
+     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+     * @see
+     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+     * https://github.com/resend/react-email/issues/868
+     */
+    react: await SendPurchaseAccessSessionTokenEmail(params),
   })
 }
 
@@ -132,7 +146,7 @@ export const sendPaymentFailedEmail = async (params: {
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: 'Payment Unsuccessful',
-    react: PaymentFailedEmail({
+    react: await PaymentFailedEmail({
       invoiceNumber: params.invoiceNumber,
       orderDate: new Date(params.orderDate),
       organizationName: params.organizationName,
@@ -164,7 +178,14 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
     from: 'notifications@flowglad.com',
     to: to.map(safeTo),
     subject: 'Awaiting Payment Confirmation',
-    react: OrganizationPaymentConfirmationEmail({
+    /**
+     * NOTE: await needed to prevent
+     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+     * @see
+     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+     * https://github.com/resend/react-email/issues/868
+     */
+    react: await OrganizationPaymentConfirmationEmail({
       organizationName,
       amount,
       invoiceNumber,
@@ -194,7 +215,14 @@ export const sendInvoiceReminderEmail = async ({
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     subject: `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
-    react: InvoiceReminderEmail({
+    /**
+     * NOTE: await needed to prevent
+     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+     * @see
+     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+     * https://github.com/resend/react-email/issues/868
+     */
+    react: await InvoiceReminderEmail({
       invoice,
       invoiceLineItems,
       organizationName,
@@ -223,7 +251,14 @@ export const sendInvoiceNotificationEmail = async ({
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     subject: `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
-    react: InvoiceNotificationEmail({
+    /**
+     * NOTE: await needed to prevent
+     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+     * @see
+     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+     * https://github.com/resend/react-email/issues/868
+     */
+    react: await InvoiceNotificationEmail({
       invoice,
       invoiceLineItems,
       organizationName,
