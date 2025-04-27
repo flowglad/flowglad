@@ -8,10 +8,13 @@ import {
 } from '@/types'
 import {
   setupIntentStatusToCheckoutSessionStatus,
-  processCheckoutSessionSetupIntent,
   calculateTrialEnd,
   processSetupIntentSucceeded,
   CoreSripeSetupIntent,
+  processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded,
+  createSubscriptionFromSetupIntentableCheckoutSession,
+  processAddPaymentMethodSetupIntentSucceeded,
+  checkoutSessionFromSetupIntent,
 } from '@/utils/bookkeeping/processSetupIntent'
 import { Purchase } from '@/db/schema/purchases'
 import {
@@ -211,7 +214,7 @@ describe('Process setup intent', async () => {
     })
   })
 
-  describe('processCheckoutSessionSetupIntent', () => {
+  describe('checkoutSessionFromSetupIntent', () => {
     it('throws an error when metadata is missing', async () => {
       const invalidSetupIntent = {
         ...mockSucceededSetupIntent({
@@ -223,7 +226,7 @@ describe('Process setup intent', async () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return processCheckoutSessionSetupIntent(
+          return checkoutSessionFromSetupIntent(
             invalidSetupIntent,
             transaction
           )
@@ -245,7 +248,7 @@ describe('Process setup intent', async () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return processCheckoutSessionSetupIntent(
+          return checkoutSessionFromSetupIntent(
             invalidSetupIntent,
             transaction
           )
@@ -253,6 +256,144 @@ describe('Process setup intent', async () => {
       ).rejects.toThrow('Metadata type is not checkout_session')
     })
 
+    it('throws an error when setup intent status is not succeeded', async () => {
+      const processingSetupIntent = mockProcessingSetupIntent(
+        checkoutSession.id,
+        customer.stripeCustomerId!
+      )
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return checkoutSessionFromSetupIntent(
+            processingSetupIntent,
+            transaction
+          )
+        })
+      ).rejects.toThrow('Setup intent')
+    })
+
+    it('returns the checkout session when all conditions are met', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return checkoutSessionFromSetupIntent(
+            succeededSetupIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result).toBeDefined()
+      expect(result.id).toEqual(checkoutSession.id)
+    })
+  })
+
+  describe('processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded', () => {
+    it('throws an error when checkout session is in terminal state', async () => {
+      // Update checkout session to a terminal state
+      await adminTransaction(async ({ transaction }) => {
+        await selectCheckoutSessionById(
+          checkoutSession.id,
+          transaction
+        )
+        await safelyUpdateCheckoutSessionStatus(
+          checkoutSession,
+          CheckoutSessionStatus.Succeeded,
+          transaction
+        )
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+            succeededSetupIntent,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${checkoutSession.id})`
+      )
+    })
+
+    it('throws an error when checkout session type is Invoice', async () => {
+      // Update checkout session to Invoice type
+      const invoiceCheckoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Invoice,
+        livemode: true,
+        quantity: 1,
+      })
+      const invoiceSetupIntent = mockSucceededSetupIntent({
+        checkoutSessionId: invoiceCheckoutSession.id,
+        stripeCustomerId: customer.stripeCustomerId!,
+      })
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+            invoiceSetupIntent,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Invoice checkout flow not supported'
+      )
+    })
+
+    it('throws an error when checkout session type is AddPaymentMethod', async () => {
+      // Update checkout session to AddPaymentMethod type
+      const addPaymentMethodCheckoutSession =
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.AddPaymentMethod,
+          livemode: true,
+          quantity: 1,
+        })
+      const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
+        checkoutSessionId: addPaymentMethodCheckoutSession.id,
+        stripeCustomerId: customer.stripeCustomerId!,
+      })
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+            addPaymentMethodSetupIntent,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Add payment method checkout flow not support'
+      )
+    })
+
+    it('processes purchase bookkeeping for regular checkout sessions', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          return processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+            succeededSetupIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.purchase).toBeDefined()
+      expect(result.checkoutSession).toBeDefined()
+      expect(result.price).toBeDefined()
+      expect(result.organization).toBeDefined()
+      expect(result.product).toBeDefined()
+      expect(result.customer).toBeDefined()
+      expect(result.paymentMethod).toBeDefined()
+    })
+  })
+
+  describe('processAddPaymentMethodSetupIntentSucceeded', () => {
     it('returns early with organization and customer when checkout session is in terminal state', async () => {
       // Update checkout session to a terminal state
       await adminTransaction(async ({ transaction }) => {
@@ -269,7 +410,7 @@ describe('Process setup intent', async () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return processCheckoutSessionSetupIntent(
+          return processAddPaymentMethodSetupIntentSucceeded(
             succeededSetupIntent,
             transaction
           )
@@ -279,17 +420,15 @@ describe('Process setup intent', async () => {
       expect(result.checkoutSession).toBeDefined()
       expect(result.organization).toBeDefined()
       expect(result.customer).toBeDefined()
-      expect(result.purchase).toBeUndefined()
+      expect(result.purchase).toBeNull()
+      expect(result.price).toBeNull()
+      expect(result.product).toBeNull()
     })
 
     it('updates checkout session status based on setup intent status', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
-          await createFeeCalculationForCheckoutSession(
-            checkoutSession as CheckoutSession.FeeReadyRecord,
-            transaction
-          )
-          return processCheckoutSessionSetupIntent(
+          return processAddPaymentMethodSetupIntentSucceeded(
             succeededSetupIntent,
             transaction
           )
@@ -301,53 +440,112 @@ describe('Process setup intent', async () => {
       )
     })
 
-    it('throws an error when checkout session type is Invoice', async () => {
-      // Update checkout session to Invoice type
-      const invoiceCheckoutSession = await setupCheckoutSession({
+    it('updates the target subscription with the new payment method when targetSubscriptionId is defined', async () => {
+      // Create a new subscription to be the target
+      const targetSubscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
         priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Invoice,
         livemode: true,
-        quantity: 1,
       })
-      const succeededSetupIntent = mockSucceededSetupIntent({
-        checkoutSessionId: invoiceCheckoutSession.id,
+
+      // Create a checkout session with targetSubscriptionId
+      const addPaymentMethodCheckoutSession =
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.AddPaymentMethod,
+          targetSubscriptionId: targetSubscription.id,
+          livemode: true,
+          quantity: 1,
+        })
+
+      const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
+        checkoutSessionId: addPaymentMethodCheckoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
       })
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return processCheckoutSessionSetupIntent(
-            succeededSetupIntent,
-            transaction
-          )
-        })
-      ).rejects.toThrow(
-        'Invoice checkout flow does not support setup intents'
-      )
-    })
 
-    it('processes purchase bookkeeping for regular checkout sessions', async () => {
-      const result = await adminTransaction(
+      await adminTransaction(async ({ transaction }) => {
+        await processAddPaymentMethodSetupIntentSucceeded(
+          addPaymentMethodSetupIntent,
+          transaction
+        )
+      })
+
+      // Verify the subscription was updated with the new payment method
+      const updatedSubscription = await adminTransaction(
         async ({ transaction }) => {
-          await createFeeCalculationForCheckoutSession(
-            checkoutSession as CheckoutSession.FeeReadyRecord,
-            transaction
-          )
-          return processCheckoutSessionSetupIntent(
-            succeededSetupIntent,
+          return selectSubscriptionById(
+            targetSubscription.id,
             transaction
           )
         }
       )
 
-      expect(result.purchase).toBeDefined()
-      expect(result.checkoutSession).toBeDefined()
-      expect(result.price).toBeDefined()
-      expect(result.organization).toBeDefined()
-      expect(result.product).toBeDefined()
-      expect(result.customer).toBeDefined()
+      // Get the payment method from the setup intent
+      const [newPaymentMethod] = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentMethods(
+            {
+              stripePaymentMethodId: stripeIdFromObjectOrId(
+                addPaymentMethodSetupIntent.payment_method!
+              ),
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(updatedSubscription.defaultPaymentMethodId).toEqual(
+        newPaymentMethod.id
+      )
+    })
+
+    it('does not update any subscription when targetSubscriptionId is not defined', async () => {
+      // Create a checkout session without targetSubscriptionId
+      const addPaymentMethodCheckoutSession =
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.AddPaymentMethod,
+          livemode: true,
+          quantity: 1,
+        })
+
+      const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
+        checkoutSessionId: addPaymentMethodCheckoutSession.id,
+        stripeCustomerId: customer.stripeCustomerId!,
+      })
+
+      // Get the original subscription
+      const originalSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionById(subscription.id, transaction)
+        }
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        await processAddPaymentMethodSetupIntentSucceeded(
+          addPaymentMethodSetupIntent,
+          transaction
+        )
+      })
+
+      // Verify the subscription was not updated
+      const updatedSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionById(subscription.id, transaction)
+        }
+      )
+
+      expect(updatedSubscription.defaultPaymentMethodId).toEqual(
+        originalSubscription.defaultPaymentMethodId
+      )
     })
   })
 
@@ -471,56 +669,6 @@ describe('Process setup intent', async () => {
         })
       ).rejects.toThrow(/^Attempting to process checkout session/)
     })
-
-    it('returns early for AddPaymentMethod checkout session type', async () => {
-      const addPaymentMethodCheckoutSession =
-        await setupCheckoutSession({
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          status: CheckoutSessionStatus.Open,
-          type: CheckoutSessionType.AddPaymentMethod,
-          livemode: true,
-          quantity: 1,
-        })
-      const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
-        checkoutSessionId: addPaymentMethodCheckoutSession.id,
-        stripeCustomerId: customer.stripeCustomerId!,
-      })
-      const { result, paymentMethod } = await adminTransaction(
-        async ({ transaction }) => {
-          const result = await processSetupIntentSucceeded(
-            addPaymentMethodSetupIntent,
-            transaction
-          )
-          const [paymentMethod] = await selectPaymentMethods(
-            {
-              stripePaymentMethodId: stripeIdFromObjectOrId(
-                addPaymentMethodSetupIntent.payment_method!
-              ),
-            },
-            transaction
-          )
-          return {
-            result,
-            paymentMethod,
-          }
-        }
-      )
-
-      expect(result.purchase).toBeNull()
-      expect(result.checkoutSession).toBeDefined()
-      expect(result.price).toBeNull()
-      expect(result.organization).toBeDefined()
-      expect(result.customer).toBeDefined()
-      expect(result.purchase).toBeNull()
-      expect(result.checkoutSession.status).toEqual(
-        CheckoutSessionStatus.Succeeded
-      )
-      expect(result.billingRun).toBeUndefined()
-      expect(paymentMethod).toBeDefined()
-    })
-
     it('throws an error when product is not found for non-AddPaymentMethod checkout session', async () => {
       // This is a bit tricky to test directly, so we'll mock the selectPriceProductAndOrganizationByPriceWhere function
       // In a real test, you might need to set up a more complex test scenario
@@ -579,6 +727,9 @@ describe('Process setup intent', async () => {
         expect(result.checkoutSession.status).toEqual(
           CheckoutSessionStatus.Succeeded
         )
+        if (!('billingRun' in result)) {
+          throw new Error('Billing run not found')
+        }
         expect(result.billingRun).toBeDefined()
         const subscription = await adminTransaction(
           async ({ transaction }) => {
@@ -653,6 +804,10 @@ describe('Process setup intent', async () => {
               localFirstSetupIntent,
               transaction
             )
+            if (!('billingRun' in result)) {
+              throw new Error('Billing run not found')
+            }
+            expect(result.billingRun).toBeDefined()
             return {
               ...result,
               subscription: await selectSubscriptionById(
@@ -701,10 +856,19 @@ describe('Process setup intent', async () => {
               localSecondCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            const result = await processSetupIntentSucceeded(
-              localSecondSetupIntent,
-              transaction
-            )
+            const initialResult =
+              await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+                localSecondSetupIntent,
+                transaction
+              )
+            const result =
+              await createSubscriptionFromSetupIntentableCheckoutSession(
+                {
+                  ...initialResult,
+                  setupIntent: localFirstSetupIntent,
+                },
+                transaction
+              )
             return {
               ...result,
               subscription: await selectSubscriptionById(
@@ -751,9 +915,10 @@ describe('Process setup intent', async () => {
               newSetupIntent,
               transaction
             )
-            if (!result) {
-              throw new Error('Result not found')
+            if (!('billingRun' in result)) {
+              throw new Error('Billing run not found')
             }
+            expect(result.billingRun).toBeDefined()
             return await selectSubscriptionById(
               result.billingRun!.subscriptionId,
               transaction

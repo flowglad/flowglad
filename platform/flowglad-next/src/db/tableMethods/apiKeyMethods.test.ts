@@ -9,9 +9,10 @@ import {
   safelyFilterExpiredBillingPortalApiKeys,
 } from './apiKeyMethods'
 import { ApiKey } from '../schema/apiKeys'
+import { Organization } from '../schema/organizations'
 
 describe('apiKeyMethods.ts', () => {
-  let organization: any
+  let organization: Organization.Record
 
   beforeEach(async () => {
     const setup = await setupOrg()

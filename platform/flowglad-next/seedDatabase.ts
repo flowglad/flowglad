@@ -490,6 +490,7 @@ export const setupPayment = async ({
   invoiceId,
   paymentMethod,
   billingPeriodId,
+  subscriptionId,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -501,6 +502,7 @@ export const setupPayment = async ({
   paymentMethod?: PaymentMethodType
   invoiceId: string
   billingPeriodId?: string
+  subscriptionId?: string
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -521,6 +523,7 @@ export const setupPayment = async ({
         refundedAt: null,
         refundedAmount: 0,
         taxCountry: CountryCode.US,
+        subscriptionId: subscriptionId ?? null,
       },
       transaction
     )
@@ -630,6 +633,7 @@ export const setupCheckoutSession = async ({
   type,
   quantity,
   livemode,
+  targetSubscriptionId,
 }: {
   organizationId: string
   customerId: string
@@ -638,6 +642,7 @@ export const setupCheckoutSession = async ({
   type: CheckoutSessionType
   quantity: number
   livemode: boolean
+  targetSubscriptionId?: string
 }) => {
   const billingAddress: BillingAddress = {
     address: {
@@ -665,7 +670,7 @@ export const setupCheckoutSession = async ({
       type: CheckoutSessionType.AddPaymentMethod,
       livemode,
       quantity: 1,
-      targetSubscriptionId: 'test',
+      targetSubscriptionId: targetSubscriptionId ?? null,
       outputName: null,
       outputMetadata: {},
     }

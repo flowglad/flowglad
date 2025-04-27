@@ -29,7 +29,7 @@ let logger = false
 if (core.IS_PROD) {
   logger = true
 } else if (core.IS_TEST) {
-  logger = false
+  logger = true
 } else if (core.IS_DEV) {
   logger = true
 }

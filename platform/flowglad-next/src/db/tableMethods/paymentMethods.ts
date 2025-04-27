@@ -189,9 +189,6 @@ const validatePaymentUpdate = (
   | { errors: string[]; success: false }
   | { success: true; errors: null } => {
   const errors: string[] = []
-  if (paymentUpdate.status !== PaymentStatus.Refunded) {
-    errors.push('Only refunds are supported')
-  }
 
   const immutableEntries = Object.entries(paymentUpdate).filter(
     ([key]) => {
