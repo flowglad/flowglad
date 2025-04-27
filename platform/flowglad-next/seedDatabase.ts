@@ -150,6 +150,38 @@ export const setupOrg = async () => {
   })
 }
 
+export const setupProduct = async ({
+  organizationId,
+  name,
+  livemode,
+  catalogId,
+  active = true,
+}: {
+  organizationId: string
+  name: string
+  livemode?: boolean
+  catalogId: string
+  active?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return await insertProduct(
+      {
+        name,
+        organizationId,
+        livemode: typeof livemode === 'boolean' ? livemode : true,
+        description: 'Flowglad Live Product',
+        imageURL: 'https://flowglad.com/logo.png',
+        active,
+        displayFeatures: [],
+        singularQuantityLabel: 'seat',
+        pluralQuantityLabel: 'seats',
+        catalogId,
+        externalId: null,
+      },
+      transaction
+    )
+  })
+}
 export const setupPaymentMethod = async (params: {
   organizationId: string
   customerId: string
@@ -479,6 +511,60 @@ export const setupInvoice = async ({
   })
 }
 
+export const setupPrice = async ({
+  productId,
+  name,
+  type,
+  unitPrice,
+  intervalUnit,
+  intervalCount,
+  livemode,
+  isDefault,
+  setupFeeAmount,
+  trialPeriodDays,
+  currency,
+  externalId,
+  active = true,
+  usageMeterId,
+}: {
+  productId: string
+  name: string
+  type: PriceType
+  unitPrice: number
+  intervalUnit: IntervalUnit
+  intervalCount: number
+  livemode: boolean
+  isDefault: boolean
+  setupFeeAmount: number
+  usageMeterId?: string
+  currency?: CurrencyCode
+  externalId?: string
+  trialPeriodDays?: number
+  active?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertPrice(
+      {
+        productId,
+        name,
+        type,
+        unitPrice,
+        intervalUnit,
+        intervalCount,
+        livemode,
+        isDefault,
+        setupFeeAmount,
+        trialPeriodDays,
+        currency,
+        externalId: externalId ?? core.nanoid(),
+        usageMeterId: usageMeterId ?? null,
+        active,
+      } as Price.Insert,
+      transaction
+    )
+  })
+}
+
 export const setupPayment = async ({
   stripeChargeId,
   status,
@@ -490,6 +576,7 @@ export const setupPayment = async ({
   invoiceId,
   paymentMethod,
   billingPeriodId,
+  subscriptionId,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -501,6 +588,7 @@ export const setupPayment = async ({
   paymentMethod?: PaymentMethodType
   invoiceId: string
   billingPeriodId?: string
+  subscriptionId?: string
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -521,6 +609,7 @@ export const setupPayment = async ({
         refundedAt: null,
         refundedAmount: 0,
         taxCountry: CountryCode.US,
+        subscriptionId: subscriptionId ?? null,
       },
       transaction
     )
@@ -630,6 +719,7 @@ export const setupCheckoutSession = async ({
   type,
   quantity,
   livemode,
+  targetSubscriptionId,
 }: {
   organizationId: string
   customerId: string
@@ -638,6 +728,7 @@ export const setupCheckoutSession = async ({
   type: CheckoutSessionType
   quantity: number
   livemode: boolean
+  targetSubscriptionId?: string
 }) => {
   const billingAddress: BillingAddress = {
     address: {
@@ -665,7 +756,7 @@ export const setupCheckoutSession = async ({
       type: CheckoutSessionType.AddPaymentMethod,
       livemode,
       quantity: 1,
-      targetSubscriptionId: 'test',
+      targetSubscriptionId: targetSubscriptionId ?? null,
       outputName: null,
       outputMetadata: {},
     }

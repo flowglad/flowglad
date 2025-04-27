@@ -19,7 +19,8 @@ import Stripe from 'stripe'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
 import {
-  checkouSessionIsInTerminalState,
+  checkoutSessionIsInTerminalState,
+  isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
@@ -29,7 +30,15 @@ import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import {
+  selectSubscriptions,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { Organization } from '@/db/schema/organizations'
+import { Product } from '@/db/schema/products'
+import { PaymentMethod } from '@/db/schema/paymentMethods'
+import { BillingRun } from '@/db/schema/billingRuns'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -53,108 +62,103 @@ export type CoreSripeSetupIntent = Pick<
   'id' | 'metadata' | 'status' | 'customer' | 'payment_method'
 >
 
-export const processCheckoutSessionSetupIntent = async (
-  setupIntent: CoreSripeSetupIntent,
+export const processTerminalCheckoutSessionSetupIntent = async (
+  checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
 ) => {
-  if (!setupIntent.metadata) {
-    throw new Error('No metadata found')
-  }
-  const metadata = stripeIntentMetadataSchema.parse(
-    setupIntent.metadata
-  )
-  if (!metadata) {
-    throw new Error('No metadata found')
-  }
-  if (metadata.type !== IntentMetadataType.CheckoutSession) {
-    throw new Error(
-      `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
-    )
-  }
-  const checkoutSessionId = metadata.checkoutSessionId
-  const initialCheckoutSession = await selectCheckoutSessionById(
-    checkoutSessionId,
+  const organization = await selectOrganizationById(
+    checkoutSession.organizationId,
     transaction
   )
-
-  if (checkouSessionIsInTerminalState(initialCheckoutSession)) {
-    const organization = await selectOrganizationById(
-      initialCheckoutSession.organizationId,
-      transaction
-    )
-    const customer = await selectCustomerById(
-      initialCheckoutSession.customerId!,
-      transaction
-    )
-    return {
-      checkoutSession: initialCheckoutSession,
-      organization,
-      customer,
-    }
-  }
-
-  const checkoutSession = await updateCheckoutSession(
-    {
-      ...initialCheckoutSession,
-      status: setupIntentStatusToCheckoutSessionStatus(
-        setupIntent.status
-      ),
-    },
-    transaction
-  )
-  if (checkoutSession.type === CheckoutSessionType.Invoice) {
-    throw new Error(
-      'Invoice checkout flow does not support setup intents'
-    )
-  }
-  if (checkoutSession.type === CheckoutSessionType.AddPaymentMethod) {
-    const organization = await selectOrganizationById(
-      checkoutSession.organizationId,
-      transaction
-    )
-    const customer = await selectCustomerById(
-      checkoutSession.customerId,
-      transaction
-    )
-    return {
-      checkoutSession,
-      organization,
-      customer,
-    }
-  }
-  const [{ price, product, organization }] =
-    await selectPriceProductAndOrganizationByPriceWhere(
-      { id: checkoutSession.priceId },
-      transaction
-    )
-
-  const {
-    purchase,
-    customer,
-    discount,
-    feeCalculation,
-    discountRedemption,
-  } = await processPurchaseBookkeepingForCheckoutSession(
-    {
-      checkoutSession,
-      stripeCustomerId: setupIntent.customer
-        ? stripeIdFromObjectOrId(setupIntent.customer)
-        : null,
-    },
+  const customer = await selectCustomerById(
+    checkoutSession.customerId!,
     transaction
   )
   return {
-    purchase,
     checkoutSession,
-    price,
     organization,
-    product,
     customer,
-    discount,
-    feeCalculation,
-    discountRedemption,
+    billingRun: null,
+    purchase: null,
+    price: null,
   }
 }
+
+export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
+  async (
+    setupIntent: CoreSripeSetupIntent,
+    transaction: DbTransaction
+  ) => {
+    const initialCheckoutSession =
+      await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
+      throw new Error(
+        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${initialCheckoutSession.id})`
+      )
+    }
+    const checkoutSession = await updateCheckoutSession(
+      {
+        ...initialCheckoutSession,
+        status: setupIntentStatusToCheckoutSessionStatus(
+          setupIntent.status
+        ),
+      },
+      transaction
+    )
+
+    if (checkoutSession.type === CheckoutSessionType.Invoice) {
+      throw new Error(
+        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Invoice checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    if (
+      checkoutSession.type === CheckoutSessionType.AddPaymentMethod
+    ) {
+      throw new Error(
+        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Add payment method checkout flow not support (checkout session id: ${checkoutSession.id})`
+      )
+    }
+
+    const [{ price, product, organization }] =
+      await selectPriceProductAndOrganizationByPriceWhere(
+        { id: checkoutSession.priceId },
+        transaction
+      )
+
+    const {
+      purchase,
+      customer,
+      discount,
+      feeCalculation,
+      discountRedemption,
+    } = await processPurchaseBookkeepingForCheckoutSession(
+      {
+        checkoutSession,
+        stripeCustomerId: setupIntent.customer
+          ? stripeIdFromObjectOrId(setupIntent.customer)
+          : null,
+      },
+      transaction
+    )
+    const { paymentMethod } =
+      await pullStripeSetupIntentDataToDatabase(
+        setupIntent,
+        customer,
+        transaction
+      )
+    return {
+      purchase,
+      checkoutSession,
+      price,
+      organization,
+      product,
+      customer,
+      discount,
+      feeCalculation,
+      discountRedemption,
+      paymentMethod,
+    }
+  }
 
 export const calculateTrialEnd = (params: {
   hasHadTrial: boolean
@@ -171,8 +175,50 @@ export const calculateTrialEnd = (params: {
       )
 }
 
-export const processSetupIntentSucceeded = async (
+export const pullStripeSetupIntentDataToDatabase = async (
   setupIntent: CoreSripeSetupIntent,
+  customer: Pick<
+    Customer.Record,
+    'id' | 'stripeCustomerId' | 'livemode'
+  >,
+  transaction: DbTransaction
+) => {
+  const stripeCustomerId = setupIntent.customer
+    ? stripeIdFromObjectOrId(setupIntent.customer)
+    : null
+
+  if (stripeCustomerId !== customer.stripeCustomerId) {
+    customer = await updateCustomer(
+      {
+        id: customer.id,
+        stripeCustomerId,
+      },
+      transaction
+    )
+  }
+
+  const stripePaymentMethodId = stripeIdFromObjectOrId(
+    setupIntent.payment_method!
+  )
+  const paymentMethod = await paymentMethodForStripePaymentMethodId(
+    {
+      stripePaymentMethodId,
+      livemode: customer.livemode,
+      customerId: customer.id,
+    },
+    transaction
+  )
+  return {
+    customer,
+    paymentMethod,
+  }
+}
+
+export const checkoutSessionFromSetupIntent = async (
+  setupIntent: Pick<
+    CoreSripeSetupIntent,
+    'status' | 'metadata' | 'id'
+  >,
   transaction: DbTransaction
 ) => {
   const metadata: StripeIntentMetadata =
@@ -191,131 +237,256 @@ export const processSetupIntentSucceeded = async (
       `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
     )
   }
-  let price: Price.Record | null = null
-  let purchase: Purchase.Record | null = null
-  const result = await processCheckoutSessionSetupIntent(
+  const checkoutSessionId = metadata.checkoutSessionId
+  const checkoutSession = await selectCheckoutSessionById(
+    checkoutSessionId,
+    transaction
+  )
+  return checkoutSession
+}
+
+interface ProcessAddPaymentMethodSetupIntentSucceededResult {
+  type: CheckoutSessionType.AddPaymentMethod
+  purchase: null
+  price: null
+  product: null
+  billingRun: null
+  checkoutSession: CheckoutSession.Record
+  organization: Organization.Record
+  customer: Pick<
+    Customer.Record,
+    'id' | 'stripeCustomerId' | 'livemode'
+  >
+}
+
+export const processAddPaymentMethodSetupIntentSucceeded = async (
+  setupIntent: CoreSripeSetupIntent,
+  transaction: DbTransaction
+): Promise<ProcessAddPaymentMethodSetupIntentSucceededResult> => {
+  const initialCheckoutSession = await checkoutSessionFromSetupIntent(
     setupIntent,
     transaction
   )
-  const { product, checkoutSession } = result
-  let organization = result.organization
-  let customer = result.customer
-  if (result.product) {
-    price = result.price
-    purchase = result.purchase
-  }
-  const stripeCustomerId = setupIntent.customer
-    ? stripeIdFromObjectOrId(setupIntent.customer)
-    : null
-  if (stripeCustomerId !== customer.stripeCustomerId) {
-    customer = await updateCustomer(
+  const checkoutSession = await updateCheckoutSession(
+    {
+      ...initialCheckoutSession,
+      status: setupIntentStatusToCheckoutSessionStatus(
+        setupIntent.status
+      ),
+    },
+    transaction
+  )
+  const initialCustomer = await selectCustomerById(
+    checkoutSession.customerId!,
+    transaction
+  )
+  const { customer, paymentMethod } =
+    await pullStripeSetupIntentDataToDatabase(
+      setupIntent,
+      initialCustomer,
+      transaction
+    )
+  if (checkoutSession.targetSubscriptionId) {
+    await updateSubscription(
       {
-        id: customer.id,
-        stripeCustomerId,
+        id: checkoutSession.targetSubscriptionId,
+        defaultPaymentMethodId: paymentMethod.id,
       },
       transaction
     )
   }
 
-  const stripePaymentMethodId = stripeIdFromObjectOrId(
-    setupIntent.payment_method!
-  )
-  const paymentMethod = await paymentMethodForStripePaymentMethodId(
-    {
-      stripePaymentMethodId,
-      livemode: checkoutSession.livemode,
-      customerId: customer.id,
-    },
+  const organization = await selectOrganizationById(
+    checkoutSession.organizationId,
     transaction
   )
-  if (checkoutSession.type === CheckoutSessionType.AddPaymentMethod) {
-    return {
-      purchase,
+
+  return {
+    type: CheckoutSessionType.AddPaymentMethod,
+    purchase: null,
+    price: null,
+    product: null,
+    billingRun: null,
+    checkoutSession,
+    organization,
+    customer,
+  }
+}
+
+interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
+  type: CheckoutSessionType.Product | CheckoutSessionType.Purchase
+  purchase: Purchase.Record
+  price: Price.Record
+  product: Product.Record
+  billingRun: BillingRun.Record | null
+  checkoutSession: CheckoutSession.Record
+  organization: Organization.Record
+  customer: Pick<
+    Customer.Record,
+    'id' | 'stripeCustomerId' | 'livemode'
+  >
+}
+
+interface SetupIntentSucceededBookkeepingResult {
+  checkoutSession: CheckoutSession.Record
+  price: Price.Record
+  product: Product.Record
+  purchase: Purchase.Record
+  organization: Organization.Record
+  customer: Customer.Record
+  paymentMethod: PaymentMethod.Record
+}
+
+export const createSubscriptionFromSetupIntentableCheckoutSession =
+  async (
+    {
+      setupIntent,
       checkoutSession,
       price,
-      organization,
       product,
+      purchase,
+      organization,
       customer,
+      paymentMethod,
+    }: SetupIntentSucceededBookkeepingResult & {
+      setupIntent: CoreSripeSetupIntent
+    },
+    transaction: DbTransaction
+  ): Promise<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult> => {
+    if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
+      throw new Error(
+        `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
+      )
+    }
+    /**
+     * If the price, product, or purchase are not found,
+     * we don't need to create a subscription because that means
+     * the checkout session was for adding a payment method
+     */
+    if (!price) {
+      throw new Error(
+        `Price not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      )
+    }
+
+    if (!product) {
+      throw new Error(
+        `Product not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      )
+    }
+
+    if (!purchase) {
+      throw new Error(
+        `Purchase not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      )
+    }
+
+    if (!price.intervalUnit) {
+      throw new Error('Price interval unit is required')
+    }
+
+    if (!price.intervalCount) {
+      throw new Error('Price interval count is required')
+    }
+
+    const subscriptionsForCustomer = await selectSubscriptions(
+      {
+        customerId: customer.id,
+      },
+      transaction
+    )
+    const hasHadTrial = subscriptionsForCustomer.some(
+      (subscription) => subscription.trialEnd
+    )
+
+    const { billingRun } = await createSubscriptionWorkflow(
+      {
+        stripeSetupIntentId: setupIntent.id,
+        defaultPaymentMethod: paymentMethod,
+        organization,
+        price,
+        customer,
+        interval: price.intervalUnit,
+        intervalCount: price.intervalCount,
+        /**
+         * If the price has a trial period, set the trial end date to the
+         * end of the period
+         */
+        trialEnd: calculateTrialEnd({
+          hasHadTrial,
+          trialPeriodDays: price.trialPeriodDays,
+        }),
+        startDate: new Date(),
+        autoStart: true,
+        quantity: checkoutSession.quantity,
+        metadata: checkoutSession.outputMetadata,
+        name: checkoutSession.outputName ?? undefined,
+        product,
+        livemode: checkoutSession.livemode,
+      },
+      transaction
+    )
+
+    const updatedPurchase = await updatePurchase(
+      {
+        id: purchase.id,
+        status: PurchaseStatus.Paid,
+        priceType: price.type,
+        purchaseDate: new Date(),
+      },
+      transaction
+    )
+
+    return {
+      purchase: updatedPurchase,
+      checkoutSession,
+      billingRun,
+      price,
+      product,
+      organization,
+      customer,
+      type: checkoutSession.type,
     }
   }
-  /**
-   * If the price, product, or purchase are not found,
-   * we don't need to create a subscription because that means
-   * the checkout session was for adding a payment method
-   */
-  if (!price) {
-    throw new Error(
-      `Price not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
-    )
-  }
 
-  if (!product) {
-    throw new Error(
-      `Product not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
-    )
-  }
-
-  if (!purchase) {
-    throw new Error(
-      `Purchase not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
-    )
-  }
-
-  if (!price.intervalUnit) {
-    throw new Error('Price interval unit is required')
-  }
-
-  if (!price.intervalCount) {
-    throw new Error('Price interval count is required')
-  }
-
-  const subscriptionsForCustomer = await selectSubscriptions(
-    {
-      customerId: customer.id,
-    },
-    transaction
-  )
-  const hasHadTrial = subscriptionsForCustomer.some(
-    (subscription) => subscription.trialEnd
-  )
-
-  const { billingRun } = await createSubscriptionWorkflow(
-    {
-      stripeSetupIntentId: setupIntent.id,
-      defaultPaymentMethod: paymentMethod,
-      organization,
-      price,
-      customer,
-      interval: price.intervalUnit,
-      intervalCount: price.intervalCount,
-      /**
-       * If the price has a trial period, set the trial end date to the
-       * end of the period
-       */
-      trialEnd: calculateTrialEnd({
-        hasHadTrial,
-        trialPeriodDays: price.trialPeriodDays,
-      }),
-      startDate: new Date(),
-      autoStart: true,
-      quantity: checkoutSession.quantity,
-      metadata: checkoutSession.outputMetadata,
-      name: checkoutSession.outputName ?? undefined,
-      product,
-      livemode: checkoutSession.livemode,
-    },
+export const processSetupIntentSucceeded = async (
+  setupIntent: CoreSripeSetupIntent,
+  transaction: DbTransaction
+) => {
+  const initialCheckoutSession = await checkoutSessionFromSetupIntent(
+    setupIntent,
     transaction
   )
 
-  const updatedPurchase = await updatePurchase(
-    {
-      id: purchase.id,
-      status: PurchaseStatus.Paid,
-      priceType: price.type,
-      purchaseDate: new Date(),
-    },
+  if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
+    return await processTerminalCheckoutSessionSetupIntent(
+      initialCheckoutSession,
+      transaction
+    )
+  }
+
+  if (
+    initialCheckoutSession.type ===
+    CheckoutSessionType.AddPaymentMethod
+  ) {
+    return await processAddPaymentMethodSetupIntentSucceeded(
+      setupIntent,
+      transaction
+    )
+  }
+
+  const result =
+    await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
+      setupIntent,
+      transaction
+    )
+
+  const withSetupIntent = Object.assign(result, {
+    setupIntent,
+  })
+
+  return await createSubscriptionFromSetupIntentableCheckoutSession(
+    withSetupIntent,
     transaction
   )
-
-  return { purchase: updatedPurchase, checkoutSession, billingRun }
 }

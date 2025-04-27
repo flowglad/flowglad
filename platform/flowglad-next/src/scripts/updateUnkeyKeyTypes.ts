@@ -8,7 +8,7 @@ import runScript from './scriptRunner'
 import { core } from '@/utils/core'
 import { Unkey } from '@unkey/api'
 import { FlowgladApiKeyType } from '@/types'
-import { secretApikeyMetadataSchema } from '@/db/schema/apiKeys'
+import { secretApiKeyMetadataSchema } from '@/db/schema/apiKeys'
 
 async function updateUnkeyKeyTypes(db: PostgresJsDatabase) {
   const unkey = new Unkey({
@@ -44,7 +44,7 @@ async function updateUnkeyKeyTypes(db: PostgresJsDatabase) {
     console.log(`updating ${key.name} (id: ${key.id})`)
     // eslint-disable-next-line no-console
     console.log('key.meta', key.meta)
-    const parsedMeta = secretApikeyMetadataSchema.parse({
+    const parsedMeta = secretApiKeyMetadataSchema.parse({
       userId: key.meta.userId,
       type: FlowgladApiKeyType.Secret,
     })

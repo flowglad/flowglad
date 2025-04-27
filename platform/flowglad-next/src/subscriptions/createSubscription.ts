@@ -40,7 +40,10 @@ import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/tri
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
-  customer: Customer.Record
+  customer: Pick<
+    Customer.Record,
+    'id' | 'stripeCustomerId' | 'livemode' | 'organizationId'
+  >
   product: Product.Record
   price: Price.Record
   quantity: number
@@ -409,7 +412,7 @@ export const createSubscriptionWorkflow = async (
         },
         transaction
       )
-    : undefined
+    : null
 
   await idempotentSendOrganizationSubscriptionCreatedNotification(
     subscription

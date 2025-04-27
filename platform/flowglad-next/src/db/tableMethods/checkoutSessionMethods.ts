@@ -179,7 +179,7 @@ export const terminalCheckoutSessionStatuses = [
   CheckoutSessionStatus.Expired,
 ]
 
-export const checkouSessionIsInTerminalState = (
+export const checkoutSessionIsInTerminalState = (
   checkoutSession: CheckoutSession.Record
 ) => {
   return terminalCheckoutSessionStatuses.includes(
@@ -195,7 +195,7 @@ export const safelyUpdateCheckoutSessionStatus = async (
   if (checkoutSession.status === status) {
     return checkoutSession
   }
-  if (checkouSessionIsInTerminalState(checkoutSession)) {
+  if (checkoutSessionIsInTerminalState(checkoutSession)) {
     throw new Error(
       `Cannot update checkout session ${checkoutSession.id} status to ${status} because it is in terminal state ${checkoutSession.status}`
     )
@@ -249,4 +249,17 @@ export const updateCheckoutSessionBillingAddress = async (
     .where(eq(checkoutSessions.id, update.id))
     .returning()
   return checkoutSessionsSelectSchema.parse(checkoutSession)
+}
+
+const subscriptionCreatingCheckoutSessionTypes = [
+  CheckoutSessionType.Product,
+  CheckoutSessionType.Purchase,
+]
+
+export const isCheckoutSessionSubscriptionCreating = (
+  checkoutSession: CheckoutSession.Record
+): checkoutSession is CheckoutSession.SubscriptionCreatingRecord => {
+  return subscriptionCreatingCheckoutSessionTypes.includes(
+    checkoutSession.type
+  )
 }

@@ -14,7 +14,16 @@ import {
   billingPeriodItemsSelectSchema,
   billingPeriodItemsUpdateSchema,
 } from '@/db/schema/billingPeriodItems'
-import { and, eq, gte, lte, or, between, SQL } from 'drizzle-orm'
+import {
+  and,
+  eq,
+  gte,
+  lte,
+  or,
+  between,
+  SQL,
+  desc,
+} from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'
 import {
   organizations,
@@ -226,6 +235,7 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
           dateRangeCondition
         )
       )
+      .orderBy(desc(billingPeriods.startDate))
 
     if (!result.length) {
       return []
