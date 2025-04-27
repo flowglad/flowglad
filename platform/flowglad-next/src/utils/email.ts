@@ -70,7 +70,7 @@ export const sendReceiptEmail = async (params: {
     to: params.to.map(safeTo),
     subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
     attachments,
-    react: OrderReceiptEmail({
+    react: await OrderReceiptEmail({
       invoiceNumber: invoice.invoiceNumber,
       orderDate: core.formatDate(invoice.createdAt!),
       lineItems: params.invoiceLineItems.map((item) => ({
