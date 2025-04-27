@@ -14,16 +14,22 @@ import {
 import { useCallback } from 'react'
 import { CreateCheckoutSessionParams } from '@flowglad/shared'
 import { FlowgladTheme } from '../FlowgladTheme'
+import { Button } from './ui/button'
 
 const SectionTitle = ({
   children,
+  button,
 }: {
   children: React.ReactNode
+  button?: React.ReactNode
 }) => {
   return (
-    <h3 className="flowglad-text-xl flowglad-font-semibold">
-      {children}
-    </h3>
+    <div className="flowglad-flex flowglad-flex-row flowglad-items-center flowglad-justify-between">
+      <h3 className="flowglad-text-xl flowglad-font-semibold">
+        {children}
+      </h3>
+      {button}
+    </div>
   )
 }
 
@@ -113,6 +119,7 @@ export function BillingPage({
   if (!billing.loadBilling || !billing.loaded || !billing.catalog) {
     return <div>Loading...</div>
   }
+  const { createAddPaymentMethodCheckoutSession } = billing
   return (
     <FlowgladTheme darkMode={darkMode}>
       <div

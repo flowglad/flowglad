@@ -122,6 +122,36 @@ export type CreateSubscriptionParams = z.infer<
   typeof createSubscriptionSchema
 >
 
+export const billingAddressSchema = z.object({
+  name: z.string().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  email: z.string().email().optional(),
+  address: z.object({
+    name: z.string().optional(),
+    line1: z.string().nullable(),
+    line2: z.string().nullable(),
+    city: z.string().nullable(),
+    state: z.string().nullable(),
+    postal_code: z.string().nullable(),
+    country: z.string(),
+  }),
+  phone: z.string().optional(),
+})
+
+export const updateCustomerInputSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  billingAddress: billingAddressSchema.optional(),
+})
+
+export const updateCustomerSchema = z.object({
+  customer: updateCustomerInputSchema,
+  externalId: z.string(),
+})
+
 export const flowgladActionValidators: FlowgladActionValidatorMap = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -146,5 +176,9 @@ export const flowgladActionValidators: FlowgladActionValidatorMap = {
   [FlowgladActionKey.CreateSubscription]: {
     method: HTTPMethod.POST,
     inputValidator: createSubscriptionSchema,
+  },
+  [FlowgladActionKey.UpdateCustomer]: {
+    method: HTTPMethod.POST,
+    inputValidator: updateCustomerSchema,
   },
 }

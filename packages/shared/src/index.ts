@@ -7,6 +7,7 @@ export {
   flowgladActionValidators,
   createUsageEventSchema,
   createSubscriptionSchema,
+  updateCustomerSchema,
 } from './actions'
 export type {
   FlowgladActionValidatorMap,
