@@ -106,6 +106,7 @@ const addPaymentMethodCheckoutSessionSchema =
     type: z.literal(CheckoutSessionType.AddPaymentMethod),
     targetSubscriptionId: z
       .string()
+      .optional()
       .describe(
         'The id of the subscription that the payment method will be added to as the default payment method.'
       ),
@@ -170,7 +171,8 @@ const checkoutSessionInsertFromInput = ({
     return {
       ...coreFields,
       type: CheckoutSessionType.AddPaymentMethod,
-      targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
+      targetSubscriptionId:
+        checkoutSessionInput.targetSubscriptionId ?? null,
     }
   }
   throw new TRPCError({
