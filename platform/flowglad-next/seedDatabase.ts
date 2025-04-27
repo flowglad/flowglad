@@ -150,6 +150,38 @@ export const setupOrg = async () => {
   })
 }
 
+export const setupProduct = async ({
+  organizationId,
+  name,
+  livemode,
+  catalogId,
+  active = true,
+}: {
+  organizationId: string
+  name: string
+  livemode?: boolean
+  catalogId: string
+  active?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return await insertProduct(
+      {
+        name,
+        organizationId,
+        livemode: typeof livemode === 'boolean' ? livemode : true,
+        description: 'Flowglad Live Product',
+        imageURL: 'https://flowglad.com/logo.png',
+        active,
+        displayFeatures: [],
+        singularQuantityLabel: 'seat',
+        pluralQuantityLabel: 'seats',
+        catalogId,
+        externalId: null,
+      },
+      transaction
+    )
+  })
+}
 export const setupPaymentMethod = async (params: {
   organizationId: string
   customerId: string
@@ -476,6 +508,60 @@ export const setupInvoice = async ({
       transaction
     )
     return invoice
+  })
+}
+
+export const setupPrice = async ({
+  productId,
+  name,
+  type,
+  unitPrice,
+  intervalUnit,
+  intervalCount,
+  livemode,
+  isDefault,
+  setupFeeAmount,
+  trialPeriodDays,
+  currency,
+  externalId,
+  active = true,
+  usageMeterId,
+}: {
+  productId: string
+  name: string
+  type: PriceType
+  unitPrice: number
+  intervalUnit: IntervalUnit
+  intervalCount: number
+  livemode: boolean
+  isDefault: boolean
+  setupFeeAmount: number
+  usageMeterId?: string
+  currency?: CurrencyCode
+  externalId?: string
+  trialPeriodDays?: number
+  active?: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertPrice(
+      {
+        productId,
+        name,
+        type,
+        unitPrice,
+        intervalUnit,
+        intervalCount,
+        livemode,
+        isDefault,
+        setupFeeAmount,
+        trialPeriodDays,
+        currency,
+        externalId: externalId ?? core.nanoid(),
+        usageMeterId: usageMeterId ?? null,
+        active,
+      } as Price.Insert,
+      transaction
+    )
   })
 }
 
