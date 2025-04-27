@@ -1,5 +1,5 @@
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { editLinkInputSchema } from '@/db/schema/links'
 import { updateLink } from '@/db/tableMethods/linkMethods'
 

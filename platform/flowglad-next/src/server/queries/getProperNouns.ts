@@ -1,5 +1,5 @@
 import { protectedProcedure } from '../trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { z } from 'zod'
 import { selectProperNounsByQuery } from '@/db/tableMethods/properNounMethods'
 

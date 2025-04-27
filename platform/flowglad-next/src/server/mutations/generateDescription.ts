@@ -1,5 +1,5 @@
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { z } from 'zod'
 import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'

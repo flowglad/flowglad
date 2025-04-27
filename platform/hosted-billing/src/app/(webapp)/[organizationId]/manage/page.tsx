@@ -2,23 +2,24 @@ import { flowgladServer } from '@/flowglad'
 import { validateCurrentUserBillingPortalApiKeyForOrganization } from '@/flowgladHostedBillingApi'
 import { getUserBillingPortalApiKey, stackServerApp } from '@/stack'
 import { redirect } from 'next/navigation'
+import { BillingPage } from './BillingPage'
 
 interface BillingPortalManagePageProps {
   params: Promise<{
     organizationId: string
-    customerId: string
+    externalId: string
   }>
 }
 
 export default async function BillingPortalManagePage({
   params,
 }: BillingPortalManagePageProps) {
-  const { organizationId, customerId } = await params
+  const { organizationId, externalId } = await params
   const user = await stackServerApp(organizationId).getUser()
 
   if (!user) {
     return redirect(
-      `/billing/${organizationId}/sign-in?externalId=${encodeURIComponent(customerId)}`
+      `/${organizationId}/sign-in?externalId=${encodeURIComponent(externalId)}`
     )
   }
 
@@ -30,6 +31,11 @@ export default async function BillingPortalManagePage({
     organizationId,
     user,
   })
+  if (!billingPortalApiKey) {
+    return redirect(
+      `/${organizationId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+    )
+  }
   const customer = await flowgladServer({
     organizationId,
     billingPortalApiKey,
@@ -37,15 +43,9 @@ export default async function BillingPortalManagePage({
 
   if (!customer) {
     return redirect(
-      `/billing/${organizationId}/sign-in?externalId=${encodeURIComponent(customerId)}`
+      `/${organizationId}/sign-in?externalId=${encodeURIComponent(externalId)}`
     )
   }
 
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold">Hello Billing World!</h1>
-      <p>Organization ID: {organizationId}</p>
-      <p>Customer ID: {customerId}</p>
-    </div>
-  )
+  return <BillingPage organizationId={organizationId} />
 }

@@ -5,7 +5,7 @@ import {
 import { appRouter } from '@/server'
 import { createApiContext } from '@/server/trpcContext'
 import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs'
-import { ApiEnvironment } from '@/types'
+import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import { NextResponse } from 'next/server'
 import { trpcToRest, RouteConfig } from '@/utils/openapi'
 import { customersRouteConfigs } from '@/server/routers/customersRouter'
@@ -29,6 +29,7 @@ import {
   refundPaymentRouteConfig,
 } from '@/server/routers/paymentsRouter'
 import core from '@/utils/core'
+import { apiKeyMetadataSchema } from '@/db/schema/apiKeys'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -196,7 +197,10 @@ const innerHandler = async (
             method: req.method,
           })
         }
-
+        const rawUnkeyMeta = req.unkey?.meta
+        const unkeyMeta = apiKeyMetadataSchema.parse(rawUnkeyMeta)
+        const organizationId =
+          unkeyMeta.organizationId || req.unkey?.ownerId!
         // Execute the TRPC handler within our trace context
         const response = await context.with(ctx, () =>
           fetchRequestHandler({
@@ -204,7 +208,7 @@ const innerHandler = async (
             req: newReq,
             router: appRouter,
             createContext: createApiContext({
-              organizationId: req.unkey?.ownerId!,
+              organizationId,
               environment: req.unkey?.environment as ApiEnvironment,
             }) as unknown as FetchCreateContextFn<typeof appRouter>,
           })

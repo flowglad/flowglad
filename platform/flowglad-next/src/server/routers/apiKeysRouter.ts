@@ -1,5 +1,5 @@
 import { protectedProcedure, router } from '../trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { apiKeysClientSelectSchema } from '@/db/schema/apiKeys'
 import {
   selectApiKeyById,

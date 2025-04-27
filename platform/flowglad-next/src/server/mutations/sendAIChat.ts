@@ -6,7 +6,7 @@ import { classifyNounAndVerb } from '@/ai/classify'
 import { structuredOutputMap } from '@/ai/structuredOutputMap'
 import { Nouns, Verbs } from '@/types'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import core from '@/utils/core'
 
 const coreMessageSchema = z.object({

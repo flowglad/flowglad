@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectCatalogById,
   selectCatalogs,

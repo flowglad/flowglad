@@ -15,7 +15,7 @@ import {
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { usageMetersClientSelectSchema } from '@/db/schema/usageMeters'
 
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import {
   idInputSchema,

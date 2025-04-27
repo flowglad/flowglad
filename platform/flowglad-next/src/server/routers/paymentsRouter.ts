@@ -6,7 +6,7 @@ import {
   paymentsPaginatedSelectSchema,
   paymentsTableRowDataSchema,
 } from '@/db/schema/payments'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectPaymentById,
   selectPaymentsPaginated,

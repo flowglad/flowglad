@@ -7,6 +7,7 @@ import {
 } from './unkey'
 import { FlowgladApiKeyType } from '@/types'
 import { Organization } from '@/db/schema/organizations'
+import { ApiKey } from '@/db/schema/apiKeys'
 
 describe('secretApiKeyInputToUnkeyInput', () => {
   const mockOrganization: Pick<Organization.Record, 'id'> = {
@@ -24,11 +25,11 @@ describe('secretApiKeyInputToUnkeyInput', () => {
 
   it('should set correct metadata', () => {
     const result = secretApiKeyInputToUnkeyInput(mockParams)
-
-    expect(result.meta).toEqual({
+    const expectedMeta: ApiKey.ApiKeyMetadata = {
       userId: 'user_123',
-      keyType: FlowgladApiKeyType.Secret,
-    })
+      type: FlowgladApiKeyType.Secret,
+    }
+    expect(result.meta).toEqual(expectedMeta)
   })
 
   it('should set correct externalId', () => {
@@ -69,16 +70,17 @@ describe('billingPortalApiKeyInputToUnkeyInput', () => {
 
   it('should set correct metadata', () => {
     const result = billingPortalApiKeyInputToUnkeyInput(mockParams)
-
-    expect(result.meta).toEqual({
-      userId: 'user_123',
-      keyType: FlowgladApiKeyType.BillingPortalToken,
-    })
+    const expectedMeta: ApiKey.BillingPortalMetadata = {
+      stackAuthHostedBillingUserId: 'billing_123',
+      type: FlowgladApiKeyType.BillingPortalToken,
+      organizationId: mockOrganization.id,
+    }
+    expect(result.meta).toEqual(expectedMeta)
   })
 
   it('should set correct externalId', () => {
     const result = billingPortalApiKeyInputToUnkeyInput(mockParams)
-    expect(result.externalId).toBe('billing_123')
+    expect(result.externalId).toBe(mockOrganization.id)
   })
 
   it('should format name correctly', () => {

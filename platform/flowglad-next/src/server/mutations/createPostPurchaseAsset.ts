@@ -1,6 +1,6 @@
 import { protectedProcedure } from '@/server/trpc'
 import { File } from '@/db/schema/files'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertFile } from '@/db/tableMethods/fileMethods'
 import { safeObjectKeyToFileInsert } from '@/utils/fileStorage'
 import {

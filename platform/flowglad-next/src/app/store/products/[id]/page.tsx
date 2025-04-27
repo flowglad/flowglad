@@ -1,4 +1,4 @@
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import InternalProductDetailsPage from './InternalProductDetailsPage'
 

@@ -8,7 +8,7 @@ import {
   editCatalogSchema,
   cloneCatalogInputSchema,
 } from '@/db/schema/catalogs'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   insertCatalog,
   selectCatalogsPaginated,

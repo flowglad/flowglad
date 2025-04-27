@@ -1,6 +1,6 @@
 import { protectedProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {

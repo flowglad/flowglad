@@ -1,5 +1,5 @@
 import { protectedProcedure } from '../trpc'
-import { authenticatedTransaction } from '@/db/databaseMethods'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { editPurchaseFormSchema } from '@/db/schema/purchases'
 import { editOpenPurchase } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
