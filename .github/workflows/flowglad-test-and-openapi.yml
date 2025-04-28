@@ -48,7 +48,7 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
-  openapi:
+  openapi-check:
     runs-on: ubuntu-latest
     defaults:
       run:
