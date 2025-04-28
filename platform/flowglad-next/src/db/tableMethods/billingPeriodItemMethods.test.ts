@@ -686,7 +686,6 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Both billing periods should be returned regardless of status
     expect(result.length).toBe(2)
-    console.log('result', result)
     // Verify the active billing period
     expect(result[1].billingPeriod.id).toBe(activeBillingPeriod.id)
     expect(result[1].billingPeriod.status).toBe(
