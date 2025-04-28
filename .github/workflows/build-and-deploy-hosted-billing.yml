@@ -62,6 +62,7 @@ jobs:
           cp .vercel/.env.${{ inputs.environment }}.local .env.local
           cp .vercel/.env.${{ inputs.environment }}.local platform/flowglad-next/.env.local
           vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
+        working-directory: platform/hosted-billing
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25.2.0
