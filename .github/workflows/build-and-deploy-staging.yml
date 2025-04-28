@@ -36,7 +36,7 @@ jobs:
 
   merge-main-to-stable:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [deploy-hosted-billing-staging, deploy-flowglad-next-staging]
+    needs: [deploy-hosted-billing-staging]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
