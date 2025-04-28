@@ -56,6 +56,8 @@ jobs:
       - name: Install Vercel CLI
         run: pnpm install --global vercel@41.6.2
 
+      # note that this is a known difference from the build-and-deploy-flowglad-next.yml workflow
+      # because the hosted-billing app for some reason does not have the same vercel settings.
       - name: Build Project Artifacts
         run: |
           vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
