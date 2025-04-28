@@ -1,4 +1,4 @@
-name: Build and deploy Next.js to Vercel Staging
+name: Build and deploy Flowglad Next Staging
 
 on:
   push:
@@ -14,7 +14,7 @@ env:
 
 jobs:
   deploy-staging:
-    uses: ./.github/workflows/build-and-deploy.yml
+    uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
     with:
       environment: preview
     secrets: inherit

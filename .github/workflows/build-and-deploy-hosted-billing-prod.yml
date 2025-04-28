@@ -1,4 +1,4 @@
-name: Build and deploy Hosted Billing to Vercel Prod
+name: Build and deploy Hosted Billing Prod
 
 # This workflow is triggered by a push to the main branch with changes to the platform/hosted-billing directory
 # and merges main into stable

@@ -113,7 +113,7 @@ interface DatabaseAuthenticationInfo {
   jwtClaim: JWTClaim
 }
 
-async function dbAuthInfoForSecretApiKey(
+export async function dbAuthInfoForSecretApiKeyResult(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
   if (verifyKeyResult.keyType !== FlowgladApiKeyType.Secret) {
@@ -164,7 +164,7 @@ async function dbAuthInfoForSecretApiKey(
   }
 }
 
-async function dbAuthInfoForBillingPortalApiKey(
+export async function dbAuthInfoForBillingPortalApiKeyResult(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
   if (
@@ -292,10 +292,9 @@ export async function databaseAuthenticationInfoForWebappRequest(
   }
 }
 
-export async function databaseAuthenticationInfoForApiKey(
-  key: string
+export async function databaseAuthenticationInfoForApiKeyResult(
+  verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
-  const verifyKeyResult = await keyVerify(key)
   if (!verifyKeyResult.userId) {
     throw new Error('Invalid API key, no userId')
   }
@@ -304,9 +303,9 @@ export async function databaseAuthenticationInfoForApiKey(
   }
   switch (verifyKeyResult.keyType) {
     case FlowgladApiKeyType.Secret:
-      return dbAuthInfoForSecretApiKey(verifyKeyResult)
+      return dbAuthInfoForSecretApiKeyResult(verifyKeyResult)
     case FlowgladApiKeyType.BillingPortalToken:
-      return dbAuthInfoForBillingPortalApiKey(verifyKeyResult)
+      return dbAuthInfoForBillingPortalApiKeyResult(verifyKeyResult)
     default:
       throw new Error(
         `databaseAuthenticationInfoForApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
@@ -318,7 +317,10 @@ export async function getDatabaseAuthenticationInfo(
   apiKey: string | undefined
 ): Promise<DatabaseAuthenticationInfo> {
   if (apiKey) {
-    return await databaseAuthenticationInfoForApiKey(apiKey)
+    const verifyKeyResult = await keyVerify(apiKey)
+    return await databaseAuthenticationInfoForApiKeyResult(
+      verifyKeyResult
+    )
   }
   const user = await stackServerApp.getUser()
   if (!user) {
