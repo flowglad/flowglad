@@ -270,6 +270,7 @@ export class FlowgladServer {
     // @ts-ignore
     return this.flowgladNode.subscriptions.create(rawParams)
   }
+
   /**
    * Create a usage event for a customer.
    * NOTE: this method makes two API calls, including one to get the customer.
@@ -289,6 +290,7 @@ export class FlowgladServer {
       },
     })
   }
+
   public getCatalog =
     async (): Promise<FlowgladNode.Catalogs.CatalogRetrieveResponse> => {
       const billing = await this.getBilling()

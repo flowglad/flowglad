@@ -144,7 +144,6 @@ export function BillingPage({
                     successUrl: window.location.href,
                     cancelUrl: window.location.href,
                     autoRedirect: true,
-                    targetSubscriptionId: '',
                   })
                 }}
               >

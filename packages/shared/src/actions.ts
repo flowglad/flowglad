@@ -27,7 +27,7 @@ export const createProductCheckoutSessionSchema =
 export const createAddPaymentMethodCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
     type: z.literal('add_payment_method'),
-    targetSubscriptionId: z.string(),
+    targetSubscriptionId: z.string().optional(),
   })
 
 export const createCheckoutSessionSchema = z.discriminatedUnion(
