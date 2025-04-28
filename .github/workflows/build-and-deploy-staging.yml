@@ -11,6 +11,10 @@ on:
         options:
           - preview
           - production
+  push:
+    branches:
+      - main
+      - '**'
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -21,16 +25,17 @@ jobs:
   deploy-hosted-billing-staging:
     uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
     with:
-      environment: preview
+      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
     secrets: inherit
 
   deploy-flowglad-next-staging:
     uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
     with:
-      environment: preview
+      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
     secrets: inherit
 
   merge-main-to-stable:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [deploy-hosted-billing-staging, deploy-flowglad-next-staging]
     runs-on: ubuntu-latest
     steps:
@@ -45,10 +50,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Rebase stable onto main
-        run: |
-          git fetch origin stable
-          git checkout stable
-          git pull origin stable
-          git rebase origin/main
-          git push --force-with-lease origin stable
+      # - name: Rebase stable onto main
+      #   run: |
+      #     git fetch origin stable
+      #     git checkout stable
+      #     git pull origin stable
+      #     git rebase origin/main
+      #     git push --force-with-lease origin stable
