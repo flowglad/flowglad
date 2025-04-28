@@ -57,10 +57,10 @@ jobs:
         run: pnpm install --global vercel@41.6.2
         
       - name: Pull Vercel Environment Variables
-        working-directory: platform/hosted-billing
         run: |
           vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
           cp .vercel/.env.${{ inputs.environment }}.local .env.local
+          cp .vercel/.env.${{ inputs.environment }}.local platform/hosted-billing/.env.local
 
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
