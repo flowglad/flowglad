@@ -1,0 +1,46 @@
+ name: Build and Deploy Staging
+
+on:
+  push:
+    branches: [main]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
+
+jobs:
+  deploy-hosted-billing-staging:
+    uses: ./.github/workflows/build-and-deploy-hosted-billing-staging.yml
+    with:
+      environment: preview
+    secrets: inherit
+
+  deploy-flowglad-next-staging:
+    uses: ./.github/workflows/build-and-deploy-flowglad-next-staging.yml
+    with:
+      environment: preview
+    secrets: inherit
+
+  merge-main-to-stable:
+    needs: [deploy-hosted-billing-staging, deploy-flowglad-next-staging]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Rebase stable onto main
+        run: |
+          git fetch origin stable
+          git checkout stable
+          git pull origin stable
+          git rebase origin/main
+          git push --force-with-lease origin stable
