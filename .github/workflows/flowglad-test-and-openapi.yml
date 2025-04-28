@@ -1,4 +1,4 @@
-name: Flowglad Next Lint, OpenAPI, and Tests
+name: Flowglad Next CI
 
 on:
   push:
