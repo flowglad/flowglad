@@ -17,7 +17,7 @@ export default async function BillingPortalPage({
 }: BillingPortalPageProps) {
   const { organizationId } = await params
   const { externalId, testmode } = await searchParams
-  const user = await stackServerApp.getUser()
+  const user = await stackServerApp(organizationId).getUser()
   const queryParams = new URLSearchParams()
   queryParams.set('externalId', externalId)
   if (testmode) {
