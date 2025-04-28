@@ -1,4 +1,4 @@
-name: Build and deploy Hosted Billing to Vercel Staging
+name: Build and deploy Hosted Billing Staging
 
 on:
   push:
