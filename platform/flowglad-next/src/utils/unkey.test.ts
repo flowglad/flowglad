@@ -4,6 +4,7 @@ import {
   billingPortalApiKeyInputToUnkeyInput,
   BillingPortalCreateApiKeyParams,
   StandardCreateApiKeyParams,
+  parseUnkeyMeta,
 } from './unkey'
 import { FlowgladApiKeyType } from '@/types'
 import { Organization } from '@/db/schema/organizations'
@@ -96,5 +97,103 @@ describe('billingPortalApiKeyInputToUnkeyInput', () => {
   it('should set correct expiration', () => {
     const result = billingPortalApiKeyInputToUnkeyInput(mockParams)
     expect(result.expires).toBe(new Date('2024-01-01').getTime())
+  })
+})
+
+describe('parseUnkeyMeta', () => {
+  it('should parse metadata with just userId and return it as secret type', () => {
+    const rawMeta = { userId: 'abcdefg' }
+    const result = parseUnkeyMeta(rawMeta)
+
+    expect(result).toEqual({
+      userId: 'abcdefg',
+      type: FlowgladApiKeyType.Secret,
+    })
+  })
+
+  it('should parse well-formed secret metadata', () => {
+    const rawMeta = {
+      type: FlowgladApiKeyType.Secret,
+      userId: 'user_123',
+      organizationId: 'org_456',
+    }
+    const result = parseUnkeyMeta(rawMeta)
+
+    expect(result).toEqual({
+      type: FlowgladApiKeyType.Secret,
+      userId: 'user_123',
+      organizationId: 'org_456',
+    })
+  })
+
+  it('should parse well-formed billing portal metadata', () => {
+    const rawMeta = {
+      type: FlowgladApiKeyType.BillingPortalToken,
+      stackAuthHostedBillingUserId: 'billing_123',
+      organizationId: 'org_456',
+    }
+    const result = parseUnkeyMeta(rawMeta)
+
+    expect(result).toEqual({
+      type: FlowgladApiKeyType.BillingPortalToken,
+      stackAuthHostedBillingUserId: 'billing_123',
+      organizationId: 'org_456',
+    })
+  })
+
+  it('should throw error for malformed secret metadata with missing userId', () => {
+    const rawMeta = {
+      type: FlowgladApiKeyType.Secret,
+      // Missing userId
+      organizationId: 'org_456',
+    }
+
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      'Invalid unkey metadata'
+    )
+  })
+
+  it('should throw error for malformed billing portal metadata with missing stackAuthHostedBillingUserId', () => {
+    const rawMeta = {
+      type: FlowgladApiKeyType.BillingPortalToken,
+      // Missing stackAuthHostedBillingUserId
+      organizationId: 'org_456',
+    }
+
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      'Invalid unkey metadata'
+    )
+  })
+
+  it('should throw error for metadata with invalid type value', () => {
+    const rawMeta = {
+      type: 'invalid_type',
+      userId: 'user_123',
+    }
+
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      `Invalid unkey metadata. Received metadata with type ${rawMeta.type} but expected type ${FlowgladApiKeyType.Secret}`
+    )
+  })
+
+  it('should throw error for completely malformed metadata', () => {
+    const rawMeta = {
+      someRandomField: 'value',
+    }
+
+    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
+      'Invalid unkey metadata'
+    )
+  })
+  it('should succeed for metadata with only userId', () => {
+    const rawMeta = {
+      userId: 'user______lE',
+    }
+
+    expect(() => parseUnkeyMeta(rawMeta)).not.toThrow()
+    expect(parseUnkeyMeta(rawMeta)).toEqual({
+      type: FlowgladApiKeyType.Secret,
+      userId: rawMeta.userId,
+    })
   })
 })

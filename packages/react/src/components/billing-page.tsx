@@ -135,7 +135,25 @@ export function BillingPage({
           />
         </Section>
         <Section>
-          <SectionTitle>Payment Methods</SectionTitle>
+          <SectionTitle
+            button={
+              <Button
+                variant="outline"
+                onClick={() => {
+                  createAddPaymentMethodCheckoutSession({
+                    successUrl: window.location.href,
+                    cancelUrl: window.location.href,
+                    autoRedirect: true,
+                    targetSubscriptionId: '',
+                  })
+                }}
+              >
+                Add Payment Method
+              </Button>
+            }
+          >
+            Payment Methods
+          </SectionTitle>
           <PaymentMethods paymentMethods={billing.paymentMethods} />
         </Section>
         <Section>

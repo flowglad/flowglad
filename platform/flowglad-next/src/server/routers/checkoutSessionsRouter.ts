@@ -286,6 +286,7 @@ export const createCheckoutSession = protectedProcedure
           CheckoutSessionType.AddPaymentMethod
             ? `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
             : `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+        console.log('====url', url)
         return {
           checkoutSession: updatedCheckoutSession,
           url,

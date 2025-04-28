@@ -6,6 +6,7 @@ import {
   ApiKey,
   billingPortalApiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
+  apiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
 
 export const unkey = () =>
@@ -253,3 +254,45 @@ export const deleteApiKey = async (keyId: string) => {
     keyId,
   })
 }
+
+export const parseUnkeyMeta =
+  (rawUnkeyMeta?: {}): ApiKey.ApiKeyMetadata => {
+    console.log('====rawUnkeyMeta', rawUnkeyMeta)
+    if (!rawUnkeyMeta) {
+      throw new Error('No unkey metadata provided')
+    }
+    const firstUnkeyMetaResult =
+      apiKeyMetadataSchema.safeParse(rawUnkeyMeta)
+    if (firstUnkeyMetaResult.success) {
+      return firstUnkeyMetaResult.data
+    } else if (
+      !firstUnkeyMetaResult.success &&
+      firstUnkeyMetaResult.error.issues.some(
+        (issue) =>
+          issue.code === 'invalid_union_discriminator' &&
+          issue.path[0] === 'type' &&
+          issue.path.length === 1
+      )
+    ) {
+      // @ts-expect-error object is not typed
+      const metaType = rawUnkeyMeta.type
+      if (metaType && metaType !== FlowgladApiKeyType.Secret) {
+        throw new Error(
+          `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${FlowgladApiKeyType.Secret}`
+        )
+      }
+      const secondUnkeyMetaResult = apiKeyMetadataSchema.safeParse({
+        ...rawUnkeyMeta,
+        type: FlowgladApiKeyType.Secret,
+      })
+      if (!secondUnkeyMetaResult.success) {
+        throw new Error(
+          `Invalid unkey metadata: ${JSON.stringify(
+            secondUnkeyMetaResult.error.issues
+          )}`
+        )
+      }
+      return secondUnkeyMetaResult.data
+    }
+    throw new Error('Invalid unkey metadata')
+  }

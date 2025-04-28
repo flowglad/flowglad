@@ -14,6 +14,7 @@ import { FlowgladApiKeyType } from '@/types'
 import { JwtPayload } from 'jsonwebtoken'
 import { customers } from './schema/customers'
 import { ApiKey, apiKeyMetadataSchema } from './schema/apiKeys'
+import { parseUnkeyMeta } from '@/utils/unkey'
 
 type SessionUser = Session['user']
 
@@ -30,19 +31,6 @@ interface KeyVerifyResult {
   ownerId: string
   environment: string
   metadata: ApiKey.ApiKeyMetadata
-}
-
-function backwardsCompatibleKeyTypeFromUnkeyApiKeyResult(
-  result: Awaited<ReturnType<typeof verifyKey>>['result']
-): FlowgladApiKeyType {
-  console.log('result', result)
-  if (!result) {
-    throw new Error('No result from unkey verifyKey')
-  }
-  if (result.meta?.keyType) {
-    return result.meta.keyType as FlowgladApiKeyType
-  }
-  return FlowgladApiKeyType.Secret
 }
 
 const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
@@ -75,8 +63,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     if (!result) {
       throw new Error('No result')
     }
-    const meta = apiKeyMetadataSchema.parse(result.meta)
-    console.log('keyVerify', result)
+    const meta = parseUnkeyMeta(result.meta)
     return {
       keyType: meta.type,
       userId: userIdFromUnkeyMeta(meta),
@@ -85,6 +72,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       metadata: meta,
     }
   }
+
   const { membershipAndUser, organizationId, apiKeyType } =
     await adminTransaction(async ({ transaction }) => {
       const [apiKeyRecord] = await selectApiKeys(

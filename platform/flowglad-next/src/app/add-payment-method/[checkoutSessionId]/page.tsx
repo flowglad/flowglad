@@ -13,7 +13,8 @@ import { notFound, redirect } from 'next/navigation'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import CheckoutForm from '@/components/CheckoutForm'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-
+import { ChevronLeft } from 'lucide-react'
+import Link from 'next/link'
 const CheckoutSessionPage = async ({
   params,
 }: {
@@ -84,9 +85,25 @@ const CheckoutSessionPage = async ({
   }
 
   return (
-    <CheckoutPageProvider values={billingInfo}>
-      <CheckoutForm />
-    </CheckoutPageProvider>
+    <div className="flex flex-col items-center justify-start h-screen pt-16 gap-8 max-w-[380px] m-auto">
+      <div className="flex flex-row items-center justify-between w-full relative">
+        {checkoutSession.cancelUrl && (
+          <Link
+            href={checkoutSession.cancelUrl}
+            className="absolute left-0"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </Link>
+        )}
+        <div className="text-2xl font-bold flex-1 text-center">
+          Add Payment Method
+        </div>
+        <div className="flex-0" />
+      </div>
+      <CheckoutPageProvider values={billingInfo}>
+        <CheckoutForm />
+      </CheckoutPageProvider>
+    </div>
   )
 }
 

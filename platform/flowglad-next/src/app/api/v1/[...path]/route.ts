@@ -29,7 +29,7 @@ import {
   refundPaymentRouteConfig,
 } from '@/server/routers/paymentsRouter'
 import core from '@/utils/core'
-import { apiKeyMetadataSchema } from '@/db/schema/apiKeys'
+import { parseUnkeyMeta } from '@/utils/unkey'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -197,8 +197,7 @@ const innerHandler = async (
             method: req.method,
           })
         }
-        const rawUnkeyMeta = req.unkey?.meta
-        const unkeyMeta = apiKeyMetadataSchema.parse(rawUnkeyMeta)
+        const unkeyMeta = parseUnkeyMeta(req.unkey?.meta)
         const organizationId =
           unkeyMeta.organizationId || req.unkey?.ownerId!
         // Execute the TRPC handler within our trace context
