@@ -59,11 +59,11 @@ jobs:
       - name: Pull Vercel Environment Variables
         run: |
           vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
-          cp .vercel/.env.${{ inputs.environment }}.local .env.local
           cp .vercel/.env.${{ inputs.environment }}.local platform/hosted-billing/.env.local
-
+        working-directory: platform/hosted-billing
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
+        working-directory: platform/hosted-billing
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25.2.0
