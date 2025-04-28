@@ -282,11 +282,9 @@ export class FlowgladServer {
     params: CreateUsageEventParams
   ): Promise<FlowgladNode.UsageEvents.UsageEventCreateResponse> => {
     const parsedParams = createUsageEventSchema.parse(params)
-    const customer = await this.findOrCreateCustomer()
     return this.flowgladNode.usageEvents.create({
       usageEvent: {
         ...parsedParams,
-        customerId: customer.id,
         usageDate: parsedParams.usageDate || undefined,
       },
     })

@@ -88,7 +88,7 @@ export const createUsageEventSchema = z.object({
   usageMeterId: z.string(),
   properties: z.record(z.string(), z.unknown()).nullish(),
   transactionId: z.string(),
-  usageDate: z.string().datetime().nullish(),
+  usageDate: z.number().optional(),
 })
 
 export type CreateUsageEventParams = z.infer<
