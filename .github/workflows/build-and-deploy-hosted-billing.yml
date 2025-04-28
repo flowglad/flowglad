@@ -64,7 +64,6 @@ jobs:
 
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
-        working-directory: platform/hosted-billing
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25.2.0
