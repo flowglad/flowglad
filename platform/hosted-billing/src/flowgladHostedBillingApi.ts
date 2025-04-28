@@ -9,7 +9,7 @@ const hostedBillingApiPost = async ({
   organizationId,
 }: {
   subPath: string
-  data: any
+  data: Record<string, unknown>
   livemode: boolean
   organizationId: string
 }) => {

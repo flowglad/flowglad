@@ -3,7 +3,6 @@ import {
   getUserBillingPortalCustomerExternalId,
   stackServerApp,
 } from './stack'
-import axios from 'axios'
 
 export const flowgladServer = (params: {
   organizationId: string
