@@ -55,15 +55,12 @@ jobs:
 
       - name: Install Vercel CLI
         run: pnpm install --global vercel@41.6.2
-        
-      - name: Pull Vercel Environment Variables
-        run: |
-          vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
-          cp .vercel/.env.${{ inputs.environment }}.local .env.local
-        working-directory: platform/hosted-billing
 
       - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
+        run: |
+        vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
+        cp .vercel/.env.${{ inputs.environment }}.local .env.local
+        vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25.2.0
