@@ -9,7 +9,6 @@ const handler = async (
     params,
   }: { params: Promise<{ organizationId: string; path: string[] }> }
 ) => {
-  console.log('?????request', request)
   const { organizationId, path } = await params
   const user = await stackServerApp(organizationId).getUser()
   if (!user) {

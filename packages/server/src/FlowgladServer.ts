@@ -151,7 +151,6 @@ export class FlowgladServer {
       const getResult = await this.getCustomer()
       customer = getResult.customer
     } catch (error) {
-      console.log('=====error', error)
       if ((error as any).error.code === 'NOT_FOUND') {
         const session = await getSessionFromParams(
           this.createHandlerParams
@@ -270,6 +269,7 @@ export class FlowgladServer {
     // @ts-ignore
     return this.flowgladNode.subscriptions.create(rawParams)
   }
+
   /**
    * Create a usage event for a customer.
    * NOTE: this method makes two API calls, including one to get the customer.
@@ -282,15 +282,14 @@ export class FlowgladServer {
     params: CreateUsageEventParams
   ): Promise<FlowgladNode.UsageEvents.UsageEventCreateResponse> => {
     const parsedParams = createUsageEventSchema.parse(params)
-    const customer = await this.findOrCreateCustomer()
     return this.flowgladNode.usageEvents.create({
       usageEvent: {
         ...parsedParams,
-        customerId: customer.id,
         usageDate: parsedParams.usageDate || undefined,
       },
     })
   }
+
   public getCatalog =
     async (): Promise<FlowgladNode.Catalogs.CatalogRetrieveResponse> => {
       const billing = await this.getBilling()

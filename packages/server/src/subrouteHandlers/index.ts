@@ -2,6 +2,7 @@ import { FlowgladActionKey } from '@flowglad/shared'
 import {
   findOrCreateCustomer,
   getCustomerBilling,
+  updateCustomer,
 } from './customerHandlers'
 import { createCheckoutSession } from './checkoutSessionHandlers'
 import { SubRouteHandler } from './types'
@@ -13,6 +14,7 @@ export const routeToHandlerMap: Record<
 > = {
   [FlowgladActionKey.GetCustomerBilling]: getCustomerBilling,
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,
+  [FlowgladActionKey.UpdateCustomer]: updateCustomer,
   [FlowgladActionKey.CreateCheckoutSession]: createCheckoutSession,
   [FlowgladActionKey.CancelSubscription]: cancelSubscription,
   [FlowgladActionKey.CreateSubscription]: async () => {

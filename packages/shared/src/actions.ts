@@ -27,7 +27,7 @@ export const createProductCheckoutSessionSchema =
 export const createAddPaymentMethodCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
     type: z.literal('add_payment_method'),
-    targetSubscriptionId: z.string(),
+    targetSubscriptionId: z.string().optional(),
   })
 
 export const createCheckoutSessionSchema = z.discriminatedUnion(
@@ -88,7 +88,7 @@ export const createUsageEventSchema = z.object({
   usageMeterId: z.string(),
   properties: z.record(z.string(), z.unknown()).nullish(),
   transactionId: z.string(),
-  usageDate: z.string().datetime().nullish(),
+  usageDate: z.number().optional(),
 })
 
 export type CreateUsageEventParams = z.infer<

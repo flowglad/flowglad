@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.10.7
+
+### Patch Changes
+
+- Loosen targetSubscriptionId on add payment checkout sessions, add Add Payment Method button to embedded billing page
+
 ## 0.10.6
 
 ### Patch Changes

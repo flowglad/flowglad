@@ -116,7 +116,6 @@ interface DatabaseAuthenticationInfo {
 async function dbAuthInfoForSecretApiKey(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
-  console.log(' authenticating for secret api key')
   if (verifyKeyResult.keyType !== FlowgladApiKeyType.Secret) {
     throw new Error(
       `dbAuthInfoForSecretApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
@@ -168,7 +167,6 @@ async function dbAuthInfoForSecretApiKey(
 async function dbAuthInfoForBillingPortalApiKey(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
-  console.log(' authenticating for billing portal api key')
   if (
     verifyKeyResult.keyType !== FlowgladApiKeyType.BillingPortalToken
   ) {
@@ -297,7 +295,6 @@ export async function databaseAuthenticationInfoForWebappRequest(
 export async function databaseAuthenticationInfoForApiKey(
   key: string
 ): Promise<DatabaseAuthenticationInfo> {
-  console.log(' authenticating for api key')
   const verifyKeyResult = await keyVerify(key)
   if (!verifyKeyResult.userId) {
     throw new Error('Invalid API key, no userId')
