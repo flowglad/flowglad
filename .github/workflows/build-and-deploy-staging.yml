@@ -28,15 +28,18 @@ jobs:
       environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
     secrets: inherit
 
-  # deploy-flowglad-next-staging:
-  #   uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
-  #   with:
-  #     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
-  #   secrets: inherit
+  deploy-flowglad-next-staging:
+    # uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
+    # with:
+    #   environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
+    # secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
 
   merge-main-to-stable:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [deploy-hosted-billing-staging]
+    needs: [deploy-hosted-billing-staging, deploy-flowglad-next-staging]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
