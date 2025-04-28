@@ -1,8 +1,16 @@
- name: Build and Deploy Staging
+name: Build and Deploy Staging
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -11,13 +19,13 @@ env:
 
 jobs:
   deploy-hosted-billing-staging:
-    uses: ./.github/workflows/build-and-deploy-hosted-billing-staging.yml
+    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
     with:
       environment: preview
     secrets: inherit
 
   deploy-flowglad-next-staging:
-    uses: ./.github/workflows/build-and-deploy-flowglad-next-staging.yml
+    uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
     with:
       environment: preview
     secrets: inherit

@@ -1,0 +1,31 @@
+name: Build and Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - preview
+          - production
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
+
+jobs:
+  deploy-hosted-billing-prod:
+    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
+    with:
+      environment: production
+    secrets: inherit
+
+  deploy-flowglad-next-prod:
+    uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
+    with:
+      environment: production
+    secrets: inherit
