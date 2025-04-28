@@ -1,0 +1,33 @@
+name: Build and deploy Hosted Billing to Vercel Prod
+
+# This workflow is triggered by a push to the main branch with changes to the platform/hosted-billing directory
+# and merges main into stable
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - stable
+    paths:
+      - 'platform/hosted-billing/**'
+  workflow_run:
+    workflows: ["Build and deploy Hosted Billing to Vercel Staging"]
+    types:
+      - completed
+    branches:
+      - main
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  HOSTED_BILLING_VERCEL_PROJECT_ID: ${{ secrets.HOSTED_BILLING_VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  NEXT_PUBLIC_CDN_URL: cdn-flowglad.com
+  HOSTED_BILLING_VERCEL_PROJECT_NAME: ${{ secrets.HOSTED_BILLING_VERCEL_PROJECT_NAME }}
+
+jobs:
+  deploy-stable-to-prod:
+    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
+    with:
+      environment: production
+    secrets: inherit 

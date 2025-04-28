@@ -1,5 +1,15 @@
 # @flowglad/express
 
+## 0.10.7
+
+### Patch Changes
+
+- Loosen targetSubscriptionId on add payment checkout sessions, add Add Payment Method button to embedded billing page
+- Updated dependencies
+  - @flowglad/server@0.10.7
+  - @flowglad/shared@0.10.7
+  - @flowglad/react@0.10.7
+
 ## 0.10.6
 
 ### Patch Changes
