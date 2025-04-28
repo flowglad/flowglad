@@ -72,6 +72,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       metadata: meta,
     }
   }
+
   const { membershipAndUser, organizationId, apiKeyType } =
     await adminTransaction(async ({ transaction }) => {
       const [apiKeyRecord] = await selectApiKeys(
