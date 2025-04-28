@@ -18,12 +18,12 @@ import { Price } from '@/db/schema/prices'
 
 interface PurchasePageProps {
   params: Promise<{
-    id: string
+    productId: string
   }>
 }
 
 const PurchasePage = async ({ params }: PurchasePageProps) => {
-  const { id } = await params
+  const { productId } = await params
   const {
     product,
     price,
@@ -34,7 +34,10 @@ const PurchasePage = async ({ params }: PurchasePageProps) => {
     maybeCustomer,
   } = await adminTransaction(async ({ transaction }) => {
     const { product, defaultPrice } =
-      await selectDefaultPriceAndProductByProductId(id, transaction)
+      await selectDefaultPriceAndProductByProductId(
+        productId,
+        transaction
+      )
     if (!product.active) {
       // TODO: ERROR PAGE UI
       return {
