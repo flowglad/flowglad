@@ -167,7 +167,6 @@ export const createBillingPortalApiKey = async (
   }
 
   const unkeyInput = billingPortalApiKeyInputToUnkeyInput(params)
-  console.log('unkeyInput', unkeyInput)
   const { result, error } = await unkey().keys.create(unkeyInput)
 
   if (error) {
@@ -257,7 +256,6 @@ export const deleteApiKey = async (keyId: string) => {
 
 export const parseUnkeyMeta =
   (rawUnkeyMeta?: {}): ApiKey.ApiKeyMetadata => {
-    console.log('====rawUnkeyMeta', rawUnkeyMeta)
     if (!rawUnkeyMeta) {
       throw new Error('No unkey metadata provided')
     }
