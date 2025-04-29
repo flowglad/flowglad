@@ -1,5 +1,8 @@
 name: Build and Deploy Production
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -11,10 +14,15 @@ on:
         options:
           - preview
           - production
-
   push:
     branches:
       - stable
+  workflow_run:
+    workflows: ["Build and Deploy Staging"]
+    types:
+      - completed
+    branches:
+      - main
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
