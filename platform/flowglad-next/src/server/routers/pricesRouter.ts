@@ -71,7 +71,6 @@ export const createPrice = protectedProcedure
         const defaultPrices = [...existingPrices, price].filter(
           (v) => v.isDefault
         )
-        console.log('defaultPrices', defaultPrices)
         if (defaultPrices.length > 1) {
           throw new TRPCError({
             code: 'BAD_REQUEST',

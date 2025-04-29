@@ -182,6 +182,7 @@ interface FlowgladColors {
 export interface FlowgladThemeConfig {
   light?: Partial<FlowgladColors>
   dark?: Partial<FlowgladColors>
+  mode?: 'light' | 'dark' | 'system'
 }
 
 interface FlowgladThemeProps {
@@ -193,28 +194,27 @@ interface FlowgladThemeProps {
 
 export function FlowgladTheme({
   children,
-  darkMode,
   theme,
   nonce,
 }: FlowgladThemeProps) {
   const isDarkTheme = useThemeDetector()
   const [cssString, setCssString] = useState<string>('')
-
+  const mode = theme?.mode ?? 'system'
   useEffect(() => {
     // Apply the class to the html element
     document.documentElement.classList.add('flowglad-root')
     // Apply the base theme class to the html element
     document.documentElement.classList.add('flowglad-base-theme')
-    // If darkMode is provided, apply the class to the html element
-    // If darkMode is not provided, use the system theme
-    if (typeof darkMode === 'boolean') {
-      if (darkMode) {
-        document.documentElement.classList.add('flowglad-dark')
-      } else {
-        document.documentElement.classList.remove('flowglad-dark')
-      }
-    } else if (isDarkTheme) {
+
+    // Handle dark mode based on mode prop and system preference
+    if (mode === 'dark') {
       document.documentElement.classList.add('flowglad-dark')
+    } else if (mode === 'light') {
+      document.documentElement.classList.remove('flowglad-dark')
+    } else if (mode === 'system') {
+      document.documentElement.classList.add(
+        isDarkTheme ? 'flowglad-dark' : 'flowglad-root'
+      )
     }
 
     // Generate CSS string
@@ -230,7 +230,7 @@ export function FlowgladTheme({
         'flowglad-base-theme'
       )
     }
-  }, [darkMode, theme])
+  }, [theme, mode, isDarkTheme])
 
   return (
     <>
