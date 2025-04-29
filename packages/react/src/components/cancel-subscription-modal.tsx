@@ -29,7 +29,7 @@ export const CancelSubscriptionModal = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         className={buttonVariants({
-          variant: 'outline',
+          variant: 'destructiveGhost',
           size: 'sm',
         })}
       >

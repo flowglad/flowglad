@@ -9,7 +9,6 @@ import {
 import { format } from 'date-fns'
 
 import { Badge } from './ui/badge'
-import { Button } from './ui/button'
 import {
   Card,
   CardContent,
@@ -53,7 +52,6 @@ interface StandardCurrentSubscriptionCardProps
 export function UsageCurrentSubscriptionCard({
   subscription,
   product,
-  currency,
   subscriptionItems,
   isPastDue,
   showTrialEnd,

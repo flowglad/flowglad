@@ -9,6 +9,7 @@ import {
   RequestConfig,
 } from './FlowgladContext'
 import { validateUrl } from './utils'
+import { FlowgladTheme, FlowgladThemeConfig } from './FlowgladTheme'
 const queryClient = new QueryClient()
 
 export interface Appearance {
@@ -20,12 +21,14 @@ export const FlowgladProvider = ({
   loadBilling,
   serverRoute,
   requestConfig,
+  theme,
 }: {
   children: React.ReactNode
   appearance?: Appearance
   requestConfig?: RequestConfig
   serverRoute?: string
   loadBilling: boolean
+  theme?: FlowgladThemeConfig
 }) => {
   validateUrl(serverRoute, 'serverRoute', true)
   return (
@@ -35,7 +38,7 @@ export const FlowgladProvider = ({
         loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
-        {children}
+        <FlowgladTheme theme={theme}>{children}</FlowgladTheme>
       </FlowgladContextProvider>
     </QueryClientProvider>
   )

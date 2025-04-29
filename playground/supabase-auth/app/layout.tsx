@@ -29,10 +29,29 @@ export default async function RootLayout({ children }: PropsWithChildren) {
   return (
     <FlowgladProvider
       loadBilling={!!user}
-      darkMode={true}
       requestConfig={{
         headers: {
           test: 'lol'
+        }
+      }}
+      theme={{
+        light: {
+          containerBackground: '#ff0',
+          containerForeground: '#000000',
+          border: '#cccccc',
+          buttonBackground: '#007bff',
+          buttonForeground: '#ffffff',
+          destructive: '#dc3545',
+          destructiveForeground: '#ffffff'
+        },
+        dark: {
+          containerBackground: '#0ff',
+          containerForeground: '#ffffff',
+          border: '#333333',
+          buttonBackground: '#0d6efd',
+          buttonForeground: '#ffffff',
+          destructive: '#dc3545',
+          destructiveForeground: '#ffffff'
         }
       }}
     >

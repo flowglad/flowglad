@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@adobe/css-tools':
+        specifier: 4.4.2
+        version: 4.4.2
       '@clerk/nextjs':
         specifier: ^6.10.2
         version: 6.12.0(next@15.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -15,8 +18,8 @@ importers:
         specifier: file:.yalc/@flowglad/nextjs
         version: file:.yalc/@flowglad/nextjs(next@15.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@flowglad/node':
-        specifier: 0.19.2
-        version: 0.19.2
+        specifier: 0.19.3
+        version: 0.19.3
       '@flowglad/react':
         specifier: file:.yalc/@flowglad/react
         version: file:.yalc/@flowglad/react(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.17)
@@ -141,6 +144,9 @@ importers:
 
 packages:
 
+  '@adobe/css-tools@4.4.2':
+    resolution: {integrity: sha512-baYZExFpsdkBNuvGKTKWCwKH57HRZLVtycZS05WTQNVOiXVSeAki3nU35zlRbToeMW8aHlJfyS+1C4BOv27q0A==}
+
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
@@ -232,11 +238,8 @@ packages:
   '@flowglad/node@0.10.0':
     resolution: {integrity: sha512-Opli078TMhrRo19vsXxg5MN85n8yzNGrDArs6mtb8aaypWSlrbPKagzyVajlkugVBunnoP262UCCF5AtepqHpg==}
 
-  '@flowglad/node@0.14.0':
-    resolution: {integrity: sha512-gbvCjpAu2FNpgJ2DPwlTX8tQinKcjiTpnTyxMCFEgV0nRChJB5wR7nkgmCS/Au/SC/Nm8EBAf335WM4FkAlmlQ==}
-
-  '@flowglad/node@0.19.2':
-    resolution: {integrity: sha512-e789h1LlIwKdCwTKK4V25x6lpwCloWj55vpLu/XUMMbwbFNactYi6WIaKbhv6Lyz/60AxPtoUIzaSbtE1eMQsQ==}
+  '@flowglad/node@0.19.3':
+    resolution: {integrity: sha512-vCuclxY9EQMp6k+DFR1r6pqrz+O5DHjqYPcnqDVfQ28vGnyyI7WsJ7mHK7ZHvbhunIjzfVdKYP98oCeQKPwPMA==}
 
   '@flowglad/react@0.2.4':
     resolution: {integrity: sha512-5Tq2Ol4T5iKe1ZSkLsFP1JdNAzzrb7jKnApDHEblDZZkFfNvbm5y7pcAiDvls+VGMZAzeazCO98nASp43/8WlQ==}
@@ -2733,6 +2736,8 @@ packages:
 
 snapshots:
 
+  '@adobe/css-tools@4.4.2': {}
+
   '@alloc/quick-lru@5.2.0': {}
 
   '@babel/runtime@7.26.9':
@@ -2834,7 +2839,7 @@ snapshots:
 
   '@flowglad/nextjs@file:.yalc/@flowglad/nextjs(next@15.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@flowglad/node': 0.19.2
+      '@flowglad/node': 0.19.3
       '@flowglad/react': 0.2.4(react@18.3.1)
       '@flowglad/server': 0.2.4
       '@flowglad/shared': 0.2.4
@@ -2858,9 +2863,7 @@ snapshots:
 
   '@flowglad/node@0.10.0': {}
 
-  '@flowglad/node@0.14.0': {}
-
-  '@flowglad/node@0.19.2': {}
+  '@flowglad/node@0.19.3': {}
 
   '@flowglad/react@0.2.4(react@18.3.1)':
     dependencies:
@@ -2874,7 +2877,8 @@ snapshots:
 
   '@flowglad/react@file:.yalc/@flowglad/react(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tailwindcss@3.4.17)':
     dependencies:
-      '@flowglad/node': 0.19.2
+      '@adobe/css-tools': 4.4.2
+      '@flowglad/node': 0.19.3
       '@flowglad/shared': 0.2.4
       '@radix-ui/react-dialog': 1.1.6(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-slot': 1.1.2(@types/react@18.3.18)(react@18.3.1)
@@ -2906,7 +2910,7 @@ snapshots:
 
   '@flowglad/server@file:.yalc/@flowglad/server':
     dependencies:
-      '@flowglad/node': 0.19.2
+      '@flowglad/node': 0.19.3
       '@flowglad/shared': 0.2.4
       zod: 3.24.3
 
@@ -2916,7 +2920,7 @@ snapshots:
 
   '@flowglad/shared@file:.yalc/@flowglad/shared':
     dependencies:
-      '@flowglad/node': 0.14.0
+      '@flowglad/node': 0.19.3
       date-fns: 4.1.0
       zod: 3.24.3
 
