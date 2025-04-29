@@ -1,3 +1,4 @@
+import CheckoutNotValidPage from '@/components/CheckoutNotValidPage'
 import CheckoutPage from '@/components/CheckoutPage'
 import { checkoutInfoForPriceWhere } from '@/utils/checkoutHelpers'
 import { notFound } from 'next/navigation'
@@ -10,12 +11,16 @@ interface PurchasePageProps {
 
 const PurchasePage = async ({ params }: PurchasePageProps) => {
   const { productId } = await params
-  const { checkoutInfo, success } = await checkoutInfoForPriceWhere({
-    id: productId,
-  })
+  const { checkoutInfo, success, organization } =
+    await checkoutInfoForPriceWhere({
+      productId,
+      isDefault: true,
+    })
 
   if (!success) {
-    return notFound()
+    return (
+      <CheckoutNotValidPage organizationName={organization.name} />
+    )
   }
   return <CheckoutPage checkoutInfo={checkoutInfo} />
 }

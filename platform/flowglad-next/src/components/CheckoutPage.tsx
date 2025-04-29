@@ -1,7 +1,7 @@
 'use client'
 import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import CheckoutForm from '@/components/CheckoutForm'
-import CheckoutInfo from '@/components/ion/CheckoutInfo'
+import CheckoutDetails from '@/components/ion/CheckoutDetails'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import { trpc } from '@/app/_trpc/client'
 import { useEffect, useRef } from 'react'
@@ -61,7 +61,7 @@ const CheckoutPage = ({
             'lg:justify-end lg:pl-0 lg:pr-8 lg:pt-18'
           )}
         >
-          <CheckoutInfo />
+          <CheckoutDetails />
         </div>
         <div className={checkoutFormContainer}>
           <CheckoutForm />

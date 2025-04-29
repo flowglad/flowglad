@@ -3,12 +3,7 @@ import debounce from 'debounce'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { createContext, useContext } from 'react'
-import {
-  CheckoutFlowType,
-  CurrencyCode,
-  Nullish,
-  PriceType,
-} from '@/types'
+import { CheckoutFlowType, CurrencyCode, Nullish } from '@/types'
 import {
   CheckoutInfoCore,
   checkoutInfoSchema,
@@ -138,8 +133,8 @@ const currencyFromCheckoutInfoCore = (
 
 export const useCheckoutPageContext =
   (): CheckoutPageContextValues => {
-    const checkoutInfo = useContext(CheckoutPageContext)
-    const checkoutInfo = checkoutInfoSchema.parse(checkoutInfo)
+    const rawCheckoutInfo = useContext(CheckoutPageContext)
+    const checkoutInfo = checkoutInfoSchema.parse(rawCheckoutInfo)
     const editCheckoutSession =
       trpc.purchases.updateSession.useMutation()
     const editCheckoutSessionPaymentMethodType =

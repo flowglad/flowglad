@@ -2,6 +2,7 @@ import CheckoutPage from '@/components/CheckoutPage'
 import core from '@/utils/core'
 import { notFound } from 'next/navigation'
 import { checkoutInfoForPriceWhere } from '@/utils/checkoutHelpers'
+import CheckoutNotValidPage from '@/components/CheckoutNotValidPage'
 
 interface PurchasePageProps {
   params: Promise<{
@@ -14,11 +15,14 @@ const PricePurchasePage = async ({ params }: PurchasePageProps) => {
     return notFound()
   }
   const { priceId } = await params
-  const { checkoutInfo, success } = await checkoutInfoForPriceWhere({
-    id: priceId,
-  })
+  const { checkoutInfo, success, organization } =
+    await checkoutInfoForPriceWhere({
+      id: priceId,
+    })
   if (!success) {
-    return notFound()
+    return (
+      <CheckoutNotValidPage organizationName={organization.name} />
+    )
   }
   return <CheckoutPage checkoutInfo={checkoutInfo} />
 }

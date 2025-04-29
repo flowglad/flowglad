@@ -16,13 +16,17 @@ import {
   SinglePaymentCheckoutInfoCore,
 } from '@/db/tableMethods/purchaseMethods'
 import core from './core'
+import { Organization } from '@/db/schema/organizations'
 
 interface CheckoutInfoSuccess {
   checkoutInfo: CheckoutInfoCore
+  organization: Organization.Record
   success: true
 }
+
 interface CheckoutInfoError {
   checkoutInfo: null
+  organization: Organization.Record
   success: false
   error: string
 }
@@ -93,6 +97,7 @@ export async function checkoutInfoForPriceWhere(
     return {
       checkoutInfo: null,
       success: false,
+      organization,
       error: `This checkout link is no longer valid. Please contact the ${organization.name} team for assistance.`,
     }
   }
@@ -127,6 +132,7 @@ export async function checkoutInfoForPriceWhere(
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),
+      organization,
       success: true,
     }
   }
@@ -151,6 +157,7 @@ export async function checkoutInfoForPriceWhere(
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),
+      organization,
       success: true,
     }
   }
