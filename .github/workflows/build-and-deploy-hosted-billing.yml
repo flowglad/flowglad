@@ -55,15 +55,15 @@ jobs:
 
       - name: Install Vercel CLI
         run: pnpm install --global vercel@41.6.2
-        
-      - name: Pull Vercel Environment Variables
+
+      # note that this is a known difference from the build-and-deploy-flowglad-next.yml workflow
+      # because the hosted-billing app for some reason does not have the same vercel settings.
+      - name: Build Project Artifacts
         run: |
           vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
           cp .vercel/.env.${{ inputs.environment }}.local .env.local
-          cp .vercel/.env.${{ inputs.environment }}.local platform/hosted-billing/.env.local
-
-      - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
+          vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
+        working-directory: platform/hosted-billing
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25.2.0
@@ -73,4 +73,5 @@ jobs:
           vercel-project-id: ${{ secrets.HOSTED_BILLING_VERCEL_PROJECT_ID }}
           vercel-args: ${{ inputs.environment == 'production' && '--prebuilt --prod' || '--prebuilt' }}
           vercel-project-name: ${{ secrets.HOSTED_BILLING_VERCEL_PROJECT_NAME }}
-          vercel-version: 41.6.2 
+          vercel-version: 41.6.2
+          working-directory: platform/hosted-billing
