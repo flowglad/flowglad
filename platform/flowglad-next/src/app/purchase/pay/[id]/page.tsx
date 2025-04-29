@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  billingInfoSchema,
+  checkoutInfoSchema,
   selectPurchaseCheckoutParametersById,
 } from '@/db/tableMethods/purchaseMethods'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
@@ -105,7 +105,7 @@ const PayPurchasePage = async ({
     return <PaymentStatusProcessing />
   }
 
-  const billingInfo = billingInfoSchema.parse({
+  const checkoutInfo = checkoutInfoSchema.parse({
     ...rawContextValues,
     priceType: purchase.priceType,
     purchase,
@@ -116,7 +116,7 @@ const PayPurchasePage = async ({
     clientSecret: stripeIntent.client_secret,
   })
 
-  return <CheckoutPage billingInfo={billingInfo} />
+  return <CheckoutPage checkoutInfo={checkoutInfo} />
 }
 
 export default PayPurchasePage

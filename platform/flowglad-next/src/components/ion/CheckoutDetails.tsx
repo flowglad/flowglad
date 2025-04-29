@@ -6,7 +6,7 @@ import clsx from 'clsx'
 import BillingHeader from '@/components/ion/BillingHeader'
 import SellerInfo from '@/components/ion/SellerInfo'
 
-const BillingInfo = React.forwardRef<
+const CheckoutDetails = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
@@ -26,6 +26,6 @@ const BillingInfo = React.forwardRef<
   )
 })
 
-BillingInfo.displayName = 'BillingInfo'
+CheckoutDetails.displayName = 'CheckoutDetails'
 
-export default BillingInfo
+export default CheckoutDetails

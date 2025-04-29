@@ -146,7 +146,7 @@ export const DocumentDetails: React.FC<DocumentDetailsProps> = ({
   )
 }
 
-interface BillingInfoProps {
+interface CheckoutInfoProps {
   organization: Organization.Record
   customer: Customer.Record
   billingAddress?: BillingAddress
@@ -193,7 +193,7 @@ const OrganizationContactInfo: React.FC<{
   )
 }
 
-export const BillingInfo: React.FC<BillingInfoProps> = ({
+export const CheckoutInfo: React.FC<CheckoutInfoProps> = ({
   organization,
   customer,
   billingAddress,
@@ -643,7 +643,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           />
           <DocumentDetails invoice={invoice} mode="invoice" />
           {billingAddress && (
-            <BillingInfo
+            <CheckoutInfo
               organization={organization}
               customer={customer}
               billingAddress={billingAddress}

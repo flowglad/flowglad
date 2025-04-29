@@ -10,7 +10,7 @@ import {
   CustomerInvoiceDownloadReceiptButtonBanner,
   CustomerInvoicePayButtonBanner,
 } from './CustomerInvoiceButtonBanner'
-import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { adminTransaction } from '@/db/adminTransaction'
 import { findOrCreateInvoiceCheckoutSession } from '@/utils/checkoutSessionState'
 
@@ -80,7 +80,7 @@ const CustomerInvoiceOpenView = async (
     clientSecret = paymentIntent.client_secret
   }
 
-  const billingInfo: BillingInfoCore = {
+  const checkoutInfo: CheckoutInfoCore = {
     customer,
     sellerOrganization: organization,
     flowType: CheckoutFlowType.Invoice,
@@ -133,7 +133,7 @@ const CustomerInvoiceOpenView = async (
 
         <CustomerInvoicePayButtonBanner
           invoice={invoice}
-          billingInfo={billingInfo}
+          checkoutInfo={checkoutInfo}
         />
       </div>
     </div>

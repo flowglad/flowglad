@@ -3,7 +3,7 @@ import { Container, Head, Body, Html } from '@react-email/components'
 import {
   DocumentHeader,
   DocumentDetails,
-  BillingInfo,
+  CheckoutInfo,
   PaymentInfo,
   InvoiceLineItems,
   InvoiceTotals,
@@ -92,7 +92,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
             paymentData={paymentData}
           />
           {billingAddress && (
-            <BillingInfo
+            <CheckoutInfo
               organization={organization}
               customer={customer}
               billingAddress={billingAddress}

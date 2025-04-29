@@ -10,8 +10,8 @@ import {
   PriceType,
 } from '@/types'
 import {
-  BillingInfoCore,
-  billingInfoSchema,
+  CheckoutInfoCore,
+  checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
 import { Price } from '@/db/schema/prices'
 import core from '@/utils/core'
@@ -45,7 +45,7 @@ export type SubscriptionOnlyCheckoutDetails =
 
 /**
  * This type is a bit complex. Here's a breakdown:
- * - BillingInfoCore is the core billing info that is always present
+ * - CheckoutInfoCore is the core billing info that is always present
  * - SubscriptionOnlyCheckoutDetails ensures we only have subscription details present for
  *  subscription purchases
  * - MaybeSerializedProposal is a type that is either a serialized proposal or not, only present
@@ -79,7 +79,7 @@ export type CheckoutPageContextValues = {
   currency: CurrencyCode
   checkoutSession?: CheckoutSession.ClientRecord
 } & SubscriptionOnlyCheckoutDetails &
-  BillingInfoCore
+  CheckoutInfoCore
 
 const CheckoutPageContext = createContext<
   Partial<CheckoutPageContextValues>
@@ -87,13 +87,13 @@ const CheckoutPageContext = createContext<
   flowType: CheckoutFlowType.SinglePayment,
 })
 
-const subscriptionDetailsFromBillingInfoCore = (
-  billingInfo: BillingInfoCore
+const subscriptionDetailsFromCheckoutInfoCore = (
+  checkoutInfo: CheckoutInfoCore
 ): SubscriptionCheckoutDetails | undefined => {
-  if (billingInfo.flowType !== CheckoutFlowType.Subscription) {
+  if (checkoutInfo.flowType !== CheckoutFlowType.Subscription) {
     return undefined
   }
-  const { purchase, price } = billingInfo
+  const { purchase, price } = checkoutInfo
   /**
    * For each subscription detail field:
    * Default to price values if purchase values are not present,
@@ -101,7 +101,7 @@ const subscriptionDetailsFromBillingInfoCore = (
    * use purchase values.
    */
   const subscriptionDetails: SubscriptionCheckoutDetails | undefined =
-    billingInfo.flowType === CheckoutFlowType.Subscription
+    checkoutInfo.flowType === CheckoutFlowType.Subscription
       ? {
           currency: price.currency,
           trialPeriodDays: core.isNil(purchase?.trialPeriodDays)
@@ -124,22 +124,22 @@ const subscriptionDetailsFromBillingInfoCore = (
   return subscriptionDetails
 }
 
-const currencyFromBillingInfoCore = (
-  billingInfo: BillingInfoCore
+const currencyFromCheckoutInfoCore = (
+  checkoutInfo: CheckoutInfoCore
 ): CurrencyCode => {
-  if (billingInfo.flowType === CheckoutFlowType.Invoice) {
-    return billingInfo.invoice.currency
+  if (checkoutInfo.flowType === CheckoutFlowType.Invoice) {
+    return checkoutInfo.invoice.currency
   }
-  if (billingInfo.flowType === CheckoutFlowType.AddPaymentMethod) {
-    return billingInfo.sellerOrganization.defaultCurrency
+  if (checkoutInfo.flowType === CheckoutFlowType.AddPaymentMethod) {
+    return checkoutInfo.sellerOrganization.defaultCurrency
   }
-  return billingInfo.price.currency
+  return checkoutInfo.price.currency
 }
 
 export const useCheckoutPageContext =
   (): CheckoutPageContextValues => {
     const checkoutInfo = useContext(CheckoutPageContext)
-    const billingInfo = billingInfoSchema.parse(checkoutInfo)
+    const checkoutInfo = checkoutInfoSchema.parse(checkoutInfo)
     const editCheckoutSession =
       trpc.purchases.updateSession.useMutation()
     const editCheckoutSessionPaymentMethodType =
@@ -152,11 +152,11 @@ export const useCheckoutPageContext =
     const clearDiscountCode = trpc.discounts.clear.useMutation()
     const router = useRouter()
     const checkoutBlocked = editCheckoutSession.isPending ?? false
-    const currency = currencyFromBillingInfoCore(billingInfo)
+    const currency = currencyFromCheckoutInfoCore(checkoutInfo)
     const subscriptionDetails =
-      subscriptionDetailsFromBillingInfoCore(billingInfo)
+      subscriptionDetailsFromCheckoutInfoCore(checkoutInfo)
     return {
-      ...billingInfo,
+      ...checkoutInfo,
       subscriptionDetails,
       attemptDiscountCode: async (input) => {
         const result = await attemptDiscountCode.mutateAsync(input)
@@ -206,7 +206,7 @@ const CheckoutPageProvider = ({
   values,
 }: {
   children: React.ReactNode
-  values: BillingInfoCore
+  values: CheckoutInfoCore
 }) => {
   return (
     <CheckoutPageContext.Provider value={values}>

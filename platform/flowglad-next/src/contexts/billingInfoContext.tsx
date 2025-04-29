@@ -4,43 +4,43 @@ import { Product } from '@/db/schema/products'
 import { createContext, useContext } from 'react'
 import { Nullish, PriceType } from '@/types'
 import {
-  BillingInfoCore,
-  billingInfoSchema,
+  CheckoutInfoCore,
+  checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
 import { BillingAddress } from '@/db/schema/organizations'
 
-export type BillingInfoContextValues = {
+export type CheckoutInfoContextValues = {
   taxAmount?: Nullish<number>
   sellerOrganization?: Pick<Organization.Record, 'logoURL' | 'name'>
   product?: Product.ClientRecord
   type: PriceType
   billingAddress?: Nullish<BillingAddress>
-} & BillingInfoCore
+} & CheckoutInfoCore
 
-const BillingInfoContext = createContext<
-  Partial<BillingInfoContextValues>
+const CheckoutInfoContext = createContext<
+  Partial<CheckoutInfoContextValues>
 >({
   type: PriceType.SinglePayment,
   billingAddress: null,
 })
 
-export const useSafeBillingInfoContext = () => {
-  const billingInfo = useContext(BillingInfoContext)
-  return billingInfoSchema.parse(billingInfo)
+export const useSafeCheckoutInfoContext = () => {
+  const checkoutInfo = useContext(CheckoutInfoContext)
+  return checkoutInfoSchema.parse(checkoutInfo)
 }
 
-const BillingInfoProvider = ({
+const CheckoutInfoProvider = ({
   children,
   values,
 }: {
   children: React.ReactNode
-  values: BillingInfoContextValues
+  values: CheckoutInfoContextValues
 }) => {
   return (
-    <BillingInfoContext.Provider value={values}>
+    <CheckoutInfoContext.Provider value={values}>
       {children}
-    </BillingInfoContext.Provider>
+    </CheckoutInfoContext.Provider>
   )
 }
 
-export default BillingInfoProvider
+export default CheckoutInfoProvider

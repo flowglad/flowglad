@@ -165,7 +165,25 @@ export const selectPurchaseCheckoutParametersById = async (
   }
 }
 
-const subscriptionBillingInfoSchema = z.object({
+const checkoutInfoCoreSchema = z.object({
+  checkoutSession: checkoutSessionClientSelectSchema,
+  /**
+   * Only present for open purchases
+   */
+  customer: customersSelectSchema.nullish(),
+  sellerOrganization: organizationsSelectSchema,
+  redirectUrl: z.string().url(),
+  cancelUrl: z.string().url().nullish(),
+  clientSecret: z.string().nullable(),
+  discount: discountClientSelectSchema.nullish(),
+  /**
+   * Only present when checkoutSession.customerId is not null
+   */
+  readonlyCustomerEmail: z.string().email().nullish(),
+  feeCalculation: customerFacingFeeCalculationSelectSchema.nullable(),
+})
+
+const subscriptionCheckoutInfoSchema = checkoutInfoCoreSchema.extend({
   purchase: subscriptionPurchaseSelectSchema.nullish(),
   price: z.discriminatedUnion('type', [
     subscriptionPriceSelectSchema,
@@ -175,61 +193,42 @@ const subscriptionBillingInfoSchema = z.object({
   product: productsSelectSchema,
 })
 
-const addPaymentMethodBillingInfoSchema = z.object({
-  checkoutSession: checkoutSessionClientSelectSchema,
-  flowType: z.literal(CheckoutFlowType.AddPaymentMethod),
-})
+const addPaymentMethodCheckoutInfoSchema =
+  checkoutInfoCoreSchema.extend({
+    flowType: z.literal(CheckoutFlowType.AddPaymentMethod),
+  })
 
-export type SubscriptionBillingInfoCore = z.infer<
-  typeof subscriptionBillingInfoSchema
+export type SubscriptionCheckoutInfoCore = z.infer<
+  typeof subscriptionCheckoutInfoSchema
 >
 
-const singlePaymentBillingInfoSchema = z.object({
-  purchase: singlePaymentPurchaseSelectSchema.nullish(),
-  price: singlePaymentPriceSelectSchema,
-  flowType: z.literal(CheckoutFlowType.SinglePayment),
-  product: productsSelectSchema,
-})
+const singlePaymentCheckoutInfoSchema = checkoutInfoCoreSchema.extend(
+  {
+    purchase: singlePaymentPurchaseSelectSchema.nullish(),
+    price: singlePaymentPriceSelectSchema,
+    flowType: z.literal(CheckoutFlowType.SinglePayment),
+    product: productsSelectSchema,
+  }
+)
 
-export type SinglePaymentBillingInfoCore = z.infer<
-  typeof singlePaymentBillingInfoSchema
+export type SinglePaymentCheckoutInfoCore = z.infer<
+  typeof singlePaymentCheckoutInfoSchema
 >
 
-const invoiceBillingInfoSchema = z.object({
+const invoiceCheckoutInfoSchema = checkoutInfoCoreSchema.extend({
   invoice: invoicesClientSelectSchema,
   invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
   flowType: z.literal(CheckoutFlowType.Invoice),
 })
 
-export const billingInfoSchema = z
-  .discriminatedUnion('flowType', [
-    subscriptionBillingInfoSchema,
-    singlePaymentBillingInfoSchema,
-    invoiceBillingInfoSchema,
-    addPaymentMethodBillingInfoSchema,
-  ])
-  .and(
-    z.object({
-      checkoutSession: checkoutSessionClientSelectSchema,
-      /**
-       * Only present for open purchases
-       */
-      customer: customersSelectSchema.nullish(),
-      sellerOrganization: organizationsSelectSchema,
-      redirectUrl: z.string().url(),
-      cancelUrl: z.string().url().nullish(),
-      clientSecret: z.string().nullable(),
-      discount: discountClientSelectSchema.nullish(),
-      /**
-       * Only present when checkoutSession.customerId is not null
-       */
-      readonlyCustomerEmail: z.string().email().nullish(),
-      feeCalculation:
-        customerFacingFeeCalculationSelectSchema.nullable(),
-    })
-  )
+export const checkoutInfoSchema = z.discriminatedUnion('flowType', [
+  subscriptionCheckoutInfoSchema,
+  singlePaymentCheckoutInfoSchema,
+  invoiceCheckoutInfoSchema,
+  addPaymentMethodCheckoutInfoSchema,
+])
 
-export type BillingInfoCore = z.infer<typeof billingInfoSchema>
+export type CheckoutInfoCore = z.infer<typeof checkoutInfoSchema>
 
 export const createCustomerInputSchema = z.object({
   customer: customerClientInsertSchema,

@@ -1,10 +1,10 @@
 'use client'
 
-import BillingInfo from '@/components/ion/BillingInfo'
+import CheckoutInfo from '@/components/ion/CheckoutInfo'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import { subscriptionCheckoutPageContextValuesWithTrial } from '@/stubs/checkoutContextStubs'
 
-const TestBillingInfoPage = () => {
+const TestCheckoutInfoPage = () => {
   return (
     <CheckoutPageProvider
       values={subscriptionCheckoutPageContextValuesWithTrial}
@@ -16,23 +16,23 @@ const TestBillingInfoPage = () => {
           <h2 className="text-xl font-semibold mb-4">
             Subscription with Trial
           </h2>
-          <BillingInfo />
+          <CheckoutInfo />
         </section>
 
         <section>
           <h2 className="text-xl font-semibold mb-4">
             Subscription without Trial
           </h2>
-          <BillingInfo />
+          <CheckoutInfo />
         </section>
 
         <section>
           <h2 className="text-xl font-semibold mb-4">Installment</h2>
-          <BillingInfo />
+          <CheckoutInfo />
         </section>
       </div>
     </CheckoutPageProvider>
   )
 }
 
-export default TestBillingInfoPage
+export default TestCheckoutInfoPage

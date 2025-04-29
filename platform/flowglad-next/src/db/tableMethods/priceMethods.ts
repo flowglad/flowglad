@@ -226,7 +226,7 @@ export const selectDefaultPriceAndProductByProductId = async (
 }
 
 export const selectPriceProductAndOrganizationByPriceWhere = async (
-  whereConditions: Partial<Price.Record>,
+  whereConditions: Price.Where,
   transaction: DbTransaction
 ) => {
   let query = transaction
