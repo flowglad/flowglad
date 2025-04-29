@@ -1,7 +1,7 @@
 'use client'
-import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import CheckoutForm from '@/components/CheckoutForm'
-import BillingInfo from '@/components/ion/BillingInfo'
+import CheckoutDetails from '@/components/ion/CheckoutDetails'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import { trpc } from '@/app/_trpc/client'
 import { useEffect, useRef } from 'react'
@@ -10,16 +10,16 @@ import { CheckoutFlowType } from '@/types'
 import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 
 const CheckoutPage = ({
-  billingInfo,
+  checkoutInfo,
 }: {
-  billingInfo: BillingInfoCore
+  checkoutInfo: CheckoutInfoCore
 }) => {
-  if (billingInfo.flowType === CheckoutFlowType.Invoice) {
+  if (checkoutInfo.flowType === CheckoutFlowType.Invoice) {
     throw Error(
       'Invoice checkout flow cannot be rendered as a Checkout Page'
     )
   }
-  useSetCheckoutSessionCookieEffect(billingInfo)
+  useSetCheckoutSessionCookieEffect(checkoutInfo)
 
   /** Background split overlay for left side of checkout page */
   const leftBackgroundOverlay = core.cn(
@@ -51,7 +51,7 @@ const CheckoutPage = ({
     'lg:pl-8'
   )
   return (
-    <CheckoutPageProvider values={billingInfo}>
+    <CheckoutPageProvider values={checkoutInfo}>
       <div className={leftBackgroundOverlay} />
       <div className={rightBackgroundOverlay} />
       <div className={checkoutContainer}>
@@ -61,7 +61,7 @@ const CheckoutPage = ({
             'lg:justify-end lg:pl-0 lg:pr-8 lg:pt-18'
           )}
         >
-          <BillingInfo />
+          <CheckoutDetails />
         </div>
         <div className={checkoutFormContainer}>
           <CheckoutForm />

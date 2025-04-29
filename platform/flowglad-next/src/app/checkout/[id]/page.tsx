@@ -3,8 +3,8 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import {
-  BillingInfoCore,
-  billingInfoSchema,
+  CheckoutInfoCore,
+  checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
@@ -142,7 +142,7 @@ const CheckoutSessionPage = async ({
     throw new Error('No client secret found')
   }
 
-  const billingInfo: BillingInfoCore = billingInfoSchema.parse({
+  const checkoutInfo: CheckoutInfoCore = checkoutInfoSchema.parse({
     checkoutSession,
     product,
     price,
@@ -162,7 +162,7 @@ const CheckoutSessionPage = async ({
         : 'single_payment',
   })
 
-  return <CheckoutPage billingInfo={billingInfo} />
+  return <CheckoutPage checkoutInfo={checkoutInfo} />
 }
 
 export default CheckoutSessionPage

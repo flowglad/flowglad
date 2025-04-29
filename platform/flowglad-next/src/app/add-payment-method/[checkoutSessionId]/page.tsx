@@ -1,6 +1,6 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   CheckoutSessionStatus,
@@ -71,7 +71,7 @@ const CheckoutSessionPage = async ({
     throw new Error('No client secret found')
   }
 
-  const billingInfo: BillingInfoCore = {
+  const checkoutInfo: CheckoutInfoCore = {
     checkoutSession,
     sellerOrganization,
     redirectUrl: core.safeUrl(
@@ -100,7 +100,7 @@ const CheckoutSessionPage = async ({
         </div>
         <div className="flex-0" />
       </div>
-      <CheckoutPageProvider values={billingInfo}>
+      <CheckoutPageProvider values={checkoutInfo}>
         <CheckoutForm />
       </CheckoutPageProvider>
     </div>

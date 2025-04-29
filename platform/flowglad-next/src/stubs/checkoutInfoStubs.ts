@@ -10,7 +10,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
 } from '@/types'
-import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 const checkoutSession: CheckoutSession.Record = {
@@ -43,7 +43,7 @@ const checkoutSession: CheckoutSession.Record = {
   updatedByCommit: 'test',
 }
 
-const billingInfoDefaults = {
+const checkoutInfoDefaults = {
   redirectUrl: '',
   clientSecret: '',
   checkoutSession,
@@ -54,21 +54,22 @@ const billingInfoDefaults = {
   feeCalculation: null,
 }
 
-export const subscriptionBillingInfoCoreWithTrial: BillingInfoCore = {
-  product: dummyProduct,
-  purchase: subscriptionWithTrialDummyPurchase,
-  price: subscriptionDummyPrice,
-  sellerOrganization: dummyOrganization,
-  flowType: CheckoutFlowType.Subscription,
-  ...billingInfoDefaults,
-}
+export const subscriptionCheckoutInfoCoreWithTrial: CheckoutInfoCore =
+  {
+    product: dummyProduct,
+    purchase: subscriptionWithTrialDummyPurchase,
+    price: subscriptionDummyPrice,
+    sellerOrganization: dummyOrganization,
+    flowType: CheckoutFlowType.Subscription,
+    ...checkoutInfoDefaults,
+  }
 
-export const subscriptionBillingInfoCoreWithoutTrial: BillingInfoCore =
+export const subscriptionCheckoutInfoCoreWithoutTrial: CheckoutInfoCore =
   {
     product: dummyProduct,
     purchase: subscriptionWithoutTrialDummyPurchase,
     price: subscriptionDummyPrice,
     sellerOrganization: dummyOrganization,
     flowType: CheckoutFlowType.Subscription,
-    ...billingInfoDefaults,
+    ...checkoutInfoDefaults,
   }

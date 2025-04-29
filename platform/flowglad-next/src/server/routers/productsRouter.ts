@@ -1,16 +1,12 @@
 import { protectedProcedure, router } from '../trpc'
 import {
-  insertProduct,
-  updateProduct,
   selectProductsPaginated,
   selectProductById,
   getProductTableRows,
-  ProductRow,
 } from '@/db/tableMethods/productMethods'
 import {
   createProductTransaction,
   editProduct as editProductCatalog,
-  editPriceTransaction,
 } from '@/utils/catalog'
 import {
   createProductSchema,
@@ -26,7 +22,10 @@ import {
   productsPaginatedListSchema,
   productsPaginatedSelectSchema,
 } from '@/db/schema/products'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import {
+  safelyUpdatePrice,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
 import { selectPricesProductsAndCatalogsForOrganization } from '@/db/tableMethods/priceMethods'
 import * as R from 'ramda'
 import { Price } from '@/db/schema/prices'
@@ -90,10 +89,7 @@ export const editProduct = protectedProcedure
           throw new Error('Product not found or update failed')
         }
         if (input.price) {
-          await editPriceTransaction(
-            { price: input.price },
-            transaction
-          )
+          await safelyUpdatePrice(input.price, transaction)
         }
         return {
           product: updatedProduct,

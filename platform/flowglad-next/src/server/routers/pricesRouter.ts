@@ -7,10 +7,11 @@ import {
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
 } from '@/db/schema/prices'
-import { editPriceTransaction } from '@/utils/catalog'
 import { createPriceSchema } from '@/db/schema/prices'
 import {
   insertPrice,
+  safelyInsertPrice,
+  safelyUpdatePrice,
   selectPrices,
   selectPricesPaginated,
   selectPricesTableRowData,
@@ -70,8 +71,8 @@ export const createPrice = protectedProcedure
         const defaultPrices = [...existingPrices, price].filter(
           (v) => v.isDefault
         )
-
-        if (defaultPrices.length !== 1) {
+        console.log('defaultPrices', defaultPrices)
+        if (defaultPrices.length > 1) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
@@ -82,9 +83,14 @@ export const createPrice = protectedProcedure
           ctx.organizationId!,
           transaction
         )
-        const newPrice = await insertPrice(
+        const existingProductHasNoDefaultPrice =
+          existingPrices.length === 0
+        const newPrice = await safelyInsertPrice(
           {
             ...price,
+            isDefault:
+              existingProductHasNoDefaultPrice ||
+              input.price.isDefault,
             livemode: ctx.livemode,
             currency: organization.defaultCurrency,
             externalId: null,
@@ -107,11 +113,10 @@ export const editPrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction, userId }) => {
+      async ({ transaction }) => {
         const { price } = input
-
-        const updatedPrice = await editPriceTransaction(
-          { price },
+        const updatedPrice = await safelyUpdatePrice(
+          price,
           transaction
         )
         return {

@@ -20,6 +20,7 @@ const publicRoutes = [
   '/api/trpc/public.(.*)',
   '/checkout/(.*)',
   '/add-payment-method/(.*)',
+  '/price/(.*)/purchase',
   /**
    * Purchase session procedures need to be public,
    * otherwise anon users will hit 307 redirects.

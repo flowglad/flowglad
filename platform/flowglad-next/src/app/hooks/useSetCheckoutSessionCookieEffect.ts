@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { trpc } from '../_trpc/client'
 import { CheckoutFlowType, CheckoutSessionType } from '@/types'
-import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 
 export const useSetCheckoutSessionCookieEffect = (
-  billingInfo: BillingInfoCore
+  checkoutInfo: CheckoutInfoCore
 ) => {
-  const { checkoutSession } = billingInfo
+  const { checkoutSession } = checkoutInfo
   const checkoutSessionId = checkoutSession.id
   const setCheckoutSessionCookie =
     trpc.purchases.createSession.useMutation()
@@ -41,13 +41,13 @@ export const useSetCheckoutSessionCookieEffect = (
       })
     }
     if (checkoutSessionType === CheckoutSessionType.Product) {
-      if (billingInfo.flowType === CheckoutFlowType.Invoice) {
+      if (checkoutInfo.flowType === CheckoutFlowType.Invoice) {
         throw Error(
           `Flow type cannot be Invoice while purchase session type is Product. Checkout session id: ${checkoutSessionId}`
         )
       }
       if (
-        billingInfo.flowType === CheckoutFlowType.AddPaymentMethod
+        checkoutInfo.flowType === CheckoutFlowType.AddPaymentMethod
       ) {
         throw Error(
           `Flow type cannot be AddPaymentMethod while purchase session type is Product. Checkout session id: ${checkoutSessionId}`
@@ -55,7 +55,7 @@ export const useSetCheckoutSessionCookieEffect = (
       }
 
       setCheckoutSessionCookie.mutateAsync({
-        productId: billingInfo.product!.id,
+        productId: checkoutInfo.product!.id,
         type: CheckoutSessionType.Product,
         id: checkoutSessionId,
       })

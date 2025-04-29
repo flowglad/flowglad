@@ -18,7 +18,7 @@ import {
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq, count, desc } from 'drizzle-orm'
-import { BillingInfoCore } from './purchaseMethods'
+import { CheckoutInfoCore } from './purchaseMethods'
 import { customers } from '@/db/schema/customers'
 import {
   InvoiceLineItem,

@@ -3,14 +3,14 @@ import { useState } from 'react'
 import Button from '@/components/ion/Button'
 import { Invoice } from '@/db/schema/invoices'
 import CheckoutModal from '@/components/CheckoutModal'
-import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 
 export const CustomerInvoicePayButtonBanner = ({
   invoice,
-  billingInfo,
+  checkoutInfo,
 }: {
   invoice: Invoice.Record
-  billingInfo: BillingInfoCore
+  checkoutInfo: CheckoutInfoCore
 }) => {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] =
     useState(false)
@@ -38,7 +38,7 @@ export const CustomerInvoicePayButtonBanner = ({
       <CheckoutModal
         isOpen={isCheckoutModalOpen}
         onClose={() => setIsCheckoutModalOpen(false)}
-        billingInfo={billingInfo}
+        checkoutInfo={checkoutInfo}
         title={`Pay Invoice #${invoice.invoiceNumber}`}
       />
     </>

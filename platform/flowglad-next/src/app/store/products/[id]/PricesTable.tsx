@@ -7,7 +7,6 @@ import { useMemo, useState } from 'react'
 import Table from '@/components/ion/Table'
 import { Price } from '@/db/schema/prices'
 import core from '@/utils/core'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import {
   PopoverMenuItem,
   PopoverMenuItemState,
@@ -23,6 +22,7 @@ import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 
 const MoreMenuCell = ({
   price,
@@ -34,10 +34,17 @@ const MoreMenuCell = ({
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
   const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
+  const copyTextHandler = useCopyTextHandler({
+    text: `${process.env.NEXT_PUBLIC_APP_URL}/price/${price.id}/purchase`,
+  })
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit price',
       handler: () => setIsEditOpen(true),
+    },
+    {
+      label: 'Copy purchase link',
+      handler: copyTextHandler,
     },
   ]
   /**

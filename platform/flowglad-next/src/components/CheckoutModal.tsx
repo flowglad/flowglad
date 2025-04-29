@@ -1,5 +1,5 @@
 'use client'
-import { BillingInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import CheckoutForm from '@/components/CheckoutForm'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import Modal from '@/components/ion/Modal'
@@ -9,17 +9,17 @@ import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSes
 interface CheckoutModalProps {
   isOpen: boolean
   onClose: () => void
-  billingInfo: BillingInfoCore
+  checkoutInfo: CheckoutInfoCore
   title?: string
 }
 
 const CheckoutModal = ({
   isOpen,
   onClose,
-  billingInfo,
+  checkoutInfo,
   title,
 }: CheckoutModalProps) => {
-  useSetCheckoutSessionCookieEffect(billingInfo)
+  useSetCheckoutSessionCookieEffect(checkoutInfo)
 
   const checkoutFormContainer = cn(
     'bg-internal',
@@ -28,7 +28,7 @@ const CheckoutModal = ({
 
   return (
     <Modal open={isOpen} onOpenChange={onClose} title={title}>
-      <CheckoutPageProvider values={billingInfo}>
+      <CheckoutPageProvider values={checkoutInfo}>
         <div className={checkoutFormContainer}>
           <CheckoutForm />
         </div>

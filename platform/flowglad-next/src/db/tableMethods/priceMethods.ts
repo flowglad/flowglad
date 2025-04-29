@@ -226,7 +226,7 @@ export const selectDefaultPriceAndProductByProductId = async (
 }
 
 export const selectPriceProductAndOrganizationByPriceWhere = async (
-  whereConditions: Partial<Price.Record>,
+  whereConditions: Price.Where,
   transaction: DbTransaction
 ) => {
   let query = transaction
@@ -344,4 +344,49 @@ export const bulkInsertOrDoNothingPricesByExternalId = (
     [prices.externalId, prices.productId],
     transaction
   )
+}
+
+const setPricesForProductToNonDefault = async (
+  productId: string,
+  transaction: DbTransaction
+) => {
+  await transaction
+    .update(prices)
+    .set({ isDefault: false })
+    .where(eq(prices.productId, productId))
+}
+
+export const dangerouslyInsertPrice = createInsertFunction(
+  prices,
+  config
+)
+
+export const safelyInsertPrice = async (
+  price: Price.Insert,
+  transaction: DbTransaction
+) => {
+  if (price.isDefault) {
+    await setPricesForProductToNonDefault(
+      price.productId,
+      transaction
+    )
+  }
+  return dangerouslyInsertPrice(price, transaction)
+}
+
+export const safelyUpdatePrice = async (
+  price: Price.Update,
+  transaction: DbTransaction
+) => {
+  /**
+   * If price is default
+   */
+  if (price.isDefault) {
+    const existingPrice = await selectPriceById(price.id, transaction)
+    await setPricesForProductToNonDefault(
+      existingPrice.productId,
+      transaction
+    )
+  }
+  return updatePrice(price, transaction)
 }

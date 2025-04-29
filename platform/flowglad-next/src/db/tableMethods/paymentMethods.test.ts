@@ -12,7 +12,6 @@ import {
   safelyUpdatePaymentForRefund,
   safelyUpdatePaymentStatus,
   selectPaymentById,
-  updatePayment,
 } from './paymentMethods'
 import { Payment } from '../schema/payments'
 import { Organization } from '../schema/organizations'
