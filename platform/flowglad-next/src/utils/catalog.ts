@@ -8,6 +8,7 @@ import {
   bulkInsertPrices,
   insertPrice,
   makePriceDefault,
+  safelyUpdatePrice,
   selectPrices,
   selectPricesAndProductsByProductWhere,
   updatePrice,
@@ -109,13 +110,7 @@ export const editPriceTransaction = async (
     previousPrice?.unitPrice !== price.unitPrice ||
     previousPrice?.intervalUnit !== price.intervalUnit ||
     previousPrice?.intervalCount !== price.intervalCount
-
-  // If we're setting this price as default, update the previous default price
-  if (price.isDefault) {
-    await makePriceDefault(price.id, transaction)
-  }
-
-  return updatePrice(price, transaction)
+  return safelyUpdatePrice(price, transaction)
 }
 
 export const cloneCatalogTransaction = async (

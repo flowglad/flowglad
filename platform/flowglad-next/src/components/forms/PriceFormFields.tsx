@@ -239,6 +239,11 @@ const PriceFormFields = ({
                 if (value === PriceType.SinglePayment) {
                   setValue('price.intervalCount', null)
                   setValue('price.intervalUnit', null)
+                  setValue('price.usageMeterId', null)
+                  setValue('price.trialPeriodDays', null)
+                }
+                if (value !== PriceType.Usage) {
+                  setValue('price.usageMeterId', null)
                 }
                 field.onChange(value)
               }}
