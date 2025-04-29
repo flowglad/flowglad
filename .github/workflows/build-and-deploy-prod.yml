@@ -1,5 +1,8 @@
 name: Build and Deploy Production
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -11,10 +14,18 @@ on:
         options:
           - preview
           - production
-
   push:
     branches:
       - stable
+
+  # We need this in order to trigger prod deploy for every release on main,
+  # because rebase merges do not count as "push" events in Github Actions.
+  workflow_run:
+    workflows: ["Build and Deploy Staging"]
+    types:
+      - completed
+    branches:
+      - main
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
