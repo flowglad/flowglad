@@ -2,7 +2,6 @@ import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import {
   Body,
-  Button,
   Container,
   Column,
   Head,
@@ -10,7 +9,6 @@ import {
   Hr,
   Html,
   Img,
-  Link,
   Preview,
   Row,
   Section,
