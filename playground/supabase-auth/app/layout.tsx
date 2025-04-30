@@ -37,19 +37,10 @@ export default async function RootLayout({ children }: PropsWithChildren) {
             }
           }}
           theme={{
-            light: {
-              background: 'hsl(0 100% 50%)',
-              card: 'hsl(0 0% 100%)',
-              cardForeground: 'rgba(255, 0, 0, 0.8)',
-              // containerForeground: '#000000',
-              border: '#cccccc'
-              // buttonBackground: '#007bff',
-              // buttonForeground: '#ffffff',
-              // destructive: '#dc3545',
-              // destructiveForeground: '#ffffff'
-            },
+            mode: 'dark',
             dark: {
-              // background: 'hsl(0 100% 50%)',
+              background: '#1b1b1b',
+              card: 'rgb(35 35 35)'
               // card: 'hsl(125 85% 3.9%)',
               // cardForeground: 'rgba(255, 0, 0, 0.8)',
               // foreground: 'rgba(255, 0, 0, 0.5)',

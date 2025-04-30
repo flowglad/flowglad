@@ -10,7 +10,7 @@
     "install-packages": "pnpm install --ignore-workspace"
   },
   "dependencies": {
-    "@flowglad/nextjs": "0.10.7",
+    "@flowglad/nextjs": "0.10.8",
     "@hookform/resolvers": "3.10.0",
     "@radix-ui/react-label": "2.1.4",
     "@stackframe/stack": "^2.7.27",

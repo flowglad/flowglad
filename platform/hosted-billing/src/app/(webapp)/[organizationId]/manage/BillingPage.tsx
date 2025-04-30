@@ -16,6 +16,15 @@ export function BillingPage({
       requestConfig={{
         serverRoute: `/api/${organizationId}/flowglad`,
       }}
+      theme={{
+        mode: 'dark',
+        dark: {
+          background: '#1b1b1b',
+          card: 'rgb(35 35 35)',
+          destructive: 'hsl(0 87% 37%)',
+          border: 'rgb(55 55 55)',
+        },
+      }}
     >
       <div className="h-full w-full justify-center flex">
         <div className="w-2/5 h-full pt-16">
