@@ -49,7 +49,7 @@ export const attemptBillingRunsTask = task({
             billingRun,
             livemode: false,
           },
-          idempotencyKey: idempotencyKeys.create(
+          idempotencyKey: createTriggerIdempotencyKey(
             `attempt-testmode-billing-run:${billingRun.id}`
           ),
         }))
