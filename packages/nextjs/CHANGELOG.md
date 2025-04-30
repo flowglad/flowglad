@@ -1,5 +1,15 @@
 # @flowglad/nextjs
 
+## 0.10.8
+
+### Patch Changes
+
+- Add theme overrides to FlowgladTheme and FlowgladProvider
+- Updated dependencies
+  - @flowglad/react@0.10.8
+  - @flowglad/server@0.10.8
+  - @flowglad/shared@0.10.8
+
 ## 0.10.7
 
 ### Patch Changes
