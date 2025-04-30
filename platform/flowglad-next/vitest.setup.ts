@@ -1,5 +1,7 @@
 // vitest.setup.ts
+import '@testing-library/jest-dom/vitest'
 import { webcrypto } from 'node:crypto'
+import { cleanup } from '@testing-library/react'
 import { stripeServer } from './mocks/stripeServer'
 import { triggerServer } from './mocks/triggerServer'
 import { beforeAll, afterAll, afterEach } from 'vitest'
@@ -19,7 +21,11 @@ beforeAll(async () => {
 })
 
 // Reset handlers after each test (optional, but recommended)
-afterEach(() => stripeServer.resetHandlers())
+afterEach(() => {
+  stripeServer.resetHandlers()
+  triggerServer.resetHandlers()
+  cleanup()
+})
 
 // Stop the mock server after all tests
 afterAll(async () => {

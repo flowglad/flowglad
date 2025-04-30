@@ -263,7 +263,7 @@ const safelyProcessCreationForExistingSubscription = async (
    * - For subscription prices: billing runs at period start
    * - For usage-based prices: billing runs at period end
    */
-  if (subscription.runBillingAtPeriodStart) {
+  if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
     await attemptBillingRunTask.trigger({
       billingRun,
     })
