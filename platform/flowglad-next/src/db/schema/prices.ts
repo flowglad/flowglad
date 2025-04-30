@@ -187,13 +187,7 @@ export const subscriptionPriceSelectSchema = basePriceSelectSchema
 
 export const subscriptionPriceInsertSchema =
   subscriptionPriceSelectSchema
-    .omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      createdByCommit: true,
-      updatedByCommit: true,
-    })
+    .omit(ommittedColumnsForInsertSchema)
     .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
 
 export const subscriptionPriceUpdateSchema =
@@ -248,11 +242,7 @@ export const usagePriceSelectSchema = basePriceSelectSchema
   .describe(USAGE_PRICE_DESCRIPTION)
 
 export const usagePriceInsertSchema = usagePriceSelectSchema
-  .omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  })
+  .omit(ommittedColumnsForInsertSchema)
   .describe(USAGE_PRICE_DESCRIPTION)
 
 export const usagePriceUpdateSchema = usagePriceInsertSchema
