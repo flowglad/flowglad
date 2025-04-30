@@ -577,6 +577,9 @@ export const setupPayment = async ({
   paymentMethod,
   billingPeriodId,
   subscriptionId,
+  refunded = false,
+  refundedAmount = 0,
+  refundedAt,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -589,6 +592,9 @@ export const setupPayment = async ({
   invoiceId: string
   billingPeriodId?: string
   subscriptionId?: string
+  refunded?: boolean
+  refundedAmount?: number
+  refundedAt?: Date
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -605,11 +611,11 @@ export const setupPayment = async ({
         currency: CurrencyCode.USD,
         paymentMethod: paymentMethod ?? PaymentMethodType.Card,
         chargeDate: new Date(),
-        refunded: false,
-        refundedAt: null,
-        refundedAmount: 0,
         taxCountry: CountryCode.US,
         subscriptionId: subscriptionId ?? null,
+        refunded,
+        refundedAmount,
+        refundedAt,
       },
       transaction
     )

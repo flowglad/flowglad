@@ -67,6 +67,8 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
       invoiceLineItems,
       organizationName: organization.name,
       to: [customer.email],
+      organizationId: organization.id,
+      customerExternalId: customer.externalId,
     })
 
     if (result?.error) {

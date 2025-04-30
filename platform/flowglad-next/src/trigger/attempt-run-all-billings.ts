@@ -2,6 +2,7 @@ import { logger, task, idempotencyKeys } from '@trigger.dev/sdk/v3'
 import { attemptBillingRunTask } from './attempt-billing-run'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunsDueForExecution } from '@/db/tableMethods/billingRunMethods'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 export const attemptBillingRunsTask = task({
   id: 'attempt-billing-runs',
@@ -35,7 +36,7 @@ export const attemptBillingRunsTask = task({
             billingRun,
             livemode: true,
           },
-          idempotencyKey: idempotencyKeys.create(
+          idempotencyKey: createTriggerIdempotencyKey(
             `attempt-livemode-billing-run:${billingRun.id}`
           ),
         }))
@@ -48,7 +49,7 @@ export const attemptBillingRunsTask = task({
             billingRun,
             livemode: false,
           },
-          idempotencyKey: idempotencyKeys.create(
+          idempotencyKey: createTriggerIdempotencyKey(
             `attempt-testmode-billing-run:${billingRun.id}`
           ),
         }))

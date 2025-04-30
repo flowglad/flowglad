@@ -20,3 +20,24 @@ export const helloWorldTask = task({
   },
 })
 ```
+
+# Notes
+- If an operation is sensitive and should only occur once, you should make sure that there is an idempotent function to invoke it, like so:
+```
+// top of file
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+....
+export const idempotentSendOrganizationSubscriptionCreatedNotification =
+  async (subscription: Subscription.Record) => {
+    await sendOrganizationSubscriptionCreatedNotificationTask.trigger(
+      {
+        subscription,
+      },
+      {
+        idempotencyKey: await createTriggerIdempotencyKey( // ALWAYS use `createTriggerIdempotencyKey` from our backendCore so we don't break tests
+          `send-organization-subscription-created-notification-${subscription.id}`
+        ),
+      }
+    )
+  }
+```

@@ -16,13 +16,14 @@ import { Invoice } from '@/db/schema/invoices'
 import { Payment } from '@/db/schema/payments'
 import { Customer } from '@/db/schema/customers'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { formatCurrency, formatDate, titleCase } from '@/utils/core'
+import { formatDate, titleCase } from '@/utils/core'
 import { BillingAddress } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
 import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode } from '@/types'
+
 /**
  * Use the
  * @param paymentMethod
@@ -49,6 +50,7 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
     <Row style={{ marginBottom: '20px' }}>
       <Column style={{ width: '70%' }}>
         <Text
+          data-testid="document-title"
           style={{
             fontSize: '32px',
             fontWeight: '700',
@@ -71,6 +73,7 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
       >
         {organization.logoURL ? (
           <Img
+            data-testid="organization-logo"
             src={organization.logoURL}
             alt={`${organization.name}`}
             width="64"
@@ -78,7 +81,10 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
             style={{ marginLeft: 'auto' }}
           />
         ) : (
-          <Text style={{ fontSize: '24px', fontWeight: 'bold' }}>
+          <Text
+            data-testid="organization-name"
+            style={{ fontSize: '24px', fontWeight: 'bold' }}
+          >
             {organization.name}
           </Text>
         )}
@@ -113,24 +119,30 @@ export const DocumentDetails: React.FC<DocumentDetailsProps> = ({
           <span style={{ display: 'inline-block', width: '150px' }}>
             {mode === 'receipt' ? 'Receipt number' : 'Invoice number'}
           </span>
-          {mode === 'receipt' && paymentData
-            ? paymentData.payment.id
-            : invoice.invoiceNumber}
+          <span data-testid="document-number">
+            {mode === 'receipt' && paymentData
+              ? paymentData.payment.id
+              : invoice.invoiceNumber}
+          </span>
         </Text>
         <Text style={{ margin: '5px 0', fontWeight: 'normal' }}>
           <span style={{ display: 'inline-block', width: '150px' }}>
             {mode === 'receipt' ? 'Date paid' : 'Date of issue'}
           </span>
-          {mode === 'receipt' && paymentData
-            ? formatDate(paymentData.payment.chargeDate)
-            : formattedInvoiceDate}
+          <span data-testid="document-date">
+            {mode === 'receipt' && paymentData
+              ? formatDate(paymentData.payment.chargeDate)
+              : formattedInvoiceDate}
+          </span>
         </Text>
         {mode === 'receipt' && paymentData && (
           <Text style={{ margin: '5px 0', fontWeight: 'normal' }}>
             <span style={{ display: 'inline-block', width: '150px' }}>
               Payment method
             </span>
-            {safePaymentMethodSummaryLabel(paymentData)}
+            <span data-testid="payment-method">
+              {safePaymentMethodSummaryLabel(paymentData)}
+            </span>
           </Text>
         )}
         {mode === 'invoice' && (
@@ -138,7 +150,7 @@ export const DocumentDetails: React.FC<DocumentDetailsProps> = ({
             <span style={{ display: 'inline-block', width: '150px' }}>
               Date due
             </span>
-            {formattedDueDate}
+            <span data-testid="due-date">{formattedDueDate}</span>
           </Text>
         )}
       </Column>
@@ -176,7 +188,10 @@ const OrganizationContactInfo: React.FC<{
 }> = ({ organization }) => {
   return (
     <>
-      <Text style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>
+      <Text
+        style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}
+        data-testid="organization-contact-info-name"
+      >
         {organization.name}
       </Text>
       {organization.billingAddress && (
@@ -193,7 +208,7 @@ const OrganizationContactInfo: React.FC<{
   )
 }
 
-export const CheckoutInfo: React.FC<CheckoutInfoProps> = ({
+export const BillingInfo: React.FC<CheckoutInfoProps> = ({
   organization,
   customer,
   billingAddress,
@@ -217,31 +232,50 @@ export const CheckoutInfo: React.FC<CheckoutInfoProps> = ({
           verticalAlign: 'top',
         }}
       >
-        <Text style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>
+        <Text
+          data-testid="bill-to-label"
+          style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}
+        >
           Bill to
         </Text>
-        <Text style={{ margin: '0' }}>{customer.name}</Text>
+        <Text data-testid="customer-name" style={{ margin: '0' }}>
+          {customer.name}
+        </Text>
         {billingAddress && (
           <>
-            <Text style={{ margin: '0' }}>
+            <Text data-testid="address-line1" style={{ margin: '0' }}>
               {billingAddress.address.line1}
             </Text>
             {billingAddress.address.line2 && (
-              <Text style={{ margin: '0' }}>
+              <Text
+                data-testid="address-line2"
+                style={{ margin: '0' }}
+              >
                 {billingAddress.address.line2}
               </Text>
             )}
-            <Text style={{ margin: '0' }}>
+            <Text
+              data-testid="address-city-state"
+              style={{ margin: '0' }}
+            >
               {billingAddress.address.city},{' '}
               {billingAddress.address.state}{' '}
               {billingAddress.address.postal_code}
             </Text>
-            <Text style={{ margin: '0' }}>
+            <Text
+              data-testid="address-country"
+              style={{ margin: '0' }}
+            >
               {billingAddress.address.country}
             </Text>
           </>
         )}
-        <Text style={{ margin: '5px 0 0 0' }}>{customer.email}</Text>
+        <Text
+          data-testid="customer-email"
+          style={{ margin: '5px 0 0 0' }}
+        >
+          {customer.email}
+        </Text>
       </Column>
     </Row>
   )
@@ -282,14 +316,18 @@ export const InvoiceLineItems: React.FC<InvoiceLineItemsProps> = ({
         <tbody>
           {lineItems.map((item) => (
             <tr key={item.id}>
-              <td>{item.description}</td>
+              <td data-testid="line-item-description">
+                {item.description}
+              </td>
               <td
+                data-testid="line-item-quantity"
                 className="qty-column"
                 style={{ textAlign: 'right' }}
               >
                 {item.quantity}
               </td>
               <td
+                data-testid="line-item-price"
                 className="price-column"
                 style={{ textAlign: 'right' }}
               >
@@ -299,6 +337,7 @@ export const InvoiceLineItems: React.FC<InvoiceLineItemsProps> = ({
                 )}
               </td>
               <td
+                data-testid="line-item-amount-column"
                 className="amount-column"
                 style={{ textAlign: 'right' }}
               >
@@ -342,6 +381,7 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
     return (
       <Section style={{ marginBottom: '20px' }}>
         <Text
+          data-testid="payment-amount-date"
           style={{
             fontSize: '24px',
             fontWeight: '700',
@@ -361,6 +401,7 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
   return (
     <Section style={{ marginBottom: '20px' }}>
       <Text
+        data-testid="amount-due-with-due-date"
         style={{
           fontSize: '24px',
           fontWeight: '700',
@@ -377,6 +418,7 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
       {paymentLink && (
         <Text style={{ margin: '0 0 30px 0' }}>
           <Link
+            data-testid="pay-online-link"
             href={paymentLink}
             style={{ color: '#1a73e8', textDecoration: 'none' }}
           >
@@ -392,7 +434,7 @@ interface InvoiceTotalsProps {
   subtotal: number
   taxAmount: number
   total: number
-  currency?: string
+  currency?: CurrencyCode
   mode: 'receipt' | 'invoice'
   payment?: Payment.Record
 }
@@ -406,7 +448,7 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
   payment,
 }) => {
   return (
-    <Row>
+    <Row data-testid="invoice-totals">
       <Column style={{ width: '60%' }}></Column>
       <Column style={{ width: '40%' }}>
         <table style={{ width: '100%' }}>
@@ -420,8 +462,14 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
               <td style={{ padding: '5px 0', textAlign: 'left' }}>
                 Subtotal
               </td>
-              <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                {formatCurrency(subtotal)}
+              <td
+                data-testid="subtotal-amount"
+                style={{ padding: '5px 0', textAlign: 'right' }}
+              >
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currency as CurrencyCode,
+                  subtotal
+                )}
               </td>
             </tr>
             {taxAmount > 0 && (
@@ -434,8 +482,14 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                 <td style={{ padding: '5px 0', textAlign: 'left' }}>
                   Tax
                 </td>
-                <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                  {formatCurrency(taxAmount)}
+                <td
+                  data-testid="tax-amount"
+                  style={{ padding: '5px 0', textAlign: 'right' }}
+                >
+                  {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                    currency as CurrencyCode,
+                    taxAmount
+                  )}
                 </td>
               </tr>
             )}
@@ -451,12 +505,16 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                 Total
               </td>
               <td
+                data-testid="total-amount"
                 style={{
                   padding: '10px 0 5px 0',
                   textAlign: 'right',
                 }}
               >
-                {formatCurrency(total)}
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currency as CurrencyCode,
+                  total
+                )}
               </td>
             </tr>
             {mode === 'receipt' && payment ? (
@@ -466,6 +524,7 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                     Amount paid
                   </td>
                   <td
+                    data-testid="amount-paid"
                     style={{ padding: '5px 0', textAlign: 'right' }}
                   >
                     {stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -488,12 +547,16 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                           Refunded on {formatDate(payment.refundedAt)}
                         </td>
                         <td
+                          data-testid="refunded-amount"
                           style={{
                             padding: '5px 0',
                             textAlign: 'right',
                           }}
                         >
-                          {formatCurrency(payment.refundedAmount)}
+                          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                            payment.currency,
+                            payment.refundedAmount
+                          )}
                         </td>
                       </tr>
                       <tr style={{ fontWeight: 'bold' }}>
@@ -506,12 +569,16 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                           Total refunded without credit note
                         </td>
                         <td
+                          data-testid="total-refunded"
                           style={{
                             padding: '5px 0',
                             textAlign: 'right',
                           }}
                         >
-                          {formatCurrency(payment.refundedAmount)}
+                          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                            payment.currency,
+                            payment.refundedAmount
+                          )}
                         </td>
                       </tr>
                     </>
@@ -522,8 +589,14 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                 <td style={{ padding: '5px 0', textAlign: 'left' }}>
                   Amount due
                 </td>
-                <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                  {formatCurrency(total)} {currency}
+                <td
+                  data-testid="amount-due"
+                  style={{ padding: '5px 0', textAlign: 'right' }}
+                >
+                  {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                    currency as CurrencyCode,
+                    total
+                  )}
                 </td>
               </tr>
             )}
@@ -584,9 +657,11 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   const billingAddress = customer.billingAddress
 
   return (
-    <Html>
+    <Html data-testid="invoice-template">
       <Head>
-        <title>Invoice #{invoice.invoiceNumber}</title>
+        <title data-testid="invoice-template-title">
+          Invoice #{invoice.invoiceNumber}
+        </title>
         <style>
           {`
             body { 
@@ -643,7 +718,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           />
           <DocumentDetails invoice={invoice} mode="invoice" />
           {billingAddress && (
-            <CheckoutInfo
+            <BillingInfo
               organization={organization}
               customer={customer}
               billingAddress={billingAddress}

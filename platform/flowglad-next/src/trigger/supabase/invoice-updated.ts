@@ -87,12 +87,15 @@ export const invoiceUpdatedTask = task({
       await generatePaymentReceiptPdfTask.triggerAndWait({
         paymentId: paymentForInvoice.id,
       })
-      await sendReceiptEmail({
-        to: [customer.email],
-        invoice: newRecord,
-        invoiceLineItems,
-        organizationName: organization.name,
-      })
+      // sendReceiptEmail now sends the invoice rather than the receipt
+      // await sendReceiptEmail({
+      //   to: [customer.email],
+      //   invoice: newRecord,
+      //   invoiceLineItems,
+      //   organizationName: organization.name,
+      //   organizationId: organization.id,
+      //   customerExternalId: customer.externalId,
+      // })
     }
 
     return {

@@ -18,6 +18,7 @@ import {
 } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
+import core from '@/utils/core'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -30,10 +31,14 @@ export const OrderReceiptEmail = ({
   organizationLogoUrl,
   organizationName,
   currency,
+  organizationId,
+  customerExternalId,
 }: {
   invoiceNumber: string
   orderDate: string
   organizationLogoUrl?: string
+  organizationId: string
+  customerExternalId: string
   lineItems: {
     name: string
     price: number
@@ -106,7 +111,12 @@ export const OrderReceiptEmail = ({
 
           <Text style={thankYouText}>Thanks for the purchase!</Text>
           {/* TODO: create customer portal.... */}
-          <EmailButton href="https://example.com/view-order">
+          <EmailButton
+            href={core.safeUrl(
+              `${organizationId}/sign-in?externalId=${encodeURIComponent(customerExternalId)}`,
+              core.envVariable('HOSTED_BILLING_PORTAL_URL')
+            )}
+          >
             View Order →
           </EmailButton>
 

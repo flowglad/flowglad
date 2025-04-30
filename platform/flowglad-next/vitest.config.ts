@@ -7,17 +7,10 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     test: {
-      // testTimeout: 20000,
-      // pool: 'forks', // Important - prevents console swallowing
-      // poolOptions: {
-      //   // threads: {
-      //   //   singleThread: true,
-      //   // },
-      // },
       include: [
         'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
-      environment: 'node',
+      environment: 'jsdom',
       setupFiles: ['./vitest.setup.ts'],
       env: loadEnv(mode, process.cwd(), ''),
       deps: {
