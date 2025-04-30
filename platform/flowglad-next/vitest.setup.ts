@@ -23,7 +23,7 @@ beforeAll(async () => {
 // Reset handlers after each test (optional, but recommended)
 afterEach(() => {
   stripeServer.resetHandlers()
-  triggerServer.resetHandlers()
+  // triggerServer.resetHandlers()
   cleanup()
 })
 
