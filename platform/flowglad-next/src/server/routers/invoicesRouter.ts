@@ -184,11 +184,11 @@ const updateInvoiceProcedure = protectedProcedure
 const sendInvoiceReminderProcedure = protectedProcedure
   .meta(
     createPostOpenApiMeta({
-      resource: 'invoices/:id',
+      resource: 'invoices',
       routeSuffix: 'send-reminder',
       summary: 'Send Reminder Email for an Invoice',
       tags: ['Invoices', 'Invoice', 'Invoice Reminder'],
-      idParamOverride: 'invoiceId',
+      requireIdParam: true,
     })
   )
   .input(sendInvoiceReminderSchema)
@@ -196,10 +196,7 @@ const sendInvoiceReminderProcedure = protectedProcedure
   .mutation(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const invoice = await selectInvoiceById(
-          input.invoiceId,
-          transaction
-        )
+        const invoice = await selectInvoiceById(input.id, transaction)
         const organization = await selectOrganizationById(
           invoice.organizationId!,
           transaction

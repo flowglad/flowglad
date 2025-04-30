@@ -416,14 +416,6 @@ export const setHostedBillingCustomerExternalIdForStackAuthUser =
   }) => {
     const { stackAuthUser, organizationId, customerExternalId } =
       params
-    console.log(
-      'setHostedBillingCustomerExternalIdForStackAuthUser',
-      {
-        stackAuthUser,
-        organizationId,
-        customerExternalId,
-      }
-    )
     await stackAuthUser.update({
       serverMetadata: setCustomerExternalIdOnServerMetadata({
         existingServerMetadata: stackAuthUser.serverMetadata,

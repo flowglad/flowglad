@@ -10,6 +10,7 @@ import StatusBadge from '../StatusBadge'
 import { Accordion } from '../ion/Accordion'
 import AIHoverModal from './AIHoverModal'
 import CatalogSelect from './CatalogSelect'
+import core from '@/utils/core'
 
 export const ProductFormFields = ({
   editProduct = false,
@@ -24,6 +25,10 @@ export const ProductFormFields = ({
     control,
   } = useFormContext<CreateProductSchema>()
   const product = watch('product')
+  if (!core.IS_PROD && Object.keys(errors).length > 0) {
+    // eslint-disable-next-line no-console
+    console.log('errors', errors)
+  }
   return (
     <div className="relative flex justify-between items-center gap-2.5 bg-background">
       <div className="flex-1 w-full max-w-[656px] min-w-[460px] relative flex flex-col rounded-radius-md">

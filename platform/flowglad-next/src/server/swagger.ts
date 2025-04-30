@@ -1,6 +1,10 @@
 import { generateOpenApiDocument } from 'trpc-swagger'
 import { appRouter } from './index'
 
+export type OpenAPIV3Document = ReturnType<
+  typeof createFlowgladOpenApiDocument
+>
+
 export const createFlowgladOpenApiDocument = () =>
   generateOpenApiDocument(appRouter, {
     securitySchemes: {
