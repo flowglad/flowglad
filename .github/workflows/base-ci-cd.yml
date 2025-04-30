@@ -233,9 +233,6 @@ jobs:
 
   packages-react-tests:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/react
     env:
       NEXT_PUBLIC_STACK_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_STACK_PROJECT_ID }}
       NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: ${{ secrets.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY }}
@@ -270,6 +267,8 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install
+      - name: Run build
+        run: pnpm build
       - name: Run tests
         run: pnpm test
-  
+        working-directory: packages/react
