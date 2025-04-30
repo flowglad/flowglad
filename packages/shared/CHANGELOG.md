@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.10.8
+
+### Patch Changes
+
+- Add theme overrides to FlowgladTheme and FlowgladProvider
+
 ## 0.10.7
 
 ### Patch Changes
