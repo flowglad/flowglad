@@ -8,7 +8,10 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Payment } from '@/db/schema/payments'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 
 export const sendCustomerPaymentFailedNotificationTask = task({
   id: 'send-customer-payment-failed-notification',
@@ -85,7 +88,7 @@ export const sendCustomerPaymentFailedNotificationTask = task({
 })
 
 export const sendCustomerPaymentFailedNotificationIdempotently =
-  async (paymentRecord: Payment.Record) => {
+  testSafeTriggerInvoker(async (paymentRecord: Payment.Record) => {
     return await sendCustomerPaymentFailedNotificationTask.trigger(
       { paymentId: paymentRecord.id },
       {
@@ -94,4 +97,4 @@ export const sendCustomerPaymentFailedNotificationIdempotently =
         ),
       }
     )
-  }
+  })

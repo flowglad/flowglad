@@ -1,4 +1,4 @@
-import { isNil } from '@/utils/core'
+import core, { isNil } from '@/utils/core'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { Subscription } from '@/db/schema/subscriptions'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -7,7 +7,10 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { safeSend } from '@/utils/email'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 
 export const sendOrganizationSubscriptionCreatedNotificationTask =
   task({
@@ -79,15 +82,17 @@ export const sendOrganizationSubscriptionCreatedNotificationTask =
   })
 
 export const idempotentSendOrganizationSubscriptionCreatedNotification =
-  async (subscription: Subscription.Record) => {
-    await sendOrganizationSubscriptionCreatedNotificationTask.trigger(
-      {
-        subscription,
-      },
-      {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-organization-subscription-created-notification-${subscription.id}`
-        ),
-      }
-    )
-  }
+  testSafeTriggerInvoker(
+    async (subscription: Subscription.Record) => {
+      await sendOrganizationSubscriptionCreatedNotificationTask.trigger(
+        {
+          subscription,
+        },
+        {
+          idempotencyKey: await createTriggerIdempotencyKey(
+            `send-organization-subscription-created-notification-${subscription.id}`
+          ),
+        }
+      )
+    }
+  )

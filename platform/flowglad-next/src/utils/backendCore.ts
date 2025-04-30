@@ -12,3 +12,16 @@ export const createTriggerIdempotencyKey = async (key: string) => {
   }
   return await idempotencyKeys.create(key)
 }
+
+export const testSafeTriggerInvoker = <
+  T extends (...args: any[]) => Promise<any>,
+>(
+  triggerFn: T
+): T => {
+  return (async (...args: Parameters<T>) => {
+    if (process.env.NODE_ENV === 'test') {
+      return
+    }
+    return triggerFn(...args)
+  }) as T
+}
