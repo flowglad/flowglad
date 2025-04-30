@@ -8,6 +8,7 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Payment } from '@/db/schema/payments'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 export const sendCustomerPaymentFailedNotificationTask = task({
   id: 'send-customer-payment-failed-notification',
@@ -88,7 +89,7 @@ export const sendCustomerPaymentFailedNotificationIdempotently =
     return await sendCustomerPaymentFailedNotificationTask.trigger(
       { paymentId: paymentRecord.id },
       {
-        idempotencyKey: await idempotencyKeys.create(
+        idempotencyKey: await createTriggerIdempotencyKey(
           `send-customer-payment-failed-notification-${paymentRecord.id}`
         ),
       }

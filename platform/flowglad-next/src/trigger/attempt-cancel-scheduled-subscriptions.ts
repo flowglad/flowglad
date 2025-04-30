@@ -2,6 +2,7 @@ import { task, idempotencyKeys } from '@trigger.dev/sdk/v3'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectSubscriptionsToBeCancelled } from '@/db/tableMethods/subscriptionMethods'
 import { attemptSubscriptionCancellationTask } from './attempt-subscription-cancellation'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 export const attemptCancelScheduledSubscriptionsTask = task({
   id: 'attempt-cancel-scheduled-subscriptions',
@@ -39,7 +40,7 @@ export const attemptCancelScheduledSubscriptionsTask = task({
     })
     if (testmodeSubscriptionsToCancel.length > 0) {
       const testmodeSubscriptionCancellationIdempotencyKey =
-        await idempotencyKeys.create(
+        await createTriggerIdempotencyKey(
           'attempt-testmode-subscription-cancellation'
         )
       await attemptSubscriptionCancellationTask.batchTrigger(
@@ -56,7 +57,7 @@ export const attemptCancelScheduledSubscriptionsTask = task({
     }
     if (livemodeSubscriptionsToCancel.length > 0) {
       const livemodeSubscriptionCancellationIdempotencyKey =
-        await idempotencyKeys.create(
+        await createTriggerIdempotencyKey(
           'attempt-livemode-subscription-cancellation'
         )
       await attemptSubscriptionCancellationTask.batchTrigger(

@@ -7,6 +7,7 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { OrganizationSubscriptionCanceledNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { safeSend } from '@/utils/email'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 export const sendOrganizationSubscriptionCanceledNotificationTask =
   task({
@@ -87,7 +88,7 @@ export const idempotentSendOrganizationSubscriptionCanceledNotification =
         subscription,
       },
       {
-        idempotencyKey: await idempotencyKeys.create(
+        idempotencyKey: await createTriggerIdempotencyKey(
           `send-organization-subscription-canceled-notification-${subscription.id}`
         ),
       }

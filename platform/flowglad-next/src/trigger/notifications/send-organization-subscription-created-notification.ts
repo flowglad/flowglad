@@ -1,5 +1,5 @@
 import { isNil } from '@/utils/core'
-import { idempotencyKeys, logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { Subscription } from '@/db/schema/subscriptions'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -7,6 +7,7 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { safeSend } from '@/utils/email'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 export const sendOrganizationSubscriptionCreatedNotificationTask =
   task({
@@ -84,7 +85,7 @@ export const idempotentSendOrganizationSubscriptionCreatedNotification =
         subscription,
       },
       {
-        idempotencyKey: await idempotencyKeys.create(
+        idempotencyKey: await createTriggerIdempotencyKey(
           `send-organization-subscription-created-notification-${subscription.id}`
         ),
       }
