@@ -4,7 +4,7 @@ import { webcrypto } from 'node:crypto'
 import { cleanup } from '@testing-library/react'
 import { stripeServer } from './mocks/stripeServer'
 import { triggerServer } from './mocks/triggerServer'
-import { beforeAll, afterAll, afterEach } from 'vitest'
+import { beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { seedDatabase } from './seedDatabase'
 
 // Polyfill crypto for Node.js environment
@@ -12,6 +12,19 @@ import { seedDatabase } from './seedDatabase'
 if (!global.crypto) {
   global.crypto = webcrypto as unknown as Crypto
 }
+
+// Mock idempotencyKeys.create to return a predictable value
+vi.mock('@trigger.dev/core', async () => {
+  return {
+    idempotencyKeys: {
+      create: vi
+        .fn()
+        .mockImplementation(
+          async (key: string) => `mock-${key}-${Math.random()}`
+        ),
+    },
+  }
+})
 
 // Start the mock server before all tests
 beforeAll(async () => {
