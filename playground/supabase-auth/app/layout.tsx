@@ -27,36 +27,42 @@ export default async function RootLayout({ children }: PropsWithChildren) {
     data: { user }
   } = await supabase.auth.getUser();
   return (
-    <FlowgladProvider
-      loadBilling={!!user}
-      requestConfig={{
-        headers: {
-          test: 'lol'
-        }
-      }}
-      theme={{
-        light: {
-          containerBackground: '#ff0',
-          containerForeground: '#000000',
-          border: '#cccccc',
-          buttonBackground: '#007bff',
-          buttonForeground: '#ffffff',
-          destructive: '#dc3545',
-          destructiveForeground: '#ffffff'
-        },
-        dark: {
-          containerBackground: '#0ff',
-          containerForeground: '#ffffff',
-          border: '#333333',
-          buttonBackground: '#0d6efd',
-          buttonForeground: '#ffffff',
-          destructive: '#dc3545',
-          destructiveForeground: '#ffffff'
-        }
-      }}
-    >
-      <html lang="en">
-        <body className="bg-black">
+    <html lang="en">
+      <body className="bg-black">
+        <FlowgladProvider
+          loadBilling={!!user}
+          requestConfig={{
+            headers: {
+              test: 'lol'
+            }
+          }}
+          theme={{
+            light: {
+              background: 'hsl(0 100% 50%)',
+              card: 'hsl(0 0% 100%)',
+              cardForeground: 'rgba(255, 0, 0, 0.8)',
+              // containerForeground: '#000000',
+              border: '#cccccc'
+              // buttonBackground: '#007bff',
+              // buttonForeground: '#ffffff',
+              // destructive: '#dc3545',
+              // destructiveForeground: '#ffffff'
+            },
+            dark: {
+              // background: 'hsl(0 100% 50%)',
+              // card: 'hsl(125 85% 3.9%)',
+              // cardForeground: 'rgba(255, 0, 0, 0.8)',
+              // foreground: 'rgba(255, 0, 0, 0.5)',
+              // border: 'rgba(0, 255, 0, 0.5)'
+              // containerForeground: '#ffffff',
+              // border: '#0000'
+              // buttonBackground: '#0d6efd',
+              // buttonForeground: '#ffffff',
+              // destructive: '#dc3545',
+              // destructiveForeground: '#ffffff'
+            }
+          }}
+        >
           <Navbar />
           <main
             id="skip"
@@ -68,8 +74,8 @@ export default async function RootLayout({ children }: PropsWithChildren) {
           <Suspense>
             <Toaster />
           </Suspense>
-        </body>
-      </html>
-    </FlowgladProvider>
+        </FlowgladProvider>
+      </body>
+    </html>
   );
 }

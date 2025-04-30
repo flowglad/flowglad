@@ -9,6 +9,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    /**
+     * Exclude generated styles to prevent infinite re-runs
+     * looped by the script re-executing during the setup step
+     */
+    exclude: ['**/generated/styles.ts', '**/node_modules/**'],
     globals: true,
   },
   resolve: {

@@ -9,46 +9,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: 'hsl(var(--flowglad-background))',
-        foreground: 'hsl(var(--flowglad-foreground))',
+        background: 'var(--flowglad-background)',
+        foreground: 'var(--flowglad-foreground)',
         card: {
-          DEFAULT: 'hsl(var(--flowglad-card))',
-          foreground: 'hsl(var(--flowglad-card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--flowglad-popover))',
-          foreground: 'hsl(var(--flowglad-popover-foreground))',
+          DEFAULT: 'var(--flowglad-card)',
+          foreground: 'var(--flowglad-card-foreground)',
         },
         primary: {
-          DEFAULT: 'hsl(var(--flowglad-primary))',
-          foreground: 'hsl(var(--flowglad-primary-foreground))',
+          DEFAULT: 'var(--flowglad-primary)',
+          foreground: 'var(--flowglad-primary-foreground)',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--flowglad-secondary))',
-          foreground: 'hsl(var(--flowglad-secondary-foreground))',
+          DEFAULT: 'var(--flowglad-secondary)',
+          foreground: 'var(--flowglad-secondary-foreground)',
         },
         muted: {
-          DEFAULT: 'hsl(var(--flowglad-muted))',
-          foreground: 'hsl(var(--flowglad-muted-foreground))',
+          DEFAULT: 'var(--flowglad-muted)',
+          foreground: 'var(--flowglad-muted-foreground)',
         },
         accent: {
-          DEFAULT: 'hsl(var(--flowglad-accent))',
-          foreground: 'hsl(var(--flowglad-accent-foreground))',
+          DEFAULT: 'var(--flowglad-accent)',
+          foreground: 'var(--flowglad-accent-foreground)',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--flowglad-destructive))',
-          foreground: 'hsl(var(--flowglad-destructive-foreground))',
+          DEFAULT: 'var(--flowglad-destructive)',
+          foreground: 'var(--flowglad-destructive-foreground)',
         },
-        border: 'hsl(var(--flowglad-border))',
-        input: 'hsl(var(--flowglad-input))',
-        ring: 'hsl(var(--flowglad-ring))',
-        chart: {
-          '1': 'hsl(var(--flowglad-chart-1))',
-          '2': 'hsl(var(--flowglad-chart-2))',
-          '3': 'hsl(var(--flowglad-chart-3))',
-          '4': 'hsl(var(--flowglad-chart-4))',
-          '5': 'hsl(var(--flowglad-chart-5))',
-        },
+        border: 'var(--flowglad-border)',
+        input: 'var(--flowglad-input)',
+        ring: 'var(--flowglad-ring)',
       },
       borderRadius: {
         lg: 'var(--flowglad-radius)',
@@ -102,9 +91,6 @@ export default {
             foreground: 'var(--flowglad-foreground)',
             card: 'var(--flowglad-card)',
             'card-foreground': 'var(--flowglad-card-foreground)',
-            popover: 'var(--flowglad-popover)',
-            'popover-foreground':
-              'var(--flowglad-popover-foreground)',
             primary: 'var(--flowglad-primary)',
             'primary-foreground':
               'var(--flowglad-primary-foreground)',

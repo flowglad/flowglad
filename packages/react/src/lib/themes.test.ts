@@ -5,18 +5,9 @@ import {
   themeEntryToCssAst,
   themeToCssAst,
   FlowgladThemeConfig,
-} from './FlowgladTheme'
-
-// Define the FlowgladColors interface for testing
-interface FlowgladColors {
-  containerBackground: string
-  containerForeground: string
-  border: string
-  buttonBackground: string
-  buttonForeground: string
-  destructive: string
-  destructiveForeground: string
-}
+  type FlowgladColors,
+  defaultTheme,
+} from './themes'
 
 // Define types for CSS AST
 interface CssDeclaration {
@@ -42,7 +33,7 @@ const initCssTools = async () => {
 describe('themeEntryToCssAst', () => {
   it('should create a valid CSS AST rule for a theme entry', () => {
     const themeEntry: [keyof FlowgladColors, string] = [
-      'containerBackground',
+      'background',
       '#ffffff',
     ]
     const ast = themeEntryToCssAst(themeEntry)
@@ -68,20 +59,20 @@ describe('themeToCssAst', () => {
   it('should create a valid CSS AST stylesheet for a light theme', () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -129,13 +120,13 @@ describe('themeToCssAst', () => {
     ).toBe('#cccccc')
     expect(
       declarations.find(
-        (d: CssDeclaration) => d.property === '--flowglad-button'
+        (d: CssDeclaration) => d.property === '--flowglad-primary'
       )?.value
     ).toBe('#007bff')
     expect(
       declarations.find(
         (d: CssDeclaration) =>
-          d.property === '--flowglad-button-foreground'
+          d.property === '--flowglad-primary-foreground'
       )?.value
     ).toBe('#ffffff')
     expect(
@@ -154,20 +145,20 @@ describe('themeToCssAst', () => {
   it('should create a valid CSS AST stylesheet for a dark theme', () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -215,13 +206,13 @@ describe('themeToCssAst', () => {
     ).toBe('#333333')
     expect(
       declarations.find(
-        (d: CssDeclaration) => d.property === '--flowglad-button'
+        (d: CssDeclaration) => d.property === '--flowglad-primary'
       )?.value
     ).toBe('#0d6efd')
     expect(
       declarations.find(
         (d: CssDeclaration) =>
-          d.property === '--flowglad-button-foreground'
+          d.property === '--flowglad-primary-foreground'
       )?.value
     ).toBe('#ffffff')
     expect(
@@ -240,20 +231,20 @@ describe('themeToCssAst', () => {
   it('should create a valid CSS AST stylesheet for both light and dark themes', () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -305,20 +296,20 @@ describe('themeToCssAst', () => {
   it('should ensure .flowglad-root class only contains CSS custom properties', () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -359,8 +350,8 @@ describe('themeToCssAst', () => {
       '--flowglad-background',
       '--flowglad-foreground',
       '--flowglad-border',
-      '--flowglad-button',
-      '--flowglad-button-foreground',
+      '--flowglad-primary',
+      '--flowglad-primary-foreground',
       '--flowglad-destructive',
       '--flowglad-destructive-foreground',
     ]
@@ -376,20 +367,20 @@ describe('themeToCssAst', () => {
   it('should ensure .flowglad-dark class only contains CSS custom properties', () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -430,8 +421,8 @@ describe('themeToCssAst', () => {
       '--flowglad-background',
       '--flowglad-foreground',
       '--flowglad-border',
-      '--flowglad-button',
-      '--flowglad-button-foreground',
+      '--flowglad-primary',
+      '--flowglad-primary-foreground',
       '--flowglad-destructive',
       '--flowglad-destructive-foreground',
     ]
@@ -448,20 +439,20 @@ describe('themeToCssAst', () => {
     // Create a partial theme config with only some properties defined
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        // containerForeground is not defined
+        background: '#ffffff',
+        // foreground is not defined
         border: '#cccccc',
-        // buttonBackground is not defined
-        buttonForeground: '#ffffff',
+        // primary is not defined
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         // destructiveForeground is not defined
       },
       dark: {
-        containerBackground: '#121212',
-        // containerForeground is not defined
+        background: '#121212',
+        // foreground is not defined
         border: '#333333',
-        // buttonBackground is not defined
-        buttonForeground: '#ffffff',
+        // primary is not defined
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         // destructiveForeground is not defined
       },
@@ -476,57 +467,87 @@ describe('themeToCssAst', () => {
     expect(lightRule.type).toBe('rule')
     expect(lightRule.selectors).toEqual(['.flowglad-root'])
 
-    // Verify only the defined properties are included
+    // Verify only the defined light properties are included
     const lightDeclarations = lightRule.declarations
-    expect(lightDeclarations).toHaveLength(4) // Only 4 properties defined
+    expect(lightDeclarations).toHaveLength(4) // 4 properties defined for light
 
-    // Check that only the defined properties are present
-    const lightProperties = lightDeclarations.map(
-      (d: CssDeclaration) => d.property
+    // Check that properties have the expected values
+    const lightDeclarationsMap = new Map(
+      lightDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(lightProperties).toContain('--flowglad-background')
-    expect(lightProperties).not.toContain('--flowglad-foreground')
-    expect(lightProperties).toContain('--flowglad-border')
-    expect(lightProperties).not.toContain('--flowglad-button')
-    expect(lightProperties).toContain('--flowglad-button-foreground')
-    expect(lightProperties).toContain('--flowglad-destructive')
-    expect(lightProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(lightDeclarationsMap.get('--flowglad-background')).toBe(
+      '#ffffff'
     )
+    expect(lightDeclarationsMap.get('--flowglad-foreground')).toBe(
+      undefined
+    )
+    expect(lightDeclarationsMap.get('--flowglad-border')).toBe(
+      '#cccccc'
+    )
+    expect(lightDeclarationsMap.get('--flowglad-primary')).toBe(
+      undefined
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe('#ffffff')
+    expect(lightDeclarationsMap.get('--flowglad-destructive')).toBe(
+      '#dc3545'
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe(undefined)
 
     // Check dark theme rule
     const darkRule = ast.stylesheet?.rules[1]
     expect(darkRule.type).toBe('rule')
     expect(darkRule.selectors).toEqual(['.flowglad-dark'])
 
-    // Verify only the defined properties are included
+    // Verify only the defined dark properties are included
     const darkDeclarations = darkRule.declarations
-    expect(darkDeclarations).toHaveLength(4) // Only 4 properties defined
+    expect(darkDeclarations).toHaveLength(4) // 4 properties defined for dark
 
-    // Check that only the defined properties are present
-    const darkProperties = darkDeclarations.map(
-      (d: CssDeclaration) => d.property
+    // Check that properties have the expected values
+    const darkDeclarationsMap = new Map(
+      darkDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(darkProperties).toContain('--flowglad-background')
-    expect(darkProperties).not.toContain('--flowglad-foreground')
-    expect(darkProperties).toContain('--flowglad-border')
-    expect(darkProperties).not.toContain('--flowglad-button')
-    expect(darkProperties).toContain('--flowglad-button-foreground')
-    expect(darkProperties).toContain('--flowglad-destructive')
-    expect(darkProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(darkDeclarationsMap.get('--flowglad-background')).toBe(
+      '#121212'
     )
+    expect(darkDeclarationsMap.get('--flowglad-foreground')).toBe(
+      undefined
+    )
+    expect(darkDeclarationsMap.get('--flowglad-border')).toBe(
+      '#333333'
+    )
+    expect(darkDeclarationsMap.get('--flowglad-primary')).toBe(
+      undefined
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe('#ffffff')
+    expect(darkDeclarationsMap.get('--flowglad-destructive')).toBe(
+      '#dc3545'
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe(undefined)
   })
 
   it('should handle theme configs with only light or only dark mode', () => {
     // Test with only light mode
     const lightOnlyTheme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -545,11 +566,11 @@ describe('themeToCssAst', () => {
     // Test with only dark mode
     const darkOnlyTheme: FlowgladThemeConfig = {
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -570,14 +591,14 @@ describe('themeToCssAst', () => {
     // Create a theme config with different properties defined for light and dark
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
+        foreground: '#000000',
         // Other light properties are not defined
       },
       dark: {
         // Only some dark properties are defined
         border: '#333333',
-        buttonBackground: '#0d6efd',
+        primary: '#0d6efd',
         destructive: '#dc3545',
       },
     }
@@ -593,23 +614,36 @@ describe('themeToCssAst', () => {
 
     // Verify only the defined light properties are included
     const lightDeclarations = lightRule.declarations
-    expect(lightDeclarations).toHaveLength(2) // Only 2 properties defined for light
+    expect(lightDeclarations).toHaveLength(2) // 2 declarations set
 
     // Check that only the defined light properties are present
-    const lightProperties = lightDeclarations.map(
-      (d: CssDeclaration) => d.property
+    const lightDeclarationsMap = new Map(
+      lightDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(lightProperties).toContain('--flowglad-background')
-    expect(lightProperties).toContain('--flowglad-foreground')
-    expect(lightProperties).not.toContain('--flowglad-border')
-    expect(lightProperties).not.toContain('--flowglad-button')
-    expect(lightProperties).not.toContain(
-      '--flowglad-button-foreground'
+    expect(lightDeclarationsMap.get('--flowglad-background')).toBe(
+      '#ffffff'
     )
-    expect(lightProperties).not.toContain('--flowglad-destructive')
-    expect(lightProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(lightDeclarationsMap.get('--flowglad-foreground')).toBe(
+      '#000000'
     )
+    expect(lightDeclarationsMap.get('--flowglad-border')).toBe(
+      undefined
+    )
+    expect(lightDeclarationsMap.get('--flowglad-primary')).toBe(
+      undefined
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe(undefined)
+    expect(lightDeclarationsMap.get('--flowglad-destructive')).toBe(
+      undefined
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe(undefined)
 
     // Check dark theme rule
     const darkRule = ast.stylesheet?.rules[1]
@@ -618,30 +652,43 @@ describe('themeToCssAst', () => {
 
     // Verify only the defined dark properties are included
     const darkDeclarations = darkRule.declarations
-    expect(darkDeclarations).toHaveLength(3) // Only 3 properties defined for dark
+    expect(darkDeclarations).toHaveLength(3) // 3 declarations set
 
     // Check that only the defined dark properties are present
-    const darkProperties = darkDeclarations.map(
-      (d: CssDeclaration) => d.property
+    const darkDeclarationsMap = new Map(
+      darkDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(darkProperties).not.toContain('--flowglad-background')
-    expect(darkProperties).not.toContain('--flowglad-foreground')
-    expect(darkProperties).toContain('--flowglad-border')
-    expect(darkProperties).toContain('--flowglad-button')
-    expect(darkProperties).not.toContain(
-      '--flowglad-button-foreground'
+    expect(darkDeclarationsMap.get('--flowglad-background')).toBe(
+      undefined
     )
-    expect(darkProperties).toContain('--flowglad-destructive')
-    expect(darkProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(darkDeclarationsMap.get('--flowglad-foreground')).toBe(
+      undefined
     )
+    expect(darkDeclarationsMap.get('--flowglad-border')).toBe(
+      '#333333'
+    )
+    expect(darkDeclarationsMap.get('--flowglad-primary')).toBe(
+      '#0d6efd'
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe(undefined)
+    expect(darkDeclarationsMap.get('--flowglad-destructive')).toBe(
+      '#dc3545'
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe(undefined)
   })
 })
 
 describe('themeEntryToCss', () => {
   it('should convert a theme entry to a CSS string', async () => {
     const themeEntry: [keyof FlowgladColors, string] = [
-      'containerBackground',
+      'background',
       '#ffffff',
     ]
     const cssString = await themeEntryToCss(themeEntry)
@@ -664,28 +711,29 @@ describe('themeEntryToCss', () => {
 })
 
 describe('themeToCss', () => {
-  it('should return an empty string when theme is undefined', async () => {
+  it('should return a defaults css string when theme is undefined', async () => {
     const cssString = await themeToCss(undefined)
-    expect(cssString).toBe('')
+    const defaultCssString = await themeToCss(defaultTheme)
+    expect(cssString).toBe(defaultCssString)
   })
 
   it('should convert a light theme to a CSS string', async () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -702,7 +750,7 @@ describe('themeToCss', () => {
     const lightRule = ast.stylesheet?.rules[0]
     expect(lightRule.type).toBe('rule')
     expect(lightRule.selectors).toEqual(['.flowglad-root'])
-    expect(lightRule.declarations).toHaveLength(7)
+    expect(lightRule.declarations).toHaveLength(17)
 
     // Verify that .flowglad-root class doesn't include any styles on its own
     const rootDeclarations = lightRule.declarations
@@ -722,20 +770,20 @@ describe('themeToCss', () => {
   it('should convert a dark theme to a CSS string', async () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -752,7 +800,7 @@ describe('themeToCss', () => {
     const darkRule = ast.stylesheet?.rules[1]
     expect(darkRule.type).toBe('rule')
     expect(darkRule.selectors).toEqual(['.flowglad-dark'])
-    expect(darkRule.declarations).toHaveLength(7)
+    expect(darkRule.declarations).toHaveLength(17)
 
     // Verify that .flowglad-dark class doesn't include any styles on its own
     const darkDeclarations = darkRule.declarations
@@ -772,20 +820,20 @@ describe('themeToCss', () => {
   it('should convert both light and dark themes to a CSS string', async () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -839,20 +887,20 @@ describe('themeToCss', () => {
   it('should ensure .flowglad-root class in CSS string only contains CSS custom properties', async () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -895,8 +943,8 @@ describe('themeToCss', () => {
       '--flowglad-background',
       '--flowglad-foreground',
       '--flowglad-border',
-      '--flowglad-button',
-      '--flowglad-button-foreground',
+      '--flowglad-primary',
+      '--flowglad-primary-foreground',
       '--flowglad-destructive',
       '--flowglad-destructive-foreground',
     ]
@@ -912,20 +960,20 @@ describe('themeToCss', () => {
   it('should ensure .flowglad-dark class in CSS string only contains CSS custom properties', async () => {
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -968,8 +1016,8 @@ describe('themeToCss', () => {
       '--flowglad-background',
       '--flowglad-foreground',
       '--flowglad-border',
-      '--flowglad-button',
-      '--flowglad-button-foreground',
+      '--flowglad-primary',
+      '--flowglad-primary-foreground',
       '--flowglad-destructive',
       '--flowglad-destructive-foreground',
     ]
@@ -986,20 +1034,20 @@ describe('themeToCss', () => {
     // Create a partial theme config with only some properties defined
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        // containerForeground is not defined
+        background: '#ffffff',
+        // foreground is not defined
         border: '#cccccc',
-        // buttonBackground is not defined
-        buttonForeground: '#ffffff',
+        // primary is not defined
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         // destructiveForeground is not defined
       },
       dark: {
-        containerBackground: '#121212',
-        // containerForeground is not defined
+        background: '#121212',
+        // foreground is not defined
         border: '#333333',
-        // buttonBackground is not defined
-        buttonForeground: '#ffffff',
+        // primary is not defined
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         // destructiveForeground is not defined
       },
@@ -1020,55 +1068,85 @@ describe('themeToCss', () => {
 
     // Verify only the defined properties are included
     const lightDeclarations = lightRule.declarations
-    expect(lightDeclarations).toHaveLength(4) // Only 4 properties defined
+    expect(lightDeclarations).toHaveLength(17) // All 17 properties defined for light, because of defaultTheme
 
-    // Check that only the defined properties are present
-    const lightProperties = lightDeclarations.map(
-      (d: CssDeclaration) => d.property
+    // Check that properties have the expected values
+    const lightDeclarationsMap = new Map(
+      lightDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(lightProperties).toContain('--flowglad-background')
-    expect(lightProperties).not.toContain('--flowglad-foreground')
-    expect(lightProperties).toContain('--flowglad-border')
-    expect(lightProperties).not.toContain('--flowglad-button')
-    expect(lightProperties).toContain('--flowglad-button-foreground')
-    expect(lightProperties).toContain('--flowglad-destructive')
-    expect(lightProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(lightDeclarationsMap.get('--flowglad-background')).toBe(
+      '#ffffff'
     )
+    expect(lightDeclarationsMap.get('--flowglad-foreground')).toBe(
+      'hsl(240 10% 3.9%)'
+    )
+    expect(lightDeclarationsMap.get('--flowglad-border')).toBe(
+      '#cccccc'
+    )
+    expect(lightDeclarationsMap.get('--flowglad-primary')).toBe(
+      'hsl(240 5.9% 10%)'
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe('#ffffff')
+    expect(lightDeclarationsMap.get('--flowglad-destructive')).toBe(
+      '#dc3545'
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe('hsl(0 0% 98%)')
 
     // Check dark theme rule
     const darkRule = ast.stylesheet?.rules[1]
     expect(darkRule.type).toBe('rule')
     expect(darkRule.selectors).toEqual(['.flowglad-dark'])
 
-    // Verify only the defined properties are included
+    // Verify only the defined dark properties are included
     const darkDeclarations = darkRule.declarations
-    expect(darkDeclarations).toHaveLength(4) // Only 4 properties defined
+    expect(darkDeclarations).toHaveLength(17) // All 17 properties defined for dark, because of defaultTheme
 
-    // Check that only the defined properties are present
-    const darkProperties = darkDeclarations.map(
-      (d: CssDeclaration) => d.property
+    // Check that properties have the expected values
+    const darkDeclarationsMap = new Map(
+      darkDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(darkProperties).toContain('--flowglad-background')
-    expect(darkProperties).not.toContain('--flowglad-foreground')
-    expect(darkProperties).toContain('--flowglad-border')
-    expect(darkProperties).not.toContain('--flowglad-button')
-    expect(darkProperties).toContain('--flowglad-button-foreground')
-    expect(darkProperties).toContain('--flowglad-destructive')
-    expect(darkProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(darkDeclarationsMap.get('--flowglad-background')).toBe(
+      '#121212'
     )
+    expect(darkDeclarationsMap.get('--flowglad-foreground')).toBe(
+      'hsl(0 0% 98%)'
+    )
+    expect(darkDeclarationsMap.get('--flowglad-border')).toBe(
+      '#333333'
+    )
+    expect(darkDeclarationsMap.get('--flowglad-primary')).toBe(
+      'hsl(0 0% 98%)'
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe('#ffffff')
+    expect(darkDeclarationsMap.get('--flowglad-destructive')).toBe(
+      '#dc3545'
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe('hsl(0 0% 98%)')
   })
 
   it('should handle theme configs with only light or only dark mode', async () => {
     // Test with only light mode
     const lightOnlyTheme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
         border: '#cccccc',
-        buttonBackground: '#007bff',
-        buttonForeground: '#ffffff',
+        foreground: '#000000',
+        primary: '#007bff',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -1078,22 +1156,23 @@ describe('themeToCss', () => {
     const tools = await initCssTools()
     const lightOnlyAst = tools.parse(lightOnlyCssString)
     expect(lightOnlyAst.type).toBe('stylesheet')
-    expect(lightOnlyAst.stylesheet?.rules).toHaveLength(1)
+    // 2 rules: .flowglad-root and .flowglad-dark
+    expect(lightOnlyAst.stylesheet?.rules).toHaveLength(2)
     expect(lightOnlyAst.stylesheet?.rules[0].selectors).toEqual([
       '.flowglad-root',
     ])
     expect(
       lightOnlyAst.stylesheet?.rules[0].declarations
-    ).toHaveLength(7)
+    ).toHaveLength(17)
 
     // Test with only dark mode
     const darkOnlyTheme: FlowgladThemeConfig = {
       dark: {
-        containerBackground: '#121212',
-        containerForeground: '#ffffff',
+        background: '#121212',
         border: '#333333',
-        buttonBackground: '#0d6efd',
-        buttonForeground: '#ffffff',
+        foreground: '#ffffff',
+        primary: '#0d6efd',
+        primaryForeground: '#ffffff',
         destructive: '#dc3545',
         destructiveForeground: '#ffffff',
       },
@@ -1102,27 +1181,30 @@ describe('themeToCss', () => {
     const darkOnlyCssString = await themeToCss(darkOnlyTheme)
     const darkOnlyAst = tools.parse(darkOnlyCssString)
     expect(darkOnlyAst.type).toBe('stylesheet')
-    expect(darkOnlyAst.stylesheet?.rules).toHaveLength(1)
+    expect(darkOnlyAst.stylesheet?.rules).toHaveLength(2)
     expect(darkOnlyAst.stylesheet?.rules[0].selectors).toEqual([
+      '.flowglad-root',
+    ])
+    expect(darkOnlyAst.stylesheet?.rules[1].selectors).toEqual([
       '.flowglad-dark',
     ])
     expect(
       darkOnlyAst.stylesheet?.rules[0].declarations
-    ).toHaveLength(7)
+    ).toHaveLength(17)
   })
 
   it('should handle heterogeneous shapes of light and dark configs', async () => {
     // Create a theme config with different properties defined for light and dark
     const theme: FlowgladThemeConfig = {
       light: {
-        containerBackground: '#ffffff',
-        containerForeground: '#000000',
+        background: '#ffffff',
+        foreground: '#000000',
         // Other light properties are not defined
       },
       dark: {
         // Only some dark properties are defined
         border: '#333333',
-        buttonBackground: '#0d6efd',
+        primary: '#0d6efd',
         destructive: '#dc3545',
       },
     }
@@ -1142,23 +1224,37 @@ describe('themeToCss', () => {
 
     // Verify only the defined light properties are included
     const lightDeclarations = lightRule.declarations
-    expect(lightDeclarations).toHaveLength(2) // Only 2 properties defined for light
+    // All 17 properties defined for light, because of defaultTheme
+    expect(lightDeclarations).toHaveLength(17)
 
     // Check that only the defined light properties are present
-    const lightProperties = lightDeclarations.map(
-      (d: CssDeclaration) => d.property
+    const lightDeclarationsMap = new Map(
+      lightDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(lightProperties).toContain('--flowglad-background')
-    expect(lightProperties).toContain('--flowglad-foreground')
-    expect(lightProperties).not.toContain('--flowglad-border')
-    expect(lightProperties).not.toContain('--flowglad-button')
-    expect(lightProperties).not.toContain(
-      '--flowglad-button-foreground'
+    expect(lightDeclarationsMap.get('--flowglad-background')).toBe(
+      '#ffffff'
     )
-    expect(lightProperties).not.toContain('--flowglad-destructive')
-    expect(lightProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(lightDeclarationsMap.get('--flowglad-foreground')).toBe(
+      '#000000'
     )
+    expect(lightDeclarationsMap.get('--flowglad-border')).toBe(
+      'hsl(240 5.9% 90%)'
+    )
+    expect(lightDeclarationsMap.get('--flowglad-primary')).toBe(
+      'hsl(240 5.9% 10%)'
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe('hsl(0 0% 98%)')
+    expect(lightDeclarationsMap.get('--flowglad-destructive')).toBe(
+      'hsl(0 84.2% 60.2%)'
+    )
+    expect(
+      lightDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe('hsl(0 0% 98%)')
 
     // Check dark theme rule
     const darkRule = ast.stylesheet?.rules[1]
@@ -1167,22 +1263,35 @@ describe('themeToCss', () => {
 
     // Verify only the defined dark properties are included
     const darkDeclarations = darkRule.declarations
-    expect(darkDeclarations).toHaveLength(3) // Only 3 properties defined for dark
+    expect(darkDeclarations).toHaveLength(17) // All 17 properties defined for dark, because of defaultTheme
 
     // Check that only the defined dark properties are present
-    const darkProperties = darkDeclarations.map(
-      (d: CssDeclaration) => d.property
+    const darkDeclarationsMap = new Map(
+      darkDeclarations.map((d: CssDeclaration) => [
+        d.property,
+        d.value,
+      ])
     )
-    expect(darkProperties).not.toContain('--flowglad-background')
-    expect(darkProperties).not.toContain('--flowglad-foreground')
-    expect(darkProperties).toContain('--flowglad-border')
-    expect(darkProperties).toContain('--flowglad-button')
-    expect(darkProperties).not.toContain(
-      '--flowglad-button-foreground'
+    expect(darkDeclarationsMap.get('--flowglad-background')).toBe(
+      'hsl(240 10% 3.9%)'
     )
-    expect(darkProperties).toContain('--flowglad-destructive')
-    expect(darkProperties).not.toContain(
-      '--flowglad-destructive-foreground'
+    expect(darkDeclarationsMap.get('--flowglad-foreground')).toBe(
+      'hsl(0 0% 98%)'
     )
+    expect(darkDeclarationsMap.get('--flowglad-border')).toBe(
+      '#333333'
+    )
+    expect(darkDeclarationsMap.get('--flowglad-primary')).toBe(
+      '#0d6efd'
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-primary-foreground')
+    ).toBe('hsl(240 5.9% 10%)')
+    expect(darkDeclarationsMap.get('--flowglad-destructive')).toBe(
+      '#dc3545'
+    )
+    expect(
+      darkDeclarationsMap.get('--flowglad-destructive-foreground')
+    ).toBe('hsl(0 0% 98%)')
   })
 })

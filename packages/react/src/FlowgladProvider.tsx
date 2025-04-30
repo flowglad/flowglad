@@ -9,7 +9,9 @@ import {
   RequestConfig,
 } from './FlowgladContext'
 import { validateUrl } from './utils'
-import { FlowgladTheme, FlowgladThemeConfig } from './FlowgladTheme'
+import { FlowgladTheme } from './FlowgladTheme'
+import { FlowgladThemeConfig } from './lib/themes'
+
 const queryClient = new QueryClient()
 
 export interface Appearance {
