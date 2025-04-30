@@ -95,24 +95,6 @@ export const editProduct = async (
   return updateProduct(payload.product, transaction)
 }
 
-export const editPriceTransaction = async (
-  params: { price: Price.Update },
-  transaction: DbTransaction
-) => {
-  const { price } = params
-  // Get all prices for this product to validate default price constraint
-  const existingPrices = await selectPrices(
-    { productId: price.productId },
-    transaction
-  )
-  const previousPrice = existingPrices.find((v) => v.id === price.id)
-  const pricingDetailsChanged =
-    previousPrice?.unitPrice !== price.unitPrice ||
-    previousPrice?.intervalUnit !== price.intervalUnit ||
-    previousPrice?.intervalCount !== price.intervalCount
-  return safelyUpdatePrice(price, transaction)
-}
-
 export const cloneCatalogTransaction = async (
   input: CloneCatalogInput,
   transaction: DbTransaction

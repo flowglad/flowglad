@@ -16,13 +16,14 @@ import { Invoice } from '@/db/schema/invoices'
 import { Payment } from '@/db/schema/payments'
 import { Customer } from '@/db/schema/customers'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { formatCurrency, formatDate, titleCase } from '@/utils/core'
+import { formatDate, titleCase } from '@/utils/core'
 import { BillingAddress } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
 import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode } from '@/types'
+
 /**
  * Use the
  * @param paymentMethod
@@ -193,7 +194,7 @@ const OrganizationContactInfo: React.FC<{
   )
 }
 
-export const CheckoutInfo: React.FC<CheckoutInfoProps> = ({
+export const BillingInfo: React.FC<CheckoutInfoProps> = ({
   organization,
   customer,
   billingAddress,
@@ -392,7 +393,7 @@ interface InvoiceTotalsProps {
   subtotal: number
   taxAmount: number
   total: number
-  currency?: string
+  currency?: CurrencyCode
   mode: 'receipt' | 'invoice'
   payment?: Payment.Record
 }
@@ -421,7 +422,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                 Subtotal
               </td>
               <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                {formatCurrency(subtotal)}
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currency as CurrencyCode,
+                  subtotal
+                )}
               </td>
             </tr>
             {taxAmount > 0 && (
@@ -435,7 +439,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                   Tax
                 </td>
                 <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                  {formatCurrency(taxAmount)}
+                  {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                    currency as CurrencyCode,
+                    taxAmount
+                  )}
                 </td>
               </tr>
             )}
@@ -456,7 +463,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                   textAlign: 'right',
                 }}
               >
-                {formatCurrency(total)}
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  currency as CurrencyCode,
+                  total
+                )}
               </td>
             </tr>
             {mode === 'receipt' && payment ? (
@@ -493,7 +503,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                             textAlign: 'right',
                           }}
                         >
-                          {formatCurrency(payment.refundedAmount)}
+                          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                            payment.currency,
+                            payment.refundedAmount
+                          )}
                         </td>
                       </tr>
                       <tr style={{ fontWeight: 'bold' }}>
@@ -511,7 +524,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                             textAlign: 'right',
                           }}
                         >
-                          {formatCurrency(payment.refundedAmount)}
+                          {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                            payment.currency,
+                            payment.refundedAmount
+                          )}
                         </td>
                       </tr>
                     </>
@@ -523,7 +539,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                   Amount due
                 </td>
                 <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                  {formatCurrency(total)} {currency}
+                  {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                    currency as CurrencyCode,
+                    total
+                  )}
                 </td>
               </tr>
             )}
@@ -643,7 +662,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           />
           <DocumentDetails invoice={invoice} mode="invoice" />
           {billingAddress && (
-            <CheckoutInfo
+            <BillingInfo
               organization={organization}
               customer={customer}
               billingAddress={billingAddress}

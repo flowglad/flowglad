@@ -46,6 +46,8 @@ export const sendReceiptEmail = async (params: {
   invoiceLineItems: InvoiceLineItem.Record[]
   organizationName: string
   organizationLogoUrl?: string
+  organizationId: string
+  customerExternalId: string
 }) => {
   const { invoice } = params
   const attachments: {
@@ -81,6 +83,8 @@ export const sendReceiptEmail = async (params: {
       currency: invoice.currency,
       organizationName: params.organizationName,
       organizationLogoUrl: params.organizationLogoUrl,
+      organizationId: invoice.organizationId,
+      customerExternalId: params.customerExternalId,
     }),
   })
 }
