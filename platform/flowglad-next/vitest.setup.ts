@@ -13,6 +13,13 @@ if (!global.crypto) {
   global.crypto = webcrypto as unknown as Crypto
 }
 
+// Ensure crypto is available before mocking idempotencyKeys
+beforeAll(() => {
+  if (!global.crypto) {
+    global.crypto = webcrypto as unknown as Crypto
+  }
+})
+
 // Mock idempotencyKeys.create to return a predictable value
 vi.mock('@trigger.dev/core', async () => {
   return {

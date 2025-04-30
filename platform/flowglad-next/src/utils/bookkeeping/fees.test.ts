@@ -252,6 +252,24 @@ describe('fees.ts', () => {
       ).toBe(8) // (1000 * 0.008) rounded
     })
 
+    it('caps ACH fee at $5 for payments over $625', () => {
+      expect(
+        calculatePaymentMethodFeeAmount(
+          62600, // $626
+          PaymentMethodType.USBankAccount
+        )
+      ).toBe(500) // $5 in cents
+    })
+
+    it('calculates ACH fee at 0.8% for payments under $625', () => {
+      expect(
+        calculatePaymentMethodFeeAmount(
+          62400, // $624
+          PaymentMethodType.USBankAccount
+        )
+      ).toBe(499) // (624 * 0.008) rounded
+    })
+
     it('caps SEPA debit fee at 600', () => {
       expect(
         calculatePaymentMethodFeeAmount(
