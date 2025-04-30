@@ -169,6 +169,7 @@ const FileInput: React.FC<FileInputProps> = ({
             className="flex flex-row items-center gap-2"
           >
             {isFileTypeImage(file.fileType) ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={index}
                 src={file.publicURL}

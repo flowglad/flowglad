@@ -25,7 +25,7 @@ const SendInvoiceReminderEmailModal = ({
       title="Send Invoice Reminder"
       formSchema={sendInvoiceReminderSchema}
       defaultValues={{
-        invoiceId,
+        id: invoiceId,
         to: [],
         cc: [],
       }}

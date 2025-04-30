@@ -1,4 +1,6 @@
-/* Example script with targeted environment
+/* eslint-disable no-console */
+
+/* 
 run the following in the terminal
 NODE_ENV=production pnpm tsx src/scripts/createRetryBillingRun.ts billing_period_id=billing_period_....
 */

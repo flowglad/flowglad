@@ -1,8 +1,10 @@
 import { expect, describe, it } from 'vitest'
 import { createFlowgladOpenApiDocument } from './swagger'
+import type { OpenAPIV3Document } from './swagger'
 
 describe('Swagger Configuration', () => {
-  const openApiDoc = createFlowgladOpenApiDocument()
+  const openApiDoc: OpenAPIV3Document =
+    createFlowgladOpenApiDocument()
   const paths = openApiDoc.paths
 
   describe('Input Schema Validation', () => {
@@ -40,9 +42,9 @@ describe('Swagger Configuration', () => {
     }
 
     it('should not have forbidden fields in any input schemas', () => {
+      // TODO: stronger types
       Object.values(paths).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
-          console.log('===method', method)
           if (
             (method.operationId as string).endsWith('-create') &&
             method.requestBody?.content?.['application/json']?.schema
@@ -81,8 +83,6 @@ describe('Swagger Configuration', () => {
 
   describe('OpenAPI Document Structure', () => {
     it('should have the correct base configuration', () => {
-      console.log('openApiDoc', openApiDoc)
-      console.log('openApiDoc keys', Object.keys(openApiDoc))
       expect(openApiDoc.openapi).toBeDefined()
       expect(openApiDoc.info.title).toBe('Flowglad API')
       expect(openApiDoc.info.version).toBe('0.0.1')
@@ -127,7 +127,6 @@ describe('Swagger Configuration', () => {
             !path.includes('/{') && path.startsWith('/api/v1/')
         )
         .sort()
-      console.log('actualBaseRoutes', actualBaseRoutes)
       expect(actualBaseRoutes).toEqual(expectedBaseRoutes.sort())
     })
 
