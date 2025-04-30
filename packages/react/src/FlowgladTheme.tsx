@@ -1,15 +1,8 @@
+'use client'
 // @flowglad/react/src/FlowgladTheme.tsx
 import React, { useEffect, useState } from 'react'
 import { styles } from './generated/styles'
-
-interface FlowgladThemeProps {
-  children: React.ReactNode
-  darkMode?: boolean
-  nonce?: string
-}
-
-// Create a stable unique identifier for our styles
-const STYLE_HREF = '@flowglad/react/styles'
+import { themeToCss, type FlowgladThemeConfig } from './lib/themes'
 
 const useThemeDetector = () => {
   const getCurrentTheme = () =>
@@ -29,48 +22,61 @@ const useThemeDetector = () => {
   return isDarkTheme
 }
 
-export const FlowgladTheme: React.FC<FlowgladThemeProps> = ({
+interface FlowgladThemeProps {
+  children: React.ReactNode
+  darkMode?: boolean
+  nonce?: string
+  theme?: FlowgladThemeConfig
+}
+
+export function FlowgladTheme({
   children,
-  darkMode,
+  theme,
   nonce,
-}) => {
+}: FlowgladThemeProps) {
   const isDarkTheme = useThemeDetector()
+  const [cssString, setCssString] = useState<string>('')
+  const mode = theme?.mode ?? 'system'
   useEffect(() => {
     // Apply the class to the html element
     document.documentElement.classList.add('flowglad-root')
-    // If darkMode is provided, apply the class to the html element
-    // If darkMode is not provided, use the system theme
-    if (typeof darkMode === 'boolean') {
-      if (darkMode) {
-        document.documentElement.classList.add('flowglad-dark')
-      } else {
-        document.documentElement.classList.remove('flowglad-dark')
-      }
-    } else if (isDarkTheme) {
+    // Apply the base theme class to the html element
+    document.documentElement.classList.add('flowglad-base-theme')
+
+    // Handle dark mode based on mode prop and system preference
+    if (mode === 'dark') {
       document.documentElement.classList.add('flowglad-dark')
+    } else if (mode === 'light') {
+      document.documentElement.classList.remove('flowglad-dark')
+    } else if (mode === 'system') {
+      document.documentElement.classList.add(
+        isDarkTheme ? 'flowglad-dark' : 'flowglad-root'
+      )
     }
+
+    // Generate CSS string
+    themeToCss(theme).then((css) => {
+      setCssString(css)
+    })
 
     // Cleanup function to remove the classes
     return () => {
       document.documentElement.classList.remove(
         'flowglad-root',
-        'flowglad-dark'
+        'flowglad-dark',
+        'flowglad-base-theme'
       )
     }
-  }, [darkMode])
-
+  }, [theme, mode, isDarkTheme])
   return (
     <>
       <style
         suppressHydrationWarning
         dangerouslySetInnerHTML={{
-          __html: styles,
+          __html: `${styles}\n${cssString}`,
         }}
         nonce={nonce}
-        // @ts-expect-error - precedence is needed for hoisting
-        precedence="high"
-        href={STYLE_HREF}
-        key={STYLE_HREF}
+        data-flowglad-theme
       />
       {children}
     </>

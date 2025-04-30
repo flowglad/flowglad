@@ -14,7 +14,9 @@
     "lint": "eslint && tsc --noEmit",
     "yalc:publish": "yalc publish && yalc link",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "build:css": "tsx scripts/build-css.ts"
+    "build:css": "tsx scripts/build-css.ts",
+    "pretest": "pnpm build:css",
+    "test": "vitest --reporter=verbose"
   },
   "dependencies": {
     "@flowglad/node": "0.19.3",
@@ -26,6 +28,7 @@
     "axios": "1.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "2.1.1",
+    "@adobe/css-tools": "4.4.2",
     "date-fns": "4.1.0",
     "lucide-react": "0.479.0",
     "tailwind-merge": "3.0.2",
@@ -38,10 +41,17 @@
     "@types/react": "18.3.12",
     "autoprefixer": "^10.4.18",
     "eslint": "8.57.0",
+    "jsdom": "26.1.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "vitest": "3.0.5",
+    "@vitejs/plugin-react": "4.3.4",
+    "@testing-library/react": "16.3.0",
+    "@types/css": "0.0.38",
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/jest-dom": "6.6.3"
   },
   "exports": {
     ".": {

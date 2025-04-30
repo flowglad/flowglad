@@ -17,6 +17,12 @@ on:
   push:
     branches:
       - stable
+  workflow_run:
+    workflows: ["Build and Deploy Staging"]
+    types:
+      - completed
+    branches:
+      - main
 
   # We need this in order to trigger prod deploy for every release on main,
   # because rebase merges do not count as "push" events in Github Actions.

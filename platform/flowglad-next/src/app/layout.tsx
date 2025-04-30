@@ -4,7 +4,6 @@ import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import dynamic from 'next/dynamic'
 
 import Providers from './Providers'
 import { cn } from '@/utils/core'

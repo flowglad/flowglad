@@ -39,6 +39,7 @@
     "axios": "1.8.4",
     "class-variance-authority": "^0.7.0",
     "classnames": "^2.5.1",
+    "@adobe/css-tools": "4.4.2",
     "clsx": "2.1.1",
     "date-fns": "4.1.0",
     "lucide-react": "0.479.0",
