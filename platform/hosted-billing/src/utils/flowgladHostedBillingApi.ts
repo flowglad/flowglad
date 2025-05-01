@@ -56,7 +56,9 @@ const hostedBillingApiPost = async ({
         ...maybeVercelBypass,
       },
     }
-    logger.debug('Request headers', options.headers)
+    if (process.env.VERCEL_ENV !== 'production') {
+      logger.debug('Request headers', options.headers)
+    }
     const response = await axios.post(
       `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
       data,
