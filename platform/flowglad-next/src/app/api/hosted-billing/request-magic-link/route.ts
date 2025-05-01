@@ -139,35 +139,35 @@ async function sendEmailToExistingUser({
     primaryEmail: user.primaryEmail!,
     stackAuthUserId: user.id,
   }
-  if (user.primaryEmailVerified) {
-    await hostedBillingStackServerApp.sendMagicLinkEmail(
-      user.primaryEmail!,
-      {
-        callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/validate-magic-link`,
-      }
-    )
-    logger.info(
-      'Magic link email sent to existing user',
-      emailAndUserId
-    )
-  } else {
-    const contactChannels = await user.listContactChannels()
-    const primaryContactChannel = contactChannels.find(
-      (channel) => channel.type === 'email' && channel.isPrimary
-    )
-    if (!primaryContactChannel) {
-      logger.error(
-        'No primary email contact channel found for stack auth user',
-        emailAndUserId
-      )
-      throw new Error('No primary contact channel found')
+  // if (user.primaryEmailVerified) {
+  await hostedBillingStackServerApp.sendMagicLinkEmail(
+    user.primaryEmail!,
+    {
+      callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/validate-magic-link`,
     }
-    await primaryContactChannel.sendVerificationEmail()
-    logger.info(
-      'Verification email sent to existing user',
-      emailAndUserId
-    )
-  }
+  )
+  logger.info(
+    'Magic link email sent to existing user',
+    emailAndUserId
+  )
+  // } else {
+  //   const contactChannels = await user.listContactChannels()
+  //   const primaryContactChannel = contactChannels.find(
+  //     (channel) => channel.type === 'email' && channel.isPrimary
+  //   )
+  //   if (!primaryContactChannel) {
+  //     logger.error(
+  //       'No primary email contact channel found for stack auth user',
+  //       emailAndUserId
+  //     )
+  //     throw new Error('No primary contact channel found')
+  //   }
+  //   await primaryContactChannel.sendVerificationEmail()
+  //   logger.info(
+  //     'Verification email sent to existing user',
+  //     emailAndUserId
+  //   )
+  // }
 }
 
 export const POST = withBillingApiRequestValidation(
