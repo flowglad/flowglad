@@ -21,7 +21,6 @@ jobs:
       UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
       UNKEY_API_ID: ${{ secrets.UNKEY_API_ID }}
       NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
-      HOSTED_BILLING_PORTAL_URL: ${{ secrets.HOSTED_BILLING_PORTAL_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
