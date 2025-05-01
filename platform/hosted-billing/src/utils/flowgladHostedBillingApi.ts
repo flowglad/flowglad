@@ -39,7 +39,7 @@ const hostedBillingApiPost = async ({
      * Allow staging environment to access Flowglad Next Staging server
      */
     const maybeVercelBypass =
-      process.env.VERCEL_ENV === 'preview'
+      process.env.VERCEL_ENV !== 'production'
         ? {
             'x-vercel-protection-bypass':
               process.env.VERCEL_PREVIEW_BYPASS_SECRET,
