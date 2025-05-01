@@ -6,13 +6,12 @@ import {
 
 export const flowgladServer = (params: {
   organizationId: string
+  externalId: string
   billingPortalApiKey: string
 }) => {
   return new FlowgladServer({
     getRequestingCustomer: async () => {
-      const user = await stackServerApp(
-        params.organizationId
-      ).getUser()
+      const user = await stackServerApp(params).getUser()
       if (!user) {
         throw new Error('User not found')
       }

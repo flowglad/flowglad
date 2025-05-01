@@ -6,15 +6,17 @@ import {
 
 export function BillingPage({
   organizationId,
+  externalId,
 }: {
   organizationId: string
+  externalId: string
 }) {
   return (
     <FlowgladProvider
       loadBilling={true}
-      serverRoute={`/api/${organizationId}/flowglad`}
+      serverRoute={`/api/${organizationId}/${externalId}/flowglad`}
       requestConfig={{
-        serverRoute: `/api/${organizationId}/flowglad`,
+        serverRoute: `/api/${organizationId}/${externalId}/flowglad`,
       }}
       theme={{
         mode: 'dark',

@@ -16,16 +16,18 @@ import {
 import {
   requestMagicLinkSchema,
   type RequestMagicLinkBody,
-} from '@/apiSchemas'
+} from '@/utils/apiSchemas'
 import { zodResolver } from '@hookform/resolvers/zod'
 interface LoginFormProps {
   organizationId: string
   customerExternalId: string
+  livemode: boolean
 }
 
 export function BillingPortalSigninForm({
   organizationId,
   customerExternalId,
+  livemode,
 }: LoginFormProps) {
   const [isSuccess, setIsSuccess] = useState(false)
 
@@ -40,13 +42,14 @@ export function BillingPortalSigninForm({
       organizationId,
       customerExternalId,
       customerEmail: '',
+      livemode,
     },
   })
 
   const requestMagicLinkMutation = useMutation({
     mutationFn: async (data: RequestMagicLinkBody) => {
       const response = await axios.post(
-        `/api/${organizationId}/request-magic-link`,
+        `/api/${organizationId}/${customerExternalId}/request-magic-link`,
         data
       )
       return response.data

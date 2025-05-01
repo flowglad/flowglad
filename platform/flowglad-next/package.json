@@ -65,7 +65,7 @@
     "@slack/webhook": "^7.0.3",
     "@sparticuz/chromium": "119.0.2",
     "@sparticuz/chromium-min": "^127.0.0",
-    "@stackframe/stack": "^2.7.27",
+    "@stackframe/stack": "2.8.11",
     "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^4.5.0",
     "@supabase/ssr": "^0.5.0",

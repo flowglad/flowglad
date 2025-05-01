@@ -18,6 +18,8 @@ on:
         required: true
       HOSTED_BILLING_VERCEL_PROJECT_NAME:
         required: true
+      HOSTED_BILLING_SENTRY_AUTH_TOKEN:
+        required: true
 
 jobs:
   deploy:

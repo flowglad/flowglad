@@ -7,13 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint && tsc --noEmit",
-    "install-packages": "pnpm install --ignore-workspace"
+    "install-packages": "pnpm install --ignore-workspace",
+    "vercel:env-pull": "vercel env pull .env.local"
   },
   "dependencies": {
     "@flowglad/nextjs": "0.10.8",
     "@hookform/resolvers": "3.10.0",
     "@radix-ui/react-label": "2.1.4",
-    "@stackframe/stack": "^2.7.27",
+    "@sentry/nextjs": "^9.15.0",
+    "@stackframe/stack": "2.8.11",
     "@t3-oss/env-nextjs": "^0.13.0",
     "@tailwindcss/forms": "0.5.10",
     "@tanstack/react-query": "5.66.0",

@@ -4,6 +4,7 @@ export const requestMagicLinkSchema = z.object({
   organizationId: z.string(),
   customerEmail: z.string(),
   customerExternalId: z.string(),
+  livemode: z.boolean(),
 })
 
 export type RequestMagicLinkBody = z.infer<
