@@ -42,6 +42,16 @@ const hostedBillingApiPost = async ({
       }`,
       ...authHeaders,
     })
+    /**
+     * Allow staging environment to access Flowglad Next Staging server
+     */
+    const maybeVercelBypass =
+      process.env.VERCEL_ENV === 'preview'
+        ? {
+            'x-vercel-bypass':
+              process.env.VERCEL_PREVIEW_BYPASS_SECRET,
+          }
+        : {}
     const response = await axios.post(
       `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
       data,
@@ -53,6 +63,7 @@ const hostedBillingApiPost = async ({
               : process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
           }`,
           ...authHeaders,
+          ...maybeVercelBypass,
         },
       }
     )
