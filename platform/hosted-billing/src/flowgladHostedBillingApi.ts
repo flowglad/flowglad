@@ -34,14 +34,6 @@ const hostedBillingApiPost = async ({
       'Making request to:',
       `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`
     )
-    console.log('Request headers:', {
-      Authorization: `Bearer ${
-        livemode
-          ? process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
-          : process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
-      }`,
-      ...authHeaders,
-    })
     /**
      * Allow staging environment to access Flowglad Next Staging server
      */
@@ -52,20 +44,22 @@ const hostedBillingApiPost = async ({
               process.env.VERCEL_PREVIEW_BYPASS_SECRET,
           }
         : {}
+    const requestHeaders = {
+      headers: {
+        Authorization: `Bearer ${
+          livemode
+            ? process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
+            : process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
+        }`,
+        ...authHeaders,
+        ...maybeVercelBypass,
+      },
+    }
+    console.log('Request headers:', requestHeaders)
     const response = await axios.post(
       `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
       data,
-      {
-        headers: {
-          Authorization: `Bearer ${
-            livemode
-              ? process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
-              : process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
-          }`,
-          ...authHeaders,
-          ...maybeVercelBypass,
-        },
-      }
+      requestHeaders
     )
     return response.data
   } catch (error: unknown) {
