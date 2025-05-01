@@ -15,6 +15,7 @@ const hostedBillingApiPost = async ({
 }) => {
   const user = await stackServerApp(organizationId).getUser()
   const authHeaders = await user?.getAuthHeaders()
+  console.log('process.env.API_BASE_URL', process.env.API_BASE_URL)
   const response = await axios.post(
     `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
     data,

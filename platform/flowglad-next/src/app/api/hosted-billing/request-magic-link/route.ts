@@ -13,6 +13,7 @@ import { hostedBillingStackServerApp } from '@/stack'
 import { logger } from '@/utils/logger'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { ServerUser } from '@stackframe/stack'
+import core from '@/utils/core'
 
 const requestSchema = z.object({
   organizationId: z.string(),
@@ -78,7 +79,10 @@ const createUserAndSendMagicLink = async (params: {
         })
 
         await hostedBillingStackServerApp.sendMagicLinkEmail(
-          params.customerEmail
+          params.customerEmail,
+          {
+            callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${params.organizationId}/validate-magic-link`,
+          }
         )
 
         logger.info('Magic link email sent', {
@@ -139,7 +143,7 @@ async function sendEmailToExistingUser({
     await hostedBillingStackServerApp.sendMagicLinkEmail(
       user.primaryEmail!,
       {
-        callbackUrl: `http://localhost:3001/api/${organizationId}/validate-magic-link`,
+        callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/validate-magic-link`,
       }
     )
     logger.info(
