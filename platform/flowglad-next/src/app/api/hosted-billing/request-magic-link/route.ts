@@ -23,7 +23,10 @@ const requestSchema = z.object({
 
 const sendVerificationEmailToUser = async (
   user: ServerUser,
-  baseURL: string
+  params: {
+    organizationId: string
+    customerExternalId: string
+  }
 ) => {
   const contactChannels = await user.listContactChannels()
   const primaryContactChannel = contactChannels.find(
@@ -38,7 +41,11 @@ const sendVerificationEmailToUser = async (
   }
   // @ts-expect-error - actually works but not correctly typed
   await primaryContactChannel.sendVerificationEmail({
-    callbackUrl: `${baseURL}/verify-email`,
+    callbackUrl: core.billingPortalPageURL({
+      organizationId: params.organizationId,
+      customerExternalId: params.customerExternalId,
+      page: 'validate-magic-link',
+    }),
   })
   logger.info('Verification link email sent', {
     userPrimaryEmail: user.primaryEmail,
@@ -177,7 +184,11 @@ async function sendEmailToExistingUser({
     await hostedBillingStackServerApp.sendMagicLinkEmail(
       user.primaryEmail!,
       {
-        callbackUrl: `${baseURL}/validate-magic-link`,
+        callbackUrl: core.billingPortalPageURL({
+          organizationId,
+          customerExternalId,
+          page: 'validate-magic-link',
+        }),
       }
     )
     logger.info(
@@ -185,7 +196,10 @@ async function sendEmailToExistingUser({
       emailAndUserId
     )
   } else {
-    await sendVerificationEmailToUser(user, baseURL)
+    await sendVerificationEmailToUser(user, {
+      organizationId,
+      customerExternalId,
+    })
     logger.info(
       'Primary email not verified, verification link email sent to existing user',
       emailAndUserId

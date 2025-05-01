@@ -3,6 +3,11 @@ import { stackServerApp } from '@/stack'
 import { redirect } from 'next/navigation'
 import { logger } from '@/utils/logger'
 
+/**
+ * Note: stack auth redirects post-magic link signin redirects, for whatever reason,
+ * don't seem to work if we redirect from a page to another page, but they will work if
+ * we redirect to a route to a page
+ */
 export const GET = async (
   request: NextRequest,
   {

@@ -1,5 +1,6 @@
 import { ServerUser, StackServerApp } from '@stackframe/stack'
 import { billingPortalMetadataSchema } from './utils/apiSchemas'
+import { portalRoute } from './utils/core'
 
 export const globalStackServerApp = new StackServerApp({
   tokenStore: 'nextjs-cookie',
@@ -8,13 +9,22 @@ export const globalStackServerApp = new StackServerApp({
 export const stackServerApp = (params: {
   organizationId: string
   externalId: string
-}) =>
-  new StackServerApp({
+}) => {
+  const afterSignIn = portalRoute({
+    organizationId: params.organizationId,
+    customerExternalId: params.externalId,
+    page: 'manage',
+  })
+  console.log('afterSignIn', {
+    afterSignIn,
+  })
+  return new StackServerApp({
     tokenStore: 'nextjs-cookie',
     urls: {
-      afterSignIn: `/p/${params.organizationId}/${params.externalId}/manage`,
+      afterSignIn,
     },
   })
+}
 
 export const getUserBillingPortalApiKey = ({
   organizationId,

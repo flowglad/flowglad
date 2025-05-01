@@ -1,4 +1,5 @@
 import { stackServerApp } from '@/stack'
+import { portalRoute } from '@/utils/core'
 import { redirect } from 'next/navigation'
 
 interface BillingPortalPageProps {
@@ -28,11 +29,19 @@ export default async function BillingPortalPage({
   }
   if (user) {
     return redirect(
-      `/p/${organizationId}/${externalId}/manage?${queryParams.toString()}`
+      portalRoute({
+        organizationId,
+        customerExternalId: externalId,
+        page: 'manage',
+      })
     )
   }
 
   return redirect(
-    `/p/${organizationId}/${externalId}/sign-in?${queryParams.toString()}`
+    portalRoute({
+      organizationId,
+      customerExternalId: externalId,
+      page: 'sign-in',
+    })
   )
 }

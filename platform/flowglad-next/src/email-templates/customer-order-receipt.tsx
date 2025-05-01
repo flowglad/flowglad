@@ -71,26 +71,49 @@ export const OrderReceiptEmail = ({
             </Section>
           )}
 
-          <Heading style={h1}>Thanks for your order!</Heading>
+          <Heading style={h1} data-testid="email-title">
+            Thanks for your order!
+          </Heading>
 
           <Section style={orderDetails}>
-            <Text style={orderItem}>Invoice #: {invoiceNumber}</Text>
-            <Text style={orderItem}>Date: {orderDate}</Text>
-            <Text style={orderItem}>Payment: {totalAmount}</Text>
+            <Text style={orderItem} data-testid="invoice-number">
+              Invoice #: {invoiceNumber}
+            </Text>
+            <Text style={orderItem} data-testid="order-date">
+              Date: {orderDate}
+            </Text>
+            <Text style={orderItem} data-testid="payment-amount">
+              Payment: {totalAmount}
+            </Text>
           </Section>
 
           {lineItems.map((item, index) => (
-            <Section style={productDetails} key={index}>
+            <Section
+              style={productDetails}
+              key={index}
+              data-testid={`line-item-${index}`}
+            >
               <Row>
                 <Column>
-                  <Text style={productNameStyle}>{item.name}</Text>
-                  <Text style={productPriceStyle}>
+                  <Text
+                    style={productNameStyle}
+                    data-testid={`line-item-name-${index}`}
+                  >
+                    {item.name}
+                  </Text>
+                  <Text
+                    style={productPriceStyle}
+                    data-testid={`line-item-price-${index}`}
+                  >
                     {stripeCurrencyAmountToHumanReadableCurrencyAmount(
                       currency,
                       item.price
                     )}
                   </Text>
-                  <Text style={productQuantityStyle}>
+                  <Text
+                    style={productQuantityStyle}
+                    data-testid={`line-item-quantity-${index}`}
+                  >
                     Quantity: {item.quantity}
                   </Text>
                 </Column>
@@ -98,28 +121,47 @@ export const OrderReceiptEmail = ({
             </Section>
           ))}
 
-          <Hr style={hr} />
+          <Hr style={hr} data-testid="total-divider" />
 
           <Section style={totalSection}>
-            <Text style={totalLabel}>Subtotal</Text>
-            <Text style={totalAmountStyle}>{totalAmount}</Text>
-            <Text style={totalLabel}>Total</Text>
-            <Text style={totalAmountStyle}>{totalAmount}</Text>
+            <Text style={totalLabel} data-testid="subtotal-label">
+              Subtotal
+            </Text>
+            <Text
+              style={totalAmountStyle}
+              data-testid="subtotal-amount"
+            >
+              {totalAmount}
+            </Text>
+            <Text style={totalLabel} data-testid="total-label">
+              Total
+            </Text>
+            <Text style={totalAmountStyle} data-testid="total-amount">
+              {totalAmount}
+            </Text>
           </Section>
 
-          <Text style={thankYouText}>Thanks for the purchase!</Text>
+          <Text style={thankYouText} data-testid="thank-you-text">
+            Thanks for the purchase!
+          </Text>
           {/* TODO: create customer portal.... */}
           <EmailButton
-            href={core.safeUrl(
-              `p/${organizationId}/${customerExternalId}/sign-in`,
-              core.envVariable('HOSTED_BILLING_PORTAL_URL')
-            )}
+            href={core.billingPortalPageURL({
+              organizationId,
+              customerExternalId,
+              page: 'sign-in',
+            })}
+            testId="view-order-button"
           >
             View Order →
           </EmailButton>
 
-          <Text style={signature}>Thanks,</Text>
-          <Text style={signature}>{organizationName}</Text>
+          <Text style={signature} data-testid="signature-thanks">
+            Thanks,
+          </Text>
+          <Text style={signature} data-testid="signature-org-name">
+            {organizationName}
+          </Text>
           {/* 
           <Text style={footerText}>
             Need an invoice?{' '}

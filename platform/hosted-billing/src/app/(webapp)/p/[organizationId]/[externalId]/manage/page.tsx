@@ -4,6 +4,7 @@ import { getUserBillingPortalApiKey, stackServerApp } from '@/stack'
 import { redirect } from 'next/navigation'
 import { BillingPage } from './BillingPage'
 import { logger } from '@/utils/logger'
+import { portalRoute } from '@/utils/core'
 
 interface BillingPortalManagePageProps {
   params: Promise<{
@@ -39,7 +40,11 @@ export default async function BillingPortalManagePage({
       externalId,
     })
     return redirect(
-      `/p/${organizationId}/${externalId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+      portalRoute({
+        organizationId,
+        customerExternalId: externalId,
+        page: 'sign-in',
+      })
     )
   }
 
@@ -66,7 +71,11 @@ export default async function BillingPortalManagePage({
       error,
     })
     return redirect(
-      `/p/${organizationId}/${externalId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+      portalRoute({
+        organizationId,
+        customerExternalId: externalId,
+        page: 'sign-in',
+      })
     )
   }
   const mostUpToDateUser = await stackServerApp({
@@ -83,7 +92,11 @@ export default async function BillingPortalManagePage({
       { organizationId, externalId }
     )
     return redirect(
-      `/p/${organizationId}/${externalId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+      portalRoute({
+        organizationId,
+        customerExternalId: externalId,
+        page: 'sign-in',
+      })
     )
   }
 
@@ -98,7 +111,11 @@ export default async function BillingPortalManagePage({
       externalId,
     })
     return redirect(
-      `/p/${organizationId}/${externalId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+      portalRoute({
+        organizationId,
+        customerExternalId: externalId,
+        page: 'sign-in',
+      })
     )
   }
 

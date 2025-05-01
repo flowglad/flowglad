@@ -498,6 +498,29 @@ export const gitCommitId = () => {
   return commitId
 }
 
+export const billingPortalPageURL = (params: {
+  organizationId: string
+  customerExternalId: string
+  page: 'sign-in' | 'manage' | 'validate-magic-link'
+}) => {
+  const { organizationId, customerExternalId, page } = params
+  if (page === 'validate-magic-link') {
+    /**
+     * Note: stack auth redirects post-magic link signin redirects, for whatever reason,
+     * don't seem to work if we redirect from a page to another page, but they will work if
+     * we redirect to a route to a page
+     */
+    return safeUrl(
+      `api/${organizationId}/${customerExternalId}/${page}`,
+      envVariable('HOSTED_BILLING_PORTAL_URL')
+    )
+  }
+  return safeUrl(
+    `p/${organizationId}/${customerExternalId}/${page}`,
+    envVariable('HOSTED_BILLING_PORTAL_URL')
+  )
+}
+
 export const core = {
   IS_PROD,
   IS_TEST,
@@ -526,6 +549,7 @@ export const core = {
   areDatabaseIdsEqual,
   constructMidnightDate,
   emailAddressToCompanyDomain,
+  billingPortalPageURL,
   nanoid,
   amountInDollars,
   omit,
