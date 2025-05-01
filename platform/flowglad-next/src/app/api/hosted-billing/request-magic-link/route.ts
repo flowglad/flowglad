@@ -139,35 +139,35 @@ async function sendEmailToExistingUser({
     primaryEmail: user.primaryEmail!,
     stackAuthUserId: user.id,
   }
-  // if (user.primaryEmailVerified) {
-  await hostedBillingStackServerApp.sendMagicLinkEmail(
-    user.primaryEmail!,
-    {
-      callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/validate-magic-link`,
+  if (user.primaryEmailVerified) {
+    await hostedBillingStackServerApp.sendMagicLinkEmail(
+      user.primaryEmail!,
+      {
+        callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/validate-magic-link`,
+      }
+    )
+    logger.info(
+      'Magic link email sent to existing user',
+      emailAndUserId
+    )
+  } else {
+    const contactChannels = await user.listContactChannels()
+    const primaryContactChannel = contactChannels.find(
+      (channel) => channel.type === 'email' && channel.isPrimary
+    )
+    if (!primaryContactChannel) {
+      logger.error(
+        'No primary email contact channel found for stack auth user',
+        emailAndUserId
+      )
+      throw new Error('No primary contact channel found')
     }
-  )
-  logger.info(
-    'Magic link email sent to existing user',
-    emailAndUserId
-  )
-  // } else {
-  //   const contactChannels = await user.listContactChannels()
-  //   const primaryContactChannel = contactChannels.find(
-  //     (channel) => channel.type === 'email' && channel.isPrimary
-  //   )
-  //   if (!primaryContactChannel) {
-  //     logger.error(
-  //       'No primary email contact channel found for stack auth user',
-  //       emailAndUserId
-  //     )
-  //     throw new Error('No primary contact channel found')
-  //   }
-  //   await primaryContactChannel.sendVerificationEmail()
-  //   logger.info(
-  //     'Verification email sent to existing user',
-  //     emailAndUserId
-  //   )
-  // }
+    await primaryContactChannel.sendVerificationEmail()
+    logger.info(
+      'Verification email sent to existing user',
+      emailAndUserId
+    )
+  }
 }
 
 export const POST = withBillingApiRequestValidation(
@@ -231,10 +231,11 @@ export const POST = withBillingApiRequestValidation(
             customerEmail: customer.email,
             hasStackAuthUserId:
               !!customer.stackAuthHostedBillingUserId,
+            stackAuthUserId: customer.stackAuthHostedBillingUserId,
           })
 
           if (customer.stackAuthHostedBillingUserId) {
-            logger.info('Creating new user and sending magic link', {
+            logger.info('Sending magic link to existing user', {
               customerId: customer.id,
               customerEmail: customer.email,
             })

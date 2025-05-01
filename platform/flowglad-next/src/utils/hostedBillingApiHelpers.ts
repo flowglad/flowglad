@@ -7,7 +7,7 @@ import { logger } from '@/utils/logger'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { ServerUser, User } from '@stackframe/stack'
 import { z } from 'zod'
-import { ConsoleLogWriter } from 'drizzle-orm'
+
 export const validateBillingAuthentication = async (
   request: NextRequest
 ) => {

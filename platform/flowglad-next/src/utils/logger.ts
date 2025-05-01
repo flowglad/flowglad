@@ -1,9 +1,9 @@
 // utils/logger.ts
 import { log as logtailLog } from '@logtail/next'
 import { trace, context } from '@opentelemetry/api'
-import { IS_DEV } from './core'
+import core, { IS_DEV } from './core'
 
-const log = IS_DEV ? console : logtailLog
+const log = IS_DEV || !core.IS_PROD ? console : logtailLog
 
 type LogData = Record<string, any>
 
