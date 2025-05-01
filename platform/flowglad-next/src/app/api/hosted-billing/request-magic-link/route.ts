@@ -21,6 +21,20 @@ const requestSchema = z.object({
   customerExternalId: z.string(),
 })
 
+const sendVerificationEmailToUser = async (
+  user: ServerUser,
+  baseURL: string
+) => {
+  const contactChannels = await user.listContactChannels()
+  const primaryContactChannel = contactChannels.find(
+    (channel) => channel.type === 'email' && channel.isPrimary
+  )
+  // @ts-expect-error - actually works but not correctly typed
+  await primaryContactChannel.sendVerificationEmail({
+    callbackUrl: `${baseURL}/verify-email`,
+  })
+}
+
 const createUserAndSendMagicLink = async (params: {
   customerEmail: string
   customerId: string
@@ -77,14 +91,10 @@ const createUserAndSendMagicLink = async (params: {
           customerId: params.customerId,
           stackAuthUserId: user.id,
         })
-
-        await hostedBillingStackServerApp.sendMagicLinkEmail(
-          params.customerEmail,
-          {
-            callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${params.organizationId}/validate-magic-link`,
-          }
+        await sendVerificationEmailToUser(
+          user,
+          `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${params.organizationId}/${params.customerExternalId}`
         )
-
         logger.info('Magic link email sent', {
           customerEmail: params.customerEmail,
           userId: user.id,
@@ -122,12 +132,15 @@ async function sendEmailToExistingUser({
   customerId,
   user,
   organizationId,
+  customerExternalId,
 }: {
   user: ServerUser
   customerId: string
   customerName: string
   organizationId: string
+  customerExternalId: string
 }) {
+  const baseURL = `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/${customerExternalId}`
   logger.info(
     'Customer already has Stack Auth user ID, sending magic link',
     {
@@ -143,7 +156,7 @@ async function sendEmailToExistingUser({
     await hostedBillingStackServerApp.sendMagicLinkEmail(
       user.primaryEmail!,
       {
-        callbackUrl: `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/validate-magic-link`,
+        callbackUrl: `${baseURL}/validate-magic-link`,
       }
     )
     logger.info(
@@ -151,18 +164,7 @@ async function sendEmailToExistingUser({
       emailAndUserId
     )
   } else {
-    const contactChannels = await user.listContactChannels()
-    const primaryContactChannel = contactChannels.find(
-      (channel) => channel.type === 'email' && channel.isPrimary
-    )
-    if (!primaryContactChannel) {
-      logger.error(
-        'No primary email contact channel found for stack auth user',
-        emailAndUserId
-      )
-      throw new Error('No primary contact channel found')
-    }
-    await primaryContactChannel.sendVerificationEmail()
+    await sendVerificationEmailToUser(user, `${baseURL}/verify-email`)
     logger.info(
       'Verification email sent to existing user',
       emailAndUserId
@@ -255,6 +257,7 @@ export const POST = withBillingApiRequestValidation(
               customerId: customer.id,
               customerName: customer.name,
               organizationId,
+              customerExternalId,
             })
           } else {
             logger.info('Creating new user and sending magic link', {

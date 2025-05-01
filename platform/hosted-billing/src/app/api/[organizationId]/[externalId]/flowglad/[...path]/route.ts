@@ -7,10 +7,19 @@ const handler = async (
   request: NextRequest,
   {
     params,
-  }: { params: Promise<{ organizationId: string; path: string[] }> }
+  }: {
+    params: Promise<{
+      organizationId: string
+      path: string[]
+      externalId: string
+    }>
+  }
 ) => {
-  const { organizationId, path } = await params
-  const user = await stackServerApp(organizationId).getUser()
+  const { organizationId, path, externalId } = await params
+  const user = await stackServerApp({
+    organizationId,
+    externalId,
+  }).getUser()
   if (!user) {
     return NextResponse.json(
       { error: 'User not found' },
@@ -29,6 +38,7 @@ const handler = async (
   }
   const fgServer = flowgladServer({
     organizationId,
+    externalId,
     billingPortalApiKey,
   })
   const innermostHandler = createAppRouterRouteHandler(fgServer)

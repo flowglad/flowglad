@@ -9,22 +9,31 @@ interface BillingPortalManagePageProps {
     organizationId: string
     externalId: string
   }>
+  searchParams: Promise<{
+    testmode?: boolean
+  }>
 }
 
 export default async function BillingPortalManagePage({
   params,
+  searchParams,
 }: BillingPortalManagePageProps) {
   const { organizationId, externalId } = await params
-  const user = await stackServerApp(organizationId).getUser()
-
+  const { testmode } = await searchParams
+  const livemode = typeof testmode === 'boolean' ? !testmode : true
+  const user = await stackServerApp({
+    organizationId,
+    externalId,
+  }).getUser()
   if (!user) {
     return redirect(
-      `/${organizationId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+      `/p/${organizationId}/${externalId}/sign-in?externalId=${encodeURIComponent(externalId)}`
     )
   }
-
   await validateCurrentUserBillingPortalApiKeyForOrganization({
     organizationId,
+    externalId,
+    livemode,
   })
 
   const billingPortalApiKey = await getUserBillingPortalApiKey({
@@ -33,19 +42,25 @@ export default async function BillingPortalManagePage({
   })
   if (!billingPortalApiKey) {
     return redirect(
-      `/${organizationId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+      `/p/${organizationId}/${externalId}/sign-in?externalId=${encodeURIComponent(externalId)}`
     )
   }
+
   const customer = await flowgladServer({
     organizationId,
+    externalId,
     billingPortalApiKey,
   }).getCustomer()
-
   if (!customer) {
     return redirect(
-      `/${organizationId}/sign-in?externalId=${encodeURIComponent(externalId)}`
+      `/p/${organizationId}/${externalId}/sign-in?externalId=${encodeURIComponent(externalId)}`
     )
   }
 
-  return <BillingPage organizationId={organizationId} />
+  return (
+    <BillingPage
+      organizationId={organizationId}
+      externalId={externalId}
+    />
+  )
 }

@@ -7,11 +7,13 @@ const hostedBillingApiPost = async ({
   data,
   livemode,
   organizationId,
+  externalId,
 }: {
   subPath: string
   data: Record<string, unknown>
   livemode: boolean
   organizationId: string
+  externalId: string
 }) => {
   console.log('process.env.API_BASE_URL', process.env.API_BASE_URL)
   console.log('subPath', subPath)
@@ -26,7 +28,10 @@ const hostedBillingApiPost = async ({
     'process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY',
     process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
   )
-  const user = await stackServerApp(organizationId).getUser()
+  const user = await stackServerApp({
+    organizationId,
+    externalId,
+  }).getUser()
   const authHeaders = await user?.getAuthHeaders()
   console.log('authHeaders', authHeaders)
   try {
@@ -83,24 +88,32 @@ const hostedBillingApiPost = async ({
  * @returns
  */
 export const validateCurrentUserBillingPortalApiKeyForOrganization =
-  async (params: { organizationId: string }) => {
+  async (params: {
+    organizationId: string
+    externalId: string
+    livemode: boolean
+  }) => {
     return await hostedBillingApiPost({
       subPath: 'verify-billing-portal-api-key',
       data: {
         organizationId: params.organizationId,
       },
-      livemode: false,
+      livemode: params.livemode,
       organizationId: params.organizationId,
+      externalId: params.externalId,
     })
   }
 
 export const requestMagicLink = async (
-  params: RequestMagicLinkBody
+  params: RequestMagicLinkBody & {
+    livemode: boolean
+  }
 ) => {
   return await hostedBillingApiPost({
     subPath: 'request-magic-link',
     data: params,
-    livemode: false,
+    livemode: params.livemode,
     organizationId: params.organizationId,
+    externalId: params.customerExternalId,
   })
 }

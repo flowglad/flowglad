@@ -5,11 +5,14 @@ export const globalStackServerApp = new StackServerApp({
   tokenStore: 'nextjs-cookie',
 })
 
-export const stackServerApp = (organizationId: string) =>
+export const stackServerApp = (params: {
+  organizationId: string
+  externalId: string
+}) =>
   new StackServerApp({
     tokenStore: 'nextjs-cookie',
     urls: {
-      afterSignIn: `/${organizationId}/manage`,
+      afterSignIn: `/p/${params.organizationId}/${params.externalId}/manage`,
     },
   })
 

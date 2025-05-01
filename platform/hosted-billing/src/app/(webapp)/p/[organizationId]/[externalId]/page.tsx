@@ -4,9 +4,9 @@ import { redirect } from 'next/navigation'
 interface BillingPortalPageProps {
   params: Promise<{
     organizationId: string
+    externalId: string
   }>
   searchParams: Promise<{
-    externalId: string
     testmode?: boolean
   }>
 }
@@ -15,9 +15,12 @@ export default async function BillingPortalPage({
   params,
   searchParams,
 }: BillingPortalPageProps) {
-  const { organizationId } = await params
-  const { externalId, testmode } = await searchParams
-  const user = await stackServerApp(organizationId).getUser()
+  const { organizationId, externalId } = await params
+  const { testmode } = await searchParams
+  const user = await stackServerApp({
+    organizationId,
+    externalId,
+  }).getUser()
   const queryParams = new URLSearchParams()
   queryParams.set('externalId', externalId)
   if (testmode) {
@@ -25,11 +28,11 @@ export default async function BillingPortalPage({
   }
   if (user) {
     return redirect(
-      `/${organizationId}/manage?${queryParams.toString()}`
+      `/p/${organizationId}/${externalId}/manage?${queryParams.toString()}`
     )
   }
 
   return redirect(
-    `/${organizationId}/sign-in?${queryParams.toString()}`
+    `/p/${organizationId}/${externalId}/sign-in?${queryParams.toString()}`
   )
 }

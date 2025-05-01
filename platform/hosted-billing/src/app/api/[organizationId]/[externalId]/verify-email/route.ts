@@ -7,14 +7,20 @@ export const GET = async (
   {
     params,
   }: {
-    params: Promise<{ organizationId: string }>
+    params: Promise<{ organizationId: string; externalId: string }>
   }
 ) => {
-  const { organizationId } = await params
+  const { organizationId, externalId } = await params
   const code = request.nextUrl.searchParams.get('code')
   if (!code) {
     return new Response('No code provided', { status: 400 })
   }
-  await stackServerApp(organizationId).signInWithMagicLink(code)
-  redirect(`/${organizationId}/manage`)
+  const result = await stackServerApp({
+    organizationId,
+    externalId,
+  }).verifyEmail(code)
+  if (result) {
+    console.log('====email verify result', result)
+  }
+  redirect(`/p/${organizationId}/${externalId}/manage`)
 }
