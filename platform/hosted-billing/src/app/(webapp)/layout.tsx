@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { cn } from '@/cn'
+import { cn } from '@/utils/cn'
 import './globals.css'
 import Providers from './Providers'
 import { StackProvider } from '@stackframe/stack'

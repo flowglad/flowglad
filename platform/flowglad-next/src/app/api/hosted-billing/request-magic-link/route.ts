@@ -29,9 +29,21 @@ const sendVerificationEmailToUser = async (
   const primaryContactChannel = contactChannels.find(
     (channel) => channel.type === 'email' && channel.isPrimary
   )
+  if (!primaryContactChannel) {
+    logger.warn('No primary contact channel found for user', {
+      userPrimaryEmail: user.primaryEmail,
+      stackAuthUserId: user.id,
+    })
+    throw new Error('No primary contact channel found for user')
+  }
   // @ts-expect-error - actually works but not correctly typed
   await primaryContactChannel.sendVerificationEmail({
     callbackUrl: `${baseURL}/verify-email`,
+  })
+  logger.info('Verification link email sent', {
+    userPrimaryEmail: user.primaryEmail,
+    stackAuthUserId: user.id,
+    primaryContactChannel: primaryContactChannel.value,
   })
 }
 
@@ -64,6 +76,10 @@ const createUserAndSendMagicLink = async (params: {
           primaryEmailAuthEnabled: true,
           displayName: params.customerName,
           otpAuthEnabled: true,
+          /**
+           * Todo: review this with Stack Auth team to ensure this is good to go
+           */
+          primaryEmailVerified: true,
         })
 
         await setHostedBillingCustomerExternalIdForStackAuthUser({
@@ -91,15 +107,18 @@ const createUserAndSendMagicLink = async (params: {
           customerId: params.customerId,
           stackAuthUserId: user.id,
         })
-        await sendVerificationEmailToUser(
+        await sendEmailToExistingUser({
           user,
-          `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${params.organizationId}/${params.customerExternalId}`
-        )
-        logger.info('Magic link email sent', {
-          customerEmail: params.customerEmail,
-          userId: user.id,
+          customerId: params.customerId,
+          customerName: params.customerName,
+          organizationId: params.organizationId,
+          customerExternalId: params.customerExternalId,
         })
-
+        // keep this in case we need to go back to verify and magic link emails being different flows
+        // await sendVerificationEmailToUser(
+        //   user,
+        //   `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${params.organizationId}/${params.customerExternalId}`
+        // )
         span.setStatus({ code: SpanStatusCode.OK })
         return { userId: user.id }
       } catch (error) {
@@ -151,6 +170,8 @@ async function sendEmailToExistingUser({
   const emailAndUserId = {
     primaryEmail: user.primaryEmail!,
     stackAuthUserId: user.id,
+    baseURL,
+    primaryEmailVerified: user.primaryEmailVerified,
   }
   if (user.primaryEmailVerified) {
     await hostedBillingStackServerApp.sendMagicLinkEmail(
@@ -160,13 +181,13 @@ async function sendEmailToExistingUser({
       }
     )
     logger.info(
-      'Magic link email sent to existing user',
+      'Primary email verified, login with magic link email sent to existing user',
       emailAndUserId
     )
   } else {
-    await sendVerificationEmailToUser(user, `${baseURL}/verify-email`)
+    await sendVerificationEmailToUser(user, baseURL)
     logger.info(
-      'Verification email sent to existing user',
+      'Primary email not verified, verification link email sent to existing user',
       emailAndUserId
     )
   }

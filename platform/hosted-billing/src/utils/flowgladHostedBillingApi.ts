@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import { RequestMagicLinkBody } from './apiSchemas'
-import { stackServerApp } from './stack'
+import { stackServerApp } from '../stack'
+import { logger } from './logger'
 
 const hostedBillingApiPost = async ({
   subPath,
@@ -15,30 +16,25 @@ const hostedBillingApiPost = async ({
   organizationId: string
   externalId: string
 }) => {
-  console.log('process.env.API_BASE_URL', process.env.API_BASE_URL)
-  console.log('subPath', subPath)
-  console.log('data', data)
-  console.log('livemode', livemode)
-  console.log('organizationId', organizationId)
-  console.log(
-    'process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY',
-    process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
-  )
-  console.log(
-    'process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY',
-    process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
-  )
+  logger.debug('Making hosted billing API request', {
+    subPath,
+    data,
+    livemode,
+    organizationId,
+    externalId,
+  })
+
   const user = await stackServerApp({
     organizationId,
     externalId,
   }).getUser()
   const authHeaders = await user?.getAuthHeaders()
-  console.log('authHeaders', authHeaders)
+
   try {
-    console.log(
-      'Making request to:',
-      `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`
-    )
+    logger.debug('Making request to hosted billing API', {
+      url: `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
+    })
+
     /**
      * Allow staging environment to access Flowglad Next Staging server
      */
@@ -60,7 +56,7 @@ const hostedBillingApiPost = async ({
         ...maybeVercelBypass,
       },
     }
-    console.log('Request headers:', requestHeaders)
+
     const response = await axios.post(
       `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
       data,
@@ -69,7 +65,7 @@ const hostedBillingApiPost = async ({
     return response.data
   } catch (error: unknown) {
     const axiosError = error as AxiosError
-    console.error('Axios request failed:', {
+    logger.error('Axios request failed', {
       error: error instanceof Error ? error.message : String(error),
       response: axiosError.response?.data,
       status: axiosError.response?.status,

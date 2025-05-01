@@ -1,5 +1,5 @@
 import { ServerUser, StackServerApp } from '@stackframe/stack'
-import { billingPortalMetadataSchema } from './apiSchemas'
+import { billingPortalMetadataSchema } from './utils/apiSchemas'
 
 export const globalStackServerApp = new StackServerApp({
   tokenStore: 'nextjs-cookie',

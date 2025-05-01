@@ -16,7 +16,7 @@ import {
 import {
   requestMagicLinkSchema,
   type RequestMagicLinkBody,
-} from '@/apiSchemas'
+} from '@/utils/apiSchemas'
 import { zodResolver } from '@hookform/resolvers/zod'
 interface LoginFormProps {
   organizationId: string
