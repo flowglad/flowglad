@@ -111,7 +111,7 @@ export const OrderReceiptEmail = ({
           {/* TODO: create customer portal.... */}
           <EmailButton
             href={core.safeUrl(
-              `${organizationId}/sign-in?externalId=${encodeURIComponent(customerExternalId)}`,
+              `p/${organizationId}/${customerExternalId}/sign-in`,
               core.envVariable('HOSTED_BILLING_PORTAL_URL')
             )}
           >
