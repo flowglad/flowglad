@@ -45,7 +45,7 @@ const hostedBillingApiPost = async ({
               process.env.VERCEL_PREVIEW_BYPASS_SECRET,
           }
         : {}
-    const requestHeaders = {
+    const options = {
       headers: {
         Authorization: `Bearer ${
           livemode
@@ -56,11 +56,11 @@ const hostedBillingApiPost = async ({
         ...maybeVercelBypass,
       },
     }
-
+    logger.debug('Request headers', options.headers)
     const response = await axios.post(
       `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
       data,
-      requestHeaders
+      options
     )
     return response.data
   } catch (error: unknown) {
