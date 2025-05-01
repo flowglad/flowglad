@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { RequestMagicLinkBody } from './apiSchemas'
 import { stackServerApp } from './stack'
 
@@ -29,22 +29,45 @@ const hostedBillingApiPost = async ({
   const user = await stackServerApp(organizationId).getUser()
   const authHeaders = await user?.getAuthHeaders()
   console.log('authHeaders', authHeaders)
-
-  const response = await axios.post(
-    `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
-    data,
-    {
-      headers: {
-        Authorization: `Bearer ${
-          livemode
-            ? process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
-            : process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
-        }`,
-        ...authHeaders,
-      },
-    }
-  )
-  return response.data
+  try {
+    console.log(
+      'Making request to:',
+      `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`
+    )
+    console.log('Request headers:', {
+      Authorization: `Bearer ${
+        livemode
+          ? process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
+          : process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
+      }`,
+      ...authHeaders,
+    })
+    const response = await axios.post(
+      `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${
+            livemode
+              ? process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
+              : process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
+          }`,
+          ...authHeaders,
+        },
+      }
+    )
+    return response.data
+  } catch (error: unknown) {
+    const axiosError = error as AxiosError
+    console.error('Axios request failed:', {
+      error: error instanceof Error ? error.message : String(error),
+      response: axiosError.response?.data,
+      status: axiosError.response?.status,
+      headers: axiosError.response?.headers,
+      config: axiosError.config,
+    })
+    throw error
+  }
 }
 /**
  * Calls the Flowglad hosted billing API to verify that the current user has a valid billing portal API key for the given organization.
