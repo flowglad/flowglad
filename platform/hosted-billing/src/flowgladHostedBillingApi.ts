@@ -13,9 +13,23 @@ const hostedBillingApiPost = async ({
   livemode: boolean
   organizationId: string
 }) => {
+  console.log('process.env.API_BASE_URL', process.env.API_BASE_URL)
+  console.log('subPath', subPath)
+  console.log('data', data)
+  console.log('livemode', livemode)
+  console.log('organizationId', organizationId)
+  console.log(
+    'process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY',
+    process.env.HOSTED_BILLING_LIVEMODE_SECRET_KEY
+  )
+  console.log(
+    'process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY',
+    process.env.HOSTED_BILLING_TESTMODE_SECRET_KEY
+  )
   const user = await stackServerApp(organizationId).getUser()
   const authHeaders = await user?.getAuthHeaders()
-  console.log('process.env.API_BASE_URL', process.env.API_BASE_URL)
+  console.log('authHeaders', authHeaders)
+
   const response = await axios.post(
     `${process.env.API_BASE_URL}/api/hosted-billing/${subPath}`,
     data,
