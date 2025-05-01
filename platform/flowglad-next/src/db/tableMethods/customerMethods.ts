@@ -18,7 +18,7 @@ import {
   createBulkInsertOrDoNothingFunction,
   createPaginatedSelectFunction,
 } from '@/db/tableUtils'
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { invoices } from '../schema/invoices'
@@ -283,3 +283,34 @@ export const selectCustomersTableRowData = async (
     }
   })
 }
+
+export const assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId =
+  async (
+    params: {
+      email: string
+      stackAuthHostedBillingUserId: string
+    },
+    transaction: DbTransaction
+  ) => {
+    const customers = await transaction
+      .select()
+      .from(customersTable)
+      .where(
+        and(
+          isNull(customersTable.stackAuthHostedBillingUserId),
+          eq(customersTable.email, params.email)
+        )
+      )
+    await transaction
+      .update(customersTable)
+      .set({
+        stackAuthHostedBillingUserId:
+          params.stackAuthHostedBillingUserId,
+      })
+      .where(
+        inArray(
+          customersTable.id,
+          customers.map((c) => c.id)
+        )
+      )
+  }

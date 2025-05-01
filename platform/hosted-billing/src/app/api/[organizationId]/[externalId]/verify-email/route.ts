@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { stackServerApp } from '@/stack'
 import { redirect } from 'next/navigation'
 import { logger } from '@/utils/logger'
+import { portalRoute } from '@/utils/core'
 
 export const GET = async (
   request: NextRequest,
@@ -46,5 +47,11 @@ export const GET = async (
     })
     throw error
   }
-  redirect(`/p/${organizationId}/${externalId}/manage`)
+  redirect(
+    portalRoute({
+      organizationId,
+      customerExternalId: externalId,
+      page: 'manage',
+    })
+  )
 }

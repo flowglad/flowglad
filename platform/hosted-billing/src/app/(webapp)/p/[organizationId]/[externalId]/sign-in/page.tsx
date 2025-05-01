@@ -31,7 +31,6 @@ export default async function BillingPortalSigninPage({
   }
 
   const customerExternalId = decodeURIComponent(externalId)
-  console.log('customerExternalId', customerExternalId)
   return (
     <BillingPortalSigninForm
       organizationId={organizationId}

@@ -20,16 +20,19 @@ export function EmailButton({
   href,
   backgroundColor = '#000',
   textColor = '#fff',
+  testId,
 }: {
   children: React.ReactNode
   href: string
   backgroundColor?: string
   textColor?: string
+  testId?: string
 }) {
   return (
     <Button
       style={{ ...buttonStyle, backgroundColor, color: textColor }}
       href={href}
+      data-testid={testId}
     >
       {children}
     </Button>
