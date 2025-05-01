@@ -166,7 +166,6 @@ async function sendEmailToExistingUser({
   organizationId: string
   customerExternalId: string
 }) {
-  const baseURL = `${core.envVariable('HOSTED_BILLING_PORTAL_URL')}/api/${organizationId}/${customerExternalId}`
   logger.info(
     'Customer already has Stack Auth user ID, sending magic link',
     {
@@ -177,7 +176,6 @@ async function sendEmailToExistingUser({
   const emailAndUserId = {
     primaryEmail: user.primaryEmail!,
     stackAuthUserId: user.id,
-    baseURL,
     primaryEmailVerified: user.primaryEmailVerified,
   }
   if (user.primaryEmailVerified) {

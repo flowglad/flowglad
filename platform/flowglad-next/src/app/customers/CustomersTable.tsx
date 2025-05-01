@@ -20,6 +20,7 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { useCopyTextHandler } from '../hooks/useCopyTextHandler'
 const customerStatusColors: Record<
   InferredCustomerStatus,
   BadgeColor
@@ -49,11 +50,36 @@ const CustomerMoreMenuCell = ({
   customer: Customer.ClientRecord
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
-
+  const billingPortalURL = core.billingPortalPageURL({
+    organizationId: customer.organizationId,
+    customerExternalId: customer.externalId,
+    page: 'manage',
+  })
+  const copyPortalURLHandler = useCopyTextHandler({
+    text: billingPortalURL,
+  })
+  const copyIDHandler = useCopyTextHandler({
+    text: customer.id,
+  })
+  const copyExternalIDHandler = useCopyTextHandler({
+    text: customer.externalId,
+  })
   const basePopoverMenuItems = [
     {
       label: 'Edit Customer',
       handler: () => setIsEditOpen(true),
+    },
+    {
+      label: 'Copy Portal URL',
+      handler: copyPortalURLHandler,
+    },
+    {
+      label: 'Copy External ID',
+      handler: copyExternalIDHandler,
+    },
+    {
+      label: 'Copy ID',
+      handler: copyIDHandler,
     },
   ]
 
