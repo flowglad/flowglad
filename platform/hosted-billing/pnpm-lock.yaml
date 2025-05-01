@@ -18,8 +18,8 @@ importers:
         specifier: 2.1.4
         version: 2.1.4(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@stackframe/stack':
-        specifier: ^2.7.27
-        version: 2.8.8(@babel/core@7.26.10)(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(tailwindcss@3.4.17)
+        specifier: 2.8.11
+        version: 2.8.11(@babel/core@7.26.10)(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(tailwindcss@3.4.17)
       '@t3-oss/env-nextjs':
         specifier: ^0.13.0
         version: 0.13.0(arktype@2.1.20)(typescript@5.8.3)(zod@3.24.3)
@@ -1317,8 +1317,8 @@ packages:
   '@simplewebauthn/types@11.0.0':
     resolution: {integrity: sha512-b2o0wC5u2rWts31dTgBkAtSNKGX0cvL6h8QedNsKmj8O4QoLFQFR3DBVBUlpyVEhYKA+mXGUaXbcOc4JdQ3HzA==}
 
-  '@stackframe/stack-sc@2.8.8':
-    resolution: {integrity: sha512-I0QPBH0oAIuwEIbxFYgq25MmWGWibq5IN3tW7GroHJEI3jl1hkquzOhCA4SpEONIxqkgn9C5HFt0eVcpOO5eVw==}
+  '@stackframe/stack-sc@2.8.11':
+    resolution: {integrity: sha512-I96cq00G2Kj0ROyvhiuVxR4YCQTaIQLdgcuopk4IX16mxQv7RaJ0FCNTkiMIzx1AQ+LEa8TtcJOKaXzLW0VaTw==}
     peerDependencies:
       '@types/react': '>=18.3.12 || >=19.0.0-rc.0'
       '@types/react-dom': '>=18.3.1 || >=19.0.0-rc.0'
@@ -1331,8 +1331,8 @@ packages:
       '@types/react-dom':
         optional: true
 
-  '@stackframe/stack-shared@2.8.8':
-    resolution: {integrity: sha512-2WIrCGaTnJCmLEBVN5q8ZYaeGUS+uaKbg3zo/Sc8yNnA1segPCEQV0WJXyNVevrsXwrdHwyPJ7IixfbEE5JruA==}
+  '@stackframe/stack-shared@2.8.11':
+    resolution: {integrity: sha512-EvzRFWAKLoJghxeb6tmOWxYPrOXbOOJ6fSwFlwr03TNZ8zugtxB6JmbXR5HLtowVqwcHB6ZPBVzkIn18rwJC+w==}
     peerDependencies:
       '@types/react': '>=18.2 || >=19.0.0-rc.0'
       '@types/react-dom': '>=18.2 || >=19.0.0-rc.0'
@@ -1349,8 +1349,8 @@ packages:
       yup:
         optional: true
 
-  '@stackframe/stack-ui@2.8.8':
-    resolution: {integrity: sha512-dNVpeqDFUGJI6XIkYqHzt7pDXcjEVAdwXgD4VyT1bUsQVKl9A+8g0oyIoZ5oW96BCvED4GWTb5MXzQ45zkQqOw==}
+  '@stackframe/stack-ui@2.8.11':
+    resolution: {integrity: sha512-s23TgLTOPfAa8LmoApy62T6/amaVnZnBHv1ba5SWxtQwnKxRPtb3G8UGRidhEwNQrWvWBLg/LhYuuZ9FKbpOvg==}
     peerDependencies:
       '@types/react': '>=18.2.12 || >=19.0.0-rc.0'
       '@types/react-dom': '>=18.2.12 || >=19.0.0-rc.0'
@@ -1365,8 +1365,8 @@ packages:
       yup:
         optional: true
 
-  '@stackframe/stack@2.8.8':
-    resolution: {integrity: sha512-Cr4Re+1bNOjPDhcTTqTOcmcs5moMSbiAW7qP38tRHXvpR/iCCqOM6LaJNRx7SFbVe8kDPqVnyXX3o5j8zvjcsQ==}
+  '@stackframe/stack@2.8.11':
+    resolution: {integrity: sha512-kfHrz41LVLbSyYq0KxlJs3tNVyObc5WRuxGsc4sitooDuA2GeAh5d87KkbY7gWxJc9Bl+nz9eGkw25VOTzI/Jw==}
     peerDependencies:
       '@types/react': '>=18.2 || >=19.0.0-rc.0'
       '@types/react-dom': '>=18.2 || >=19.0.0-rc.0'
@@ -4725,7 +4725,7 @@ snapshots:
 
   '@simplewebauthn/types@11.0.0': {}
 
-  '@stackframe/stack-sc@2.8.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@stackframe/stack-sc@2.8.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       next: 15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react: 19.1.0
@@ -4734,7 +4734,7 @@ snapshots:
       '@types/react': 19.1.2
       '@types/react-dom': 19.1.2(@types/react@19.1.2)
 
-  '@stackframe/stack-shared@2.8.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)':
+  '@stackframe/stack-shared@2.8.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)':
     dependencies:
       '@simplewebauthn/browser': 11.0.0
       async-mutex: 0.5.0
@@ -4757,7 +4757,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@stackframe/stack-ui@2.8.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)':
+  '@stackframe/stack-ui@2.8.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-alert-dialog': 1.1.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -4788,7 +4788,7 @@ snapshots:
       '@radix-ui/react-toggle': 1.1.6(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-toggle-group': 1.1.7(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-tooltip': 1.2.4(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@stackframe/stack-shared': 2.8.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)
+      '@stackframe/stack-shared': 2.8.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)
       '@tanstack/react-table': 8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -4812,14 +4812,14 @@ snapshots:
       - encoding
       - supports-color
 
-  '@stackframe/stack@2.8.8(@babel/core@7.26.10)(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(tailwindcss@3.4.17)':
+  '@stackframe/stack@2.8.11(@babel/core@7.26.10)(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(tailwindcss@3.4.17)':
     dependencies:
       '@hookform/resolvers': 3.10.0(react-hook-form@7.53.1(react@19.1.0))
       '@oslojs/otp': 1.1.0
       '@simplewebauthn/browser': 11.0.0
-      '@stackframe/stack-sc': 2.8.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@stackframe/stack-shared': 2.8.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)
-      '@stackframe/stack-ui': 2.8.8(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)
+      '@stackframe/stack-sc': 2.8.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(next@15.2.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@stackframe/stack-shared': 2.8.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)
+      '@stackframe/stack-ui': 2.8.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(yup@1.6.1)
       '@tanstack/react-table': 8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       browser-image-compression: 2.0.2
       color: 4.2.3
