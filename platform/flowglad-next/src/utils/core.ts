@@ -504,6 +504,9 @@ export const billingPortalPageURL = (params: {
   page: 'sign-in' | 'manage' | 'validate-magic-link'
 }) => {
   const { organizationId, customerExternalId, page } = params
+  const baseURL = core.IS_TEST
+    ? 'http://localhost:3000'
+    : envVariable('HOSTED_BILLING_PORTAL_URL')
   if (page === 'validate-magic-link') {
     /**
      * Note: stack auth redirects post-magic link signin redirects, for whatever reason,
@@ -512,12 +515,12 @@ export const billingPortalPageURL = (params: {
      */
     return safeUrl(
       `api/${organizationId}/${customerExternalId}/${page}`,
-      envVariable('HOSTED_BILLING_PORTAL_URL')
+      baseURL
     )
   }
   return safeUrl(
     `p/${organizationId}/${customerExternalId}/${page}`,
-    envVariable('HOSTED_BILLING_PORTAL_URL')
+    baseURL
   )
 }
 
