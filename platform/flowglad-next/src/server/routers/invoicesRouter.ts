@@ -274,7 +274,10 @@ const getTableRowsProcedure = protectedProcedure
 
         // Use the existing selectInvoicesTableRowData function
         const invoiceRows = await selectInvoicesTableRowData(
-          ctx.organizationId || '',
+          {
+            organizationId: ctx.organizationId || '',
+            ...filters,
+          },
           transaction
         )
 
