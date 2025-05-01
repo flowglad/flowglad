@@ -31,7 +31,11 @@ export const CustomerBillingSubPage = ({
 }: CustomerBillingSubPageProps) => {
   const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
     useState(false)
-
+  const billingPortalURL = core.billingPortalPageURL({
+    organizationId: customer.organizationId,
+    customerExternalId: customer.externalId,
+    page: 'manage',
+  })
   return (
     <>
       <div className="w-full flex items-start">
@@ -81,6 +85,14 @@ export const CustomerBillingSubPage = ({
                     copyText={customer.externalId}
                   >
                     {customer.externalId}
+                  </CopyableTextTableCell>
+                }
+              />
+              <DetailLabel
+                label="Portal URL"
+                value={
+                  <CopyableTextTableCell copyText={billingPortalURL}>
+                    {billingPortalURL}
                   </CopyableTextTableCell>
                 }
               />

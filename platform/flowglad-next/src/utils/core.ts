@@ -506,7 +506,8 @@ export const billingPortalPageURL = (params: {
   const { organizationId, customerExternalId, page } = params
   const baseURL = core.IS_TEST
     ? 'http://localhost:3000'
-    : envVariable('HOSTED_BILLING_PORTAL_URL')
+    : process.env.NEXT_PUBLIC_HOSTED_BILLING_PORTAL_URL!
+
   if (page === 'validate-magic-link') {
     /**
      * Note: stack auth redirects post-magic link signin redirects, for whatever reason,
