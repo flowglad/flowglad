@@ -40,7 +40,7 @@ const hostedBillingApiPost = async ({
     const maybeVercelBypass =
       process.env.VERCEL_ENV === 'preview'
         ? {
-            'x-vercel-bypass':
+            'x-vercel-protection-bypass':
               process.env.VERCEL_PREVIEW_BYPASS_SECRET,
           }
         : {}
