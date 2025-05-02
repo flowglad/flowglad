@@ -179,7 +179,8 @@
     "vitest": "3.0.5",
     "zlib-sync": "^0.1.9",
     "import-in-the-middle": "1.11.2",
-    "require-in-the-middle": "7.4.0"
+    "require-in-the-middle": "7.4.0",
+    "chromium-bidi": "2.1.2"
   },
   "pnpm": {
     "overrides": {

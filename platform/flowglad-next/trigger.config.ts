@@ -33,13 +33,13 @@ export default defineConfig({
        * These packages don't get bundled when building in a Github Action environment
        * so we have to include them here.
        */
-      // additionalPackages({
-      //   packages: [
-      //     'chromium-bidi@2.1.2',
-      //     'puppeteer-core@21.11.0',
-      //     '@sparticuz/chromium@119.0.2',
-      //   ],
-      // }),
+      additionalPackages({
+        packages: [
+          'chromium-bidi@2.1.2',
+          'puppeteer-core@21.11.0',
+          '@sparticuz/chromium@119.0.2',
+        ],
+      }),
     ],
   },
 })
