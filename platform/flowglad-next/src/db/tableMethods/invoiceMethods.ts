@@ -7,6 +7,7 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   Invoice,
@@ -126,7 +127,7 @@ export const selectInvoiceCountsByStatus = async (
 }
 
 export const selectInvoicesTableRowData = async (
-  organizationId: string,
+  params: Invoice.Where,
   transaction: DbTransaction
 ) => {
   const invoiceRows = await transaction
@@ -141,7 +142,7 @@ export const selectInvoicesTableRowData = async (
       invoiceLineItems,
       eq(invoices.id, invoiceLineItems.invoiceId)
     )
-    .where(eq(invoices.organizationId, organizationId))
+    .where(whereClauseFromObject(invoices, params))
     .orderBy(desc(invoices.createdAt))
 
   const invoiceLineItemRows: InvoiceLineItem.Record[] = invoiceRows

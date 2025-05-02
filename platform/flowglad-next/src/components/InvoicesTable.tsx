@@ -138,7 +138,10 @@ const InvoicesTable = ({
     trpc.invoices.getTableRows.useQuery({
       cursor: pageIndex.toString(),
       limit: pageSize,
-      filters,
+      filters: {
+        ...filters,
+        customerId: customer?.id,
+      },
     })
 
   const columns = useMemo(
