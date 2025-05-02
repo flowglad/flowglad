@@ -27,7 +27,10 @@ export default defineConfig({
       syncVercelEnvVars(),
       puppeteer(),
       additionalFiles({
-        files: ['./public/fonts/**'],
+        files: [
+          './public/fonts/**',
+          './node_modules/chromium-bidi/**',
+        ],
       }),
       /**
        * These packages don't get bundled when building in a Github Action environment
@@ -35,7 +38,7 @@ export default defineConfig({
        */
       additionalPackages({
         packages: [
-          // 'chromium-bidi@2.1.2',
+          'chromium-bidi@2.1.2',
           'puppeteer-core@21.11.0',
           '@sparticuz/chromium@119.0.2',
         ],
