@@ -23,6 +23,10 @@ export default defineConfig({
     },
   },
   build: {
+    /**
+     * Puppeteer and related packages should be externalized to avoid
+     * path resolution problems during the bundle process.
+     */
     external: [
       'chromium-bidi',
       'puppeteer-core',
@@ -35,18 +39,6 @@ export default defineConfig({
       additionalFiles({
         files: ['./public/fonts/**'],
       }),
-      /**
-       * These packages don't get bundled when building in a Github Action environment
-       * so we have to include them here.
-       */
-      // additionalPackages({
-      //   packages: [
-      //     'puppeteer@24.4.0',
-      //     'chromium-bidi@2.1.2',
-      //     'puppeteer-core@21.11.0',
-      //     '@sparticuz/chromium@119.0.2',
-      //   ],
-      // }),
     ],
   },
 })
