@@ -314,3 +314,16 @@ export const assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNo
         )
       )
   }
+
+export const mapCustomerEmailToStackAuthHostedBillingUserId = async (
+  email: string,
+  transaction: DbTransaction
+): Promise<string | null | undefined> => {
+  const customersWithMatchingEmail = await transaction
+    .select()
+    .from(customersTable)
+    .where(eq(customersTable.email, email))
+  return customersWithMatchingEmail.find(
+    (c) => c.stackAuthHostedBillingUserId
+  )?.stackAuthHostedBillingUserId
+}
