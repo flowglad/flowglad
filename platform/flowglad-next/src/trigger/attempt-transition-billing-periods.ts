@@ -1,4 +1,4 @@
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 import { selectBillingPeriodsDueForTransition } from '@/db/tableMethods/billingPeriodMethods'
 import { adminTransaction } from '@/db/adminTransaction'
 import { attemptBillingPeriodTransitionTask } from './attempt-billing-period-transition'

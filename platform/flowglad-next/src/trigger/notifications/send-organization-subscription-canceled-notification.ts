@@ -1,5 +1,5 @@
 import { isNil } from '@/utils/core'
-import { idempotencyKeys, logger, task } from '@trigger.dev/sdk/v3'
+import { idempotencyKeys, logger, task } from '@trigger.dev/sdk'
 import { Subscription } from '@/db/schema/subscriptions'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'

@@ -1,6 +1,6 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
-import { schedules } from '@trigger.dev/sdk/v3'
+import { schedules } from '@trigger.dev/sdk'
 import { deleteExpiredBillingPortalApiKeysTask } from './delete-expired-billing-portal-api-keys'
 
 export const dailyCron = schedules.task({

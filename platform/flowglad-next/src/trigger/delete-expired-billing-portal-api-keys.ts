@@ -1,4 +1,4 @@
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import { select7DaysExpiredBillingPortalApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { deleteApiKey } from '@/utils/unkey'

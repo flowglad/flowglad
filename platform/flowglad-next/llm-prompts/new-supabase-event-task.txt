@@ -6,7 +6,7 @@ Here's what you need to do, assuming the table is named "InvoiceLineItems" (the 
 - Create a new file at `./src/trigger/supabase/invoice-line-item-updated.ts` directory. The file will be named table-name-[inserted|updated|deleted].ts, using kebab-case.
 - Inside the file, create a new trigger task, in the following shape:
 ```ts
-import { logger, task, wait } from '@trigger.dev/sdk/v3'
+import { logger, task, wait } from '@trigger.dev/sdk'
 import { InvoiceLineItemRecord } from '@/db/schema/invoiceLineItems'
 /* 
 Note: if the event is an insert, the payload will be a SupabaseInsertPayload. 

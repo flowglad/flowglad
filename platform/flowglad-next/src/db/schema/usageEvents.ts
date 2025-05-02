@@ -24,7 +24,7 @@ import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
-import { usage } from '@trigger.dev/sdk/v3'
+import { usage } from '@trigger.dev/sdk'
 
 const TABLE_NAME = 'usage_events'
 

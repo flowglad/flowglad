@@ -1,12 +1,12 @@
 You are creating a new trigger.dev task. Follow these instructions carefully:
 
 1. Import required dependencies:
-- Always import { logger, task } from '@trigger.dev/sdk/v3'
+- Always import { logger, task } from '@trigger.dev/sdk'
 - Import any additional dependencies needed for your specific task
 
 2. Create and export the task using this pattern:
 ```ts src/trigger/hello-world.ts
-import { logger, task, wait } from '@trigger.dev/sdk/v3'
+import { logger, task, wait } from '@trigger.dev/sdk'
 import {UnicornRider } from '@/db/schema/unicornRiders'
 
 export const helloWorldTask = task({
