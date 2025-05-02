@@ -80,7 +80,6 @@ const PaymentsTable = ({
 }: {
   filters?: PaymentsTableFilters
 }) => {
-  const router = useRouter()
   const [pageIndex, setPageIndex] = useState(0)
   const pageSize = 10
 
