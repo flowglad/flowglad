@@ -35,7 +35,7 @@ export default defineConfig({
        */
       additionalPackages({
         packages: [
-          'chromium-bidi@2.1.2',
+          // 'chromium-bidi@2.1.2',
           'puppeteer-core@21.11.0',
           '@sparticuz/chromium@119.0.2',
         ],
