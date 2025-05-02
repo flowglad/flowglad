@@ -3,7 +3,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { SubscriptionStatus } from '@/types'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 
 export const attemptSubscriptionCancellationTask = task({
   id: 'attempt-subscription-cancellation',

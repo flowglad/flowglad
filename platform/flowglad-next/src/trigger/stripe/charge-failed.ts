@@ -6,7 +6,7 @@ import {
 } from '@/db/tableMethods/paymentMethods'
 import { PaymentStatus } from '@/types'
 import { getStripeCharge } from '@/utils/stripe'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '../notifications/send-customer-payment-failed-notification'
 

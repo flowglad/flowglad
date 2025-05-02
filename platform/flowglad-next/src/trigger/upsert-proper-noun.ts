@@ -18,13 +18,8 @@ import {
   SupabasePayloadType,
   SupabaseUpdatePayload,
 } from '@/types'
-import {
-  customerToProperNounUpsert,
-  productRecordToProperNounUpsert,
-  supabasePayloadToProperNounUpsert,
-  variantRecordToProperNounUpsert,
-} from '@/utils/properNounHelpers'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { supabasePayloadToProperNounUpsert } from '@/utils/properNounHelpers'
+import { logger, task } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import {
   discountsSupabaseInsertPayloadSchema,

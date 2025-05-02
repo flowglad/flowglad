@@ -8,7 +8,7 @@ import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processB
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'

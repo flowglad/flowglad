@@ -1,6 +1,6 @@
 import cloudflareMethods from '@/utils/cloudflare'
 import core from '@/utils/core'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 import { generatePdf } from '@/pdf-generation/generatePDF'
 import { adminTransaction } from '@/db/adminTransaction'
 import {

@@ -1,4 +1,4 @@
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { adminTransaction } from '@/db/adminTransaction'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'

@@ -1,4 +1,4 @@
-import { logger, task, idempotencyKeys } from '@trigger.dev/sdk/v3'
+import { logger, task, idempotencyKeys } from '@trigger.dev/sdk'
 import { attemptBillingRunTask } from './attempt-billing-run'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunsDueForExecution } from '@/db/tableMethods/billingRunMethods'

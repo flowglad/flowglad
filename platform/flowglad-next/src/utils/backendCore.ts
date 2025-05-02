@@ -1,4 +1,4 @@
-import { idempotencyKeys } from '@trigger.dev/sdk/v3'
+import { idempotencyKeys } from '@trigger.dev/sdk'
 import { createHash, createHmac } from 'crypto'
 import { BinaryLike } from 'node:crypto'
 

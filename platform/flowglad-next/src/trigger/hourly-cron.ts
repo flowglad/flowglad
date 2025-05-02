@@ -1,6 +1,6 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
-import { schedules } from '@trigger.dev/sdk/v3'
+import { schedules } from '@trigger.dev/sdk'
 import { attemptBillingRunsTask } from './attempt-run-all-billings'
 import { attemptCancelScheduledSubscriptionsTask } from './attempt-cancel-scheduled-subscriptions'
 import { attemptTransitionBillingPeriodsTask } from './attempt-transition-billing-periods'

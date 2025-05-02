@@ -3,7 +3,7 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { sendPaymentFailedEmail } from '@/utils/email'
-import { idempotencyKeys, logger, task } from '@trigger.dev/sdk/v3'
+import { idempotencyKeys, logger, task } from '@trigger.dev/sdk'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'

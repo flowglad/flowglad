@@ -1,4 +1,4 @@
-import { task, idempotencyKeys } from '@trigger.dev/sdk/v3'
+import { task, idempotencyKeys } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectSubscriptionsToBeCancelled } from '@/db/tableMethods/subscriptionMethods'
 import { attemptSubscriptionCancellationTask } from './attempt-subscription-cancellation'

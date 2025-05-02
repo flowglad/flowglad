@@ -1,7 +1,7 @@
 import { BillingRun } from '@/db/schema/billingRuns'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { BillingRunStatus } from '@/types'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk'
 
 export const attemptBillingRunTask = task({
   id: 'attempt-billing-run',
