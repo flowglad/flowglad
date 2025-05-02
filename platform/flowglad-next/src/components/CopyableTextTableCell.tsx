@@ -1,19 +1,25 @@
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { cn } from '@/utils/core'
 import { ClipboardIcon } from 'lucide-react'
 
 const CopyableTextTableCell = ({
   copyText,
   children,
+  className,
 }: {
   copyText: string
   children: React.ReactNode
+  className?: string
 }) => {
   const copyTextHandler = useCopyTextHandler({
     text: copyText,
   })
   return (
     <div
-      className="flex items-center gap-2 cursor-pointer flex-row group"
+      className={cn(
+        'flex items-center gap-2 cursor-pointer flex-row group',
+        className
+      )}
       onClick={(e) => {
         e.stopPropagation()
         copyTextHandler()

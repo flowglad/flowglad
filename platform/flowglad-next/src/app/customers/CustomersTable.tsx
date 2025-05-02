@@ -70,7 +70,7 @@ const CustomerMoreMenuCell = ({
       handler: () => setIsEditOpen(true),
     },
     {
-      label: 'Copy Portal URL',
+      label: 'Copy Portal Link',
       handler: copyPortalURLHandler,
     },
     {
