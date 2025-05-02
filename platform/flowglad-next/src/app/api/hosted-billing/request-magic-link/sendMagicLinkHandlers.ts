@@ -7,6 +7,7 @@ import { logger } from '@/utils/logger'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { ServerUser } from '@stackframe/stack'
 import core from '@/utils/core'
+import { Customer } from '@/db/schema/customers'
 
 export async function sendVerificationEmailToUser(
   user: ServerUser,
@@ -190,4 +191,36 @@ export async function sendEmailToExistingUser({
       emailAndUserId
     )
   }
+}
+
+export async function sendMagicLinkToExistingUserAndUpdateAssociatedCustomerRecords({
+  user,
+  customer,
+  organizationId,
+}: {
+  user: ServerUser
+  customer: Customer.Record
+  organizationId: string
+}) {
+  await sendEmailToExistingUser({
+    user,
+    customerId: customer.id,
+    customerName: customer.name,
+    organizationId,
+    customerExternalId: customer.externalId,
+  })
+  await setHostedBillingCustomerExternalIdForStackAuthUser({
+    stackAuthUser: user,
+    organizationId,
+    customerExternalId: customer.externalId,
+  })
+  await adminTransaction(async ({ transaction }) => {
+    await assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId(
+      {
+        email: customer.email,
+        stackAuthHostedBillingUserId: user.id,
+      },
+      transaction
+    )
+  })
 }

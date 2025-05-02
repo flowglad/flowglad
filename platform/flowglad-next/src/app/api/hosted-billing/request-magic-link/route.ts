@@ -6,6 +6,7 @@ import {
 } from '@/utils/hostedBillingApiHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
+  assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
   mapCustomerEmailToStackAuthHostedBillingUserId,
   selectCustomers,
 } from '@/db/tableMethods/customerMethods'
@@ -15,6 +16,7 @@ import { trace, SpanStatusCode } from '@opentelemetry/api'
 import {
   createUserAndSendMagicLink,
   sendEmailToExistingUser,
+  sendMagicLinkToExistingUserAndUpdateAssociatedCustomerRecords,
 } from './sendMagicLinkHandlers'
 import { Customer } from '@/db/schema/customers'
 
@@ -42,18 +44,13 @@ async function sendMagicLinkAndUpdateCustomerForIdentifiedStackAuthUser({
   if (!user) {
     throw new Error('Stack Auth user not found')
   }
-  await setHostedBillingCustomerExternalIdForStackAuthUser({
-    stackAuthUser: user,
-    organizationId,
-    customerExternalId,
-  })
-  await sendEmailToExistingUser({
-    user,
-    customerId: customer.id,
-    customerName: customer.name,
-    organizationId,
-    customerExternalId,
-  })
+  await sendMagicLinkToExistingUserAndUpdateAssociatedCustomerRecords(
+    {
+      user,
+      customer,
+      organizationId,
+    }
+  )
 }
 
 async function sendMagicLinkAndUpdateCustomerForUnidentifiedStackAuthUser({
@@ -72,28 +69,27 @@ async function sendMagicLinkAndUpdateCustomerForUnidentifiedStackAuthUser({
     }
   )
   if (!stackAuthHostedBillingUserId) {
-    await createUserAndSendMagicLink({
+    return await createUserAndSendMagicLink({
       customerEmail: customer.email,
       customerId: customer.id,
       customerName: customer.name,
       organizationId,
       customerExternalId: customer.externalId,
     })
-  } else {
-    const user = await hostedBillingStackServerApp.getUser(
-      stackAuthHostedBillingUserId
-    )
-    if (!user) {
-      throw new Error('Stack Auth user not found')
-    }
-    await sendEmailToExistingUser({
-      user,
-      customerId: customer.id,
-      customerName: customer.name,
-      organizationId,
-      customerExternalId: customer.externalId,
-    })
   }
+  const user = await hostedBillingStackServerApp.getUser(
+    stackAuthHostedBillingUserId
+  )
+  if (!user) {
+    throw new Error('Stack Auth user not found')
+  }
+  await sendMagicLinkToExistingUserAndUpdateAssociatedCustomerRecords(
+    {
+      user,
+      customer,
+      organizationId,
+    }
+  )
 }
 
 export const POST = withBillingApiRequestValidation(
