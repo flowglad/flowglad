@@ -868,3 +868,65 @@ export const testEnumColumn = async <T extends PgTableWithId>(
     .limit(1)
   return result
 }
+
+export const createCursorPaginatedSelectFunction = <
+  T extends PgTableWithCreatedAtAndId,
+  S extends ZodTableUnionOrType<InferSelectModel<T>>,
+  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
+  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
+>(
+  table: T,
+  config: ORMMethodCreatorConfig<T, S, I, U>
+) => {
+  const selectSchema = config.selectSchema
+  return async function cursorPaginatedSelectFunction(
+    {
+      cursor,
+      limit = 10,
+      where,
+    }: {
+      cursor?: string
+      limit?: number
+      where?: SelectConditions<T>
+    },
+    transaction: DbTransaction
+  ): Promise<{
+    data: z.infer<S>[]
+    currentCursor?: string
+    nextCursor?: string
+    hasMore: boolean
+    total: number
+  }> {
+    const countResult = await transaction
+      .select({ count: count() })
+      .from(table)
+      .where(where ? whereClauseFromObject(table, where) : undefined)
+
+    const queryResult = await transaction
+      .select()
+      .from(table)
+      .where(
+        and(
+          where ? whereClauseFromObject(table, where) : undefined,
+          cursor
+            ? gt(table.createdAt, new Date(Number(cursor)))
+            : undefined
+        )
+      )
+      .orderBy(asc(table.createdAt))
+      .limit(limit + 1)
+    const data: z.infer<S>[] = queryResult.map((item) =>
+      selectSchema.parse(item)
+    )
+    return {
+      data: data.slice(0, limit),
+      currentCursor: cursor,
+      nextCursor:
+        data.length > limit
+          ? data[data.length - 1].createdAt.getTime().toString()
+          : undefined,
+      hasMore: data.length > limit,
+      total: countResult[0].count,
+    }
+  }
+}

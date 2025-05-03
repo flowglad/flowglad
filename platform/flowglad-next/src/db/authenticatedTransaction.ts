@@ -2,6 +2,7 @@ import { AuthenticatedTransactionParams } from '@/db/types'
 import db from './client'
 import { sql } from 'drizzle-orm'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
+import { T } from 'vitest/dist/chunks/environment.d8YfPkTm.js'
 
 export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
@@ -52,4 +53,33 @@ export async function authenticatedTransaction<T>(
 
     return resp
   })
+}
+
+export type AuthenticatedProcedureResolver<
+  TInput,
+  TOutput,
+  TContext extends { apiKey?: string },
+> = (input: TInput, ctx: TContext) => Promise<TOutput>
+
+export const authenticatedProcedureTransaction = <
+  TInput,
+  TOutput,
+  TContext extends { apiKey?: string },
+>(
+  handler: (
+    params: AuthenticatedTransactionParams & {
+      input: TInput
+      ctx: TContext
+    }
+  ) => Promise<TOutput>
+) => {
+  return async (opts: { input: TInput; ctx: TContext }) => {
+    return authenticatedTransaction(
+      (params) =>
+        handler({ ...params, input: opts.input, ctx: opts.ctx }),
+      {
+        apiKey: opts.ctx.apiKey,
+      }
+    )
+  }
 }
