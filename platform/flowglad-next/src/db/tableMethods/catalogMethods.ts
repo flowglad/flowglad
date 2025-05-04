@@ -4,6 +4,7 @@ import {
   createUpdateFunction,
   createSelectFunction,
   createPaginatedSelectFunction,
+  createCursorPaginatedSelectFunction,
   ORMMethodCreatorConfig,
   SelectConditions,
   whereClauseFromObject,
@@ -27,6 +28,8 @@ import {
   usageMeters,
   usageMetersClientSelectSchema,
 } from '../schema/usageMeters'
+import { selectProducts } from './productMethods'
+import { z } from 'zod'
 
 const config: ORMMethodCreatorConfig<
   typeof catalogs,
@@ -98,83 +101,38 @@ export const makeCatalogDefault = async (
   return updatedCatalog
 }
 
-export const selectCatalogsTableRows = async (
-  {
-    cursor,
-    limit = 10,
-    filters = {},
-  }: {
-    cursor?: string
-    limit?: number
-    filters?: {
-      organizationId?: string
-      isDefault?: boolean
+const catalogTableRowSchema = z.object({
+  catalog: catalogsClientSelectSchema,
+  productsCount: z.number(),
+})
+
+export const selectCatalogsTableRows =
+  createCursorPaginatedSelectFunction(
+    catalogs,
+    config,
+    catalogTableRowSchema,
+    async (catalogs, transaction) => {
+      const productsByCatalogId = new Map<string, number>()
+
+      if (catalogs.length > 0) {
+        const products = await selectProducts(
+          { catalogId: catalogs.map((catalog) => catalog.id) },
+          transaction
+        )
+
+        products.forEach((product: { catalogId: string }) => {
+          const currentCount =
+            productsByCatalogId.get(product.catalogId) || 0
+          productsByCatalogId.set(product.catalogId, currentCount + 1)
+        })
+      }
+
+      return catalogs.map((catalog) => ({
+        catalog,
+        productsCount: productsByCatalogId.get(catalog.id) || 0,
+      }))
     }
-  },
-  transaction: DbTransaction
-): Promise<{
-  data: Catalog.TableRow[]
-  currentCursor: string
-  nextCursor?: string
-  hasMore: boolean
-  total: number
-}> => {
-  // Build where clause based on filters
-  const whereConditions = []
-
-  if (filters.organizationId) {
-    whereConditions.push(
-      eq(catalogs.organizationId, filters.organizationId)
-    )
-  }
-
-  if (filters.isDefault !== undefined) {
-    whereConditions.push(eq(catalogs.isDefault, filters.isDefault))
-  }
-
-  // Get total count for pagination
-  const totalCountResult = await transaction
-    .select({ count: count() })
-    .from(catalogs)
-    .where(
-      whereConditions.length > 0 ? and(...whereConditions) : undefined
-    )
-
-  const total = Number(totalCountResult[0]?.count || 0)
-
-  // Apply pagination
-  const startIndex = cursor ? parseInt(cursor, 10) : 0
-  const endIndex = startIndex + limit
-
-  // Get paginated results
-  const results = await transaction
-    .select({
-      catalog: catalogs,
-      productsCount: count(products.id),
-    })
-    .from(catalogs)
-    .leftJoin(products, eq(catalogs.id, products.catalogId))
-    .where(
-      whereConditions.length > 0 ? and(...whereConditions) : undefined
-    )
-    .groupBy(catalogs.id)
-    .orderBy(catalogs.createdAt)
-    .limit(limit)
-    .offset(startIndex)
-
-  const hasMore = endIndex < total
-
-  return {
-    data: results.map(({ catalog, productsCount }) => ({
-      catalog: catalogsClientSelectSchema.parse(catalog),
-      productsCount: productsCount || 0,
-    })),
-    currentCursor: cursor || '0',
-    nextCursor: hasMore ? endIndex.toString() : undefined,
-    hasMore,
-    total,
-  }
-}
+  )
 
 export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
   async (

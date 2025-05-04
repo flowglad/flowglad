@@ -869,58 +869,85 @@ export const testEnumColumn = async <T extends PgTableWithId>(
   return result
 }
 
+interface CursorPaginatedSelectFunctionParams<
+  T extends PgTableWithCreatedAtAndId,
+> {
+  input: {
+    cursor?: string
+    limit?: number
+    where?: SelectConditions<T>
+    direction?: 'forward' | 'backward'
+  }
+  transaction: DbTransaction
+}
+
 export const createCursorPaginatedSelectFunction = <
   T extends PgTableWithCreatedAtAndId,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
   I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
   U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
+  D extends z.ZodType,
 >(
   table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
+  config: ORMMethodCreatorConfig<T, S, I, U>,
+  dataSchema: D,
+  enrichmentFunction?: (
+    data: z.infer<S>[],
+    transaction: DbTransaction
+  ) => Promise<z.infer<D>[]>
 ) => {
   const selectSchema = config.selectSchema
   return async function cursorPaginatedSelectFunction(
-    {
-      cursor,
-      limit = 10,
-      where,
-    }: {
-      cursor?: string
-      limit?: number
-      where?: SelectConditions<T>
-    },
-    transaction: DbTransaction
+    params: CursorPaginatedSelectFunctionParams<T>
   ): Promise<{
-    data: z.infer<S>[]
-    currentCursor?: string
+    data: z.infer<D>[]
+    currentCursor: string
     nextCursor?: string
     hasMore: boolean
     total: number
   }> {
+    const { cursor, limit = 10, where } = params.input
+    const transaction = params.transaction
     const countResult = await transaction
       .select({ count: count() })
       .from(table)
       .where(where ? whereClauseFromObject(table, where) : undefined)
-
-    const queryResult = await transaction
+    const direction = params.input.direction || 'forward'
+    const isForward = direction === 'forward'
+    const comparisonOperator = isForward ? gt : lt
+    const orderBy = isForward
+      ? asc(table.createdAt)
+      : desc(table.createdAt)
+    const queryResult = await params.transaction
       .select()
       .from(table)
       .where(
         and(
           where ? whereClauseFromObject(table, where) : undefined,
           cursor
-            ? gt(table.createdAt, new Date(Number(cursor)))
+            ? comparisonOperator(
+                table.createdAt,
+                new Date(Number(cursor))
+              )
             : undefined
         )
       )
-      .orderBy(asc(table.createdAt))
+      .orderBy(orderBy)
       .limit(limit + 1)
     const data: z.infer<S>[] = queryResult.map((item) =>
       selectSchema.parse(item)
     )
+    const enrichedData: z.infer<D>[] = await (enrichmentFunction
+      ? enrichmentFunction(data, transaction)
+      : Promise.resolve(data))
     return {
-      data: data.slice(0, limit),
-      currentCursor: cursor,
+      data: enrichedData
+        .slice(0, limit)
+        .map((item) => dataSchema.parse(item)),
+      currentCursor:
+        data.length > 0
+          ? data[0].createdAt.getTime().toString()
+          : undefined,
       nextCursor:
         data.length > limit
           ? data[data.length - 1].createdAt.getTime().toString()

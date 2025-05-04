@@ -21,6 +21,7 @@ const getTableRows = protectedProcedure
       z.object({
         status: z.nativeEnum(PurchaseStatus).optional(),
         customerId: z.string().optional(),
+        organizationId: z.string().optional(),
       })
     )
   )
@@ -32,29 +33,17 @@ const getTableRows = protectedProcedure
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Use the selectPurchasesTableRowData function
-        const purchaseRows = await selectPurchasesTableRowData(
-          ctx.organizationId || '',
-          {
-            customerId: filters.customerId,
-            status: filters.status,
+        return selectPurchasesTableRowData({
+          input: {
+            cursor,
+            limit,
+            where: {
+              organizationId: ctx.organizationId || '',
+              ...filters,
+            },
           },
-          transaction
-        )
-
-        // Apply pagination
-        const startIndex = cursor ? parseInt(cursor, 10) : 0
-        const endIndex = startIndex + limit
-        const paginatedRows = purchaseRows.slice(startIndex, endIndex)
-        const hasMore = endIndex < purchaseRows.length
-
-        return {
-          data: paginatedRows,
-          currentCursor: cursor || '0',
-          nextCursor: hasMore ? endIndex.toString() : undefined,
-          hasMore,
-          total: purchaseRows.length,
-        }
+          transaction,
+        })
       },
       {
         apiKey: ctx.apiKey,

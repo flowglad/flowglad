@@ -99,108 +99,148 @@ describe('selectInvoicesTableRowData', () => {
 
   it('filters by customer id', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { customerId: customer1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          where: {
+            customerId: customer1Id,
+          },
+        },
+        transaction,
+      })
     })
 
-    expect(result).toHaveLength(2)
-    expect(result[0].customer.id).toBe(customer1Id)
-    expect(result[1].customer.id).toBe(customer1Id)
+    expect(result.data).toHaveLength(2)
+    expect(result.data[0].customer.id).toBe(customer1Id)
+    expect(result.data[1].customer.id).toBe(customer1Id)
   })
 
   it('filters by status', async () => {
     const firstResult = await adminTransaction(
       async ({ transaction }) => {
-        return selectInvoicesTableRowData(
-          { status: InvoiceStatus.Open, organizationId: org1Id },
-          transaction
-        )
+        return selectInvoicesTableRowData({
+          input: {
+            where: {
+              status: InvoiceStatus.Open,
+              organizationId: org1Id,
+            },
+          },
+          transaction,
+        })
       }
     )
 
-    expect(firstResult).toHaveLength(1)
-    expect(firstResult[0].invoice.status).toBe(InvoiceStatus.Open)
+    expect(firstResult.data).toHaveLength(1)
+    expect(firstResult.data[0].invoice.status).toBe(
+      InvoiceStatus.Open
+    )
 
     const secondResult = await adminTransaction(
       async ({ transaction }) => {
-        return selectInvoicesTableRowData(
-          { status: InvoiceStatus.Paid, organizationId: org1Id },
-          transaction
-        )
+        return selectInvoicesTableRowData({
+          input: {
+            where: {
+              status: InvoiceStatus.Paid,
+              organizationId: org1Id,
+            },
+          },
+          transaction,
+        })
       }
     )
-    expect(secondResult).toHaveLength(1)
-    expect(secondResult[0].invoice.status).toBe(InvoiceStatus.Paid)
+    expect(secondResult.data).toHaveLength(1)
+    expect(secondResult.data[0].invoice.status).toBe(
+      InvoiceStatus.Paid
+    )
   })
 
   it('filters by organization id', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { organizationId: org1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          where: {
+            organizationId: org1Id,
+          },
+        },
+        transaction,
+      })
     })
 
-    expect(result).toHaveLength(2)
-    expect(result[0].customer.id).toBe(customer1Id)
-    expect(result[1].customer.id).toBe(customer1Id)
+    expect(result.data).toHaveLength(2)
+    expect(result.data[0].customer.id).toBe(customer1Id)
+    expect(result.data[1].customer.id).toBe(customer1Id)
   })
 
   it('filters by organization id and status', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        {
-          organizationId: org1Id,
-          status: InvoiceStatus.Open,
+      return selectInvoicesTableRowData({
+        input: {
+          where: {
+            organizationId: org1Id,
+            status: InvoiceStatus.Open,
+          },
         },
-        transaction
-      )
+        transaction,
+      })
     })
 
-    expect(result).toHaveLength(1)
-    expect(result[0].customer.id).toBe(customer1Id)
-    expect(result[0].invoice.status).toBe(InvoiceStatus.Open)
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].customer.id).toBe(customer1Id)
+    expect(result.data[0].invoice.status).toBe(InvoiceStatus.Open)
   })
 
   it('correctly joins and groups line items', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { id: invoice1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          where: {
+            id: invoice1Id,
+          },
+        },
+        transaction,
+      })
     })
-    expect(result).toHaveLength(1)
+    expect(result.data).toHaveLength(1)
     // invoice1 gets a single line item automatically on setup
-    expect(result[0].invoiceLineItems).toHaveLength(3)
+    expect(result.data[0].invoiceLineItems).toHaveLength(3)
   })
 
-  it('orders by createdAt desc', async () => {
+  it('orders by createdAt desc when direction is backward', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { customerId: customer1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          where: {
+            customerId: customer1Id,
+          },
+          direction: 'backward',
+        },
+        transaction,
+      })
     })
 
-    expect(result).toHaveLength(2)
+    expect(result.data).toHaveLength(2)
     expect(
-      new Date(result[0].invoice.createdAt).getTime()
-    ).toBeGreaterThan(new Date(result[1].invoice.createdAt).getTime())
+      new Date(result.data[0].invoice.createdAt).getTime()
+    ).toBeGreaterThan(
+      new Date(result.data[1].invoice.createdAt).getTime()
+    )
   })
 
   it('returns correct customer data structure', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { id: invoice1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          where: {
+            id: invoice1Id,
+          },
+        },
+        transaction,
+      })
     })
 
-    expect(result[0].customer).toEqual({
-      id: customer1Id,
-      name: expect.any(String),
-    })
+    expect(result.data[0].customer).toHaveProperty('id', customer1Id)
+    expect(result.data[0].customer).toHaveProperty(
+      'name',
+      expect.any(String)
+    )
   })
 })

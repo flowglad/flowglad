@@ -23,6 +23,7 @@ import {
 } from './invoices'
 import { prices } from './prices'
 import core from '@/utils/core'
+import { customerClientSelectSchema } from './customers'
 
 export const TABLE_NAME = 'invoice_line_items'
 
@@ -155,4 +156,14 @@ export type InvoiceWithLineItems = z.infer<
 
 export type ClientInvoiceWithLineItems = z.infer<
   typeof invoiceWithLineItemsClientSchema
+>
+
+export const invoicesPaginatedTableRowDataSchema = z.object({
+  invoice: invoicesClientSelectSchema,
+  invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
+  customer: customerClientSelectSchema,
+})
+
+export type InvoicesPaginatedTableRowData = z.infer<
+  typeof invoicesPaginatedTableRowDataSchema
 >

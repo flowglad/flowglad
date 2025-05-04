@@ -10,7 +10,6 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectPaymentById,
   selectPaymentsPaginated,
-  selectPaymentsTableRowData,
   selectPaymentCountsByStatus,
 } from '@/db/tableMethods/paymentMethods'
 import {
@@ -22,6 +21,9 @@ import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { PaymentStatus } from '@/types'
 import { retryPaymentTransaction } from '@/utils/paymentHelpers'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import { selectPaymentsCursorPaginatedWithTableRowData } from '@/db/tableMethods/paymentMethods'
+import { paymentsPaginatedTableRowDataSchema } from '@/db/schema/payments'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Payment',
@@ -81,48 +83,11 @@ const getTableRowsProcedure = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(paymentsTableRowDataSchema)
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-
-        const paymentRows = await selectPaymentsTableRowData(
-          ctx.organizationId || '',
-          transaction
-        )
-
-        // Apply filters
-        let filteredRows = paymentRows
-        if (filters.status) {
-          filteredRows = filteredRows.filter(
-            (row) => row.payment.status === filters.status
-          )
-        }
-        if (filters.customerId) {
-          filteredRows = filteredRows.filter(
-            (row) => row.payment.customerId === filters.customerId
-          )
-        }
-
-        // Apply pagination
-        const startIndex = cursor ? parseInt(cursor, 10) : 0
-        const endIndex = startIndex + limit
-        const paginatedRows = filteredRows.slice(startIndex, endIndex)
-        const hasMore = endIndex < filteredRows.length
-
-        return {
-          data: paginatedRows,
-          currentCursor: cursor || '0',
-          nextCursor: hasMore ? endIndex.toString() : undefined,
-          hasMore,
-          total: filteredRows.length,
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+  .query(
+    authenticatedProcedureTransaction(
+      selectPaymentsCursorPaginatedWithTableRowData
     )
-  })
+  )
 
 const getCountsByStatusProcedure = protectedProcedure
   .input(z.object({}))

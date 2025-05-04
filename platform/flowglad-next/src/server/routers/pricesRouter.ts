@@ -1,6 +1,9 @@
 import { router } from '@/server/trpc'
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   editPriceSchema,
   pricesClientSelectSchema,
@@ -15,6 +18,7 @@ import {
   selectPrices,
   selectPricesPaginated,
   selectPricesTableRowData,
+  pricesTableRowOutputSchema,
 } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
 import { generateOpenApiMetas } from '@/utils/openapi'
@@ -25,6 +29,9 @@ import {
 } from '@/db/tableUtils'
 import { PriceType } from '@/types'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { SelectConditions } from '@/db/tableUtils'
+import { prices } from '@/db/schema/prices'
+import { DbTransaction } from '@/db/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Price',
@@ -139,64 +146,9 @@ export const getTableRows = protectedProcedure
     )
   )
   .output(
-    createPaginatedTableRowOutputSchema(
-      z.object({
-        price: pricesClientSelectSchema,
-        product: z.object({
-          id: z.string(),
-          name: z.string(),
-        }),
-      })
-    )
+    createPaginatedTableRowOutputSchema(pricesTableRowOutputSchema)
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-
-        // Use the existing selectPricesTableRowData function
-        const priceRows = await selectPricesTableRowData(
-          ctx.organizationId || '',
-          transaction
-        )
-
-        // Apply filters
-        let filteredRows = priceRows
-        if (filters.productId) {
-          filteredRows = filteredRows.filter(
-            (row) => row.price.productId === filters.productId
-          )
-        }
-        if (filters.type) {
-          filteredRows = filteredRows.filter(
-            (row) => row.price.type === filters.type
-          )
-        }
-        if (filters.isDefault !== undefined) {
-          filteredRows = filteredRows.filter(
-            (row) => row.price.isDefault === filters.isDefault
-          )
-        }
-
-        // Apply pagination
-        const startIndex = cursor ? parseInt(cursor, 10) : 0
-        const endIndex = startIndex + limit
-        const paginatedRows = filteredRows.slice(startIndex, endIndex)
-        const hasMore = endIndex < filteredRows.length
-
-        return {
-          data: paginatedRows,
-          currentCursor: cursor || '0',
-          nextCursor: hasMore ? endIndex.toString() : undefined,
-          hasMore,
-          total: filteredRows.length,
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+  .query(authenticatedProcedureTransaction(selectPricesTableRowData))
 
 export const pricesRouter = router({
   list: listPrices,

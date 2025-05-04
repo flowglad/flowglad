@@ -10,12 +10,15 @@ import {
   selectUsageMeterById,
   updateUsageMeter,
   selectUsageMetersPaginated,
-  selectUsageMeterTableRows,
+  selectUsageMetersCursorPaginated,
 } from '@/db/tableMethods/usageMeterMethods'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { usageMetersClientSelectSchema } from '@/db/schema/usageMeters'
 
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import {
   idInputSchema,
@@ -38,9 +41,9 @@ export const createUsageMeter = usageProcedure
   .meta(openApiMetas.POST)
   .input(createUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
-    const usageMeter = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, userId, livemode }) => {
         const [{ organization }] =
           await selectMembershipAndOrganizations(
             {
@@ -54,7 +57,7 @@ export const createUsageMeter = usageProcedure
             `Organization ${organization.id} does not have feature flag ${FeatureFlag.Usage} enabled`
           )
         }
-        return insertUsageMeter(
+        const usageMeter = await insertUsageMeter(
           {
             ...input.usageMeter,
             organizationId: organization.id,
@@ -62,62 +65,57 @@ export const createUsageMeter = usageProcedure
           },
           transaction
         )
+        return { usageMeter }
       }
     )
-    return { usageMeter }
-  })
+  )
 
 const listUsageMetersProcedure = usageProcedure
   .meta(openApiMetas.LIST)
   .input(usageMeterPaginatedSelectSchema)
   .output(usageMeterPaginatedListSchema)
-  .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
         return selectUsageMetersPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const editUsageMeter = usageProcedure
   .meta(openApiMetas.PUT)
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
-    const usageMeter = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const updatedUsageMeter = await updateUsageMeter(
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const usageMeter = await updateUsageMeter(
           {
             ...input.usageMeter,
             id: input.id,
           },
           transaction
         )
-        return updatedUsageMeter
-      },
-      {
-        apiKey: ctx.apiKey,
+        return { usageMeter }
       }
     )
-    return { usageMeter }
-  })
+  )
 
 const getUsageMeter = usageProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
-  .query(async ({ input, ctx }) => {
-    const usageMeter = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageMeterById(input.id, transaction)
-      },
-      { apiKey: ctx.apiKey }
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const usageMeter = await selectUsageMeterById(
+          input.id,
+          transaction
+        )
+        return { usageMeter }
+      }
     )
-    return { usageMeter }
-  })
+  )
 
 const getTableRowsProcedure = usageProcedure
   .input(
@@ -130,39 +128,11 @@ const getTableRowsProcedure = usageProcedure
   .output(
     createPaginatedTableRowOutputSchema(usageMetersTableRowDataSchema)
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-
-        // Use the existing selectUsageMeterTableRows function
-        const usageMeterRows = await selectUsageMeterTableRows(
-          filters,
-          transaction
-        )
-
-        // Apply pagination
-        const startIndex = cursor ? parseInt(cursor, 10) : 0
-        const endIndex = startIndex + limit
-        const paginatedRows = usageMeterRows.slice(
-          startIndex,
-          endIndex
-        )
-        const hasMore = endIndex < usageMeterRows.length
-
-        return {
-          data: paginatedRows,
-          currentCursor: cursor || '0',
-          nextCursor: hasMore ? endIndex.toString() : undefined,
-          hasMore,
-          total: usageMeterRows.length,
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+  .query(
+    authenticatedProcedureTransaction(
+      selectUsageMetersCursorPaginated
     )
-  })
+  )
 
 export const usageMetersRouter = router({
   get: getUsageMeter,

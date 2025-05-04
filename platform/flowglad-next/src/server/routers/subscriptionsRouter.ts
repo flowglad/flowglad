@@ -376,12 +376,13 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   })
 
-const getTableRowsProcedure = protectedProcedure
+const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
         status: z.nativeEnum(SubscriptionStatus).optional(),
         customerId: z.string().optional(),
+        organizationId: z.string().optional(),
       })
     )
   )
@@ -395,40 +396,17 @@ const getTableRowsProcedure = protectedProcedure
       async ({ transaction }) => {
         const { cursor, limit = 10, filters = {} } = input
 
-        // Use the existing selectSubscriptionsTableRowData function
-        const subscriptionRows =
-          await selectSubscriptionsTableRowData(
-            ctx.organizationId || '',
-            transaction
-          )
-
-        // Apply filters
-        let filteredRows = subscriptionRows
-        if (filters.status) {
-          filteredRows = filteredRows.filter(
-            (row) => row.subscription.status === filters.status
-          )
-        }
-        if (filters.customerId) {
-          filteredRows = filteredRows.filter(
-            (row) =>
-              row.subscription.customerId === filters.customerId
-          )
-        }
-
-        // Apply pagination
-        const startIndex = cursor ? parseInt(cursor, 10) : 0
-        const endIndex = startIndex + limit
-        const paginatedRows = filteredRows.slice(startIndex, endIndex)
-        const hasMore = endIndex < filteredRows.length
-
-        return {
-          data: paginatedRows,
-          currentCursor: cursor || '0',
-          nextCursor: hasMore ? endIndex.toString() : undefined,
-          hasMore,
-          total: filteredRows.length,
-        }
+        return selectSubscriptionsTableRowData({
+          input: {
+            cursor,
+            limit,
+            where: {
+              organizationId: ctx.organizationId || '',
+              ...filters,
+            },
+          },
+          transaction,
+        })
       },
       {
         apiKey: ctx.apiKey,
@@ -443,5 +421,5 @@ export const subscriptionsRouter = router({
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,
   getCountsByStatus: getCountsByStatusProcedure,
-  getTableRows: getTableRowsProcedure,
+  getTableRows,
 })

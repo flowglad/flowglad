@@ -280,12 +280,7 @@ const getTableRowsProcedure = protectedProcedure
   .output(customersPaginatedTableRowOutputSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
-        return selectCustomersCursorPaginatedWithTableRowData(
-          input,
-          transaction
-        )
-      }
+      selectCustomersCursorPaginatedWithTableRowData
     )
   )
 

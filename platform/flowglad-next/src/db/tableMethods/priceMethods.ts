@@ -5,6 +5,8 @@ import {
   pricesSelectSchema,
   pricesUpdateSchema,
   ProductWithPrices,
+  pricesTableRowDataSchema,
+  pricesClientSelectSchema,
 } from '@/db/schema/prices'
 import {
   createSelectById,
@@ -17,6 +19,7 @@ import {
   createPaginatedSelectFunction,
   SelectConditions,
   createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
 import { and, asc, eq, SQLWrapper, desc } from 'drizzle-orm'
@@ -31,6 +34,8 @@ import {
 } from '../schema/organizations'
 import { catalogs, catalogsSelectSchema } from '../schema/catalogs'
 import { PriceType } from '@/types'
+import { selectProducts } from './productMethods'
+import { z } from 'zod'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -263,25 +268,41 @@ export const selectPricesPaginated = createPaginatedSelectFunction(
   config
 )
 
-export const selectPricesTableRowData = async (
-  organizationId: string,
-  transaction: DbTransaction
-) => {
-  const pricesRowData = await transaction
-    .select({
-      price: prices,
-      product: products,
-    })
-    .from(prices)
-    .innerJoin(products, eq(prices.productId, products.id))
-    .where(eq(products.organizationId, organizationId))
-    .orderBy(desc(prices.createdAt))
+export const pricesTableRowOutputSchema = z.object({
+  price: pricesClientSelectSchema,
+  product: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+})
 
-  return pricesRowData.map((row) => ({
-    price: pricesSelectSchema.parse(row.price),
-    product: productsSelectSchema.parse(row.product),
-  }))
-}
+export const selectPricesTableRowData =
+  createCursorPaginatedSelectFunction(
+    prices,
+    config,
+    pricesTableRowOutputSchema,
+    async (prices: Price.Record[], transaction: DbTransaction) => {
+      const productIds = prices.map((price) => price.productId)
+      const products = await selectProducts(
+        { id: productIds },
+        transaction
+      )
+      const productsById = new Map(
+        products.map((product: Product.Record) => [
+          product.id,
+          product,
+        ])
+      )
+
+      return prices.map((price) => ({
+        price,
+        product: {
+          id: productsById.get(price.productId)!.id,
+          name: productsById.get(price.productId)!.name,
+        },
+      }))
+    }
+  )
 
 export const makePriceDefault = async (
   priceOrId: Price.Record | string,

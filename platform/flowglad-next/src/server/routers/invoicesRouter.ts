@@ -4,7 +4,14 @@ import {
   invoicesPaginatedListSchema,
   invoicesPaginatedSelectSchema,
 } from '@/db/schema/invoices'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  invoiceLineItemsClientSelectSchema,
+  invoicesPaginatedTableRowDataSchema,
+} from '@/db/schema/invoiceLineItems'
+import {
+  authenticatedTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   insertInvoice,
   selectInvoiceById,
@@ -24,7 +31,6 @@ import {
 import {
   createInvoiceSchema,
   editInvoiceSchema,
-  invoiceLineItemsClientSelectSchema,
   invoiceWithLineItemsClientSchema,
   sendInvoiceReminderSchema,
 } from '@/db/schema/invoiceLineItems'
@@ -257,62 +263,12 @@ const getTableRowsProcedure = protectedProcedure
   )
   .output(
     createPaginatedTableRowOutputSchema(
-      z.object({
-        invoice: invoicesClientSelectSchema,
-        invoiceLineItems: invoiceLineItemsClientSelectSchema.array(),
-        customer: z.object({
-          id: z.string(),
-          name: z.string(),
-        }),
-      })
+      invoicesPaginatedTableRowDataSchema
     )
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-
-        // Use the existing selectInvoicesTableRowData function
-        const invoiceRows = await selectInvoicesTableRowData(
-          {
-            organizationId: ctx.organizationId || '',
-            ...filters,
-          },
-          transaction
-        )
-
-        // Apply filters
-        let filteredRows = invoiceRows
-        if (filters.status) {
-          filteredRows = filteredRows.filter(
-            (row) => row.invoice.status === filters.status
-          )
-        }
-        if (filters.customerId) {
-          filteredRows = filteredRows.filter(
-            (row) => row.invoice.customerId === filters.customerId
-          )
-        }
-
-        // Apply pagination
-        const startIndex = cursor ? parseInt(cursor, 10) : 0
-        const endIndex = startIndex + limit
-        const paginatedRows = filteredRows.slice(startIndex, endIndex)
-        const hasMore = endIndex < filteredRows.length
-
-        return {
-          data: paginatedRows,
-          hasMore,
-          total: filteredRows.length,
-          currentCursor: cursor || '0',
-          nextCursor: hasMore ? endIndex.toString() : undefined,
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+  .query(
+    authenticatedProcedureTransaction(selectInvoicesTableRowData)
+  )
 
 export const invoicesRouter = router({
   list: listInvoicesProcedure,

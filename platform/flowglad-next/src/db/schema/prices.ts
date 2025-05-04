@@ -496,3 +496,11 @@ export const catalogWithProductsAndUsageMetersSchema =
 export type CatalogWithProductsAndUsageMeters = z.infer<
   typeof catalogWithProductsAndUsageMetersSchema
 >
+
+export const pricesTableRowDataSchema = z.object({
+  price: pricesClientSelectSchema,
+  product: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+})

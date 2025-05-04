@@ -8,14 +8,16 @@ import {
   editCatalogSchema,
   cloneCatalogInputSchema,
 } from '@/db/schema/catalogs'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   insertCatalog,
   selectCatalogsPaginated,
   updateCatalog,
   makeCatalogDefault,
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
-  selectDefaultCatalog,
   selectCatalogsTableRows,
 } from '@/db/tableMethods/catalogMethods'
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
@@ -222,28 +224,7 @@ const getTableRowsProcedure = protectedProcedure
       })
     )
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-
-        return selectCatalogsTableRows(
-          {
-            cursor,
-            limit,
-            filters: {
-              ...filters,
-              organizationId: ctx.organizationId,
-            },
-          },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+  .query(authenticatedProcedureTransaction(selectCatalogsTableRows))
 
 export const catalogsRouter = router({
   list: listCatalogsProcedure,

@@ -8,6 +8,8 @@ import {
   type CustomerTableRowData,
   CustomersPaginatedTableRowInput,
   CustomersPaginatedTableRowOutput,
+  customersPaginatedTableRowOutputSchema,
+  customersPaginatedTableRowDataSchema,
 } from '@/db/schema/customers'
 import {
   createUpsertFunction,
@@ -331,79 +333,75 @@ export const mapCustomerEmailToStackAuthHostedBillingUserId = async (
   )?.stackAuthHostedBillingUserId
 }
 
-export const selectCustomersCursorPaginated =
-  createCursorPaginatedSelectFunction(customersTable, config)
+export const selectCustomersCursorPaginatedWithTableRowData =
+  createCursorPaginatedSelectFunction(
+    customersTable,
+    config,
+    customersPaginatedTableRowDataSchema,
+    async (customersResult, transaction) => {
+      const totalSpendAndCustomerId = await transaction
+        .select({
+          customerId: customersTable.id,
+          totalSpend: sql<number>`SUM(${payments.amount})`,
+          totalInvoices: sql<number>`COUNT(${invoices.id})`,
+          earliestPurchase: sql<Date>`MIN(${purchases.purchaseDate})`,
+        })
+        .from(customersTable)
+        .leftJoin(
+          invoices,
+          eq(customersTable.id, invoices.customerId)
+        )
+        .leftJoin(payments, eq(invoices.id, payments.invoiceId))
+        .leftJoin(
+          purchases,
+          eq(customersTable.id, purchases.customerId)
+        )
+        .where(
+          and(
+            inArray(
+              customersTable.id,
+              customersResult.map((c) => c.id)
+            ),
+            inArray(payments.status, [
+              PaymentStatus.Succeeded,
+              PaymentStatus.Processing,
+            ])
+          )
+        )
+        .groupBy(customersTable.id)
 
-export const selectCustomersCursorPaginatedWithTableRowData = async (
-  params: CustomersPaginatedTableRowInput,
-  transaction: DbTransaction
-): Promise<CustomersPaginatedTableRowOutput> => {
-  const {
-    data: customersResult,
-    currentCursor,
-    nextCursor,
-    hasMore,
-    total,
-  } = await selectCustomersCursorPaginated(
-    { where: params.filters },
-    transaction
-  )
-  const totalSpendAndCustomerId = await transaction
-    .select({
-      customerId: customersTable.id,
-      totalSpend: sql<number>`SUM(${payments.amount})`,
-      totalInvoices: sql<number>`COUNT(${invoices.id})`,
-      earliestPurchase: sql<Date>`MIN(${purchases.purchaseDate})`,
-    })
-    .from(customersTable)
-    .leftJoin(invoices, eq(customersTable.id, invoices.customerId))
-    .leftJoin(payments, eq(invoices.id, payments.invoiceId))
-    .leftJoin(purchases, eq(customersTable.id, purchases.customerId))
-    .where(
-      and(
-        inArray(
-          customersTable.id,
-          customersResult.map((c) => c.id)
-        ),
-        inArray(payments.status, [
-          PaymentStatus.Succeeded,
-          PaymentStatus.Processing,
+      const dataByCustomerId = new Map<
+        string,
+        {
+          totalSpend: number
+          totalInvoices: number
+          earliestPurchase?: Date
+        }
+      >(
+        totalSpendAndCustomerId.map((cps) => [
+          `${cps.customerId}`,
+          cps,
         ])
       )
-    )
-    .groupBy(customersTable.id)
 
-  const dataByCustomerId = new Map<
-    string,
-    {
-      totalSpend: number
-      totalInvoices: number
-      earliestPurchase?: Date
+      const customersWithTableRowData = customersResult.map((row) => {
+        const data = dataByCustomerId.get(`${row.id}`)
+        let status: InferredCustomerStatus =
+          InferredCustomerStatus.Active
+        if (row.archived) {
+          status = InferredCustomerStatus.Archived
+        } else if (!data?.earliestPurchase) {
+          status = InferredCustomerStatus.Pending
+        }
+        // TODO: else / if for customers with purchases that have ended
+        // TODO: else / if for customers with unpaid invoices
+        return {
+          customer: customersSelectSchema.parse(row),
+          totalSpend: dataByCustomerId.get(`${row.id}`)?.totalSpend,
+          payments: dataByCustomerId.get(`${row.id}`)?.totalInvoices,
+          status,
+        }
+      })
+      return customersWithTableRowData
     }
-  >(totalSpendAndCustomerId.map((cps) => [`${cps.customerId}`, cps]))
-
-  const customersWithTableRowData = customersResult.map((row) => {
-    const data = dataByCustomerId.get(`${row.id}`)
-    let status: InferredCustomerStatus = InferredCustomerStatus.Active
-    if (row.archived) {
-      status = InferredCustomerStatus.Archived
-    } else if (!data?.earliestPurchase) {
-      status = InferredCustomerStatus.Pending
-    }
-    // TODO: else / if for customers with purchases that have ended
-    // TODO: else / if for customers with unpaid invoices
-    return {
-      customer: customersSelectSchema.parse(row),
-      totalSpend: dataByCustomerId.get(`${row.id}`)?.totalSpend,
-      payments: dataByCustomerId.get(`${row.id}`)?.totalInvoices,
-      status,
-    }
-  })
-  return {
-    data: customersWithTableRowData,
-    currentCursor,
-    nextCursor,
-    hasMore,
-    total,
-  }
-}
+  )
