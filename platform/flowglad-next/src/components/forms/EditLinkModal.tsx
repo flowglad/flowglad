@@ -8,7 +8,7 @@ import { trpc } from '@/app/_trpc/client'
 interface EditLinkModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  link: Link.Record
+  link: Link.ClientRecord
 }
 
 const EditLinkModal: React.FC<EditLinkModalProps> = ({

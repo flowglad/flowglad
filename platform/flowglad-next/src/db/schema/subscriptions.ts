@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   pgTable,
   text,
@@ -21,6 +22,7 @@ import {
   metadataSchema,
   SelectConditions,
   ommittedColumnsForInsertSchema,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -163,7 +165,14 @@ const readOnlyColumns = {
 const hiddenColumns = {
   stripeSetupIntentId: true,
   externalId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
+
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+  ...createOnlyColumns,
+})
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
@@ -175,10 +184,10 @@ const nonClientEditableColumns = {
  * client schemas
  */
 export const subscriptionClientInsertSchema =
-  subscriptionsInsertSchema.omit(nonClientEditableColumns)
+  subscriptionsInsertSchema.omit(clientWriteOmits)
 
 export const subscriptionClientUpdateSchema =
-  subscriptionsUpdateSchema.omit(nonClientEditableColumns)
+  subscriptionsUpdateSchema.omit(clientWriteOmits)
 
 export const subscriptionClientSelectSchema =
   subscriptionsSelectSchema.omit(hiddenColumns).extend({

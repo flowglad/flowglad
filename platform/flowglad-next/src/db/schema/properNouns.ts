@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { text, pgTable, pgPolicy, index } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
@@ -9,6 +10,7 @@ import {
   createUpdateSchema,
   livemodePolicy,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -81,24 +83,24 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
+
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+  ...createOnlyColumns,
+})
 
 /*
  * client schemas
  */
 export const properNounClientInsertSchema =
-  properNounsInsertSchema.omit({
-    ...hiddenColumns,
-    ...readOnlyColumns,
-    ...createOnlyColumns,
-  })
+  properNounsInsertSchema.omit(clientWriteOmits)
 
 export const properNounClientUpdateSchema =
-  properNounsUpdateSchema.omit({
-    ...readOnlyColumns,
-    ...createOnlyColumns,
-    ...hiddenColumns,
-  })
+  properNounsUpdateSchema.omit(clientWriteOmits)
 
 export const properNounClientSelectSchema =
   properNounsSelectSchema.omit(hiddenColumns)

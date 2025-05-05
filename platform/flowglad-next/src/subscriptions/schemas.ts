@@ -2,6 +2,7 @@ import {
   subscriptionItemsInsertSchema,
   subscriptionItemsSelectSchema,
   subscriptionItemClientSelectSchema,
+  subscriptionItemClientInsertSchema,
 } from '@/db/schema/subscriptionItems'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { subscribablePriceClientSelectSchema } from '@/db/schema/prices'
@@ -15,8 +16,8 @@ export const adjustSubscriptionImmediatelySchema = z.object({
   timing: z.literal(SubscriptionAdjustmentTiming.Immediately),
   newSubscriptionItems: z.array(
     z.union([
-      subscriptionItemsInsertSchema,
-      subscriptionItemsSelectSchema,
+      subscriptionItemClientInsertSchema,
+      subscriptionItemClientSelectSchema,
     ])
   ),
   prorateCurrentBillingPeriod: z.boolean(),
@@ -29,8 +30,8 @@ export const adjustSubscriptionAtEndOfCurrentBillingPeriodSchema =
     ),
     newSubscriptionItems: z.array(
       z.union([
-        subscriptionItemsInsertSchema,
-        subscriptionItemsSelectSchema,
+        subscriptionItemClientInsertSchema,
+        subscriptionItemClientSelectSchema,
       ])
     ),
   })

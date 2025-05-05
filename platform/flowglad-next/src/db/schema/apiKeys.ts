@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   boolean,
   text,
@@ -12,17 +13,18 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   createUpdateSchema,
   livemodePolicy,
   idInputSchema,
   pgEnumColumn,
   ommittedColumnsForInsertSchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+
 import core from '@/utils/core'
 
 const TABLE_NAME = 'api_keys'
@@ -150,6 +152,7 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   unkeyId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const nonClientEditableColumns = {
@@ -157,36 +160,39 @@ const nonClientEditableColumns = {
   ...readOnlyColumns,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 // Client schemas
 export const secretApiKeysClientInsertSchema =
-  secretApiKeysInsertSchema.omit(nonClientEditableColumns)
+  secretApiKeysInsertSchema.omit(clientWriteOmits)
 export const secretApiKeysClientSelectSchema =
   secretApiKeysSelectSchema.omit(hiddenColumns)
 export const secretApiKeysClientUpdateSchema =
   secretApiKeysUpdateSchema.omit({
-    ...nonClientEditableColumns,
+    ...clientWriteOmits,
     expiresAt: true,
   })
 
 export const publishableApiKeysClientInsertSchema =
-  publishableApiKeysInsertSchema.omit(nonClientEditableColumns)
+  publishableApiKeysInsertSchema.omit(clientWriteOmits)
 export const publishableApiKeysClientSelectSchema =
   publishableApiKeysSelectSchema.omit(hiddenColumns)
 export const publishableApiKeysClientUpdateSchema =
   publishableApiKeysUpdateSchema.omit({
-    ...nonClientEditableColumns,
+    ...clientWriteOmits,
     expiresAt: true,
   })
 
 export const hostedBillingPortalApiKeysClientInsertSchema =
-  hostedBillingPortalApiKeysInsertSchema.omit(
-    nonClientEditableColumns
-  )
+  hostedBillingPortalApiKeysInsertSchema.omit(clientWriteOmits)
 export const hostedBillingPortalApiKeysClientSelectSchema =
   hostedBillingPortalApiKeysSelectSchema.omit(hiddenColumns)
 export const hostedBillingPortalApiKeysClientUpdateSchema =
   hostedBillingPortalApiKeysUpdateSchema.omit({
-    ...nonClientEditableColumns,
+    ...clientWriteOmits,
     expiresAt: true,
   })
 

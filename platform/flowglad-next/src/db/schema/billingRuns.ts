@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   pgTable,
   pgPolicy,
@@ -16,6 +17,7 @@ import {
   pgEnumColumn,
   livemodePolicy,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import core from '@/utils/core'
@@ -103,6 +105,7 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   stripePaymentIntentId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const createOnlyColumns = {} as const
@@ -112,17 +115,19 @@ const nonClientEditableColumns = {
   ...readOnlyColumns,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 /*
  * client schemas
  */
 export const billingRunClientInsertSchema =
-  billingRunsInsertSchema.omit(nonClientEditableColumns)
+  billingRunsInsertSchema.omit(clientWriteOmits)
 
 export const billingRunClientUpdateSchema =
-  billingRunsUpdateSchema.omit({
-    ...nonClientEditableColumns,
-    ...createOnlyColumns,
-  })
+  billingRunsUpdateSchema.omit(clientWriteOmits)
 
 export const billingRunClientSelectSchema =
   billingRunsSelectSchema.omit(hiddenColumns)

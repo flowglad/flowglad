@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   pgTable,
   jsonb,
@@ -18,6 +19,7 @@ import {
   metadataSchema,
   SelectConditions,
   ommittedColumnsForInsertSchema,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -110,6 +112,7 @@ const readOnlyColumns = {
 const hiddenColumns = {
   stripePaymentMethodId: true,
   externalId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const nonClientEditableColumns = {
@@ -118,14 +121,19 @@ const nonClientEditableColumns = {
   ...createOnlyColumns,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 /*
  * client schemas
  */
 export const paymentMethodClientInsertSchema =
-  paymentMethodsInsertSchema.omit(nonClientEditableColumns)
+  paymentMethodsInsertSchema.omit(clientWriteOmits)
 
 export const paymentMethodClientUpdateSchema =
-  paymentMethodsUpdateSchema.omit(nonClientEditableColumns)
+  paymentMethodsUpdateSchema.omit(clientWriteOmits)
 
 export const paymentMethodClientSelectSchema =
   paymentMethodsSelectSchema.omit(hiddenColumns)

@@ -11,6 +11,7 @@ import {
   createPaginatedListQuerySchema,
   livemodePolicy,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
@@ -63,7 +64,12 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-export const catalogsClientSelectSchema = catalogsSelectSchema
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
+
+export const catalogsClientSelectSchema =
+  catalogsSelectSchema.omit(hiddenColumns)
 
 export const catalogsClientUpdateSchema =
   catalogsUpdateSchema.omit(readOnlyColumns)

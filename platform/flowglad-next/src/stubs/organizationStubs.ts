@@ -25,4 +25,5 @@ export const dummyOrganization: Organization.Record = {
   externalId: '___',
   createdByCommit: 'test',
   updatedByCommit: 'test',
+  position: 0,
 }

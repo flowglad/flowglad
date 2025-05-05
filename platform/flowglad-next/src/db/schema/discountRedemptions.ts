@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   integer,
   pgTable,
@@ -17,6 +18,7 @@ import {
   livemodePolicy,
   nullableStringForeignKey,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { discounts } from '@/db/schema/discounts'
 import { purchases } from '@/db/schema/purchases'
@@ -91,7 +93,9 @@ const baseSelectSchema = createSelectSchema(
   discountRedemptions,
   columnRefinements
 )
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const readOnlyColumns = {
   purchaseId: true,
@@ -227,22 +231,24 @@ export const discountRedemptionsClientSelectSchema = z
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
 // Client insert schemas for each duration type
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 export const defaultDiscountRedemptionsClientInsertSchema =
   defaultDiscountRedemptionsInsertSchema
-    .omit(hiddenColumns)
-    .omit(readOnlyColumns)
+    .omit(clientWriteOmits)
     .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
 
 export const numberOfPaymentsDiscountRedemptionsClientInsertSchema =
   numberOfPaymentsDiscountRedemptionsInsertSchema
-    .omit(hiddenColumns)
-    .omit(readOnlyColumns)
+    .omit(clientWriteOmits)
     .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
 
 export const foreverDiscountRedemptionsClientInsertSchema =
   foreverDiscountRedemptionsInsertSchema
-    .omit(hiddenColumns)
-    .omit(readOnlyColumns)
+    .omit(clientWriteOmits)
     .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
 
 // Combined client insert schema

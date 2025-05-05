@@ -23,6 +23,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -162,6 +163,8 @@ const hiddenColumns = {
   stripePaymentIntentId: true,
   stripeTaxCalculationId: true,
   stripeTaxTransactionId: true,
+  stripeChargeId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 export const paymentsClientSelectSchema = paymentsSelectSchema

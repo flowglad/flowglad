@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   boolean,
   jsonb,
@@ -21,6 +22,7 @@ import {
   SelectConditions,
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   organizations,
@@ -116,6 +118,7 @@ const hiddenColumns = {
   stripeCustomerId: true,
   taxId: true,
   stackAuthHostedBillingUserId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const nonClientEditableColumns = {
@@ -142,13 +145,16 @@ export const customersUpdateSchema = createUpdateSchema(
   zodSchemaEnhancementColumns
 )
 
-export const customerClientInsertSchema = customersInsertSchema.omit(
+const clientWriteOmits = R.omit(
+  ['position'],
   nonClientEditableColumns
 )
 
-export const customerClientUpdateSchema = customersUpdateSchema.omit(
-  nonClientEditableColumns
-)
+export const customerClientInsertSchema =
+  customersInsertSchema.omit(clientWriteOmits)
+
+export const customerClientUpdateSchema =
+  customersUpdateSchema.omit(clientWriteOmits)
 
 export const customerClientSelectSchema =
   customersSelectSchema.omit(hiddenColumns)
@@ -175,10 +181,10 @@ export const editCustomerOutputSchema = z.object({
 })
 
 export const customersPaginatedSelectSchema =
-  createPaginatedSelectSchema(customersSelectSchema)
+  createPaginatedSelectSchema(customerClientSelectSchema)
 
 export const customersPaginatedListSchema =
-  createPaginatedListQuerySchema(customersSelectSchema)
+  createPaginatedListQuerySchema(customerClientSelectSchema)
 
 export namespace Customer {
   export type Insert = z.infer<typeof customersInsertSchema>

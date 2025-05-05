@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   integer,
   pgTable,
@@ -17,6 +18,7 @@ import {
   livemodePolicy,
   constructUniqueIndex,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -24,7 +26,6 @@ import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
-import { usage } from '@trigger.dev/sdk'
 
 const TABLE_NAME = 'usage_events'
 
@@ -169,7 +170,9 @@ export const usageEventsUpdateSchema = createUpdateSchema(
   columnRefinements
 )
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const readOnlyColumns = {
   livemode: true,
@@ -184,9 +187,13 @@ const createOnlyColumns = {
   transactionId: true,
 } as const
 
-export const usageEventsClientSelectSchema = usageEventsSelectSchema
-  .omit(readOnlyColumns)
-  .omit(hiddenColumns)
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
+export const usageEventsClientSelectSchema =
+  usageEventsSelectSchema.omit(hiddenColumns)
 
 export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
   .extend({
@@ -197,14 +204,11 @@ export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
         'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
       ),
   })
-  .omit({
-    ...readOnlyColumns,
-    ...createOnlyColumns,
-    ...hiddenColumns,
-  })
+  .omit(R.omit(['position'], hiddenColumns))
+  .omit(createOnlyColumns)
 
 export const usageEventsClientInsertSchema = usageEventsInsertSchema
-  .omit(readOnlyColumns)
+  .omit(clientWriteOmits)
   .extend({
     usageDate: z
       .number()
@@ -213,7 +217,6 @@ export const usageEventsClientInsertSchema = usageEventsInsertSchema
         'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
       ),
   })
-  .omit(hiddenColumns)
 
 export namespace UsageEvent {
   export type Insert = z.infer<typeof usageEventsInsertSchema>

@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { pgTable, integer, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
@@ -12,6 +13,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   Invoice,
@@ -68,22 +70,25 @@ const createOnlyColumns = {
   invoiceId: true,
   priceId: true,
 } as const
-const readonlyColumns = {
+
+const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {} as const
-
-const nonEditableColumns = {
-  ...createOnlyColumns,
-  ...readonlyColumns,
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 export const invoiceLineItemsClientInsertSchema =
-  invoiceLineItemsInsertSchema.omit(readonlyColumns)
+  invoiceLineItemsInsertSchema.omit(clientWriteOmits)
 
 export const invoiceLineItemsClientUpdateSchema =
-  invoiceLineItemsUpdateSchema.omit(nonEditableColumns)
+  invoiceLineItemsUpdateSchema.omit(clientWriteOmits)
 
 export const invoiceLineItemsClientSelectSchema =
   invoiceLineItemsSelectSchema.omit(hiddenColumns)

@@ -21,4 +21,5 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   usageMeterId: null,
   createdByCommit: 'test',
   updatedByCommit: 'test',
+  position: 0,
 }

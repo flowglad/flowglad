@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { createSelectSchema } from 'drizzle-zod'
 import {
   enhancedCreateInsertSchema,
@@ -9,6 +10,7 @@ import {
   createUpdateSchema,
   livemodePolicy,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { z } from 'zod'
@@ -92,13 +94,20 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
+
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
 
 export const messagesClientSelectSchema =
   messagesSelectSchema.omit(hiddenColumns)
 
 export const messagesClientUpdateSchema =
-  messagesInsertSchema.omit(readOnlyColumns)
+  messagesUpdateSchema.omit(clientWriteOmits)
 
 export namespace Message {
   export type Insert = z.infer<typeof messagesInsertSchema>

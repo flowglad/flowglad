@@ -20,6 +20,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -330,6 +331,7 @@ const hiddenColumns = {
   stripeSetupIntentId: true,
   createdByCommit: true,
   updatedByCommit: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const CHECKOUT_SESSION_CLIENT_SELECT_SCHEMA_DESCRIPTION =

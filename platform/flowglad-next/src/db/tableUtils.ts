@@ -27,12 +27,14 @@ import {
   PgUpdateSetSource,
   PgColumn,
   pgPolicy,
+  bigserial,
 } from 'drizzle-orm/pg-core'
 import {
   type DbTransaction,
   type PgTableWithId,
   type PgStringColumn,
   type PgTableWithCreatedAtAndId,
+  PgTableWithPosition,
 } from '@/db/types'
 import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
 import { z } from 'zod'
@@ -293,6 +295,10 @@ export const tableBase = (idPrefix?: string) => ({
   createdByCommit: text('created_by_commit').$defaultFn(gitCommitId),
   updatedByCommit: text('updated_by_commit').$defaultFn(gitCommitId),
   livemode: boolean('livemode').notNull(),
+  /**
+   * Used for ranking in pagination
+   */
+  position: bigserial({ mode: 'number' }),
 })
 
 export const taxColumns = () => ({
@@ -426,7 +432,8 @@ export const constructIndex = (
 export const newBaseZodSelectSchemaColumns = {
   createdAt: core.safeZodDate,
   updatedAt: core.safeZodDate,
-}
+  position: z.number(),
+} as const
 
 /**
  * Truthfully this is a "createFindOrCreateFunction"
@@ -494,6 +501,11 @@ export const ommittedColumnsForInsertSchema = {
   updatedAt: true,
   createdByCommit: true,
   updatedByCommit: true,
+  position: true,
+} as const
+
+export const hiddenColumnsForClientSchema = {
+  position: true,
 } as const
 
 type SchemaRefinements<T extends PgTableWithId> = Parameters<
@@ -872,7 +884,7 @@ export const testEnumColumn = async <T extends PgTableWithId>(
 }
 
 interface CursorPaginatedSelectFunctionParams<
-  T extends PgTableWithCreatedAtAndId,
+  T extends PgTableWithPosition,
 > {
   input: {
     pageAfter?: string
@@ -884,7 +896,7 @@ interface CursorPaginatedSelectFunctionParams<
   transaction: DbTransaction
 }
 
-const comparison = async <T extends PgTableWithCreatedAtAndId>(
+const cursorComparison = async <T extends PgTableWithPosition>(
   table: T,
   {
     isForward,
@@ -921,14 +933,11 @@ const comparison = async <T extends PgTableWithCreatedAtAndId>(
    * isn't the same across languages. Eventually we will want to track each table
    * on an iterator
    */
-  const adjustedCreatedAt = new Date(
-    (result.createdAt as Date).getTime() + (isForward ? 1 : -1)
-  )
-  return comparisonOperator(table.createdAt, adjustedCreatedAt)
+  return comparisonOperator(table.position, result.position)
 }
 
 export const createCursorPaginatedSelectFunction = <
-  T extends PgTableWithCreatedAtAndId,
+  T extends PgTableWithPosition,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
   I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
   U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
@@ -958,13 +967,13 @@ export const createCursorPaginatedSelectFunction = <
     // Determine pagination direction and cursor
     const isForward = !!pageAfter || (!pageBefore && !pageAfter)
     const orderBy = isForward
-      ? asc(table.createdAt)
-      : desc(table.createdAt)
+      ? asc(table.position)
+      : desc(table.position)
     const filterClause = params.input.filters
       ? whereClauseFromObject(table, params.input.filters)
       : undefined
     const whereClauses = and(
-      await comparison(
+      await cursorComparison(
         table,
         {
           isForward,

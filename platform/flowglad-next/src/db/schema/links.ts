@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -10,6 +11,7 @@ import {
   notNullStringForeignKey,
   livemodePolicy,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { products } from '@/db/schema/products'
@@ -71,23 +73,23 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
-const nonClientEditableColumns = {
+const clientWriteOmits = R.omit(['position'], {
   ...hiddenColumns,
   ...readOnlyColumns,
-} as const
+})
 
 /*
  * client schemas
  */
-export const linkClientInsertSchema = linksInsertSchema.omit(
-  nonClientEditableColumns
-)
+export const linkClientInsertSchema =
+  linksInsertSchema.omit(clientWriteOmits)
 
-export const linkClientUpdateSchema = linksUpdateSchema.omit(
-  nonClientEditableColumns
-)
+export const linkClientUpdateSchema =
+  linksUpdateSchema.omit(clientWriteOmits)
 
 export const linkClientSelectSchema =
   linksSelectSchema.omit(hiddenColumns)

@@ -4,8 +4,6 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { testDatabaseEnums } from '@/db/testEnums'
-import { sql } from 'drizzle-orm'
-import path from 'path'
 
 const projectDir = process.cwd()
 

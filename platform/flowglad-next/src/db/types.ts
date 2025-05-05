@@ -37,6 +37,11 @@ export type PgTableWithCreatedAtAndId = PgTable & {
   id: SQLWrapper
 }
 
+export type PgTableWithPosition = PgTable & {
+  position: SQLWrapper
+  id: SQLWrapper
+}
+
 export interface AuthenticatedTransactionParams {
   transaction: DbTransaction
   livemode: boolean
