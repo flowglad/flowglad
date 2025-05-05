@@ -149,7 +149,6 @@ const nulledSubscriptionColumns = {
   intervalUnit: makeSchemaPropNull(z.any()),
   intervalCount: makeSchemaPropNull(z.any()),
   trialPeriodDays: makeSchemaPropNull(z.any()),
-  stripesubscriptionId: makeSchemaPropNull(z.any()),
 }
 
 export const subscriptionPurchaseInsertSchema = baseInsertSchema
@@ -240,14 +239,9 @@ export const purchasesSelectSchema = z
 
 // Client Subscription Schemas
 export const subscriptionPurchaseClientInsertSchema =
-  subscriptionPurchaseInsertSchema
-    .extend({
-      stripePaymentIntentId: core.safeZodAlwaysNull,
-      stripesubscriptionId: core.safeZodAlwaysNull,
-    })
-    .omit({
-      billingAddress: true,
-    })
+  subscriptionPurchaseInsertSchema.omit({
+    billingAddress: true,
+  })
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,

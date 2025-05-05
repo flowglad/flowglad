@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   integer,
   pgTable,
@@ -44,11 +45,12 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   externalId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
-  ...hiddenColumns,
+  ...R.omit(['position'], hiddenColumns),
 } as const
 
 const PRICES_TABLE_NAME = 'prices'
@@ -260,9 +262,8 @@ export const usagePriceClientInsertSchema =
 export const usagePriceClientUpdateSchema =
   usagePriceUpdateSchema.omit(nonClientEditableColumns)
 
-export const usagePriceClientSelectSchema = usagePriceSelectSchema
-  .omit(hiddenColumns)
-  .omit(hiddenColumnsForClientSchema)
+export const usagePriceClientSelectSchema =
+  usagePriceSelectSchema.omit(hiddenColumns)
 
 export const pricesSelectSchema = z
   .discriminatedUnion('type', [

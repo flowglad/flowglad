@@ -163,6 +163,7 @@ const hiddenColumns = {
   stripePaymentIntentId: true,
   stripeTaxCalculationId: true,
   stripeTaxTransactionId: true,
+  stripeChargeId: true,
   ...hiddenColumnsForClientSchema,
 } as const
 

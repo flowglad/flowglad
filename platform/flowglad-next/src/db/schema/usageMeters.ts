@@ -98,7 +98,10 @@ export const usageMetersClientSelectSchema =
   usageMetersSelectSchema.omit(hiddenColumns)
 
 export const usageMetersClientUpdateSchema = usageMetersUpdateSchema
-  .omit(clientWriteOmits)
+  .omit({
+    ...hiddenColumns,
+    ...readOnlyColumns,
+  })
   .omit(createOnlyColumns)
 
 export const usageMetersClientInsertSchema =

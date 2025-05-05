@@ -253,26 +253,26 @@ export const foreverDiscountClientUpdateSchema =
 
 export const discountClientUpdateSchema = z
   .discriminatedUnion('duration', [
-    defaultDiscountsUpdateSchema,
-    numberOfPaymentsDiscountsUpdateSchema,
-    foreverDiscountsUpdateSchema,
+    defaultDiscountClientUpdateSchema,
+    numberOfPaymentsDiscountClientUpdateSchema,
+    foreverDiscountClientUpdateSchema,
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 export const defaultDiscountClientSelectSchema =
-  defaultDiscountsSelectSchema
+  defaultDiscountsSelectSchema.omit(hiddenColumns)
 
 export const numberOfPaymentsDiscountClientSelectSchema =
-  numberOfPaymentsDiscountsSelectSchema
+  numberOfPaymentsDiscountsSelectSchema.omit(hiddenColumns)
 
 export const foreverDiscountClientSelectSchema =
-  foreverDiscountsSelectSchema
+  foreverDiscountsSelectSchema.omit(hiddenColumns)
 
 export const discountClientSelectSchema = z
   .discriminatedUnion('duration', [
-    defaultDiscountsSelectSchema,
-    numberOfPaymentsDiscountsSelectSchema,
-    foreverDiscountsSelectSchema,
+    foreverDiscountClientSelectSchema,
+    numberOfPaymentsDiscountClientSelectSchema,
+    defaultDiscountClientSelectSchema,
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 

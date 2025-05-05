@@ -181,10 +181,10 @@ export const editCustomerOutputSchema = z.object({
 })
 
 export const customersPaginatedSelectSchema =
-  createPaginatedSelectSchema(customersSelectSchema)
+  createPaginatedSelectSchema(customerClientSelectSchema)
 
 export const customersPaginatedListSchema =
-  createPaginatedListQuerySchema(customersSelectSchema)
+  createPaginatedListQuerySchema(customerClientSelectSchema)
 
 export namespace Customer {
   export type Insert = z.infer<typeof customersInsertSchema>

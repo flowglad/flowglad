@@ -13,6 +13,7 @@ describe('Swagger Configuration', () => {
       'updatedAt',
       'createdByCommit',
       'updatedByCommit',
+      'position',
     ]
 
     const checkSchemaForForbiddenFields = (
@@ -52,6 +53,52 @@ describe('Swagger Configuration', () => {
             checkSchemaForForbiddenFields(
               method.requestBody.content['application/json'].schema,
               path
+            )
+          }
+        })
+      })
+    })
+  })
+
+  describe('Output Schema Validation', () => {
+    const checkSchemaForForbiddenOutputFields = (
+      schema: any,
+      path: string
+    ) => {
+      if (!schema || typeof schema !== 'object') return
+
+      // Check for properties starting with "stripe*" and "position"
+      if (schema.properties) {
+        Object.keys(schema.properties).forEach((key) => {
+          if (key.startsWith('stripe') || key === 'position') {
+            throw new Error(
+              `Schema contains forbidden output field "${key}" at path: ${path}`
+            )
+          }
+        })
+      }
+
+      // Recursively check nested schemas
+      Object.entries(schema).forEach(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          checkSchemaForForbiddenOutputFields(value, `${path}.${key}`)
+        }
+      })
+    }
+
+    it('should not have "stripe*" or "position" fields in any output schemas', () => {
+      Object.values(paths).forEach((path: any) => {
+        Object.values(path).forEach((method: any) => {
+          if (method.responses) {
+            Object.values(method.responses).forEach(
+              (response: any) => {
+                if (response.content?.['application/json']?.schema) {
+                  checkSchemaForForbiddenOutputFields(
+                    response.content['application/json'].schema,
+                    path
+                  )
+                }
+              }
             )
           }
         })
