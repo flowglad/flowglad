@@ -11,9 +11,13 @@ import {
 import {
   createProductSchema,
   editProductSchema,
+  productsTableRowDataSchema,
   productWithPricesSchema,
 } from '@/db/schema/prices'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
@@ -30,6 +34,11 @@ import { selectPricesProductsAndCatalogsForOrganization } from '@/db/tableMethod
 import * as R from 'ramda'
 import { Price } from '@/db/schema/prices'
 import { Catalog } from '@/db/schema/catalogs'
+import { selectProductsCursorPaginated } from '@/db/tableMethods/productMethods'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Product',
@@ -146,42 +155,21 @@ export const getProduct = protectedProcedure
     )
   })
 
-const getTableRowsSchema = z.object({
-  cursor: z.string(),
-  limit: z.number().optional(),
-  filters: z
-    .object({
-      active: z.boolean().optional(),
-      catalogId: z.string().optional(),
-    })
-    .optional(),
-})
-
-const getTableRowsOutputSchema = z.object({
-  data: z.array(
-    z.object({
-      product: productsClientSelectSchema,
-      prices: z.array(z.any()),
-      catalog: z.any().optional(),
-    })
-  ),
-  total: z.number(),
-  hasMore: z.boolean(),
-})
-
 export const getTableRows = protectedProcedure
-  .input(getTableRowsSchema)
-  .output(getTableRowsOutputSchema)
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        return getProductTableRows(input, transaction, userId)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        active: z.boolean().optional(),
+        catalogId: z.string().optional(),
+      })
     )
-  })
+  )
+  .output(
+    createPaginatedTableRowOutputSchema(productsTableRowDataSchema)
+  )
+  .query(
+    authenticatedProcedureTransaction(selectProductsCursorPaginated)
+  )
 
 const getCountsByStatusSchema = z.object({})
 

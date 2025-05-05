@@ -19,6 +19,8 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import { CurrencyCode, PurchaseStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const MoreMenuCell = ({
   purchase,
@@ -86,15 +88,22 @@ const PurchasesTable = ({
 }: {
   filters?: PurchasesTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
-
-  const { data, isLoading, isFetching } =
-    trpc.purchases.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    Purchase.PurchaseTableRowData,
+    PurchasesTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.purchases.getTableRows.useQuery,
+  })
 
   const paymentsByPurchaseId = useMemo(
     () => new Map<string, Payment.ClientRecord[]>(),
@@ -177,6 +186,17 @@ const PurchasesTable = ({
           ),
         },
         {
+          header: ({ column }) => (
+            <SortableColumnHeaderCell title="ID" column={column} />
+          ),
+          accessorKey: 'purchase.id',
+          cell: ({ row: { original: cellData } }) => (
+            <CopyableTextTableCell copyText={cellData.purchase.id}>
+              {cellData.purchase.id}
+            </CopyableTextTableCell>
+          ),
+        },
+        {
           id: '_',
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell purchase={cellData.purchase} />
@@ -186,13 +206,8 @@ const PurchasesTable = ({
     [paymentsByPurchaseId]
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="w-full flex flex-col gap-5">

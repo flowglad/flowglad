@@ -397,8 +397,12 @@ export const selectCustomersCursorPaginatedWithTableRowData =
         // TODO: else / if for customers with unpaid invoices
         return {
           customer: customersSelectSchema.parse(row),
-          totalSpend: dataByCustomerId.get(`${row.id}`)?.totalSpend,
-          payments: dataByCustomerId.get(`${row.id}`)?.totalInvoices,
+          totalSpend: Number(
+            dataByCustomerId.get(`${row.id}`)?.totalSpend ?? 0
+          ),
+          payments: Number(
+            dataByCustomerId.get(`${row.id}`)?.totalInvoices ?? 0
+          ),
           status,
         }
       })

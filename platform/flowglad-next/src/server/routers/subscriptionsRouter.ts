@@ -5,7 +5,10 @@ import {
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
 } from '@/types'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
   subscriptionClientSelectSchema,
@@ -391,28 +394,9 @@ const getTableRows = protectedProcedure
       subscriptionsTableRowDataSchema
     )
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-
-        return selectSubscriptionsTableRowData({
-          input: {
-            cursor,
-            limit,
-            where: {
-              organizationId: ctx.organizationId || '',
-              ...filters,
-            },
-          },
-          transaction,
-        })
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+  .query(
+    authenticatedProcedureTransaction(selectSubscriptionsTableRowData)
+  )
 
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,

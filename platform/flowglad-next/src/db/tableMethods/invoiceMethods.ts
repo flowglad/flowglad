@@ -7,12 +7,10 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
-  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   Invoice,
   invoices,
-  invoicesClientSelectSchema,
   invoicesInsertSchema,
   invoicesSelectSchema,
   invoicesUpdateSchema,
@@ -20,17 +18,7 @@ import {
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq, count, desc } from 'drizzle-orm'
-import { CheckoutInfoCore } from './purchaseMethods'
-import {
-  customerClientSelectSchema,
-  customers,
-} from '@/db/schema/customers'
-import {
-  InvoiceLineItem,
-  invoiceLineItems,
-  invoiceLineItemsClientSelectSchema,
-  invoiceLineItemsSelectSchema,
-} from '../schema/invoiceLineItems'
+import { InvoiceLineItem } from '../schema/invoiceLineItems'
 import { z } from 'zod'
 import { createCursorPaginatedSelectFunction } from '@/db/tableUtils'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'

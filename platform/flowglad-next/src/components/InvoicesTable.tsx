@@ -25,6 +25,7 @@ import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const InvoiceStatusBadge = ({
   invoice,
@@ -131,18 +132,31 @@ const InvoicesTable = ({
   filters?: InvoicesTableFilters
   customer?: Customer.ClientRecord
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
-  const { data, isLoading, isFetching } =
-    trpc.invoices.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters: {
-        ...filters,
-        customerId: customer?.id,
-      },
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    {
+      invoice: Invoice.ClientRecord
+      customer: { id: string; name: string }
+      invoiceLineItems: InvoiceLineItem.ClientRecord[]
+    },
+    InvoicesTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters: {
+      ...filters,
+      customerId: customer?.id,
+    },
+    useQuery: trpc.invoices.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -237,7 +251,7 @@ const InvoicesTable = ({
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               invoice={cellData.invoice}
-              invoiceLineItems={[]} // We'll need to fetch these separately if needed
+              invoiceLineItems={cellData.invoiceLineItems}
             />
           ),
         },
@@ -245,22 +259,26 @@ const InvoicesTable = ({
         {
           invoice: Invoice.ClientRecord
           customer: { id: string; name: string }
+          invoiceLineItems: InvoiceLineItem.ClientRecord[]
         },
         string
       >[],
     []
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="w-full flex flex-col gap-5">
+      <TableTitle
+        title="Invoices"
+        buttonIcon={<Plus size={16} strokeWidth={2} />}
+        buttonLabel="Create Invoice"
+        buttonOnClick={() => {
+          setIsCreateModalOpen(true)
+        }}
+      />
       <Table
         columns={columns}
         data={tableData}
@@ -274,6 +292,11 @@ const InvoicesTable = ({
           isLoading,
           isFetching,
         }}
+      />
+      <CreateInvoiceModal
+        isOpen={isCreateModalOpen}
+        setIsOpen={setIsCreateModalOpen}
+        customer={customer}
       />
     </div>
   )

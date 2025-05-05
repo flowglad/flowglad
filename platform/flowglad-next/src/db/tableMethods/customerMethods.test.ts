@@ -3,10 +3,13 @@ import { adminTransaction } from '@/db/adminTransaction'
 import {
   assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
   updateCustomer,
+  selectCustomerAndCustomerTableRows,
 } from './customerMethods'
 import { setupOrg, setupCustomer } from '@/../seedDatabase'
 import { selectCustomers } from './customerMethods'
 import core from '@/utils/core'
+import { InferredCustomerStatus } from '@/db/schema/customers'
+import { setupPurchase } from '@/../seedDatabase'
 
 describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId', () => {
   let targetEmail: string

@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { selectPurchasesTableRowData } from '@/db/tableMethods/purchaseMethods'
 import { purchasesTableRowDataSchema } from '@/db/schema/purchases'
 import { protectedProcedure, router } from '@/server/trpc'
@@ -28,28 +31,9 @@ const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(purchasesTableRowDataSchema)
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-
-        return selectPurchasesTableRowData({
-          input: {
-            cursor,
-            limit,
-            where: {
-              organizationId: ctx.organizationId || '',
-              ...filters,
-            },
-          },
-          transaction,
-        })
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+  .query(
+    authenticatedProcedureTransaction(selectPurchasesTableRowData)
+  )
 
 export const purchasesRouter = router({
   create: createPurchase,

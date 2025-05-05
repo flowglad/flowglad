@@ -1,11 +1,16 @@
 import { router } from '@/server/trpc'
 import { protectedProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   selectMembershipsAndUsersByMembershipWhere,
   selectFocusedMembershipAndOrganization,
+  selectMembershipsTableRowData,
 } from '@/db/tableMethods/membershipMethods'
+import { membershipsTableRowDataSchema } from '@/db/schema/memberships'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
 import {
@@ -14,7 +19,6 @@ import {
   editOrganizationSchema,
 } from '@/db/schema/organizations'
 import { getRevenueDataInputSchema } from '@/db/schema/payments'
-import { customAlphabet } from 'nanoid'
 import { z } from 'zod'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { stackServerApp } from '@/stack'
@@ -24,17 +28,11 @@ import {
   calculateMRRByMonth,
   calculateMRRBreakdown,
   calculateARR,
-  MonthlyRecurringRevenue,
-  MRRBreakdown,
-  RevenueCalculationOptions,
 } from '@/utils/billing-dashboard/revenueCalculationHelpers'
 import {
   calculateActiveSubscribersByMonth,
   calculateSubscriberBreakdown,
   getCurrentActiveSubscribers,
-  MonthlyActiveSubscribers,
-  SubscriberBreakdown,
-  SubscriberCalculationOptions,
 } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { RevenueChartIntervalUnit } from '@/types'
 import {
@@ -42,6 +40,8 @@ import {
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
 import { TRPCError } from '@trpc/server'
+import { createPaginatedTableRowInputSchema } from '@/db/tableUtils'
+import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -89,34 +89,27 @@ const getMembers = protectedProcedure
   })
 
 const getFocusedMembership = protectedProcedure.query(
-  async ({ ctx }) => {
-    const focusedMembership = await authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        return selectFocusedMembershipAndOrganization(
+  authenticatedProcedureTransaction(
+    async ({ userId, transaction }) => {
+      const focusedMembership =
+        await selectFocusedMembershipAndOrganization(
           userId,
           transaction
         )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-    return focusedMembership
-  }
+      return focusedMembership
+    }
+  )
 )
 
 const getRevenueData = protectedProcedure
   .input(getRevenueDataInputSchema)
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transaction }) => {
         return selectRevenueDataForOrganization(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const getMRRCalculationInputSchema = z.object({
   startDate: z.date(),
@@ -126,39 +119,31 @@ const getMRRCalculationInputSchema = z.object({
 
 const getMRR = protectedProcedure
   .input(getMRRCalculationInputSchema)
-  .query(async ({ input, ctx }) => {
-    if (!ctx.organizationId) {
-      throw new Error('organizationId is required')
-    }
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transaction }) => {
+        if (!ctx.organizationId) {
+          throw new Error('organizationId is required')
+        }
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
         return calculateMRRByMonth(
           ctx.organizationId!,
           input,
           transaction
         )
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
-
-const getARR = protectedProcedure.query(async ({ ctx }) => {
-  if (!ctx.organizationId) {
-    throw new Error('organizationId is required')
-  }
-
-  return authenticatedTransaction(
-    async ({ transaction }) => {
-      return calculateARR(ctx.organizationId!, transaction)
-    },
-    {
-      apiKey: ctx.apiKey,
-    }
   )
-})
+
+const getARR = protectedProcedure.query(
+  authenticatedProcedureTransaction(async ({ ctx, transaction }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    return calculateARR(ctx.organizationId!, transaction)
+  })
+)
 
 const getMRRBreakdownInputSchema = z.object({
   currentMonth: z.date(),
@@ -167,25 +152,22 @@ const getMRRBreakdownInputSchema = z.object({
 
 const getMRRBreakdown = protectedProcedure
   .input(getMRRBreakdownInputSchema)
-  .query(async ({ input, ctx }) => {
-    if (!ctx.organizationId) {
-      throw new Error('organizationId is required')
-    }
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transaction }) => {
+        if (!ctx.organizationId) {
+          throw new Error('organizationId is required')
+        }
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
         return calculateMRRBreakdown(
           ctx.organizationId!,
           input.currentMonth,
           input.previousMonth,
           transaction
         )
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const getActiveSubscribersInputSchema = z.object({
   startDate: z.date(),
@@ -195,24 +177,21 @@ const getActiveSubscribersInputSchema = z.object({
 
 const getActiveSubscribers = protectedProcedure
   .input(getActiveSubscribersInputSchema)
-  .query(async ({ input, ctx }) => {
-    if (!ctx.organizationId) {
-      throw new Error('organizationId is required')
-    }
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transaction }) => {
+        if (!ctx.organizationId) {
+          throw new Error('organizationId is required')
+        }
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
         return calculateActiveSubscribersByMonth(
           ctx.organizationId!,
           input,
           transaction
         )
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const getSubscriberBreakdownInputSchema = z.object({
   currentMonth: z.date(),
@@ -221,44 +200,34 @@ const getSubscriberBreakdownInputSchema = z.object({
 
 const getSubscriberBreakdown = protectedProcedure
   .input(getSubscriberBreakdownInputSchema)
-  .query(async ({ input, ctx }) => {
-    if (!ctx.organizationId) {
-      throw new Error('organizationId is required')
-    }
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transaction }) => {
+        if (!ctx.organizationId) {
+          throw new Error('organizationId is required')
+        }
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
         return calculateSubscriberBreakdown(
           ctx.organizationId!,
           input.currentMonth,
           input.previousMonth,
           transaction
         )
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const getCurrentSubscribers = protectedProcedure.query(
-  async ({ ctx }) => {
+  authenticatedProcedureTransaction(async ({ ctx, transaction }) => {
     if (!ctx.organizationId) {
       throw new Error('organizationId is required')
     }
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return getCurrentActiveSubscribers(
-          { organizationId: ctx.organizationId! },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+    return getCurrentActiveSubscribers(
+      { organizationId: ctx.organizationId! },
+      transaction
     )
-  }
+  })
 )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
@@ -322,20 +291,17 @@ const createOrganization = protectedProcedure
 
 const editOrganization = protectedProcedure
   .input(editOrganizationSchema)
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, userId }) => {
         const { organization } = input
         await updateOrganization(organization, transaction)
         return {
           data: organization,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const updateFocusedMembershipSchema = z.object({
   organizationId: z.string(),
@@ -343,9 +309,9 @@ const updateFocusedMembershipSchema = z.object({
 
 const updateFocusedMembership = protectedProcedure
   .input(updateFocusedMembershipSchema)
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId }) => {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, userId }) => {
         // First, get all memberships for this user
         const userMemberships =
           await selectMembershipsAndOrganizationsByMembershipWhere(
@@ -384,18 +350,25 @@ const updateFocusedMembership = protectedProcedure
           },
           transaction
         )
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
+
+const getMembersTableRowData = protectedProcedure
+  .input(createPaginatedTableRowInputSchema(z.object({})))
+  .output(
+    createPaginatedTableRowOutputSchema(membershipsTableRowDataSchema)
+  )
+  .query(
+    authenticatedProcedureTransaction(selectMembershipsTableRowData)
+  )
 
 export const organizationsRouter = router({
   create: createOrganization,
   update: editOrganization,
   requestStripeConnect: requestStripeConnectOnboardingLink,
   getMembers: getMembers,
+  getMembersTableRowData: getMembersTableRowData,
   getFocusedMembership: getFocusedMembership,
   updateFocusedMembership: updateFocusedMembership,
   getOrganizations: getOrganizations,

@@ -23,7 +23,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     for (let i = 0; i < 15; i++) {
       const customer = await setupCustomer({
         organizationId,
-        email: `test${i}@example.com`,
+        email: `test${i}-${core.nanoid()}@example.com`,
         livemode: i % 2 === 0, // Alternate between livemode true/false
       })
       customerIds.push(customer.id)
@@ -35,60 +35,85 @@ describe('createCursorPaginatedSelectFunction', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
-          limit: 5,
-          where: {
-            organizationId,
-          },
+          pageSize: 5,
         },
         transaction,
       })
     })
 
-    expect(result.data.length).toBe(5)
-    expect(result.hasMore).toBe(true)
-    expect(result.nextCursor).toBeDefined()
-    expect(result.total).toBe(15)
+    expect(result.items.length).toBe(5)
+    expect(result.hasNextPage).toBe(true)
+    expect(result.endCursor).toBeDefined()
   })
 
   it('should return correct pagination metadata when there are no more results', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
-          limit: 20,
-          where: {
+          pageSize: 20,
+          filters: {
             organizationId,
           },
         },
         transaction,
       })
     })
+    expect(result.items.length).toBe(15)
 
-    expect(result.data.length).toBe(15)
-    expect(result.hasMore).toBe(false)
-    expect(result.nextCursor).toBeUndefined()
-    expect(result.total).toBe(15)
+    expect(result.hasNextPage).toBe(false)
+    expect(result.endCursor).toBeDefined()
   })
 
-  it('should apply filters correctly', async () => {
+  it('should handle different page sizes correctly', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
-          limit: 10,
-          where: {
-            livemode: true,
-            organizationId,
-          },
+          pageSize: 3,
         },
         transaction,
       })
     })
 
-    // We created 15 customers, alternating between livemode true/false
-    expect(result.data.length).toBe(8) // 8 because 15/2 rounded up
-    expect(result.total).toBe(8)
-    expect(result.data.every((row) => row.customer.livemode)).toBe(
-      true
-    )
+    expect(result.items.length).toBe(3)
+    expect(result.hasNextPage).toBe(true)
+  })
+
+  it('should return empty result set when no records match filter', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersCursorPaginatedWithTableRowData({
+        input: {
+          pageSize: 10,
+          pageAfter: '0',
+          filters: {
+            logoURL: 'not-a-url',
+          },
+        },
+        transaction,
+      })
+    })
+    expect(result.items.length).toBe(0)
+    expect(result.hasNextPage).toBe(false)
+    expect(result.endCursor).toBeDefined()
+  })
+
+  it('should maintain correct order by creation date', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersCursorPaginatedWithTableRowData({
+        input: {
+          pageSize: 15,
+        },
+        transaction,
+      })
+    })
+
+    // Verify records are ordered by creation date ascending
+    for (let i = 0; i < result.items.length - 1; i++) {
+      expect(
+        result.items[i].customer.createdAt.getTime()
+      ).toBeLessThanOrEqual(
+        result.items[i + 1].customer.createdAt.getTime()
+      )
+    }
   })
 
   it('should paginate to next page correctly', async () => {
@@ -97,10 +122,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
-            where: {
-              organizationId,
-            },
-            limit: 5,
+            pageSize: 5,
           },
           transaction,
         })
@@ -112,11 +134,8 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
-            limit: 5,
-            cursor: firstPage.nextCursor,
-            where: {
-              organizationId,
-            },
+            pageSize: 5,
+            pageAfter: firstPage.endCursor!,
           },
           transaction,
         })
@@ -125,187 +144,68 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Verify no overlap between pages
     const firstPageIds = new Set(
-      firstPage.data.map((row) => row.customer.id)
+      firstPage.items.map((row) => row.customer.id)
     )
     const secondPageIds = new Set(
-      secondPage.data.map((row) => row.customer.id)
+      secondPage.items.map((row) => row.customer.id)
     )
     const intersection = new Set(
       [...firstPageIds].filter((id) => secondPageIds.has(id))
     )
     expect(intersection.size).toBe(0)
-
-    // Verify total count remains consistent
-    expect(firstPage.total).toBe(15)
-    expect(secondPage.total).toBe(15)
   })
 
-  it('should handle different page sizes correctly', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          limit: 3,
-          where: {
-            organizationId,
-          },
-        },
-        transaction,
-      })
-    })
-
-    expect(result.data.length).toBe(3)
-    expect(result.hasMore).toBe(true)
-    expect(result.total).toBe(15)
-  })
-
-  it('should return empty result set when no records match filter', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          limit: 10,
-          where: {
-            email: 'nonexistent@example.com',
-            organizationId,
-          },
-        },
-        transaction,
-      })
-    })
-
-    expect(result.data.length).toBe(0)
-    expect(result.hasMore).toBe(false)
-    expect(result.nextCursor).toBeUndefined()
-    expect(result.total).toBe(0)
-  })
-
-  it('should maintain correct order by creation date', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          limit: 15,
-          where: {
-            organizationId,
-          },
-        },
-        transaction,
-      })
-    })
-
-    // Verify records are ordered by creation date ascending
-    for (let i = 0; i < result.data.length - 1; i++) {
-      expect(
-        result.data[i].customer.createdAt.getTime()
-      ).toBeLessThanOrEqual(
-        result.data[i + 1].customer.createdAt.getTime()
-      )
-    }
-  })
-
-  it('should handle cursor pagination with filters correctly', async () => {
-    // Get first page with filter
+  it('should handle backward pagination correctly', async () => {
+    // Get first page
     const firstPage = await adminTransaction(
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
-            limit: 3,
-            where: {
-              livemode: true,
-              organizationId,
-            },
+            pageSize: 5,
           },
           transaction,
         })
       }
     )
 
-    // Get second page with same filter
+    // Get second page
     const secondPage = await adminTransaction(
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
-            limit: 3,
-            cursor: firstPage.nextCursor,
-            where: {
-              livemode: true,
-              organizationId,
-            },
+            pageSize: 5,
+            pageAfter: firstPage.endCursor!,
           },
           transaction,
         })
       }
     )
 
-    // Verify both pages maintain the filter
-    expect(firstPage.data.every((c) => c.customer.livemode)).toBe(
-      true
-    )
-    expect(secondPage.data.every((c) => c.customer.livemode)).toBe(
-      true
-    )
-
-    // Verify no overlap between pages
-    const firstPageIds = new Set(
-      firstPage.data.map((c) => c.customer.id)
-    )
-    const secondPageIds = new Set(
-      secondPage.data.map((c) => c.customer.id)
-    )
-    const intersection = new Set(
-      [...firstPageIds].filter((id) => secondPageIds.has(id))
-    )
-    expect(intersection.size).toBe(0)
-  })
-
-  it('should handle multiple filters correctly', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          limit: 10,
-          where: {
-            livemode: true,
-            archived: false,
-            organizationId,
-          },
-        },
-        transaction,
-      })
-    })
-
-    expect(
-      result.data.every(
-        (row) => row.customer.livemode && !row.customer.archived
-      )
-    ).toBe(true)
-  })
-
-  it('should handle cursor pagination with multiple filters correctly', async () => {
-    // Get first page with multiple filters
-    const firstPage = await adminTransaction(
+    // Go back to first page using pageBefore
+    const backToFirstPage = await adminTransaction(
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
-            limit: 3,
-            where: {
-              livemode: true,
-              archived: false,
-              organizationId,
-            },
+            pageSize: 5,
+            pageBefore: secondPage.startCursor!,
           },
           transaction,
         })
       }
     )
 
-    // Get second page with same filters
-    const secondPage = await adminTransaction(
+    // Verify we got back to the first page
+    expect(backToFirstPage.items).toEqual(firstPage.items)
+  })
+
+  it('should return correct total count for filtered and unfiltered results', async () => {
+    // Test unfiltered total (should be all 15 customers)
+    const unfilteredResult = await adminTransaction(
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
-            limit: 3,
-            cursor: firstPage.nextCursor,
-            where: {
-              livemode: true,
-              archived: false,
+            pageSize: 5,
+            filters: {
               organizationId,
             },
           },
@@ -313,29 +213,39 @@ describe('createCursorPaginatedSelectFunction', () => {
         })
       }
     )
+    expect(unfilteredResult.total).toBe(15)
 
-    // Verify both pages maintain the filters
-    expect(
-      firstPage.data.every(
-        (row) => row.customer.livemode && !row.customer.archived
-      )
-    ).toBe(true)
-    expect(
-      secondPage.data.every(
-        (row) => row.customer.livemode && !row.customer.archived
-      )
-    ).toBe(true)
+    // Test filtered total (should be 8 customers with livemode true)
+    const filteredResult = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            filters: {
+              livemode: true,
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+    expect(filteredResult.total).toBe(8)
 
-    // Verify no overlap between pages
-    const firstPageIds = new Set(
-      firstPage.data.map((row) => row.customer.id)
+    // Test filtered total with no matches
+    const noMatchesResult = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            filters: {
+              email: 'nonexistent@example.com',
+            },
+          },
+          transaction,
+        })
+      }
     )
-    const secondPageIds = new Set(
-      secondPage.data.map((row) => row.customer.id)
-    )
-    const intersection = new Set(
-      [...firstPageIds].filter((id) => secondPageIds.has(id))
-    )
-    expect(intersection.size).toBe(0)
+    expect(noMatchesResult.total).toBe(0)
   })
 })

@@ -12,6 +12,7 @@ import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const subscriptionStatusColors: Record<
   SubscriptionStatus,
@@ -47,10 +48,6 @@ const SubscriptionMoreMenuCell = ({
 }) => {
   const [cancelOpen, setCancelOpen] = useState(false)
   const items = [
-    // {
-    //   label: 'Edit',
-    //   handler: () => {},
-    // },
     {
       label: 'Cancel',
       handler: () => setCancelOpen(true),
@@ -78,15 +75,22 @@ const SubscriptionsTable = ({
 }: {
   filters?: SubscriptionsTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
-
-  const { data, isLoading, isFetching } =
-    trpc.subscriptions.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    Subscription.TableRowData,
+    SubscriptionsTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.subscriptions.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -182,13 +186,8 @@ const SubscriptionsTable = ({
     []
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <Table

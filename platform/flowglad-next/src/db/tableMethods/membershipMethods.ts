@@ -2,8 +2,10 @@ import * as R from 'ramda'
 import {
   Membership,
   memberships,
+  membershipsClientSelectSchema,
   membershipsInsertSchema,
   membershipsSelectSchema,
+  membershipsTableRowDataSchema,
   membershipsUpdateSchema,
 } from '@/db/schema/memberships'
 import {
@@ -12,8 +14,9 @@ import {
   createSelectFunction,
   createInsertFunction,
   ORMMethodCreatorConfig,
-  whereClauseFromObject,
   createUpdateFunction,
+  createCursorPaginatedSelectFunction,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import { and, eq, sql } from 'drizzle-orm'
 import {
@@ -22,6 +25,8 @@ import {
 } from '../schema/organizations'
 import { DbTransaction } from '@/db/types'
 import { users, usersSelectSchema } from '../schema/users'
+import { z } from 'zod'
+import { selectUsers, UserRecord } from './userMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof memberships,
@@ -154,3 +159,25 @@ export const updateMembership = createUpdateFunction(
   memberships,
   config
 )
+
+export const selectMembershipsTableRowData =
+  createCursorPaginatedSelectFunction(
+    memberships,
+    config,
+    membershipsTableRowDataSchema,
+    async (data, transaction) => {
+      const users = await selectUsers(
+        {
+          id: data.map((membership) => membership.userId),
+        },
+        transaction
+      )
+      const usersById = new Map<string, UserRecord>(
+        users.map((user) => [user.id, user])
+      )
+      return data.map((membership) => ({
+        user: usersById.get(membership.userId)!,
+        membership: membership,
+      }))
+    }
+  )

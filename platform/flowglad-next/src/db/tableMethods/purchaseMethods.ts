@@ -304,11 +304,10 @@ export const selectPurchasesTableRowData =
         (purchase) => purchase.customerId
       )
 
-      const results = await transaction
+      const priceProductResults = await transaction
         .select({
           price: prices,
           product: products,
-          customer: customers,
         })
         .from(prices)
         .innerJoin(products, eq(products.id, prices.productId))
@@ -316,13 +315,30 @@ export const selectPurchasesTableRowData =
         .where(inArray(prices.id, priceIds))
 
       const pricesById = new Map(
-        results.map((result) => [result.price.id, result.price])
+        priceProductResults.map((result) => [
+          result.price.id,
+          result.price,
+        ])
       )
       const productsById = new Map(
-        results.map((result) => [result.product.id, result.product])
+        priceProductResults.map((result) => [
+          result.product.id,
+          result.product,
+        ])
       )
+
+      const customerResults = await transaction
+        .select({
+          customer: customers,
+        })
+        .from(customers)
+        .where(inArray(customers.id, customerIds))
+
       const customersById = new Map(
-        results.map((result) => [result.customer.id, result.customer])
+        customerResults.map((result) => [
+          result.customer.id,
+          result.customer,
+        ])
       )
 
       return purchases.map((purchase) => {
