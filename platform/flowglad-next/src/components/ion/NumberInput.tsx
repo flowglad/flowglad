@@ -323,15 +323,15 @@ const NumberInput = React.forwardRef<
 
     const handleValueChange: OnValueChange = (payload, event) => {
       if (event.source === 'event') {
-        _setValue(
+        const value =
           isValidNumber(payload.floatValue) &&
-            !partialNegativeNumberPattern.test(payload.value) &&
-            !(allowLeadingZeros
-              ? leadingZerosPattern.test(payload.value)
-              : false)
+          !partialNegativeNumberPattern.test(payload.value) &&
+          !(allowLeadingZeros
+            ? leadingZerosPattern.test(payload.value)
+            : false)
             ? payload.floatValue
             : payload.value
-        )
+        _setValue(value)
       }
       onValueChange?.(payload, event)
     }
