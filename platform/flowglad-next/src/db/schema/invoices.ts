@@ -1,6 +1,6 @@
+import * as R from 'ramda'
 import {
   boolean,
-  integer,
   pgTable,
   text,
   timestamp,
@@ -22,6 +22,7 @@ import {
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
@@ -233,6 +234,7 @@ const hiddenColumns = {
   stripePaymentIntentId: true,
   stripeTaxCalculationId: true,
   stripeTaxTransactionId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const createOnlyColumns = {
@@ -246,11 +248,6 @@ const readOnlyColumns = {
   applicationFee: true,
   taxRatePercentage: true,
   taxAmount: true,
-} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
 } as const
 
 export const purchaseInvoiceClientSelectSchema =
@@ -268,12 +265,17 @@ export const invoicesClientSelectSchema = z
   ])
   .describe(INVOICES_BASE_DESCRIPTION)
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 export const purchaseInvoiceClientInsertSchema =
-  purchaseInvoiceInsertSchema.omit(nonClientEditableColumns)
+  purchaseInvoiceInsertSchema.omit(clientWriteOmits)
 export const subscriptionInvoiceClientInsertSchema =
-  subscriptionInvoiceInsertSchema.omit(nonClientEditableColumns)
+  subscriptionInvoiceInsertSchema.omit(clientWriteOmits)
 export const standaloneInvoiceClientInsertSchema =
-  standaloneInvoiceInsertSchema.omit(nonClientEditableColumns)
+  standaloneInvoiceInsertSchema.omit(clientWriteOmits)
 
 export const invoicesClientInsertSchema = z
   .discriminatedUnion('type', [
@@ -284,11 +286,11 @@ export const invoicesClientInsertSchema = z
   .describe(INVOICES_BASE_DESCRIPTION)
 
 export const purchaseInvoiceClientUpdateSchema =
-  purchaseInvoiceUpdateSchema.omit(nonClientEditableColumns)
+  purchaseInvoiceUpdateSchema.omit(clientWriteOmits)
 export const subscriptionInvoiceClientUpdateSchema =
-  subscriptionInvoiceUpdateSchema.omit(nonClientEditableColumns)
+  subscriptionInvoiceUpdateSchema.omit(clientWriteOmits)
 export const standaloneInvoiceClientUpdateSchema =
-  standaloneInvoiceUpdateSchema.omit(nonClientEditableColumns)
+  standaloneInvoiceUpdateSchema.omit(clientWriteOmits)
 
 export const invoicesClientUpdateSchema = z
   .discriminatedUnion('type', [

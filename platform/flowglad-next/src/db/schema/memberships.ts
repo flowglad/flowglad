@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { boolean, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -8,8 +9,8 @@ import {
   tableBase,
   newBaseZodSelectSchemaColumns,
   createUpdateSchema,
-  livemodePolicy,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { users, usersSelectSchema } from '@/db/schema/users'
 import { organizations } from '@/db/schema/organizations'
@@ -71,7 +72,9 @@ export const membershipsUpdateSchema = createUpdateSchema(
   columnRefinements
 )
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const readOnlyColumns = {
   userId: true,
@@ -87,11 +90,17 @@ const nonClientEditableColumns = {
   ...createOnlyColumns,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+  ...createOnlyColumns,
+})
+
 export const membershipsClientSelectSchema =
   membershipsSelectSchema.omit(hiddenColumns)
 
 export const membershipsClientUpdateSchema =
-  membershipsUpdateSchema.omit(nonClientEditableColumns)
+  membershipsUpdateSchema.omit(clientWriteOmits)
 
 export namespace Membership {
   export type Insert = z.infer<typeof membershipsInsertSchema>

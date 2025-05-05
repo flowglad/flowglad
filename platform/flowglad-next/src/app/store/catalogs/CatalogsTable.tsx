@@ -15,7 +15,11 @@ import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
-const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
+const MoreMenuCell = ({
+  catalog,
+}: {
+  catalog: Catalog.ClientRecord
+}) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCloneOpen, setIsCloneOpen] = useState(false)
   const menuItems: PopoverMenuItem[] = [

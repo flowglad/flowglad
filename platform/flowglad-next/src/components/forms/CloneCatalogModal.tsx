@@ -10,7 +10,7 @@ import { trpc } from '@/app/_trpc/client'
 interface CloneCatalogModalProps {
   isOpen: boolean
   setIsOpen: (open: boolean) => void
-  catalog: Catalog.Record
+  catalog: Catalog.ClientRecord
 }
 
 const CloneCatalogModal: React.FC<CloneCatalogModalProps> = ({

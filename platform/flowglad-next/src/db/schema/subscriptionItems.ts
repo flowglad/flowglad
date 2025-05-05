@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   pgTable,
   jsonb,
@@ -16,6 +17,7 @@ import {
   metadataSchema,
   SelectConditions,
   ommittedColumnsForInsertSchema,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -101,7 +103,9 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
@@ -113,7 +117,9 @@ const nonClientEditableColumns = {
  * client schemas
  */
 export const subscriptionItemClientInsertSchema =
-  subscriptionItemsInsertSchema.omit(nonClientEditableColumns)
+  subscriptionItemsInsertSchema.omit(
+    R.omit(['position'], nonClientEditableColumns)
+  )
 
 export const subscriptionItemClientUpdateSchema =
   subscriptionItemsUpdateSchema.omit(nonClientEditableColumns)

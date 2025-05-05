@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   pgTable,
   pgPolicy,
@@ -18,6 +19,7 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -204,7 +206,9 @@ export const discountsUpdateSchema = z
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const readOnlyColumns = {
   organizationId: true,
@@ -216,14 +220,19 @@ const nonClientEditableColumns = {
   ...readOnlyColumns,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 export const defaultDiscountClientInsertSchema =
-  defaultDiscountsInsertSchema.omit(nonClientEditableColumns)
+  defaultDiscountsInsertSchema.omit(clientWriteOmits)
 
 export const numberOfPaymentsDiscountClientInsertSchema =
-  numberOfPaymentsDiscountsInsertSchema.omit(nonClientEditableColumns)
+  numberOfPaymentsDiscountsInsertSchema.omit(clientWriteOmits)
 
 export const foreverDiscountClientInsertSchema =
-  foreverDiscountsInsertSchema.omit(nonClientEditableColumns)
+  foreverDiscountsInsertSchema.omit(clientWriteOmits)
 
 export const discountClientInsertSchema = z
   .discriminatedUnion('duration', [

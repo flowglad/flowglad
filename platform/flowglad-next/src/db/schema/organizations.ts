@@ -10,10 +10,8 @@ import {
   tableBase,
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
-  createSupabaseWebhookSchema,
-  livemodePolicy,
-  ommittedColumnsForInsertSchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
 import core from '@/utils/core'
@@ -132,6 +130,9 @@ const hiddenColumns = {
   stripeAccountId: true,
   stripeConnectContractType: true,
   externalId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const readOnlyColumns = {
@@ -148,17 +149,18 @@ const readOnlyColumns = {
 export const organizationsClientSelectSchema =
   organizationsSelectSchema.omit(hiddenColumns)
 
-export const organizationsClientUpdateSchema =
-  organizationsUpdateSchema.omit({
+const clientWriteOmits = R.omit(
+  ['position', 'createdByCommit', 'updatedByCommit'],
+  {
     ...hiddenColumns,
     ...readOnlyColumns,
-  })
+  }
+)
+export const organizationsClientUpdateSchema =
+  organizationsUpdateSchema.omit(clientWriteOmits)
 
 export const organizationsClientInsertSchema =
-  organizationsInsertSchema.omit({
-    ...hiddenColumns,
-    ...readOnlyColumns,
-  })
+  organizationsInsertSchema.omit(clientWriteOmits)
 
 export namespace Organization {
   export type Insert = z.infer<typeof organizationsInsertSchema>

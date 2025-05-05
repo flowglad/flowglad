@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   pgTable,
   pgPolicy,
@@ -14,6 +15,7 @@ import {
   pgEnumColumn,
   livemodePolicy,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
@@ -79,7 +81,9 @@ const readOnlyColumns = {
   subscriptionId: true,
 } as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const createOnlyColumns = {} as const
 
@@ -88,17 +92,19 @@ const nonClientEditableColumns = {
   ...readOnlyColumns,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 /*
  * client schemas
  */
 export const billingPeriodClientInsertSchema =
-  billingPeriodsInsertSchema.omit(nonClientEditableColumns)
+  billingPeriodsInsertSchema.omit(clientWriteOmits)
 
 export const billingPeriodClientUpdateSchema =
-  billingPeriodsUpdateSchema.omit({
-    ...nonClientEditableColumns,
-    ...createOnlyColumns,
-  })
+  billingPeriodsUpdateSchema.omit(clientWriteOmits)
 
 export const billingPeriodClientSelectSchema =
   billingPeriodsSelectSchema.omit(hiddenColumns)

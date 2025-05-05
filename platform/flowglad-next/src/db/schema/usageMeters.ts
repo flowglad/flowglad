@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
@@ -11,6 +12,7 @@ import {
   createPaginatedListQuerySchema,
   pgEnumColumn,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -74,7 +76,9 @@ export const usageMetersUpdateSchema = usageMetersSelectSchema
     id: z.string(),
   })
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const readOnlyColumns = {
   organizationId: true,
@@ -84,18 +88,21 @@ const readOnlyColumns = {
 const createOnlyColumns = {
   catalogId: true,
 } as const
-export const usageMetersClientSelectSchema = usageMetersSelectSchema
-  .omit(readOnlyColumns)
-  .omit(hiddenColumns)
+
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
+export const usageMetersClientSelectSchema =
+  usageMetersSelectSchema.omit(hiddenColumns)
 
 export const usageMetersClientUpdateSchema = usageMetersUpdateSchema
-  .omit(readOnlyColumns)
+  .omit(clientWriteOmits)
   .omit(createOnlyColumns)
-  .omit(hiddenColumns)
 
-export const usageMetersClientInsertSchema = usageMetersInsertSchema
-  .omit(readOnlyColumns)
-  .omit(hiddenColumns)
+export const usageMetersClientInsertSchema =
+  usageMetersInsertSchema.omit(clientWriteOmits)
 
 export const usageMeterPaginatedSelectSchema =
   createPaginatedSelectSchema(usageMetersClientSelectSchema)

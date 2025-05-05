@@ -431,7 +431,8 @@ export const constructIndex = (
 export const newBaseZodSelectSchemaColumns = {
   createdAt: core.safeZodDate,
   updatedAt: core.safeZodDate,
-}
+  position: z.number(),
+} as const
 
 /**
  * Truthfully this is a "createFindOrCreateFunction"
@@ -499,6 +500,11 @@ export const ommittedColumnsForInsertSchema = {
   updatedAt: true,
   createdByCommit: true,
   updatedByCommit: true,
+  position: true,
+} as const
+
+export const hiddenColumnsForClientSchema = {
+  position: true,
 } as const
 
 type SchemaRefinements<T extends PgTableWithId> = Parameters<

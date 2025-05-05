@@ -84,6 +84,7 @@ const createSubscription = (
 ): Subscription.Record => ({
   ...coreSubscriptionValues,
   ...values,
+  position: 0,
 })
 
 describe('calculateActiveSubscribersByMonth', () => {

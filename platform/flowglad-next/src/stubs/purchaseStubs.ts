@@ -30,6 +30,7 @@ export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchas
     metadata: null,
     createdByCommit: 'test',
     updatedByCommit: 'test',
+    position: 0,
   }
 
 export const subscriptionWithTrialDummyPurchase: Purchase.SubscriptionPurchaseRecord =

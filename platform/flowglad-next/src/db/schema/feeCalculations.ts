@@ -19,6 +19,7 @@ import {
   createSupabaseWebhookSchema,
   ommittedColumnsForInsertSchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   CheckoutSession,
@@ -218,6 +219,7 @@ const hiddenColumns = {
   internalNotes: true,
   createdByCommit: true,
   updatedByCommit: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 export const subscriptionFeeCalculationClientSelectSchema =

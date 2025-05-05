@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { integer, pgTable, text, pgPolicy } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
@@ -11,6 +12,7 @@ import {
   createSupabaseWebhookSchema,
   ommittedColumnsForInsertSchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
@@ -79,7 +81,9 @@ const createOnlyColumns = {
 
 const readOnlyColumns = {} as const
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const nonClientEditableColumns = {
   ...hiddenColumns,
@@ -87,15 +91,20 @@ const nonClientEditableColumns = {
   ...createOnlyColumns,
 } as const
 
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
+
 /*
  * client schemas
  */
 export const billingPeriodItemClientInsertSchema =
-  billingPeriodItemsInsertSchema.omit(nonClientEditableColumns)
+  billingPeriodItemsInsertSchema.omit(clientWriteOmits)
 
 export const billingPeriodItemClientUpdateSchema =
   billingPeriodItemsUpdateSchema.omit({
-    ...nonClientEditableColumns,
+    ...clientWriteOmits,
     ...createOnlyColumns,
   })
 

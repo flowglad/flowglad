@@ -17,4 +17,5 @@ export const dummyProduct: Product.Record = {
   externalId: null,
   createdByCommit: 'test',
   updatedByCommit: 'test',
+  position: 0,
 }

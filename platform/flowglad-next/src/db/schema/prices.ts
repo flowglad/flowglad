@@ -19,6 +19,7 @@ import {
   nullableStringForeignKey,
   SelectConditions,
   ommittedColumnsForInsertSchema,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   products,
@@ -259,8 +260,9 @@ export const usagePriceClientInsertSchema =
 export const usagePriceClientUpdateSchema =
   usagePriceUpdateSchema.omit(nonClientEditableColumns)
 
-export const usagePriceClientSelectSchema =
-  usagePriceSelectSchema.omit(hiddenColumns)
+export const usagePriceClientSelectSchema = usagePriceSelectSchema
+  .omit(hiddenColumns)
+  .omit(hiddenColumnsForClientSchema)
 
 export const pricesSelectSchema = z
   .discriminatedUnion('type', [

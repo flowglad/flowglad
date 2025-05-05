@@ -19,6 +19,7 @@ import {
   nullableStringForeignKey,
   constructUniqueIndex,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
@@ -137,8 +138,9 @@ const nonClientEditableColumns = {
   ...hiddenColumns,
 } as const
 
-export const productsClientSelectSchema =
-  productsSelectSchema.omit(hiddenColumns)
+export const productsClientSelectSchema = productsSelectSchema
+  .omit(hiddenColumns)
+  .omit(hiddenColumnsForClientSchema)
 
 export const productsClientInsertSchema = productsInsertSchema.omit(
   nonClientEditableColumns

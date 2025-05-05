@@ -18,6 +18,7 @@ import {
   livemodePolicy,
   metadataSchema,
   SelectConditions,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   Customer,
@@ -248,10 +249,11 @@ export const subscriptionPurchaseClientInsertSchema =
       billingAddress: true,
     })
 
-const hiddenColumns = {} as const
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
 const clientWriteOmits = {
-  ...hiddenColumns,
   billingAddress: true,
   organizationId: true,
   livemode: true,
