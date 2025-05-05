@@ -2,20 +2,25 @@ import { AdminTransactionParams } from '@/db/types'
 import db from './client'
 import { sql } from 'drizzle-orm'
 import { isNil } from '@/utils/core'
+import { Event } from './schema/events'
+import {
+  bulkInsertOrDoNothingEvents,
+  bulkInsertOrDoNothingEventsByHash,
+} from './tableMethods/eventMethods'
 
+interface AdminTransactionOptions {
+  livemode?: boolean
+}
 // This method needs to be in its own module, because
 // comingling it with `authenticatedTransaction` in the same file
 // can cause issues where we execute stackAuth code globally that
 // only works in the context of a nextjs sessionful runtime.
 
-export const adminTransaction = async <T>(
+export async function adminTransaction<T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
-  {
-    livemode = true,
-  }: {
-    livemode?: boolean
-  } = {}
-) => {
+  options: AdminTransactionOptions = {}
+) {
+  const { livemode = true } = options
   return db.transaction(async (transaction) => {
     /**
      * Reseting the role and request.jwt.claims here,
@@ -34,4 +39,20 @@ export const adminTransaction = async <T>(
     await transaction.execute(sql`RESET ROLE;`)
     return resp
   })
+}
+
+export async function eventfulAdminTransaction<T>(
+  fn: (
+    params: AdminTransactionParams
+  ) => Promise<[T, Event.Insert[]]>,
+  options: AdminTransactionOptions
+) {
+  return adminTransaction(async (params) => {
+    const [result, eventInserts] = await fn(params)
+    await bulkInsertOrDoNothingEventsByHash(
+      eventInserts,
+      params.transaction
+    )
+    return result
+  }, options)
 }

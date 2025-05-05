@@ -15,7 +15,7 @@ export interface CreateEventPayload {
   type: FlowgladEventType
   eventCategory: EventCategory
   source: EventNoun
-  payload: Event.Record['rawPayload']
+  payload: Event.Record['payload']
   organizationId: string
   livemode: boolean
 }
@@ -48,15 +48,10 @@ export const commitEvent = async (
     {
       type: payload.type,
       submittedAt: new Date(),
-      eventCategory: payload.eventCategory,
-      eventRetentionPolicy: eventTypeToRetentionPolicy[payload.type],
       occurredAt: new Date(),
-      rawPayload: payload.payload,
+      payload: payload.payload,
       hash: hashData(JSON.stringify(payload.payload)),
       metadata: {},
-      source: payload.source,
-      subjectEntity: null,
-      subjectId: null,
       objectEntity: null,
       objectId: null,
       processedAt: null,
@@ -106,7 +101,11 @@ export const commitPaymentSucceededEvent = async (
       type: FlowgladEventType.PaymentSucceeded,
       eventCategory: EventCategory.Financial,
       source: EventNoun.Payment,
-      payload: generateEventPayload(payment),
+      payload: {
+        id: payment.id,
+        livemode: payment.livemode,
+        object: EventNoun.Payment,
+      },
       organizationId: payment.organizationId,
       livemode: payment.livemode,
     },
@@ -123,7 +122,11 @@ export const commitPaymentCanceledEvent = async (
       type: FlowgladEventType.PaymentFailed,
       eventCategory: EventCategory.Financial,
       source: EventNoun.Payment,
-      payload: generateEventPayload(payment),
+      payload: {
+        id: payment.id,
+        livemode: payment.livemode,
+        object: EventNoun.Payment,
+      },
       organizationId: payment.organizationId,
       livemode: payment.livemode,
     },
@@ -140,7 +143,11 @@ export const commitCustomerCreatedEvent = async (
       type: FlowgladEventType.CustomerCreated,
       eventCategory: EventCategory.Customer,
       source: EventNoun.Customer,
-      payload: generateEventPayload(customer),
+      payload: {
+        id: customer.id,
+        livemode: customer.livemode,
+        object: EventNoun.Customer,
+      },
       organizationId: customer.organizationId,
       livemode: customer.livemode,
     },

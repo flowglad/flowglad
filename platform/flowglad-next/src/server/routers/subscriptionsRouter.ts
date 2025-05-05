@@ -1,5 +1,7 @@
 import { protectedProcedure, router } from '../trpc'
 import {
+  EventNoun,
+  FlowgladEventType,
   IntervalUnit,
   PriceType,
   SubscriptionCancellationArrangement,
@@ -8,6 +10,7 @@ import {
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  eventfulAuthenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -45,6 +48,7 @@ import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods
 import { TRPCError } from '@trpc/server'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectSubscriptionCountsByStatus } from '@/db/tableMethods/subscriptionMethods'
+import { Event } from '@/db/schema/events'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -276,9 +280,9 @@ const createSubscriptionProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createSubscriptionInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .mutation(
+    eventfulAuthenticatedProcedureTransaction(
+      async ({ input, transaction, ctx }) => {
         const customer = await selectCustomerById(
           input.customerId,
           transaction
@@ -323,27 +327,29 @@ const createSubscriptionProcedure = protectedProcedure
             )
           : undefined
         const trialEnd = input.trialEnd ?? defaultTrialEnd
-        const result = await createSubscriptionWorkflow(
-          {
-            customer,
-            organization,
-            product,
-            price,
-            quantity: input.quantity ?? 1,
-            interval: input.interval ?? price.intervalUnit,
-            intervalCount: input.intervalCount ?? price.intervalCount,
-            trialEnd: trialEnd ? new Date(trialEnd) : undefined,
-            metadata: input.metadata,
-            name: input.name,
-            startDate,
-            defaultPaymentMethod,
-            backupPaymentMethod,
-            livemode: ctx.livemode,
-            autoStart: true,
-          },
-          transaction
-        )
-        return {
+        const [result, eventInserts] =
+          await createSubscriptionWorkflow(
+            {
+              customer,
+              organization,
+              product,
+              price,
+              quantity: input.quantity ?? 1,
+              interval: input.interval ?? price.intervalUnit,
+              intervalCount:
+                input.intervalCount ?? price.intervalCount,
+              trialEnd: trialEnd ? new Date(trialEnd) : undefined,
+              metadata: input.metadata,
+              name: input.name,
+              startDate,
+              defaultPaymentMethod,
+              backupPaymentMethod,
+              livemode: ctx.livemode,
+              autoStart: true,
+            },
+            transaction
+          )
+        const finalResult = {
           subscription: {
             ...result.subscription,
             current: isSubscriptionCurrent(
@@ -351,12 +357,11 @@ const createSubscriptionProcedure = protectedProcedure
             ),
           },
         }
-      },
-      {
-        apiKey: ctx.apiKey,
+
+        return [finalResult, eventInserts]
       }
     )
-  })
+  )
 
 const getCountsByStatusProcedure = protectedProcedure
   .input(z.object({}))

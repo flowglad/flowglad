@@ -40,28 +40,28 @@ export const events = pgTable(
       columnName: 'type',
       enumBase: FlowgladEventType,
     }).notNull(),
-    eventCategory: pgEnumColumn({
-      enumName: 'EventCategory',
-      columnName: 'event_category',
-      enumBase: EventCategory,
-    }).notNull(),
-    eventRetentionPolicy: pgEnumColumn({
-      enumName: 'EventRetentionPolicy',
-      columnName: 'event_retention_policy',
-      enumBase: EventRetentionPolicy,
-    }).notNull(),
-    rawPayload: jsonb('raw_payload').notNull(),
+    // eventCategory: pgEnumColumn({
+    //   enumName: 'EventCategory',
+    //   columnName: 'event_category',
+    //   enumBase: EventCategory,
+    // }).notNull(),
+    // eventRetentionPolicy: pgEnumColumn({
+    //   enumName: 'EventRetentionPolicy',
+    //   columnName: 'event_retention_policy',
+    //   enumBase: EventRetentionPolicy,
+    // }).notNull(),
+    payload: jsonb('payload').notNull(),
     occurredAt: timestamp('occurred_at').notNull(),
     submittedAt: timestamp('submitted_at').notNull(),
     processedAt: timestamp('processed_at'),
     metadata: jsonb('metadata').notNull(),
-    source: text('source').notNull(),
-    subjectEntity: pgEnumColumn({
-      enumName: 'EventNoun',
-      columnName: 'subject_entity',
-      enumBase: EventNoun,
-    }),
-    subjectId: integer('subject_id'),
+    // source: text('source').notNull(),
+    // subjectEntity: pgEnumColumn({
+    //   enumName: 'EventNoun',
+    //   columnName: 'subject_entity',
+    //   enumBase: EventNoun,
+    // }),
+    // subjectId: integer('subject_id'),
     objectEntity: pgEnumColumn({
       enumName: 'EventNoun',
       columnName: 'object_entity',
@@ -77,14 +77,14 @@ export const events = pgTable(
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.type]),
-      constructIndex(TABLE_NAME, [table.eventCategory]),
-      constructIndex(TABLE_NAME, [table.eventRetentionPolicy]),
-      constructIndex(TABLE_NAME, [table.subjectEntity]),
+      // constructIndex(TABLE_NAME, [table.eventCategory]),
+      // constructIndex(TABLE_NAME, [table.eventRetentionPolicy]),
+      // constructIndex(TABLE_NAME, [table.subjectEntity]),
       constructIndex(TABLE_NAME, [table.objectEntity]),
-      constructIndex(TABLE_NAME, [
-        table.subjectEntity,
-        table.subjectId,
-      ]),
+      // constructIndex(TABLE_NAME, [
+      //   table.subjectEntity,
+      //   table.subjectId,
+      // ]),
       constructIndex(TABLE_NAME, [
         table.objectEntity,
         table.objectId,
@@ -101,15 +101,22 @@ export const events = pgTable(
   }
 ).enableRLS()
 
+const eventPayloadSchema = z.object({
+  id: z.string(),
+  object: z.nativeEnum(EventNoun),
+  livemode: z.boolean(),
+})
+
 const columnRefinements = {
   type: core.createSafeZodEnum(FlowgladEventType),
-  eventCategory: core.createSafeZodEnum(EventCategory),
-  eventRetentionPolicy: core.createSafeZodEnum(EventRetentionPolicy),
+  // eventCategory: core.createSafeZodEnum(EventCategory),
+  // eventRetentionPolicy: core.createSafeZodEnum(EventRetentionPolicy),
   processedAt: core.safeZodDate.nullable(),
-  subjectEntity: core.createSafeZodEnum(EventNoun).nullable(),
-  objectEntity: core.createSafeZodEnum(EventNoun).nullable(),
-  subjectId: core.safeZodPositiveInteger.nullable(),
-  objectId: core.safeZodPositiveInteger.nullable(),
+  payload: eventPayloadSchema,
+  // subjectEntity: core.createSafeZodEnum(EventNoun).nullable(),
+  // objectEntity: core.createSafeZodEnum(EventNoun).nullable(),
+  // subjectId: core.safeZodPositiveInteger.nullable(),
+  // objectId: core.safeZodPositiveInteger.nullable(),
 }
 
 export const eventsInsertSchema = enhancedCreateInsertSchema(
@@ -130,4 +137,5 @@ export namespace Event {
   export type Update = z.infer<typeof eventsUpdateSchema>
   export type Record = z.infer<typeof eventsSelectSchema>
   export type Where = SelectConditions<typeof events>
+  export type EventfulResult<T> = [T, Insert[]]
 }

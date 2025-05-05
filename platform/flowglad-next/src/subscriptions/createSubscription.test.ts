@@ -31,12 +31,9 @@ describe('createSubscription', async () => {
     organizationId: organization.id,
     customerId: customer.id,
   })
-  const {
-    subscription,
-    subscriptionItems,
-    billingPeriod,
-    billingRun,
-  } = await adminTransaction(async ({ transaction }) => {
+  const [
+    { subscription, subscriptionItems, billingPeriod, billingRun },
+  ] = await adminTransaction(async ({ transaction }) => {
     const stripeSetupIntentId = `setupintent_${core.nanoid()}`
     return createSubscriptionWorkflow(
       {
@@ -107,7 +104,7 @@ describe('createSubscription', async () => {
     // Create a past subscription that is now cancelled
     await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-      const sub = await createSubscriptionWorkflow(
+      const [sub] = await createSubscriptionWorkflow(
         {
           organization,
           product,
@@ -171,7 +168,7 @@ describe('createSubscription', async () => {
     const startDate = new Date()
     const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
-    const { subscription, billingPeriod } = await adminTransaction(
+    const [{ subscription, billingPeriod }] = await adminTransaction(
       async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_${core.nanoid()}`
         return createSubscriptionWorkflow(
@@ -232,7 +229,7 @@ describe('createSubscription', async () => {
         type: PriceType.Usage,
       } as Price.Record
 
-      const { subscription } = await adminTransaction(
+      const [{ subscription }] = await adminTransaction(
         async ({ transaction }) => {
           const stripeSetupIntentId = `setupintent_${core.nanoid()}`
           return createSubscriptionWorkflow(
@@ -272,7 +269,7 @@ describe('createSubscription', async () => {
         type: PriceType.Subscription,
       } as Price.Record
 
-      const { subscription } = await adminTransaction(
+      const [{ subscription }] = await adminTransaction(
         async ({ transaction }) => {
           const stripeSetupIntentId = `setupintent_${core.nanoid()}`
           return createSubscriptionWorkflow(
@@ -374,7 +371,7 @@ describe('createSubscription', async () => {
     })
 
     // Store the first billing run
-    const firstResult = await adminTransaction(
+    const [firstResult] = await adminTransaction(
       async ({ transaction }) => {
         return createSubscriptionWorkflow(
           {
@@ -397,7 +394,7 @@ describe('createSubscription', async () => {
     )
 
     // Attempt second creation with same setup intent
-    const secondResult = await adminTransaction(
+    const [secondResult] = await adminTransaction(
       async ({ transaction }) => {
         return createSubscriptionWorkflow(
           {
@@ -432,7 +429,7 @@ describe('createSubscription', async () => {
       organizationId: organization.id,
     })
 
-    const { subscription, billingPeriod, billingRun } =
+    const [{ subscription, billingPeriod, billingRun }] =
       await adminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_${core.nanoid()}`
         return createSubscriptionWorkflow(
@@ -473,7 +470,7 @@ describe('createSubscription', async () => {
       default: true,
     })
 
-    const { subscription, billingPeriod, billingRun } =
+    const [{ subscription, billingPeriod, billingRun }] =
       await adminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_${core.nanoid()}`
         return createSubscriptionWorkflow(

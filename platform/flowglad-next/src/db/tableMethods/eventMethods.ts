@@ -5,13 +5,16 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createUpsertFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
+  Event,
   events,
   eventsInsertSchema,
   eventsSelectSchema,
   eventsUpdateSchema,
 } from '@/db/schema/events'
+import { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof events,
@@ -38,3 +41,17 @@ export const upsertEventByHash = createUpsertFunction(
   [events.hash],
   config
 )
+
+export const bulkInsertOrDoNothingEvents =
+  createBulkInsertOrDoNothingFunction(events, config)
+
+export function bulkInsertOrDoNothingEventsByHash(
+  eventInserts: Event.Insert[],
+  transaction: DbTransaction
+) {
+  return bulkInsertOrDoNothingEvents(
+    eventInserts,
+    [events.hash],
+    transaction
+  )
+}

@@ -8,7 +8,13 @@ import {
   insertSubscription,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
+import {
+  FlowgladEventType,
+  EventNoun,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
@@ -37,6 +43,10 @@ import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
+import { Event } from '@/db/schema/events'
+import { BillingPeriod } from '@/db/schema/billingPeriods'
+import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -219,7 +229,7 @@ const safelyProcessCreationForExistingSubscription = async (
   subscription: Subscription.Record,
   subscriptionItems: SubscriptionItem.Record[],
   transaction: DbTransaction
-) => {
+): Promise<Event.EventfulResult<CreateSubscriptionResult>> => {
   const billingPeriodAndItems =
     await selectBillingPeriodAndItemsByBillingPeriodWhere(
       {
@@ -268,13 +278,16 @@ const safelyProcessCreationForExistingSubscription = async (
       billingRun,
     })
   }
-  return {
-    subscription,
-    subscriptionItems,
-    billingPeriod: billingPeriodAndItems.billingPeriod,
-    billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
-    billingRun,
-  }
+  return [
+    {
+      subscription,
+      subscriptionItems,
+      billingPeriod: billingPeriodAndItems.billingPeriod,
+      billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
+      billingRun,
+    },
+    [],
+  ]
 }
 
 const verifyCanCreateSubscription = async (
@@ -354,10 +367,17 @@ const maybeDefaultPaymentMethodForSubscription = async (
     : paymentMethods[0]
 }
 
+interface CreateSubscriptionResult {
+  subscription: Subscription.Record
+  subscriptionItems: SubscriptionItem.Record[]
+  billingPeriod: BillingPeriod.Record
+  billingPeriodItems: BillingPeriodItem.Record[]
+  billingRun: BillingRun.Record | null
+}
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
-) => {
+): Promise<Event.EventfulResult<CreateSubscriptionResult>> => {
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(
       {
@@ -417,12 +437,32 @@ export const createSubscriptionWorkflow = async (
   await idempotentSendOrganizationSubscriptionCreatedNotification(
     subscription
   )
-
-  return {
-    subscription,
-    subscriptionItems,
-    billingPeriod,
-    billingPeriodItems,
-    billingRun,
-  }
+  const timestamp = new Date()
+  const eventInserts: Event.Insert[] = [
+    {
+      type: FlowgladEventType.SubscriptionCreated,
+      occurredAt: timestamp,
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
+      payload: {
+        object: EventNoun.Subscription,
+        id: subscription.id,
+        livemode: subscription.livemode,
+      },
+      submittedAt: timestamp,
+      hash: constructSubscriptionCreatedEventHash(subscription),
+      metadata: {},
+      processedAt: null,
+    },
+  ]
+  return [
+    {
+      subscription,
+      subscriptionItems,
+      billingPeriod,
+      billingPeriodItems,
+      billingRun,
+    },
+    eventInserts,
+  ]
 }

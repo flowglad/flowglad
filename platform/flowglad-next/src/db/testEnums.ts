@@ -77,24 +77,6 @@ export const testDatabaseEnums = async (
   )
   await testEnumColumn(
     events,
-    events.eventCategory,
-    EventCategory,
-    transaction
-  )
-  await testEnumColumn(
-    events,
-    events.eventRetentionPolicy,
-    EventRetentionPolicy,
-    transaction
-  )
-  await testEnumColumn(
-    events,
-    events.subjectEntity,
-    EventNoun,
-    transaction
-  )
-  await testEnumColumn(
-    events,
     events.objectEntity,
     EventNoun,
     transaction
