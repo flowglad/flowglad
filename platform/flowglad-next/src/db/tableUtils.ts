@@ -27,6 +27,7 @@ import {
   PgUpdateSetSource,
   PgColumn,
   pgPolicy,
+  bigserial,
 } from 'drizzle-orm/pg-core'
 import {
   type DbTransaction,
@@ -293,6 +294,10 @@ export const tableBase = (idPrefix?: string) => ({
   createdByCommit: text('created_by_commit').$defaultFn(gitCommitId),
   updatedByCommit: text('updated_by_commit').$defaultFn(gitCommitId),
   livemode: boolean('livemode').notNull(),
+  /**
+   * Used for ranking in pagination
+   */
+  position: bigserial({ mode: 'number' }),
 })
 
 export const taxColumns = () => ({

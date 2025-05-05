@@ -2,7 +2,6 @@ import { AuthenticatedTransactionParams } from '@/db/types'
 import db from './client'
 import { sql } from 'drizzle-orm'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
-import { T } from 'vitest/dist/chunks/environment.d8YfPkTm.js'
 
 export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
