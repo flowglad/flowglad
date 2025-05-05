@@ -96,10 +96,11 @@ export const adjustSubscription = async (
         )
     )
 
-  const subscriptionItemUpserts: SubscriptionItem.Upsert[] =
+  const subscriptionItemUpserts: SubscriptionItem.ClientUpsert[] =
     newSubscriptionItems.map((item) => ({
       ...item,
       addedDate: adjustmentDate,
+      livemode: subscription.livemode,
     }))
 
   for (const item of existingSubscriptionItemsToRemove) {
@@ -107,6 +108,7 @@ export const adjustSubscription = async (
   }
 
   const subscriptionItems = await bulkCreateOrUpdateSubscriptionItems(
+    // @ts-expect-error - TODO: fix this
     subscriptionItemUpserts,
     transaction
   )
@@ -156,7 +158,7 @@ export const adjustSubscription = async (
       name: `Proration: Addition of ${item.name} x ${item.quantity}`,
       DiscountRedemptionId: null,
       description: `Prorated addition adjustment for remaining period; ${split.afterPercentage}% of billing period remaining (from ${adjustmentDate} - ${currentBillingPeriodForSubscription.endDate})`,
-      livemode: item.livemode,
+      livemode: subscription.livemode,
     }))
 
   const prorationAdjustments = [

@@ -141,6 +141,7 @@ export namespace SubscriptionItem {
   export type ClientRecord = z.infer<
     typeof subscriptionItemClientSelectSchema
   >
+  export type ClientUpsert = ClientInsert | ClientRecord
   export type Where = SelectConditions<typeof subscriptionItems>
 }
 
