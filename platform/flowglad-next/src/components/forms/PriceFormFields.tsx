@@ -37,8 +37,6 @@ const TrialPeriodFields = () => {
     setValue,
   } = usePriceFormContext()
   const trialPeriodDays = watch('price.trialPeriodDays')
-  console.log('form.price.trialPeriodDays', trialPeriodDays)
-  console.log('price values', watch('price'))
   const [offerTrial, setOfferTrial] = useState(
     Boolean(trialPeriodDays && trialPeriodDays > 0)
   )
