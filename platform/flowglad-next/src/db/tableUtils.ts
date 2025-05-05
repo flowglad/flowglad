@@ -901,20 +901,15 @@ const comparison = async <T extends PgTableWithCreatedAtAndId>(
   if (!cursor) {
     return undefined
   }
-  const [result] = await transaction
+  const results = await transaction
     .select()
     .from(table)
     .where(eq(table.id, cursor))
-  if (result.length === 0) {
+  if (results.length === 0) {
     return undefined
   }
+  const result = results[0]
   const comparisonOperator = isForward ? gt : lt
-  console.log('comparison', {
-    cursor,
-    comparisonOperator: isForward ? 'greater than' : 'less than',
-    result,
-    createdAt: result.createdAt,
-  })
   /**
    * When we're paginating forward, we want to include the item at the cursor
    * in the results. When we're paginating backward, we don't want to include

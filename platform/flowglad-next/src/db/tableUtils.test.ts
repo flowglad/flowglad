@@ -248,4 +248,99 @@ describe('createCursorPaginatedSelectFunction', () => {
     )
     expect(noMatchesResult.total).toBe(0)
   })
+
+  it('should not return duplicate items when using pageAfter', async () => {
+    // Get first page
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Get second page using pageAfter
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            pageAfter: firstPage.endCursor!,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Create sets of IDs for comparison
+    const firstPageIds = new Set(
+      firstPage.items.map((item) => item.customer.id)
+    )
+    const secondPageIds = new Set(
+      secondPage.items.map((item) => item.customer.id)
+    )
+
+    // Verify no overlap between pages
+    const intersection = new Set(
+      [...firstPageIds].filter((id) => secondPageIds.has(id))
+    )
+    expect(intersection.size).toBe(0)
+  })
+
+  it('should not return duplicate items when using pageBefore', async () => {
+    // Get first page
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Get second page using pageAfter
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            pageAfter: firstPage.endCursor!,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Go back to first page using pageBefore
+    const backToFirstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            pageBefore: secondPage.startCursor!,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Create sets of IDs for comparison
+    const backToFirstPageIds = new Set(
+      backToFirstPage.items.map((item) => item.customer.id)
+    )
+    const secondPageIds = new Set(
+      secondPage.items.map((item) => item.customer.id)
+    )
+
+    // Verify no overlap between pages
+    const intersection = new Set(
+      [...backToFirstPageIds].filter((id) => secondPageIds.has(id))
+    )
+    expect(intersection.size).toBe(0)
+  })
 })
