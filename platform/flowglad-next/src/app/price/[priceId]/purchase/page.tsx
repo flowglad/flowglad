@@ -11,9 +11,6 @@ interface PurchasePageProps {
 }
 
 const PricePurchasePage = async ({ params }: PurchasePageProps) => {
-  if (core.IS_PROD) {
-    return notFound()
-  }
   const { priceId } = await params
   const { checkoutInfo, success, organization } =
     await checkoutInfoForPriceWhere({

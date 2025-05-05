@@ -182,7 +182,7 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
 ) => {
   const keys = Object.keys(selectConditions)
   if (keys.length === 0) {
-    throw new Error('No selection conditions provided')
+    return undefined
   }
   const conditions = keys.map((key) => {
     if (Array.isArray(selectConditions[key])) {
@@ -826,10 +826,11 @@ export const createPaginatedTableRowOutputSchema = <
   schema: T
 ) => {
   return z.object({
-    data: z.array(schema),
-    currentCursor: z.string().optional(),
-    nextCursor: z.string().optional(),
-    hasMore: z.boolean(),
+    items: z.array(schema),
+    startCursor: z.string().nullable(),
+    endCursor: z.string().nullable(),
+    hasNextPage: z.boolean(),
+    hasPreviousPage: z.boolean(),
     total: z.number(),
   })
 }
@@ -840,8 +841,9 @@ export const createPaginatedTableRowInputSchema = <
   filterSchema: T
 ) => {
   return z.object({
-    cursor: z.string().optional(),
-    limit: z.number().min(1).max(100).optional(),
+    pageAfter: z.string().optional(),
+    pageBefore: z.string().optional(),
+    pageSize: z.number().min(1).max(100).optional(),
     filters: filterSchema.optional(),
   })
 }
@@ -867,4 +869,157 @@ export const testEnumColumn = async <T extends PgTableWithId>(
     .where(inArray(column, Object.values(enumValues)))
     .limit(1)
   return result
+}
+
+interface CursorPaginatedSelectFunctionParams<
+  T extends PgTableWithCreatedAtAndId,
+> {
+  input: {
+    pageAfter?: string
+    pageBefore?: string
+    pageSize?: number
+    filters?: SelectConditions<T>
+    sortDirection?: 'asc' | 'desc'
+  }
+  transaction: DbTransaction
+}
+
+const comparison = async <T extends PgTableWithCreatedAtAndId>(
+  table: T,
+  {
+    isForward,
+    pageAfter,
+    pageBefore,
+  }: {
+    isForward: boolean
+    pageAfter?: string
+    pageBefore?: string
+  },
+  transaction: DbTransaction
+) => {
+  const cursor = pageAfter || pageBefore
+  if (!cursor) {
+    return undefined
+  }
+  const results = await transaction
+    .select()
+    .from(table)
+    .where(eq(table.id, cursor))
+  if (results.length === 0) {
+    return undefined
+  }
+  const result = results[0]
+  const comparisonOperator = isForward ? gt : lt
+  /**
+   * When we're paginating forward, we want to include the item at the cursor
+   * in the results. When we're paginating backward, we don't want to include
+   * the item at the cursor in the results.
+   *
+   * Postgres records time in microseconds (1/1,000,000th) while JS stores
+   * in milliseconds. So we need to adjust the time by 1 millisecond,
+   * otherwise we get "last item in next" behavior because the cursor
+   * isn't the same across languages. Eventually we will want to track each table
+   * on an iterator
+   */
+  const adjustedCreatedAt = new Date(
+    (result.createdAt as Date).getTime() + (isForward ? 1 : -1)
+  )
+  return comparisonOperator(table.createdAt, adjustedCreatedAt)
+}
+
+export const createCursorPaginatedSelectFunction = <
+  T extends PgTableWithCreatedAtAndId,
+  S extends ZodTableUnionOrType<InferSelectModel<T>>,
+  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
+  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
+  D extends z.ZodType,
+>(
+  table: T,
+  config: ORMMethodCreatorConfig<T, S, I, U>,
+  dataSchema: D,
+  enrichmentFunction?: (
+    data: z.infer<S>[],
+    transaction: DbTransaction
+  ) => Promise<z.infer<D>[]>
+) => {
+  const selectSchema = config.selectSchema
+  return async function cursorPaginatedSelectFunction(
+    params: CursorPaginatedSelectFunctionParams<T>
+  ): Promise<{
+    items: z.infer<D>[]
+    startCursor: string | null
+    endCursor: string | null
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+    total: number
+  }> {
+    const { pageAfter, pageBefore, pageSize = 10 } = params.input
+    const transaction = params.transaction
+    // Determine pagination direction and cursor
+    const isForward = !!pageAfter || (!pageBefore && !pageAfter)
+    const orderBy = isForward
+      ? asc(table.createdAt)
+      : desc(table.createdAt)
+    const filterClause = params.input.filters
+      ? whereClauseFromObject(table, params.input.filters)
+      : undefined
+    const whereClauses = and(
+      await comparison(
+        table,
+        {
+          isForward,
+          pageAfter,
+          pageBefore,
+        },
+        transaction
+      ),
+      filterClause
+    )
+
+    // Query for items
+    let queryResult = await transaction
+      .select()
+      .from(table)
+      .where(whereClauses)
+      .orderBy(orderBy)
+      .limit(pageSize + 1)
+    if (!isForward) {
+      queryResult = queryResult.reverse()
+    }
+
+    const total = await transaction
+      .select({ count: count() })
+      .from(table)
+      .$dynamic()
+      .where(filterClause)
+
+    const data: z.infer<S>[] = queryResult
+      .map((item) => selectSchema.parse(item))
+      .slice(0, pageSize)
+    const enrichedData: z.infer<D>[] = await (enrichmentFunction
+      ? enrichmentFunction(data, transaction)
+      : Promise.resolve(data))
+
+    // Slice to pageSize and get cursors
+    const items: z.infer<D>[] = enrichedData.map((item) =>
+      dataSchema.parse(item)
+    )
+    const startCursor = data.length > 0 ? data[0].id : null
+    const endCursor =
+      data.length > 0 ? data[data.length - 1].id : null
+    const totalCount = total[0].count
+    const moreThanOnePage = totalCount > pageSize
+    // Check for next/previous pages
+    const hasMore = queryResult.length > pageSize
+    const hasNextPage = isForward ? hasMore : moreThanOnePage // If paginating backward, we can't determine hasNextPage
+    const hasPreviousPage = isForward ? moreThanOnePage : hasMore // If paginating forward, we can't determine hasPreviousPage
+    return {
+      items,
+      startCursor,
+      endCursor,
+      hasNextPage,
+      hasPreviousPage,
+      total: totalCount,
+    }
+  }
 }

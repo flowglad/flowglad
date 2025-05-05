@@ -9,6 +9,7 @@ import {
   createPaginatedSelectFunction,
   SelectConditions,
   whereClauseFromObject,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import {
   Payment,
@@ -18,6 +19,7 @@ import {
   paymentsTableRowDataSchema,
   paymentsUpdateSchema,
   RevenueDataItem,
+  paymentsPaginatedTableRowDataSchema,
 } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
@@ -31,6 +33,7 @@ import {
   paymentMethods,
   paymentMethodsSelectSchema,
 } from '../schema/paymentMethods'
+import { selectCustomers } from './customerMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof payments,
@@ -154,25 +157,6 @@ export const selectRevenueDataForOrganization = async (
     date: new Date(row.date),
     revenue: parseInt(row.revenue),
   }))
-}
-
-export const selectPaymentsTableRowData = async (
-  organizationId: string,
-  transaction: DbTransaction
-) => {
-  const paymentsRowData = await transaction
-    .select({
-      payment: payments,
-      customer: customers,
-    })
-    .from(payments)
-    .innerJoin(customers, eq(payments.customerId, customers.id))
-    .where(eq(payments.organizationId, organizationId))
-    .orderBy(desc(payments.chargeDate))
-
-  return paymentsRowData.map((row) =>
-    paymentsTableRowDataSchema.parse(row)
-  )
 }
 
 const allowedPaymentUpdateFields = [
@@ -388,3 +372,27 @@ export const selectPaymentCountsByStatus = async (
     count: item.count,
   }))
 }
+
+export const selectPaymentsCursorPaginatedWithTableRowData =
+  createCursorPaginatedSelectFunction(
+    payments,
+    config,
+    paymentsPaginatedTableRowDataSchema,
+    async (paymentsResult, transaction) => {
+      const customerIds = paymentsResult.map(
+        (item) => item.customerId
+      )
+      const customers = await selectCustomers(
+        { id: customerIds },
+        transaction
+      )
+      const customersById = new Map(
+        customers.map((customer) => [customer.id, customer])
+      )
+
+      return paymentsResult.map((payment) => ({
+        payment,
+        customer: customersById.get(payment.customerId)!,
+      }))
+    }
+  )

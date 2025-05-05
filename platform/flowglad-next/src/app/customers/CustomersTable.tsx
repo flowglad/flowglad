@@ -21,6 +21,7 @@ import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { useCopyTextHandler } from '../hooks/useCopyTextHandler'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 const customerStatusColors: Record<
   InferredCustomerStatus,
   BadgeColor
@@ -105,15 +106,22 @@ const CustomersTable = ({
   filters?: CustomersTableFilters
 }) => {
   const router = useRouter()
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
-
-  const { data, isLoading, isFetching } =
-    trpc.customers.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    CustomerTableRowData,
+    CustomersTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.customers.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -200,14 +208,8 @@ const CustomersTable = ({
     []
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
-
   return (
     <Table
       columns={columns}

@@ -19,6 +19,8 @@ import {
   createPaginatedListQuerySchema,
   nullableStringForeignKey,
   SelectConditions,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
 import {
   organizations,
@@ -230,4 +232,32 @@ export const requestBillingPortalLinkSchema = z.object({
 
 export type RequestBillingPortalLinkInput = z.infer<
   typeof requestBillingPortalLinkSchema
+>
+
+export const customersPaginatedTableRowInputSchema =
+  createPaginatedTableRowInputSchema(
+    z.object({
+      archived: z.boolean().optional(),
+      organizationId: z.string().optional(),
+    })
+  )
+
+export type CustomersPaginatedTableRowInput = z.infer<
+  typeof customersPaginatedTableRowInputSchema
+>
+
+export const customersPaginatedTableRowDataSchema = z.object({
+  customer: customerClientSelectSchema,
+  totalSpend: z.number().optional(),
+  payments: z.number().optional(),
+  status: z.nativeEnum(InferredCustomerStatus),
+})
+
+export const customersPaginatedTableRowOutputSchema =
+  createPaginatedTableRowOutputSchema(
+    customersPaginatedTableRowDataSchema
+  )
+
+export type CustomersPaginatedTableRowOutput = z.infer<
+  typeof customersPaginatedTableRowOutputSchema
 >

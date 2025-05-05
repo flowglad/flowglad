@@ -11,7 +11,7 @@ import {
   livemodePolicy,
   SelectConditions,
 } from '@/db/tableUtils'
-import { users } from '@/db/schema/users'
+import { users, usersSelectSchema } from '@/db/schema/users'
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
@@ -110,4 +110,13 @@ export const inviteUserToOrganizationSchema = z.object({
 
 export type InviteUserToOrganizationInput = z.infer<
   typeof inviteUserToOrganizationSchema
+>
+
+export const membershipsTableRowDataSchema = z.object({
+  user: usersSelectSchema,
+  membership: membershipsClientSelectSchema,
+})
+
+export type MembershipsTableRowData = z.infer<
+  typeof membershipsTableRowDataSchema
 >

@@ -8,6 +8,7 @@ import {
   createPaginatedSelectFunction,
   SelectConditions,
   whereClauseFromObject,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import {
   UsageMeter,
@@ -15,10 +16,12 @@ import {
   usageMetersInsertSchema,
   usageMetersSelectSchema,
   usageMetersUpdateSchema,
+  usageMetersTableRowDataSchema,
 } from '@/db/schema/usageMeters'
 import { DbTransaction } from '@/db/types'
 import { catalogs, catalogsSelectSchema } from '@/db/schema/catalogs'
 import { eq } from 'drizzle-orm'
+import { selectCatalogs } from '@/db/tableMethods/catalogMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageMeters,
@@ -55,29 +58,35 @@ export const selectUsageMeters = createSelectFunction(
 export const selectUsageMetersPaginated =
   createPaginatedSelectFunction(usageMeters, config)
 
-export const selectUsageMeterTableRows = async (
-  whereConditions: SelectConditions<typeof usageMeters>,
-  transaction: DbTransaction
-): Promise<UsageMeter.TableRow[]> => {
-  let query = transaction
-    .select({
-      usageMeter: usageMeters,
-      catalog: catalogs,
-    })
-    .from(usageMeters)
-    .innerJoin(catalogs, eq(usageMeters.catalogId, catalogs.id))
-    .$dynamic()
+export const selectUsageMetersCursorPaginated =
+  createCursorPaginatedSelectFunction(
+    usageMeters,
+    config,
+    usageMetersTableRowDataSchema,
+    async (data, transaction) => {
+      const catalogIds = data.map((item) => item.catalogId)
+      const catalogs = await selectCatalogs(
+        { id: catalogIds },
+        transaction
+      )
+      const catalogsById = new Map(
+        catalogs.map((catalog) => [catalog.id, catalog])
+      )
 
-  if (!R.isEmpty(whereConditions)) {
-    query = query.where(
-      whereClauseFromObject(usageMeters, whereConditions)
-    )
-  }
-
-  const result = await query
-
-  return result.map((item) => ({
-    usageMeter: usageMetersSelectSchema.parse(item.usageMeter),
-    catalog: catalogsSelectSchema.parse(item.catalog),
-  }))
-}
+      return data.map((item) => {
+        const catalog = catalogsById.get(item.catalogId)
+        if (!catalog) {
+          throw new Error(
+            `Catalog not found for usage meter ${item.id}`
+          )
+        }
+        return {
+          usageMeter: item,
+          catalog: {
+            id: catalog.id,
+            name: catalog.name,
+          },
+        }
+      })
+    }
+  )

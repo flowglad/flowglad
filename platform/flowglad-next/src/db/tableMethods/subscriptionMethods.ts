@@ -5,7 +5,9 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
+  createCursorPaginatedSelectFunction,
   createBulkInsertOrDoNothingFunction,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   Subscription,
@@ -26,12 +28,14 @@ import {
   or,
   sql,
   count,
+  inArray,
 } from 'drizzle-orm'
 import { SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { customers } from '../schema/customers'
-import { prices } from '../schema/prices'
-import { products } from '../schema/products'
+import { customers, customersSelectSchema } from '../schema/customers'
+import { prices, pricesSelectSchema } from '../schema/prices'
+import { products, productsSelectSchema } from '../schema/products'
+import { z } from 'zod'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptions,
@@ -120,36 +124,88 @@ export const selectSubscriptionsToBeCancelled = async (
   )
 }
 
-export const selectSubscriptionsTableRowData = async (
-  organizationId: string,
-  transaction: DbTransaction
-) => {
-  const subscriptionsRowData = await transaction
-    .select({
-      subscription: subscriptions,
-      customer: customers,
-      price: prices,
-      product: products,
-    })
-    .from(subscriptions)
-    .innerJoin(customers, eq(subscriptions.customerId, customers.id))
-    .innerJoin(prices, eq(subscriptions.priceId, prices.id))
-    .innerJoin(products, eq(prices.productId, products.id))
-    .where(eq(subscriptions.organizationId, organizationId))
-    .orderBy(desc(subscriptions.createdAt))
+export const selectSubscriptionsTableRowData =
+  createCursorPaginatedSelectFunction(
+    subscriptions,
+    config,
+    subscriptionsTableRowDataSchema,
+    async (
+      subscriptions: Subscription.Record[],
+      transaction: DbTransaction
+    ) => {
+      const priceIds = subscriptions
+        .map((subscription) => subscription.priceId)
+        .filter((id): id is string => id !== null)
+      const customerIds = subscriptions
+        .map((subscription) => subscription.customerId)
+        .filter((id): id is string => id !== null)
 
-  return subscriptionsRowData.map((row) =>
-    subscriptionsTableRowDataSchema.parse({
-      ...row,
-      subscription: {
-        ...row.subscription,
-        current: isSubscriptionCurrent(
-          row.subscription.status as SubscriptionStatus
-        ),
-      },
-    })
+      // Query 1: Get prices with products
+      const priceResults = await transaction
+        .select({
+          price: prices,
+          product: products,
+        })
+        .from(prices)
+        .innerJoin(products, eq(products.id, prices.productId))
+        .where(inArray(prices.id, priceIds))
+
+      // Query 2: Get customers
+      const customerResults = await transaction
+        .select()
+        .from(customers)
+        .where(inArray(customers.id, customerIds))
+
+      const pricesById = new Map(
+        priceResults.map((result) => [result.price.id, result.price])
+      )
+      const productsById = new Map(
+        priceResults.map((result) => [
+          result.product.id,
+          result.product,
+        ])
+      )
+      const customersById = new Map(
+        customerResults.map((customer) => [customer.id, customer])
+      )
+
+      return subscriptions.map((subscription) => {
+        if (!subscription.priceId || !subscription.customerId) {
+          throw new Error(
+            `Subscription ${subscription.id} is missing required price or customer ID`
+          )
+        }
+
+        const price = pricesById.get(subscription.priceId)
+        const customer = customersById.get(subscription.customerId)
+
+        if (!price || !customer) {
+          throw new Error(
+            `Could not find price or customer for subscription ${subscription.id}`
+          )
+        }
+
+        const product = productsById.get(price.productId)
+        if (!product) {
+          throw new Error(
+            `Could not find product for price ${price.id}`
+          )
+        }
+
+        return {
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(
+              subscription.status as SubscriptionStatus
+            ),
+          },
+          price: pricesSelectSchema.parse(price),
+          product: productsSelectSchema.parse(product),
+          customer: customersSelectSchema.parse(customer),
+        }
+      })
+    }
   )
-}
 
 export const selectSubscriptionsPaginated =
   createPaginatedSelectFunction(subscriptions, config)

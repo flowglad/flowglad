@@ -8,6 +8,7 @@ import TableTitle from '@/components/ion/TableTitle'
 import { Plus } from 'lucide-react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
 import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 type OrganizationMembersTableProps = {
   loading?: boolean
@@ -19,19 +20,29 @@ const OrganizationMembersTable = ({
   data: externalData,
 }: OrganizationMembersTableProps) => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
 
-  const { data, isLoading, isFetching } =
-    trpc.organizations.getMembers.useQuery({})
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    {
+      user: UserRecord
+      membership: Membership.ClientRecord
+    },
+    {}
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters: {},
+    useQuery: trpc.organizations.getMembersTableRowData.useQuery,
+  })
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = externalData || data?.data || []
+  const tableData = externalData || data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
   const loading = externalLoading || isLoading
 
   const columns = useMemo(

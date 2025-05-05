@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { trpc } from '@/app/_trpc/client'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 export interface UsageMetersTableFilters {
   catalogId?: string
@@ -19,15 +20,27 @@ const UsageMetersTable = ({
 }: {
   filters?: UsageMetersTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
-  const { data, isLoading, isFetching } =
-    trpc.usageMeters.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    {
+      catalog: { id: string; name: string }
+      usageMeter: UsageMeter.ClientRecord
+    },
+    UsageMetersTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.usageMeters.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -96,33 +109,51 @@ const UsageMetersTable = ({
             </CopyableTextTableCell>
           ),
         },
-      ] as ColumnDef<UsageMeter.TableRow>[],
+      ] as ColumnDef<{
+        catalog: { id: string; name: string }
+        usageMeter: UsageMeter.ClientRecord
+      }>[],
     []
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
-    <Table
-      columns={columns}
-      data={tableData}
-      className="bg-nav"
-      bordered
-      pagination={{
-        pageIndex,
-        pageSize,
-        total,
-        onPageChange: handlePaginationChange,
-        isLoading,
-        isFetching,
-      }}
-    />
+    <div className="w-full flex flex-col gap-5 pb-8">
+      <TableTitle
+        title="Usage Meters"
+        buttonIcon={<Plus size={16} strokeWidth={2} />}
+        buttonLabel="Create Usage Meter"
+        buttonOnClick={() => {
+          setIsCreateModalOpen(true)
+        }}
+      />
+      <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-2">
+          <div className="w-full flex flex-col gap-5">
+            <Table
+              columns={columns}
+              data={tableData}
+              className="bg-nav"
+              bordered
+              pagination={{
+                pageIndex,
+                pageSize,
+                total,
+                onPageChange: handlePaginationChange,
+                isLoading,
+                isFetching,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+      <CreateUsageMeterModal
+        isOpen={isCreateModalOpen}
+        setIsOpen={setIsCreateModalOpen}
+      />
+    </div>
   )
 }
 

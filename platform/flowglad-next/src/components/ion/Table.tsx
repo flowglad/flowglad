@@ -177,22 +177,21 @@ const PaginationRow = ({
   table,
   isLoading,
   isFetching,
+  total,
 }: {
   table: TableType<any>
   isLoading?: boolean
   isFetching?: boolean
+  total?: number
 }) => {
   const pagination = table.getState().pagination
-  const total =
-    (table.options.meta as { total?: number })?.total ??
-    table.getRowCount()
   const showingStart =
     total === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1
   const showingEnd = Math.min(
     showingStart + pagination.pageSize - 1,
-    total
+    total ?? table.getRowCount()
   )
-
+  const safeTotal = total ?? table.getRowCount()
   // Show skeleton when total isn't ready yet (initial load)
   if (isLoading && total === 0) {
     return (
@@ -207,15 +206,15 @@ const PaginationRow = ({
   return (
     <div className="flex items-center gap-2 w-full justify-between py-3">
       <div className="text-sm text-secondary">
-        {total === 0 ? (
+        {safeTotal === 0 ? (
           'No Results'
-        ) : total === 1 ? (
+        ) : safeTotal === 1 ? (
           '1 Result'
         ) : (
-          <>{total.toLocaleString()} Results</>
+          <>{safeTotal.toLocaleString()} Results</>
         )}
       </div>
-      {total > 10 && (
+      {safeTotal > 10 && (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -566,6 +565,7 @@ function Table<TData, TValue>({
             table={table}
             isLoading={pagination?.isLoading}
             isFetching={pagination?.isFetching}
+            total={pagination?.total}
           />
         </div>
       )}

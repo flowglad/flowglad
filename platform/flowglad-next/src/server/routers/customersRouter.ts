@@ -1,13 +1,16 @@
 import { router } from '../trpc'
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { z } from 'zod'
 import {
   selectCustomerById,
   selectCustomers,
   selectCustomersPaginated,
   updateCustomer,
-  selectCustomersTableRowData,
+  selectCustomersCursorPaginatedWithTableRowData,
 } from '@/db/tableMethods/customerMethods'
 import {
   customerClientSelectSchema,
@@ -16,15 +19,13 @@ import {
   customersPaginatedSelectSchema,
   customersPaginatedListSchema,
   InferredCustomerStatus,
+  customersPaginatedTableRowOutputSchema,
+  customersPaginatedTableRowInputSchema,
 } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
-import * as R from 'ramda'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
-import {
-  createCustomerInputSchema,
-  selectPurchases,
-} from '@/db/tableMethods/purchaseMethods'
+import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import {
   createCustomerOutputSchema,
   purchaseClientSelectSchema,
@@ -35,24 +36,11 @@ import {
   trpcToRest,
   RouteConfig,
 } from '@/utils/openapi'
-import {
-  externalIdInputSchema,
-  createPaginatedTableRowOutputSchema,
-  createPaginatedTableRowInputSchema,
-} from '@/db/tableUtils'
+import { externalIdInputSchema } from '@/db/tableUtils'
 import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
-import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
-import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import {
-  isSubscriptionCurrent,
-  subscriptionWithCurrent,
-} from '@/db/tableMethods/subscriptionMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import { selectCatalogForCustomer } from '@/db/tableMethods/catalogMethods'
-import { InvoiceStatus } from '@/types'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 
 const { openApiMetas } = generateOpenApiMetas({
@@ -87,13 +75,14 @@ const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    const organizationId = ctx.organizationId
-    if (!organizationId) {
-      throw new Error('organizationId is required')
-    }
-    return authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, userId, livemode, ctx }) => {
+        const organizationId = ctx.organizationId
+        if (!organizationId) {
+          throw new Error('organizationId is required')
+        }
+
         const { customer } = input
         /**
          * We have to parse the customer record here because of the billingAddress json
@@ -118,20 +107,17 @@ const createCustomerProcedure = protectedProcedure
             customer: createdCustomer.customer,
           },
         }
-      },
-      {
-        apiKey: R.propOr(undefined, 'apiKey', ctx),
       }
     )
-  })
+  )
 
 export const editCustomer = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editCustomerInputSchema)
   .output(editCustomerOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
         const { customer } = input
 
         const updatedCustomer = await updateCustomer(
@@ -141,30 +127,24 @@ export const editCustomer = protectedProcedure
         return {
           customer: updatedCustomer,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 export const getCustomerById = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(z.object({ customer: customerClientSelectSchema }))
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
         const customer = await selectCustomerById(
           input.id,
           transaction
         )
         return { customer }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 export const getCustomer = protectedProcedure
   .meta(openApiMetas.GET)
@@ -287,70 +267,22 @@ const listCustomersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(customersPaginatedSelectSchema)
   .output(customersPaginatedListSchema)
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
         return selectCustomersPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 const getTableRowsProcedure = protectedProcedure
-  .input(
-    createPaginatedTableRowInputSchema(
-      z.object({
-        archived: z.boolean().optional(),
-      })
+  .input(customersPaginatedTableRowInputSchema)
+  .output(customersPaginatedTableRowOutputSchema)
+  .query(
+    authenticatedProcedureTransaction(
+      selectCustomersCursorPaginatedWithTableRowData
     )
   )
-  .output(
-    createPaginatedTableRowOutputSchema(
-      z.object({
-        customer: customerClientSelectSchema,
-        totalSpend: z.number().optional(),
-        payments: z.number().optional(),
-        status: z.nativeEnum(InferredCustomerStatus),
-      })
-    )
-  )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { cursor, limit = 10, filters = {} } = input
-        const customerRows = await selectCustomersTableRowData(
-          ctx.organizationId || '',
-          transaction
-        )
-
-        // Apply filters
-        let filteredRows = customerRows
-        if (filters.archived !== undefined) {
-          filteredRows = filteredRows.filter(
-            (row) => row.customer.archived === filters.archived
-          )
-        }
-
-        // Apply pagination
-        const startIndex = cursor ? parseInt(cursor, 10) : 0
-        const endIndex = startIndex + limit
-        const paginatedRows = filteredRows.slice(startIndex, endIndex)
-        const hasMore = endIndex < filteredRows.length
-        return {
-          data: paginatedRows,
-          currentCursor: cursor || '0',
-          nextCursor: hasMore ? endIndex.toString() : undefined,
-          hasMore,
-          total: filteredRows.length,
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
 
 export const customersRouter = router({
   create: createCustomerProcedure,

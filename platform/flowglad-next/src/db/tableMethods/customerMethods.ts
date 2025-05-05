@@ -6,6 +6,10 @@ import {
   customersUpdateSchema,
   InferredCustomerStatus,
   type CustomerTableRowData,
+  CustomersPaginatedTableRowInput,
+  CustomersPaginatedTableRowOutput,
+  customersPaginatedTableRowOutputSchema,
+  customersPaginatedTableRowDataSchema,
 } from '@/db/schema/customers'
 import {
   createUpsertFunction,
@@ -17,6 +21,7 @@ import {
   whereClauseFromObject,
   createBulkInsertOrDoNothingFunction,
   createPaginatedSelectFunction,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { PaymentStatus } from '@/types'
@@ -222,7 +227,7 @@ export const selectCustomersTableRowData = async (
   /**
    * These will be used to derive the status
    */
-  const totalSpendAndcustomerId = await transaction
+  const totalSpendAndCustomerId = await transaction
     .select({
       customerId: customersTable.id,
       totalSpend: sql<number>`SUM(${payments.amount})`,
@@ -259,7 +264,7 @@ export const selectCustomersTableRowData = async (
       totalInvoices: number
       earliestPurchase?: Date
     }
-  >(totalSpendAndcustomerId.map((cps) => [`${cps.customerId}`, cps]))
+  >(totalSpendAndCustomerId.map((cps) => [`${cps.customerId}`, cps]))
 
   return customerAndCustomer.map((row) => {
     const data = dataByCustomerId.get(`${row.customer.id}`)
@@ -327,3 +332,80 @@ export const mapCustomerEmailToStackAuthHostedBillingUserId = async (
     (c) => c.stackAuthHostedBillingUserId
   )?.stackAuthHostedBillingUserId
 }
+
+export const selectCustomersCursorPaginatedWithTableRowData =
+  createCursorPaginatedSelectFunction(
+    customersTable,
+    config,
+    customersPaginatedTableRowDataSchema,
+    async (customersResult, transaction) => {
+      const totalSpendAndCustomerId = await transaction
+        .select({
+          customerId: customersTable.id,
+          totalSpend: sql<number>`SUM(${payments.amount})`,
+          totalInvoices: sql<number>`COUNT(${invoices.id})`,
+          earliestPurchase: sql<Date>`MIN(${purchases.purchaseDate})`,
+        })
+        .from(customersTable)
+        .leftJoin(
+          invoices,
+          eq(customersTable.id, invoices.customerId)
+        )
+        .leftJoin(payments, eq(invoices.id, payments.invoiceId))
+        .leftJoin(
+          purchases,
+          eq(customersTable.id, purchases.customerId)
+        )
+        .where(
+          and(
+            inArray(
+              customersTable.id,
+              customersResult.map((c) => c.id)
+            ),
+            inArray(payments.status, [
+              PaymentStatus.Succeeded,
+              PaymentStatus.Processing,
+            ])
+          )
+        )
+        .groupBy(customersTable.id)
+
+      const dataByCustomerId = new Map<
+        string,
+        {
+          totalSpend: number
+          totalInvoices: number
+          earliestPurchase?: Date
+        }
+      >(
+        totalSpendAndCustomerId.map((cps) => [
+          `${cps.customerId}`,
+          cps,
+        ])
+      )
+
+      const customersWithTableRowData = customersResult.map((row) => {
+        const data = dataByCustomerId.get(`${row.id}`)
+        let status: InferredCustomerStatus =
+          InferredCustomerStatus.Active
+        if (row.archived) {
+          status = InferredCustomerStatus.Archived
+        } else if (!data?.earliestPurchase) {
+          status = InferredCustomerStatus.Pending
+        }
+        // TODO: else / if for customers with purchases that have ended
+        // TODO: else / if for customers with unpaid invoices
+        return {
+          customer: customersSelectSchema.parse(row),
+          totalSpend: Number(
+            dataByCustomerId.get(`${row.id}`)?.totalSpend ?? 0
+          ),
+          payments: Number(
+            dataByCustomerId.get(`${row.id}`)?.totalInvoices ?? 0
+          ),
+          status,
+        }
+      })
+      return customersWithTableRowData
+    }
+  )

@@ -24,6 +24,7 @@ import { Catalog } from '@/db/schema/catalogs'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 export enum FocusedTab {
   All = 'all',
@@ -116,15 +117,19 @@ export const ProductsTable = ({
 }: {
   filters?: ProductsTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
-
-  const { data, isLoading, isFetching } =
-    trpc.products.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<ProductRow, ProductsTableFilters>({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.products.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -239,11 +244,7 @@ export const ProductsTable = ({
   )
   const router = useRouter()
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
   const pageCount = Math.ceil(total / pageSize)
 

@@ -23,6 +23,8 @@ import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { Product } from '@/db/schema/products'
 
 const MoreMenuCell = ({
   price,
@@ -159,15 +161,28 @@ const PaginatedPricesTable = ({
   productId: string
   filters?: PaginatedPricesTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
-
-  const { data, isLoading, isFetching } =
-    trpc.prices.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    {
+      price: Price.ClientRecord
+      product: Pick<Product.ClientRecord, 'id' | 'name'>
+    },
+    PaginatedPricesTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters: {
+      ...filters,
+      productId,
+    },
+    useQuery: trpc.prices.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -262,7 +277,7 @@ const PaginatedPricesTable = ({
             <MoreMenuCell
               price={cellData.price}
               otherPrices={
-                data?.data
+                data?.items
                   .filter((p) => p.price.id !== cellData.price.id)
                   .map((p) => p.price) || []
               }
@@ -276,11 +291,7 @@ const PaginatedPricesTable = ({
     [data]
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
 
   return (

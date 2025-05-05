@@ -13,6 +13,7 @@ import { useAuthContext } from '@/contexts/authContext'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const MoreMenuCell = ({
   apiKey,
@@ -62,16 +63,27 @@ const ApiKeysTable = ({
 }: {
   filters?: ApiKeysTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
-  const { data, isLoading, isFetching } =
-    trpc.apiKeys.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    {
+      apiKey: ApiKey.ClientRecord
+      organization: { id: string; name: string }
+    },
+    ApiKeysTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.apiKeys.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -126,13 +138,8 @@ const ApiKeysTable = ({
     []
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">

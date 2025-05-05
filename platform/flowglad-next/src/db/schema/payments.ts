@@ -173,6 +173,11 @@ export const paymentsTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
 })
 
+export const paymentsPaginatedTableRowDataSchema = z.object({
+  payment: paymentsClientSelectSchema,
+  customer: customerClientSelectSchema,
+})
+
 export const paymentsPaginatedListSchema =
   createPaginatedListQuerySchema(paymentsClientSelectSchema)
 

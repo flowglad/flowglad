@@ -7,7 +7,6 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
-  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   Invoice,
@@ -19,13 +18,13 @@ import {
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq, count, desc } from 'drizzle-orm'
-import { CheckoutInfoCore } from './purchaseMethods'
-import { customers } from '@/db/schema/customers'
-import {
-  InvoiceLineItem,
-  invoiceLineItems,
-  invoiceLineItemsSelectSchema,
-} from '../schema/invoiceLineItems'
+import { InvoiceLineItem } from '../schema/invoiceLineItems'
+import { z } from 'zod'
+import { createCursorPaginatedSelectFunction } from '@/db/tableUtils'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import { Customer } from '@/db/schema/customers'
+import { invoicesPaginatedTableRowDataSchema } from '@/db/schema/invoiceLineItems'
 
 const config: ORMMethodCreatorConfig<
   typeof invoices,
@@ -126,52 +125,39 @@ export const selectInvoiceCountsByStatus = async (
   }))
 }
 
-export const selectInvoicesTableRowData = async (
-  params: Invoice.Where,
-  transaction: DbTransaction
-) => {
-  const invoiceRows = await transaction
-    .select({
-      invoice: invoices,
-      customer: customers,
-      invoiceLineItems: invoiceLineItems,
-    })
-    .from(invoices)
-    .innerJoin(customers, eq(invoices.customerId, customers.id))
-    .leftJoin(
-      invoiceLineItems,
-      eq(invoices.id, invoiceLineItems.invoiceId)
-    )
-    .where(whereClauseFromObject(invoices, params))
-    .orderBy(desc(invoices.createdAt))
+export const selectInvoicesTableRowData =
+  createCursorPaginatedSelectFunction(
+    invoices,
+    config,
+    invoicesPaginatedTableRowDataSchema,
+    async (data: Invoice.Record[], transaction) => {
+      const customerIds = data.map((item) => item.customerId)
+      const invoiceIds = data.map((item) => item.id)
 
-  const invoiceLineItemRows: InvoiceLineItem.Record[] = invoiceRows
-    .filter((row) => row.invoiceLineItems !== null)
-    .map((row) => row.invoiceLineItems as InvoiceLineItem.Record)
-
-  // Group invoice line items by invoice id
-  const invoiceLineItemsByInvoiceId = R.groupBy(
-    (row) => row?.invoiceId,
-    invoiceLineItemRows
-  )
-
-  // Get unique invoices
-  const uniqueInvoices = Array.from(
-    new Map(
-      invoiceRows.map((row) => [
-        row.invoice.id,
-        {
-          invoice: invoicesSelectSchema.parse(row.invoice),
-          invoiceLineItems:
-            invoiceLineItemsByInvoiceId[row.invoice.id] || [],
-          customer: {
-            id: row.customer.id,
-            name: row.customer.name,
-          },
-        },
+      const [customers, invoiceLineItems] = await Promise.all([
+        selectCustomers({ id: customerIds }, transaction),
+        selectInvoiceLineItems(
+          { invoiceId: invoiceIds },
+          transaction
+        ),
       ])
-    ).values()
-  )
 
-  return uniqueInvoices
-}
+      const customersById = new Map(
+        customers.map((customer: Customer.Record) => [
+          customer.id,
+          customer,
+        ])
+      )
+      const invoiceLineItemsByInvoiceId = R.groupBy(
+        (item: InvoiceLineItem.Record) => item.invoiceId,
+        invoiceLineItems
+      )
+
+      return data.map((invoice) => ({
+        invoice,
+        invoiceLineItems:
+          invoiceLineItemsByInvoiceId[invoice.id] || [],
+        customer: customersById.get(invoice.customerId)!,
+      }))
+    }
+  )

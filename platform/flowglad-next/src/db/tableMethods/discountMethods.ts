@@ -6,6 +6,7 @@ import {
   ORMMethodCreatorConfig,
   createDeleteFunction,
   createPaginatedSelectFunction,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import {
   discounts,
@@ -17,6 +18,7 @@ import {
 import { eq, desc, count, inArray } from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
+import { z } from 'zod'
 
 const config: ORMMethodCreatorConfig<
   typeof discounts,
@@ -41,23 +43,12 @@ export const selectDiscountsPaginated = createPaginatedSelectFunction(
   config
 )
 
-export const selectDiscountsTableRowData = async (
-  organizationId: string,
+const enrichmentFunction = async (
+  data: z.infer<typeof discountsSelectSchema>[],
   transaction: DbTransaction
 ) => {
-  // First, get all discounts for the organization
-  const discountsData = await transaction
-    .select({
-      discount: discounts,
-    })
-    .from(discounts)
-    .where(eq(discounts.organizationId, organizationId))
-    .orderBy(desc(discounts.createdAt))
+  const discountIds = data.map((discount) => discount.id)
 
-  // Get the discount IDs for this organization
-  const discountIds = discountsData.map((row) => row.discount.id)
-
-  // Get redemption counts for all discounts
   const redemptionCounts = await transaction
     .select({
       discountId: discountRedemptions.discountId,
@@ -67,17 +58,21 @@ export const selectDiscountsTableRowData = async (
     .where(inArray(discountRedemptions.discountId, discountIds))
     .groupBy(discountRedemptions.discountId)
 
-  // Create a map of discountId to redemption count
   const redemptionCountMap = new Map(
     redemptionCounts.map((item) => [item.discountId, item.count])
   )
 
-  // Combine the data
-  return discountsData.map((row) =>
-    discountsTableRowDataSchema.parse({
-      discount: row.discount,
-      discountRedemptionsCount:
-        redemptionCountMap.get(row.discount.id) || 0,
-    })
-  )
+  return data.map((discount) => ({
+    discount,
+    discountRedemptionsCount:
+      redemptionCountMap.get(discount.id) || 0,
+  }))
 }
+
+export const selectDiscountsTableRowData =
+  createCursorPaginatedSelectFunction(
+    discounts,
+    config,
+    discountsTableRowDataSchema,
+    enrichmentFunction
+  )

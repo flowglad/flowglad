@@ -7,6 +7,7 @@ import {
   singlePaymentPurchaseSelectSchema,
   subscriptionPurchaseSelectSchema,
   purchaseClientInsertSchema,
+  purchasesTableRowDataSchema,
 } from '@/db/schema/purchases'
 import {
   createUpsertFunction,
@@ -16,10 +17,11 @@ import {
   ORMMethodCreatorConfig,
   createUpdateFunction,
   whereClauseFromObject,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
-import { CheckoutFlowType, PriceType } from '@/types'
+import { CheckoutFlowType, PriceType, PurchaseStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import {
   singlePaymentPriceSelectSchema,
   subscriptionPriceSelectSchema,
@@ -31,12 +33,17 @@ import {
   customerClientInsertSchema,
   customers,
   customersSelectSchema,
+  Customer,
 } from '../schema/customers'
 import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
-import { products, productsSelectSchema } from '../schema/products'
+import {
+  products,
+  productsSelectSchema,
+  Product,
+} from '../schema/products'
 import { z } from 'zod'
 import {
   checkoutSessionClientSelectSchema,
@@ -283,42 +290,67 @@ export const selectPurchaseRowDataForOrganization = async (
   }))
 }
 
-export const selectPurchasesTableRowData = async (
-  organizationId: string,
-  filters: {
-    customerId?: string
-    status?: string
-  } = {},
-  transaction: DbTransaction
-): Promise<Purchase.PurchaseTableRowData[]> => {
-  // Build where conditions
-  const whereConditions = [
-    eq(purchases.organizationId, organizationId),
-  ]
+export const selectPurchasesTableRowData =
+  createCursorPaginatedSelectFunction(
+    purchases,
+    config,
+    purchasesTableRowDataSchema,
+    async (
+      purchases: Purchase.Record[],
+      transaction: DbTransaction
+    ): Promise<z.infer<typeof purchasesTableRowDataSchema>[]> => {
+      const priceIds = purchases.map((purchase) => purchase.priceId)
+      const customerIds = purchases.map(
+        (purchase) => purchase.customerId
+      )
 
-  if (filters.customerId) {
-    whereConditions.push(eq(purchases.customerId, filters.customerId))
-  }
+      const priceProductResults = await transaction
+        .select({
+          price: prices,
+          product: products,
+        })
+        .from(prices)
+        .innerJoin(products, eq(products.id, prices.productId))
+        .innerJoin(customers, inArray(customers.id, customerIds))
+        .where(inArray(prices.id, priceIds))
 
-  if (filters.status) {
-    whereConditions.push(eq(purchases.status, filters.status))
-  }
+      const pricesById = new Map(
+        priceProductResults.map((result) => [
+          result.price.id,
+          result.price,
+        ])
+      )
+      const productsById = new Map(
+        priceProductResults.map((result) => [
+          result.product.id,
+          result.product,
+        ])
+      )
 
-  const result = await transaction
-    .select({
-      purchase: purchases,
-      product: products,
-      customer: customers,
-    })
-    .from(purchases)
-    .innerJoin(prices, eq(purchases.priceId, prices.id))
-    .innerJoin(products, eq(prices.productId, products.id))
-    .innerJoin(customers, eq(purchases.customerId, customers.id))
-    .where(and(...whereConditions))
+      const customerResults = await transaction
+        .select({
+          customer: customers,
+        })
+        .from(customers)
+        .where(inArray(customers.id, customerIds))
 
-  return result.map((item) => ({
-    purchase: purchasesSelectSchema.parse(item.purchase),
-    product: productsSelectSchema.parse(item.product),
-    customer: customersSelectSchema.parse(item.customer),
-  }))
-}
+      const customersById = new Map(
+        customerResults.map((result) => [
+          result.customer.id,
+          result.customer,
+        ])
+      )
+
+      return purchases.map((purchase) => {
+        const price = pricesById.get(purchase.priceId)!
+        const product = productsById.get(price.productId)!
+        const customer = customersById.get(purchase.customerId)!
+
+        return {
+          purchase,
+          product: productsSelectSchema.parse(product),
+          customer: customersSelectSchema.parse(customer),
+        }
+      })
+    }
+  )

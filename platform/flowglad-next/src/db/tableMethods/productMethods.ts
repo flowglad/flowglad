@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import { z } from 'zod'
 
 import {
   createUpsertFunction,
@@ -9,6 +10,7 @@ import {
   createUpdateFunction,
   createPaginatedSelectFunction,
   createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import {
   Product,
@@ -16,13 +18,25 @@ import {
   productsInsertSchema,
   productsSelectSchema,
   productsUpdateSchema,
+  productsClientSelectSchema,
 } from '@/db/schema/products'
 import { ProperNoun } from '../schema/properNouns'
 import { DbTransaction } from '../types'
-import { Price } from '@/db/schema/prices'
-import { Catalog } from '@/db/schema/catalogs'
-import { selectPricesProductsAndCatalogsForOrganization } from './priceMethods'
+import {
+  Price,
+  pricesClientSelectSchema,
+  productsTableRowDataSchema,
+} from '@/db/schema/prices'
+import {
+  Catalog,
+  catalogsClientSelectSchema,
+} from '@/db/schema/catalogs'
+import {
+  selectPrices,
+  selectPricesProductsAndCatalogsForOrganization,
+} from './priceMethods'
 import { selectMembershipAndOrganizations } from './membershipMethods'
+import { selectCatalogs } from './catalogMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof products,
@@ -189,3 +203,37 @@ export const getProductTableRows = async (
     hasMore: endIndex < products.length,
   }
 }
+
+export const selectProductsCursorPaginated =
+  createCursorPaginatedSelectFunction(
+    products,
+    config,
+    productsTableRowDataSchema,
+    async (data, transaction) => {
+      const pricesForProducts = await selectPrices(
+        {
+          productId: data.map((product) => product.id),
+        },
+        transaction
+      )
+      const catalogsForProducts = await selectCatalogs(
+        {
+          id: data.map((product) => product.catalogId),
+        },
+        transaction
+      )
+      const pricesByProductId = new Map<string, Price.ClientRecord[]>(
+        pricesForProducts.map((p) => [p.productId, [p]])
+      )
+      const catalogsById = new Map<string, Catalog.ClientRecord>(
+        catalogsForProducts.map((c) => [c.id, c])
+      )
+
+      // Format products with prices and catalogs
+      return data.map((product) => ({
+        product,
+        prices: pricesByProductId.get(product.id) ?? [],
+        catalog: catalogsById.get(product.catalogId)!,
+      }))
+    }
+  )

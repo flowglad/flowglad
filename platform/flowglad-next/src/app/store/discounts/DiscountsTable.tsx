@@ -20,6 +20,7 @@ import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const MoreMenuCell = ({
   discount,
@@ -105,15 +106,22 @@ const DiscountsTable = ({
 }: {
   filters?: DiscountsTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
-
-  const { data, isLoading, isFetching } =
-    trpc.discounts.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<
+    Discount.TableRowData,
+    DiscountsTableFilters
+  >({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.discounts.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -208,13 +216,8 @@ const DiscountsTable = ({
     []
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <Table

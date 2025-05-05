@@ -3,6 +3,7 @@ import {
   createInsertFunction,
   createUpdateFunction,
   createSelectFunction,
+  createCursorPaginatedSelectFunction,
   ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import {
@@ -18,6 +19,8 @@ import { DbTransaction } from '@/db/types'
 import { organizations } from '../schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
+import { z } from 'zod'
+import { selectOrganizations } from './organizationMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof apiKeys,
@@ -39,28 +42,53 @@ export const updateApiKey = createUpdateFunction(apiKeys, config)
 
 export const selectApiKeys = createSelectFunction(apiKeys, config)
 
-export const selectApiKeysTableRowData = async (
-  organizationId: string,
+const apiKeyWithOrganizationSchema = z.object({
+  apiKey: apiKeysClientSelectSchema,
+  organization: z.object({
+    id: z.string(),
+    name: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date().nullable(),
+  }),
+})
+
+const enrichApiKeysWithOrganizations = async (
+  data: z.infer<typeof apiKeysClientSelectSchema>[],
   transaction: DbTransaction
 ) => {
-  const apiKeysRowData = await transaction
-    .select({
-      apiKey: apiKeys,
-      organization: organizations,
-    })
-    .from(apiKeys)
-    .innerJoin(
-      organizations,
-      eq(apiKeys.organizationId, organizations.id)
-    )
-    .where(eq(apiKeys.organizationId, organizationId))
-    .orderBy(desc(apiKeys.createdAt))
+  const organizationIds = data.map((item) => item.organizationId)
+  const orgs = await selectOrganizations(
+    { id: organizationIds },
+    transaction
+  )
+  const orgsById = new Map(orgs.map((org) => [org.id, org]))
 
-  return apiKeysRowData.map((row) => ({
-    apiKey: apiKeysClientSelectSchema.parse(row.apiKey),
-    organization: row.organization,
-  }))
+  return data.map((apiKey) => {
+    const organization = orgsById.get(apiKey.organizationId)
+    if (!organization) {
+      throw new Error(
+        `Organization not found for API key ${apiKey.id}`
+      )
+    }
+    return {
+      apiKey,
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt,
+      },
+    }
+  })
 }
+
+export const selectApiKeysTableRowData =
+  createCursorPaginatedSelectFunction(
+    apiKeys,
+    config,
+    apiKeyWithOrganizationSchema,
+    enrichApiKeysWithOrganizations
+  )
 
 export const safelyFilterExpiredBillingPortalApiKeys = (
   expiredApiKeys: ApiKey.Record[]

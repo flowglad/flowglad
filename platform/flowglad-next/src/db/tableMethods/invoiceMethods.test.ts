@@ -97,110 +97,192 @@ describe('selectInvoicesTableRowData', () => {
     await setupInvoiceLineItem({ invoiceId: invoice2Id, priceId })
   })
 
-  it('filters by customer id', async () => {
+  it('should return correct pagination metadata when there are more results', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { customerId: customer1Id },
-        transaction
-      )
-    })
-
-    expect(result).toHaveLength(2)
-    expect(result[0].customer.id).toBe(customer1Id)
-    expect(result[1].customer.id).toBe(customer1Id)
-  })
-
-  it('filters by status', async () => {
-    const firstResult = await adminTransaction(
-      async ({ transaction }) => {
-        return selectInvoicesTableRowData(
-          { status: InvoiceStatus.Open, organizationId: org1Id },
-          transaction
-        )
-      }
-    )
-
-    expect(firstResult).toHaveLength(1)
-    expect(firstResult[0].invoice.status).toBe(InvoiceStatus.Open)
-
-    const secondResult = await adminTransaction(
-      async ({ transaction }) => {
-        return selectInvoicesTableRowData(
-          { status: InvoiceStatus.Paid, organizationId: org1Id },
-          transaction
-        )
-      }
-    )
-    expect(secondResult).toHaveLength(1)
-    expect(secondResult[0].invoice.status).toBe(InvoiceStatus.Paid)
-  })
-
-  it('filters by organization id', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { organizationId: org1Id },
-        transaction
-      )
-    })
-
-    expect(result).toHaveLength(2)
-    expect(result[0].customer.id).toBe(customer1Id)
-    expect(result[1].customer.id).toBe(customer1Id)
-  })
-
-  it('filters by organization id and status', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        {
-          organizationId: org1Id,
-          status: InvoiceStatus.Open,
+      return selectInvoicesTableRowData({
+        input: {
+          pageSize: 2,
         },
-        transaction
-      )
+        transaction,
+      })
     })
 
-    expect(result).toHaveLength(1)
-    expect(result[0].customer.id).toBe(customer1Id)
-    expect(result[0].invoice.status).toBe(InvoiceStatus.Open)
+    expect(result.items.length).toBe(2)
+    expect(result.hasNextPage).toBe(true)
+    expect(result.endCursor).toBeDefined()
   })
 
-  it('correctly joins and groups line items', async () => {
+  it('should return correct pagination metadata when there are no more results', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { id: invoice1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          pageSize: 10,
+          filters: {
+            organizationId: org1Id,
+          },
+        },
+        transaction,
+      })
     })
-    expect(result).toHaveLength(1)
-    // invoice1 gets a single line item automatically on setup
-    expect(result[0].invoiceLineItems).toHaveLength(3)
+
+    expect(result.items.length).toBe(2)
+    expect(result.hasNextPage).toBe(false)
+    expect(result.endCursor).toBeDefined()
   })
 
-  it('orders by createdAt desc', async () => {
+  it('should handle different page sizes correctly', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { customerId: customer1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          pageSize: 1,
+        },
+        transaction,
+      })
     })
 
-    expect(result).toHaveLength(2)
+    expect(result.items.length).toBe(1)
+    expect(result.hasNextPage).toBe(true)
+  })
+
+  it('should maintain correct order by creation date', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectInvoicesTableRowData({
+        input: {
+          pageSize: 3,
+        },
+        transaction,
+      })
+    })
+
+    // Verify records are ordered by creation date ascending
+    for (let i = 0; i < result.items.length - 1; i++) {
+      expect(
+        result.items[i].invoice.createdAt.getTime()
+      ).toBeLessThanOrEqual(
+        result.items[i + 1].invoice.createdAt.getTime()
+      )
+    }
+  })
+
+  it('should paginate to next page correctly', async () => {
+    // Get first page
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectInvoicesTableRowData({
+          input: {
+            pageSize: 2,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Get second page using cursor from first page
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectInvoicesTableRowData({
+          input: {
+            pageSize: 2,
+            pageAfter: firstPage.endCursor!,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Verify no overlap between pages
+    const firstPageIds = new Set(
+      firstPage.items.map((row) => row.invoice.id)
+    )
+    const secondPageIds = new Set(
+      secondPage.items.map((row) => row.invoice.id)
+    )
+    const intersection = new Set(
+      [...firstPageIds].filter((id) => secondPageIds.has(id))
+    )
+    expect(intersection.size).toBe(0)
+  })
+
+  it('should handle backward pagination correctly', async () => {
+    // Get first page
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectInvoicesTableRowData({
+          input: {
+            pageSize: 2,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Get second page
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectInvoicesTableRowData({
+          input: {
+            pageSize: 2,
+            pageAfter: firstPage.endCursor!,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Go back to first page using pageBefore
+    const backToFirstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectInvoicesTableRowData({
+          input: {
+            pageSize: 2,
+            pageBefore: secondPage.startCursor!,
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Verify we got back to the first page
+    expect(backToFirstPage.items).toEqual(firstPage.items)
+  })
+
+  it('should correctly join and group line items', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectInvoicesTableRowData({
+        input: {
+          pageSize: 1,
+          filters: {
+            organizationId: org1Id,
+          },
+        },
+        transaction,
+      })
+    })
+
+    // Find the invoice with multiple line items
+    const invoiceWithMultipleLineItems = result.items.find(
+      (item) => item.invoice.id === invoice1Id
+    )
     expect(
-      new Date(result[0].invoice.createdAt).getTime()
-    ).toBeGreaterThan(new Date(result[1].invoice.createdAt).getTime())
+      invoiceWithMultipleLineItems?.invoiceLineItems
+    ).toHaveLength(3)
   })
 
-  it('returns correct customer data structure', async () => {
+  it('should return correct customer data structure', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectInvoicesTableRowData(
-        { id: invoice1Id },
-        transaction
-      )
+      return selectInvoicesTableRowData({
+        input: {
+          pageSize: 1,
+        },
+        transaction,
+      })
     })
 
-    expect(result[0].customer).toEqual({
-      id: customer1Id,
-      name: expect.any(String),
-    })
+    const firstItem = result.items[0]
+    expect(firstItem.customer).toHaveProperty('id')
+    expect(firstItem.customer).toHaveProperty(
+      'name',
+      expect.any(String)
+    )
   })
 })

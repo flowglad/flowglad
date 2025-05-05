@@ -13,6 +13,7 @@ import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const MoreMenuCell = ({ catalog }: { catalog: Catalog.Record }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -53,15 +54,19 @@ const CatalogsTable = ({
 }: {
   filters?: CatalogsTableFilters
 }) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 10
-
-  const { data, isLoading, isFetching } =
-    trpc.catalogs.getTableRows.useQuery({
-      cursor: pageIndex.toString(),
-      limit: pageSize,
-      filters,
-    })
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<Catalog.TableRow, CatalogsTableFilters>({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.catalogs.getTableRows.useQuery,
+  })
 
   const columns = useMemo(
     () =>
@@ -119,13 +124,8 @@ const CatalogsTable = ({
     []
   )
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }
-
-  const tableData = data?.data || []
+  const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <Table
