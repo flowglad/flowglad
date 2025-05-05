@@ -10,7 +10,10 @@ import {
   selectFocusedMembershipAndOrganization,
   selectMembershipsTableRowData,
 } from '@/db/tableMethods/membershipMethods'
-import { membershipsTableRowDataSchema } from '@/db/schema/memberships'
+import {
+  membershipsClientSelectSchema,
+  membershipsTableRowDataSchema,
+} from '@/db/schema/memberships'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
 import {
@@ -88,21 +91,36 @@ const getMembers = protectedProcedure
     }
   })
 
-const getFocusedMembership = protectedProcedure.query(
-  authenticatedProcedureTransaction(
-    async ({ userId, transaction }) => {
-      const focusedMembership =
-        await selectFocusedMembershipAndOrganization(
-          userId,
-          transaction
-        )
-      return focusedMembership
-    }
+const getFocusedMembership = protectedProcedure
+  .output(
+    z.object({
+      membership: membershipsClientSelectSchema,
+      organization: organizationsClientSelectSchema,
+    })
   )
-)
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ userId, transaction }) => {
+        const focusedMembership =
+          await selectFocusedMembershipAndOrganization(
+            userId,
+            transaction
+          )
+        return focusedMembership
+      }
+    )
+  )
 
 const getRevenueData = protectedProcedure
   .input(getRevenueDataInputSchema)
+  .output(
+    z.array(
+      z.object({
+        date: z.date(),
+        revenue: z.number(),
+      })
+    )
+  )
   .query(
     authenticatedProcedureTransaction(
       async ({ input, ctx, transaction }) => {
@@ -119,6 +137,14 @@ const getMRRCalculationInputSchema = z.object({
 
 const getMRR = protectedProcedure
   .input(getMRRCalculationInputSchema)
+  .output(
+    z.array(
+      z.object({
+        month: z.date(),
+        amount: z.number(),
+      })
+    )
+  )
   .query(
     authenticatedProcedureTransaction(
       async ({ input, ctx, transaction }) => {
@@ -177,6 +203,14 @@ const getActiveSubscribersInputSchema = z.object({
 
 const getActiveSubscribers = protectedProcedure
   .input(getActiveSubscribersInputSchema)
+  .output(
+    z.array(
+      z.object({
+        month: z.date(),
+        count: z.number(),
+      })
+    )
+  )
   .query(
     authenticatedProcedureTransaction(
       async ({ input, ctx, transaction }) => {

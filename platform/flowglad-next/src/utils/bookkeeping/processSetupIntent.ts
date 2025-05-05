@@ -399,7 +399,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       (subscription) => subscription.trialEnd
     )
 
-    const { billingRun } = await createSubscriptionWorkflow(
+    const [{ billingRun }] = await createSubscriptionWorkflow(
       {
         stripeSetupIntentId: setupIntent.id,
         defaultPaymentMethod: paymentMethod,

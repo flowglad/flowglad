@@ -10,9 +10,9 @@ interface AuthenticatedTransactionOptions {
 }
 export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
-  options: AuthenticatedTransactionOptions
+  options?: AuthenticatedTransactionOptions
 ) {
-  const { apiKey } = options
+  const { apiKey } = options ?? {}
   const { userId, livemode, jwtClaim } =
     await getDatabaseAuthenticationInfo(apiKey)
 
