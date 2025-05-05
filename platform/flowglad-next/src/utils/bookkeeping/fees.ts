@@ -80,7 +80,7 @@ export const calculatePriceBaseAmount = ({
 
 export const calculateDiscountAmount = (
   basePrice: number,
-  discount?: Discount.Record | null
+  discount?: Discount.ClientRecord | null
 ): number => {
   if (!discount) {
     return 0
