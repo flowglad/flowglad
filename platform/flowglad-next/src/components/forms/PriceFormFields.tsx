@@ -23,6 +23,7 @@ import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthContext } from '@/contexts/authContext'
 import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
 import UsageMetersSelect from './UsageMetersSelect'
+import { core } from '@/utils/core'
 
 const usePriceFormContext = () => {
   return useFormContext<Pick<CreateProductSchema, 'price'>>()
@@ -42,7 +43,9 @@ const TrialPeriodFields = () => {
   useEffect(() => {
     setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
   }, [trialPeriodDays])
-
+  if (!core.IS_PROD) {
+    console.log('===errors', errors)
+  }
   return (
     <>
       <Switch
@@ -62,6 +65,9 @@ const TrialPeriodFields = () => {
           render={({ field }) => (
             <NumberInput
               {...field}
+              onChange={(e) => {
+                field.onChange(Number(e.target.value))
+              }}
               label="Trial Period Days"
               min={1}
               max={365}
