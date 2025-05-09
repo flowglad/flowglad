@@ -6,7 +6,12 @@ on:
       - main
 
 jobs:
+  base-ci:
+    uses: ./.github/workflows/base-ci-cd.yml
+    secrets: inherit
+
   deploy-staging:
+    needs: base-ci
     uses: ./.github/workflows/build-and-deploy-staging.yml
     with:
       environment: preview
