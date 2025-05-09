@@ -1,0 +1,20 @@
+name: Deploy Staging and Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-staging:
+    uses: ./.github/workflows/build-and-deploy-staging.yml
+    with:
+      environment: preview
+    secrets: inherit
+
+  deploy-production:
+    needs: deploy-staging
+    uses: ./.github/workflows/build-and-deploy-prod.yml
+    with:
+      environment: production
+    secrets: inherit

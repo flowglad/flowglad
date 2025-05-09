@@ -14,15 +14,6 @@ on:
         options:
           - preview
           - production
-  push:
-    branches:
-      - stable
-  workflow_run:
-    workflows: ["Build and Deploy Staging"]
-    types:
-      - completed
-    branches:
-      - main
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -39,6 +30,12 @@ jobs:
 
   deploy-flowglad-next-prod:
     uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
+    with:
+      environment: production
+    secrets: inherit
+
+  deploy-hosted-billing:
+    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
     with:
       environment: production
     secrets: inherit
