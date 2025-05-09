@@ -104,7 +104,6 @@ export const events = pgTable(
 const eventPayloadSchema = z.object({
   id: z.string(),
   object: z.nativeEnum(EventNoun),
-  livemode: z.boolean(),
 })
 
 const columnRefinements = {

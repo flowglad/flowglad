@@ -9,6 +9,8 @@ import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
 import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
 import { Customer } from '@/db/schema/customers'
+import { Purchase } from '@/db/schema/purchases'
+import { Subscription } from '@/db/schema/subscriptions'
 import { hashData } from './backendCore'
 
 export interface CreateEventPayload {
@@ -62,10 +64,6 @@ export const commitEvent = async (
   )
 }
 
-const generateEventPayload = (input: {}) => {
-  return JSON.parse(JSON.stringify(input))
-}
-
 /**
  * TODO: restore this, but with native subscription implementation
  * @param payment
@@ -103,7 +101,6 @@ export const commitPaymentSucceededEvent = async (
       source: EventNoun.Payment,
       payload: {
         id: payment.id,
-        livemode: payment.livemode,
         object: EventNoun.Payment,
       },
       organizationId: payment.organizationId,
@@ -124,7 +121,6 @@ export const commitPaymentCanceledEvent = async (
       source: EventNoun.Payment,
       payload: {
         id: payment.id,
-        livemode: payment.livemode,
         object: EventNoun.Payment,
       },
       organizationId: payment.organizationId,
@@ -145,11 +141,110 @@ export const commitCustomerCreatedEvent = async (
       source: EventNoun.Customer,
       payload: {
         id: customer.id,
-        livemode: customer.livemode,
         object: EventNoun.Customer,
       },
       organizationId: customer.organizationId,
       livemode: customer.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitCustomerUpdatedEvent = async (
+  customer: Customer.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.CustomerUpdated,
+      eventCategory: EventCategory.Customer,
+      source: EventNoun.Customer,
+      payload: {
+        id: customer.id,
+        object: EventNoun.Customer,
+      },
+      organizationId: customer.organizationId,
+      livemode: customer.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitPurchaseCompletedEvent = async (
+  purchase: Purchase.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.PurchaseCompleted,
+      eventCategory: EventCategory.Financial,
+      source: EventNoun.Purchase,
+      payload: {
+        id: purchase.id,
+        object: EventNoun.Purchase,
+      },
+      organizationId: purchase.organizationId,
+      livemode: purchase.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitSubscriptionCreatedEvent = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.SubscriptionCreated,
+      eventCategory: EventCategory.Subscription,
+      source: EventNoun.Subscription,
+      payload: {
+        id: subscription.id,
+        object: EventNoun.Subscription,
+      },
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitSubscriptionUpdatedEvent = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.SubscriptionUpdated,
+      eventCategory: EventCategory.Subscription,
+      source: EventNoun.Subscription,
+      payload: {
+        id: subscription.id,
+        object: EventNoun.Subscription,
+      },
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitSubscriptionCancelledEvent = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.SubscriptionCancelled,
+      eventCategory: EventCategory.Subscription,
+      source: EventNoun.Subscription,
+      payload: {
+        id: subscription.id,
+        object: EventNoun.Subscription,
+      },
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
     },
     transaction
   )
