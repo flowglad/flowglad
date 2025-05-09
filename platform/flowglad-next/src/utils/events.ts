@@ -9,13 +9,15 @@ import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
 import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
 import { Customer } from '@/db/schema/customers'
+import { Purchase } from '@/db/schema/purchases'
+import { Subscription } from '@/db/schema/subscriptions'
 import { hashData } from './backendCore'
 
 export interface CreateEventPayload {
   type: FlowgladEventType
   eventCategory: EventCategory
   source: EventNoun
-  payload: Event.Record['rawPayload']
+  payload: Event.Record['payload']
   organizationId: string
   livemode: boolean
 }
@@ -48,15 +50,10 @@ export const commitEvent = async (
     {
       type: payload.type,
       submittedAt: new Date(),
-      eventCategory: payload.eventCategory,
-      eventRetentionPolicy: eventTypeToRetentionPolicy[payload.type],
       occurredAt: new Date(),
-      rawPayload: payload.payload,
+      payload: payload.payload,
       hash: hashData(JSON.stringify(payload.payload)),
       metadata: {},
-      source: payload.source,
-      subjectEntity: null,
-      subjectId: null,
       objectEntity: null,
       objectId: null,
       processedAt: null,
@@ -65,10 +62,6 @@ export const commitEvent = async (
     },
     transaction
   )
-}
-
-const generateEventPayload = (input: {}) => {
-  return JSON.parse(JSON.stringify(input))
 }
 
 /**
@@ -106,7 +99,10 @@ export const commitPaymentSucceededEvent = async (
       type: FlowgladEventType.PaymentSucceeded,
       eventCategory: EventCategory.Financial,
       source: EventNoun.Payment,
-      payload: generateEventPayload(payment),
+      payload: {
+        id: payment.id,
+        object: EventNoun.Payment,
+      },
       organizationId: payment.organizationId,
       livemode: payment.livemode,
     },
@@ -123,7 +119,10 @@ export const commitPaymentCanceledEvent = async (
       type: FlowgladEventType.PaymentFailed,
       eventCategory: EventCategory.Financial,
       source: EventNoun.Payment,
-      payload: generateEventPayload(payment),
+      payload: {
+        id: payment.id,
+        object: EventNoun.Payment,
+      },
       organizationId: payment.organizationId,
       livemode: payment.livemode,
     },
@@ -140,9 +139,112 @@ export const commitCustomerCreatedEvent = async (
       type: FlowgladEventType.CustomerCreated,
       eventCategory: EventCategory.Customer,
       source: EventNoun.Customer,
-      payload: generateEventPayload(customer),
+      payload: {
+        id: customer.id,
+        object: EventNoun.Customer,
+      },
       organizationId: customer.organizationId,
       livemode: customer.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitCustomerUpdatedEvent = async (
+  customer: Customer.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.CustomerUpdated,
+      eventCategory: EventCategory.Customer,
+      source: EventNoun.Customer,
+      payload: {
+        id: customer.id,
+        object: EventNoun.Customer,
+      },
+      organizationId: customer.organizationId,
+      livemode: customer.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitPurchaseCompletedEvent = async (
+  purchase: Purchase.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.PurchaseCompleted,
+      eventCategory: EventCategory.Financial,
+      source: EventNoun.Purchase,
+      payload: {
+        id: purchase.id,
+        object: EventNoun.Purchase,
+      },
+      organizationId: purchase.organizationId,
+      livemode: purchase.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitSubscriptionCreatedEvent = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.SubscriptionCreated,
+      eventCategory: EventCategory.Subscription,
+      source: EventNoun.Subscription,
+      payload: {
+        id: subscription.id,
+        object: EventNoun.Subscription,
+      },
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitSubscriptionUpdatedEvent = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.SubscriptionUpdated,
+      eventCategory: EventCategory.Subscription,
+      source: EventNoun.Subscription,
+      payload: {
+        id: subscription.id,
+        object: EventNoun.Subscription,
+      },
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
+    },
+    transaction
+  )
+}
+
+export const commitSubscriptionCancelledEvent = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  return commitEvent(
+    {
+      type: FlowgladEventType.SubscriptionCancelled,
+      eventCategory: EventCategory.Subscription,
+      source: EventNoun.Subscription,
+      payload: {
+        id: subscription.id,
+        object: EventNoun.Subscription,
+      },
+      organizationId: subscription.organizationId,
+      livemode: subscription.livemode,
     },
     transaction
   )

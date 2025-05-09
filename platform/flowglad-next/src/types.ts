@@ -580,12 +580,13 @@ export enum EventRetentionPolicy {
 }
 
 export enum EventNoun {
-  Customer = 'Customer',
-  User = 'User',
-  Purchase = 'Purchase',
-  Invoice = 'Invoice',
-  Payment = 'Payment',
-  Product = 'Product',
+  Customer = 'customer',
+  User = 'user',
+  Purchase = 'purchase',
+  Invoice = 'invoice',
+  Payment = 'payment',
+  Product = 'product',
+  Subscription = 'subscription',
 }
 
 /**

@@ -17,7 +17,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-    CREATE TYPE "EventNoun" AS ENUM ('Customer', 'User', 'Purchase', 'Invoice', 'Payment', 'Product');
+    CREATE TYPE "EventNoun" AS ENUM ('customer', 'user', 'purchase', 'invoice', 'payment', 'product');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

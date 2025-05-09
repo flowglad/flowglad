@@ -1,12 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { Invoice } from '@/db/schema/invoices'
-import {
-  InvoiceStatus,
-  PaymentStatus,
-  SupabaseUpdatePayload,
-} from '@/types'
+import { InvoiceStatus, SupabaseUpdatePayload } from '@/types'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import { sendReceiptEmail } from '@/utils/email'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { adminTransaction } from '@/db/adminTransaction'

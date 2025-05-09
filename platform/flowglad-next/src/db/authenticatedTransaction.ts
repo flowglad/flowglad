@@ -2,15 +2,17 @@ import { AuthenticatedTransactionParams } from '@/db/types'
 import db from './client'
 import { sql } from 'drizzle-orm'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
+import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
+import { Event } from './schema/events'
 
+interface AuthenticatedTransactionOptions {
+  apiKey?: string
+}
 export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
-  {
-    apiKey,
-  }: {
-    apiKey?: string
-  } = {}
+  options?: AuthenticatedTransactionOptions
 ) {
+  const { apiKey } = options ?? {}
   const { userId, livemode, jwtClaim } =
     await getDatabaseAuthenticationInfo(apiKey)
 
@@ -54,11 +56,36 @@ export async function authenticatedTransaction<T>(
   })
 }
 
+export function eventfulAuthenticatedTransaction<T>(
+  fn: (
+    params: AuthenticatedTransactionParams
+  ) => Promise<[T, Event.Insert[]]>,
+  options: AuthenticatedTransactionOptions
+) {
+  return authenticatedTransaction(async (params) => {
+    const [result, eventInserts] = await fn(params)
+    await bulkInsertOrDoNothingEventsByHash(
+      eventInserts,
+      params.transaction
+    )
+    return result
+  }, options)
+}
+
 export type AuthenticatedProcedureResolver<
   TInput,
   TOutput,
   TContext extends { apiKey?: string },
 > = (input: TInput, ctx: TContext) => Promise<TOutput>
+
+export type AuthenticatedProcedureTransactionParams<
+  TInput,
+  TOutput,
+  TContext extends { apiKey?: string },
+> = AuthenticatedTransactionParams & {
+  input: TInput
+  ctx: TContext
+}
 
 export const authenticatedProcedureTransaction = <
   TInput,
@@ -66,10 +93,11 @@ export const authenticatedProcedureTransaction = <
   TContext extends { apiKey?: string },
 >(
   handler: (
-    params: AuthenticatedTransactionParams & {
-      input: TInput
-      ctx: TContext
-    }
+    params: AuthenticatedProcedureTransactionParams<
+      TInput,
+      TOutput,
+      TContext
+    >
   ) => Promise<TOutput>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
@@ -81,4 +109,29 @@ export const authenticatedProcedureTransaction = <
       }
     )
   }
+}
+
+export function eventfulAuthenticatedProcedureTransaction<
+  TInput,
+  TOutput,
+  TContext extends { apiKey?: string },
+>(
+  handler: (
+    params: AuthenticatedProcedureTransactionParams<
+      TInput,
+      TOutput,
+      TContext
+    >
+  ) => Promise<[TOutput, Event.Insert[]]>
+) {
+  return authenticatedProcedureTransaction<TInput, TOutput, TContext>(
+    async (params) => {
+      const [result, eventInserts] = await handler(params)
+      await bulkInsertOrDoNothingEventsByHash(
+        eventInserts,
+        params.transaction
+      )
+      return result
+    }
+  )
 }
