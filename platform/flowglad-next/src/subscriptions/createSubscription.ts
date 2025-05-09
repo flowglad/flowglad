@@ -447,7 +447,6 @@ export const createSubscriptionWorkflow = async (
       payload: {
         object: EventNoun.Subscription,
         id: subscription.id,
-        livemode: subscription.livemode,
       },
       submittedAt: timestamp,
       hash: constructSubscriptionCreatedEventHash(subscription),
