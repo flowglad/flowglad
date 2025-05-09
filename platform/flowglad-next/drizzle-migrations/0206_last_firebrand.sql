@@ -8,5 +8,5 @@ ALTER TABLE "events" DROP COLUMN IF EXISTS "event_retention_policy";--> statemen
 ALTER TABLE "events" DROP COLUMN IF EXISTS "source";--> statement-breakpoint
 ALTER TABLE "events" DROP COLUMN IF EXISTS "subject_entity";--> statement-breakpoint
 ALTER TABLE "events" DROP COLUMN IF EXISTS "subject_id";
-ALTER TYPE "EventNoun" ADD VALUE 'subscription';
+ALTER TYPE "EventNoun" ADD VALUE IF NOT EXISTS 'subscription';
 
