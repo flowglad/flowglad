@@ -270,6 +270,9 @@ importers:
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
+      loops:
+        specifier: ^5.0.0
+        version: 5.0.0
       lucide-react:
         specifier: 0.479.0
         version: 0.479.0(react@19.0.0)
@@ -6941,6 +6944,10 @@ packages:
 
   longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
+
+  loops@5.0.0:
+    resolution: {integrity: sha512-5SsoKOYwsSbxmfVfKPkuHDwu4yc1Olal36DwlECjq9X5LjJ5+B2iJ7k2YAyvBvCm3rb7uQqo0aeD+5bCXnRicQ==}
+    engines: {node: '>=18'}
 
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
@@ -17022,6 +17029,8 @@ snapshots:
   long@5.2.3: {}
 
   longest-streak@3.1.0: {}
+
+  loops@5.0.0: {}
 
   loose-envify@1.4.0:
     dependencies:

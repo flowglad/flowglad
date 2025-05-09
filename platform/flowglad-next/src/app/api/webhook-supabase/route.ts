@@ -14,6 +14,7 @@ import { Product } from '@/db/schema/products'
 import { Event } from '@/db/schema/events'
 import { upsertProperNounTask } from '@/trigger/upsert-proper-noun'
 import { databaseTablesForNoun } from '@/utils/properNounHelpers'
+import { subscribeToNewsletter } from '@/utils/newsletter'
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization')
@@ -36,17 +37,20 @@ export async function POST(request: Request) {
 
   const event = `${payload.table}:${payload.type}`
   switch (event) {
-    case `Invoices:${SupabasePayloadType.UPDATE}`:
+    case `users:${SupabasePayloadType.INSERT}`:
+      await subscribeToNewsletter(payload.new.email)
+      break
+    case `invoices:${SupabasePayloadType.UPDATE}`:
       await invoiceUpdatedTask.trigger(
         payload as SupabaseUpdatePayload<Invoice.Record>
       )
       break
-    case `Customers:${SupabasePayloadType.INSERT}`:
+    case `customers:${SupabasePayloadType.INSERT}`:
       await customerCreatedTask.trigger(
         payload as SupabaseInsertPayload<Customer.Record>
       )
       break
-    case `Events:${SupabasePayloadType.INSERT}`:
+    case `events:${SupabasePayloadType.INSERT}`:
       await eventInsertedTask.trigger(
         payload as SupabaseInsertPayload<Event.Record>
       )
