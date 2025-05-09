@@ -1,4 +1,3 @@
-import { createProductSchema } from '@/db/schema/prices'
 import { core } from '@/utils/core'
 import { NextResponse } from 'next/server'
 
