@@ -18,8 +18,10 @@ pnpm add @flowglad/server
 import { FlowgladServer } from '@flowglad/server'
 
 const flowgladServer = new FlowgladServer({
+  // optional - reads from FLOWGLAD_SECRET_KEY
   apiKey: 'your-api-key',
-  baseURL: 'https://api.flowglad.com',
+  // optional
+  baseURL: 'https://app.flowglad.com',
   getRequestingCustomer: async () => {
     // Return the current customer
     return {
