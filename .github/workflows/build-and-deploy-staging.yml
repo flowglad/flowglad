@@ -2,6 +2,11 @@ name: Build and Deploy Staging
 
 on:
   workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       environment:
