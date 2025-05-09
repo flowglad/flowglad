@@ -1,6 +1,7 @@
 name: Base CI
 
 on:
+  workflow_call:
   push:
     branches:
       - '*'
