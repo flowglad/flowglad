@@ -24,12 +24,6 @@ env:
   NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
   HOSTED_BILLING_SENTRY_AUTH_TOKEN: ${{ secrets.HOSTED_BILLING_SENTRY_AUTH_TOKEN }}
 jobs:
-  deploy-hosted-billing-staging:
-    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
-    with:
-      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
-    secrets: inherit
-
   deploy-flowglad-next-staging:
     uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
     with:
