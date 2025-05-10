@@ -28,12 +28,6 @@ env:
   HOSTED_BILLING_SENTRY_AUTH_TOKEN: ${{ secrets.HOSTED_BILLING_SENTRY_AUTH_TOKEN }}
 
 jobs:
-  deploy-hosted-billing-prod:
-    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
-    with:
-      environment: production
-    secrets: inherit
-
   deploy-flowglad-next-prod:
     uses: ./.github/workflows/build-and-deploy-flowglad-next.yml
     with:
