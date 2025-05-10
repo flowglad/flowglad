@@ -30,7 +30,7 @@ jobs:
       environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
     secrets: inherit
 
-  deploy-hosted-billing:
+  deploy-hosted-billing-staging:
     uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
     with:
       environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
