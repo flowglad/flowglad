@@ -18,7 +18,7 @@
     "vercel:env-pull": "vercel env pull .env.local",
     "postvercel:env-pull": "chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.local",
     "vercel:env-rm": "rm -rf .env.local",
-    "trigger:dev": "dotenvx run -f .env.local -- npx trigger.dev@4.0.0-beta.11 dev",
+    "trigger:dev": "dotenvx run -f .env.local -- npx trigger.dev@4.0.0-v4-beta.11 dev",
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
     "migrations:push": "tsx ./src/scripts/migrate.ts"

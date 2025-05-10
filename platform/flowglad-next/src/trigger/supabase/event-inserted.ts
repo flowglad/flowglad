@@ -8,6 +8,7 @@ import {
   selectEventById,
   updateEvent,
 } from '@/db/tableMethods/eventMethods'
+import { keysToCamelCase } from '@/utils/core'
 
 const eventInsertSchema = supabaseInsertPayloadSchema(
   eventsSelectSchema
@@ -19,9 +20,39 @@ export const eventInsertedTask = task({
     payload: SupabaseInsertPayload<Event.Record>,
     { ctx }
   ) => {
-    logger.log(JSON.stringify({ payload, ctx }))
+    /**
+     *  Transform the record to camelCase and convert date strings to Date objects
+     */
+    const recordSnake = payload.record as Record<string, any>
+    const transformedRecord = {
+      ...keysToCamelCase(payload.record),
+      /**
+       * Must transform dates to Date objects to pass zod validation
+       */
+      createdAt: recordSnake.created_at
+        ? new Date(recordSnake.created_at)
+        : undefined,
+      updatedAt: recordSnake.updated_at
+        ? new Date(recordSnake.updated_at)
+        : undefined,
+      occurredAt: recordSnake.occurred_at
+        ? new Date(recordSnake.occurred_at)
+        : undefined,
+      submittedAt: recordSnake.submitted_at
+        ? new Date(recordSnake.submitted_at)
+        : undefined,
+      processedAt: recordSnake.processed_at
+        ? new Date(recordSnake.processed_at)
+        : null,
+    }
 
-    const parsedPayload = eventInsertSchema.safeParse(payload)
+    const parsedPayload = eventInsertSchema.safeParse({
+      table: payload.table,
+      schema: payload.schema,
+      type: payload.type,
+      record: transformedRecord,
+    })
+
     if (!parsedPayload.success) {
       logger.error(parsedPayload.error.message)
       parsedPayload.error.issues.forEach((issue) => {
