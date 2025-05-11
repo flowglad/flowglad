@@ -101,7 +101,7 @@ export const events = pgTable(
   }
 ).enableRLS()
 
-const eventPayloadSchema = z.object({
+export const eventPayloadSchema = z.object({
   id: z.string(),
   object: z.nativeEnum(EventNoun),
 })
