@@ -23,8 +23,6 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
   const [webhookSecret, setWebhookSecret] = useState<string | null>(
     null
   )
-  const { invalidate } = trpc.useUtils()
-
   const webhookDefaultValues: Webhook.ClientInsert = {
     name: '',
     url: '',
