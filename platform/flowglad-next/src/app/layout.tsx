@@ -52,7 +52,7 @@ export default async function RootLayout({
   }
   const userJson = user?.toClientJson()
   return (
-    <html lang="en" className="dark h-full">
+    <html lang="en" className="dark h-full" data-mode="dark">
       <body className={cn(inter.className, 'dark', 'h-full')}>
         <StackProvider app={stackServerApp}>
           <StackTheme>
