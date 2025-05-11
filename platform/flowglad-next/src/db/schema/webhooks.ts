@@ -19,7 +19,6 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import { FlowgladEventType } from '@/types'
-import core from '@/utils/core'
 
 const TABLE_NAME = 'webhooks'
 
