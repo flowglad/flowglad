@@ -7,13 +7,23 @@ const svix = () => {
   return new Svix(core.envVariable('SVIX_SECRET_KEY'))
 }
 
+export function getSvixApplicationId(params: {
+  organization: Organization.Record
+  livemode: boolean
+}) {
+  const { organization, livemode } = params
+  return `${organization.id}_${livemode ? 'live' : 'test'}`
+}
+
 export async function createSvixApplication(params: {
   organization: Organization.Record
   livemode: boolean
 }) {
   const { organization, livemode } = params
+  const modeSlug = livemode ? 'live' : 'test'
   const app = await svix().application.create({
-    name: `${organization.name} - (${organization.id} - ${livemode ? 'live' : 'test'})`,
+    name: `${organization.name} - (${organization.id} - ${modeSlug})`,
+    uid: getSvixApplicationId({ organization, livemode }),
   })
   return app
 }

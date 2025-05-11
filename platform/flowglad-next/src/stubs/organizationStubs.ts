@@ -25,7 +25,5 @@ export const dummyOrganization: Organization.Record = {
   externalId: '___',
   createdByCommit: 'test',
   updatedByCommit: 'test',
-  svixLivemodeApplicationId: 'app_mock_1',
-  svixTestmodeApplicationId: 'app_mock_2',
   position: 0,
 }
