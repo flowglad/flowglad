@@ -4,9 +4,6 @@ import Table from '@/components/ion/Table'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from '@/utils/core'
-import TableTitle from '@/components/ion/TableTitle'
-import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
-import { Plus } from 'lucide-react'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { FlowgladApiKeyType } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
@@ -63,8 +60,6 @@ const ApiKeysTable = ({
 }: {
   filters?: ApiKeysTableFilters
 }) => {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-
   const {
     pageIndex,
     pageSize,
@@ -143,14 +138,6 @@ const ApiKeysTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
-      <TableTitle
-        title="API Keys"
-        buttonIcon={<Plus size={16} strokeWidth={2} />}
-        buttonLabel="Create API Key"
-        buttonOnClick={() => {
-          setIsCreateModalOpen(true)
-        }}
-      />
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
@@ -171,10 +158,6 @@ const ApiKeysTable = ({
           </div>
         </div>
       </div>
-      <CreateApiKeyModal
-        isOpen={isCreateModalOpen}
-        setIsOpen={setIsCreateModalOpen}
-      />
     </div>
   )
 }

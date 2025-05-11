@@ -163,6 +163,10 @@ export const SideNavigation = () => {
                   label: 'API Keys',
                   href: '/settings/api-keys',
                 },
+                {
+                  label: 'Webhooks',
+                  href: '/settings/webhooks',
+                },
               ]}
               basePath="/settings"
             />
