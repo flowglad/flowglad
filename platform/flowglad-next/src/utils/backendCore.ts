@@ -3,25 +3,42 @@ import { createHash, createHmac } from 'crypto'
 import { BinaryLike } from 'node:crypto'
 
 // backend-only core utils that would break client-side code
-export const hashData = (data: BinaryLike) =>
-  createHash('md5').update(data).digest('hex')
+export function hashData(data: BinaryLike) {
+  return createHash('md5').update(data).digest('hex')
+}
 
-export const createTriggerIdempotencyKey = async (key: string) => {
+export async function createTriggerIdempotencyKey(key: string) {
   if (process.env.NODE_ENV === 'test') {
     return `test-${key}-${Math.random()}`
   }
   return await idempotencyKeys.create(key)
 }
 
-export const testSafeTriggerInvoker = <
+export function testSafeTriggerInvoker<
   T extends (...args: any[]) => Promise<any>,
->(
-  triggerFn: T
-): T => {
-  return (async (...args: Parameters<T>) => {
+>(triggerFn: T): T {
+  return async function (...args: Parameters<T>) {
     if (process.env.NODE_ENV === 'test') {
       return
     }
     return triggerFn(...args)
-  }) as T
+  } as T
+}
+
+export function generateHmac({
+  data,
+  key,
+  salt,
+}: {
+  data: string
+  key: string
+  salt?: string
+}) {
+  // Combine data and salt in a single string for consistency
+  const combinedData = salt ? `${data}:${salt}` : data
+
+  return createHmac('sha256', key)
+    .update(combinedData)
+    .digest('hex')
+    .substring(0, 16) // Truncate to 16 chars for readability in IDs
 }

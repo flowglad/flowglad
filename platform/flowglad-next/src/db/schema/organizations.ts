@@ -62,6 +62,7 @@ export const organizations = pgTable(
     ).default(false),
     featureFlags: jsonb('feature_flags').default({}),
     externalId: text('external_id').unique(),
+    securitySalt: text('security_salt').$defaultFn(core.nanoid),
   },
   (table) => {
     return [
@@ -133,6 +134,7 @@ const hiddenColumns = {
   createdByCommit: true,
   updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
+  securitySalt: true,
 } as const
 
 const readOnlyColumns = {

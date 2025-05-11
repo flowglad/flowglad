@@ -2,9 +2,37 @@ import { Svix } from 'svix'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
 import { Event } from '@/db/schema/events'
+import { generateHmac } from './backendCore'
+import { Webhook } from '@/db/schema/webhooks'
 
-const svix = () => {
+function svix() {
   return new Svix(core.envVariable('SVIX_SECRET_KEY'))
+}
+
+function generateSvixId({
+  prefix,
+  id,
+  organization,
+  livemode,
+}: {
+  prefix: string
+  id: string
+  organization: Organization.Record
+  livemode: boolean
+}) {
+  if (!organization.securitySalt) {
+    throw new Error(
+      `No security salt found for organization ${organization.id}`
+    )
+  }
+  const modeStr = livemode ? 'live' : 'test'
+  const data = `${prefix}_${id}_${modeStr}`
+  const hmac = generateHmac({
+    data,
+    salt: organization.securitySalt!,
+    key: core.envVariable('HMAC_KEY_SVIX'),
+  })
+  return `${prefix}_${id}_${modeStr}_${hmac}`
 }
 
 export function getSvixApplicationId(params: {
@@ -12,7 +40,26 @@ export function getSvixApplicationId(params: {
   livemode: boolean
 }) {
   const { organization, livemode } = params
-  return `${organization.id}_${livemode ? 'live' : 'test'}`
+  return generateSvixId({
+    prefix: 'app',
+    id: organization.id,
+    organization,
+    livemode,
+  })
+}
+
+export function getSvixEndpointId(params: {
+  organization: Organization.Record
+  webhook: Webhook.Record
+  livemode: boolean
+}) {
+  const { organization, webhook, livemode } = params
+  return generateSvixId({
+    prefix: 'endpoint',
+    id: webhook.id,
+    organization,
+    livemode,
+  })
 }
 
 export async function createSvixApplication(params: {

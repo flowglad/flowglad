@@ -14,6 +14,7 @@ describe('Swagger Configuration', () => {
       'createdByCommit',
       'updatedByCommit',
       'position',
+      'securitySalt',
     ]
 
     const checkSchemaForForbiddenFields = (
