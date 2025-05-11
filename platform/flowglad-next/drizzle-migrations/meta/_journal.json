@@ -1443,6 +1443,13 @@
       "when": 1746483083153,
       "tag": "0206_last_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 207,
+      "version": "7",
+      "when": 1746943696725,
+      "tag": "0207_flat_outlaw_kid",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,8 @@ import { stripeServer } from './mocks/stripeServer'
 import { triggerServer } from './mocks/triggerServer'
 import { beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { seedDatabase } from './seedDatabase'
+import { svixServer } from './mocks/svixServer'
+import { unkeyServer } from './mocks/unkeyServer'
 
 // Polyfill crypto for Node.js environment
 // needed for github actions
@@ -37,13 +39,17 @@ vi.mock('@trigger.dev/core', async () => {
 beforeAll(async () => {
   stripeServer.listen()
   triggerServer.listen()
+  svixServer.listen()
+  unkeyServer.listen()
   await seedDatabase()
 })
 
 // Reset handlers after each test (optional, but recommended)
 afterEach(() => {
   stripeServer.resetHandlers()
-  // triggerServer.resetHandlers()
+  triggerServer.resetHandlers()
+  svixServer.resetHandlers()
+  unkeyServer.resetHandlers()
   cleanup()
 })
 
@@ -51,5 +57,7 @@ afterEach(() => {
 afterAll(async () => {
   stripeServer.close()
   triggerServer.close()
+  svixServer.close()
+  unkeyServer.close()
   //   await dropDatabase()
 })
