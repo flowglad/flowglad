@@ -26,4 +26,5 @@ export const dummyOrganization: Organization.Record = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
+  securitySalt: 'lol',
 }
