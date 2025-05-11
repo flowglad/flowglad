@@ -4,6 +4,7 @@ import {
   selectWebhookById,
   insertWebhook,
   updateWebhook,
+  selectWebhookAndOrganizationByWebhookId,
 } from '@/db/tableMethods/webhookMethods'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
@@ -14,8 +15,13 @@ import {
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import {
+  createSvixEndpoint,
+  getSvixSigningSecret,
+  updateSvixEndpoint,
+} from '@/utils/svix'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'webhook',
@@ -27,18 +33,19 @@ export const webhooksRouteConfigs = routeConfigs
 export const createWebhook = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createWebhookInputSchema)
-  .output(z.object({ webhook: webhookClientSelectSchema }))
+  .output(
+    z.object({
+      webhook: webhookClientSelectSchema,
+      secret: z.string(),
+    })
+  )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
+      async ({ input, transaction, ctx, livemode }) => {
+        const organization = ctx.organization
+        if (!organization) {
+          throw new Error('Organization not found')
+        }
         const webhook = await insertWebhook(
           {
             ...input.webhook,
@@ -47,7 +54,15 @@ export const createWebhook = protectedProcedure
           },
           transaction
         )
-        return { webhook }
+        await createSvixEndpoint({
+          webhook,
+          organization,
+        })
+        const secret = await getSvixSigningSecret({
+          webhook,
+          organization,
+        })
+        return { webhook, secret: secret.key }
       }
     )
   )
@@ -58,7 +73,7 @@ export const editWebhook = protectedProcedure
   .output(z.object({ webhook: webhookClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transaction, ctx }) => {
         const webhook = await updateWebhook(
           {
             ...input.webhook,
@@ -66,6 +81,14 @@ export const editWebhook = protectedProcedure
           },
           transaction
         )
+        const organization = await selectOrganizationById(
+          webhook.organizationId,
+          transaction
+        )
+        await updateSvixEndpoint({
+          webhook,
+          organization,
+        })
         return { webhook }
       }
     )
@@ -80,6 +103,26 @@ export const getWebhook = protectedProcedure
       async ({ input, transaction }) => {
         const webhook = await selectWebhookById(input.id, transaction)
         return { webhook }
+      }
+    )
+  )
+
+export const requestWebhookSigningSecret = protectedProcedure
+  .input(z.object({ webhookId: z.string() }))
+  .output(z.object({ secret: z.string() }))
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const { webhook, organization } =
+          await selectWebhookAndOrganizationByWebhookId(
+            input.webhookId,
+            transaction
+          )
+        const secret = await getSvixSigningSecret({
+          webhook,
+          organization,
+        })
+        return { secret: secret.key }
       }
     )
   )

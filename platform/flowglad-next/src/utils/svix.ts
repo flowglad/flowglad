@@ -62,27 +62,80 @@ export function getSvixEndpointId(params: {
   })
 }
 
-export async function createSvixApplication(params: {
+export async function findOrCreateSvixApplication(params: {
   organization: Organization.Record
   livemode: boolean
 }) {
   const { organization, livemode } = params
   const modeSlug = livemode ? 'live' : 'test'
-  const app = await svix().application.create({
-    name: `${organization.name} - (${organization.id} - ${modeSlug})`,
-    uid: getSvixApplicationId({ organization, livemode }),
+  const applicationId = getSvixApplicationId({
+    organization,
+    livemode,
   })
-  return app
+  const app = await svix().application.get(applicationId)
+  if (app) {
+    return app
+  }
+  return await svix().application.create({
+    name: `${organization.name} - (${organization.id} - ${modeSlug})`,
+    uid: applicationId,
+  })
 }
 
 export async function createSvixEndpoint(params: {
-  applicationId: string
-  url: string
+  organization: Organization.Record
+  webhook: Webhook.Record
 }) {
-  const { applicationId, url } = params
-  const endpoint = await svix().endpoint.create(applicationId, {
-    url,
+  const { organization, webhook } = params
+  const applicationId = getSvixApplicationId({
+    organization,
+    livemode: webhook.livemode,
   })
+  if (!applicationId) {
+    throw new Error('No application ID found')
+  }
+  await findOrCreateSvixApplication({
+    organization,
+    livemode: webhook.livemode,
+  })
+  const endpointId = getSvixEndpointId({
+    organization,
+    webhook,
+    livemode: webhook.livemode,
+  })
+  const endpoint = await svix().endpoint.create(applicationId, {
+    uid: endpointId,
+    url: webhook.url,
+    filterTypes: webhook.filterTypes,
+  })
+  return endpoint
+}
+
+export async function updateSvixEndpoint(params: {
+  webhook: Webhook.Record
+  organization: Organization.Record
+}) {
+  const { webhook, organization } = params
+  const application = await findOrCreateSvixApplication({
+    organization,
+    livemode: webhook.livemode,
+  })
+  if (!application) {
+    throw new Error('No application found')
+  }
+  const endpointId = getSvixEndpointId({
+    organization,
+    webhook,
+    livemode: webhook.livemode,
+  })
+  const endpoint = await svix().endpoint.patch(
+    application.id,
+    endpointId,
+    {
+      url: webhook.url,
+      filterTypes: webhook.filterTypes,
+    }
+  )
   return endpoint
 }
 
@@ -109,4 +162,25 @@ export async function sendSvixEvent(params: {
       idempotencyKey: event.hash,
     }
   )
+}
+
+export async function getSvixSigningSecret(params: {
+  webhook: Webhook.Record
+  organization: Organization.Record
+}) {
+  const { webhook, organization } = params
+  const endpointId = getSvixEndpointId({
+    organization,
+    webhook,
+    livemode: webhook.livemode,
+  })
+  const applicationId = getSvixApplicationId({
+    organization,
+    livemode: webhook.livemode,
+  })
+  const secret = await svix().endpoint.getSecret(
+    applicationId,
+    endpointId
+  )
+  return secret
 }
