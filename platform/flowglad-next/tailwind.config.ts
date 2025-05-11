@@ -11,20 +11,12 @@ const config: Config = {
     extend: {
       keyframes: {
         'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
         },
         'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
         },
         hide: {
           from: {
@@ -656,7 +648,7 @@ const config: Config = {
         'fbg-background-1000': 'rgba(0, 0, 0, 1)',
         'fbg-white-05': 'rgba(255, 255, 255, 0.07)',
         'fbg-white-0': 'rgba(255, 255, 255, 0.04)',
-        background: 'hsl(var(--background))',
+        background: 'var(--background)',
         disabled: 'var(--disabled)',
         overlay: 'var(--overlay)',
         'background-input': 'var(--background-input)',
@@ -694,11 +686,8 @@ const config: Config = {
           'info-hover': 'var(--on-info-hover)',
           'info-pressed': 'var(--on-info-pressed)',
         },
-        foreground: 'hsl(var(--foreground))',
-        secondary: {
-          DEFAULT: 'var(--secondary)',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
+        foreground: 'var(--foreground)',
+        secondary: 'var(--secondary)',
         subtle: 'var(--subtle)',
         stroke: {
           DEFAULT: 'var(--stroke)',
@@ -715,11 +704,10 @@ const config: Config = {
         primary: {
           accent: 'var(--primary-accent)',
           container: 'var(--primary-container)',
-          DEFAULT: 'hsl(var(--primary))',
+          DEFAULT: 'var(--primary)',
           strong: 'var(--primary-strong)',
           hover: 'var(--primary-hover)',
           pressed: 'var(--primary-pressed)',
-          foreground: 'hsl(var(--primary-foreground))',
         },
         neutral: {
           accent: 'var(--neutral-accent)',
@@ -769,36 +757,6 @@ const config: Config = {
         },
         'list-item-background-hover':
           'var(--list-item-background-hover)',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
       },
       borderRadius: {
         'radius-xs': 'var(--radius-xs)',
@@ -806,9 +764,6 @@ const config: Config = {
         radius: 'var(--radius)',
         'radius-md': 'var(--radius-md)',
         'radius-lg': 'var(--radius-lg)',
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
         low: '0px 1px 8px 0px var(--shadow-weak)',
@@ -836,7 +791,7 @@ const config: Config = {
       })
     }),
   ],
-  darkMode: ['class', '[data-mode="dark"]'],
+  darkMode: 'class',
   safelist: [
     {
       pattern:
