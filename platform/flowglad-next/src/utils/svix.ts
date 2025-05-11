@@ -44,9 +44,10 @@ export async function sendSvixEvent(params: {
   organization: Organization.Record
 }) {
   const { event, organization } = params
-  const applicationId = event.livemode
-    ? organization.svixLivemodeApplicationId
-    : organization.svixTestmodeApplicationId
+  const applicationId = getSvixApplicationId({
+    organization,
+    livemode: event.livemode,
+  })
   if (!applicationId) {
     throw new Error('No application ID found')
   }
