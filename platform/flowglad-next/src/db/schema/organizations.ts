@@ -62,7 +62,9 @@ export const organizations = pgTable(
     ).default(false),
     featureFlags: jsonb('feature_flags').default({}),
     externalId: text('external_id').unique(),
-    securitySalt: text('security_salt').$defaultFn(core.nanoid),
+    securitySalt: text('security_salt')
+      .$defaultFn(core.nanoid)
+      .notNull(),
   },
   (table) => {
     return [

@@ -1,5 +1,5 @@
 {
-  "id": "288702c1-1835-40b5-b1ed-a63d814d8a63",
+  "id": "6b4e8668-c1af-4957-8641-0cc088a9de72",
   "prevId": "48f6a23b-078b-48db-a2cb-275d1a6a97b5",
   "version": "7",
   "dialect": "postgresql",
@@ -4297,7 +4297,7 @@
           "name": "security_salt",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {

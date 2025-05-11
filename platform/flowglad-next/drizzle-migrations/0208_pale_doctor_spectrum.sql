@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS "webhooks" (
 	"id" text PRIMARY KEY NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -18,6 +20,8 @@ ALTER TABLE "webhooks" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "organizations" DROP CONSTRAINT "organizations_svix_livemode_application_id_unique";--> statement-breakpoint
 ALTER TABLE "organizations" DROP CONSTRAINT "organizations_svix_testmode_application_id_unique";--> statement-breakpoint
 ALTER TABLE "organizations" ADD COLUMN "security_salt" text;--> statement-breakpoint
+UPDATE "organizations" SET "security_salt" = encode(gen_random_bytes(16), 'hex');--> statement-breakpoint
+ALTER TABLE "organizations" ALTER COLUMN "security_salt" SET NOT NULL;--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "webhooks" ADD CONSTRAINT "webhooks_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION

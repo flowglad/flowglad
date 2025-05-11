@@ -166,6 +166,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/payment-methods',
       '/api/v1/usage-meters',
       '/api/v1/usage-events',
+      '/api/v1/webhooks',
     ]
 
     it('should only have the expected base routes', () => {
