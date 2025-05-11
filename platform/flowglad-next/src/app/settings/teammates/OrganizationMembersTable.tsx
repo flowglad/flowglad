@@ -43,7 +43,6 @@ const OrganizationMembersTable = ({
 
   const tableData = externalData || data?.items || []
   const total = data?.total || 0
-  const loading = externalLoading || isLoading
 
   const columns = useMemo(
     () =>
@@ -75,14 +74,6 @@ const OrganizationMembersTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
-      <TableTitle
-        title="Organization Members"
-        buttonIcon={<Plus size={16} strokeWidth={2} />}
-        buttonLabel="Invite Member"
-        buttonOnClick={() => {
-          setIsInviteModalOpen(true)
-        }}
-      />
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
@@ -103,10 +94,6 @@ const OrganizationMembersTable = ({
           </div>
         </div>
       </div>
-      <InviteUserToOrganizationModal
-        isOpen={isInviteModalOpen}
-        setIsOpen={setIsInviteModalOpen}
-      />
     </div>
   )
 }
