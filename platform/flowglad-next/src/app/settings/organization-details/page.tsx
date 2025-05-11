@@ -2,7 +2,7 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
-const OrganizationDetailsTab = () => {
+function SettingsOrganizationDetailsPage() {
   const { organization } = useAuthenticatedContext()
   if (!organization) {
     return <div>Loading...</div>
@@ -21,4 +21,4 @@ const OrganizationDetailsTab = () => {
   )
 }
 
-export default OrganizationDetailsTab
+export default SettingsOrganizationDetailsPage

@@ -25,7 +25,7 @@ import {
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
 import { insertCatalog } from '@/db/tableMethods/catalogMethods'
-import { createSvixApplication } from './svix'
+import { findOrCreateSvixApplication } from './svix'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -164,12 +164,12 @@ export const createOrganizationTransaction = async (
     { transaction, livemode: false, userId }
   )
 
-  const testmodeApplication = await createSvixApplication({
+  await findOrCreateSvixApplication({
     organization: organizationRecord,
     livemode: false,
   })
 
-  const livemodeApplication = await createSvixApplication({
+  await findOrCreateSvixApplication({
     organization: organizationRecord,
     livemode: true,
   })

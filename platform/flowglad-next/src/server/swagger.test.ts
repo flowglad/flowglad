@@ -67,11 +67,14 @@ describe('Swagger Configuration', () => {
       path: string
     ) => {
       if (!schema || typeof schema !== 'object') return
-
+      const forbiddenOutputColumns = ['position', 'securitySalt']
       // Check for properties starting with "stripe*" and "position"
       if (schema.properties) {
         Object.keys(schema.properties).forEach((key) => {
-          if (key.startsWith('stripe') || key === 'position') {
+          if (
+            key.startsWith('stripe') ||
+            forbiddenOutputColumns.includes(key)
+          ) {
             throw new Error(
               `Schema contains forbidden output field "${key}" at path: ${path}`
             )

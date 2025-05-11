@@ -1,17 +1,24 @@
 import { router } from '../trpc'
-import { editWebhookInputSchema } from '@/db/schema/webhooks'
+import {
+  editWebhookInputSchema,
+  webhooksTableRowDataSchema,
+} from '@/db/schema/webhooks'
 import {
   selectWebhookById,
   insertWebhook,
   updateWebhook,
   selectWebhookAndOrganizationByWebhookId,
+  selectWebhooksTableRowData,
 } from '@/db/tableMethods/webhookMethods'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
   webhookClientSelectSchema,
   createWebhookInputSchema,
 } from '@/db/schema/webhooks'
-
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
@@ -127,8 +134,25 @@ export const requestWebhookSigningSecret = protectedProcedure
     )
   )
 
+export const getTableRows = protectedProcedure
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        active: z.boolean().optional(),
+      })
+    )
+  )
+  .output(
+    createPaginatedTableRowOutputSchema(webhooksTableRowDataSchema)
+  )
+  .query(
+    authenticatedProcedureTransaction(selectWebhooksTableRowData)
+  )
+
 export const webhooksRouter = router({
   get: getWebhook,
   create: createWebhook,
   update: editWebhook,
+  requestSigningSecret: requestWebhookSigningSecret,
+  getTableRows,
 })

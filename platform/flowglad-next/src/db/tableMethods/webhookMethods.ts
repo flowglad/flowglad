@@ -4,11 +4,13 @@ import {
   createUpdateFunction,
   createSelectFunction,
   ORMMethodCreatorConfig,
+  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import {
   webhooks,
   webhooksInsertSchema,
   webhooksSelectSchema,
+  webhooksTableRowDataSchema,
   webhooksUpdateSchema,
 } from '@/db/schema/webhooks'
 import { eq } from 'drizzle-orm'
@@ -60,3 +62,15 @@ export const selectWebhookAndOrganizationByWebhookId = async (
     ),
   }
 }
+
+export const selectWebhooksTableRowData =
+  createCursorPaginatedSelectFunction(
+    webhooks,
+    config,
+    webhooksTableRowDataSchema,
+    async (data) => {
+      return data.map((webhook) => ({
+        webhook,
+      }))
+    }
+  )
