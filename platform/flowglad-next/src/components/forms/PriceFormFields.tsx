@@ -44,6 +44,7 @@ const TrialPeriodFields = () => {
     setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
   }, [trialPeriodDays])
   if (!core.IS_PROD) {
+    // eslint-disable-next-line no-console
     console.log('===errors', errors)
   }
   return (

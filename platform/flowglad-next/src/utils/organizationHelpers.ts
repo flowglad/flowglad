@@ -2,6 +2,7 @@ import { customAlphabet } from 'nanoid'
 import {
   insertOrDoNothingOrganizationByExternalId,
   selectOrganizations,
+  updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import {
@@ -24,6 +25,7 @@ import {
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
 import { insertCatalog } from '@/db/tableMethods/catalogMethods'
+import { createSvixApplication } from './svix'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -151,6 +153,7 @@ export const createOrganizationTransaction = async (
     },
     { transaction, livemode: false, userId }
   )
+
   await createSecretApiKeyTransaction(
     {
       apiKey: {
@@ -160,9 +163,29 @@ export const createOrganizationTransaction = async (
     },
     { transaction, livemode: false, userId }
   )
+
+  const testmodeApplication = await createSvixApplication({
+    organization: organizationRecord,
+    livemode: false,
+  })
+
+  const livemodeApplication = await createSvixApplication({
+    organization: organizationRecord,
+    livemode: true,
+  })
+
+  const updatedOrganization = await updateOrganization(
+    {
+      id: organizationRecord.id,
+      svixTestmodeApplicationId: testmodeApplication.id,
+      svixLivemodeApplicationId: livemodeApplication.id,
+    },
+    transaction
+  )
+
   return {
     organization: organizationsClientSelectSchema.parse(
-      organizationRecord
+      updatedOrganization
     ),
   }
 }

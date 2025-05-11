@@ -1,8 +1,11 @@
 import { generateOpenApiDocument } from 'trpc-swagger'
 import { appRouter } from './index'
+import { FlowgladEventType } from '@/types'
+import { eventPayloadSchema } from '@/db/schema/events'
+import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 
 export type OpenAPIV3Document = ReturnType<
-  typeof createFlowgladOpenApiDocument
+  typeof generateOpenApiDocument
 >
 
 export const createFlowgladOpenApiDocument = () =>
