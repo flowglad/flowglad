@@ -12,7 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { cn } from '@/lib/utils'
+import { cn } from '@/utils/core'
 import Hint from '../ion/Hint'
 
 export interface Option {
