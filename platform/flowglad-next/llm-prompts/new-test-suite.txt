@@ -209,3 +209,5 @@ const updatedCustomer = await updateCustomer({
 6. Ensure proper error handling and edge case coverage
 7. Maintain test isolation
 8. Clean up test data after each test
+9. Don't use "any" types, ever
+10. Import the types you need for various records. You can usually find the types you need in @/types or @/db/schema/[filForTable]
