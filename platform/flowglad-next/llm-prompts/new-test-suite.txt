@@ -1,0 +1,211 @@
+# Creating a New Test Suite
+
+This guide outlines the process for creating a new test suite in the Flowglad codebase. The test suite should follow these guidelines and patterns to ensure consistency and maintainability.
+
+Your job is to create a new test suite file based on these practices. The goal should be that you have a test file that:
+- correctly sets up database state for each test case, if the code being tested interacts with the database
+- avoids unnecessary database interactions, e.g. if the code being tested doesn't interact with the database
+
+## Basic Structure
+
+The test suite should be organized as follows, assuming the tested code interacts with the db:
+
+```typescript
+describe('ModuleName', async () => {
+  // Common variables for all tests
+  const { organization, price } = await setupOrg()
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  // ... other necessary variables
+
+  beforeEach(async () => {
+    // Set up common test data
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      stripeCustomerId: `cus_${core.nanoid()}`,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      stripePaymentMethodId: `pm_${core.nanoid()}`,
+      type: PaymentMethodType.Card,
+    })
+    // ... other setup as needed
+  })
+
+  describe('subModuleName', () => {
+    // Test cases for submodule
+  })
+})
+```
+
+## Database State Management
+
+1. Always use `setupOrg()` in `beforeEach` to ensure test isolation
+2. Use helper functions from `seedDatabase.ts` for database setup
+3. Example setup pattern:
+```typescript
+beforeEach(async () => {
+  const { organization, price } = await setupOrg()
+  
+  // Set up dependent records
+  customer = await setupCustomer({
+    organizationId: organization.id,
+    // ... other required fields
+  })
+  
+  // Set up any other required records
+  paymentMethod = await setupPaymentMethod({
+    organizationId: organization.id,
+    customerId: customer.id,
+    // ... other required fields
+  })
+})
+```
+
+## Testing Strategy
+
+1. Test both individual functions and their compositions
+2. For each function:
+   - Test happy path
+   - Test edge cases
+   - Test error conditions
+3. For compositions:
+   - Test integration between functions
+   - Test error propagation
+   - Test state management
+
+## State Modification
+
+1. Use update methods from tableMethods for state changes
+2. Example:
+```typescript
+it('should handle specific state', async () => {
+  // Modify state for this specific test
+  await updateCustomer({
+    id: customer.id,
+    status: CustomerStatus.Inactive
+  }, transaction)
+  
+  // Run test with modified state
+  const result = await functionUnderTest()
+  expect(result).toBeDefined()
+})
+```
+
+## Testing Levels
+
+1. Unit Tests:
+   - Test individual functions in isolation
+   - Mock external dependencies
+   - Test all possible input/output combinations
+2. Integration Tests:
+   - Test function compositions
+   - Test database interactions
+   - Test error handling across function boundaries
+
+## Test Case Organization
+
+```typescript
+describe('functionName', () => {
+  it('should handle happy path', async () => {
+    // Test happy path
+  })
+
+  it('should handle edge case', async () => {
+    // Test edge case
+  })
+
+  it('should handle error condition', async () => {
+    // Test error handling
+  })
+})
+
+describe('composedFunctionName', () => {
+  it('should handle successful composition', async () => {
+    // Test successful composition
+  })
+
+  it('should handle error propagation', async () => {
+    // Test error handling across functions
+  })
+})
+```
+
+## Testing Best Practices
+
+1. Avoid using mock functions or spyOn
+2. Use real database interactions
+3. Test both success and failure paths
+4. Test edge cases and boundary conditions
+5. Ensure test isolation
+6. Clean up test data after each test
+
+## Example Test Structure
+
+```typescript
+describe('ModuleName', async () => {
+  const { organization, price } = await setupOrg()
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+
+  beforeEach(async () => {
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      stripeCustomerId: `cus_${core.nanoid()}`,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      stripePaymentMethodId: `pm_${core.nanoid()}`,
+      type: PaymentMethodType.Card,
+    })
+  })
+
+  describe('individualFunction', () => {
+    it('should handle successful case', async () => {
+      const result = await individualFunction()
+      expect(result).toBeDefined()
+    })
+
+    it('should handle error case', async () => {
+      await expect(individualFunction()).rejects.toThrow()
+    })
+  })
+
+  describe('composedFunction', () => {
+    it('should handle successful composition', async () => {
+      const result = await composedFunction()
+      expect(result).toBeDefined()
+    })
+
+    it('should handle error propagation', async () => {
+      await expect(composedFunction()).rejects.toThrow()
+    })
+  })
+})
+```
+
+## Very Important Notes
+
+1. Always use `setupOrg()` in `beforeEach` to prevent test state pollution
+2. Use helper functions from `seedDatabase.ts` for database setup
+3. Avoid using mock functions or spyOn
+4. Test both individual functions and their compositions
+5. Use update methods from tableMethods for state changes: don't do this:
+```ts
+// ❌ Don't modify database records directly
+customer.status = CustomerStatus.Inactive 
+
+// ✅ Instead use update methods from tableMethods
+const updatedCustomer = await updateCustomer({
+  id: customer.id,
+  status: CustomerStatus.Inactive
+}, transaction)
+// do test with updatedCustomer...
+```
+6. Ensure proper error handling and edge case coverage
+7. Maintain test isolation
+8. Clean up test data after each test
