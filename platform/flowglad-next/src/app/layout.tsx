@@ -9,7 +9,10 @@ import Providers from './Providers'
 import { cn } from '@/utils/core'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { Organization } from '@/db/schema/organizations'
+import {
+  Organization,
+  organizationsClientSelectSchema,
+} from '@/db/schema/organizations'
 // import AIModal from './components/forms/AIModal'
 // import { ChatActionsProvider } from './components/ChatActionsContext'
 
@@ -26,7 +29,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const user = await stackServerApp.getUser()
-  let organization: Organization.Record | undefined = undefined
+  let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
   if (user) {
     const [membershipData] = await adminTransaction(
@@ -41,7 +44,11 @@ export default async function RootLayout({
       }
     )
     livemode = membershipData?.membership.livemode
-    organization = membershipData?.organization
+    if (membershipData?.organization) {
+      organization = organizationsClientSelectSchema.parse(
+        membershipData.organization
+      )
+    }
   }
   const userJson = user?.toClientJson()
   return (

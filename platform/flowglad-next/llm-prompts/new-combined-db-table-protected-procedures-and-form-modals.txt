@@ -119,9 +119,10 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       export const unicornRidersSelectSchema =
         createSelectSchema(unicornRiders).extend(columnRefinements)
 
-      export const unicornRidersUpdateSchema = unicornRidersSelectSchema.partial().extend({
-        id: core.safeZodPositiveInteger
-      })
+      export const unicornRidersUpdateSchema = createUpdateSchema(
+        unicornRiders,
+        columnRefinements
+      )
 
       const createOnlyColumns = {
         email: true,
@@ -243,6 +244,85 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     )
     ```
 
+Important note: if you have a jsonb column, you will need to apply .extend(columnRefinements) on the InsertSchema and SelectSchema to get the types for the column to flow through properly:
+```
+const columnRefinements = {
+  // Add any jsonb column refinements here, for example:
+  someJsonbColumn: z.object({
+    foo: z.string(),
+    bar: z.number()
+  })
+}
+
+/*
+ * database schema
+ */
+export const unicornRidersInsertSchema = enhancedCreateInsertSchema(
+  unicornRiders,
+  columnRefinements
+).extend(columnRefinements)
+
+export const unicornRidersSelectSchema = 
+  createSelectSchema(unicornRiders).extend(columnRefinements)
+
+export const unicornRidersUpdateSchema = createUpdateSchema(
+  unicornRiders,
+  columnRefinements
+).extend(columnRefinements)
+
+const readOnlyColumns = {
+  livemode: true,
+} as const
+
+const hiddenColumns = {
+  ...ommittedColumnsForInsertSchema,
+} as const
+
+const nonClientEditableColumns = {
+  ...readOnlyColumns,
+  organizationId: true,
+} as const
+
+/*
+ * client schemas
+ */
+export const unicornRiderClientInsertSchema = unicornRidersInsertSchema.omit(
+  nonClientEditableColumns
+)
+
+export const unicornRiderClientUpdateSchema = unicornRidersUpdateSchema.omit(
+  nonClientEditableColumns
+)
+
+export const unicornRiderClientSelectSchema = 
+  unicornRidersSelectSchema.omit(hiddenColumns)
+
+export namespace UnicornRider {
+  export type Insert = z.infer<typeof unicornRidersInsertSchema>
+  export type Update = z.infer<typeof unicornRidersUpdateSchema>
+  export type Record = z.infer<typeof unicornRidersSelectSchema>
+  export type ClientInsert = z.infer<typeof unicornRiderClientInsertSchema>
+  export type ClientUpdate = z.infer<typeof unicornRiderClientUpdateSchema>
+  export type ClientRecord = z.infer<typeof unicornRiderClientSelectSchema>
+}
+
+export const createUnicornRiderInputSchema = z.object({
+  unicornRider: unicornRiderClientInsertSchema,
+})
+
+export type CreateUnicornRiderInput = z.infer<
+  typeof createUnicornRiderInputSchema
+>
+
+export const editUnicornRiderInputSchema = z.object({
+  id: z.string(),
+  unicornRider: unicornRiderClientUpdateSchema,
+})
+
+export type EditUnicornRiderInput = z.infer<typeof editUnicornRiderInputSchema>
+
+```
+
 # 2. Create new TRPC Router
 
 Follow the following instructions for the trpc router. Refer to the TRPC docs for more information.
@@ -255,17 +335,17 @@ import { editUnicornRiderInputSchema } from '@/db/schema/unicornRiders'
 import {
   selectUnicornRiderById,
   updateUnicornRider,
-  createUnicornRiderInputSchema
 } from '@/db/tableMethods/unicornRiderMethods'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import {
+  createUnicornRiderInputSchema,
   unicornRidersClientSelectSchema,
   unicornRidersPaginatedSelectSchema,
   unicornRidersPaginatedListSchema,
 } from '@/db/schema/unicornRiders'
 
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
   insertUnicornRider,
   selectUnicornRidersPaginated,
@@ -274,97 +354,75 @@ import { idInputSchema } from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
 
-const { openApiMetas } = generateOpenApiMetas({
+const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'unicornRider',
   tags: ['UnicornRiders'],
 })
+
+export const unicornRidersRouteConfigs = routeConfigs
 
 export const createUnicornRider = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUnicornRiderInputSchema)
   .output(z.object({ unicornRider: unicornRiderClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
-    const unicornRider = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
-        return insertUnicornRider(
-          {
-            ...input.unicornRider,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-      }
-    )
-    return { unicornRider }
-  })
-
-export const unicornRidersRouteConfigs = {
-  ...trpcToRest('unicornRiders.create'),
-  ...trpcToRest('unicornRiders.update'),
-  ...trpcToRest('unicornRiders.get'),
-  ...trpcToRest('unicornRiders.list'),
-}
+  .mutation(
+    authenticatedProcedureTransaction(async ({ input, transaction, userId, livemode }) => {
+      const [{ organization }] = await selectMembershipAndOrganizations(
+        {
+          userId,
+          focused: true,
+        },
+        transaction
+      )
+      const unicornRider = await insertUnicornRider(
+        {
+          ...input.unicornRider,
+          organizationId: organization.id,
+          livemode,
+        },
+        transaction
+      )
+      return { unicornRider }
+    })
+  )
 
 const listUnicornRidersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(unicornRidersPaginatedSelectSchema)
   .output(unicornRidersPaginatedListSchema)
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUnicornRidersPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+  .query(
+    authenticatedProcedureTransaction(async ({ input, transaction }) => {
+      return selectUnicornRidersPaginated(input, transaction)
+    })
+  )
 
 export const editUnicornRider = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editUnicornRiderInputSchema)
   .output(z.object({ unicornRider: unicornRiderClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
-    const unicornRider = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const updatedUnicornRider = await updateUnicornRider(
-          {
-            ...input.unicornRider,
-            id: input.id,
-          },
-          transaction
-        )
-        return updatedUnicornRider
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-    return { unicornRider }
-  })
+  .mutation(
+    authenticatedProcedureTransaction(async ({ input, transaction }) => {
+      const unicornRider = await updateUnicornRider(
+        {
+          ...input.unicornRider,
+          id: input.id,
+        },
+        transaction
+      )
+      return { unicornRider }
+    })
+  )
 
 export const getUnicornRider = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ unicornRider: unicornRiderClientSelectSchema }))
-  .query(async ({ input, ctx }) => {
-    const unicornRider = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUnicornRiderById(input.id, transaction)
-      },
-      { apiKey: ctx.apiKey }
-    )
-    return { unicornRider }
-  })
+  .query(
+    authenticatedProcedureTransaction(async ({ input, transaction }) => {
+      const unicornRider = await selectUnicornRiderById(input.id, transaction)
+      return { unicornRider }
+    })
+  )
 
 export const unicornRidersRouter = router({
   get: getUnicornRider,
@@ -414,13 +472,62 @@ We use "edit" instead of "update" to make it clear that this update may have sid
 ```tsx
 'use client'
 
-import { useFormContext } from 'react-hook-form'
-import { CreateUnicornRiderInput } from '@/db/schema/unicornRiders'
+'use client'
 
-export default function UnicornRiderFormFields() {
-  const form = useFormContext<CreateUnicornRiderInput>()
-  return <div>UnicornRiderFormFields</div>
+import { useFormContext, Controller } from 'react-hook-form'
+import { CreateUnicornRiderInput } from '@/db/schema/unicornRiders'
+import { RadioGroup, RadioGroupItem } from '@/components/ion/Radio'
+import Input from '@/components/ion/Input'
+import { UnicornRiderType } from '@/types'
+
+const UnicornRiderFormFields = () => {
+  const {
+    register,
+    formState: { errors },
+    control,
+  } = useFormContext<CreateUnicornRiderInput>()
+  return (
+    <div className="flex flex-col gap-4">
+      <Input
+        {...register('unicornRider.name')}
+        label="Name"
+        placeholder="e.g. Rider Name"
+        error={errors.apiKey?.name?.message}
+      />
+      <Controller
+        control={control}
+        name="unicornRider.type"
+        render={({ field }) => (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-foreground">Type</p>
+            <RadioGroup
+              value={field.value}
+              onValueChange={field.onChange}
+              className="flex flex-col gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem
+                  value={UnicornRiderType.Secret}
+                  label="Secret"
+                  id="secret"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem
+                  value={UnicornRiderType.Publishable}
+                  label="Publishable"
+                  id="publishable"
+                />
+              </div>
+            </RadioGroup>
+          </div>
+        )}
+      />
+    </div>
+  )
 }
+
+export default UnicornRiderFormFields
 ```
 
 Using '@/components/forms/FormModal', create new form modals for the newly created table:
@@ -434,17 +541,17 @@ They should follow the following pattern:
 
 import FormModal from '@/components/forms/FormModal'
 import {
-  UnicornRiderRecord,
+  UnicornRider,
   editUnicornRiderSchema,
 } from '@/db/schema/unicornRiders'
-import { UnicornRiderFormFields } from '@/components/forms/UnicornRiderFormFields'
+import UnicornRiderFormFields from '@/components/forms/UnicornRiderFormFields'
 import { trpc } from '@/app/_trpc/client'
 
 interface EditUnicornRiderModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   // omit for CreateUnicornRiderModal
-  unicornRider: UnicornRiderRecord
+  unicornRider: UnicornRider.ClientRecord
 }
 
 const EditUnicornRiderModal: React.FC<EditUnicornRiderModalProps> = ({

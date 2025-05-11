@@ -2,9 +2,64 @@ import { Svix } from 'svix'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
 import { Event } from '@/db/schema/events'
+import { generateHmac } from './backendCore'
+import { Webhook } from '@/db/schema/webhooks'
 
-const svix = () => {
+function svix() {
   return new Svix(core.envVariable('SVIX_SECRET_KEY'))
+}
+
+function generateSvixId({
+  prefix,
+  id,
+  organization,
+  livemode,
+}: {
+  prefix: string
+  id: string
+  organization: Organization.Record
+  livemode: boolean
+}) {
+  if (!organization.securitySalt) {
+    throw new Error(
+      `No security salt found for organization ${organization.id}`
+    )
+  }
+  const modeStr = livemode ? 'live' : 'test'
+  const data = `${prefix}_${id}_${modeStr}`
+  const hmac = generateHmac({
+    data,
+    salt: organization.securitySalt!,
+    key: core.envVariable('HMAC_KEY_SVIX'),
+  })
+  return `${prefix}_${id}_${modeStr}_${hmac}`
+}
+
+export function getSvixApplicationId(params: {
+  organization: Organization.Record
+  livemode: boolean
+}) {
+  const { organization, livemode } = params
+  return generateSvixId({
+    prefix: 'app',
+    id: organization.id,
+    organization,
+    livemode,
+  })
+}
+
+export function getSvixEndpointId(params: {
+  organization: Organization.Record
+  webhook: Webhook.Record
+  livemode: boolean
+}) {
+  const { organization, webhook, livemode } = params
+  return generateSvixId({
+    prefix: 'endpoint',
+    id: webhook.id,
+    organization,
+    livemode,
+  })
 }
 
 export async function createSvixApplication(params: {
@@ -12,8 +67,10 @@ export async function createSvixApplication(params: {
   livemode: boolean
 }) {
   const { organization, livemode } = params
+  const modeSlug = livemode ? 'live' : 'test'
   const app = await svix().application.create({
-    name: `${organization.name} - (${organization.id} - ${livemode ? 'live' : 'test'})`,
+    name: `${organization.name} - (${organization.id} - ${modeSlug})`,
+    uid: getSvixApplicationId({ organization, livemode }),
   })
   return app
 }
@@ -34,9 +91,10 @@ export async function sendSvixEvent(params: {
   organization: Organization.Record
 }) {
   const { event, organization } = params
-  const applicationId = event.livemode
-    ? organization.svixLivemodeApplicationId
-    : organization.svixTestmodeApplicationId
+  const applicationId = getSvixApplicationId({
+    organization,
+    livemode: event.livemode,
+  })
   if (!applicationId) {
     throw new Error('No application ID found')
   }

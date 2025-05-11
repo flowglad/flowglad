@@ -174,18 +174,9 @@ export const createOrganizationTransaction = async (
     livemode: true,
   })
 
-  const updatedOrganization = await updateOrganization(
-    {
-      id: organizationRecord.id,
-      svixTestmodeApplicationId: testmodeApplication.id,
-      svixLivemodeApplicationId: livemodeApplication.id,
-    },
-    transaction
-  )
-
   return {
     organization: organizationsClientSelectSchema.parse(
-      updatedOrganization
+      organizationRecord
     ),
   }
 }

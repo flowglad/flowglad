@@ -60,14 +60,11 @@ export const organizations = pgTable(
     allowMultipleSubscriptionsPerCustomer: boolean(
       'allow_multiple_subscriptions_per_customer'
     ).default(false),
-    svixLivemodeApplicationId: text(
-      'svix_livemode_application_id'
-    ).unique(),
-    svixTestmodeApplicationId: text(
-      'svix_testmode_application_id'
-    ).unique(),
     featureFlags: jsonb('feature_flags').default({}),
     externalId: text('external_id').unique(),
+    securitySalt: text('security_salt')
+      .$defaultFn(core.nanoid)
+      .notNull(),
   },
   (table) => {
     return [
@@ -139,6 +136,7 @@ const hiddenColumns = {
   createdByCommit: true,
   updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
+  securitySalt: true,
 } as const
 
 const readOnlyColumns = {

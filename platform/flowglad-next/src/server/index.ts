@@ -33,6 +33,7 @@ import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
 import { requestBillingPortalLink } from './mutations/requestBillingPortalLink'
+import { webhooksRouter } from './routers/webhooksRouter'
 
 const filesRouter = router({
   create: createFile,
@@ -79,6 +80,7 @@ export const appRouter = router({
   paymentMethods: paymentMethodsRouter,
   usageMeters: usageMetersRouter,
   usageEvents: usageEventsRouter,
+  webhooks: webhooksRouter,
 })
 
 // This would map to REST endpoints like:

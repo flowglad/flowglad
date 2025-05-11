@@ -18,6 +18,7 @@ import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
 import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
 import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
+import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { logger } from '@/utils/logger'
 import {
@@ -51,6 +52,7 @@ const routeConfigs = [
   ...catalogsRouteConfigs,
   ...usageMetersRouteConfigs,
   ...usageEventsRouteConfigs,
+  ...webhooksRouteConfigs,
 ]
 
 const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(

@@ -4,6 +4,7 @@
   "license": "MIT",
   "version": "0.0.0",
   "scripts": {
+    "randombytes": "tsx scripts/randomBytes.ts",
     "test": "pnpm -r test",
     "yalc:publish": "pnpm -r yalc:publish",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
