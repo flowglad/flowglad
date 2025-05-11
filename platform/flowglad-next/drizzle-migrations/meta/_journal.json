@@ -1450,6 +1450,13 @@
       "when": 1746943696725,
       "tag": "0207_flat_outlaw_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 208,
+      "version": "7",
+      "when": 1746996159312,
+      "tag": "0208_giant_lady_vermin",
+      "breakpoints": true
     }
   ]
 }
