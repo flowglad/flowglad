@@ -46,7 +46,7 @@ Customers can initiate subscriptions themselves by completing a Flowglad Checkou
 
 You can programmatically create subscriptions using Flowglad's backend APIs (e.g., interacting with the `createSubscriptionWorkflow`).
 
-*   **How:** Requires providing `customerId`, `organizationId`, `priceId`, `startDate`, `interval`, `intervalCount`, and `livemode`.
+*   **How:** Requires providing `customerId`, `priceId`, `startDate`, `interval`, and `intervalCount`.
 *   **Use Case:** Ideal for scenarios where you create subscriptions automatically based on actions within your application, such as user sign-up, plan changes initiated within your UI, or migrations.
 *   **Payment Method:** Creating subscriptions via the API **does not** require a `defaultPaymentMethodId` or `backupPaymentMethodId`. This is useful for starting customers on free trials without asking for card details upfront. The subscription status will initially be `Incomplete` if `autoStart` is false and there's no trial or payment method. It becomes `Trialing` if a `trialEnd` date is provided, or `Active` if `autoStart` is true and a default payment method exists for the customer or is provided.
 
