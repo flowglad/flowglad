@@ -25,15 +25,19 @@ const MoreMenuCell = ({
   const [isSecretModalOpen, setIsSecretModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [webhookSecret, setWebhookSecret] = useState<string>('')
-
-  const requestSecret =
-    trpc.webhooks.requestSigningSecret.useMutation()
+  console.log('webhook', webhook)
+  const requestSecret = trpc.webhooks.requestSigningSecret.useQuery(
+    {
+      webhookId: webhook.id,
+    },
+    {
+      enabled: false,
+    }
+  )
 
   const handleShowSecret = async () => {
-    const result = await requestSecret.mutateAsync({
-      webhookId: webhook.id,
-    })
-    setWebhookSecret(result.secret)
+    const result = await requestSecret.refetch()
+    setWebhookSecret(result.data?.secret || '')
     setIsSecretModalOpen(true)
   }
 
@@ -77,7 +81,7 @@ const WebhooksTable = ({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    Webhook.ClientRecord,
+    { webhook: Webhook.ClientRecord },
     WebhooksTableFilters
   >({
     initialCurrentCursor: undefined,
@@ -142,7 +146,7 @@ const WebhooksTable = ({
     []
   )
 
-  const tableData = data?.items || []
+  const tableData = data?.items.map((item) => item.webhook) || []
   const total = data?.total || 0
 
   return (

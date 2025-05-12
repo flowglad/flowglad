@@ -18,8 +18,7 @@ const WebhookSecretModal = ({
     <Modal
       open={isOpen}
       onOpenChange={setIsOpen}
-      title="Webhook Secret"
-      subtitle="Copy and store this secret securely. It will not be shown again."
+      title="Webhook Signing Secret"
     >
       <div className="flex flex-col gap-4">
         <CopyableTextTableCell

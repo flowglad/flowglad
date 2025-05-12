@@ -1,5 +1,5 @@
 DO $$ BEGIN
-    CREATE TYPE "CommunityMembershipStatus" AS ENUM ('active', 'expired', 'cancelled', 'banned', 'pending', 'unclaimed');
+    CREATE TYPE "CommunityMembershipStatus" AS ENUM ('active', 'expired', 'canceled', 'banned', 'pending', 'unclaimed');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

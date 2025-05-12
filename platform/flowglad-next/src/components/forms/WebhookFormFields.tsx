@@ -4,11 +4,13 @@ import { useFormContext, Controller } from 'react-hook-form'
 import { CreateWebhookInput } from '@/db/schema/webhooks'
 import Input from '@/components/ion/Input'
 import { FlowgladEventType } from '@/types'
-import Checkbox from '@/components/ion/Checkbox'
-import MultiSelect from './MultiSelect'
+import MultiSelect, { Option } from './MultiSelect'
+import Label from '@/components/ion/Label'
+import StatusBadge from '../StatusBadge'
+import Switch from '../ion/Switch'
 // import { MultiSelect } from '@/components/ion/ui/MultiSelect'
 
-const WebhookFormFields = () => {
+const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
   const {
     register,
     formState: { errors },
@@ -23,7 +25,7 @@ const WebhookFormFields = () => {
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 max-w-md">
       <Input
         {...register('webhook.name')}
         label="Name"
@@ -45,26 +47,43 @@ const WebhookFormFields = () => {
             placeholder="Select event types"
             options={eventOptions}
             value={field.value.map((type) => ({
-              label: type,
-              value: type,
+              label: String(type),
+              value: String(type),
             }))}
-            onChange={field.onChange}
+            className="max-w-md"
+            onChange={(selectedOptions: Option[]) => {
+              field.onChange(
+                selectedOptions.map((option) => option.value)
+              )
+            }}
             error={errors.webhook?.filterTypes?.message}
           />
         )}
       />
-      <Controller
-        control={control}
-        name="webhook.active"
-        render={({ field }) => (
-          <Checkbox
-            label="Active"
-            checked={field.value}
-            onCheckedChange={field.onChange}
-            error={errors.webhook?.active?.message}
+      {edit && (
+        <div className="w-full relative flex flex-col gap-3">
+          <Label>Status</Label>
+          <Controller
+            name="webhook.active"
+            control={control}
+            render={({ field }) => (
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                label={
+                  <div className="cursor-pointer w-full">
+                    {field.value ? (
+                      <StatusBadge active={true} />
+                    ) : (
+                      <StatusBadge active={false} />
+                    )}
+                  </div>
+                }
+              />
+            )}
           />
-        )}
-      />
+        </div>
+      )}
     </div>
   )
 }

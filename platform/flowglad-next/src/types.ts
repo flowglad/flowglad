@@ -563,7 +563,7 @@ export enum FlowgladEventType {
   PaymentSucceeded = 'payment.succeeded',
   SubscriptionCreated = 'subscription.created',
   SubscriptionUpdated = 'subscription.updated',
-  SubscriptionCancelled = 'subscription.cancelled',
+  SubscriptionCancelled = 'subscription.canceled',
 }
 
 export enum EventCategory {
@@ -608,7 +608,7 @@ export enum CommunityPlatform {
 export enum CommunityMembershipStatus {
   Active = 'active',
   Expired = 'expired',
-  Cancelled = 'cancelled',
+  Cancelled = 'canceled',
   Banned = 'banned',
   Pending = 'pending',
   Unclaimed = 'unclaimed',

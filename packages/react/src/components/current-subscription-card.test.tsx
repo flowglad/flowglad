@@ -157,7 +157,7 @@ describe('StandardCurrentSubscriptionCard', () => {
     expect(screen.getByText('Payment Past Due')).toBeInTheDocument()
   })
 
-  it('shows renewal date when shouldShowBillingPeriodEnd is true and not cancelled', () => {
+  it('shows renewal date when shouldShowBillingPeriodEnd is true and not canceled', () => {
     render(<StandardCurrentSubscriptionCard {...defaultProps} />)
     expect(
       screen.getByText(
@@ -166,7 +166,7 @@ describe('StandardCurrentSubscriptionCard', () => {
     ).toBeInTheDocument()
   })
 
-  it('does not show renewal date when subscription is cancelled', () => {
+  it('does not show renewal date when subscription is canceled', () => {
     const cancelDate = '2023-11-15'
     const propsWithCancellation = {
       ...defaultProps,
@@ -200,14 +200,14 @@ describe('StandardCurrentSubscriptionCard', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows cancel subscription modal when not cancelled', () => {
+  it('shows cancel subscription modal when not canceled', () => {
     render(<StandardCurrentSubscriptionCard {...defaultProps} />)
     expect(
       screen.getByTestId('cancel-subscription-modal')
     ).toBeInTheDocument()
   })
 
-  it('does not show cancel subscription modal when already cancelled', () => {
+  it('does not show cancel subscription modal when already canceled', () => {
     const cancelDate = '2023-11-15'
     const propsWithCancellation = {
       ...defaultProps,
@@ -346,7 +346,7 @@ describe('UsageCurrentSubscriptionCard', () => {
     expect(screen.getByText('Payment Past Due')).toBeInTheDocument()
   })
 
-  it('shows renewal date when shouldShowBillingPeriodEnd is true and not cancelled', () => {
+  it('shows renewal date when shouldShowBillingPeriodEnd is true and not canceled', () => {
     render(<UsageCurrentSubscriptionCard {...defaultProps} />)
     expect(
       screen.getByText(
@@ -355,7 +355,7 @@ describe('UsageCurrentSubscriptionCard', () => {
     ).toBeInTheDocument()
   })
 
-  it('does not show renewal date when subscription is cancelled', () => {
+  it('does not show renewal date when subscription is canceled', () => {
     const cancelDate = '2023-11-15'
     const propsWithCancellation = {
       ...defaultProps,
@@ -387,14 +387,14 @@ describe('UsageCurrentSubscriptionCard', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows cancel subscription modal when not cancelled', () => {
+  it('shows cancel subscription modal when not canceled', () => {
     render(<UsageCurrentSubscriptionCard {...defaultProps} />)
     expect(
       screen.getByTestId('cancel-subscription-modal')
     ).toBeInTheDocument()
   })
 
-  it('does not show cancel subscription modal when already cancelled', () => {
+  it('does not show cancel subscription modal when already canceled', () => {
     const cancelDate = '2023-11-15'
     const propsWithCancellation = {
       ...defaultProps,

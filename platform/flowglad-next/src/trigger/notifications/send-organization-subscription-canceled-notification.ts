@@ -63,7 +63,7 @@ export const sendOrganizationSubscriptionCanceledNotificationTask =
         to: usersAndMemberships
           .map(({ user }) => user.email)
           .filter((email) => !isNil(email)),
-        subject: `Subscription Cancelled: ${customer.name} cancelled ${subscription.name}`,
+        subject: `Subscription Cancelled: ${customer.name} canceled ${subscription.name}`,
         react: OrganizationSubscriptionCanceledNotificationEmail({
           organizationName: organization.name,
           subscriptionName: subscription.name!,

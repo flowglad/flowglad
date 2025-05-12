@@ -27,6 +27,7 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
     name: '',
     url: '',
     filterTypes: [],
+    active: true,
   }
 
   return (

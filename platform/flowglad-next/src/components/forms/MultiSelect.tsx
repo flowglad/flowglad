@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 import * as React from 'react'
 import { forwardRef, useEffect } from 'react'
 import Label from '@/components/ion/Label'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@/components/ion/Badge'
 import {
   Command,
   CommandGroup,
@@ -248,11 +248,9 @@ const MultipleSelector = React.forwardRef<
     const [open, setOpen] = React.useState(false)
     const [onScrollbar, setOnScrollbar] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(false)
-    const dropdownRef = React.useRef<HTMLDivElement>(null) // Added this
+    const dropdownRef = React.useRef<HTMLDivElement>(null)
 
-    const [selected, setSelected] = React.useState<Option[]>(
-      value || []
-    )
+    const [selected, setSelected] = React.useState<Option[]>([])
     const [options, setOptions] = React.useState<GroupOption>(
       transToGroupOption(arrayDefaultOptions, groupBy)
     )
@@ -332,7 +330,27 @@ const MultipleSelector = React.forwardRef<
 
     useEffect(() => {
       if (value) {
-        setSelected(value)
+        const newSelected = value.map((opt: Option) => {
+          // Ensure label and value are strings, falling back to String() conversion
+          // This trusts that opt is an Option, but its label/value might be other types
+          const finalLabel =
+            typeof opt.label === 'string'
+              ? opt.label
+              : String(opt.label)
+          const finalValue =
+            typeof opt.value === 'string'
+              ? opt.value
+              : String(opt.value)
+
+          return {
+            ...opt,
+            label: finalLabel,
+            value: finalValue,
+          }
+        })
+        setSelected(newSelected)
+      } else {
+        setSelected([])
       }
     }, [value])
 
@@ -495,9 +513,10 @@ const MultipleSelector = React.forwardRef<
     }, [creatable, commandProps?.filter])
     const generatedId = React.useId()
     const id = providedId ?? generatedId
+    const resolvedError = typeof error === 'string' ? !!error : error
 
     return (
-      <div className={className}>
+      <div>
         {label && (
           <Label
             id={`${id}__label`}
@@ -505,7 +524,7 @@ const MultipleSelector = React.forwardRef<
             required={required}
             helper={helper}
             disabled={disabled}
-            className="mb-1"
+            className="mb-0.5"
           >
             {label}
           </Label>
@@ -530,10 +549,24 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'min-h-10 rounded-md border border-input text-base ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 md:text-sm',
+              'flex items-center w-full rounded-radius-sm border text-sm text-foreground',
+              'transition-all',
+              'min-h-9 h-auto',
+              'overflow-hidden',
+              'px-3 py-1.5',
               {
-                'px-3 py-2': selected.length !== 0,
-                'cursor-text': !disabled && selected.length !== 0,
+                [disabled ? 'bg-disabled' : 'bg-background-input']:
+                  true,
+                'hover:border-outline': !disabled && !resolvedError,
+                'focus-within:danger-focus border-danger hover:border-danger':
+                  resolvedError && !disabled,
+                'focus-within:primary-focus focus-within:border-stroke-primary':
+                  !resolvedError && !disabled,
+                'border-danger': resolvedError && !disabled,
+                'border-stroke': !resolvedError && !disabled,
+                'border-stroke-disabled text-on-disabled': disabled,
+                'pointer-events-none': disabled,
+                'cursor-text': !disabled,
               },
               className
             )}
@@ -542,12 +575,13 @@ const MultipleSelector = React.forwardRef<
               inputRef?.current?.focus()
             }}
           >
-            <div className="relative flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 items-center w-full">
               {selected.map((option) => {
                 return (
                   <Badge
                     key={option.value}
                     className={cn(
+                      'py-1',
                       'data-[disabled]:bg-muted-foreground data-[disabled]:text-muted data-[disabled]:hover:bg-muted-foreground',
                       'data-[fixed]:bg-muted-foreground data-[fixed]:text-muted data-[fixed]:hover:bg-muted-foreground',
                       badgeClassName
@@ -555,7 +589,7 @@ const MultipleSelector = React.forwardRef<
                     data-fixed={option.fixed}
                     data-disabled={disabled || undefined}
                   >
-                    {option.label}
+                    {String(option.label)}
                     <button
                       type="button"
                       className={cn(
@@ -578,7 +612,6 @@ const MultipleSelector = React.forwardRef<
                   </Badge>
                 )
               })}
-              {/* Avoid having the "Search" Icon */}
               <CommandPrimitive.Input
                 {...inputProps}
                 ref={inputRef}
@@ -604,11 +637,21 @@ const MultipleSelector = React.forwardRef<
                     : placeholder
                 }
                 className={cn(
-                  'flex-1 bg-transparent outline-none placeholder:text-muted-foreground',
+                  'flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm placeholder:text-subtle',
+                  'py-0.5',
+                  'disabled:text-on-disabled disabled:placeholder:text-on-disabled disabled:pointer-events-none',
                   {
-                    'w-full': hidePlaceholderWhenSelected,
-                    'px-3 py-2': selected.length === 0,
-                    'ml-1': selected.length !== 0,
+                    'w-full':
+                      hidePlaceholderWhenSelected &&
+                      selected.length > 0,
+                    'ml-1':
+                      selected.length !== 0 &&
+                      (!hidePlaceholderWhenSelected ||
+                        selected.length > 0),
+                    'pl-2':
+                      selected.length === 0 &&
+                      (!hidePlaceholderWhenSelected ||
+                        selected.length === 0),
                   },
                   inputProps?.className
                 )}
@@ -621,12 +664,7 @@ const MultipleSelector = React.forwardRef<
                 }}
                 className={cn(
                   'absolute right-0 h-6 w-6 p-0',
-                  (hideClearAllButton ||
-                    disabled ||
-                    selected.length < 1 ||
-                    selected.filter((s) => s.fixed).length ===
-                      selected.length) &&
-                    'hidden'
+                  'hidden'
                 )}
               >
                 <X />
@@ -636,7 +674,7 @@ const MultipleSelector = React.forwardRef<
           <div className="relative">
             {open && (
               <CommandList
-                className="absolute top-1 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in"
+                className="absolute top-1 z-10 w-full rounded-md border border-stroke-subtle bg-background text-on-background shadow-medium outline-none animate-in"
                 onMouseLeave={() => {
                   setOnScrollbar(false)
                 }}
@@ -684,7 +722,10 @@ const MultipleSelector = React.forwardRef<
                                     setInputValue('')
                                     const newOptions = [
                                       ...selected,
-                                      option,
+                                      {
+                                        label: option.label,
+                                        value: option.value,
+                                      },
                                     ]
                                     setSelected(newOptions)
                                     onChange?.(newOptions)

@@ -1,12 +1,14 @@
-import { Svix } from 'svix'
+import { ApplicationOut, Svix } from 'svix'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
 import { Event } from '@/db/schema/events'
 import { generateHmac } from './backendCore'
 import { Webhook } from '@/db/schema/webhooks'
+import { Application } from 'svix/dist/api/application'
 
-function svix() {
-  return new Svix(core.envVariable('SVIX_SECRET_KEY'))
+export function svix() {
+  console.log('svix api key', core.envVariable('SVIX_API_KEY'))
+  return new Svix(core.envVariable('SVIX_API_KEY'))
 }
 
 function generateSvixId({
@@ -72,7 +74,13 @@ export async function findOrCreateSvixApplication(params: {
     organization,
     livemode,
   })
-  const app = await svix().application.get(applicationId)
+  let app: ApplicationOut
+  try {
+    app = await svix().application.get(applicationId)
+  } catch (error) {
+    console.log('error', error)
+    throw error
+  }
   if (app) {
     return app
   }

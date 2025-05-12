@@ -101,7 +101,7 @@ describe('createSubscription', async () => {
       organizationId: organization.id,
       customerId: newCustomer.id,
     })
-    // Create a past subscription that is now cancelled
+    // Create a past subscription that is now canceled
     await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_${core.nanoid()}`
       const [sub] = await createSubscriptionWorkflow(
@@ -133,7 +133,7 @@ describe('createSubscription', async () => {
       return sub
     })
 
-    // Should be able to create a new subscription since the past one is cancelled
+    // Should be able to create a new subscription since the past one is canceled
     await expect(
       adminTransaction(async ({ transaction }) => {
         return createSubscriptionWorkflow(

@@ -117,7 +117,7 @@ export const getWebhook = protectedProcedure
 export const requestWebhookSigningSecret = protectedProcedure
   .input(z.object({ webhookId: z.string() }))
   .output(z.object({ secret: z.string() }))
-  .mutation(
+  .query(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
         const { webhook, organization } =
