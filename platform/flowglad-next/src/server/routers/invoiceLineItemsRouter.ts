@@ -13,7 +13,7 @@ import { idInputSchema } from '@/db/tableUtils'
 import { generateOpenApiMetas } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
-  resource: 'Invoice Line Item',
+  resource: 'invoiceLineItem',
   tags: ['Invoice Line Items'],
 })
 
