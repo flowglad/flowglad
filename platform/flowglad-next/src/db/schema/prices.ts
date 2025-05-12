@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import {
   integer,
   pgTable,
@@ -20,7 +19,6 @@ import {
   nullableStringForeignKey,
   SelectConditions,
   ommittedColumnsForInsertSchema,
-  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   products,
@@ -45,12 +43,11 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   externalId: true,
-  ...hiddenColumnsForClientSchema,
 } as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
-  ...R.omit(['position'], hiddenColumns),
+  ...hiddenColumns,
 } as const
 
 const PRICES_TABLE_NAME = 'prices'
@@ -163,8 +160,8 @@ const subscriptionPriceColumns = {
   type: z.literal(PriceType.Subscription),
   intervalCount: core.safeZodPositiveInteger,
   intervalUnit: intervalZodSchema,
-  setupFeeAmount: core.safeZodPositiveIntegerOrZero.nullish(),
-  trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullish(),
+  setupFeeAmount: core.safeZodPositiveIntegerOrZero.nullable(),
+  trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
 }
 
 const usagePriceColumns = {
