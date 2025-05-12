@@ -11,7 +11,14 @@ export const svixHandlers = [
       createdAt: new Date().toISOString(),
     })
   }),
-
+  http.get('https://api.svix.com/api/v1/app/:appId', () => {
+    return HttpResponse.json({
+      id: `app_mock_${core.nanoid()}`,
+      name: 'Mock Application',
+      uid: core.nanoid(),
+      createdAt: new Date().toISOString(),
+    })
+  }),
   http.post('https://api.svix.com/api/v1/app/:appId/endpoint', () => {
     return HttpResponse.json({
       id: `ep_mock_${core.nanoid()}`,

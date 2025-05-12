@@ -64,7 +64,7 @@ export const cancelSubscriptionImmediately = async (
     transaction
   )
   /**
-   * Mark all billing periods that have not started yet as cancelled
+   * Mark all billing periods that have not started yet as canceled
    */
   for (const billingPeriod of billingPeriodsForSubscription) {
     if (billingPeriod.startDate > endDate) {

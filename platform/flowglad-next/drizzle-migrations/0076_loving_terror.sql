@@ -1,5 +1,5 @@
 DO $$ BEGIN
-    CREATE TYPE "FlowgladEventType" AS ENUM ('scheduler.event.created', 'customer.created', 'customer.updated', 'purchase.completed', 'payment.failed', 'payment.succeeded', 'subscription.created', 'subscription.updated', 'subscription.cancelled');
+    CREATE TYPE "FlowgladEventType" AS ENUM ('scheduler.event.created', 'customer.created', 'customer.updated', 'purchase.completed', 'payment.failed', 'payment.succeeded', 'subscription.created', 'subscription.updated', 'subscription.canceled');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

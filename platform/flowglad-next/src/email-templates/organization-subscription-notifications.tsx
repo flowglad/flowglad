@@ -96,7 +96,7 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
     <Html>
       <Head />
       <Preview>
-        Subscription Cancelled: {customerName} cancelled{' '}
+        Subscription Cancelled: {customerName} canceled{' '}
         {subscriptionName}
       </Preview>
       <Body style={main}>
@@ -112,7 +112,7 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
             Subscription Cancellation Alert
           </Heading>
           <Text style={text}>
-            A customer has cancelled their subscription to your{' '}
+            A customer has canceled their subscription to your{' '}
             {subscriptionName} plan.
           </Text>
           <Section style={details}>

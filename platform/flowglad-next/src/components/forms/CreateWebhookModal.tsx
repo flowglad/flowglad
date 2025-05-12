@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import FormModal from '@/components/forms/FormModal'
 import {
   createWebhookInputSchema,
@@ -7,6 +8,7 @@ import {
 } from '@/db/schema/webhooks'
 import WebhookFormFields from '@/components/forms/WebhookFormFields'
 import { trpc } from '@/app/_trpc/client'
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 interface CreateWebhookModalProps {
   isOpen: boolean
@@ -18,23 +20,48 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
   setIsOpen,
 }) => {
   const createWebhook = trpc.webhooks.create.useMutation()
+  const [webhookSecret, setWebhookSecret] = useState<string | null>(
+    null
+  )
   const webhookDefaultValues: Webhook.ClientInsert = {
     name: '',
     url: '',
     filterTypes: [],
+    active: true,
   }
+
   return (
     <FormModal
       isOpen={isOpen}
-      setIsOpen={setIsOpen}
+      setIsOpen={(newIsOpen) => {
+        setIsOpen(newIsOpen)
+        setWebhookSecret(null)
+      }}
       title="Create Webhook"
       formSchema={createWebhookInputSchema}
-      onSubmit={createWebhook.mutateAsync}
       defaultValues={{
         webhook: webhookDefaultValues,
       }}
+      onSubmit={async (data) => {
+        const result = await createWebhook.mutateAsync(data)
+        setWebhookSecret(result.secret)
+      }}
+      hideFooter={webhookSecret ? true : false}
+      autoClose={false}
     >
-      <WebhookFormFields />
+      {webhookSecret ? (
+        <div className="flex flex-col gap-4">
+          <CopyableTextTableCell copyText={webhookSecret}>
+            {webhookSecret}
+          </CopyableTextTableCell>
+          <p className="text-sm text-foreground">
+            Copy this webhook secret and save it in your environment
+            variables.
+          </p>
+        </div>
+      ) : (
+        <WebhookFormFields />
+      )}
     </FormModal>
   )
 }

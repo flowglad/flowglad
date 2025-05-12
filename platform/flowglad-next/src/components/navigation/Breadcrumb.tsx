@@ -48,7 +48,13 @@ const BreadcrumbComponent = ({
  * Path segments that correspond to conceptual groupings of pages, and therefore
  * should not be displayed in the breadcrumb.
  */
-const noCrumbList = ['finance', 'catalog', 'store', 'customers']
+const noCrumbList = [
+  'finance',
+  'catalog',
+  'store',
+  'customers',
+  'settings',
+]
 
 const Breadcrumb = () => {
   const pathname = usePathname()

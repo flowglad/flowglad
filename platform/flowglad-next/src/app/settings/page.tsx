@@ -1,7 +1,7 @@
-import InternalSettingsPage from './InternalSettingsPage'
+import { redirect } from 'next/navigation'
 
 const SettingsPage = async () => {
-  return <InternalSettingsPage />
+  redirect('/settings/organization-details')
 }
 
 export default SettingsPage

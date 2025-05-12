@@ -8,8 +8,6 @@ import {
 } from 'lucide-react'
 import {
   NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
 } from '@/components/ion/Navigation'
 import { UserButton } from '@stackframe/stack'
@@ -149,16 +147,29 @@ export const SideNavigation = () => {
               ]}
               basePath="/finance"
             />
-            <NavigationMenuItem>
-              <NavigationMenuLink
-                iconLeading={<Settings size={14} />}
-                className="w-full"
-                selected={selectedPath.startsWith('settings')}
-                href="/settings"
-              >
-                Settings
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+            <ParentChildNavigationItem
+              parentLabel="Settings"
+              parentLeadingIcon={<Settings size={16} />}
+              childItems={[
+                {
+                  label: 'Organization Details',
+                  href: '/settings/organization-details',
+                },
+                {
+                  label: 'Teammates',
+                  href: '/settings/teammates',
+                },
+                {
+                  label: 'API Keys',
+                  href: '/settings/api-keys',
+                },
+                {
+                  label: 'Webhooks',
+                  href: '/settings/webhooks',
+                },
+              ]}
+              basePath="/settings"
+            />
           </NavigationMenuList>
         </NavigationMenu>
       </div>

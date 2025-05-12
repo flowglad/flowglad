@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* 
 run the following in the terminal
 NODE_ENV=production pnpm tsx src/scripts/uploadSvixEventTypes.ts svix_secret_key=...

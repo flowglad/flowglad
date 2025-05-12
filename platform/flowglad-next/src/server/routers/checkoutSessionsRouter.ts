@@ -70,7 +70,7 @@ const coreCheckoutSessionSchema = z.object({
   cancelUrl: z
     .string()
     .describe(
-      'The URL to redirect to after the purchase is cancelled or fails'
+      'The URL to redirect to after the purchase is canceled or fails'
     ),
   outputMetadata: z
     .record(z.string(), z.any())

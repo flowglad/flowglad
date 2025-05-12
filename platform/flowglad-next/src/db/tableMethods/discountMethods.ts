@@ -15,7 +15,7 @@ import {
   discountsUpdateSchema,
   discountsTableRowDataSchema,
 } from '@/db/schema/discounts'
-import { eq, desc, count, inArray } from 'drizzle-orm'
+import { count, inArray } from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import { z } from 'zod'

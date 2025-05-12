@@ -10,7 +10,6 @@ import {
   DiscountAmountType,
   DiscountDuration,
 } from '@/types'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
 import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'

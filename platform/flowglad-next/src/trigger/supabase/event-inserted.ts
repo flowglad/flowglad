@@ -9,6 +9,8 @@ import {
   updateEvent,
 } from '@/db/tableMethods/eventMethods'
 import { keysToCamelCase } from '@/utils/core'
+import { sendSvixEvent } from '@/utils/svix'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 const eventInsertSchema = supabaseInsertPayloadSchema(
   eventsSelectSchema
@@ -63,7 +65,11 @@ export const eventInsertedTask = task({
 
     const { record: event } = parsedPayload.data
 
-    const result = await adminTransaction(async ({ transaction }) => {
+    const {
+      result,
+      organization,
+      event: mostUpToDateEvent,
+    } = await adminTransaction(async ({ transaction }) => {
       const existingEvent = await selectEventById(
         event.id,
         transaction
@@ -76,14 +82,30 @@ export const eventInsertedTask = task({
         }
       }
 
-      await updateEvent(
+      const updatedEvent = await updateEvent(
         { id: event.id, processedAt: new Date() },
         transaction
       )
-
-      return { eventId: event.id, result: 'processed' }
+      const organization = await selectOrganizationById(
+        event.organizationId,
+        transaction
+      )
+      return {
+        eventId: event.id,
+        result: 'processed',
+        organization,
+        event: updatedEvent,
+      }
     })
-
+    if (result === 'already_processed') {
+      return result
+    }
+    if (mostUpToDateEvent) {
+      await sendSvixEvent({
+        event: mostUpToDateEvent,
+        organization,
+      })
+    }
     return result
   },
 })

@@ -20,74 +20,118 @@ import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 // the prompt may provider another source for the type - if so, import it from there
 import { UnicornRiderRecord } from '@/db/schema/unicorn-riders'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { trpc } from '@/app/_trpc/client'
 
-const UnicornRidersTable = ({ data }: { data: UnicornRiderRecord[] }) => {
+export interface UnicornRidersTableFilters {
+  // Add any filter fields here
+  organizationId?: string
+}
+
+const UnicornRidersTable = ({
+  filters = {},
+}: {
+  filters?: UnicornRidersTableFilters
+}) => {
+  const {
+    pageIndex,
+    pageSize,
+    handlePaginationChange,
+    data,
+    isLoading,
+    isFetching,
+  } = usePaginatedTableState<UnicornRiderRecord, UnicornRidersTableFilters>({
+    initialCurrentCursor: undefined,
+    pageSize: 10,
+    filters,
+    useQuery: trpc.unicornRiders.getTableRows.useQuery,
+  })
+
   const columns = useMemo(() => [
-  {
-    header: ({ column }) => (
-      <SortableColumnHeaderCell
-              title="Name"
-              column={column}
-            />
-          ),
-          accessorKey: 'name',
-          cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.name}</span>
-          ),
-        },
-        {
-          header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Type"
-              column={column}
-            />
-          ),
-          accessorKey: 'type',
-          cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.type}</span>
-          ),
-        },
-        {
-          header: ({ column }) => (
-            <SortableColumnHeaderCell title="Pricing" column={column} />
-          ),
-          accessorKey: 'pricing',
-          cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.pricing}</span>
-          ),
-        },
-        {
-            header: ({ column }) => (
-                <SortableColumnHeaderCell title="Status" column={column} />
-            ),
-            accessorKey: 'status',
-            cell: ({ row: { original: cellData } }) => (
-                <span className="text-sm">{cellData.status}</span>
-            ),
-        },
-        {
-            header: ({ column }) => (
-                <SortableColumnHeaderCell title="Created" column={column} />
-            ),
-            accessorKey: 'createdAt',
-            cell: ({ row: { original: cellData } }) => (
-                <>{core.formatDate(cellData.createdAt!)}</>
-            ),
-        },
-        {
-            header: ({ column }) => (
-                <SortableColumnHeaderCell title="ID" column={column} />
-            ),
-            accessorKey: 'id',
-            cell: ({ row: { original: cellData } }) => (
-                <CopyableTextTableCell copyText={cellData.id}>
-                    {cellData.id}
-                </CopyableTextTableCell>
-            ),
-        },
-    ] as ColumnDef<UnicornRiderRecord>[],
-    []),
-  return <Table columns={columns} data={data} className="bg-nav" bordered />
+    {
+      header: ({ column }) => (
+        <SortableColumnHeaderCell
+          title="Name"
+          column={column}
+        />
+      ),
+      accessorKey: 'name',
+      cell: ({ row: { original: cellData } }) => (
+        <span className="text-sm">{cellData.name}</span>
+      ),
+    },
+    {
+      header: ({ column }) => (
+        <SortableColumnHeaderCell
+          title="Type"
+          column={column}
+        />
+      ),
+      accessorKey: 'type',
+      cell: ({ row: { original: cellData } }) => (
+        <span className="text-sm">{cellData.type}</span>
+      ),
+    },
+    {
+      header: ({ column }) => (
+        <SortableColumnHeaderCell title="Pricing" column={column} />
+      ),
+      accessorKey: 'pricing',
+      cell: ({ row: { original: cellData } }) => (
+        <span className="text-sm">{cellData.pricing}</span>
+      ),
+    },
+    {
+      header: ({ column }) => (
+        <SortableColumnHeaderCell title="Status" column={column} />
+      ),
+      accessorKey: 'status',
+      cell: ({ row: { original: cellData } }) => (
+        <span className="text-sm">{cellData.status}</span>
+      ),
+    },
+    {
+      header: ({ column }) => (
+        <SortableColumnHeaderCell title="Created" column={column} />
+      ),
+      accessorKey: 'createdAt',
+      cell: ({ row: { original: cellData } }) => (
+        <>{core.formatDate(cellData.createdAt!)}</>
+      ),
+    },
+    {
+      header: ({ column }) => (
+        <SortableColumnHeaderCell title="ID" column={column} />
+      ),
+      accessorKey: 'id',
+      cell: ({ row: { original: cellData } }) => (
+        <CopyableTextTableCell copyText={cellData.id}>
+          {cellData.id}
+        </CopyableTextTableCell>
+      ),
+    },
+  ] as DisplayColumnDef<UnicornRiderRecord>[],
+  [])
+
+  const tableData = data?.items || []
+  const total = data?.total || 0
+
+  return (
+    <Table
+      columns={columns}
+      data={tableData}
+      className="bg-nav"
+      bordered
+      pagination={{
+        pageIndex,
+        pageSize,
+        total,
+        onPageChange: handlePaginationChange,
+        isLoading,
+        isFetching,
+      }}
+    />
+  )
 }
 
 export default UnicornRidersTable

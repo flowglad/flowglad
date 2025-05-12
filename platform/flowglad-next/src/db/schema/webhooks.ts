@@ -19,7 +19,6 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import { FlowgladEventType } from '@/types'
-import core from '@/utils/core'
 
 const TABLE_NAME = 'webhooks'
 
@@ -83,11 +82,10 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-const hiddenColumns = {
-  ...ommittedColumnsForInsertSchema,
-} as const
+const hiddenColumns = {} as const
 
 const nonClientEditableColumns = {
+  ...hiddenColumns,
   ...readOnlyColumns,
   organizationId: true,
 } as const
@@ -103,8 +101,9 @@ export const webhookClientUpdateSchema = webhooksUpdateSchema.omit(
   nonClientEditableColumns
 )
 
-export const webhookClientSelectSchema =
-  webhooksSelectSchema.omit(hiddenColumns)
+export const webhookClientSelectSchema = webhooksSelectSchema.omit({
+  position: true,
+})
 
 export namespace Webhook {
   export type Insert = z.infer<typeof webhooksInsertSchema>
@@ -130,3 +129,7 @@ export const editWebhookInputSchema = z.object({
 })
 
 export type EditWebhookInput = z.infer<typeof editWebhookInputSchema>
+
+export const webhooksTableRowDataSchema = z.object({
+  webhook: webhookClientSelectSchema,
+})

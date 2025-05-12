@@ -85,8 +85,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@radix-ui/react-dialog':
-        specifier: ^1.1.1
-        version: 1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: ^1.1.6
+        version: 1.1.6(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@radix-ui/react-label':
         specifier: 2.1.4
         version: 2.1.4(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -109,8 +109,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@radix-ui/react-slot':
-        specifier: ^1.1.0
-        version: 1.1.0(@types/react@18.3.12)(react@19.0.0)
+        specifier: ^1.1.2
+        version: 1.2.0(@types/react@18.3.12)(react@19.0.0)
       '@radix-ui/react-switch':
         specifier: ^1.1.0
         version: 1.1.1(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -2777,19 +2777,6 @@ packages:
       react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
-        optional: true
-
-  '@radix-ui/react-dialog@1.1.2':
-    resolution: {integrity: sha512-Yj4dZtqa2o+kG61fzB0H2qUvmwBA2oyQroGLyNtBj1beo1khoQ3q1a2AO8rrQYjd8256CO9+N8L9tvsS+bnIyA==}
-    peerDependencies:
-      '@types/react': '*'
-      '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      '@types/react-dom':
         optional: true
 
   '@radix-ui/react-dialog@1.1.6':
@@ -12267,28 +12254,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.12
 
-  '@radix-ui/react-dialog@1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
-    dependencies:
-      '@radix-ui/primitive': 1.1.0
-      '@radix-ui/react-compose-refs': 1.1.0(@types/react@18.3.12)(react@19.0.0)
-      '@radix-ui/react-context': 1.1.1(@types/react@18.3.12)(react@19.0.0)
-      '@radix-ui/react-dismissable-layer': 1.1.1(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@radix-ui/react-focus-guards': 1.1.1(@types/react@18.3.12)(react@19.0.0)
-      '@radix-ui/react-focus-scope': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@radix-ui/react-id': 1.1.0(@types/react@18.3.12)(react@19.0.0)
-      '@radix-ui/react-portal': 1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@radix-ui/react-presence': 1.1.1(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@radix-ui/react-primitive': 2.0.0(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      '@radix-ui/react-slot': 1.1.0(@types/react@18.3.12)(react@19.0.0)
-      '@radix-ui/react-use-controllable-state': 1.1.0(@types/react@18.3.12)(react@19.0.0)
-      aria-hidden: 1.2.4
-      react: 19.0.0
-      react-dom: 19.0.0(react@19.0.0)
-      react-remove-scroll: 2.6.0(@types/react@18.3.12)(react@19.0.0)
-    optionalDependencies:
-      '@types/react': 18.3.12
-      '@types/react-dom': 18.3.0
-
   '@radix-ui/react-dialog@1.1.6(@types/react-dom@18.3.0)(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@radix-ui/primitive': 1.1.1
@@ -18365,7 +18330,7 @@ snapshots:
   react-remove-scroll-bar@2.3.6(@types/react@18.3.12)(react@19.0.0):
     dependencies:
       react: 19.0.0
-      react-style-singleton: 2.2.1(@types/react@18.3.12)(react@19.0.0)
+      react-style-singleton: 2.2.3(@types/react@18.3.12)(react@19.0.0)
       tslib: 2.8.0
     optionalDependencies:
       '@types/react': 18.3.12
