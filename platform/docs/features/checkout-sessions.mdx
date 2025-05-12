@@ -1,7 +1,101 @@
 ---
 title: 'Checkout Sessions'
+description: 'Checkout sessions are how your customers will create subscriptions or purchases for your products.'
 ---
 
 # Checkout Sessions
 
-Coming soon... 
+Checkout Sessions are a fundamental part of Flowglad, representing a time-limited process that captures the necessary details to complete purchases, pay invoices, or add payment methods. They manage the state between initiating a checkout and its successful completion.
+
+By default, a Checkout Session is valid for 24 hours. If not completed within this timeframe, it will expire and can no longer be used.
+
+## Checkout Session Types
+
+Flowglad offers four distinct types of checkout sessions, each tailored to different scenarios:
+
+### Product Checkout Session
+
+A "product" checkout session is the most straightforward. The customer will checkout according to the standard terms defined on your product and price records. Customers can initiate these sessions directly by visiting a product or price purchase page. 
+
+This type is ideal for scenarios where the customer doesn't need to be logged in to your product (e.g. for services), and the transaction is for a standard product offering.
+
+### Add Payment Method Checkout Session
+
+The "Add Payment Method" checkout session provides a flow for customers to securely save a payment method to their Flowglad profile.
+
+Upon successful completion, the payment method is stored. Optionally, if a `targetSubscriptionId` is provided when creating the session, the newly added payment method will automatically become the default payment method for that specific subscription.
+
+### Invoice Checkout Session
+
+Invoice checkout sessions are used for settling payments for manually created `Invoice`s. This is particularly useful for one-off transactions, add-ons, or scenarios where the exact amount due isn't known until the invoice is raised.
+
+It allows customers to pay invoices that might not be tied to a predefined product or subscription.
+
+## Creating a Checkout Session
+
+You can initiate checkout sessions programmatically, most commonly using the `useBilling()` hook in your frontend application.
+
+### Using `useBilling()` Hook
+
+The `createCheckoutSession` method provided by the `useBilling()` hook is the primary way to create `ProductCheckoutSession`s or `PurchaseCheckoutSession`s.
+
+Here's an example of how you might use it in a React component:
+
+```tsx
+import { useBilling } from '@flowglad/nextjs' // Also exported from @flowglad/react
+
+// Inside your component
+const { createCheckoutSession, loading, error } = useBilling()
+
+const handleCheckout = async (product) => {
+  try {
+    await createCheckoutSession({
+      priceId: product.defaultPrice.id, // Or a specific price ID
+      successUrl: `${window.location.origin}/checkout-success`, // Your success page
+      cancelUrl: window.location.href, // Where to return on cancellation
+      quantity: 1,
+      autoRedirect: true, // Automatically redirect to Flowglad Checkout after creation
+      type: 'product',
+    })
+  } catch (err) {
+    console.error("Failed to create checkout session:", err)
+    // Handle error appropriately
+  }
+}
+```
+
+When creating a session, you can specify a `successUrl` and a `cancelUrl`. The customer will be redirected to the `successUrl` after a successful payment or to the `cancelUrl` if they abandon the session. If no `successUrl` is provided, Flowglad will redirect the user to a Flowglad-hosted success page.
+
+### Creating an "Add Payment Method" Session
+
+For creating `AddPaymentMethod` `CheckoutSessions` specifically, you can utilize the `createAddPaymentMethodCheckoutSession` function available through the `useBilling` hook. This function is tailored for scenarios where the primary goal is to securely capture and store a customer's payment details.
+
+```tsx
+import { useBilling } from '@flowglad/nextjs' // Also exported from @flowglad/react
+
+// Inside your component
+const { createAddPaymentMethodCheckoutSession, loading, error } = useBilling()
+
+const handleAddPaymentMethod = async () => {
+  try {
+    await createAddPaymentMethodCheckoutSession({
+      successUrl: window.location.href, // Redirect back here on success
+      cancelUrl: window.location.href, // Redirect back here on cancel
+      autoRedirect: true, // Automatically redirect to Flowglad Checkout
+      // Optionally, provide targetSubscriptionId to link the new method
+      // targetSubscriptionId: 'sub_xxxxxx'
+    })
+  } catch (err) {
+    console.error("Failed to create add payment method session:", err)
+    // Handle error appropriately
+  }
+}
+```
+
+## Customer Association
+
+When creating checkout sessions via API, you must provide a `customerExternalId` when creating a checkout session, especially if Flowglad is integrated as the payment layer within your application. 
+
+Associating a checkout session with an existing customer record ensures that all billing activities are correctly attributed and avoids potential data discrepancies or the creation of duplicate customer profiles.
+
+While anonymous checkouts are possible (typically through hosted product/price pages), linking checkouts to existing customer records via `customerExternalId` is more robust, and is required for API-first integrations.
