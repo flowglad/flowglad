@@ -55,6 +55,21 @@
       "pages": ["quickstart", "setup-by-prompt"]
     },
     {
+      "group": "Features",
+      "pages": [
+        "features/products",
+        "features/prices",
+        "features/discounts",
+        "features/catalogs",
+        "features/subscriptions",
+        "features/checkout-sessions",
+        "features/customer-billing-ui",
+        "features/invoices",
+        "features/usage",
+        "features/webhooks"
+      ]
+    },
+    {
       "group": "Concepts",
       "pages": ["principles"]
     },
