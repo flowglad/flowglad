@@ -11,6 +11,7 @@ import Switch from '@/components/ion/Switch'
 import Label from '@/components/ion/Label'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { Percent } from 'lucide-react'
+import { core } from '@/utils/core'
 
 export default function DiscountFormFields({
   edit = false,
@@ -27,6 +28,10 @@ export default function DiscountFormFields({
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
   const discount = watch('discount')
+  if (!core.IS_PROD) {
+    // eslint-disable-next-line no-console
+    console.log('===errors', errors)
+  }
   return (
     <div className="space-y-4">
       <Input
