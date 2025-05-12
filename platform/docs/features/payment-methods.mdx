@@ -1,0 +1,42 @@
+---
+title: 'Payment Methods'
+description: 'How your customers pay you for your products and services.'
+---
+
+Payment Methods represent the ways your customers can pay you, such as credit cards or US bank accounts. Flowglad securely stores and manages this information, linking it directly to your `Customer` records.
+
+## How Payment Methods are Added
+
+Customers can add payment methods in a few primary ways:
+
+1.  **During Checkout:** When a customer completes a checkout session for a subscription or a one-time purchase (using `CheckoutSessionType.Product` or `CheckoutSessionType.Purchase`), the payment method used is typically saved automatically to their customer record.
+2.  **Explicitly Adding a Method:** You can allow customers to add a payment method without an immediate purchase. This is done using a specific type of checkout session: `CheckoutSessionType.AddPaymentMethod`. This is useful for:
+    *   Setting up future payments.
+    *   Allowing customers to add a payment method via an embedded billing page or a hosted customer portal (which would utilize this checkout session type behind the scenes).
+
+## The "Add Payment Method" Checkout Session
+
+This specialized checkout session (`CheckoutSessionType.AddPaymentMethod`) is designed solely to capture and save a customer's payment details.
+
+*   **Targeting Subscriptions:** When creating this session (e.g., using the `FlowgladServer.createAddPaymentMethodCheckoutSession` method), you can optionally provide a `targetSubscriptionId`. If provided, the newly added payment method will automatically become the default payment method for that specific subscription. This is ideal for scenarios like:
+    *   Free trials where a payment method is required to continue service post-trial.
+    *   Subscriptions created initially without payment, requiring the customer to add one later.
+
+## Stored Information
+
+Each `PaymentMethod` record stores important details:
+
+*   **`type`**: The kind of payment method, such as `PaymentMethodType.Card` or `PaymentMethodType.USBankAccount`.
+*   **`billingDetails`**: An object containing the customer's billing address (name, email, address).
+*   **`paymentMethodData`**: Specific details about the payment method itself, which vary by type. For cards, this includes `brand` (Visa, Mastercard, etc.) and `last4` digits. For US bank accounts, it includes `last4`. Flowglad provides helpers like `paymentMethodSummaryLabel` to easily display this information (e.g., "Visa ending in 1234").
+*   **`default`**: A boolean indicating if this is the default payment method for the associated `Customer`.
+
+## Importance for Fees
+
+The `type` of the payment method is crucial for accurately calculating payment processing fees, as different methods (e.g., cards vs. bank accounts) often incur different fee structures.
+
+*See Also:*
+*   [Checkout Sessions](./checkout-sessions) (You might need to create this page or adjust the link)
+*   [Customers](./customers) (You might need to create this page or adjust the link)
+*   [Subscriptions](./subscriptions) (You might need to create this page or adjust the link)
+

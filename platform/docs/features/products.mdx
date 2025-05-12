@@ -1,0 +1,58 @@
+---
+title: 'Products'
+description: "Create a product, with multiple prices, easily."
+---
+
+Products allow you to group [prices](/features/prices) together that correspond with the same offering. These oftentimes will share the same descriptions, the same name, the same feature set, or the same group of benefits. 
+
+<Note>
+Products can have multiple prices. This helps group prices that your customers pay together, either for reporting, or for accessing the same features.
+</Note>
+
+
+# Creating Products
+
+<img src="https://share.cleanshot.com/nM6hvYCy" />
+
+You can see and create products on the [Products page](https://app.flowglad.com/store/products).
+
+## General Information
+
+When creating a product, you'll need to provide some basic information:
+
+- **Name**: A clear, descriptive name for your product
+- **Description**: (Optional but recommended) A detailed explanation of what the product offers
+- **Catalog**: Every product must be attached to exactly one catalog
+
+### About Catalogs
+<Note>
+Catalogs group your products. Since each product has associated prices, catalogs effectively organize these prices into logical groupings as well. They are the bedrock of our multi-tenant pricing.
+</Note>
+
+This is particularly useful when you need to:
+
+- Support different pricing schemes for different user communities
+- Migrate prices without affecting existing customers
+- Keep your pricing structure organized and manageable
+
+By isolating products into specific catalogs, you can maintain a clean and organized pricing structure without cluttering your global product space.
+
+Read more about [catalogs](/features/catalogs).
+
+
+## Pricing
+
+When creating a product, you'll need to set up an initial price which becomes the default price for that product. This default price is what customers see during checkout and what the API returns as the product's default price.
+
+A few important notes about pricing:
+
+- The initial price you create will automatically be set as the default
+- Once created, the pricing type of the price you created cannot be modified
+- You can create new prices for this product and set them as defaults
+- You can change which price is set as the default later
+
+Read more about [prices](/features/prices).
+
+## Media
+
+You can include an image on a product or attach an image to a product and this will be used on the checkout page for the product as well as visible on the product details page or the products table.

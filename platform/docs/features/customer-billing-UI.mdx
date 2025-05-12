@@ -1,0 +1,79 @@
+---
+title: 'Customer Billing UI'
+description: 'How your customers self-serve their way through common billing actions.'
+---
+
+Every business needs a way for their customers to access basic billing data, and take actions like adding payment methods or cancelling their subscriptions.
+
+Flowglad gives you multiple options for how to expose billing UI to your customers:
+1. Via the hosted billing portal (no-code)
+2. Via the embedded billing page (code required)
+
+Both of these use the same logic and support the same functionality. Here's how to choose between the two:
+
+- Hosted billing portal is best for teams who don't need UI inside of their product.
+- Embedded billing page 
+
+## Hosted Billing Portal
+
+For every customer, you can access their hosted billing portal URL via their customer details page.
+
+![Hosted billing portal example](../images/hosted-billing-portal.png)
+
+There, your customer will be prompted to enter their email. They should use the email that you have on file in their customer profile. This will then send them a magic link to log in.
+
+![Hosted billing portal URL](../images/hosted-billing-portal-url.png)
+
+
+## Embedded Billing UI
+
+If you care about the cohesive experience of your product but don't want to write lots of laborious undifferentiated code, you can use Flowglad's embedded billing page. It works with any React app, and gives you all of the functionality of the hosted billing portal, authenticated to your customer, right inside of your app.
+
+### Setup
+
+You can access the embedded billing page via the `@flowglad/react` or `@flowglad/nextjs` packages:
+
+```ts
+import { BillingPage } from '@flowglad/nextjs'
+```
+
+When you mount the `BillingPage` component, ensure that it is in a child subtree of `<FlowgladProvider>`.
+
+`BillingPage` uses the `useBilling()` hook under the hood. Without the FlowgladProvider mounted above it, you will see an error.
+
+### Customizing Styles
+The Flowglad embedded billing page will style itself using the customizations you provide to `<FlowgladProvider>` in the `theme` prop.
+
+It currently accepts the following properties, all of which must be valid CSS color values:
+
+```ts
+export interface FlowgladColors {
+  background: string
+  card: string
+  cardForeground: string
+  border: string
+  primary: string
+  primaryForeground: string
+  foreground: string
+  secondary: string
+  secondaryForeground: string
+  muted: string
+  mutedForeground: string
+  accent: string
+  accentForeground: string
+  destructive: string
+  destructiveForeground: string
+  input: string
+  ring: string
+}
+
+export interface FlowgladThemeConfig {
+  light?: Partial<FlowgladColors>
+  dark?: Partial<FlowgladColors>
+  mode?: 'light' | 'dark' | 'system'
+}
+```
+
+You can see the default values for FlowgladThemeConfig [here](https://github.com/flowglad/flowglad/blob/main/packages/react/src/lib/themes.ts#L216). 
+
+Any values that you do not define yourself will be set to the defaults.
