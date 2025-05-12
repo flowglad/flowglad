@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import {
   integer,
   pgTable,
@@ -19,6 +20,7 @@ import {
   nullableStringForeignKey,
   SelectConditions,
   ommittedColumnsForInsertSchema,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import {
   products,
@@ -43,11 +45,12 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   externalId: true,
+  ...hiddenColumnsForClientSchema,
 } as const
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
-  ...hiddenColumns,
+  ...R.omit(['position'], hiddenColumns),
 } as const
 
 const PRICES_TABLE_NAME = 'prices'

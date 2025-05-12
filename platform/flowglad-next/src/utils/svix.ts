@@ -7,7 +7,6 @@ import { Webhook } from '@/db/schema/webhooks'
 import { Application } from 'svix/dist/api/application'
 
 export function svix() {
-  console.log('svix api key', core.envVariable('SVIX_API_KEY'))
   return new Svix(core.envVariable('SVIX_API_KEY'))
 }
 
@@ -74,12 +73,11 @@ export async function findOrCreateSvixApplication(params: {
     organization,
     livemode,
   })
-  let app: ApplicationOut
+  let app: ApplicationOut | undefined
   try {
     app = await svix().application.get(applicationId)
   } catch (error) {
     console.log('error', error)
-    throw error
   }
   if (app) {
     return app
