@@ -1,7 +1,107 @@
 ---
 title: 'Subscriptions'
+description: 'Manage ongoing payment relationships with your customers using Flowglad Subscriptions.'
 ---
+
+import { Callout } from 'mintlify/components';
 
 # Subscriptions
 
-Coming soon... 
+Subscriptions represent an ongoing payment relationship with your customer. Flowglad provides a robust subscription model with carefully considered defaults to handle common billing scenarios effectively.
+
+## What is a Subscription?
+
+A Subscription in Flowglad tracks the details of a recurring charge for a customer, including what products or services they're paying for, how often, and their current status.
+
+Key concepts:
+
+*   **One Active Subscription per Customer (Default):** By default, a customer can only have one active subscription at a time (`active`, `trialing`, `past_due`, `cancellation_scheduled`, `unpaid`). This encourages simpler billing management. If you need customers to have multiple simultaneous subscriptions, you can enable the `allow_multiple_subscriptions_per_customer` setting at the organization level in your Flowglad settings or by contacting support.
+*   **Billing Cycle Anchor Date:** The `billingCycleAnchorDate` (set from the `startDate` on creation) determines the day of the month billing occurs. If this date doesn't exist in a given month (e.g., the 31st in February), billing occurs on the last day of that month.
+*   **Billing Periods:** Defined by the `startDate`, `interval` (e.g., `Month`, `Year`), and `intervalCount`. Flowglad automatically calculates the `currentBillingPeriodStart` and `currentBillingPeriodEnd` for each cycle.
+
+## Subscription Structure
+
+Each `Subscription` record has one or more `SubscriptionItem` records.
+
+*   **`Subscription` Record:** Holds the core details like the customer (`customerId`), overall status, billing cycle information (`interval`, `intervalCount`, `billingCycleAnchorDate`), trial period (`trialEnd`), and potentially default/backup payment methods. It also has a primary `priceId` which often corresponds to the initial item purchased. But note: the `SubscriptionItem`s define the actual billing components.
+*   **`SubscriptionItem` Record:** Represents a specific product or service line item within the subscription. Each item has its own `priceId`, `quantity`, and `unitPrice`. This allows for subscriptions with multiple components, potentially added or changed over time. The sum of active subscription items determines the amount billed each period (for non-usage-based items).
+
+## Creating a Subscription
+
+There are two primary ways to create a subscription:
+
+### 1. Via Checkout Session
+
+Customers can initiate subscriptions themselves by completing a Flowglad Checkout Session for a product with a `subscription` or `usage` type price.
+
+*   **How:** This can be done through hosted product/price purchase pages or programmatically using the [`useBilling()` hook's `createCheckoutSession` method](/features/checkout-sessions#using-usebilling-hook).
+*   **Use Case:** Standard customer sign-ups and purchases where the customer interacts directly with a checkout flow initiated from within the product
+*   **Payment Method:** Checkout Sessions typically require collecting payment details (unless a trial is offered).
+
+<Callout intent="info">
+  Learn more about setting up checkouts in the [Checkout Sessions documentation](/features/checkout-sessions).
+</Callout>
+
+### 2. Via API
+
+You can programmatically create subscriptions using Flowglad's backend APIs (e.g., interacting with the `createSubscriptionWorkflow`).
+
+*   **How:** Requires providing `customerId`, `organizationId`, `priceId`, `startDate`, `interval`, `intervalCount`, and `livemode`.
+*   **Use Case:** Ideal for scenarios where you create subscriptions automatically based on actions within your application, such as user sign-up, plan changes initiated within your UI, or migrations.
+*   **Payment Method:** Creating subscriptions via the API **does not** require a `defaultPaymentMethodId` or `backupPaymentMethodId`. This is useful for starting customers on free trials without asking for card details upfront. The subscription status will initially be `Incomplete` if `autoStart` is false and there's no trial or payment method. It becomes `Trialing` if a `trialEnd` date is provided, or `Active` if `autoStart` is true and a default payment method exists for the customer or is provided.
+
+## Subscription Lifecycle & Billing
+
+Subscriptions transition through various statuses and billing cycles over their lifetime.
+
+### Statuses
+
+A subscription can be in one of several states (`SubscriptionStatus`):
+
+*   **`Trialing`:** Active during a free trial period. Considered a "current" subscription.
+*   **`Active`:** The standard state for a paying, up-to-date subscription. Considered "current".
+*   **`PastDue`:** Payment failed, but Flowglad may retry. Considered "current".
+*   **`Unpaid`:** Payment failed after retries; requires manual intervention or updated payment method. Considered "current".
+*   **`Incomplete`:** Created but needs setup (e.g., payment method added) before becoming active. Not "current".
+*   **`IncompleteExpired`:** A related Checkout Session expired before completion. Not "current".
+*   **`CancellationScheduled`:** Will be canceled at a future date (usually the end of the current billing period). Considered "current" until the cancellation date.
+*   **`Canceled`:** The subscription has ended and is no longer active. Not "current".
+
+You can check if a subscription is in any of the "current" states (`Active`, `PastDue`, `Trialing`, `CancellationScheduled`, `Unpaid`) using helper functions or by checking the status directly.
+
+### Billing Periods & Transitions
+
+At the end of each `currentBillingPeriodEnd`, a transition occurs:
+1.  A new billing period is calculated based on the anchor date, interval, and interval count.
+2.  For upcoming charges, a `BillingRun` is generated.
+
+### Charging Behavior
+
+*   **`runBillingAtPeriodStart`:** This boolean field on the `Subscription` determines *when* the charge for a billing period is attempted.
+    *   **Default for `subscription` Price Type:** `true`. Charges are typically attempted at the *start* of the billing period (e.g., paying for the upcoming month).
+    *   **Default for `usage` Price Type:** `false`. Charges are attempted at the *end* of the billing period after usage for that period has been recorded.
+*   **Overrides:** This default behavior can be overridden when creating or updating the subscription if needed.
+
+## Canceling a Subscription
+
+Flowglad offers flexibility in how subscriptions can be canceled.
+
+### Cancellation Options
+
+*   **Immediately:** The subscription is canceled right away. Proration logic may apply depending on your settings (though explicit proration controls are still evolving).
+*   **At End of Current Billing Period:** The subscription remains active until the `currentBillingPeriodEnd`, at which point it transitions to `Canceled`. The status becomes `CancellationScheduled` until then.
+*   **At a Future Date (Coming Soon):** Functionality to cancel on a specific arbitrary date in the future is planned.
+
+### Methods for Cancellation
+
+1.  **Flowglad Dashboard:** Manually cancel subscriptions directly within the Flowglad UI.
+2.  **API:** Programmatically cancel subscriptions using backend API calls (e.g., interacting with `cancelSubscriptionImmediately` or `scheduleSubscriptionCancellation`).
+3.  **Customer Self-Service:** Allow customers to manage their own subscriptions.
+    *   **Hosted Billing Portal:** A no-code option accessible via a unique URL per customer.
+    *   **Embedded Billing Page:** A React component (`@flowglad/react` or `@flowglad/nextjs`) to embed cancellation and other billing management features directly into your application.
+    *   **Headless Implementation:** Use the `useBilling()` hook's `cancelSubscription` function (ensure it's used within a `<FlowgladProvider>` context) to build a completely custom cancellation UI.
+
+<Callout intent="info">
+  Learn more about enabling customer self-service options in the [Customer Billing UI documentation](/features/customer-billing-UI).
+</Callout>
+
