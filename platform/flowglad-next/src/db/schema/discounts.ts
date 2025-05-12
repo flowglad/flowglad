@@ -236,9 +236,9 @@ export const foreverDiscountClientInsertSchema =
 
 export const discountClientInsertSchema = z
   .discriminatedUnion('duration', [
-    defaultDiscountsInsertSchema,
-    numberOfPaymentsDiscountsInsertSchema,
-    foreverDiscountsInsertSchema,
+    defaultDiscountClientInsertSchema,
+    numberOfPaymentsDiscountClientInsertSchema,
+    foreverDiscountClientInsertSchema,
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
