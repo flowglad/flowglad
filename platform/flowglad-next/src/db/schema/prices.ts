@@ -208,6 +208,7 @@ const singlePaymentPriceColumns = {
   intervalUnit: core.safeZodNullOrUndefined,
   setupFeeAmount: core.safeZodNullOrUndefined,
   trialPeriodDays: core.safeZodNullOrUndefined,
+  usageMeterId: core.safeZodNullOrUndefined,
 }
 
 const SINGLE_PAYMENT_PRICE_DESCRIPTION =
