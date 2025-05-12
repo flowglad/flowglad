@@ -97,7 +97,10 @@ export const eventInsertedTask = task({
         event: updatedEvent,
       }
     })
-    if (result === 'processed' && mostUpToDateEvent) {
+    if (result === 'already_processed') {
+      return result
+    }
+    if (mostUpToDateEvent) {
       await sendSvixEvent({
         event: mostUpToDateEvent,
         organization,
