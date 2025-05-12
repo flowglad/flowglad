@@ -4,4 +4,75 @@ title: 'Discounts'
 
 # Discounts
 
-Coming soon... 
+Discounts allow you to reduce the price of products and subscriptions for your customers. They can be applied at checkout or via the API.
+
+## Types of Discounts
+
+Flowglad supports two types of discounts based on how the reduction is calculated:
+
+### Percentage Discounts
+
+A percentage reduction off the original price. For example:
+- 10% off
+- 25% off
+- 50% off
+
+### Fixed Amount Discounts
+
+A specific monetary amount deducted from the original price. This amount is stored as an integer (e.g., cents for USD, pence for GBP). For example:
+- $10.00 off
+- £20.00 off
+- €15.50 off
+
+<Note>
+Fixed discount amounts are stored in the smallest unit of a given currency, e.g. in cents for USD.
+</Note>
+
+## Creating Discounts
+
+<img src="https://share.cleanshot.com/R8c7ZdS6" />
+
+You can create discounts from the [Discounts page](https://app.flowglad.com/store/discounts) in your dashboard:
+
+1. Click the "New Discount" button.
+2. Fill out the discount details:
+   - **Name**: A descriptive name for internal reference (e.g., "Summer Sale 2024").
+   - **Code**: The code customers will enter at checkout. Must be between 3 and 20 characters. It will be automatically converted to uppercase (e.g., `SUMMER20`).
+   - **Amount Type**: Choose `Percentage` or `Fixed Amount`.
+   - **Amount**: The numeric value for the discount (e.g., `10` for 10% or `1000` for $10.00).
+   - **Duration**: Specify how long the discount applies, especially for subscriptions (see details below).
+   - **Number of Payments**: Only required if `Duration` is set to `Number of Payments`. Specifies how many billing cycles the discount applies to.
+   - **Active**: Controls whether the discount code can be redeemed. Defaults to `true`.
+
+## Discount Duration
+
+When creating a discount, particularly for subscriptions, you must specify its duration:
+
+- **Once**: The discount is applied only to the initial payment of a purchase or subscription.
+- **Forever**: The discount is applied to all recurring payments for the entire lifetime of the subscription.
+- **Number of Payments**: The discount is applied for a specific number of billing periods (e.g., for the first 3 months of a monthly subscription). You must provide the exact number of payments when selecting this option.
+
+## Managing Discounts
+
+From the Discounts page, you can:
+- View all your created discount codes.
+- See how many times each code has been redeemed (coming soon!).
+- Edit the details of existing discounts.
+- Toggle the `Active` status to enable or disable codes.
+- Delete discounts that haven't been redeemed yet.
+
+<Note>
+Deactivating or deleting a discount code that has already been applied to active subscriptions will **not** remove the discount from those existing subscriptions. They will continue as per the original discount's terms.
+</Note>
+
+## Best Practices
+
+- Use clear, memorable, and relatively short discount codes.
+- Deactivate promotional codes once the promotion ends.
+- Consider the financial impact of `Forever` discounts on subscription revenue.
+- Monitor discount usage patterns to inform future promotions.
+- Always test your discount codes in a staging or test environment before sharing them publicly.
+
+<Tip>
+Create unique discount codes for different marketing campaigns or channels (e.g., `NEWSLETTER10`, `PODCAST15`) to track their performance effectively.
+</Tip>
