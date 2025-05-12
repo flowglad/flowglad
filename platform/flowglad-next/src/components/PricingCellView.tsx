@@ -17,7 +17,9 @@ const PricingCellView = ({
     return (
       <div className="flex items-center gap-3">
         {price.type === PriceType.Subscription ? (
-          <RotateCw size={16} strokeWidth={2} />
+          <div className="flex-shrink-0 w-4 h-4">
+            <RotateCw size={16} strokeWidth={2} />
+          </div>
         ) : (
           <></>
         )}
