@@ -18,14 +18,14 @@ This project is a monorepo. Keep that in mind when making edits or installing de
 ## Running flowglad-next
 - cd platform/flowglad-next
 - pnpm vercel:env-pull
-- pnpm packages-install
+- pnpm install-packages
 - open localhost:3000
 
 ## Running platform/hosted-billing
 - first, make sure platform/flowglad-next is running 
 - cd platform/hosted-billing
 - pnpm vercel:env-pull
-- pnpm packages-install
+- pnpm install-packages
 - open localhost:300X
 Note: hosted-billing doesn't use the local packages. Instead it uses the latest published version of @flowglad/nextjs. If you need to build / test new capabilities in the 
 

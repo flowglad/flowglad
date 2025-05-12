@@ -163,8 +163,8 @@ const subscriptionPriceColumns = {
   type: z.literal(PriceType.Subscription),
   intervalCount: core.safeZodPositiveInteger,
   intervalUnit: intervalZodSchema,
-  setupFeeAmount: core.safeZodPositiveIntegerOrZero.nullable(),
-  trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
+  setupFeeAmount: core.safeZodPositiveIntegerOrZero.nullish(),
+  trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullish(),
 }
 
 const usagePriceColumns = {
@@ -208,6 +208,7 @@ const singlePaymentPriceColumns = {
   intervalUnit: core.safeZodNullOrUndefined,
   setupFeeAmount: core.safeZodNullOrUndefined,
   trialPeriodDays: core.safeZodNullOrUndefined,
+  usageMeterId: core.safeZodNullOrUndefined,
 }
 
 const SINGLE_PAYMENT_PRICE_DESCRIPTION =

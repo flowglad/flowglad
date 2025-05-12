@@ -43,10 +43,6 @@ const TrialPeriodFields = () => {
   useEffect(() => {
     setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
   }, [trialPeriodDays])
-  if (!core.IS_PROD) {
-    // eslint-disable-next-line no-console
-    console.log('===errors', errors)
-  }
   return (
     <>
       <Switch
@@ -199,6 +195,11 @@ const PriceFormFields = ({
   let typeFields = <></>
   const { organization } = useAuthContext()
   const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
+  if (!core.IS_PROD) {
+    // eslint-disable-next-line no-console
+    console.log('===errors', errors)
+  }
+
   switch (type) {
     case PriceType.Subscription:
       typeFields = <SubscriptionFields />
