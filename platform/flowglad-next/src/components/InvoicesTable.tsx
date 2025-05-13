@@ -1,26 +1,19 @@
 import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
-import TableTitle from '@/components/ion/TableTitle'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
 import { useMemo, useState } from 'react'
 import Badge, { BadgeProps } from './ion/Badge'
-import { ColumnDef } from '@tanstack/react-table'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
 import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
 import CreateInvoiceModal from './forms/CreateInvoiceModal'
-import {
-  ClientInvoiceWithLineItems,
-  InvoiceLineItem,
-} from '@/db/schema/invoiceLineItems'
+import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { PopoverMenuItem } from './PopoverMenu'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import TableRowPopoverMenu from './TableRowPopoverMenu'
 import EditInvoiceModal from './forms/EditInvoiceModal'
 import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
 import { InvoiceStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { Plus } from 'lucide-react'
 import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
@@ -132,8 +125,6 @@ const InvoicesTable = ({
   filters?: InvoicesTableFilters
   customer?: Customer.ClientRecord
 }) => {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-
   const {
     pageIndex,
     pageSize,
@@ -271,14 +262,6 @@ const InvoicesTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <TableTitle
-        title="Invoices"
-        buttonIcon={<Plus size={16} strokeWidth={2} />}
-        buttonLabel="Create Invoice"
-        buttonOnClick={() => {
-          setIsCreateModalOpen(true)
-        }}
-      />
       <Table
         columns={columns}
         data={tableData}
@@ -292,11 +275,6 @@ const InvoicesTable = ({
           isLoading,
           isFetching,
         }}
-      />
-      <CreateInvoiceModal
-        isOpen={isCreateModalOpen}
-        setIsOpen={setIsCreateModalOpen}
-        customer={customer}
       />
     </div>
   )
