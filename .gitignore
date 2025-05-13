@@ -24,3 +24,4 @@ generated/styles.ts
 
 # used to temporarily backup development routes in case of accidental deletion
 .dev-routes-backup
+.ion-target
