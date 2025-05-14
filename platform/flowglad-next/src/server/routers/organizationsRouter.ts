@@ -404,7 +404,9 @@ const getMembersTableRowData = protectedProcedure
     )
     /**
      * Force overwrite the organizationId because we need to do an admin transaction
-     * to give the user visbility into their teammates.
+     * to give the user visbility into their teammates. Due to limitations of RLS,
+     * we can't do this in the authenticated transaction as memberships
+     * is the "root" basis of most of our RLS policies.
      */
     return adminTransaction(async ({ transaction }) => {
       return selectMembershipsTableRowData({
