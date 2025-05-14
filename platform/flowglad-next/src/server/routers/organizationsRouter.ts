@@ -393,9 +393,32 @@ const getMembersTableRowData = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(membershipsTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(selectMembershipsTableRowData)
-  )
+  .query(async (args) => {
+    const focusedMembership = await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        return selectFocusedMembershipAndOrganization(
+          userId,
+          transaction
+        )
+      }
+    )
+    /**
+     * Force overwrite the organizationId because we need to do an admin transaction
+     * to give the user visbility into their teammates.
+     */
+    return adminTransaction(async ({ transaction }) => {
+      return selectMembershipsTableRowData({
+        input: {
+          ...args.input,
+          filters: {
+            ...args.input.filters,
+            organizationId: focusedMembership.organization.id,
+          },
+        },
+        transaction,
+      })
+    })
+  })
 
 export const organizationsRouter = router({
   create: createOrganization,
