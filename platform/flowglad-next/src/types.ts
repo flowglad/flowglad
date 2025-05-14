@@ -555,7 +555,7 @@ export enum FlowRunStatus {
 }
 
 export enum FlowgladEventType {
-  SchedulerEventCreated = 'scheduler.event.created',
+  // SchedulerEventCreated = 'scheduler.event.created',
   CustomerCreated = 'customer.created',
   CustomerUpdated = 'customer.updated',
   PurchaseCompleted = 'purchase.completed',
