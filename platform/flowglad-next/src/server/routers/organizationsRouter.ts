@@ -393,9 +393,34 @@ const getMembersTableRowData = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(membershipsTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(selectMembershipsTableRowData)
-  )
+  .query(async (args) => {
+    const focusedMembership = await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        return selectFocusedMembershipAndOrganization(
+          userId,
+          transaction
+        )
+      }
+    )
+    /**
+     * Force overwrite the organizationId because we need to do an admin transaction
+     * to give the user visbility into their teammates. Due to limitations of RLS,
+     * we can't do this in the authenticated transaction as memberships
+     * is the "root" basis of most of our RLS policies.
+     */
+    return adminTransaction(async ({ transaction }) => {
+      return selectMembershipsTableRowData({
+        input: {
+          ...args.input,
+          filters: {
+            ...args.input.filters,
+            organizationId: focusedMembership.organization.id,
+          },
+        },
+        transaction,
+      })
+    })
+  })
 
 export const organizationsRouter = router({
   create: createOrganization,

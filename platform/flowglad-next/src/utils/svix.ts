@@ -77,6 +77,7 @@ export async function findOrCreateSvixApplication(params: {
   try {
     app = await svix().application.get(applicationId)
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.log('error', error)
   }
   if (app) {

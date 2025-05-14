@@ -25,7 +25,6 @@ const MoreMenuCell = ({
   const [isSecretModalOpen, setIsSecretModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [webhookSecret, setWebhookSecret] = useState<string>('')
-  console.log('webhook', webhook)
   const requestSecret = trpc.webhooks.requestSigningSecret.useQuery(
     {
       webhookId: webhook.id,

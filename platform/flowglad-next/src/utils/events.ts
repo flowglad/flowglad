@@ -22,26 +22,6 @@ export interface CreateEventPayload {
   livemode: boolean
 }
 
-const eventTypeToRetentionPolicy: Record<
-  FlowgladEventType,
-  EventRetentionPolicy
-> = {
-  [FlowgladEventType.SchedulerEventCreated]:
-    EventRetentionPolicy.Short,
-  [FlowgladEventType.CustomerCreated]: EventRetentionPolicy.Short,
-  [FlowgladEventType.CustomerUpdated]: EventRetentionPolicy.Short,
-  [FlowgladEventType.PurchaseCompleted]: EventRetentionPolicy.Short,
-  [FlowgladEventType.PaymentFailed]: EventRetentionPolicy.Short,
-  [FlowgladEventType.PaymentSucceeded]:
-    EventRetentionPolicy.Permanent,
-  [FlowgladEventType.SubscriptionCreated]:
-    EventRetentionPolicy.Permanent,
-  [FlowgladEventType.SubscriptionUpdated]:
-    EventRetentionPolicy.Permanent,
-  [FlowgladEventType.SubscriptionCancelled]:
-    EventRetentionPolicy.Permanent,
-}
-
 export const commitEvent = async (
   payload: CreateEventPayload,
   transaction: DbTransaction
