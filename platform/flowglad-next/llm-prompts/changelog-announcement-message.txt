@@ -1,0 +1,7 @@
+Using the git commit message details from the last 2 weeks, create a changelog announcment of a list of all the major changes we released based on the logs from the last 2 weeks.
+
+Note: sometimes features are released or bug-fixed over multiple commits so consolidate the stuff discussing the same thing into a single thing so that each thing has one item and there are no duplicate things. Don't really focus too much on changes that involve our internal tooling because no one outside of the team should care about that stuff. The audience for this is going to be our future customers, or customers who signed up for us and we want to keep them in the loop about how we're improving the product. So really only include stuff that those types of people would be interested in. Note that we don't really do STRICT versioning of our product. Our client SDKs have versions so that can be ok to show new versions of. But our server doesn't have versioning really. So given that, create a list of the major changes / improvements / updates / releases / new features based on the git commit log message details from the last 2 weeks.
+
+Use the following command to get the details from git from the last two weeks:
+
+git log --pretty=format:"%h - %an, %ar :%n%s%n%b" --since="2 weeks ago"
