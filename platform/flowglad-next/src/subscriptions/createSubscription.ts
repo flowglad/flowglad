@@ -374,6 +374,14 @@ interface CreateSubscriptionResult {
   billingPeriodItems: BillingPeriodItem.Record[]
   billingRun: BillingRun.Record | null
 }
+/**
+ * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
+ * This is because the subscription will not be active until the organization has started it,
+ * and we do not want to create a billing run if the organization has not explicitly opted to start the subscription.
+ * @param params
+ * @param transaction
+ * @returns
+ */
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
@@ -419,11 +427,15 @@ export const createSubscriptionWorkflow = async (
       },
       transaction
     )
+  const shouldCreateBillingRun =
+    defaultPaymentMethod &&
+    subscription.runBillingAtPeriodStart &&
+    params.autoStart
 
   /**
    * create a billing run, set to to execute
    */
-  const billingRun = defaultPaymentMethod
+  const billingRun = shouldCreateBillingRun
     ? await createBillingRun(
         {
           billingPeriod,
