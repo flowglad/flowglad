@@ -7,15 +7,15 @@ This document outlines a comprehensive testing strategy for the usage aggregatio
 These tests ensure the fundamental integrity and reliability of the ledger system itself.
 
 1.  **Balance Integrity & Accuracy:**
-    *   **Test:** At any point, the sum of all `amount` fields in `SubscriptionLedgerItems` for a given subscription must accurately reflect its current financial balance.
+    *   **Test:** At any point, the sum of all `amount` fields in `UsageLedgerItems` for a given subscription must accurately reflect its current financial balance.
     *   **Why:** This is the single most crucial check of a ledger.
 
 2.  **Immutability:**
-    *   **Test:** Once created, core financial fields in `SubscriptionLedgerItems` and all backing parent records (`UsageEvents`, `Payments` (once terminal), `SubscriptionCredits`, `CreditBalanceAdjustments`, `SubscriptionCreditApplications`, `Refunds` (once terminal)) cannot be altered. Updates should only affect non-critical metadata or system timestamps like `updated_at`.
+    *   **Test:** Once created, core financial fields in `UsageLedgerItems` and all backing parent records (`UsageEvents`, `Payments` (once terminal), `UsageCredits`, `UsageCreditBalanceAdjustments`, `UsageCreditApplications`, `Refunds` (once terminal)) cannot be altered. Updates should only affect non-critical metadata or system timestamps like `updated_at`.
     *   **Why:** Ensures auditability and prevents silent data corruption.
 
 3.  **Atomicity of Operations:**
-    *   **Test:** Any operation that results in multiple database records (e.g., a payment creating a `SubscriptionCredits` grant AND a `SubscriptionLedgerItem`) must be atomic. Either all records are created successfully, or none are (transaction rollback).
+    *   **Test:** Any operation that results in multiple database records (e.g., a payment creating a `UsageCredits` grant AND a `UsageLedgerItem`) must be atomic. Either all records are created successfully, or none are (transaction rollback).
     *   **Why:** Prevents inconsistent states and orphaned records.
 
 4.  **Idempotency of Event Ingestion & Processing:**
@@ -23,7 +23,7 @@ These tests ensure the fundamental integrity and reliability of the ledger syste
     *   **Why:** Essential for resilience against network issues or retries from external systems.
 
 5.  **Traceability & Referential Integrity:**
-    *   **Test:** Every `SubscriptionLedgerItem` must have valid foreign keys pointing to its originating backing parent record(s) (e.g., `source_usage_event_id`, `source_subscription_credit_id`, etc.). No orphaned ledger items.
+    *   **Test:** Every `UsageLedgerItem` must have valid foreign keys pointing to its originating backing parent record(s) (e.g., `source_usage_event_id`, `source_usage_credit_id`, etc.). No orphaned ledger items.
     *   **Test:** Conversely, ensure no orphaned backing records that *should* have resulted in ledger activity but didn't.
     *   **Why:** Guarantees a complete audit trail and data consistency.
 
@@ -57,18 +57,18 @@ These tests ensure the fundamental integrity and reliability of the ledger syste
 These tests cover the end-to-end financial logic as defined in `gameplans/usage-aggregation.md`.
 
 **A. Usage & Cost Accrual:**
-1.  Single `UsageEvent` -> Correct `usage_cost` `SubscriptionLedgerItem` (negative amount, correct pricing).
+1.  Single `UsageEvent` -> Correct `usage_cost` `UsageLedgerItem` (negative amount, correct pricing).
 2.  Multiple `UsageEvents` (same/different meters, same/different billing periods) -> Correct set of `usage_cost` ledger items.
 3.  `UsageEvent` with complex pricing rules (if applicable) -> Correct cost calculation.
 
 **B. Payments & Credit Granting (Initial Funding):**
-4.  Successful `Payment` (PAYG) -> `SubscriptionCredits` grant created (`credit_type: 'payment_top_up'`, `initial_status: 'granted_active'`) -> `payment_recognized` `SubscriptionLedgerItem` (positive).
-5.  Successful `Payment` (Invoice Settlement) -> `SubscriptionCredits` grant created (`credit_type: 'payment_period_settlement'`) -> `payment_recognized` ledger item.
-6.  Failed `Payment` -> No `SubscriptionCredits` grant, no `payment_recognized` ledger item.
+4.  Successful `Payment` (PAYG) -> `UsageCredits` grant created (`credit_type: 'payment_top_up'`, `initial_status: 'granted_active'`) -> `payment_recognized` `UsageLedgerItem` (positive).
+5.  Successful `Payment` (Invoice Settlement) -> `UsageCredits` grant created (`credit_type: 'payment_period_settlement'`) -> `payment_recognized` ledger item.
+6.  Failed `Payment` -> No `UsageCredits` grant, no `payment_recognized` ledger item.
 7.  Payment confirmation arrives *after* related usage -> Order of operations handled correctly.
 
 **C. Non-Payment Credit Granting (Promos, Goodwill):**
-8.  Admin/System grants promo credit -> `SubscriptionCredits` grant created (`credit_type: 'granted_promo'`) -> `credit_grant_recognized` `SubscriptionLedgerItem` (positive).
+8.  Admin/System grants promo credit -> `UsageCredits` grant created (`credit_type: 'granted_promo'`) -> `credit_grant_recognized` `UsageLedgerItem` (positive).
 9.  Credit grant with an `expires_at` date.
 10. Credit grant scoped to a specific `billing_period_id` or `usage_meter_id`.
 
@@ -78,8 +78,8 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
     *   Single grant partially covers a `usage_cost`.
     *   Multiple grants combine to cover `usage_cost`(s).
     *   Credit application results in:
-        *   Correct `SubscriptionCreditApplications` record(s).
-        *   Correct `credit_applied_to_usage` `SubscriptionLedgerItem`(s) (positive, offsetting cost).
+        *   Correct `UsageCreditApplications` record(s).
+        *   Correct `credit_applied_to_usage` `UsageLedgerItem`(s) (positive, offsetting cost).
 12. **Insufficient Credit:**
     *   All available credit applied, remaining `usage_cost` leads to a net debit balance.
 13. **Credit Application Rules (if any):**
@@ -88,21 +88,21 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
     *   `usage_cost` directly impacts balance, no credit application occurs.
 
 **E. Credit Expiration:**
-15. Fully unused `SubscriptionCredits` grant expires -> `credit_grant_expired` `SubscriptionLedgerItem` (negative, for full issued amount).
-16. Partially used grant expires -> `credit_grant_expired` ledger item for the *correct remaining unused portion*. (Requires checking `SubscriptionCreditApplications`).
+15. Fully unused `UsageCredits` grant expires -> `credit_grant_expired` `UsageLedgerItem` (negative, for full issued amount).
+16. Partially used grant expires -> `credit_grant_expired` ledger item for the *correct remaining unused portion*. (Requires checking `UsageCreditApplications`).
 17. Grant is fully used *before* `expires_at` -> No `credit_grant_expired` ledger item created.
 18. Batch job for expirations correctly identifies and processes all eligible expired credits for a given day.
 
 **F. Administrative Adjustments (Clawbacks, Corrections):**
-19. Admin reduces an *unspent* `SubscriptionCredits` grant -> `CreditBalanceAdjustments` record -> `credit_balance_adjusted` `SubscriptionLedgerItem` (negative).
+19. Admin reduces an *unspent* `UsageCredits` grant -> `UsageCreditBalanceAdjustments` record -> `credit_balance_adjusted` `UsageLedgerItem` (negative).
 20. Admin attempts to reduce a grant by *more than its unspent value* (expected behavior: fail or cap at unspent value).
 21. Admin adjusts a *partially spent* grant.
 
 **G. Refunds:**
 22. Full refund for a `Payment` whose credit is *unused*:
     *   `Refunds` record created.
-    *   `payment_refunded` `SubscriptionLedgerItem` (negative).
-    *   (Optional secondary effect): Test if corresponding `SubscriptionCredits` grant is also adjusted/invalidated via `CreditBalanceAdjustments`.
+    *   `payment_refunded` `UsageLedgerItem` (negative).
+    *   (Optional secondary effect): Test if corresponding `UsageCredits` grant is also adjusted/invalidated via `UsageCreditBalanceAdjustments`.
 23. Partial refund for a `Payment`.
 24. Refund for a `Payment` whose credit was *already fully or partially spent*:
     *   `Refunds` record, `payment_refunded` ledger item.
@@ -111,25 +111,25 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
 26. Refund status updates (`pending` -> `succeeded`/`failed`) correctly trigger or halt ledger posting.
 
 **H. Billing Period Calculations & Snapshots (`SubscriptionMeterPeriodCalculations`):**
-27. `SubscriptionMeterPeriodCalculations` record correctly aggregates `total_raw_usage_amount`, `credits_applied_amount`, and `net_billed_amount` from relevant `SubscriptionLedgerItems` for the period and meter.
+27. `SubscriptionMeterPeriodCalculations` record correctly aggregates `total_raw_usage_amount`, `credits_applied_amount`, and `net_billed_amount` from relevant `UsageLedgerItems` for the period and meter.
 28. Correct handling of `active` vs. `superseded` calculation records when a period is recalculated/adjusted.
 29. Correct linkage of calculation records to source `Invoice` or `CreditNote` IDs.
 
 **I. Edge Cases & Complex Interactions:**
 30. Subscription creation/cancellation: Ensure ledger behaves correctly (e.g., final settlement, expiration of remaining credits if applicable).
 31. Multiple operations on the same subscription in rapid succession or within the same billing run (e.g., usage, payment, credit application, new grant).
-32. Zero-value `UsageEvents` or `SubscriptionCredits` grants (how are they handled?).
+32. Zero-value `UsageEvents` or `UsageCredits` grants (how are they handled?).
 33. Leap years / time zone changes affecting `expires_at` or `billing_period` logic.
 
 ## III. Unit & Integration Testing Focus for Ledgers (General Best Practices)
 
 *   **Unit Tests:**
     *   Functions creating/validating each backing parent record type.
-    *   Functions creating/validating `SubscriptionLedgerItems` (correct `entry_type`, sign of `amount`, all FKs populated).
+    *   Functions creating/validating `UsageLedgerItems` (correct `entry_type`, sign of `amount`, all FKs populated).
     *   Pricing logic functions.
     *   Credit selection/application logic functions (if complex, e.g., which grant to pick).
-    *   Functions calculating remaining value on a `SubscriptionCredits` grant.
-    *   Functions deriving balances from `SubscriptionLedgerItems`.
+    *   Functions calculating remaining value on a `UsageCredits` grant.
+    *   Functions deriving balances from `UsageLedgerItems`.
     *   Validation rules for Zod schemas.
 *   **Integration Tests:**
     *   **End-to-End Flow Tests:** Each numbered use case in Section II should be an integration test, mocking external dependencies (like payment gateways) but using a real test database.

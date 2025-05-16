@@ -9,12 +9,12 @@ This is a flexible roadmap; the decision to implement any phase or feature shoul
 This phase focuses on enhancing the V1 ledger with features that improve data accuracy, concurrency handling for common scenarios, and deeper audit trails. These are generally applicable improvements that build upon the V1 foundation.
 
 ### 1.1. Implement Client-Supplied Timestamps (`effective_at`)
-*   **Concept:** Introduce an `effective_at` timestamp field (client-supplied or derived from source event) to `SubscriptionLedgerItems` and other relevant financial records (e.g., `SubscriptionCredits`). This timestamp would represent when the financial event *actually occurred* or should be recognized, distinct from the system's record creation timestamp (`entry_timestamp` or `created_at`).
+*   **Concept:** Introduce an `effective_at` timestamp field (client-supplied or derived from source event) to `UsageLedgerItems` and other relevant financial records (e.g., `UsageCredits`). This timestamp would represent when the financial event *actually occurred* or should be recognized, distinct from the system's record creation timestamp (`entry_timestamp` or `created_at`).
 *   **Benefit:** Enables accurate historical balance reconstruction, proper handling of retroactive financial events/adjustments, and clearer financial reporting across different time zones or processing delays.
 *   **Considerations:** Requires schema changes and modifications to logic creating financial records. Plan for handling existing records if retroactive application is needed.
 
 ### 1.2. Introduce Explicit Version Locking on Key Resources
-*   **Concept:** Implement optimistic locking (e.g., a `version` integer column) on key financial tables that might experience concurrent update contention as the system scales (e.g., `SubscriptionCredits` if multiple processes could try to apply credits simultaneously).
+*   **Concept:** Implement optimistic locking (e.g., a `version` integer column) on key financial tables that might experience concurrent update contention as the system scales (e.g., `UsageCredits` if multiple processes could try to apply credits simultaneously).
 *   **Benefit:** Prevents race conditions and data corruption during concurrent writes to the same record, ensuring data integrity.
 *   **Considerations:** Involves schema changes and updates to application logic for write operations on version-controlled entities.
 
@@ -28,7 +28,7 @@ This phase focuses on enhancing the V1 ledger with features that improve data ac
 This phase represents a more significant structural evolution, introducing a dedicated `Transaction` entity if the complexity of financial operations warrants it.
 
 ### 2.1. Implement the `LedgerTransaction` Entity
-*   **Concept:** Introduce a `LedgerTransactions` table, following patterns for formal transaction grouping in ledger systems. `SubscriptionLedgerItems` would then be grouped under and belong to a `LedgerTransaction`. This transaction entity would have its own lifecycle (e.g., `pending`, `posted`, `archived`) and enforce atomicity for its grouped entries.
+*   **Concept:** Introduce a `LedgerTransactions` table, following patterns for formal transaction grouping in ledger systems. `UsageLedgerItems` would then be grouped under and belong to a `LedgerTransaction`. This transaction entity would have its own lifecycle (e.g., `pending`, `posted`, `archived`) and enforce atomicity for its grouped entries.
 *   **Benefit:**
     *   Provides a formal mechanism for atomicity and balancing for multi-legged financial events *within the ledger itself*.
     *   Facilitates stricter enforcement of double-entry principles (debits equal credits within the transaction).
