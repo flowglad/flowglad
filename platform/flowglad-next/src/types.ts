@@ -746,3 +746,15 @@ export enum UsageMeterAggregationType {
   Sum = 'sum',
   CountDistinctProperties = 'count_distinct_properties',
 }
+
+export enum UsageCreditType {
+  GrantedPromo = 'granted_promo',
+  GrantedGoodwill = 'granted_goodwill',
+  PaymentTopUp = 'payment_top_up',
+  PaymentSettlement = 'payment_settlement',
+}
+
+export enum UsageCreditInitialStatus {
+  PendingPaymentConfirmation = 'pending_payment_confirmation',
+  GrantedActive = 'granted_active',
+}
