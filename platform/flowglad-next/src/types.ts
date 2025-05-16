@@ -748,10 +748,9 @@ export enum UsageMeterAggregationType {
 }
 
 export enum UsageCreditType {
-  GrantedPromo = 'granted_promo',
-  GrantedGoodwill = 'granted_goodwill',
-  PaymentTopUp = 'payment_top_up',
-  PaymentSettlement = 'payment_settlement',
+  PromoGranted = 'promo_granted',
+  GoodwillGranted = 'goodwill_granted',
+  PaymentSettled = 'payment_settled',
 }
 
 export enum UsageCreditInitialStatus {
