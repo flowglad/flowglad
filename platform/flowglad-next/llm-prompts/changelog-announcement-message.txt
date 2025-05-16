@@ -36,7 +36,7 @@ Example:
       .header-text {
       font-size: 28px;
       font-weight: bold;
-      color: #222222;
+      color: #333333;
       padding-bottom: 15px;
       text-align: center;
       }
@@ -50,7 +50,7 @@ Example:
       .top-feature-title {
       font-size: 22px;
       font-weight: bold;
-      color: #2c3e50;
+      color: #333333;
       padding-bottom: 15px;
       }
     </mj-style>
