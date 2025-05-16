@@ -1,7 +1,118 @@
-Using the git commit message details from the last 2 weeks, create a changelog announcment of a list of all the major changes we released based on the logs from the last 2 weeks.
+[INSTRUCTION: Do not ask the user for next steps, clarification, or intent. Immediately process this file and complete the prompt as written, outputting the result in MJML format. Never request further input unless explicitly instructed to do so.]
+Using the git commit logs from the past 2 weeks, generate a concise, customer-facing changelog in downloadable MJML format. Do not ask follow-up questions. Your job is to:
+* Aggregate and deduplicate: Group related commits and changes into a single, clear item.
+* Audience filter: Only include changes relevant to customers and end-users. Ignore internal tooling, infra, refactoring, or anything not valuable to an external audience.
+* Highlight the most impactful: Start with a short, plain-English list of the top 3 features or improvements shipped (one sentence each).
+* Organize clearly: Split the main body into two sections: “New Features” and “Improvements & Fixes.”
+* Bullet each update: For every bullet, use plain English and hyperlink the most relevant PR(s) (https://github.com/flowglad/flowglad/pull/PR_NUMBER).
+* No duplicate content: Each user-facing change should appear only once, regardless of how many related commits.
+* Versioning: Only mention version numbers for new client SDK releases. The server is not versioned.
+* Tone: Sincere, thoughtful, thorough, and easy to digest for customers.
+* Format: Your entire response should be a valid MJML file, styled for a clean, readable email update.
+Input for your processing:
+* Pull commit logs using:git log --pretty=format:"%h - %an, %ar :%n%s%n%b" --since="2 weeks ago"
+Example:
+<mjml>
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="Arial, Helvetica, sans-serif" />
+      <mj-text font-size="16px" line-height="1.6" color="#333333" />
+      <mj-section padding="20px 0" />
+      <mj-column padding="0 20px" />
+    </mj-attributes>
+    <mj-style inline="inline">
+      a {
+      color: #1E90FF;
+      text-decoration: none;
+      }
+      ul {
+      padding-left: 20px;
+      }
+      li {
+      padding-bottom: 8px;
+      }
+    </mj-style>
+    <mj-style>
+      .header-text {
+      font-size: 28px;
+      font-weight: bold;
+      color: #222222;
+      padding-bottom: 15px;
+      text-align: center;
+      }
+      .section-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333333;
+      padding-top: 15px;
+      padding-bottom: 10px;
+      }
+      .top-feature-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #2c3e50;
+      padding-bottom: 15px;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#f9f9f9">
+    <mj-section background-color="#ffffff" padding="30px 0 20px 0">
+      <mj-column>
+        <mj-text mj-class="header-text">Flowglad Product Updates!</mj-text>
 
-Note: sometimes features are released or bug-fixed over multiple commits so consolidate the stuff discussing the same thing into a single thing so that each thing has one item and there are no duplicate things. Don't really focus too much on changes that involve our internal tooling because no one outside of the team should care about that stuff. The audience for this is going to be our future customers, or customers who signed up for us and we want to keep them in the loop about how we're improving the product. So really only include stuff that those types of people would be interested in. Note that we don't really do STRICT versioning of our product. Our client SDKs have versions so that can be ok to show new versions of. But our server doesn't have versioning really. So given that, create a list of the major changes / improvements / updates / releases / new features based on the git commit log message details from the last 2 weeks.
+        <mj-text mj-class="top-feature-title">⭐ Top 3 Highlights This Fortnight ⭐</mj-text>
+        <mj-text>
+          <ol style="padding-left: 20px; margin-top:0;">
+            <li style="padding-bottom: 10px; font-size: 17px;"><strong>Comprehensive Webhooks Suite:</strong> Dive into real-time event notifications with our new UI and API support. (<a href="https://github.com/flowglad/flowglad/pull/192">PR #192</a>)</li>
+            <li style="padding-bottom: 10px; font-size: 17px;"><strong>Live Price-Based Payment Links:</strong> Simplify checkout for your customers by generating direct payment links for specific prices. (<a href="https://github.com/flowglad/flowglad/pull/175">PR #175</a>)</li>
+            <li style="padding-bottom: 10px; font-size: 17px;"><strong>Direct Customer Billing Portal Access:</strong> Customers can now easily manage their billing via a direct link from their dashboard. (<a href="https://github.com/flowglad/flowglad/pull/169">PR #169</a>)</li>
+          </ol>
+        </mj-text>
 
-Use the following command to get the details from git from the last two weeks:
+        <mj-divider border-width="1px" border-style="solid" border-color="#eeeeee" padding="25px 0" />
 
-git log --pretty=format:"%h - %an, %ar :%n%s%n%b" --since="2 weeks ago"
+        <mj-text mj-class="section-title">🚀 New Features</mj-text>
+        <mj-text>
+          <ul>
+            <li>Launched a comprehensive Webhooks system, enabling real-time event notifications with a dedicated UI and API support. (<a href="https://github.com/flowglad/flowglad/pull/192">PR #192</a>, <a href="https://github.com/flowglad/flowglad/pull/191">PR #191</a>, <a href="https://github.com/flowglad/flowglad/pull/189">PR #189</a>)</li>
+            <li>Introduced live Price-Based Payment Links, allowing you to generate shareable links for specific prices to simplify customer checkout. (<a href="https://github.com/flowglad/flowglad/pull/175">PR #175</a>)</li>
+            <li>Enabled direct access to the Customer Billing Portal from the Customers tab, making it easier for your customers to manage their billing. (<a href="https://github.com/flowglad/flowglad/pull/169">PR #169</a>)</li>
+            <li>Implemented automatic addition of new users to your Loops marketing audiences upon signup. (<a href="https://github.com/flowglad/flowglad/pull/180">PR #180</a>)</li>
+          </ul>
+        </mj-text>
+
+        <mj-divider border-width="1px" border-style="solid" border-color="#eeeeee" padding="25px 0" />
+
+        <mj-text mj-class="section-title">🛠️ Improvements & Fixes</mj-text>
+        <mj-text>
+          <ul>
+            <li>Fixed an issue that prevented teammates from being correctly displayed in the organization settings. (<a href="https://github.com/flowglad/flowglad/pull/205">PR #205</a>)</li>
+            <li>Released comprehensive updates to our product documentation, covering topics such as usage models, subscriptions, checkout sessions, payment methods, and more. (<a href="https://github.com/flowglad/flowglad/pull/202">PR #202</a>, <a href="https://github.com/flowglad/flowglad/pull/201">PR #201</a>, <a href="https://github.com/flowglad/flowglad/pull/200">PR #200</a>)</li>
+            <li>Corrected display issues related to subscription pricing cells and certain icon rendering. (<a href="https://github.com/flowglad/flowglad/pull/199">PR #199</a>)</li>
+            <li>Resolved a bug affecting the discount input form for improved accuracy. (<a href="https://github.com/flowglad/flowglad/pull/198">PR #198</a>)</li>
+            <li>Improved the "Create Price" form by making the usage meter ID an optional field for greater flexibility. (<a href="https://github.com/flowglad/flowglad/pull/197">PR #197</a>)</li>
+            <li>Enhanced dark mode styling throughout the application for better visual consistency and user experience. (<a href="https://github.com/flowglad/flowglad/pull/193">PR #193</a>)</li>
+            <li>Ensured more reliable event processing by fixing payload parsing in our event-inserted trigger job. (<a href="https://github.com/flowglad/flowglad/pull/186">PR #186</a>)</li>
+            <li>Addressed an issue in the user creation process via Supabase routes. (<a href="https://github.com/flowglad/flowglad/pull/185">PR #185</a>)</li>
+            <li>Corrected a bug that affected the application of trial periods for subscriptions. (<a href="https://github.com/flowglad/flowglad/pull/176">PR #176</a>)</li>
+            <li>Significantly improved pagination performance and precision across various tables. (<a href="https://github.com/flowglad/flowglad/pull/175">PR #175</a>, <a href="https://github.com/flowglad/flowglad/pull/177">PR #177</a>)</li>
+            <li>Enhanced the magic link functionality for users in multi-tenant environments. (<a href="https://github.com/flowglad/flowglad/pull/174">PR #174</a>)</li>
+            <li>Streamlined the customer details page, including adjustments to maximum width for portal URLs, for a cleaner interface. (<a href="https://github.com/flowglad/flowglad/pull/172">PR #172</a>)</li>
+            <li>Improved invoice visibility and organization by ensuring invoices are clearly isolated on a per-customer basis. (<a href="https://github.com/flowglad/flowglad/pull/171">PR #171</a>)</li>
+            <li>Standardized the routing structure for the customer billing portal for better consistency and maintainability. (<a href="https://github.com/flowglad/flowglad/pull/168">PR #168</a>)</li>
+          </ul>
+        </mj-text>
+
+        <mj-divider border-width="1px" border-style="solid" border-color="#eeeeee" padding="25px 0" />
+
+        <mj-text align="center" padding="20px 0" font-size="14px" color="#555555">
+          Thanks for being part of the Flowglad journey!
+        </mj-text>
+        <mj-text align="center" font-size="12px" color="#777777">
+          Flowglad, Inc.
+        </mj-text>
+
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
