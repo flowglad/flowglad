@@ -8,6 +8,7 @@ Using the git commit logs from the past 2 weeks, generate a concise, customer-fa
 * No duplicate content: Each user-facing change should appear only once, regardless of how many related commits.
 * Versioning: Only mention version numbers for new client SDK releases. The server is not versioned.
 * Tone: Sincere, thoughtful, thorough, and easy to digest for customers.
+* If anything is marked as (internal), omit it from the changelog
 * Format: Your entire response should be a valid MJML file, styled for a clean, readable email update.
 Input for your processing:
 * Pull commit logs using:git log --pretty=format:"%h - %an, %ar :%n%s%n%b" --since="2 weeks ago"
@@ -60,7 +61,7 @@ Example:
       <mj-column>
         <mj-text mj-class="header-text">Flowglad Product Updates!</mj-text>
 
-        <mj-text mj-class="top-feature-title">⭐ Top 3 Highlights This Fortnight ⭐</mj-text>
+        <mj-text mj-class="top-feature-title">⭐ Top 3 Highlights ⭐</mj-text>
         <mj-text>
           <ol style="padding-left: 20px; margin-top:0;">
             <li style="padding-bottom: 10px; font-size: 17px;"><strong>Comprehensive Webhooks Suite:</strong> Dive into real-time event notifications with our new UI and API support. (<a href="https://github.com/flowglad/flowglad/pull/192">PR #192</a>)</li>
