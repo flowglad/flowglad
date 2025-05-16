@@ -58,7 +58,6 @@ export const usageCredits = pgTable(
       usageMeters
     ),
     issuedAmount: integer('issued_amount').notNull(),
-    currency: char('currency', { length: 3 }).notNull(),
     issuedAt: timestamp('issued_at', {
       withTimezone: true,
       mode: 'date',
@@ -124,7 +123,6 @@ export const usageCreditsUpdateSchema = createUpdateSchema(
 
 const createOnlyColumns = {
   issuedAmount: true,
-  currency: true,
   creditType: true,
   initialStatus: true,
   subscriptionId: true,
@@ -143,10 +141,11 @@ const hiddenColumns = {
 const clientProhibitedColumns = {
   ...hiddenColumns,
   ...readOnlyColumns,
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  issuedAt: true,
+} as const
+
+const clientWriteOmits = {
+  organizationId: true,
+  livemode: true,
 } as const
 
 /*
@@ -154,19 +153,15 @@ const clientProhibitedColumns = {
  */
 export const usageCreditClientInsertSchema =
   usageCreditsInsertSchema.omit({
-    ...clientProhibitedColumns,
     organizationId: true,
     livemode: true,
   })
 
 export const usageCreditClientUpdateSchema =
   usageCreditsUpdateSchema.omit({
-    ...clientProhibitedColumns,
-    ...createOnlyColumns,
+    ...clientWriteOmits,
     sourceReferenceId: true,
     subscriptionId: true,
-    organizationId: true,
-    livemode: true,
   })
 
 export const usageCreditClientSelectSchema =
