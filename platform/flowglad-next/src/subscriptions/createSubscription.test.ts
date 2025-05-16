@@ -48,6 +48,7 @@ describe('createSubscription', async () => {
         defaultPaymentMethod: paymentMethod,
         customer,
         stripeSetupIntentId,
+        autoStart: true,
       },
       transaction
     )
@@ -485,6 +486,7 @@ describe('createSubscription', async () => {
             intervalCount: 1,
             customer: customerWithDefaultPaymentMethod,
             stripeSetupIntentId,
+            autoStart: true,
           },
           transaction
         )
@@ -498,5 +500,210 @@ describe('createSubscription', async () => {
     expect(billingRun).toBeDefined()
     expect(billingRun?.status).toBe(BillingRunStatus.Scheduled)
     expect(billingRun?.paymentMethodId).toBe(defaultPaymentMethod.id)
+  })
+})
+
+describe('createSubscriptionWorkflow billing run creation', async () => {
+  it('creates a billing run when price is subscription type and a default payment method exists', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const subscriptionPrice = {
+      ...price,
+      type: PriceType.Subscription, // Ensure it's a subscription price
+    } as Price.Record
+
+    const [{ billingRun }] = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: subscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true, // Important for active status and billing run
+          },
+          transaction
+        )
+      }
+    )
+    expect(billingRun).toBeDefined()
+    expect(billingRun?.status).toBe(BillingRunStatus.Scheduled)
+  })
+
+  it('does NOT create a billing run when price is subscription type but no default payment method exists', async () => {
+    const { organization, product, price } = await setupOrg()
+    // Create a customer specifically for this test who will have no payment methods.
+    const customerWithoutPM = await setupCustomer({
+      organizationId: organization.id,
+    })
+    // Note: No paymentMethod is set up for customerWithoutPM.
+
+    const subscriptionPrice = {
+      ...price,
+      type: PriceType.Subscription,
+    } as Price.Record
+
+    // Call the workflow.
+    // Since customerWithoutPM has no payment methods in the DB, and defaultPaymentMethod is undefined,
+    // maybeDefaultPaymentMethodForSubscription will return null, leading to no billing run.
+    const [{ billingRun }] = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: subscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: undefined, // Explicitly pass undefined
+            customer: customerWithoutPM, // Use the customer with no payment methods
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+    expect(billingRun).toBeNull()
+    // No vi.restoreAllMocks() is needed as no mocks were used.
+  })
+
+  it('does NOT create a billing run when price is usage-based, even if a default payment method exists', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const usagePrice = {
+      ...price,
+      type: PriceType.Usage, // Usage-based price
+    } as Price.Record
+
+    const [{ billingRun }] = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: usagePrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+    expect(billingRun).toBeNull()
+  })
+
+  it('does NOT create a billing run when autoStart is false, even if price is subscription and payment method exists', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const subscriptionPrice = {
+      ...price,
+      type: PriceType.Subscription,
+    } as Price.Record
+
+    const [{ billingRun, subscription }] = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: subscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: false,
+          },
+          transaction
+        )
+      }
+    )
+    expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
+    expect(billingRun).toBeNull()
+  })
+  it('does not create a billing run if autoStart is not provided', async () => {
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const subscriptionPrice = {
+      ...price,
+      type: PriceType.Subscription,
+    } as Price.Record
+
+    const [{ billingRun, subscription }] = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: subscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+          },
+          transaction
+        )
+      }
+    )
+    expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
+    expect(billingRun).toBeNull()
   })
 })

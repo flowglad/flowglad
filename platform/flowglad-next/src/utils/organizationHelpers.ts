@@ -26,6 +26,7 @@ import {
 } from '@/db/schema/organizations'
 import { insertCatalog } from '@/db/tableMethods/catalogMethods'
 import { findOrCreateSvixApplication } from './svix'
+import { generateRandomBytes } from './backendCore'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -89,6 +90,7 @@ export const createOrganizationTransaction = async (
       {
         ...organization,
         subdomainSlug: finalSubdomainSlug,
+        securitySalt: generateRandomBytes(128),
         /**
          * This is the default fee for non merchant of record organizations
          */

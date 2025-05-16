@@ -20,6 +20,7 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
+import { generateRandomBytes } from '@/utils/backendCore'
 
 const TABLE_NAME = 'organizations'
 
@@ -63,7 +64,7 @@ export const organizations = pgTable(
     featureFlags: jsonb('feature_flags').default({}),
     externalId: text('external_id').unique(),
     securitySalt: text('security_salt')
-      .$defaultFn(core.nanoid)
+      .$defaultFn(() => generateRandomBytes(128))
       .notNull(),
   },
   (table) => {
