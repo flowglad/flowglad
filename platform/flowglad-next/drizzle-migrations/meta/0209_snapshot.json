@@ -1,5 +1,5 @@
 {
-  "id": "36df80d8-d0d1-4326-919b-a309ae295d20",
+  "id": "ac1f2ccf-5cd9-45e4-b36c-5bd13b713d1f",
   "prevId": "6b4e8668-c1af-4957-8641-0cc088a9de72",
   "version": "7",
   "dialect": "postgresql",
@@ -1682,9 +1682,9 @@
           "name": "customers_email_idx",
           "columns": [
             {
-              "expression": "email",
-              "isExpression": false,
+              "expression": "to_tsvector('english', \"email\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
@@ -1697,9 +1697,9 @@
           "name": "customers_name_idx",
           "columns": [
             {
-              "expression": "name",
-              "isExpression": false,
+              "expression": "to_tsvector('english', \"name\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],

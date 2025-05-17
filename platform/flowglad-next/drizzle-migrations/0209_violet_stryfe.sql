@@ -66,7 +66,7 @@ CREATE INDEX IF NOT EXISTS "usage_credits_usage_meter_id_idx" ON "usage_credits"
 CREATE INDEX IF NOT EXISTS "usage_credits_expires_at_idx" ON "usage_credits" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "usage_credits_credit_type_idx" ON "usage_credits" USING btree ("credit_type");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "usage_credits_status_idx" ON "usage_credits" USING btree ("status");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "customers_email_idx" ON "customers" USING gin ("email");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "customers_name_idx" ON "customers" USING gin ("name");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "customers_email_idx" ON "customers" USING gin (to_tsvector('english', "email"));--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "customers_name_idx" ON "customers" USING gin (to_tsvector('english', "name"));--> statement-breakpoint
 CREATE POLICY "Enable read for own organizations" ON "usage_credits" AS PERMISSIVE FOR ALL TO "authenticated" USING ("organization_id" in (select "organization_id" from "memberships"));--> statement-breakpoint
 CREATE POLICY "Check mode" ON "usage_credits" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);

@@ -423,12 +423,24 @@ export const constructUniqueIndex = (
   return uniqueIndex(indexName).on(...columns)
 }
 
+/**
+ * Can only support single column indexes
+ * at this time because of the way we need to construct gin
+ * indexes in Drizzle:
+ * @see https://orm.drizzle.team/docs/guides/postgresql-full-text-search
+ * @param tableName
+ * @param column
+ * @returns
+ */
 export const constructGinIndex = (
   tableName: string,
-  columns: Parameters<IndexBuilderOn['on']>
+  column: Parameters<IndexBuilderOn['on']>[0]
 ) => {
-  const indexName = createIndexName(tableName, columns, false)
-  return index(indexName).using('gin', ...columns)
+  const indexName = createIndexName(tableName, [column], false)
+  return index(indexName).using(
+    'gin',
+    sql`to_tsvector('english', ${column})`
+  )
 }
 
 export const constructIndex = (

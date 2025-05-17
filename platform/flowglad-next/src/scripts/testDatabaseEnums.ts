@@ -8,7 +8,7 @@ import runScript from './scriptRunner'
 import { testDatabaseEnums } from '@/db/testEnums'
 import { testEnumColumn } from '@/db/tableUtils'
 import { usageCredits } from '@/db/schema/usageCredits'
-import { UsageCreditType, UsageCreditInitialStatus } from '@/types'
+import { UsageCreditType, UsageCreditStatus } from '@/types'
 
 export async function testDatabaseEnumsFn(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
@@ -27,8 +27,8 @@ export async function testDatabaseEnumsFn(db: PostgresJsDatabase) {
     )
     await testEnumColumn(
       usageCredits,
-      usageCredits.initialStatus,
-      UsageCreditInitialStatus,
+      usageCredits.status,
+      UsageCreditStatus,
       tx
     )
 

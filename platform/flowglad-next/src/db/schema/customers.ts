@@ -92,8 +92,8 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       table.invoiceNumberBase,
     ]),
     constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
-    constructGinIndex(TABLE_NAME, [table.email]),
-    constructGinIndex(TABLE_NAME, [table.name]),
+    constructGinIndex(TABLE_NAME, table.email),
+    constructGinIndex(TABLE_NAME, table.name),
     pgPolicy('Enable all actions for own organizations', {
       as: 'permissive',
       to: 'authenticated',
