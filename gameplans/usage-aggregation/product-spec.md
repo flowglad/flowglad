@@ -40,7 +40,6 @@ CREATE TABLE usage_credits (
     usage_meter_id TEXT REFERENCES usage_meters(id),    -- Optional: For meter-specific credits.
 
     issued_amount INTEGER NOT NULL,                     -- The original, immutable value of this credit grant.
-    currency CHAR(3) NOT NULL,
 
     issued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP WITH TIME ZONE,                -- Nullable, if the credit grant has an expiration date.
@@ -100,7 +99,6 @@ CREATE TABLE usage_credit_applications (
     usage_credit_id TEXT NOT NULL REFERENCES usage_credits(id), -- FK to the credit grant that was applied.
     calculation_run_id TEXT NOT NULL,                     -- Links to calculation_run_id in subscription_meter_period_calculations.
     amount_applied INTEGER NOT NULL,
-    currency CHAR(3) NOT NULL,
     applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     target_usage_meter_id TEXT REFERENCES usage_meters(id), -- Optional: Specific meter this application offset.
     organization_id TEXT NOT NULL REFERENCES organizations(id),
@@ -191,7 +189,6 @@ CREATE TABLE usage_ledger_items (
     status TEXT NOT NULL,                               -- e.g., 'pending', 'posted'. 'posted' items are immutable.
     entry_type TEXT NOT NULL,       -- e.g., 'usage_cost', 'payment_recognized', 'credit_grant_recognized', 'credit_applied_to_usage', 'credit_balance_adjusted', 'credit_grant_expired', 'billing_adjustment', 'payment_refunded'
     amount INTEGER NOT NULL,        -- Positive for credits/value-in, Negative for debits/value-out from subscription's perspective.
-    currency CHAR(3) NOT NULL,
     description TEXT,
     discarded_at TIMESTAMP WITH TIME ZONE,              -- If set, this 'pending' entry was superseded by another within the same operational context. NULL for 'posted' items.
 
