@@ -1,6 +1,6 @@
 import { idempotencyKeys } from '@trigger.dev/sdk'
-import { createHash, createHmac } from 'crypto'
-import { BinaryLike, randomBytes } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'crypto'
+import type { BinaryLike } from 'node:crypto'
 
 // backend-only core utils that would break client-side code
 export function hashData(data: BinaryLike) {
