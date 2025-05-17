@@ -15,13 +15,15 @@ import {
   enhancedCreateInsertSchema,
   livemodePolicy,
   createUpdateSchema,
+  pgEnumColumn,
+  nullableStringForeignKey,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
-import { RefundStatus } from '@/types'
+import { CurrencyCode, RefundStatus } from '@/types'
 
 const TABLE_NAME = 'refunds'
 
@@ -30,7 +32,7 @@ export const refunds = pgTable(
   {
     ...tableBase('refund'),
     paymentId: notNullStringForeignKey('payment_id', payments),
-    subscriptionId: notNullStringForeignKey(
+    subscriptionId: nullableStringForeignKey(
       'subscription_id',
       subscriptions
     ),
@@ -38,23 +40,24 @@ export const refunds = pgTable(
       'organization_id',
       organizations
     ),
-    livemode: boolean('livemode').notNull(),
     amount: integer('amount').notNull(),
-    currency: text('currency').notNull(),
+    currency: pgEnumColumn({
+      enumName: 'CurrencyCode',
+      columnName: 'currency',
+      enumBase: CurrencyCode,
+    }).notNull(),
     reason: text('reason'),
-    status: sql`status` as any, // Will be refined by Zod and enum
+    status: pgEnumColumn({
+      enumName: 'RefundStatus',
+      columnName: 'status',
+      enumBase: RefundStatus,
+    }).notNull(),
     refundProcessedAt: timestamp('refund_processed_at', {
       withTimezone: true,
     }),
     gatewayRefundId: text('gateway_refund_id'),
     notes: text('notes'),
     initiatedByUserId: text('initiated_by_user_id'),
-    createdAt: timestamp('created_at', {
-      withTimezone: true,
-    }).defaultNow(),
-    updatedAt: timestamp('updated_at', {
-      withTimezone: true,
-    }).defaultNow(),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.paymentId]),
@@ -74,8 +77,7 @@ const columnRefinements = {
   amount: core.safeZodPositiveInteger,
   refundProcessedAt: core.safeZodDate.nullable(),
   status: core.createSafeZodEnum(RefundStatus),
-  createdAt: core.safeZodDate,
-  updatedAt: core.safeZodDate,
+  currency: core.createSafeZodEnum(CurrencyCode),
 }
 
 export const refundsInsertSchema = enhancedCreateInsertSchema(

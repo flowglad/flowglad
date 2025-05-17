@@ -56,7 +56,11 @@ export const usageLedgerItems = pgTable(
     })
       .notNull()
       .defaultNow(),
-    status: text('status').notNull(),
+    status: pgEnumColumn({
+      enumName: 'UsageLedgerItemStatus',
+      columnName: 'status',
+      enumBase: UsageLedgerItemStatus,
+    }).notNull(),
     direction: pgEnumColumn({
       enumName: 'UsageLedgerItemDirection',
       columnName: 'direction',
@@ -107,10 +111,6 @@ export const usageLedgerItems = pgTable(
       'organization_id',
       organizations
     ),
-    livemode: boolean('livemode').notNull(),
-    createdAt: timestamp('created_at', {
-      withTimezone: true,
-    }).defaultNow(),
   },
   (table) => [
     constructIndex(TABLE_NAME, [
@@ -149,7 +149,6 @@ const columnRefinements = {
   amount: core.safeZodPositiveInteger,
   entryTimestamp: core.safeZodDate,
   discardedAt: core.safeZodDate.nullable(),
-  createdAt: core.safeZodDate,
   metadata: z.record(z.string(), z.any()).nullable(),
 }
 
