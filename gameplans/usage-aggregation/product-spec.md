@@ -72,7 +72,6 @@ CREATE TABLE usage_credit_balance_adjustments (
     adjusted_usage_credit_id TEXT NOT NULL REFERENCES usage_credits(id), -- The specific credit grant being targeted.
     adjustment_type TEXT NOT NULL,                      -- e.g., 'clawback_error', 'clawback_terms_violation', 'admin_reduction', 'grant_correction'
     amount_adjusted INTEGER NOT NULL,                   -- Positive value representing the amount being effectively removed/added to the grant's potential.
-    currency CHAR(3) NOT NULL,                          -- Should match the target usage_credits record.
     reason TEXT NOT NULL,
     adjusted_by_user_id TEXT,                           -- Or system actor ID.
     adjustment_initiated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

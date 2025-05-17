@@ -113,7 +113,7 @@ const CustomersTable = ({
 
   useEffect(() => {
     debouncedSetSearch(innerSearch)
-  }, [innerSearch])
+  }, [innerSearch, debouncedSetSearch])
 
   const {
     pageIndex,
