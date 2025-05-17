@@ -696,14 +696,20 @@ export enum BillingRunStatus {
   Aborted = 'aborted',
 }
 
+export enum SubscriptionMeterPeriodCalculationStatus {
+  Active = 'active',
+  Superseded = 'superseded',
+  PendingConfirmation = 'pending_confirmation',
+}
+
 export enum FeeCalculationType {
   SubscriptionPayment = 'subscription_payment',
   CheckoutSessionPayment = 'checkout_session_payment',
 }
 
 export enum InvoiceType {
-  Purchase = 'purchase',
   Subscription = 'subscription',
+  Purchase = 'purchase',
   Standalone = 'standalone',
 }
 

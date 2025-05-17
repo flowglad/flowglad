@@ -202,6 +202,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
       selectSchema: unicornRidersSelectSchema,
       insertSchema: unicornRidersInsertSchema,
       updateSchema: unicornRidersUpdateSchema,
+      tableName: 'unicorn_riders'
     }
 
     export const selectUnicornRiderById = createSelectById(
@@ -266,13 +267,13 @@ We use "edit" instead of "update" to make it clear that this update may have sid
   const unicornRiderSelectSchema = z.union([firstUnicornRiderSelectSchema, secondUnicornRiderSelectSchema])
   ```
 
-# Update testDatabaseEnums.ts Script
+# Update testEnums.ts
 
-After creating the new table schema, you must update the testDatabaseEnums.ts script to test any enum columns in your new table. This ensures that all enum columns are properly validated against their expected values.
+After creating the new table schema, you must update the testEnums.ts script to test any enum columns in your new table. This ensures that all enum columns are properly validated against their expected values.
 
-For each enum column in your new table, add a test call to the testDatabaseEnums.ts script's transaction. Here's how to do it:
+For each enum column in your new table, add a test call to the testEnums.ts script's transaction. Here's how to do it:
 
-1. Open the file `./src/scripts/testDatabaseEnums.ts`
+1. Open the file `./src/db/testEnums.ts`
 2. Import your new table and any enum types you've created:
    ```typescript
    import { unicornRiders } from '@/db/schema/unicornRiders'
