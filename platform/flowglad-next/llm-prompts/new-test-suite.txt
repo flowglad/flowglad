@@ -43,7 +43,7 @@ describe('ModuleName', async () => {
 ## Database State Management
 
 1. Always use `setupOrg()` in `beforeEach` to ensure test isolation
-2. Use helper functions from `seedDatabase.ts` for database setup
+2. Use helper functions from `@/../seedDatabase.ts` for database setup
 3. Example setup pattern:
 ```typescript
 beforeEach(async () => {
@@ -191,7 +191,7 @@ describe('ModuleName', async () => {
 ## Very Important Notes
 
 1. Always use `setupOrg()` in `beforeEach` to prevent test state pollution
-2. Use helper functions from `seedDatabase.ts` for database setup
+2. Use helper functions from `@/../seedDatabase.ts` for database setup
 3. Avoid using mock functions or spyOn
 4. Test both individual functions and their compositions
 5. Use update methods from tableMethods for state changes: don't do this:

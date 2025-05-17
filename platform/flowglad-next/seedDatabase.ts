@@ -52,13 +52,17 @@ import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
 import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
 import { Payment } from '@/db/schema/payments'
 import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
-import { insertCatalog } from '@/db/tableMethods/catalogMethods'
+import {
+  insertCatalog,
+  selectDefaultCatalog,
+} from '@/db/tableMethods/catalogMethods'
 import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { BillingAddress } from '@/db/schema/organizations'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-
+import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
     'attempted to access seedDatabase.ts in production. This should never happen.'
@@ -935,6 +939,45 @@ export const setupFeeCalculation = async ({
         pretaxTotal: 1000,
         internalNotes: 'Test Fee Calculation',
       },
+      transaction
+    )
+  })
+}
+
+export const setupUsageMeter = async ({
+  organizationId,
+  name,
+  livemode = true,
+  catalogId,
+}: {
+  organizationId: string
+  name: string
+  livemode?: boolean
+  catalogId?: string
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    let catalogToUseId: string | null = null
+    if (catalogId) {
+      const catalog = await selectCatalogById(catalogId, transaction)
+      if (!catalog) {
+        throw new Error('Catalog not found')
+      }
+      catalogToUseId = catalog.id
+    } else {
+      const defaultCatalog = await selectDefaultCatalog(
+        { organizationId, livemode },
+        transaction
+      )
+      if (!defaultCatalog) {
+        throw new Error('Default catalog not found')
+      }
+      catalogToUseId = defaultCatalog.id
+    }
+    if (!catalogToUseId) {
+      throw new Error('setupUsageMeter: Catalog not found')
+    }
+    return insertUsageMeter(
+      { organizationId, name, livemode, catalogId: catalogToUseId },
       transaction
     )
   })

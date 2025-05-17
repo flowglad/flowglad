@@ -7,30 +7,22 @@ import {
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   selectUsageEventById,
-  selectUsageEvents,
 } from '@/db/tableMethods/usageEventMethods'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
 
 import { usageProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
-import {
-  selectBillingPeriodsForSubscriptions,
-  selectCurrentBillingPeriodForSubscription,
-} from '@/db/tableMethods/billingPeriodMethods'
-import {
-  selectSubscriptionById,
-  selectSubscriptions,
-} from '@/db/tableMethods/subscriptionMethods'
-import {
-  selectPriceById,
-  selectPrices,
-} from '@/db/tableMethods/priceMethods'
+import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { PriceType } from '@/types'
+import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
@@ -43,70 +35,17 @@ export const createUsageEvent = usageProcedure
   .meta(openApiMetas.POST)
   .input(createUsageEventSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction, livemode }) => {
-        const billingPeriod =
-          await selectCurrentBillingPeriodForSubscription(
-            input.usageEvent.subscriptionId,
-            transaction
-          )
-        if (!billingPeriod) {
-          throw new Error('Billing period not found')
-        }
-        const price = await selectPriceById(
-          input.usageEvent.priceId,
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, livemode, transaction }) => {
+        const usageEvent = await ingestAndProcessUsageEvent(
+          { input, livemode },
           transaction
         )
-        if (price.type !== PriceType.Usage) {
-          throw new Error(
-            `Price ${price.id} is not a usage price. Please provide a usage price id to create a usage event.`
-          )
-        }
-        const [existingUsageEvent] = await selectUsageEvents(
-          {
-            transactionId: input.usageEvent.transactionId,
-            usageMeterId: price.usageMeterId,
-          },
-          transaction
-        )
-        if (existingUsageEvent) {
-          if (
-            existingUsageEvent.subscriptionId !==
-            input.usageEvent.subscriptionId
-          ) {
-            throw new Error(
-              `A usage event already exists for transactionid ${input.usageEvent.transactionId}, but does not belong to subscription ${input.usageEvent.subscriptionId}. Please provide a unique transactionId to create a new usage event.`
-            )
-          }
-          return existingUsageEvent
-        }
-        const subscription = await selectSubscriptionById(
-          input.usageEvent.subscriptionId,
-          transaction
-        )
-
-        return insertUsageEvent(
-          {
-            ...input.usageEvent,
-            usageMeterId: price.usageMeterId,
-            billingPeriodId: billingPeriod.id,
-            customerId: subscription.customerId,
-            livemode,
-            properties: input.usageEvent.properties ?? {},
-            usageDate: input.usageEvent.usageDate
-              ? new Date(input.usageEvent.usageDate)
-              : undefined,
-          },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
+        return { usageEvent }
       }
     )
-    return { usageEvent }
-  })
+  )
 
 export const getUsageEvent = usageProcedure
   .meta(openApiMetas.GET)

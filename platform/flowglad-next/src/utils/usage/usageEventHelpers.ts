@@ -1,28 +1,23 @@
-import { UsageEvent } from '@/db/schema/usageEvents'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
-import {
-  PriceType,
-  UsageLedgerItemDirection,
-  UsageLedgerItemEntryType,
-  UsageLedgerItemStatus,
-} from '@/types'
+import { PriceType } from '@/types'
 import {
   insertUsageEvent,
   selectUsageEvents,
 } from '@/db/tableMethods/usageEventMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { DbTransaction } from '@/db/types'
-import { insertUsageLedgerItem } from '@/db/tableMethods/usageLedgerItemMethods'
+import { CreateUsageEventInput } from '@/db/schema/usageEvents'
 import { createUsageEventLedgerTransaction } from './usageLedgerHelpers'
 
-const ingestAndProcessUsageEvent = async (
+export const ingestAndProcessUsageEvent = async (
   {
-    usageEventInput,
+    input,
     livemode,
-  }: { usageEventInput: UsageEvent.Insert; livemode: boolean },
+  }: { input: CreateUsageEventInput; livemode: boolean },
   transaction: DbTransaction
 ) => {
+  const usageEventInput = input.usageEvent
   const billingPeriod =
     await selectCurrentBillingPeriodForSubscription(
       usageEventInput.subscriptionId,
