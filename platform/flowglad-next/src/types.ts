@@ -796,3 +796,7 @@ export enum UsageLedgerItemEntryType {
   BillingAdjustment = 'billing_adjustment',
   PaymentRefunded = 'payment_refunded',
 }
+
+export enum UsageTransactionInitiatingSourceType {
+  UsageEvent = 'usage_event',
+}

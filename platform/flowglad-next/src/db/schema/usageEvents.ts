@@ -242,13 +242,6 @@ export type CreateUsageEventInput = z.infer<
   typeof createUsageEventSchema
 >
 
-export const editUsageEventSchema = z.object({
-  id: z.string(),
-  usageEvent: usageEventsClientUpdateSchema,
-})
-
-export type EditUsageEventInput = z.infer<typeof editUsageEventSchema>
-
 export const bulkInsertUsageEventsSchema = z.object({
   usageEvents: z.array(usageEventsClientInsertSchema),
 })
