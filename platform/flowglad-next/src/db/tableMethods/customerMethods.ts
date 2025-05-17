@@ -6,9 +6,6 @@ import {
   customersUpdateSchema,
   InferredCustomerStatus,
   type CustomerTableRowData,
-  CustomersPaginatedTableRowInput,
-  CustomersPaginatedTableRowOutput,
-  customersPaginatedTableRowOutputSchema,
   customersPaginatedTableRowDataSchema,
 } from '@/db/schema/customers'
 import {
@@ -407,5 +404,6 @@ export const selectCustomersCursorPaginatedWithTableRowData =
         }
       })
       return customersWithTableRowData
-    }
+    },
+    [customersTable.email, customersTable.name]
   )

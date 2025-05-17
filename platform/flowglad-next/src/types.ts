@@ -746,3 +746,20 @@ export enum UsageMeterAggregationType {
   Sum = 'sum',
   CountDistinctProperties = 'count_distinct_properties',
 }
+
+export enum UsageCreditType {
+  /**
+   * Unlocked as a result of a subscription lifecycle event,
+   * such as on creation.
+   */
+  Grant = 'grant',
+  /**
+   * Unlocked as a result of a payment, including a subscription payment.
+   */
+  Payment = 'payment',
+}
+
+export enum UsageCreditStatus {
+  Pending = 'pending',
+  Posted = 'posted',
+}

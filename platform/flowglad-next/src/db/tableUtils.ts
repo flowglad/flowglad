@@ -12,6 +12,8 @@ import {
   sql,
   count,
   SQL,
+  ilike,
+  or,
 } from 'drizzle-orm'
 import core, { gitCommitId } from '@/utils/core'
 import {
@@ -419,6 +421,26 @@ export const constructUniqueIndex = (
 ) => {
   const indexName = createIndexName(tableName, columns, true)
   return uniqueIndex(indexName).on(...columns)
+}
+
+/**
+ * Can only support single column indexes
+ * at this time because of the way we need to construct gin
+ * indexes in Drizzle:
+ * @see https://orm.drizzle.team/docs/guides/postgresql-full-text-search
+ * @param tableName
+ * @param column
+ * @returns
+ */
+export const constructGinIndex = (
+  tableName: string,
+  column: Parameters<IndexBuilderOn['on']>[0]
+) => {
+  const indexName = createIndexName(tableName, [column], false)
+  return index(indexName).using(
+    'gin',
+    sql`to_tsvector('english', ${column})`
+  )
 }
 
 export const constructIndex = (
@@ -857,6 +879,7 @@ export const createPaginatedTableRowInputSchema = <
     pageBefore: z.string().optional(),
     pageSize: z.number().min(1).max(100).optional(),
     filters: filterSchema.optional(),
+    searchQuery: z.string().optional(),
   })
 }
 
@@ -883,6 +906,11 @@ export const testEnumColumn = async <T extends PgTableWithId>(
   return result
 }
 
+interface TableSearchParams<T extends PgTableWithId> {
+  searchQuery?: string
+  searchableColumns: T['_']['columns'][string][]
+}
+
 interface CursorPaginatedSelectFunctionParams<
   T extends PgTableWithPosition,
 > {
@@ -892,6 +920,7 @@ interface CursorPaginatedSelectFunctionParams<
     pageSize?: number
     filters?: SelectConditions<T>
     sortDirection?: 'asc' | 'desc'
+    searchQuery?: string
   }
   transaction: DbTransaction
 }
@@ -936,6 +965,18 @@ const cursorComparison = async <T extends PgTableWithPosition>(
   return comparisonOperator(table.position, result.position)
 }
 
+const constructSearchQueryClause = <T extends PgTableWithId>(
+  table: T,
+  searchQuery: string,
+  searchableColumns: T['_']['columns'][string][]
+) => {
+  return or(
+    ...searchableColumns.map((column) =>
+      ilike(column, `%${searchQuery}%`)
+    )
+  )
+}
+
 export const createCursorPaginatedSelectFunction = <
   T extends PgTableWithPosition,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
@@ -949,7 +990,8 @@ export const createCursorPaginatedSelectFunction = <
   enrichmentFunction?: (
     data: z.infer<S>[],
     transaction: DbTransaction
-  ) => Promise<z.infer<D>[]>
+  ) => Promise<z.infer<D>[]>,
+  searchableColumns?: T['_']['columns'][string][]
 ) => {
   const selectSchema = config.selectSchema
   return async function cursorPaginatedSelectFunction(
@@ -972,6 +1014,15 @@ export const createCursorPaginatedSelectFunction = <
     const filterClause = params.input.filters
       ? whereClauseFromObject(table, params.input.filters)
       : undefined
+    const searchQuery = params.input.searchQuery
+    const searchQueryClause =
+      searchQuery && searchableColumns
+        ? constructSearchQueryClause(
+            table,
+            searchQuery,
+            searchableColumns
+          )
+        : undefined
     const whereClauses = and(
       await cursorComparison(
         table,
@@ -982,7 +1033,8 @@ export const createCursorPaginatedSelectFunction = <
         },
         transaction
       ),
-      filterClause
+      filterClause,
+      searchQueryClause
     )
 
     // Query for items

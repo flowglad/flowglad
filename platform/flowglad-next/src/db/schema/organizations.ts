@@ -21,6 +21,7 @@ import {
   StripeConnectContractType,
 } from '@/types'
 import { generateRandomBytes } from '@/utils/backendCore'
+import { nanoid } from 'nanoid'
 
 const TABLE_NAME = 'organizations'
 
@@ -64,7 +65,7 @@ export const organizations = pgTable(
     featureFlags: jsonb('feature_flags').default({}),
     externalId: text('external_id').unique(),
     securitySalt: text('security_salt')
-      .$defaultFn(() => generateRandomBytes(128))
+      .$defaultFn(() => nanoid(128))
       .notNull(),
   },
   (table) => {

@@ -19,6 +19,7 @@ export interface PaginatedTableStateParams<
   initialNextCursor?: string
   initialPreviousCursor?: string
   filters: TFilters
+  searchQuery?: string
   useQuery: (
     params: {
       pageAfter?: string
@@ -66,6 +67,7 @@ export const usePaginatedTableState = <
   pageSize = 10,
   filters,
   useQuery,
+  searchQuery,
 }: PaginatedTableStateParams<TData, TFilters>) => {
   const [pageIndex, setPageIndex] = useState(0)
   const [pageAfter, setPageAfter] = useState<string | undefined>(
@@ -77,6 +79,7 @@ export const usePaginatedTableState = <
     pageBefore,
     pageSize,
     filters,
+    searchQuery,
   }
   const { data, isLoading, isFetching } = useQuery(params)
 
