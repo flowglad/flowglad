@@ -796,11 +796,3 @@ export enum UsageLedgerItemEntryType {
   BillingAdjustment = 'billing_adjustment',
   PaymentRefunded = 'payment_refunded',
 }
-
-export enum PaymentIntentUpdateTriggerType {}
-// ... existing code ...
-
-export enum LedgerEntryType {
-  // ... existing enum members ...
-  PaymentRefunded = 'payment_refunded',
-}
