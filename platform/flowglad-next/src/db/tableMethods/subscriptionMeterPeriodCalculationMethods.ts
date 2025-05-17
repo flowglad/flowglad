@@ -42,7 +42,7 @@ export const selectSubscriptionMeterPeriodCalculations =
 export const upsertSubscriptionMeterPeriodCalculationByCalculationRunId =
   createUpsertFunction(
     subscriptionMeterPeriodCalculations,
-    [subscriptionMeterPeriodCalculations.calculationRunId],
+    [subscriptionMeterPeriodCalculations.billingRunId],
     config
   )
 

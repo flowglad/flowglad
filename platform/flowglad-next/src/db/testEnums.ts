@@ -48,7 +48,6 @@ import {
   UsageLedgerItemStatus,
   UsageLedgerItemDirection,
   SubscriptionMeterPeriodCalculationStatus,
-  SubscriptionMeterPeriodCalculationType,
 } from '@/types'
 import { DbTransaction } from './types'
 
@@ -342,12 +341,6 @@ export const testDatabaseEnums = async (
     subscriptionMeterPeriodCalculations,
     subscriptionMeterPeriodCalculations.status,
     SubscriptionMeterPeriodCalculationStatus,
-    transaction
-  )
-  await testEnumColumn(
-    subscriptionMeterPeriodCalculations,
-    subscriptionMeterPeriodCalculations.calculationType,
-    SubscriptionMeterPeriodCalculationType,
     transaction
   )
   // END: Moved enum tests

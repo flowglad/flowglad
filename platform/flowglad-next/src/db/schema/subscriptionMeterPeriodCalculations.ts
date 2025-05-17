@@ -1,10 +1,8 @@
 import {
-  boolean,
   text,
   pgTable,
   pgPolicy,
   integer,
-  timestamp,
   foreignKey,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
