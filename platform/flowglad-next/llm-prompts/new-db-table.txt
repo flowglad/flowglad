@@ -6,7 +6,7 @@ You will rely heavily on the exported methods at ./src/db/tableUtils.ts to write
 
 Here's what you need to do, assuming the table is named "UnicornRiders" (the actual name will be provided to you by the prompt - "UnicornRiders" is just an example):
 - Create a new file in the `./src/db/schema/unicornRiders.ts` directory. The file name should be the name of the table, in camelCase.
-  - Use the `./src/db/schema/flows.ts` file as a reference pattern.
+  - Use the `./src/db/schema/payments.ts` file as a reference pattern.
   - The name of the table should be declared as a global string constant, in PascalCase, (`const TABLE_NAME = 'UnicornRiders'`). And it should be used in the schema declaration as well as any constructor method invoked in the file where a table name is required.
   - All foreign keys referencing other tables must be PascalCase. Their types should match the column that they reference, of course.
   - All ORM schema declarations should use tableBase from tableUtils.

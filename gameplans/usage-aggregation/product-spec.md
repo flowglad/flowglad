@@ -187,6 +187,8 @@ CREATE TABLE usage_ledger_items (
     subscription_id TEXT NOT NULL REFERENCES subscriptions(id),
     entry_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time of initial creation
     status TEXT NOT NULL,                               -- e.g., 'pending', 'posted'. 'posted' items are immutable.
+    direction TEXT NOT NULL,                             -- 'debit' or 'credit'
+    status TEXT NOT NULL, -- 'pending', or 'posted'
     entry_type TEXT NOT NULL,       -- e.g., 'usage_cost', 'payment_recognized', 'credit_grant_recognized', 'credit_applied_to_usage', 'credit_balance_adjusted', 'credit_grant_expired', 'billing_adjustment', 'payment_refunded'
     amount INTEGER NOT NULL,        -- Positive for credits/value-in, Negative for debits/value-out from subscription's perspective.
     description TEXT,

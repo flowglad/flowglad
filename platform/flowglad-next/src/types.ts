@@ -763,3 +763,30 @@ export enum UsageCreditStatus {
   Pending = 'pending',
   Posted = 'posted',
 }
+
+export enum RefundStatus {
+  Pending = 'pending',
+  Succeeded = 'succeeded',
+  Failed = 'failed',
+}
+
+export enum UsageLedgerItemStatus {
+  Pending = 'pending',
+  Posted = 'posted',
+}
+
+export enum UsageLedgerItemDirection {
+  Debit = 'debit',
+  Credit = 'credit',
+}
+
+export enum UsageLedgerItemEntryType {
+  UsageCost = 'usage_cost',
+  PaymentRecognized = 'payment_recognized',
+  CreditGrantRecognized = 'credit_grant_recognized',
+  CreditAppliedToUsage = 'credit_applied_to_usage',
+  CreditBalanceAdjusted = 'credit_balance_adjusted',
+  CreditGrantExpired = 'credit_grant_expired',
+  BillingAdjustment = 'billing_adjustment',
+  PaymentRefunded = 'payment_refunded',
+}
