@@ -228,7 +228,6 @@ const CustomersTable = ({
           setInnerSearch(e.target.value)
         }
         placeholder="Search"
-        iconLeading={<SearchIcon />}
         className="mb-4"
       />
       <Table
