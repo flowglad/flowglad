@@ -30,14 +30,10 @@ export const usageTransactions = pgTable(
       'organization_id',
       organizations
     ),
-    livemode: boolean('livemode').notNull(),
     initiatingSourceType: text('initiating_source_type'),
     initiatingSourceId: text('initiating_source_id'),
     description: text('description'),
     metadata: jsonb('metadata'),
-    createdAt: timestamp('created_at', {
-      withTimezone: true,
-    }).defaultNow(),
   },
   (table) => [
     constructIndex(TABLE_NAME, [

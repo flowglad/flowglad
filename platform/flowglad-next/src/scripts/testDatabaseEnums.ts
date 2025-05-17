@@ -9,6 +9,13 @@ import { testDatabaseEnums } from '@/db/testEnums'
 import { testEnumColumn } from '@/db/tableUtils'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { UsageCreditType, UsageCreditStatus } from '@/types'
+import { refunds } from '@/db/schema/refunds'
+import { usageLedgerItems } from '@/db/schema/usageLedgerItems'
+import {
+  RefundStatus,
+  UsageLedgerItemStatus,
+  UsageLedgerItemDirection,
+} from '@/types'
 
 export async function testDatabaseEnumsFn(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
@@ -29,6 +36,23 @@ export async function testDatabaseEnumsFn(db: PostgresJsDatabase) {
       usageCredits,
       usageCredits.status,
       UsageCreditStatus,
+      tx
+    )
+
+    // Refunds table
+    await testEnumColumn(refunds, refunds.status, RefundStatus, tx)
+
+    // UsageLedgerItems table
+    await testEnumColumn(
+      usageLedgerItems,
+      usageLedgerItems.status,
+      UsageLedgerItemStatus,
+      tx
+    )
+    await testEnumColumn(
+      usageLedgerItems,
+      usageLedgerItems.direction,
+      UsageLedgerItemDirection,
       tx
     )
 

@@ -187,6 +187,8 @@ CREATE TABLE usage_ledger_items (
     subscription_id TEXT NOT NULL REFERENCES subscriptions(id),
     entry_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time of initial creation
     status TEXT NOT NULL,                               -- e.g., 'pending', 'posted'. 'posted' items are immutable.
+    direction TEXT NOT NULL,                             -- 'debit' or 'credit'
+    status TEXT NOT NULL, -- 'pending', or 'posted'
     entry_type TEXT NOT NULL,       -- e.g., 'usage_cost', 'payment_recognized', 'credit_grant_recognized', 'credit_applied_to_usage', 'credit_balance_adjusted', 'credit_grant_expired', 'billing_adjustment', 'payment_refunded'
     amount INTEGER NOT NULL,        -- Positive for credits/value-in, Negative for debits/value-out from subscription's perspective.
     description TEXT,
@@ -198,7 +200,6 @@ CREATE TABLE usage_ledger_items (
     source_payment_id TEXT REFERENCES payments(id),                                 
     source_credit_application_id TEXT REFERENCES usage_credit_applications(id),
     source_credit_balance_adjustment_id TEXT REFERENCES usage_credit_balance_adjustments(id),
-    source_billing_period_calculation_id TEXT REFERENCES subscription_meter_period_calculations(id), -- For entries that are summaries or outcomes of a period calculation itself.
 
     applied_to_ledger_item_id TEXT REFERENCES usage_ledger_items(id), -- e.g., a credit_applied_to_usage item linking to the usage_cost item it offsets.
 
