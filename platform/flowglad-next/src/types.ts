@@ -696,14 +696,20 @@ export enum BillingRunStatus {
   Aborted = 'aborted',
 }
 
+export enum SubscriptionMeterPeriodCalculationStatus {
+  Active = 'active',
+  Superseded = 'superseded',
+  PendingConfirmation = 'pending_confirmation',
+}
+
 export enum FeeCalculationType {
   SubscriptionPayment = 'subscription_payment',
   CheckoutSessionPayment = 'checkout_session_payment',
 }
 
 export enum InvoiceType {
-  Purchase = 'purchase',
   Subscription = 'subscription',
+  Purchase = 'purchase',
   Standalone = 'standalone',
 }
 
@@ -788,5 +794,13 @@ export enum UsageLedgerItemEntryType {
   CreditBalanceAdjusted = 'credit_balance_adjusted',
   CreditGrantExpired = 'credit_grant_expired',
   BillingAdjustment = 'billing_adjustment',
+  PaymentRefunded = 'payment_refunded',
+}
+
+export enum PaymentIntentUpdateTriggerType {}
+// ... existing code ...
+
+export enum LedgerEntryType {
+  // ... existing enum members ...
   PaymentRefunded = 'payment_refunded',
 }

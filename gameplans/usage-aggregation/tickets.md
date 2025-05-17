@@ -194,7 +194,7 @@ To solve this, let's modify the usage event ingestion process to create a `Usage
     - `status`: `'posted'` (if the cost is considered immediately final and not subject to change within a subsequent calculation run before posting) or `'pending'` (if it's part of a batch that gets finalized/posted later by a separate process).
     - `amount`: Negative value representing the calculated cost.
     - `source_usage_event_id`: The `id` of the `UsageEvent`.
-    - Populate other relevant fields: `subscription_id`, `organization_id`, `livemode`, `billing_period_id` (if applicable), `usage_meter_id`, `currency`, `description`.
+    - Populate other relevant fields: `subscription_id`, `organization_id`, `livemode`, `billing_period_id` (if applicable), `usage_meter_id`, `description`.
   - Ensure this operation occurs within a database transaction along with the usage event saving if applicable.
 
 ### Acceptance Criteria

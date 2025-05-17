@@ -271,12 +271,13 @@ export const activeColumn = () =>
 
 export const descriptionColumn = () => text('description')
 
-export const createdAtColumn = () =>
-  timestamp('created_at', {
+export const timezoneWithTimestampColumn = (name: string) =>
+  timestamp(name, {
     withTimezone: true,
   })
-    .notNull()
-    .defaultNow()
+
+export const createdAtColumn = () =>
+  timezoneWithTimestampColumn('created_at').notNull().defaultNow()
 
 export const sequenceNumberColumn = () => integer('sequence_number')
 

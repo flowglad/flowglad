@@ -42,8 +42,21 @@ import {
   UsageMeterAggregationType,
   InvoiceStatus,
   InvoiceType,
+  UsageCreditType,
+  UsageCreditStatus,
+  RefundStatus,
+  UsageLedgerItemStatus,
+  UsageLedgerItemDirection,
+  SubscriptionMeterPeriodCalculationStatus,
+  SubscriptionMeterPeriodCalculationType,
 } from '@/types'
 import { DbTransaction } from './types'
+
+// Add new schema imports needed for the moved tests
+import { usageCredits } from '@/db/schema/usageCredits'
+import { refunds } from '@/db/schema/refunds'
+import { usageLedgerItems } from '@/db/schema/usageLedgerItems'
+import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
 
 export const testDatabaseEnums = async (
   transaction: DbTransaction
@@ -286,4 +299,56 @@ export const testDatabaseEnums = async (
     CurrencyCode,
     transaction
   )
+
+  // START: Moved enum tests
+  // UsageCredits table
+  await testEnumColumn(
+    usageCredits,
+    usageCredits.creditType,
+    UsageCreditType,
+    transaction
+  )
+  await testEnumColumn(
+    usageCredits,
+    usageCredits.status,
+    UsageCreditStatus,
+    transaction
+  )
+
+  // Refunds table
+  await testEnumColumn(
+    refunds,
+    refunds.status,
+    RefundStatus,
+    transaction
+  )
+
+  // UsageLedgerItems table
+  await testEnumColumn(
+    usageLedgerItems,
+    usageLedgerItems.status,
+    UsageLedgerItemStatus,
+    transaction
+  )
+  await testEnumColumn(
+    usageLedgerItems,
+    usageLedgerItems.direction,
+    UsageLedgerItemDirection,
+    transaction
+  )
+
+  // SubscriptionMeterPeriodCalculations table
+  await testEnumColumn(
+    subscriptionMeterPeriodCalculations,
+    subscriptionMeterPeriodCalculations.status,
+    SubscriptionMeterPeriodCalculationStatus,
+    transaction
+  )
+  await testEnumColumn(
+    subscriptionMeterPeriodCalculations,
+    subscriptionMeterPeriodCalculations.calculationType,
+    SubscriptionMeterPeriodCalculationType,
+    transaction
+  )
+  // END: Moved enum tests
 }
