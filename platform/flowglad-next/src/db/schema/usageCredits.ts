@@ -25,7 +25,7 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
-import { UsageCreditType, UsageCreditInitialStatus } from '@/types'
+import { UsageCreditType, UsageCreditStatus } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'usage_credits'
@@ -60,18 +60,16 @@ export const usageCredits = pgTable(
     issuedAmount: integer('issued_amount').notNull(),
     issuedAt: timestamp('issued_at', {
       withTimezone: true,
-      mode: 'date',
     })
       .notNull()
       .defaultNow(),
     expiresAt: timestamp('expires_at', {
       withTimezone: true,
-      mode: 'date',
     }),
-    initialStatus: pgEnumColumn({
-      enumName: 'UsageCreditInitialStatus',
-      columnName: 'initial_status',
-      enumBase: UsageCreditInitialStatus,
+    status: pgEnumColumn({
+      enumName: 'UsageCreditStatus',
+      columnName: 'status',
+      enumBase: UsageCreditStatus,
     }).notNull(),
     notes: text('notes'),
     metadata: jsonb('metadata'),
@@ -84,7 +82,7 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.usageMeterId]),
       constructIndex(TABLE_NAME, [table.expiresAt]),
       constructIndex(TABLE_NAME, [table.creditType]),
-      constructIndex(TABLE_NAME, [table.initialStatus]),
+      constructIndex(TABLE_NAME, [table.status]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -98,7 +96,7 @@ export const usageCredits = pgTable(
 
 const columnRefinements = {
   creditType: core.createSafeZodEnum(UsageCreditType),
-  initialStatus: core.createSafeZodEnum(UsageCreditInitialStatus),
+  status: core.createSafeZodEnum(UsageCreditStatus),
   issuedAmount: core.safeZodPositiveInteger,
   issuedAt: core.safeZodDate,
   expiresAt: core.safeZodDate.nullable(),
@@ -124,7 +122,7 @@ export const usageCreditsUpdateSchema = createUpdateSchema(
 const createOnlyColumns = {
   issuedAmount: true,
   creditType: true,
-  initialStatus: true,
+  status: true,
   subscriptionId: true,
 } as const
 
@@ -160,6 +158,7 @@ export const usageCreditClientInsertSchema =
 export const usageCreditClientUpdateSchema =
   usageCreditsUpdateSchema.omit({
     ...clientWriteOmits,
+    ...createOnlyColumns,
     sourceReferenceId: true,
     subscriptionId: true,
   })

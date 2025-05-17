@@ -4,16 +4,18 @@ This document outlines a potential phased approach for evolving our V1 Subscript
 
 This is a flexible roadmap; the decision to implement any phase or feature should be driven by concrete requirements, performance bottlenecks identified in production, and a clear understanding of the complexity versus benefit trade-off.
 
-## Phase 1: Strengthening Core Operations and Auditability
+## Phase 1: Strengthening Core Operations and Auditability (Enhancements to V1 Base)
 
-This phase focuses on enhancing the V1 ledger with features that improve data accuracy, concurrency handling for common scenarios, and deeper audit trails. These are generally applicable improvements that build upon the V1 foundation.
+This phase focuses on enhancing the V1 ledger (which includes `UsageLedgerItems` with `status`/`discarded_at` and a linking-only `UsageTransactions` table) with features that improve data accuracy, concurrency handling for common scenarios, and deeper audit trails *beyond* the basic ledger structure.
 
-### 1.1. Implement Client-Supplied Timestamps (`effective_at`)
-*   **Concept:** Introduce an `effective_at` timestamp field (client-supplied or derived from source event) to `UsageLedgerItems` and other relevant financial records (e.g., `UsageCredits`). This timestamp would represent when the financial event *actually occurred* or should be recognized, distinct from the system's record creation timestamp (`entry_timestamp` or `created_at`).
-*   **Benefit:** Enables accurate historical balance reconstruction, proper handling of retroactive financial events/adjustments, and clearer financial reporting across different time zones or processing delays.
-*   **Considerations:** Requires schema changes and modifications to logic creating financial records. Plan for handling existing records if retroactive application is needed.
+### 1.1. Formalize Idempotency for Ledger-Modifying Operations
+*   **Concept:** While V1 might rely on DB constraints or application-level checks for idempotency of source events (e.g., `Payment` processing), this step involves formalizing idempotency keys directly for operations that create `UsageTransaction` bundles and their associated `UsageLedgerItems`.
+    *   Consider adding an `idempotency_key` to the `UsageTransactions` table. The system creating a bundle of ledger items would generate/use this key.
+    *   Alternatively, if source records (like `Payments`) have robust idempotency keys, ensure the linkage from `UsageTransaction` to the source (via `initiating_source_id`/`type`) is always clear and used to prevent duplicate transaction bundle creation.
+*   **Benefit:** Prevents accidental duplicate ledger entries from retries or concurrent requests at the point of ledger interaction itself, making the system more resilient.
+*   **Complexity:** Moderate. Requires changes to how services interact with the ledger system, and careful management of idempotency key lifecycle.
 
-### 1.2. Introduce Explicit Version Locking on Key Resources
+### 1.2. Optimistic Concurrency Control for Balance Updates (If Applicable)
 *   **Concept:** Implement optimistic locking (e.g., a `version` integer column) on key financial tables that might experience concurrent update contention as the system scales (e.g., `UsageCredits` if multiple processes could try to apply credits simultaneously).
 *   **Benefit:** Prevents race conditions and data corruption during concurrent writes to the same record, ensuring data integrity.
 *   **Considerations:** Involves schema changes and updates to application logic for write operations on version-controlled entities.
@@ -23,14 +25,17 @@ This phase focuses on enhancing the V1 ledger with features that improve data ac
 *   **Benefit:** Provides a complete picture of all actions affecting financial state, even if the ledger items themselves are immutable.
 *   **Considerations:** Evaluate existing audit capabilities and augment where necessary.
 
-## Phase 2: Introducing a Formal "Transaction" Model
+## Phase 2: Introducing a Formal, Stateful "LedgerTransaction" Model
 
-This phase represents a more significant structural evolution, introducing a dedicated `Transaction` entity if the complexity of financial operations warrants it.
+This phase represents a more significant structural evolution, building upon the V1 `UsageTransactions` table if the complexity of financial operations warrants more explicit control and atomicity *within the ledger transaction itself*.
 
-### 2.1. Implement the `LedgerTransaction` Entity
-*   **Concept:** Introduce a `LedgerTransactions` table, following patterns for formal transaction grouping in ledger systems. `UsageLedgerItems` would then be grouped under and belong to a `LedgerTransaction`. This transaction entity would have its own lifecycle (e.g., `pending`, `posted`, `archived`) and enforce atomicity for its grouped entries.
+### 2.1. Enhance `UsageTransactions` to a Stateful Entity
+*   **Concept:** Evolve the existing `UsageTransactions` table (currently primarily for linking) into a more formal `LedgerTransaction` entity. This would involve adding a `status` field (e.g., `pending`, `committed`, `rolled_back`, `archived`) to the `UsageTransactions` table itself.
+    *   `UsageLedgerItems` would continue to be grouped under and belong to a `UsageTransaction`.
+    *   The `status` and `discarded_at` fields on `UsageLedgerItems` would continue to manage the lifecycle of individual entries *within* such a transaction, especially for iterative processes like billing runs.
+    *   The `UsageTransaction`'s own status would govern the atomicity of the entire bundle of entries. For instance, all entries might be `pending` until the `UsageTransaction` is `committed`.
 *   **Benefit:**
-    *   Provides a formal mechanism for atomicity and balancing for multi-legged financial events *within the ledger itself*.
+    *   Provides a formal mechanism for atomicity and balancing for multi-legged financial events *within the ledger itself* if that granularity of control is needed beyond database transactions.
     *   Facilitates stricter enforcement of double-entry principles (debits equal credits within the transaction).
     *   Useful if single business events consistently require the creation of multiple, interdependent ledger entries that must succeed or fail as a single unit from the ledger's perspective.
 *   **Considerations:** This is a major architectural change with significant impact on schema, application logic (all ledger item creations would go through a transaction), and potentially data migration for existing items. Undertake this only if V1's approach (DB transactions for atomicity) proves insufficient for emerging complex financial workflows.
@@ -39,10 +44,10 @@ This phase represents a more significant structural evolution, introducing a ded
 
 As the ledger scales in terms of data volume and query load, these features become important.
 
-### 3.1. Model Explicit Pending/Available Balances
-*   **Concept:** If business requirements demand a distinction between fully settled funds/credits versus those that are in-flight (e.g., payment pending confirmation, credit allocated but not yet applied), model these different balance types more explicitly. This could involve more detailed status fields or separate ledger item types contributing to these distinct balance calculations.
-*   **Benefit:** Supports more nuanced financial reporting, user-facing balance displays, and risk management rules (e.g., preventing usage of funds that aren't fully settled).
-*   **Considerations:** Increases the complexity of balance calculation logic. Requires careful design to ensure atomicity and consistency of these different balance views.
+### 3.1. Model Explicit Pending/Available Balances (Enhanced)
+*   **Concept:** While the V1 introduction of `status` (`'pending'`, `'posted'`) and `discarded_at` on `UsageLedgerItems` provides a basis for distinguishing provisional versus final entries, this phase would involve building more sophisticated and potentially cached views for different balance types (e.g., truly "Available for Use" vs. "Posted/Settled" vs. "Pending Incoming"). This could involve more complex querying, dedicated balance snapshot tables, or specific views tailored to different consumer needs within the application.
+*   **Benefit:** Supports more nuanced financial reporting, user-facing balance displays (e.g., showing what's truly spendable now versus what's provisionally allocated), and advanced risk management rules.
+*   **Considerations:** Increases the complexity of balance calculation and presentation logic. Requires careful design to ensure consistency and performance of these different balance views.
 
 ### 3.2. Implement Caching Strategies for Balances
 *   **Concept:** Introduce caching mechanisms for frequently accessed balances, such as current subscription balances or historical balances at specific `effective_at` points. Established patterns for ledger scaling discuss strategies like caching current balances and using "anchoring" or "resulting balances" for historical queries.

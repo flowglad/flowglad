@@ -20,7 +20,7 @@ This approach allows us to:
 
 ## 1. Database Schema Changes
 
-We'll introduce the following key tables: `UsageLedgerItems` (the central financial journal), `UsageCredits` (for grant events), `UsageCreditApplications` (for itemized use of grants), `UsageCreditBalanceAdjustments` (for administrative changes to granted credits), and `SubscriptionMeterPeriodCalculations` (for append-only snapshots of period-end calculations).
+We'll introduce the following key tables: `UsageLedgerItems` (the central financial journal), `UsageCredits` (for grant events), `UsageCreditApplications` (for itemized use of grants), `UsageCreditBalanceAdjustments` (for administrative changes to granted credits), `SubscriptionMeterPeriodCalculations` (for append-only snapshots of period-end calculations), and a new `UsageTransactions` table to group related ledger items.
 
 ### 1.1. `UsageCredits` Table (Record of Grants - Immutable Post-Creation)
 
@@ -116,6 +116,30 @@ CREATE INDEX idx_usage_credit_app_calc_run_id ON usage_credit_applications(calcu
 **Zod Schema (`usageCreditApplications.ts`):**
 *   Define schema for this new table.
 
+### New Table: `UsageTransactions` (Groups related ledger items)
+
+This table creates a conceptual bundle for all ledger items that result from a single, distinct business operation or event. It provides a clear way to trace the full ledger impact of that originating event.
+
+```sql
+CREATE TABLE usage_transactions (
+    id TEXT PRIMARY KEY DEFAULT Nanoid('utxn'),
+    organization_id TEXT NOT NULL REFERENCES organizations(id),
+    livemode BOOLEAN NOT NULL,
+    initiating_source_type TEXT,                        -- Optional: Describes what triggered this bundle (e.g., 'payment_confirmation', 'admin_credit_grant', 'billing_run_credit_application')
+    initiating_source_id TEXT,                          -- Optional: The ID of the specific record that was the primary trigger (e.g., Payment.id, admin_user_id, calculation_run_id)
+    description TEXT,                                   -- Optional: A human-readable description for the transaction bundle.
+    metadata JSONB,                                     -- Optional: For any other contextual data related to the transaction bundle itself.
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX idx_utxn_initiating_source ON usage_transactions(initiating_source_type, initiating_source_id);
+CREATE INDEX idx_utxn_organization_id ON usage_transactions(organization_id);
+```
+
+**Zod Schema (`usageTransactions.ts`):**
+*   Define the Drizzle schema for this new `usage_transactions` table.
+
 ### New Table: `Refunds` (after UsageCreditApplications, before UsageLedgerItems)
 
 ### 1.4. `Refunds` Table
@@ -157,17 +181,20 @@ CREATE INDEX idx_refunds_status ON refunds(status);
 
 ### 1.5. `UsageLedgerItems` Table (The Grand Financial Journal)
 
-This is the central, immutable, append-only ledger recording all financial events and value movements for a subscription. Every entry must be traceable to a source event/record.
+This is the central, immutable, append-only ledger recording all financial events and value movements for a subscription. Every entry must be traceable to a source event/record and belong to a `UsageTransaction`. `posted` entries are immutable. `pending` entries can be superseded using the `discarded_at` field during iterative calculations within a single operational context (e.g., a billing run) before being finalized as `posted`.
 
 ```sql
 CREATE TABLE usage_ledger_items (
     id TEXT PRIMARY KEY DEFAULT Nanoid('uli'),
+    usage_transaction_id TEXT NOT NULL REFERENCES usage_transactions(id), -- Groups ledger items from a single conceptual operation
     subscription_id TEXT NOT NULL REFERENCES subscriptions(id),
-    entry_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    entry_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Time of initial creation
+    status TEXT NOT NULL,                               -- e.g., 'pending', 'posted'. 'posted' items are immutable.
     entry_type TEXT NOT NULL,       -- e.g., 'usage_cost', 'payment_recognized', 'credit_grant_recognized', 'credit_applied_to_usage', 'credit_balance_adjusted', 'credit_grant_expired', 'billing_adjustment', 'payment_refunded'
     amount INTEGER NOT NULL,        -- Positive for credits/value-in, Negative for debits/value-out from subscription's perspective.
     currency CHAR(3) NOT NULL,
     description TEXT,
+    discarded_at TIMESTAMP WITH TIME ZONE,              -- If set, this 'pending' entry was superseded by another within the same operational context. NULL for 'posted' items.
 
     -- Source linkage for traceability
     source_usage_event_id TEXT REFERENCES usage_events(id),                           
@@ -191,11 +218,13 @@ CREATE TABLE usage_ledger_items (
 -- Indexes (ensure comprehensive indexing for querying by source_ids, entry_type, subscription_id, entry_timestamp)
 CREATE INDEX idx_uli_subscription_id_timestamp ON usage_ledger_items(subscription_id, entry_timestamp);
 CREATE INDEX idx_uli_entry_type ON usage_ledger_items(entry_type);
+CREATE INDEX idx_uli_status_discarded_at ON usage_ledger_items(status, discarded_at); -- For querying active items
+CREATE INDEX idx_uli_usage_transaction_id ON usage_ledger_items(usage_transaction_id); -- For grouping by transaction
 -- Add indexes for all source_..._id columns that will be queried.
 ```
 
 **Zod Schema (`usageLedgerItems.ts`):**
-*   Define Drizzle schema. Include the new `metadata` field.
+*   Define Drizzle schema. Include the new `metadata`, `status`, `discarded_at`, and `usage_transaction_id` fields. Add relevant validation logic (e.g., `discarded_at` can only be set if `status` is `'pending'`). `posted` items must have `discarded_at` as `NULL`.
 
 ### 1.6. `subscription_meter_period_calculations` Table (Append-Only Snapshots of Period Calculations)
 
@@ -231,24 +260,28 @@ CREATE TABLE subscription_meter_period_calculations (
 
 ## 2. Code Changes to Existing Files
 
-*   **Core Principle:** All financial operations now revolve around creating immutable `UsageLedgerItems`. `UsageCredits` records grants. `UsageCreditApplications` details the use of those grants. `UsageCreditBalanceAdjustments` records admin changes to grant effectiveness. `SubscriptionMeterPeriodCalculations` snapshots period outcomes based on ledger activity.
+*   **Core Principle:** All financial operations now revolve around creating immutable `UsageLedgerItems` which belong to a `UsageTransaction`. `UsageCredits` records grants. `UsageCreditApplications` details the use of those grants. `UsageCreditBalanceAdjustments` records admin changes to grant effectiveness. `SubscriptionMeterPeriodCalculations` snapshots period outcomes based on *posted* (or to-be-posted) ledger activity.
 
 *   **`billingRunHelpers.ts`:**
     1.  **Generate `calculation_run_id`**.
-    2.  **Process `UsageEvents` for the period:** For each, create a `UsageLedgerItem` (`entry_type: 'usage_cost'`, negative amount, linked to `source_usage_event_id`).
-    3.  **Apply Credits:**
+    2.  **Start a `UsageTransaction`** for the current phase of the billing run (e.g., one for usage processing if it generates ledger items here, another for credit applications). Its `initiating_source_id` could be the `calculation_run_id` or subscription ID, `initiating_source_type` e.g. `'billing_run_usage_processing'` or `'billing_run_credit_application'`.
+    3.  **Process `UsageEvents` for the period:** For each, ensure a `UsageLedgerItem` (`entry_type: 'usage_cost'`, status: `'posted'` if immediately final, or `'pending'` if part of the run's finalization) exists or is created, linked to the current `UsageTransaction`.
+    4.  **Apply Credits:**
         *   Identify applicable `UsageCredits` (grants).
-        *   For each grant portion applied: Insert into `UsageCreditApplications`. Insert a `UsageLedgerItem` (`entry_type: 'credit_applied_to_usage'`, positive amount, linking to `source_usage_credit_id` and `source_credit_application_id`).
-    4.  **Generate `SubscriptionMeterPeriodCalculations` records:** Summarize the ledger items for each meter for this `calculation_run_id` to populate these snapshot records. Manage `active`/`superseded` status.
-    5.  Generate Invoices/Credit Notes based on the totals from these calculation snapshots.
+        *   For each grant portion applied: Insert into `UsageCreditApplications`. Insert a `UsageLedgerItem` (`entry_type: 'credit_applied_to_usage'`, `status: 'pending'`, positive amount, linking to `source_usage_credit_id`, `source_credit_application_id`, and the current `UsageTransaction`). If credit application logic iterates/revises within the run, existing `pending` items for this `UsageTransaction` might be marked with `discarded_at`, and new `pending` items created (still linked to the same `UsageTransaction`).
+    5.  **Finalize Ledger Items for the Run:** At the end of processing for the `calculation_run_id` (and associated `UsageTransaction`), all non-discarded `UsageLedgerItems` created with `status: 'pending'` during this run are transitioned to `status: 'posted'`.
+    6.  **Generate `SubscriptionMeterPeriodCalculations` records:** Summarize the now `posted` ledger items (or those confirmed to be posted) for each meter for this `calculation_run_id` to populate these snapshot records. Manage `active`/`superseded` status.
+    7.  Generate Invoices/Credit Notes based on the totals from these calculation snapshots.
 
 *   **Administrative Adjustment Processes (New):**
     1.  Record the intent in `UsageCreditBalanceAdjustments`.
-    2.  Create a `UsageLedgerItem` (`entry_type: 'credit_balance_adjusted'`, negative amount, linking to `source_credit_balance_adjustment_id` and the targeted `source_usage_credit_id`).
+    2.  Start a `UsageTransaction` (e.g., `initiating_source_type='admin_adjustment'`, `initiating_source_id` = adjustment ID or admin user ID).
+    3.  Create a `UsageLedgerItem` (`entry_type: 'credit_balance_adjusted'`, `status: 'posted'`, negative amount, linking to `source_credit_balance_adjustment_id`, the targeted `source_usage_credit_id`, and the `UsageTransaction`).
 
 *   **Payment Processing:**
     1.  On successful `Payment` (after confirmation), create a `UsageCredits` grant (`credit_type: 'payment_top_up'` or `'payment_period_settlement'`, `initial_status: 'granted_active'`).
-    2.  Create a `UsageLedgerItem` (`entry_type: 'payment_recognized'`, positive amount, linking to `source_payment_id` and the new `source_usage_credit_id`).
+    2.  Start a `UsageTransaction` (e.g., `initiating_source_type='payment_confirmation'`, `initiating_source_id` = Payment ID).
+    3.  Create a `UsageLedgerItem` (`entry_type: 'payment_recognized'`, `status: 'posted'`, positive amount, linking to `source_payment_id`, the new `source_usage_credit_id`, and the `UsageTransaction`).
 
 ## 3. Event Workflows and Ledger Posting
 
@@ -261,7 +294,8 @@ Before detailing specific event flows, the following principles guide ledger ope
 *   **Idempotency:** All external write operations that result in the creation of financial records (e.g., initiating payments, granting credits via API, processing webhook-driven events like payment confirmations or usage event ingestion) should ideally support an idempotency key provided by the client or initiating system. This key allows the system to safely retry operations without risk of duplicate record creation. While not all V1 interfaces may expose this immediately, the underlying services should be designed with idempotency in mind for future-proofing. Operations that create `UsageCredits`, `UsageCreditBalanceAdjustments`, or direct `UsageLedgerItems` from external triggers are key candidates for this.
 
 *   **Timestamp Conventions:** Clarity in timestamps is crucial for accurate financial record-keeping and auditability.
-    *   `UsageLedgerItems.entry_timestamp`: This timestamp (defaulting to `CURRENT_TIMESTAMP` upon record creation) represents when the ledger item was created *in our system*.
+    *   `UsageLedgerItems.entry_timestamp`: This timestamp (defaulting to `CURRENT_TIMESTAMP` upon record creation) represents when the ledger item was created *in our system*. It does not change if the item's `status` changes or `discarded_at` is set.
+    *   `UsageLedgerItems.discarded_at`: If a `pending` ledger item is superseded, this timestamp marks when that occurred.
     *   `Effective Event Time`: For understanding when the financial event *actually occurred* in the real world or source system (which may differ from when it was recorded in our ledger), queries should join back to the source record's own timestamp. Examples include `UsageEvents.event_timestamp` (for usage costs), `Payments.processed_at` (for payment recognitions), or `UsageCredits.issued_at` (for credit grants).
     *   System documentation should clearly outline these conventions for all relevant timestamps across financial tables to ensure consistent interpretation.
 
@@ -273,6 +307,16 @@ Before detailing specific event flows, the following principles guide ledger ope
         *   **Not Typically a Direct Foreign Key (from ledger items to summary):** Generally, `usage_ledger_items.calculation_run_id` (or from `usage_credit_applications`) is *not* an enforced foreign key to `subscription_meter_period_calculations.calculation_run_id`. This is primarily due to the order of operations: ledger items are created *during* the run, while the `subscription_meter_period_calculations` summary record (which often summarizes these very items) is finalized and saved *at the end* of the run. Enforcing an FK would create a circular dependency in the process flow. Integrity is typically maintained at the application logic level by ensuring consistent tagging.
 
 *   **Use of `metadata` fields:** Key financial tables (`UsageCredits`, `UsageCreditBalanceAdjustments`, `UsageLedgerItems`) now include a `metadata JSONB` field. This field is intended for storing flexible, contextual, non-indexed information relevant to the specific record. Examples include related entity IDs not suitable for foreign keys (e.g., a specific promotion campaign ID for a credit grant), system actor details (e.g., `'system:webhook_processor'`), diagnostic information, or any other pertinent data that aids in auditing or understanding the context of the record without requiring frequent schema changes.
+
+*   **Lifecycle of `UsageLedgerItems`:**
+    *   **Creation:** Ledger items can be created with `status = 'pending'` or `status = 'posted'`.
+        *   `'pending'`: Typically used for items generated during iterative or multi-step processes (e.g., credit applications within a billing run). These items are not yet considered final.
+        *   `'posted'`: Used for items representing immediately final financial events (e.g., a direct administrative adjustment, a payment recognition, or a usage cost processed individually and finalized).
+    *   **Superseding Pending Items:** If a `pending` item needs to be amended or replaced *within the same operational context* (e.g., due to recalculation of credit use within a single `calculation_run_id`), the original `pending` item has its `discarded_at` field set to the current timestamp. A new `pending` item is then created with the corrected information. This avoids polluting the ledger with many intermediate reversal entries for non-finalized states.
+    *   **Finalization (Posting):** Once an operational process concludes (e.g., a billing run is complete and its `SubscriptionMeterPeriodCalculations` record is finalized), all `pending` `UsageLedgerItems` associated with that operation (and not marked `discarded_at`) are transitioned to `status = 'posted'`.
+    *   **Immutability of Posted Items:** Once a `UsageLedgerItem` has `status = 'posted'`, it is considered immutable. Its financial fields (`amount`, `currency`, `entry_type`, source links) must not change. `discarded_at` must be `NULL` for `posted` items.
+    *   **Correcting Posted Items:** If a `posted` ledger item is found to be financially incorrect (e.g., due to an error in its immutable backing record or a change in business policy requiring retroactive adjustment), the correction is made by creating *new* `UsageLedgerItems` (e.g., of type `'billing_adjustment'` or `'credit_balance_adjusted'`) that counteract or amend the financial impact. The original `posted` item remains untouched.
+    *   **Balance Calculation:** Accurate financial balances are typically derived from `SUM(amount)` of `UsageLedgerItems` where `status = 'posted'`, OR (`status = 'pending'` AND `discarded_at IS NULL`). Reporting may differentiate between "posted balance" and "pending/provisional balance."
 
 ### 3.1. Backing Parent Records: Immutability
 
@@ -291,21 +335,20 @@ Once a backing parent record is created and represents a factual financial event
 
 ### 3.2. Event-to-Ledger Workflows
 
-All workflows operate within database transactions to ensure atomicity.
+All workflows operate within database transactions to ensure atomicity. Each distinct business operation that creates ledger items will first create a `UsageTransaction` record, to which all resulting `UsageLedgerItems` will be linked.
 
 1.  **Usage Event Ingestion & Processing**
     *   **Event:** A `UsageEvent` is successfully ingested and validated for a subscription.
-    *   **Ledger Posting:**
-        *   Create one `UsageLedgerItem`:
+    *   **Transaction & Ledger Posting:**
+        *   Create one `UsageTransaction` (e.g., `initiating_source_type='usage_event_processing'`, `initiating_source_id`=UsageEvent.id).
+        *   Create one `UsageLedgerItem` (linked to the UsageTransaction):
             *   `entry_type`: `'usage_cost'`
+            *   `status`: `'posted'` (assuming immediate finality; or `'pending'` if part of a batch processed later).
             *   `amount`: Negative value representing the calculated cost of the usage (pricing logic applied here).
             *   `currency`: Currency of the usage cost.
             *   `description`: e.g., "Usage for meter X on YYYY-MM-DD".
             *   `source_usage_event_id`: The `id` of the `UsageEvent`.
             *   `subscription_id`, `organization_id`, `livemode`, `billing_period_id` (if applicable), `usage_meter_id`.
-
-2.  **Payment Confirmation (Successful)**
-    *   **Event:** A `Payment` record is confirmed as successful (e.g., webhook from processor).
     *   **Parent Record Creation (`UsageCredits`):**
         *   Create one `UsageCredits` record:
             *   `credit_type`: `'payment_top_up'` (for PAYG) or `'payment_period_settlement'` (for invoice payment).
@@ -314,9 +357,11 @@ All workflows operate within database transactions to ensure atomicity.
             *   `currency`: Payment currency.
             *   `initial_status`: `'granted_active'`. 
             *   `subscription_id`, `organization_id`, `livemode`, `issued_at` (timestamp of confirmation).
-    *   **Ledger Posting:**
-        *   Create one `UsageLedgerItem`:
+    *   **Transaction & Ledger Posting:**
+        *   Create one `UsageTransaction` (e.g., `initiating_source_type='payment_confirmation'`, `initiating_source_id`=Payment.id).
+        *   Create one `UsageLedgerItem` (linked to the UsageTransaction):
             *   `entry_type`: `'payment_recognized'`
+            *   `status`: `'posted'`
             *   `amount`: Positive value of the payment.
             *   `currency`: Payment currency.
             *   `description`: e.g., "Payment received via card ending XXXX".
@@ -324,8 +369,9 @@ All workflows operate within database transactions to ensure atomicity.
             *   `source_usage_credit_id`: The `id` of the newly created `UsageCredits` record.
             *   `subscription_id`, `organization_id`, `livemode`.
 
-3.  **Granting Promotional or Goodwill Credits**
+2.  **Granting Promotional or Goodwill Credits**
     *   **Event:** An administrative action or automated process decides to grant a non-payment credit.
+    *   **Transaction Context:** This typically happens within a broader `UsageTransaction` associated with the current billing run's credit application phase (e.g., `initiating_source_type='billing_run_credit_application'`, `initiating_source_id`=calculation_run_id).
     *   **Parent Record Creation (`UsageCredits`):**
         *   Create one `UsageCredits` record:
             *   `credit_type`: e.g., `'granted_promo'`, `'granted_goodwill'`. 
@@ -335,17 +381,20 @@ All workflows operate within database transactions to ensure atomicity.
             *   `initial_status`: `'granted_active'`.
             *   `expires_at`: (Optional) If the grant has an expiration date.
             *   `subscription_id`, `organization_id`, `livemode`, `issued_at`.
-    *   **Ledger Posting:**
-        *   Create one `UsageLedgerItem`:
+    *   **Transaction & Ledger Posting:**
+        *   Create one `UsageTransaction` (e.g., `initiating_source_type='promo_grant'`, `initiating_source_id`=promo_code_id or admin_user_id).
+        *   Create one `UsageLedgerItem` (linked to the UsageTransaction):
             *   `entry_type`: `'credit_grant_recognized'`
+            *   `status`: `'posted'`
             *   `amount`: Positive value of the granted credit.
             *   `currency`: Credit currency.
             *   `description`: e.g., "Promotional credit APPSUMO2024 applied".
             *   `source_usage_credit_id`: The `id` of the newly created `UsageCredits` record.
             *   `subscription_id`, `organization_id`, `livemode`.
 
-4.  **Applying Credits to Usage (During Billing Run or Real-time for PAYG)**
-    *   **Event:** The system (e.g., billing run logic) identifies an applicable `UsageCredits` grant and decides to use a portion (or all) of it to offset accumulated `usage_cost` ledger items.
+3.  **Applying Credits to Usage (During Billing Run or Real-time for PAYG)**
+    *   **Event:** The system (e.g., billing run logic with `calculation_run_id`) identifies an applicable `UsageCredits` grant and decides to use a portion (or all) of it to offset accumulated `usage_cost` ledger items.
+    *   **Transaction Context:** This typically happens within a broader `UsageTransaction` associated with the current billing run's credit application phase (e.g., `initiating_source_type='billing_run_credit_application'`, `initiating_source_id`=calculation_run_id).
     *   **Parent Record Creation (`UsageCreditApplications`):**
         *   Create one `UsageCreditApplications` record for each distinct grant application:
             *   `usage_credit_id`: The `id` of the `UsageCredits` grant being applied.
@@ -353,9 +402,10 @@ All workflows operate within database transactions to ensure atomicity.
             *   `currency`: Credit currency.
             *   `calculation_run_id`: (If applicable, e.g., during a billing run) The ID of the calculation process.
             *   `applied_at`, `target_usage_meter_id` (optional), `organization_id`, `livemode`.
-    *   **Ledger Posting:**
-        *   Create one `UsageLedgerItem`:
+    *   **Ledger Posting (within the existing UsageTransaction for the run):**
+        *   Create one `UsageLedgerItem` (linked to the UsageTransaction):
             *   `entry_type`: `'credit_applied_to_usage'`
+            *   `status`: `'pending'` (will be transitioned to `'posted'` at the end of the `calculation_run_id` if not discarded).
             *   `amount`: Positive value of the credit amount being applied (acts as an offset).
             *   `currency`: Credit currency.
             *   `description`: e.g., "Credit from grant X applied to usage in billing period Y".
@@ -364,8 +414,9 @@ All workflows operate within database transactions to ensure atomicity.
             *   `applied_to_ledger_item_id`: (Optional, but good practice for direct linking) Could link to a specific `usage_cost` ledger item or a summary ledger item for the period's usage if such an item exists.
             *   `subscription_id`, `organization_id`, `livemode`, `billing_period_id` (if applicable), `usage_meter_id` (if applicable).
 
-5.  **Administrative Adjustment of Credit Balance (e.g., Clawback of a Granted Credit)**
+4.  **Administrative Adjustment of Credit Balance (e.g., Clawback of a Granted Credit)**
     *   **Event:** An administrative decision is made to reduce the effective value of a previously issued `UsageCredits` grant (e.g., error in grant, terms violation).
+    *   **Transaction Context:** The creation of a `UsageCreditBalanceAdjustments` record should be part of a `UsageTransaction`.
     *   **Parent Record Creation (`UsageCreditBalanceAdjustments`):**
         *   Create one `UsageCreditBalanceAdjustments` record:
             *   `adjusted_usage_credit_id`: The `id` of the `UsageCredits` grant being adjusted.
@@ -374,9 +425,10 @@ All workflows operate within database transactions to ensure atomicity.
             *   `currency`: Currency of the adjustment.
             *   `reason`: Textual reason for adjustment.
             *   `adjusted_by_user_id`, `adjustment_initiated_at`, `organization_id`, `livemode`.
-    *   **Ledger Posting:**
-        *   Create one `UsageLedgerItem`:
+    *   **Ledger Posting (within a UsageTransaction):**
+        *   Create one `UsageLedgerItem` (linked to the UsageTransaction):
             *   `entry_type`: `'credit_balance_adjusted'`
+            *   `status`: `'posted'`
             *   `amount`: Negative value representing the reduction in credit value.
             *   `currency`: Adjustment currency.
             *   `description`: e.g., "Clawback of credit grant X due to Y".
@@ -384,20 +436,27 @@ All workflows operate within database transactions to ensure atomicity.
             *   `source_usage_credit_id`: The `id` of the `UsageCredits` grant that was targeted by the adjustment.
             *   `subscription_id`, `organization_id`, `livemode`.
 
-6.  **Credit Grant Expiration**
-    *   **Event:** A system process (e.g., daily batch job) identifies a `UsageCredits` grant whose `expires_at` date has passed and has an unused balance.
-        *   The unused portion is `UsageCredits.issued_amount - SUM(UsageCreditApplications.amount_applied where usage_credit_id = expired_grant.id)`.
-    *   **Ledger Posting:**
-        *   Create one `UsageLedgerItem` (if unused portion > 0):
-            *   `entry_type`: `'credit_grant_expired'`
-            *   `amount`: Negative value of the unused, expired portion of the credit.
-            *   `currency`: Currency of the credit grant.
-            *   `description`: e.g., "Credit grant X expired with Y unused amount".
-            *   `source_usage_credit_id`: The `id` of the expired `UsageCredits` grant.
-            *   `subscription_id`, `organization_id`, `livemode`.
+5.  **Credit Grant Expiration**
+    *   **Primary Mechanism (Point of Evaluation):** Expiration is primarily enforced when the system attempts to evaluate or apply credits (e.g., during a billing run, balance check, or real-time application).
+        *   **Event:** Logic evaluating `UsageCredits` for applicability (e.g., in `billingRunHelpers.ts` or a credit application service) encounters a grant where `expires_at` is in the past.
+        *   **Transaction Context:** The creation of a `'credit_grant_expired'` ledger item should be part of a `UsageTransaction`. This might be a dedicated transaction for expiration processing (e.g., `initiating_source_type='credit_expiration_processing'`) or part of the transaction of the evaluating process (e.g., billing run).
+        *   **Ledger Posting (within a UsageTransaction):**
+            *   Calculate the unused portion: `UsageCredits.issued_amount - SUM(UsageCreditApplications.amount_applied where usage_credit_id = expired_grant.id up to the point of expiration)`.
+            *   Create one `UsageLedgerItem` (if unused portion > 0 and no existing expiration entry for this grant, linked to the UsageTransaction):
+                *   `entry_type`: `'credit_grant_expired'`
+                *   `status`: `'posted'`
+                *   `amount`: Negative value of the unused, expired portion of the credit.
+                *   `currency`: Currency of the credit grant.
+                *   `description`: e.g., "Credit grant X expired with Y unused amount as of [expiration_timestamp]".
+                *   `source_usage_credit_id`: The `id` of the expired `UsageCredits` grant.
+                *   `subscription_id`, `organization_id`, `livemode`.
+                *   `entry_timestamp`: Should ideally reflect the time of evaluation or, if by batch, the time the batch recognized it. The effective financial impact is from `expires_at`.
+    *   **Secondary Mechanism (Optional Housekeeping):**
+        *   A periodic system process (e.g., daily batch job) can sweep for `UsageCredits` grants where `expires_at` has passed and no corresponding `'credit_grant_expired'` ledger item exists. This job would then create the necessary ledger items as described above. This ensures eventual consistency in the ledger for credits that might not have been evaluated recently around their expiry.
 
-7.  **Payment Refund Processing**
+6.  **Payment Refund Processing**
     *   **Event:** A refund is initiated for a specific, previously successful `Payment`.
+    *   **Transaction Context:** The creation of a `Refunds` record should be part of a `UsageTransaction`.
     *   **Parent Record Creation (`Refunds`):
         *   Create one `Refunds` record:
             *   `payment_id`: The `id` of the original `Payment` being refunded.
@@ -407,9 +466,11 @@ All workflows operate within database transactions to ensure atomicity.
     *   **(Process refund with payment gateway)**
     *   **On Refund Confirmation (Successful from Gateway):**
         *   Update `Refunds` record: Set `status` to `'succeeded'`, store `refund_processed_at`, `gateway_refund_id`.
-        *   **Ledger Posting:**
-            *   Create one `UsageLedgerItem`:
+        *   **Transaction & Ledger Posting:**
+            *   Create one `UsageTransaction` (e.g., `initiating_source_type='payment_refund'`, `initiating_source_id`=Refunds.id).
+            *   Create one `UsageLedgerItem` (linked to the UsageTransaction):
                 *   `entry_type`: `'payment_refunded'`
+                *   `status`: `'posted'`
                 *   `amount`: **Negative value** equal to the refunded amount.
                 *   `currency`: Refund currency.
                 *   `description`: e.g., "Refund for original payment ID [Payment.id]".
@@ -418,12 +479,15 @@ All workflows operate within database transactions to ensure atomicity.
                 *   `subscription_id`, `organization_id`, `livemode`.
     *   **Consideration for Associated Credits:** If the original payment funded a `UsageCredits` grant, the posting of the `'payment_refunded'` ledger item correctly adjusts the subscription's overall balance. A secondary, optional step could be to create a `UsageCreditBalanceAdjustments` entry to administratively reduce or invalidate the unspent portion of the original `UsageCredits` grant, further clarifying that its funding was revoked. This would generate an additional `'credit_balance_adjusted'` ledger item.
 
-8.  **Billing Recalculation and Adjustment**
+7.  **Billing Recalculation and Adjustment**
     *   **Event:** A recalculation is triggered for a specific billing period (e.g., due to corrected usage data, retroactive price changes, or fixing a previous calculation error). This results in a new `subscription_meter_period_calculations` record (`SMPC_new`) for that period, which supersedes a previous one (`SMPC_old`). The `SMPC_old.status` is updated to `'superseded'`, and `SMPC_old.superseded_by_calculation_id` points to `SMPC_new.id`.
+    *   **Transaction Context:** The creation of a new `subscription_meter_period_calculations` record should be part of a `UsageTransaction`.
     *   **Parent Record Linkage:** The primary source record for the ledger item is the new `subscription_meter_period_calculations` record (`SMPC_new`).
-    *   **Ledger Posting (to reflect the *net change* from the recalculation):**
-        *   Create one `UsageLedgerItem`:
+    *   **Transaction & Ledger Posting (to reflect the *net change* from the recalculation):**
+        *   Create one `UsageTransaction` (e.g., `initiating_source_type='billing_recalculation'`, `initiating_source_id`=SMPC_new.calculation_run_id).
+        *   Create one `UsageLedgerItem` (linked to the UsageTransaction):
             *   `entry_type`: `'billing_adjustment'`
+            *   `status`: `'posted'`
             *   `amount`: The difference in the `net_billed_amount` between `SMPC_new` and `SMPC_old`. (i.e., `SMPC_new.net_billed_amount - SMPC_old.net_billed_amount`). This can be positive (if the new calculation results in a higher charge) or negative (if it results in a lower charge or a credit).
             *   `currency`: The billing currency for the period.
             *   `description`: e.g., "Billing adjustment due to recalculation [SMPC_new.id] for period [billing_period_id], superseding [SMPC_old.id]".
@@ -444,7 +508,10 @@ All workflows operate within database transactions to ensure atomicity.
     *   **A:** A `UsageCredits` record is created with an `initial_status` like `'pending_payment_confirmation'` when a payment process starts. The corresponding `'payment_recognized'` entry in `UsageLedgerItems` (which makes the value spendable by the system) and the update of the `UsageCredits` grant to an active/available state should only occur *after* the payment is confirmed (e.g., webhook received, payment status becomes 'succeeded'). If a payment fails, the `UsageCredits` grant reflects this (e.g., status `'payment_failed_voided'` or similar, or it's never activated), and no positive ledger entry for a recognized payment is created, or a counteracting one is posted if an initial pending entry was made.
 
 4.  **Q: Do we want a settlement status on the `UsageLedgerItems`? Or is posting on the ledger the equivalent of settlement? What is the best practice for double entry ledgers - do the items have statuses?**
-    *   **A:** Generally, in pure double-entry, ledger items are immutable facts representing financial events. "Settlement" of a debit (like a `'usage_cost'`) is typically a derived concept: it's settled when its negative amount is offset by corresponding positive-amount ledger items (like `'credit_applied_to_usage'` or `'payment_recognized'` that effectively covers it). The source domain records (e.g., `UsageEvent.settlement_status`) are better suited to track operational lifecycle statuses. The ledger reflects the *financial impact* and history, not mutable operational states of its own entries.
+    *   **A (Revised):** `UsageLedgerItems` will now have a `status` field (e.g., `'pending'`, `'posted'`).
+        *   `'pending'` items represent provisional financial impacts that are subject to change or supersession (via `discarded_at`) within an ongoing operational context (like a billing run). They are not yet considered final for official balance reporting.
+        *   `'posted'` items represent finalized, immutable financial facts. These are used for definitive balance calculations and official financial reporting.
+        *   "Settlement" of a debit (like a `'usage_cost'`) is still a derived concept: it's effectively settled when offset by corresponding `posted` positive-amount ledger items (like `'credit_applied_to_usage'` or `'payment_recognized'`). The `status` field helps manage the lifecycle leading up to an item being considered for such settlement.
 
 ## Open Questions for Further Design
 

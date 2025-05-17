@@ -17,10 +17,16 @@ To solve this, let's introduce the `usage_credits` table to store records of dis
 - The `usage_credits` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `usageCredits` is defined, accurately reflects the table, and can be used for validation and type inference.
 - Core fields like `issued_amount` are conceptually immutable in the Zod schema/application logic handling.
+- Create a `UsageTransaction` record for the operation that grants these credits, and ensure the `UsageLedgerItem` that recognizes this grant is linked to this transaction.
 
 ### Test Coverage
 - Unit tests for Zod schema validation (e.g., correct types, required fields).
 - Integration tests to verify table creation and basic CRUD operations (though updates to core financial fields should be disallowed by application logic).
+
+### Notes
+- **Timing of Ledger Creation:** The `UsageLedgerItem` for `'usage_cost'` should be created as soon as the `UsageEvent` is successfully ingested, validated, and its cost calculated. This is independent of, and typically precedes, any end-of-period billing run or credit application process.
+- **`calculation_run_id`:** If usage ingestion happens in batches, the `'usage_cost'` ledger item might have a `calculation_run_id` related to that ingestion batch. If ingested individually and processed in real-time, this field might be `NULL` initially for the `'usage_cost'` item, or a system-defined ID for real-time ingestion could be used. This `calculation_run_id` (if present) would be distinct from the `calculation_run_id` of a later billing run that *processes* these usage costs.
+- **Test Cases:** Ensure test cases cover scenarios where `'usage_cost'` ledger items are created immediately upon usage event processing, distinct from later credit application steps. Test handling and presence/absence of `calculation_run_id` on these initial cost entries.
 
 ------
 ## 2. Implement `usage_credit_balance_adjustments` Table and Schema
@@ -41,6 +47,7 @@ To solve this, let's introduce the `usage_credit_balance_adjustments` table to r
 - The `usage_credit_balance_adjustments` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `usageCreditBalanceAdjustments` is defined and accurately reflects the table.
 - Core fields defining the adjustment are conceptually immutable post-creation.
+- Create a `UsageTransaction` record for the adjustment operation, and ensure the `UsageLedgerItem` that reflects this adjustment is linked to this transaction.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
@@ -65,10 +72,16 @@ To solve this, let's introduce the `usage_credit_applications` table to store an
 - The `usage_credit_applications` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `usageCreditApplications` is defined and accurately reflects the table.
 - All fields are conceptually immutable post-creation.
+- The `UsageLedgerItems` created from these applications will be linked to the `UsageTransaction` associated with the billing run's credit application phase.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
 - Integration tests for table creation and ensuring records can be created.
+
+### Notes
+- **Timing of Ledger Creation:** `UsageLedgerItem` records with `entry_type: 'credit_applied_to_usage'` (and their corresponding `UsageCreditApplications` parent records) are created specifically when the system decides to use an available `UsageCredits` grant to offset `'usage_cost'` items. This typically happens during a defined calculation process, such as a billing run (as described in Ticket #15) or a real-time credit application mechanism for PAYG models.
+- **`calculation_run_id`:** These `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications` records) MUST be associated with the `calculation_run_id` of the specific billing run or calculation process that triggered the credit application. This distinguishes them from the earlier `'usage_cost'` ledger items which might have a different (or no) `calculation_run_id` from their ingestion time.
+- **Test Cases:** Ensure test cases verify that `'credit_applied_to_usage'` items are only created during the credit application phase and are correctly linked via `calculation_run_id` to the process that applied them. Test scenarios with different credit prioritization rules and ensure correct `source_usage_credit_id` and `source_credit_application_id` linkage.
 
 ------
 ## 4. Implement `refunds` Table and Schema
@@ -89,10 +102,23 @@ To solve this, let's introduce the `refunds` table to serve as the "backing pare
 - The `refunds` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `refunds` is defined and accurately reflects the table.
 - Core financial fields are immutable once the refund status is 'succeeded' or 'failed'.
+- Create a `UsageTransaction` record for the refund operation (e.g., upon confirmation), and ensure the `UsageLedgerItem` that reflects this refund is linked to this transaction.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
 - Integration tests for table creation and simulating status transitions.
+
+------
+## 4.1 Design `UsageTransactions` Table and Schema (New Ticket)
+
+### Background
+To provide clear grouping and auditability for ledger items stemming from a single conceptual business operation, we need a `UsageTransactions` table.
+
+### Acceptance Criteria
+- Create `usage_transactions` table schema as per `product-spec.md` (Section 1.4).
+- This table will have fields like `id`, `organization_id`, `livemode`, `initiating_source_type`, `initiating_source_id`, `description`, `metadata`, `created_at`.
+- Define Zod schema and Drizzle ORM object.
+- Ensure this table is used by all workflows that create `UsageLedgerItems` to bundle them.
 
 ------
 ## 5. Implement `usage_ledger_items` Table and Schema
@@ -100,23 +126,29 @@ To solve this, let's introduce the `refunds` table to serve as the "backing pare
 ### Background
 Currently, we lack a centralized, immutable, append-only journal for all financial events and value movements for a subscription.
 
-This is a problem because it's difficult to get a complete, auditable financial history for a subscription, and to reliably calculate balances or trace financial outcomes.
+This is a problem because it's difficult to get a complete, auditable financial history for a subscription, understand its current balance definitively, or trace financial impacts of specific events.
 
-To solve this, let's introduce the `usage_ledger_items` table as the grand financial journal. Every entry must be traceable to a source event/record.
+To solve this, let's introduce the `usage_ledger_items` table as the grand financial journal. Every entry must be traceable to a source event/record. `posted` entries will be immutable. `pending` entries can be superseded using `discarded_at` before being finalized as `posted`.
 
 ### Changes
 - **SQL Migration:** Define and create the `usage_ledger_items` table as specified in `product-spec.md` (Section 1.5).
-  - Key fields: `id`, `subscription_id`, `entry_timestamp`, `entry_type`, `amount`, `currency`, `description`, various `source_..._id` fields (including `source_usage_credit_id`, `source_credit_application_id`, `source_credit_balance_adjustment_id`), `applied_to_ledger_item_id`, `billing_period_id`, `usage_meter_id`, `calculation_run_id`, `metadata`, `organization_id`, `livemode`.
-- **`@/db/schema/usageLedgerItems.ts`:** Create the Drizzle Zod schema for the `usage_ledger_items` table, including conditional validation for `source_..._id` fields based on `entry_type`.
+  - Key fields: `id`, `usage_transaction_id` (FK to `usage_transactions`), `subscription_id`, `entry_timestamp`, `status` (e.g., 'pending', 'posted'), `entry_type`, `amount`, `currency`, `description`, `discarded_at` (nullable), various `source_..._id` fields (including `source_usage_credit_id`, `source_credit_application_id`, `source_credit_balance_adjustment_id`), `applied_to_ledger_item_id`, `billing_period_id`, `usage_meter_id`, `calculation_run_id`, `metadata`, `organization_id`, `livemode`.
+- **`@/db/schema/usageLedgerItems.ts`:** Create the Drizzle Zod schema for the `usage_ledger_items` table, including conditional validation for `source_..._id` fields based on `entry_type`, and rules for `status` and `discarded_at` (e.g., `discarded_at` only if `status` is 'pending'; `posted` items have `discarded_at` as `NULL`).
 
 ### Acceptance Criteria
-- The `usage_ledger_items` table exists in the database with the correct schema and comprehensive indexing.
-- The Drizzle Zod schema `usageLedgerItems` is defined, accurately reflects the table, and enforces conditional source ID requirements.
-- All fields are conceptually immutable post-creation.
+- The `usage_ledger_items` table exists in the database with the correct schema and comprehensive indexing (including `status`, `discarded_at`).
+- The Drizzle Zod schema `usageLedgerItems` is defined, accurately reflects the table, and enforces conditional source ID requirements and status/discarded_at logic.
+- `posted` `UsageLedgerItems` are treated as immutable in application logic. `pending` items can be marked `discarded_at`.
+- Ensure `usage_transaction_id` is NOT NULL and correctly links to a `UsageTransaction`.
 
 ### Test Coverage
-- Unit tests for Zod schema validation, especially conditional logic.
-- Integration tests for table creation and ensuring records can be created with various entry types.
+- Unit tests for Zod schema validation, especially conditional logic and status/discarded_at rules.
+- Integration tests for table creation and ensuring records can be created with various entry types and lifecycle states.
+
+### Notes
+- **Timing of Ledger Creation:** The `UsageLedgerItem` for `'usage_cost'` should be created as soon as the `UsageEvent` is successfully ingested, validated, and its cost calculated. Its initial `status` should be determined by whether it's immediately final (`'posted'`) or part of a larger batch/process that will finalize it later (`'pending'`).
+- **`calculation_run_id`:** If usage ingestion happens in batches that are finalized together, the `'usage_cost'` ledger item might have a `calculation_run_id` related to that ingestion batch and its finalization to `'posted'` status. If ingested individually and processed in real-time as final, this field might be `NULL` for the `'posted'` item. This `calculation_run_id` (if present) would be distinct from the `calculation_run_id` of a later billing run that *processes* these usage costs.
+- **Test Cases:** Ensure test cases cover scenarios where `'usage_cost'` ledger items are created with the correct initial `status` (e.g., `'posted'` for immediate finality, or `'pending'` if awaiting a batch finalization). Test handling and presence/absence of `calculation_run_id` on these initial cost entries relative to their status.
 
 ------
 ## 6. Implement `subscription_meter_period_calculations` Table and Schema
@@ -138,6 +170,7 @@ To solve this, let's introduce the `subscription_meter_period_calculations` tabl
 - The `subscription_meter_period_calculations` table exists with the correct schema, indexes, and unique constraint.
 - The Drizzle Zod schema `subscriptionMeterPeriodCalculations` is defined and accurately reflects the table.
 - Core calculation result fields are immutable once active; status changes are managed.
+- The creation of ledger items for billing adjustments based on these records will be part of a `UsageTransaction` specific to that adjustment.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
@@ -158,6 +191,7 @@ To solve this, let's modify the usage event ingestion process to create a `Usage
   - After a `UsageEvent` is successfully ingested and validated, and its cost calculated:
     - Create one `UsageLedgerItem` record.
     - `entry_type`: `'usage_cost'`
+    - `status`: `'posted'` (if the cost is considered immediately final and not subject to change within a subsequent calculation run before posting) or `'pending'` (if it's part of a batch that gets finalized/posted later by a separate process).
     - `amount`: Negative value representing the calculated cost.
     - `source_usage_event_id`: The `id` of the `UsageEvent`.
     - Populate other relevant fields: `subscription_id`, `organization_id`, `livemode`, `billing_period_id` (if applicable), `usage_meter_id`, `currency`, `description`.
@@ -173,6 +207,11 @@ To solve this, let's modify the usage event ingestion process to create a `Usage
 - Unit tests for the new ledger item creation logic within the usage ingestion service.
 - Integration tests verifying that processing a usage event results in the correct ledger item being persisted.
 - Test cases for different pricing scenarios if pricing logic is part of this step.
+
+### Notes
+- **Timing of Ledger Creation:** The `UsageLedgerItem` for `'usage_cost'` should be created as soon as the `UsageEvent` is successfully ingested, validated, and its cost calculated. This is independent of, and typically precedes, any end-of-period billing run or credit application process.
+- **`calculation_run_id`:** If usage ingestion happens in batches, the `'usage_cost'` ledger item might have a `calculation_run_id` related to that ingestion batch. If ingested individually and processed in real-time, this field might be `NULL` initially for the `'usage_cost'` item, or a system-defined ID for real-time ingestion could be used. This `calculation_run_id` (if present) would be distinct from the `calculation_run_id` of a later billing run that *processes* these usage costs.
+- **Test Cases:** Ensure test cases cover scenarios where `'usage_cost'` ledger items are created immediately upon usage event processing, distinct from later credit application steps. Test handling and presence/absence of `calculation_run_id` on these initial cost entries.
 
 ------
 ## 8. Integrate Payment Confirmation with Ledger and Credits
@@ -197,6 +236,7 @@ To solve this, let's modify the payment confirmation process. Upon successful pa
         -   Populate other relevant fields.
     2.  **Create `UsageLedgerItem` record:**
         -   `entry_type`: `'payment_recognized'`
+        -   `status`: `'posted'` (payments are generally considered final once confirmed).
         -   `amount`: Positive value of the payment.
         -   `source_payment_id`: The `id` of the `Payment` record.
         -   `source_usage_credit_id`: The `id` of the newly created `UsageCredits` record.
@@ -238,6 +278,7 @@ To solve this, let's implement a workflow (e.g., an admin action or an automated
         -   Populate other relevant fields.
     2.  **Create `UsageLedgerItem` record:**
         -   `entry_type`: `'credit_grant_recognized'`
+        -   `status`: `'posted'` (grants are generally final once intentionally created).
         -   `amount`: Positive value of the granted credit.
         -   `source_usage_credit_id`: The `id` of the new `UsageCredits` record.
         -   Populate other relevant fields.
@@ -258,15 +299,17 @@ To solve this, let's implement a workflow (e.g., an admin action or an automated
 ## 10. Implement Credit Application Logic in Billing Process
 
 ### Background
-The current billing process (as implied, to be refactored) doesn't detail how `UsageCredits` are identified and applied to offset `usage_cost` ledger items, nor how these applications are recorded.
+The current billing process (as implied, to be refactored) doesn't detail how `UsageCredits` are identified and applied to offset `usage_cost` ledger items, nor how these applications are recorded, including handling provisional states during calculation.
 
-This is a problem because a core function of the credit system – using credits to pay for usage – is missing, along with the necessary audit trail for such applications.
+This is a problem because a core function of the credit system – using credits to pay for usage – is missing, along with the necessary audit trail for such applications and their potential revisions during a single billing run.
 
 To solve this, let's implement logic within the billing process (or a service it calls) that:
 1. Identifies applicable `UsageCredits` grants.
 2. For each portion of a grant applied:
     a. Creates a `UsageCreditApplications` record.
-    b. Creates a `UsageLedgerItem` of type `'credit_applied_to_usage'`.
+    b. Creates a `UsageLedgerItem` of type `'credit_applied_to_usage'` with `status: 'pending'`.
+3. If credit application logic iterates/revises within the run, existing `pending` items for this run are marked `discarded_at`, and new `pending` items are created.
+4. At the end of the run, non-discarded `pending` items are transitioned to `status: 'posted'`.
 
 ### Changes
 - **Billing Logic (e.g., within `billingRunHelpers.ts` or a dedicated `@/services/credits/application.ts`):**
@@ -280,23 +323,29 @@ To solve this, let's implement logic within the billing process (or a service it
           -   Populate other relevant fields.
       2.  **Create `UsageLedgerItem` record:**
           -   `entry_type`: `'credit_applied_to_usage'`
+          -   `status`: `'pending'`
           -   `amount`: Positive value of the credit amount applied.
           -   `source_usage_credit_id`: The `id` of the `UsageCredits` grant.
           -   `source_credit_application_id`: The `id` of the new `UsageCreditApplications` record.
-          -   `applied_to_ledger_item_id` (optional, link to `usage_cost` item).
           -   Populate other relevant fields.
   - Ensure these operations are part of the billing run's transaction.
 
 ### Acceptance Criteria
 - The billing process correctly identifies and prioritizes applicable credits.
 - For each credit application, a `UsageCreditApplications` record is created.
-- For each credit application, a `UsageLedgerItem` of type `'credit_applied_to_usage'` is created.
+- For each credit application, a `UsageLedgerItem` of type `'credit_applied_to_usage'` is initially created with `status: 'pending'`.
+- If the billing logic revises credit applications within the same run, previous `pending` ledger items for that run are marked `discarded_at` and replaced by new `pending` items.
+- At the end of the billing run, all relevant, non-discarded `pending` ledger items are transitioned to `status: 'posted'`.
 - Records accurately reflect the amount applied and link to the source grant and application.
-- The ledger balance reflects the credit application.
 
 ### Test Coverage
 - Unit tests for credit selection and application logic (e.g., prioritization, expiration handling).
 - Integration tests simulating a billing run with various credit scenarios (e.g., full coverage, partial coverage, multiple credits).
+
+### Notes
+- **Timing of Ledger Creation & Lifecycle:** `UsageLedgerItem` records with `entry_type: 'credit_applied_to_usage'` (and their corresponding `UsageCreditApplications` parent records) are created with `status: 'pending'` specifically when the system decides to use an available `UsageCredits` grant. If the application logic within the same `calculation_run_id` iterates (e.g., tries a different credit strategy), it will mark the previous set of `pending` `'credit_applied_to_usage'` items as `discarded_at` and create new `pending` ones. Once the calculation run finalizes its decisions, these non-discarded `pending` items are updated to `status: 'posted'`.
+- **`calculation_run_id`:** These `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications` records) MUST be associated with the `calculation_run_id` of the specific billing run or calculation process that triggered the credit application. This distinguishes them from the earlier `'usage_cost'` ledger items which might have a different (or no) `calculation_run_id` from their ingestion time.
+- **Test Cases:** Ensure test cases verify that `'credit_applied_to_usage'` items are created as `'pending'`, can be `discarded_at` and replaced by new `pending` items within the same run, and are correctly transitioned to `'posted'` upon run completion. Test scenarios with different credit prioritization rules and ensure correct `source_usage_credit_id` and `source_credit_application_id` linkage. Verify that `discarded_at` items are not posted.
 
 ------
 ## 11. Implement Administrative Adjustment of Credit Balance Workflow
@@ -319,6 +368,7 @@ To solve this, let's implement a workflow that:
         -   Populate with input details and system-generated timestamps.
     2.  **Create `UsageLedgerItem` record:**
         -   `entry_type`: `'credit_balance_adjusted'`
+        -   `status`: `'posted'` (administrative adjustments are typically final).
         -   `amount`: Negative value representing the reduction in credit value (or positive if correcting a previous erroneous reduction, though typical adjustments reduce value).
         -   `source_credit_balance_adjustment_id`: The `id` of the new `UsageCreditBalanceAdjustments` record.
         -   `source_usage_credit_id`: The `id` of the targeted `UsageCredits` grant.
@@ -338,41 +388,57 @@ To solve this, let's implement a workflow that:
 - If admin UI is involved, tests for that interface.
 
 ------
-## 12. Implement Credit Grant Expiration Workflow
+## 12. Implement Credit Grant Expiration Handling
 
 ### Background
-`UsageCredits` grants can have an `expires_at` date. The financial impact of an unused credit portion expiring needs to be formally recorded in the ledger.
+`UsageCredits` grants can have an `expires_at` date. The financial impact of an unused credit portion expiring needs to be formally recorded in the ledger, and expired credits must not be applied.
 
-This is a problem because without processing expirations, the subscription's ledger balance might not accurately reflect the true available credit value.
+This is a problem because without processing expirations robustly, the subscription's ledger balance might not accurately reflect the true available credit value, and expired credits could be mistakenly used.
 
-To solve this, let's implement a system (e.g., a scheduled job) that:
-1. Identifies `UsageCredits` grants that have expired with an unused balance.
-2. For each such grant, creates a `UsageLedgerItem` of type `'credit_grant_expired'`.
+To solve this, expiration handling will occur at two levels:
+1.  **Point of Evaluation/Application:** Logic that considers credits for use (e.g., in billing, real-time application) must check `expires_at` and not use expired credits. If an expired credit is encountered, and no `'credit_grant_expired'` ledger item exists, one should be created.
+2.  **Scheduled Job (Housekeeping):** An optional, periodic job to ensure all expirations are eventually recorded in the ledger.
 
 ### Changes
-- **Scheduled Job/Service (e.g., `@/services/credits/expirationProcessor.ts`):**
+- **Credit Application/Evaluation Logic (e.g., in `billingRunHelpers.ts`, `@/services/credits/application.ts`):**
+  - Modify logic that selects/applies `UsageCredits` to:
+    - Filter out credits where `expires_at <= NOW()`.
+    - If an attempt is made to evaluate/use a credit that is found to be expired:
+      - Ensure it's not applied.
+      - Check if a `'credit_grant_expired'` `UsageLedgerItem` already exists for this `source_usage_credit_id`.
+      - If not, calculate the unused portion (`issued_amount - SUM(UsageCreditApplications.amount_applied where status = 'posted' or (status = 'pending' and discarded_at IS NULL))`) and create a `UsageLedgerItem`:
+        - `entry_type`: `'credit_grant_expired'`
+        - `status`: `'posted'` (expiration is a final event).
+        - `amount`: Negative value of the unused, expired portion.
+        - `source_usage_credit_id`: The `id` of the expired `UsageCredits` grant.
+        - `description`: e.g., "Credit grant X expired with Y unused amount".
+        - Populate other relevant fields.
+      - This ledger posting should be idempotent.
+
+- **Optional Scheduled Job/Service (e.g., `@/services/credits/expirationProcessor.ts`):**
+  - Develop a service that can be run periodically (e.g., daily).
   - Logic to:
-    - Query for `UsageCredits` where `expires_at` has passed and `initial_status` was active.
-    - For each expired grant, calculate the unused portion: `issued_amount - SUM(UsageCreditApplications.amount_applied where usage_credit_id = expired_grant.id)`.
-    - If unused portion > 0:
-      1.  **Create `UsageLedgerItem` record:**
-          -   `entry_type`: `'credit_grant_expired'`
-          -   `amount`: Negative value of the unused, expired portion.
-          -   `source_usage_credit_id`: The `id` of the expired `UsageCredits` grant.
-          -   `description`: e.g., "Credit grant X expired with Y unused amount".
-          -   Populate other relevant fields.
-  - Ensure ledger item creation is idempotent for each expiration. Transactions should be per-grant or well-batched.
+    - Query for `UsageCredits` where `expires_at` has passed, `initial_status` was active, and no `'credit_grant_expired'` `UsageLedgerItem` (with `status = 'posted'`) exists for them.
+    - For each such grant, calculate the unused portion as above (considering only posted or active pending applications).
+    - If unused portion > 0, create the `'credit_grant_expired'` `UsageLedgerItem` with `status = 'posted'` as detailed above.
+  - Ensure ledger item creation is idempotent. Transactions should be per-grant or well-batched.
 
 ### Acceptance Criteria
-- Expired credit grants with unused balances result in the creation of a `UsageLedgerItem` of type `'credit_grant_expired'`.
+- Expired credit grants are not applied to usage.
+- When an expired credit is evaluated and found to be unused (or partially unused), a `'credit_grant_expired'` `UsageLedgerItem` is created if one doesn't already exist.
 - The ledger item's amount accurately reflects the value of the expired, unused portion.
-- The process is idempotent and can be run repeatedly without creating duplicate ledger entries for the same expiration.
-- The subscription's ledger balance correctly reflects the value lost due to expiration.
+- The optional scheduled job correctly identifies and processes expirations for credits not recently evaluated.
+- All processes for creating expiration ledger items are idempotent.
+- The subscription's ledger balance correctly reflects value lost due to expiration.
 
 ### Test Coverage
-- Unit tests for the logic identifying expired credits and calculating unused portions.
-- Integration tests simulating credit grants with expiration dates, applying some portions, and then running the expiration processor to verify ledger item creation.
-- Tests for idempotency of the expiration process.
+- Unit tests for credit application logic correctly identifying and skipping expired credits.
+- Unit tests for the logic that creates `'credit_grant_expired'` ledger items (both at point-of-evaluation and in batch).
+- Integration tests simulating credit grants with expiration dates, applying some portions, then:
+    - Verifying that attempts to use them post-expiration fail.
+    - Verifying that evaluating them post-expiration (e.g., during a billing run) triggers the ledger entry.
+    - Verifying the optional expiration processor creates ledger items for untouched expired credits.
+- Tests for idempotency of all expiration processing.
 
 ------
 ## 13. Integrate Payment Refund Processing with Ledger
@@ -402,6 +468,7 @@ To solve this, let's ensure the payment refund process:
         -   Store `refund_processed_at`, `gateway_refund_id`.
     2.  **Create `UsageLedgerItem` record:**
         -   `entry_type`: `'payment_refunded'`
+        -   `status`: `'posted'` (refunds, once confirmed by gateway, are final financial events).
         -   `amount`: Negative value equal to the refunded amount.
         -   `source_payment_id`: The `id` of the original `Payment` record.
         -   `source_refund_id`: The `id` of the `Refunds` record.
@@ -448,6 +515,7 @@ To solve this, let's implement a workflow where a recalculation:
         -   Set `superseded_by_calculation_id` to `SMPC_new.id`.
     5.  **Create `UsageLedgerItem` record:**
         -   `entry_type`: `'billing_adjustment'`
+        -   `status`: `'posted'` (billing adjustments from recalculations are final outcomes).
         -   `amount`: `SMPC_new.net_billed_amount - SMPC_old.net_billed_amount`.
         -   `source_billing_period_calculation_id`: The `id` of `SMPC_new`.
         -   `calculation_run_id`: The ID from the recalculation run.
@@ -465,32 +533,34 @@ To solve this, let's implement a workflow where a recalculation:
 - Unit tests for the recalculation logic, including fetching old data, creating new data, and calculating differences.
 - Integration tests simulating a billing period, then a recalculation, verifying all record creations, updates, and the correctness of the adjustment ledger item.
 
-------
 ## 15. Refactor `billingRunHelpers.ts` for New Ledger System
 
 ### Background
-The existing (or placeholder) `billingRunHelpers.ts` likely doesn't incorporate the new detailed ledger system, credit application, or period calculation snapshots.
+The existing (or placeholder) `billingRunHelpers.ts` likely doesn't incorporate the new detailed ledger system, credit application lifecycle (pending, discarded, posted), or period calculation snapshots.
 
-This is a problem because the core billing process needs to be updated to drive and utilize the new financial recording infrastructure.
+This is a problem because the core billing process needs to be updated to drive and utilize the new financial recording infrastructure, including managing provisional ledger states during calculation.
 
 To solve this, let's refactor `billingRunHelpers.ts` to:
 1. Generate a `calculation_run_id`.
-2. Process `UsageEvents` to create `'usage_cost'` ledger items (may leverage Ticket #7).
-3. Apply `UsageCredits` (Ticket #10), creating `UsageCreditApplications` and `'credit_applied_to_usage'` ledger items.
-4. Generate `SubscriptionMeterPeriodCalculations` records by summarizing ledger items for the run.
-5. Manage `active`/`superseded` status for these calculation records.
-6. (Future) Generate Invoices/Credit Notes based on calculation snapshots.
+2. Process `UsageEvents` to ensure relevant `'usage_cost'` ledger items exist (these might be `posted` earlier or created as `pending` if part of this run's scope and finalized at the end).
+3. Apply `UsageCredits` (Ticket #10), creating `UsageCreditApplications` and `'credit_applied_to_usage'` ledger items with `status: 'pending'`. Handle discards and replacements of these pending items if the application logic iterates.
+4. At the end of the run, transition all non-discarded `pending` ledger items related to this `calculation_run_id` to `status: 'posted'`.
+5. Generate `SubscriptionMeterPeriodCalculations` records by summarizing these now `posted` (or confirmed to-be-posted) ledger items for the run.
+6. Manage `active`/`superseded` status for these calculation records.
+7. (Future) Generate Invoices/Credit Notes based on calculation snapshots.
 
 ### Changes
 - **`@/services/billing/billingRunHelpers.ts` (or similarly named core billing process file):**
   - **Generate `calculation_run_id`:** At the start of a billing run for a subscription/period.
   - **Process Usage:**
-    - For each relevant `UsageEvent`, ensure a `'usage_cost'` `UsageLedgerItem` is created (or verify its prior creation if usage ingestion is separate), associating it with the `calculation_run_id`.
+    - For each relevant `UsageEvent`, ensure a `'usage_cost'` `UsageLedgerItem` is created (or verify its prior creation). If created as part of this run and not immediately final, its status should be `'pending'` initially. If already `posted` from prior individual processing, it's simply consumed.
   - **Apply Credits:**
-    - Implement logic from Ticket #10 to identify and apply credits, creating `UsageCreditApplications` and `'credit_applied_to_usage'` `UsageLedgerItems`, associated with the `calculation_run_id`.
+    - Implement logic from Ticket #10 to identify and apply credits. This involves creating `UsageCreditApplications` and `UsageLedgerItems` with `entry_type = 'credit_applied_to_usage'` and `status = 'pending'`, all associated with the `calculation_run_id`. If the credit application strategy iterates, previously created `pending` items for this run are marked `discarded_at`, and new ones are created.
+  - **Finalize Ledger Items for the Run:**
+    - After all usage processing and credit application iterations are complete for the `calculation_run_id`, transition all `UsageLedgerItems` that were created with `status = 'pending'` during this run (and are not `discarded_at`) to `status = 'posted'`.
   - **Generate `SubscriptionMeterPeriodCalculations`:**
-    - After processing all usage and credit applications for each meter in the period:
-      - Summarize relevant `UsageLedgerItems` (those with the current `calculation_run_id` for the specific subscription, meter, billing period).
+    - After finalizing ledger items: 
+      - Summarize relevant `UsageLedgerItems` (those with the current `calculation_run_id` and `status = 'posted'`, or those `posted` previously that fall into the period and are being processed by this run) for each meter in the period.
       - Populate `total_raw_usage_amount`, `credits_applied_amount`, `net_billed_amount`.
       - Create a `SubscriptionMeterPeriodCalculations` record with `status = 'active'`, linking it to the `calculation_run_id`.
       - If a previous 'active' calculation for the same scope exists, mark it 'superseded' and link it to the new one (similar to recalculation logic, but for standard runs that might supersede previous interim calculations).
@@ -498,9 +568,9 @@ To solve this, let's refactor `billingRunHelpers.ts` to:
 
 ### Acceptance Criteria
 - A billing run generates a unique `calculation_run_id`.
-- All relevant usage is accounted for with `'usage_cost'` ledger items tied to the run.
-- Credits are applied correctly, generating associated application records and ledger items tied to the run.
-- For each meter/period, a `SubscriptionMeterPeriodCalculations` record is created, accurately summarizing the run's ledger activity.
+- All relevant usage is accounted for with `'usage_cost'` ledger items (either pre-existing `posted` or `pending` then `posted' as part of the run).
+- Credits are applied correctly, generating associated application records and `pending` ledger items that are then transitioned to `posted`. The discard mechanism for pending items is used if application logic iterates.
+- For each meter/period, a `SubscriptionMeterPeriodCalculations` record is created, accurately summarizing the run's finalized (`posted`) ledger activity.
 - `active`/`superseded` statuses of calculation records are managed correctly.
 - The process is robust and handles various scenarios (no usage, full credit coverage, partial credit coverage, etc.).
 
@@ -509,3 +579,17 @@ To solve this, let's refactor `billingRunHelpers.ts` to:
 - Extensive integration tests simulating end-to-end billing runs for subscriptions with diverse configurations (different meters, credit types, usage patterns).
 - Tests for handling of existing calculation records and status updates.
 - Performance considerations for large numbers of usage events or subscriptions.
+
+### Notes
+- **`calculation_run_id` as a Link:** This ticket is central to orchestrating the `calculation_run_id`. A new `calculation_run_id` should be generated at the start of each distinct billing run (for a specific subscription/period).
+- **Timing of Ledger Item Association:**
+    - `'usage_cost'` ledger items are either created *prior* to this billing run (as per Ticket #7, potentially with `status: 'posted'`) or *during* this run (initially `status: 'pending'`, then transitioned to `'posted'` at the end of the run). This process will *select* and *process* these items. They are effectively finalized or confirmed by this run for summarization.
+    - `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications`) are created *during* this billing run with `status: 'pending'` and tagged with the current `calculation_run_id`. They are transitioned to `'posted'` at the end of the run if not `discarded_at`.
+    - The `SubscriptionMeterPeriodCalculations` record is also created *at the end* of this process for the current `calculation_run_id`, summarizing ledger items that are now `posted` and relevant to this specific run.
+- **Distinction from Real-time PAYG:** For pure PAYG models that might apply credits in near real-time immediately after a usage event, the `calculation_run_id` might represent a much smaller, more frequent micro-batch or even individual event processing context. The principles of linking usage cost, credit application, and a summary/snapshot via a common `calculation_run_id` still apply, but the scope of the "run" is different.
+- **Test Cases:** Include tests that verify:
+    - Correct generation and propagation of `calculation_run_id`.
+    - Selection of appropriate pre-existing `'usage_cost'` items.
+    - Creation of `'credit_applied_to_usage'` items as `'pending'`, their potential discard and replacement with new `pending` items, and their final transition to `'posted'` at run completion.
+    - Accurate summarization in `SubscriptionMeterPeriodCalculations` based *only* on ledger items relevant to the current `calculation_run_id` that have achieved `'posted'` status by the end of the run.
+    - Handling of scenarios where `'usage_cost'` items might have their own original `calculation_run_id` and/or `status` but are correctly processed and finalized by the current billing run.

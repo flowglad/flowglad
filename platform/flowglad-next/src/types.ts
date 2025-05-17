@@ -748,12 +748,18 @@ export enum UsageMeterAggregationType {
 }
 
 export enum UsageCreditType {
-  PromoGranted = 'promo_granted',
-  GoodwillGranted = 'goodwill_granted',
-  PaymentSettled = 'payment_settled',
+  /**
+   * Unlocked as a result of a subscription lifecycle event,
+   * such as on creation.
+   */
+  Grant = 'grant',
+  /**
+   * Unlocked as a result of a payment, including a subscription payment.
+   */
+  Payment = 'payment',
 }
 
-export enum UsageCreditInitialStatus {
-  PendingPaymentConfirmation = 'pending_payment_confirmation',
-  GrantedActive = 'granted_active',
+export enum UsageCreditStatus {
+  Pending = 'pending',
+  Posted = 'posted',
 }
