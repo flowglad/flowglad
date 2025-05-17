@@ -1464,6 +1464,13 @@
       "when": 1747458823700,
       "tag": "0209_violet_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 210,
+      "version": "7",
+      "when": 1747461015653,
+      "tag": "0210_wooden_thunderbolts",
+      "breakpoints": true
     }
   ]
 }
