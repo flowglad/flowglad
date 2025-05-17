@@ -1,6 +1,5 @@
 import { router } from '../trpc'
 import {
-  editUsageEventSchema,
   createUsageEventSchema,
   bulkInsertUsageEventsSchema,
   UsageEvent,
@@ -9,7 +8,6 @@ import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   selectUsageEventById,
   selectUsageEvents,
-  updateUsageEvent,
 } from '@/db/tableMethods/usageEventMethods'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
@@ -102,32 +100,6 @@ export const createUsageEvent = usageProcedure
           },
           transaction
         )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-    return { usageEvent }
-  })
-
-export const editUsageEvent = usageProcedure
-  .meta(openApiMetas.PUT)
-  .input(editUsageEventSchema)
-  .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const updatedUsageEvent = await updateUsageEvent(
-          {
-            ...input.usageEvent,
-            id: input.id,
-            usageDate: input.usageEvent.usageDate
-              ? new Date(input.usageEvent.usageDate)
-              : undefined,
-          },
-          transaction
-        )
-        return updatedUsageEvent
       },
       {
         apiKey: ctx.apiKey,
@@ -251,6 +223,5 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
 export const usageEventsRouter = router({
   get: getUsageEvent,
   create: createUsageEvent,
-  update: editUsageEvent,
   bulkInsert: bulkInsertUsageEventsProcedure,
 })
