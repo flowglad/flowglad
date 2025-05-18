@@ -17,7 +17,7 @@ import {
   pgEnumColumn,
   createUpdateSchema,
   nullableStringForeignKey,
-  timezoneWithTimestampColumn,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -59,7 +59,7 @@ export const subscriptionMeterPeriodCalculations = pgTable(
       organizations
     ),
     // livemode is in tableBase
-    calculatedAt: timezoneWithTimestampColumn('calculated_at')
+    calculatedAt: timestampWithTimezoneColumn('calculated_at')
       .notNull()
       .defaultNow(),
     totalRawUsageAmount: integer('total_raw_usage_amount').notNull(),

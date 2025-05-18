@@ -763,11 +763,20 @@ export enum UsageCreditType {
    * Unlocked as a result of a payment, including a subscription payment.
    */
   Payment = 'payment',
+  PaymentTopUp = 'payment_top_up',
+  PaymentPeriodSettlement = 'payment_period_settlement',
 }
 
 export enum UsageCreditStatus {
   Pending = 'pending',
   Posted = 'posted',
+  Expired = 'expired',
+  Exhausted = 'exhausted',
+}
+
+export enum UsageCreditSourceReferenceType {
+  Payment = 'payment',
+  ManualAdjustment = 'manual_adjustment',
 }
 
 export enum RefundStatus {
@@ -788,7 +797,9 @@ export enum UsageLedgerItemDirection {
 
 export enum UsageLedgerItemEntryType {
   UsageCost = 'usage_cost',
-  PaymentRecognized = 'payment_recognized',
+  PaymentSucceeded = 'payment_succeeded',
+  PaymentInitiated = 'payment_initiated',
+  PaymentFailed = 'payment_failed',
   CreditGrantRecognized = 'credit_grant_recognized',
   CreditAppliedToUsage = 'credit_applied_to_usage',
   CreditBalanceAdjusted = 'credit_balance_adjusted',
@@ -799,4 +810,9 @@ export enum UsageLedgerItemEntryType {
 
 export enum UsageTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
+  Payment = 'payment',
+  ManualAdjustment = 'manual_adjustment',
 }
+
+export enum UsagePlanType {}
+// ... existing code ...

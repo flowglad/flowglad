@@ -18,6 +18,7 @@ import {
   livemodePolicy,
   createUpdateSchema,
   pgEnumColumn,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -34,7 +35,6 @@ import core from '@/utils/core'
 import {
   UsageLedgerItemStatus,
   UsageLedgerItemDirection,
-  UsageLedgerItemEntryType,
 } from '@/types'
 
 const TABLE_NAME = 'usage_ledger_items'
@@ -43,6 +43,10 @@ export const usageLedgerItems = pgTable(
   TABLE_NAME,
   {
     ...tableBase('uli'),
+    /**
+     * References the usage transaction that caused
+     * the ledger item to be created.
+     */
     usageTransactionId: notNullStringForeignKey(
       'usage_transaction_id',
       usageTransactions
@@ -104,6 +108,14 @@ export const usageLedgerItems = pgTable(
     usageMeterId: nullableStringForeignKey(
       'usage_meter_id',
       usageMeters
+    ),
+    expiredAt: timestampWithTimezoneColumn('expired_at'),
+    /**
+     * References the usage transaction that caused the ledger item to expire.
+     */
+    expiredAtUsageTransactionId: nullableStringForeignKey(
+      'expired_at_usage_transaction_id',
+      usageTransactions
     ),
     calculationRunId: text('calculation_run_id'),
     metadata: jsonb('metadata'),

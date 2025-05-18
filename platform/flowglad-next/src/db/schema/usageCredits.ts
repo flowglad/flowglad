@@ -25,7 +25,11 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
-import { UsageCreditType, UsageCreditStatus } from '@/types'
+import {
+  UsageCreditType,
+  UsageCreditStatus,
+  UsageCreditSourceReferenceType,
+} from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'usage_credits'
@@ -49,6 +53,11 @@ export const usageCredits = pgTable(
       enumBase: UsageCreditType,
     }).notNull(),
     sourceReferenceId: text('source_reference_id'),
+    sourceReferenceType: pgEnumColumn({
+      enumName: 'UsageCreditSourceReferenceType',
+      columnName: 'source_reference_type',
+      enumBase: UsageCreditSourceReferenceType,
+    }).notNull(),
     billingPeriodId: nullableStringForeignKey(
       'billing_period_id',
       billingPeriods

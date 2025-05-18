@@ -210,7 +210,6 @@ To solve this, let's modify the usage event ingestion process to create a `Usage
 
 ### Notes
 - **Timing of Ledger Creation:** The `UsageLedgerItem` for `'usage_cost'` should be created as soon as the `UsageEvent` is successfully ingested, validated, and its cost calculated. This is independent of, and typically precedes, any end-of-period billing run or credit application process.
-- **`calculation_run_id`:** If usage ingestion happens in batches, the `'usage_cost'` ledger item might have a `calculation_run_id` related to that ingestion batch. If ingested individually and processed in real-time, this field might be `NULL` initially for the `'usage_cost'` item, or a system-defined ID for real-time ingestion could be used. This `calculation_run_id` (if present) would be distinct from the `calculation_run_id` of a later billing run that *processes* these usage costs.
 - **Test Cases:** Ensure test cases cover scenarios where `'usage_cost'` ledger items are created immediately upon usage event processing, distinct from later credit application steps. Test handling and presence/absence of `calculation_run_id` on these initial cost entries.
 
 ------

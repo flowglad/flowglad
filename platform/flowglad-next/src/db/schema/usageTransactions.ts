@@ -19,6 +19,8 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
+import { subscriptions } from './subscriptions'
+import { usageMeters } from './usageMeters'
 
 const TABLE_NAME = 'usage_transactions'
 
@@ -34,12 +36,22 @@ export const usageTransactions = pgTable(
     initiatingSourceId: text('initiating_source_id'),
     description: text('description'),
     metadata: jsonb('metadata'),
+    subscriptionId: notNullStringForeignKey(
+      'subscription_id',
+      subscriptions
+    ),
+    usageMeterId: notNullStringForeignKey(
+      'usage_meter_id',
+      usageMeters
+    ),
   },
   (table) => [
     constructIndex(TABLE_NAME, [
       table.initiatingSourceType,
       table.initiatingSourceId,
     ]),
+    constructIndex(TABLE_NAME, [table.usageMeterId]),
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
