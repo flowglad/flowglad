@@ -110,6 +110,65 @@ describe('Swagger Configuration', () => {
     })
   })
 
+  describe('OrganizationId in POST Input Validation', () => {
+    const checkSchemaForOrganizationId = (
+      schema: any,
+      path: string,
+      methodKey: string
+    ) => {
+      if (!schema || typeof schema !== 'object') return
+
+      if (schema.properties && schema.properties.organizationId) {
+        throw new Error(
+          `Schema for POST ${methodKey} at path ${path} contains forbidden field "organizationId" in properties`
+        )
+      }
+
+      if (
+        Array.isArray(schema.required) &&
+        schema.required.includes('organizationId')
+      ) {
+        throw new Error(
+          `Schema for POST ${methodKey} at path ${path} contains forbidden field "organizationId" in required array`
+        )
+      }
+
+      // Recursively check nested schemas
+      Object.entries(schema).forEach(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          checkSchemaForOrganizationId(
+            value,
+            `${path}.${key}`,
+            methodKey
+          )
+        }
+      })
+    }
+
+    it('should not have "organizationId" in any POST request body schemas', () => {
+      Object.entries(paths).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              if (
+                methodKey.toLowerCase() === 'post' &&
+                methodValue.requestBody?.content?.['application/json']
+                  ?.schema
+              ) {
+                checkSchemaForOrganizationId(
+                  methodValue.requestBody.content['application/json']
+                    .schema,
+                  pathKey,
+                  methodKey
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+  })
+
   describe('Customer Route Parameters', () => {
     it('should have {externalId} as the parameter for customer routes', () => {
       const customerPaths = Object.entries(paths).filter(([path]) =>
@@ -160,6 +219,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/checkout-sessions',
       '/api/v1/customers',
       '/api/v1/discounts',
+      '/api/v1/features',
       '/api/v1/invoice-line-items',
       '/api/v1/invoices',
       '/api/v1/payments',

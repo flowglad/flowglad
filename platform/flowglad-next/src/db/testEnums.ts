@@ -48,6 +48,8 @@ import {
   UsageLedgerItemStatus,
   UsageLedgerItemDirection,
   SubscriptionMeterPeriodCalculationStatus,
+  FeatureType,
+  FeatureUsageGrantRenewalFrequency,
 } from '@/types'
 import { DbTransaction } from './types'
 
@@ -56,6 +58,7 @@ import { usageCredits } from '@/db/schema/usageCredits'
 import { refunds } from '@/db/schema/refunds'
 import { usageLedgerItems } from '@/db/schema/usageLedgerItems'
 import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
+import { features } from '@/db/schema/features'
 
 export const testDatabaseEnums = async (
   transaction: DbTransaction
@@ -344,4 +347,18 @@ export const testDatabaseEnums = async (
     transaction
   )
   // END: Moved enum tests
+
+  // Features table
+  await testEnumColumn(
+    features,
+    features.type,
+    FeatureType,
+    transaction
+  )
+  await testEnumColumn(
+    features,
+    features.renewalFrequency,
+    FeatureUsageGrantRenewalFrequency,
+    transaction
+  )
 }
