@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS "product_features" (
 	"position" bigserial NOT NULL,
 	"product_id" text NOT NULL,
 	"feature_id" text NOT NULL,
+	"organization_id" text NOT NULL,
 	CONSTRAINT "product_features_id_unique" UNIQUE("id")
 );
 --> statement-breakpoint
@@ -24,20 +25,12 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "product_features" ADD CONSTRAINT "product_features_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "product_features_product_id_feature_id_unique_idx" ON "product_features" USING btree ("product_id","feature_id");--> statement-breakpoint
-CREATE POLICY "Enable access for own organizations and matching livemode" ON "product_features" AS PERMISSIVE FOR ALL TO "authenticated" USING (EXISTS (
-          SELECT 1
-          FROM "products" p
-          JOIN organizations o ON p.organization_id = o.id
-          JOIN memberships m ON o.id = m.organization_id
-          WHERE
-            p.id = "product_features"."product_id" AND
-            m.user_id = auth.uid() AND
-            o.livemode = (
-              SELECT org_focused.livemode
-              FROM organizations org_focused
-              JOIN memberships mem_focused ON org_focused.id = mem_focused.organization_id
-              WHERE mem_focused.user_id = auth.uid() AND mem_focused.focused IS TRUE
-              LIMIT 1
-            )
-        ));
+CREATE POLICY "Enable read for own organizations" ON "product_features" AS PERMISSIVE FOR ALL TO "authenticated" USING ("organization_id" in (select "organization_id" from "memberships"));--> statement-breakpoint
+CREATE POLICY "Check mode" ON "product_features" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);
