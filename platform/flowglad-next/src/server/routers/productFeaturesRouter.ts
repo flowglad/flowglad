@@ -36,7 +36,7 @@ export const createProductFeature = protectedProcedure
         // Determine livemode from the associated product
         // The RLS on productFeatures ensures user has access to the product
         // and its organization, and that livemode matches current context.
-        // Here, we need to set the livemode field on the productFeature record itself.
+        // Here, we need to set the livemode and organizationId fields on the productFeature record itself.
         const product = await selectProductById(
           input.productFeature.productId,
           transaction
