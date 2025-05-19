@@ -73,6 +73,7 @@ export const productFeaturesUpdateSchema = createUpdateSchema(
 // Columns that are part of productFeaturesInsertSchema but are set by the server or not applicable for client insert.
 const serverSetColumnsForInsert = {
   livemode: true, // from tableBase, server will set this based on context
+  organizationId: true, // from tableBase, server will set this based on context
 } as const
 
 // Columns to hide from client when selecting/reading productFeature records.
