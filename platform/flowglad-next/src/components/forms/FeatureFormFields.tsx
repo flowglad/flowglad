@@ -10,10 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ion/Radio'
 import Input from '@/components/ion/Input'
 import NumberInput from '@/components/ion/NumberInput'
 import Select from '@/components/ion/Select'
-import {
-  FeatureType,
-  FeatureUsageGrantRenewalFrequency,
-} from '@/types'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import UsageMetersSelect from './UsageMetersSelect'
 import Textarea from '@/components/ion/Textarea'
 import { titleCase } from '@/utils/core'
@@ -123,7 +120,7 @@ const FeatureFormFields = () => {
                 label="Renewal Frequency"
                 placeholder="Select renewal frequency"
                 options={Object.values(
-                  FeatureUsageGrantRenewalFrequency
+                  FeatureUsageGrantFrequency
                 ).map((value) => ({
                   label: titleCase(value),
                   value,

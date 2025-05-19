@@ -19,10 +19,7 @@ import { organizations } from '@/db/schema/organizations'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
-import {
-  FeatureType,
-  FeatureUsageGrantRenewalFrequency,
-} from '@/types'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 
 const TABLE_NAME = 'features'
 
@@ -48,9 +45,9 @@ export const features = pgTable(
       usageMeters
     ),
     renewalFrequency: pgEnumColumn({
-      enumName: 'FeatureUsageGrantRenewalFrequency',
+      enumName: 'FeatureUsageGrantFrequency',
       columnName: 'renewal_frequency',
-      enumBase: FeatureUsageGrantRenewalFrequency,
+      enumBase: FeatureUsageGrantFrequency,
     }),
   },
   (table) => [
@@ -73,7 +70,7 @@ export const features = pgTable(
 const columnRefinements = {
   type: core.createSafeZodEnum(FeatureType),
   renewalFrequency: core
-    .createSafeZodEnum(FeatureUsageGrantRenewalFrequency)
+    .createSafeZodEnum(FeatureUsageGrantFrequency)
     .nullable(),
   amount: z.number().int().nullable(),
   usageMeterId: z.string().nullable(),
@@ -120,7 +117,7 @@ const usageCreditGrantFeatureSharedColumns = {
   amount: z.number().int(),
   usageMeterId: z.string(),
   renewalFrequency: core.createSafeZodEnum(
-    FeatureUsageGrantRenewalFrequency
+    FeatureUsageGrantFrequency
   ),
 }
 export const usageCreditGrantFeatureInsertSchema =

@@ -806,7 +806,7 @@ export enum FeatureType {
   UsageCreditGrant = 'usage_credit_grant',
 }
 
-export enum FeatureUsageGrantRenewalFrequency {
+export enum FeatureUsageGrantFrequency {
   Once = 'once',
   EveryBillingPeriod = 'every_billing_period',
 }

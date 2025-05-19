@@ -49,7 +49,7 @@ import {
   UsageLedgerItemDirection,
   SubscriptionMeterPeriodCalculationStatus,
   FeatureType,
-  FeatureUsageGrantRenewalFrequency,
+  FeatureUsageGrantFrequency,
 } from '@/types'
 import { DbTransaction } from './types'
 
@@ -358,7 +358,7 @@ export const testDatabaseEnums = async (
   await testEnumColumn(
     features,
     features.renewalFrequency,
-    FeatureUsageGrantRenewalFrequency,
+    FeatureUsageGrantFrequency,
     transaction
   )
 }
