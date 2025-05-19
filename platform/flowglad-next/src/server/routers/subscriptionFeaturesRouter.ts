@@ -211,7 +211,7 @@ const deactivateSubscriptionFeature = protectedProcedure
   .meta(
     createPostOpenApiMeta({
       resource: pluralResourceName, // Use plural form for the path base
-      summary: 'Deactivate Subscription Feature',
+      summary: 'Deactivate a feature attached to a subscription',
       tags: tags,
       routeSuffix: 'deactivate', // This appends /deactivate
       requireIdParam: true, // This adds /{id}
