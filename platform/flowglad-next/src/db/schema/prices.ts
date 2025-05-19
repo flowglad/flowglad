@@ -26,6 +26,7 @@ import {
   products,
   productsClientInsertSchema,
   productsClientSelectSchema,
+  productsClientUpdateSchema,
   productsUpdateSchema,
 } from '@/db/schema/products'
 import core from '@/utils/core'
@@ -472,8 +473,8 @@ export type CreateProductPriceInput = z.infer<
 export type CreateProductSchema = z.infer<typeof createProductSchema>
 
 export const editProductSchema = z.object({
-  product: productsUpdateSchema,
-  price: pricesUpdateSchema.optional(),
+  product: productsClientUpdateSchema,
+  price: pricesClientUpdateSchema.optional(),
   id: z.string(),
 })
 

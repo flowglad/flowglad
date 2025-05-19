@@ -800,3 +800,13 @@ export enum UsageLedgerItemEntryType {
 export enum UsageTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
 }
+
+export enum FeatureType {
+  Toggle = 'toggle',
+  UsageCreditGrant = 'usage_credit_grant',
+}
+
+export enum FeatureUsageGrantFrequency {
+  Once = 'once',
+  EveryBillingPeriod = 'every_billing_period',
+}

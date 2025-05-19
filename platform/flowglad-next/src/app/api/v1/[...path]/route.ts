@@ -31,7 +31,7 @@ import {
 } from '@/server/routers/paymentsRouter'
 import core from '@/utils/core'
 import { parseUnkeyMeta } from '@/utils/unkey'
-
+import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
   try {
@@ -53,6 +53,7 @@ const routeConfigs = [
   ...usageMetersRouteConfigs,
   ...usageEventsRouteConfigs,
   ...webhooksRouteConfigs,
+  ...featuresRouteConfigs,
 ]
 
 const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(

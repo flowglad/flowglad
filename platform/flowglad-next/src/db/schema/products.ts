@@ -24,7 +24,7 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
-import { catalogs, catalogsClientSelectSchema } from './catalogs'
+import { catalogs } from './catalogs'
 
 const PRODUCTS_TABLE_NAME = 'products'
 
