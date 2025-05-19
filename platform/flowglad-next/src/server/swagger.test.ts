@@ -110,17 +110,18 @@ describe('Swagger Configuration', () => {
     })
   })
 
-  describe('OrganizationId in POST Input Validation', () => {
+  describe('OrganizationId in Request Body Validation', () => {
     const checkSchemaForOrganizationId = (
       schema: any,
       path: string,
-      methodKey: string
+      httpMethod: string // Renamed from methodKey for clarity, and used in error message
     ) => {
       if (!schema || typeof schema !== 'object') return
 
       if (schema.properties && schema.properties.organizationId) {
+        console.log('====schema', schema)
         throw new Error(
-          `Schema for POST ${methodKey} at path ${path} contains forbidden field "organizationId" in properties`
+          `Schema for ${httpMethod.toUpperCase()} at path ${path} contains forbidden field "organizationId" in properties`
         )
       }
 
@@ -129,7 +130,7 @@ describe('Swagger Configuration', () => {
         schema.required.includes('organizationId')
       ) {
         throw new Error(
-          `Schema for POST ${methodKey} at path ${path} contains forbidden field "organizationId" in required array`
+          `Schema for ${httpMethod.toUpperCase()} at path ${path} contains forbidden field "organizationId" in required array`
         )
       }
 
@@ -139,7 +140,7 @@ describe('Swagger Configuration', () => {
           checkSchemaForOrganizationId(
             value,
             `${path}.${key}`,
-            methodKey
+            httpMethod
           )
         }
       })
@@ -159,7 +160,30 @@ describe('Swagger Configuration', () => {
                   methodValue.requestBody.content['application/json']
                     .schema,
                   pathKey,
-                  methodKey
+                  methodKey // Pass the actual method key (e.g., 'post')
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+
+    it('should not have "organizationId" in any PUT request body schemas', () => {
+      Object.entries(paths).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              if (
+                methodKey.toLowerCase() === 'put' &&
+                methodValue.requestBody?.content?.['application/json']
+                  ?.schema
+              ) {
+                checkSchemaForOrganizationId(
+                  methodValue.requestBody.content['application/json']
+                    .schema,
+                  pathKey,
+                  methodKey // Pass the actual method key (e.g., 'put')
                 )
               }
             }
