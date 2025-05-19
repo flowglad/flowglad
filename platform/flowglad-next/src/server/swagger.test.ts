@@ -250,6 +250,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/prices',
       '/api/v1/product-features',
       '/api/v1/subscriptions',
+      '/api/v1/subscription-features',
       '/api/v1/payment-methods',
       '/api/v1/usage-meters',
       '/api/v1/usage-events',
@@ -607,6 +608,34 @@ describe('Swagger Configuration', () => {
         // GET (by id), DELETE (by id) - No PUT for product-features as per our router
         expect(Object.keys(route || {}).sort()).toEqual(
           ['delete', 'get'].sort()
+        )
+      })
+    })
+
+    describe('Subscription Features Routes', () => {
+      const basePath = '/api/v1/subscription-features'
+
+      it('should have correct base route methods', () => {
+        const route = paths[basePath]
+        expect(route).toBeDefined()
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get', 'post'].sort()
+        )
+      })
+
+      it('should have correct {id} route methods', () => {
+        const route = paths[`${basePath}/{id}`]
+        expect(route).toBeDefined()
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get', 'put'].sort()
+        )
+      })
+
+      it('should have correct {id}/deactivate route methods', () => {
+        const route = paths[`${basePath}/{id}/deactivate`]
+        expect(route).toBeDefined()
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['post'].sort()
         )
       })
     })
