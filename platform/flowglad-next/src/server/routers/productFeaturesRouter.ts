@@ -3,26 +3,25 @@ import { z } from 'zod'
 import {
   createProductFeatureInputSchema,
   productFeatureClientSelectSchema,
-  productFeaturesPaginatedSelectSchema, // Input schema for list
-  productFeaturesPaginatedListSchema, // Output schema for list
+  productFeaturesPaginatedSelectSchema,
+  productFeaturesPaginatedListSchema,
 } from '@/db/schema/productFeatures'
 import {
   insertProductFeature,
   selectProductFeatureById,
-  selectProductFeaturesPaginated, // Use the paginated selector
-  deleteProductFeatureById, // Import delete method
+  selectProductFeaturesPaginated,
+  deleteProductFeatureById,
 } from '@/db/tableMethods/productFeatureMethods'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { idInputSchema } from '@/db/tableUtils'
-import { selectProductById } from '@/db/tableMethods/productMethods' // To get product's livemode
+import { selectProductById } from '@/db/tableMethods/productMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'productFeature', // singular, camelCase
   tags: ['ProductFeatures'], // plural, PascalCase
 })
 
-// Let TypeScript infer the type of routeConfigs, similar to other routers
 export const productFeaturesRouteConfigs = routeConfigs
 
 export const createProductFeature = protectedProcedure
@@ -37,7 +36,7 @@ export const createProductFeature = protectedProcedure
         // Determine livemode from the associated product
         // The RLS on productFeatures ensures user has access to the product
         // and its organization, and that livemode matches current context.
-        // Here, we need to set the livemode field on the productFeature record itself.
+        // Here, we need to set the livemode and organizationId fields on the productFeature record itself.
         const product = await selectProductById(
           input.productFeature.productId,
           transaction
@@ -51,7 +50,8 @@ export const createProductFeature = protectedProcedure
         const productFeature = await insertProductFeature(
           {
             ...input.productFeature,
-            livemode: product.livemode, // Set livemode from the product
+            livemode: product.livemode,
+            organizationId: product.organizationId,
           },
           transaction
         )

@@ -11,11 +11,12 @@ import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   SelectConditions,
+  livemodePolicy,
 } from '@/db/tableUtils'
 import { products } from '@/db/schema/products'
 import { features } from '@/db/schema/features'
 import { createSelectSchema } from 'drizzle-zod'
-
+import { organizations } from '@/db/schema/organizations'
 const TABLE_NAME = 'product_features'
 
 export const productFeatures = pgTable(
@@ -24,6 +25,10 @@ export const productFeatures = pgTable(
     ...tableBase('product_feature'),
     productId: notNullStringForeignKey('product_id', products),
     featureId: notNullStringForeignKey('feature_id', features),
+    organizationId: notNullStringForeignKey(
+      'organization_id',
+      organizations
+    ),
   },
   (table) => {
     return [
@@ -31,31 +36,13 @@ export const productFeatures = pgTable(
         table.productId,
         table.featureId,
       ]),
-      pgPolicy(
-        'Enable access for own organizations and matching livemode',
-        {
-          as: 'permissive',
-          to: 'authenticated',
-          for: 'all',
-          using: sql`EXISTS (
-          SELECT 1
-          FROM ${products} p
-          JOIN organizations o ON p.organization_id = o.id
-          JOIN memberships m ON o.id = m.organization_id
-          WHERE
-            p.id = ${table.productId} AND
-            m.user_id = auth.uid() AND
-            o.livemode = (
-              SELECT org_focused.livemode
-              FROM organizations org_focused
-              JOIN memberships mem_focused ON org_focused.id = mem_focused.organization_id
-              WHERE mem_focused.user_id = auth.uid() AND mem_focused.focused IS TRUE
-              LIMIT 1
-            )
-        )`,
-          // WITH CHECK is omitted for brevity but would use a similar condition for write operations
-        }
-      ),
+      pgPolicy('Enable read for own organizations', {
+        as: 'permissive',
+        to: 'authenticated',
+        for: 'all',
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }),
+      livemodePolicy(),
     ]
   }
 ).enableRLS()
@@ -86,6 +73,7 @@ export const productFeaturesUpdateSchema = createUpdateSchema(
 // Columns that are part of productFeaturesInsertSchema but are set by the server or not applicable for client insert.
 const serverSetColumnsForInsert = {
   livemode: true, // from tableBase, server will set this based on context
+  organizationId: true, // from tableBase, server will set this based on context
 } as const
 
 // Columns to hide from client when selecting/reading productFeature records.

@@ -1,5 +1,5 @@
 {
-  "id": "e72edd7f-2614-40ba-a2d6-513881cce220",
+  "id": "5739b468-e084-4ebf-aa18-84231e5f4338",
   "prevId": "3b2348c2-2e60-40b5-80a8-797076c92428",
   "version": "7",
   "dialect": "postgresql",
@@ -5718,6 +5718,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {
@@ -5769,6 +5775,19 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "product_features_organization_id_organizations_id_fk": {
+          "name": "product_features_organization_id_organizations_id_fk",
+          "tableFrom": "product_features",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -5782,14 +5801,23 @@
         }
       },
       "policies": {
-        "Enable access for own organizations and matching livemode": {
-          "name": "Enable access for own organizations and matching livemode",
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "authenticated"
           ],
-          "using": "EXISTS (\n          SELECT 1\n          FROM \"products\" p\n          JOIN organizations o ON p.organization_id = o.id\n          JOIN memberships m ON o.id = m.organization_id\n          WHERE\n            p.id = \"product_features\".\"product_id\" AND\n            m.user_id = auth.uid() AND\n            o.livemode = (\n              SELECT org_focused.livemode\n              FROM organizations org_focused\n              JOIN memberships mem_focused ON org_focused.id = mem_focused.organization_id\n              WHERE mem_focused.user_id = auth.uid() AND mem_focused.focused IS TRUE\n              LIMIT 1\n            )\n        )"
+          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+        },
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
       "checkConstraints": {},
