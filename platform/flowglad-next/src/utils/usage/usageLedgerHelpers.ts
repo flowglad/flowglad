@@ -7,7 +7,10 @@ import {
   insertUsageLedgerItem,
   selectUsageLedgerItems,
 } from '@/db/tableMethods/usageLedgerItemMethods'
-import { insertUsageTransaction } from '@/db/tableMethods/usageTransactionMethods'
+import {
+  insertUsageTransaction,
+  insertUsageTransactionOrDoNothingByIdempotencyKey,
+} from '@/db/tableMethods/usageTransactionMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
 import { UsageCredit } from '@/db/schema/usageCredits'
 import { DbTransaction } from '@/db/types'
@@ -25,7 +28,10 @@ import { UsageMeter } from '@/db/schema/usageMeters'
 
 interface UsageLedgerTransactionResult {
   usageLedgerItems: UsageLedgerItem.Record[]
-  usageTransaction: UsageTransaction.Record
+  /**
+   * Returns the usage transaction if it was created, otherwise null if the event was already recorded.
+   */
+  usageTransaction: UsageTransaction.Record | null
 }
 
 export const createUsageEventLedgerTransaction = async (
@@ -86,20 +92,17 @@ export const createPaymentInitiationLedgerTransaction = async (
   }: { payment: Payment.Record; usageMeter: UsageMeter.Record },
   transaction: DbTransaction
 ): Promise<UsageLedgerTransactionResult> => {
-  const usageTransaction = await insertUsageTransaction(
-    {
-      livemode: payment.livemode,
-      organizationId: payment.organizationId,
-      description: `Recording initiation of Payment ${payment.id}`,
-      initiatingSourceType:
-        UsageTransactionInitiatingSourceType.Payment,
-      initiatingSourceId: payment.id,
-      subscriptionId: payment.subscriptionId!,
-      usageMeterId: usageMeter.id,
-    },
+  const usageTransaction = await createUsageTransactionForPayment(
+    payment,
+    usageMeter,
     transaction
   )
-
+  if (!usageTransaction) {
+    return {
+      usageLedgerItems: [],
+      usageTransaction: null,
+    }
+  }
   const usageLedgerItem = await insertUsageLedgerItem(
     {
       status: UsageLedgerItemStatus.Pending,
@@ -125,11 +128,19 @@ export const createPaymentInitiationLedgerTransaction = async (
   }
 }
 
+/**
+ * TODO: do not create a usage transaction if there is already one
+ * for the payment at this status: use payment + status as idempotency key.
+ * @param payment
+ * @param usageMeter
+ * @param transaction
+ * @returns
+ */
 const createUsageTransactionForPayment = async (
   payment: Payment.Record,
   usageMeter: UsageMeter.Record,
   transaction: DbTransaction
-) => {
+): Promise<UsageTransaction.Record | null> => {
   const subscriptionId = payment.subscriptionId
   if (!subscriptionId) {
     throw new Error(
@@ -137,19 +148,24 @@ const createUsageTransactionForPayment = async (
     )
   }
   const organizationId = payment.organizationId
-  const usageTransaction = await insertUsageTransaction(
-    {
-      livemode: payment.livemode,
-      organizationId,
-      description: `Recognizing ${payment.status} payment: ${payment.id}`,
-      initiatingSourceType:
-        UsageTransactionInitiatingSourceType.Payment,
-      initiatingSourceId: payment.id,
-      subscriptionId,
-      usageMeterId: usageMeter.id,
-    },
-    transaction
-  )
+  const [usageTransaction] =
+    await insertUsageTransactionOrDoNothingByIdempotencyKey(
+      {
+        livemode: payment.livemode,
+        organizationId,
+        description: `Recognizing ${payment.status} payment: ${payment.id}`,
+        initiatingSourceType:
+          UsageTransactionInitiatingSourceType.Payment,
+        initiatingSourceId: payment.id,
+        subscriptionId,
+        usageMeterId: usageMeter.id,
+        idempotencyKey: `${payment.id}-${payment.status}`,
+      },
+      transaction
+    )
+  if (!usageTransaction) {
+    return null
+  }
   return usageTransaction
 }
 
@@ -167,35 +183,13 @@ const entryTypeFromPaymentStatus = (payment: Payment.Record) => {
   }
 }
 
-const createNewPaymentUsageLedgerItem = async (
-  payment: Payment.Record,
-  usageTransaction: UsageTransaction.Record,
-  transaction: DbTransaction
-) => {
-  const entryType = entryTypeFromPaymentStatus(payment)
-  return await insertUsageLedgerItem(
-    {
-      status: UsageLedgerItemStatus.Posted,
-      livemode: payment.livemode,
-      organizationId: payment.organizationId,
-      usageTransactionId: usageTransaction.id,
-      subscriptionId: payment.subscriptionId!,
-      direction: UsageLedgerItemDirection.Credit,
-      entryType,
-      amount: payment.amount,
-      description: `Payment ${payment.id} recognized and credits issued`,
-      sourcePaymentId: payment.id,
-    },
-    transaction
-  )
-}
 /**
  * Creates a ledger transaction for a payment confirmation.
  * This will create a usage credit for the payment amount.
  * The usage credit will be posted if the payment is confirmed.
  * The pending usage ledger item will be expired if the payment is confirmed.
  */
-export const createPaymentConfirmationLedgerEntries = async (
+export const postPaymentConfirmationLedgerTransaction = async (
   {
     payment,
     usageMeter,
@@ -217,10 +211,26 @@ export const createPaymentConfirmationLedgerEntries = async (
     usageMeter,
     transaction
   )
-
-  const usageLedgerItem = await createNewPaymentUsageLedgerItem(
-    payment,
-    usageTransaction,
+  if (!usageTransaction) {
+    return {
+      usageLedgerItems: [],
+      usageTransaction: null,
+    }
+  }
+  const entryType = entryTypeFromPaymentStatus(payment)
+  const usageLedgerItem = await insertUsageLedgerItem(
+    {
+      status: UsageLedgerItemStatus.Posted,
+      livemode: payment.livemode,
+      organizationId: payment.organizationId,
+      usageTransactionId: usageTransaction.id,
+      subscriptionId: payment.subscriptionId!,
+      direction: UsageLedgerItemDirection.Credit,
+      entryType,
+      amount: payment.amount,
+      description: `Payment ${payment.id} recognized and credits issued`,
+      sourcePaymentId: payment.id,
+    },
     transaction
   )
 
@@ -248,7 +258,7 @@ export const postPaymentFailedLedgerTransaction = async (
     usageMeter,
   }: { payment: Payment.Record; usageMeter: UsageMeter.Record },
   transaction: DbTransaction
-) => {
+): Promise<UsageLedgerTransactionResult> => {
   const subscriptionId = payment.subscriptionId
   if (!subscriptionId) {
     throw new Error(
@@ -260,6 +270,12 @@ export const postPaymentFailedLedgerTransaction = async (
     usageMeter,
     transaction
   )
+  if (!usageTransaction) {
+    return {
+      usageLedgerItems: [],
+      usageTransaction: null,
+    }
+  }
   await expirePendingUsageLedgerItemsForPayment(
     payment.id,
     usageTransaction,

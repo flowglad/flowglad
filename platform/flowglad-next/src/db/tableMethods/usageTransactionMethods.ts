@@ -4,13 +4,16 @@ import {
   createUpdateFunction,
   createSelectFunction,
   ORMMethodCreatorConfig,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
+  UsageTransaction,
   usageTransactions,
   usageTransactionsInsertSchema,
   usageTransactionsSelectSchema,
   usageTransactionsUpdateSchema,
 } from '@/db/schema/usageTransactions'
+import { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof usageTransactions,
@@ -43,3 +46,22 @@ export const selectUsageTransactions = createSelectFunction(
   usageTransactions,
   config
 )
+
+const bulkInsertOrDoNothingUsageTransaction =
+  createBulkInsertOrDoNothingFunction(usageTransactions, config)
+
+export const insertUsageTransactionOrDoNothingByIdempotencyKey =
+  async (
+    usageTransactionInsert: UsageTransaction.Insert,
+    transaction: DbTransaction
+  ) => {
+    return bulkInsertOrDoNothingUsageTransaction(
+      [usageTransactionInsert],
+      [
+        usageTransactions.idempotencyKey,
+        usageTransactions.usageMeterId,
+        usageTransactions.subscriptionId,
+      ],
+      transaction
+    )
+  }

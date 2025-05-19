@@ -106,7 +106,9 @@ describe('usageLedgerHelpers', () => {
 
       const createdUsageTransaction = result.usageTransaction
       const createdUsageLedgerItem = result.usageLedgerItems[0]
-
+      if (!createdUsageTransaction) {
+        throw new Error('Usage transaction was not created')
+      }
       // Assertions for UsageTransaction
       expect(createdUsageTransaction.livemode).toBe(
         usageEventInput.livemode

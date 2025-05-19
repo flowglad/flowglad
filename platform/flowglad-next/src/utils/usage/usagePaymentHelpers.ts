@@ -3,7 +3,7 @@ import { Payment } from '@/db/schema/payments'
 import { DbTransaction } from '@/db/types'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { safelyFinalizeUsageCreditForSucceededPayment } from '@/db/tableMethods/usageCreditMethods'
-import { createPaymentConfirmationLedgerEntries } from './usageLedgerHelpers'
+import { postPaymentConfirmationLedgerTransaction } from './usageLedgerHelpers'
 import { UsageCreditType } from '@/types'
 
 export const ingestAndProcessSucceededPaymentForUsageMeter = async (
@@ -16,7 +16,7 @@ export const ingestAndProcessSucceededPaymentForUsageMeter = async (
     usageMeter,
     transaction
   )
-  await createPaymentConfirmationLedgerEntries(
+  await postPaymentConfirmationLedgerTransaction(
     {
       payment,
       usageMeter,

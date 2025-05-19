@@ -15,6 +15,7 @@ import {
   enhancedCreateInsertSchema,
   livemodePolicy,
   createUpdateSchema,
+  constructUniqueIndex,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -44,6 +45,7 @@ export const usageTransactions = pgTable(
       'usage_meter_id',
       usageMeters
     ),
+    idempotencyKey: text('idempotency_key'),
   },
   (table) => [
     constructIndex(TABLE_NAME, [
@@ -53,6 +55,11 @@ export const usageTransactions = pgTable(
     constructIndex(TABLE_NAME, [table.usageMeterId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.idempotencyKey,
+      table.usageMeterId,
+      table.subscriptionId,
+    ]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
       to: 'authenticated',
