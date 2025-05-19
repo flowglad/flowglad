@@ -73,6 +73,12 @@ export const productFeaturesInsertSchema = enhancedCreateInsertSchema(
 export const productFeaturesSelectSchema =
   createSelectSchema(productFeatures).extend(columnRefinements)
 
+// Update schema is kept for potential server-side use, but not exposed to client for this table type.
+export const productFeaturesUpdateSchema = createUpdateSchema(
+  productFeatures,
+  columnRefinements
+)
+
 /*
  * Client-facing schemas
  */

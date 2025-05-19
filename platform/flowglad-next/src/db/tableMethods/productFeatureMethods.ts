@@ -2,14 +2,19 @@ import { z } from 'zod'
 import {
   createSelectById,
   createInsertFunction,
+  createUpdateFunction,
   createSelectFunction,
   createUpsertFunction,
+  createPaginatedSelectFunction,
+  createDeleteFunction,
   ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import { DbTransaction } from '@/db/types'
 import {
   productFeatures,
   productFeaturesInsertSchema,
   productFeaturesSelectSchema,
+  productFeaturesUpdateSchema,
   ProductFeature,
 } from '@/db/schema/productFeatures'
 
@@ -21,12 +26,12 @@ const config: ORMMethodCreatorConfig<
   typeof productFeatures,
   typeof productFeaturesSelectSchema,
   typeof productFeaturesInsertSchema,
-  EmptyUpdateSchemaType // Use the type of our empty schema
+  typeof productFeaturesUpdateSchema
 > = {
-  tableName: productFeatures._.name,
+  tableName: 'product_features',
   selectSchema: productFeaturesSelectSchema,
   insertSchema: productFeaturesInsertSchema,
-  updateSchema: emptyUpdateSchema, // Use the empty schema instance
+  updateSchema: productFeaturesUpdateSchema,
 }
 
 export const selectProductFeatureById = createSelectById(
@@ -39,8 +44,10 @@ export const insertProductFeature = createInsertFunction(
   config
 )
 
-// No generic update function for this association table
-// export const updateProductFeature = createUpdateFunction(productFeatures, config);
+export const updateProductFeature = createUpdateFunction(
+  productFeatures,
+  config
+)
 
 export const selectProductFeatures = createSelectFunction(
   productFeatures,
@@ -53,3 +60,11 @@ export const upsertProductFeatureByProductIdAndFeatureId =
     [productFeatures.productId, productFeatures.featureId],
     config
   )
+
+export const selectProductFeaturesPaginated =
+  createPaginatedSelectFunction(productFeatures, config)
+
+export const deleteProductFeatureById =
+  createDeleteFunction(productFeatures)
+
+export type { ProductFeature }
