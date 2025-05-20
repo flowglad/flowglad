@@ -22,13 +22,12 @@ import {
   hiddenColumnsForClientSchema as baseHiddenColumnsForClientSchema,
   timezoneWithTimestampColumn,
   ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
+  parentForeignKeyIntegrityCheckPolicy,
 } from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations' // Needed for livemodePolicy
-import { subscriptions } from '@/db/schema/subscriptions'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
-import { features } from '@/db/schema/features' // Assuming FeatureType is exported here
+import { features } from '@/db/schema/features'
 import { productFeatures } from '@/db/schema/productFeatures'
-import { usageMeters } from '@/db/schema/usageMeters' // For usageMeterId foreign key
+import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { FeatureUsageGrantFrequency, FeatureType } from '@/types'
@@ -38,7 +37,7 @@ const TABLE_NAME = 'subscription_item_features'
 export const subscriptionItemFeatures = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('sub_feature'), // Prefix for id, createdAt, etc.
+    ...tableBase('sub_feature'),
     subscriptionItemId: notNullStringForeignKey(
       'subscription_item_id',
       subscriptionItems
@@ -74,11 +73,25 @@ export const subscriptionItemFeatures = pgTable(
       table.productFeatureId,
       table.subscriptionItemId,
     ]),
-    pgPolicy('Enable access for own organizations via subscription', {
-      as: 'permissive',
-      to: 'authenticated',
-      for: 'all',
-      using: sql`"subscription_id" IN (SELECT "id" FROM "subscriptions" WHERE "organization_id" IN (SELECT "organization_id" FROM "memberships"))`,
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'subscription_items',
+      parentIdColumnInCurrentTable: 'subscription_item_id',
+      currentTableName: TABLE_NAME,
+    }),
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'product_features',
+      parentIdColumnInCurrentTable: 'product_feature_id',
+      currentTableName: TABLE_NAME,
+    }),
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'features',
+      parentIdColumnInCurrentTable: 'feature_id',
+      currentTableName: TABLE_NAME,
+    }),
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'usage_meters',
+      parentIdColumnInCurrentTable: 'usage_meter_id',
+      currentTableName: TABLE_NAME,
     }),
     livemodePolicy(),
   ]
