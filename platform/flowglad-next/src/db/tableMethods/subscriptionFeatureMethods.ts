@@ -11,9 +11,10 @@ import {
   subscriptionFeaturesInsertSchema,
   subscriptionFeaturesSelectSchema,
   subscriptionFeaturesUpdateSchema,
-  coreSubscriptionFeaturesUpdateSchema, // Used for deactivate
+  coreSubscriptionFeaturesUpdateSchema,
+  SubscriptionFeature, // Used for deactivate
 } from '@/db/schema/subscriptionFeatures'
-import { DBTransaction } from '@/db'
+import { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionFeatures,
@@ -21,6 +22,7 @@ const config: ORMMethodCreatorConfig<
   typeof subscriptionFeaturesInsertSchema,
   typeof subscriptionFeaturesUpdateSchema
 > = {
+  tableName: 'subscription_features',
   selectSchema: subscriptionFeaturesSelectSchema,
   insertSchema: subscriptionFeaturesInsertSchema,
   updateSchema: subscriptionFeaturesUpdateSchema,
@@ -57,20 +59,15 @@ export const upsertSubscriptionFeatureByProductFeatureIdAndSubscriptionId =
   )
 
 export const deactivateSubscriptionFeature = async (
-  id: string,
+  subscriptionFeature: SubscriptionFeature.Record,
   deactivatedAt: Date,
-  transaction: DBTransaction
+  transaction: DbTransaction
 ) => {
-  // We use coreSubscriptionFeaturesUpdateSchema here because we are only updating a single field
-  // and don't need the complexity of the discriminated union for this specific operation.
-  // The discriminated union update schema would require the 'type' field.
-  const updateData = coreSubscriptionFeaturesUpdateSchema.parse({
-    id,
-    deactivatedAt,
-  })
-  return createUpdateFunction(subscriptionFeatures, {
-    selectSchema: subscriptionFeaturesSelectSchema,
-    insertSchema: subscriptionFeaturesInsertSchema,
-    updateSchema: coreSubscriptionFeaturesUpdateSchema, // Use core schema for this specific update
-  })(updateData, transaction)
+  return updateSubscriptionFeature(
+    {
+      ...subscriptionFeature,
+      deactivatedAt,
+    },
+    transaction
+  )
 }
