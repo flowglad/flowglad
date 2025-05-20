@@ -2,7 +2,11 @@ import * as R from 'ramda'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomersCursorPaginatedWithTableRowData } from './tableMethods/customerMethods'
-import { setupOrg, setupCustomer } from '../../seedDatabase'
+import {
+  setupOrg,
+  setupCustomer,
+  setupUserAndApiKey,
+} from '../../seedDatabase'
 import { core } from '@/utils/core'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { Price, prices } from '@/db/schema/prices'
@@ -548,57 +552,3 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
     expect(checkCatalog.length).toBe(0)
   })
 })
-
-// Conceptual setupUserAndApiKey - this should be moved to seedDatabase.ts or a test helper file
-const setupUserAndApiKey = async ({
-  organizationId,
-  livemode,
-}: {
-  organizationId: string
-  livemode: boolean
-}) => {
-  return adminTransaction(async ({ transaction }) => {
-    const userInsertResult = await transaction
-      .insert(users)
-      .values({
-        id: `usr_test_${core.nanoid()}`,
-        email: `testuser-${core.nanoid()}@example.com`,
-        name: 'Test User',
-      })
-      .returning()
-      .then(R.head)
-
-    if (!userInsertResult)
-      throw new Error('Failed to create user for API key setup')
-    const user = userInsertResult as typeof users.$inferSelect
-
-    await transaction.insert(memberships).values({
-      id: `mem_${core.nanoid()}`,
-      userId: user.id,
-      organizationId: organizationId,
-      focused: true,
-      livemode,
-    })
-
-    const apiKeyTokenValue = `test_sk_${core.nanoid()}`
-    const apiKeyInsertResult = await transaction
-      .insert(apiKeys)
-      .values({
-        id: `fk_test_${core.nanoid()}`,
-        token: apiKeyTokenValue,
-        organizationId: organizationId,
-        type: FlowgladApiKeyType.Secret,
-        livemode: livemode,
-        name: 'Test API Key',
-        active: true,
-      })
-      .returning()
-      .then(R.head)
-
-    if (!apiKeyInsertResult)
-      throw new Error('Failed to create API key')
-    const apiKey = apiKeyInsertResult as typeof apiKeys.$inferSelect
-
-    return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
-  })
-}

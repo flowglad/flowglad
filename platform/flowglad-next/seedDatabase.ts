@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import db from '@/db/client'
 import { adminTransaction } from '@/db/adminTransaction'
 import { countries } from '@/db/schema/countries'
@@ -12,6 +13,8 @@ import {
   insertPrice,
   selectPriceById,
 } from '@/db/tableMethods/priceMethods'
+import { users } from '@/db/schema/users'
+import { apiKeys } from '@/db/schema/apiKeys'
 import { insertBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -32,6 +35,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PurchaseStatus,
+  FlowgladApiKeyType,
   DiscountAmountType,
   DiscountDuration,
   FeeCalculationType,
@@ -63,6 +67,7 @@ import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
+import { memberships } from '@/db/schema/memberships'
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
     'attempted to access seedDatabase.ts in production. This should never happen.'
@@ -980,5 +985,58 @@ export const setupUsageMeter = async ({
       { organizationId, name, livemode, catalogId: catalogToUseId },
       transaction
     )
+  })
+}
+
+export const setupUserAndApiKey = async ({
+  organizationId,
+  livemode,
+}: {
+  organizationId: string
+  livemode: boolean
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    const userInsertResult = await transaction
+      .insert(users)
+      .values({
+        id: `usr_test_${core.nanoid()}`,
+        email: `testuser-${core.nanoid()}@example.com`,
+        name: 'Test User',
+      })
+      .returning()
+      .then(R.head)
+
+    if (!userInsertResult)
+      throw new Error('Failed to create user for API key setup')
+    const user = userInsertResult as typeof users.$inferSelect
+
+    await transaction.insert(memberships).values({
+      id: `mem_${core.nanoid()}`,
+      userId: user.id,
+      organizationId,
+      focused: true,
+      livemode,
+    })
+
+    const apiKeyTokenValue = `test_sk_${core.nanoid()}`
+    const apiKeyInsertResult = await transaction
+      .insert(apiKeys)
+      .values({
+        id: `fk_test_${core.nanoid()}`,
+        token: apiKeyTokenValue,
+        organizationId,
+        type: FlowgladApiKeyType.Secret,
+        livemode: livemode,
+        name: 'Test API Key',
+        active: true,
+      })
+      .returning()
+      .then(R.head)
+
+    if (!apiKeyInsertResult)
+      throw new Error('Failed to create API key')
+    const apiKey = apiKeyInsertResult as typeof apiKeys.$inferSelect
+
+    return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
   })
 }
