@@ -8,6 +8,7 @@ import {
   setupSubscriptionItem,
   setupBillingPeriod,
   setupBillingPeriodItems,
+  setupTestFeaturesAndProductFeatures,
 } from '../../seedDatabase'
 import { createSubscriptionWorkflow } from './createSubscription'
 import {
@@ -21,6 +22,18 @@ import { Price } from '@/db/schema/prices'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { core } from '@/utils/core'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { Feature } from '@/db/schema/features'
+import { ProductFeature } from '@/db/schema/productFeatures'
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  CurrencyCode,
+} from '@/types'
+import { insertFeature } from '@/db/tableMethods/featureMethods'
+import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
+import { setupUsageMeter } from '../../seedDatabase'
+import { Catalog } from '@/db/schema/catalogs'
 
 describe('createSubscription', async () => {
   const { organization, product, price } = await setupOrg()
@@ -705,5 +718,233 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
     )
     expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
     expect(billingRun).toBeNull()
+  })
+})
+
+describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () => {
+  it('should create SubscriptionItemFeatures when a subscription is created for a product with features', async () => {
+    const { organization, product, price, catalog } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    const featureSpecs = [
+      {
+        name: 'Test Toggle Feature for Subscription',
+        type: FeatureType.Toggle,
+      },
+      {
+        name: 'Test Credit Feature for Subscription',
+        type: FeatureType.UsageCreditGrant,
+        amount: 100,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        usageMeterName: 'CreditMeterForSubTest',
+      },
+    ]
+
+    const createdFeaturesAndPfs =
+      await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: product.id,
+        catalogId: catalog.id,
+        livemode: true,
+        featureSpecs,
+      })
+
+    const [{ subscription, subscriptionItems }] =
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product, // This product now has features linked via createdFeaturesAndPfs
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      })
+
+    expect(subscription).toBeDefined()
+    expect(subscriptionItems).toBeDefined()
+    expect(subscriptionItems.length).toBe(1)
+    const subItem = subscriptionItems[0]
+
+    const createdSifs = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionItemFeatures(
+          { subscriptionItemId: [subItem.id] },
+          transaction
+        )
+      }
+    )
+
+    expect(createdSifs.length).toBe(featureSpecs.length)
+
+    for (const featureSpec of featureSpecs) {
+      const originalFeatureSetup = createdFeaturesAndPfs.find(
+        (f) => f.feature.name === featureSpec.name
+      )
+      expect(originalFeatureSetup).toBeDefined()
+
+      const sif = createdSifs.find(
+        (s) => s.featureId === originalFeatureSetup!.feature.id
+      )
+      expect(sif).toBeDefined()
+      expect(sif!.subscriptionItemId).toBe(subItem.id)
+      expect(sif!.productFeatureId).toBe(
+        originalFeatureSetup!.productFeature.id
+      )
+      expect(sif!.type).toBe(originalFeatureSetup!.feature.type)
+      expect(sif!.livemode).toBe(subItem.livemode)
+      expect(sif!.livemode).toBe(true) // explicit check for this test
+
+      if (sif!.type === FeatureType.UsageCreditGrant) {
+        expect(sif!.amount).toBe(originalFeatureSetup!.feature.amount)
+        expect(sif!.renewalFrequency).toBe(
+          originalFeatureSetup!.feature.renewalFrequency
+        )
+        expect(sif!.usageMeterId).toBe(
+          originalFeatureSetup!.feature.usageMeterId
+        )
+      } else if (sif!.type === FeatureType.Toggle) {
+        expect(sif!.amount).toBeNull()
+        expect(sif!.renewalFrequency).toBeNull()
+        expect(sif!.usageMeterId).toBeNull()
+      }
+    }
+  })
+
+  it('should create SubscriptionItemFeatures with correct livemode (false) based on the subscription item', async () => {
+    const { organization, product, price, catalog } = await setupOrg() // Create org/product/price with livemode false
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: false,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: false,
+    })
+
+    const featureSpecs = [
+      {
+        name: 'Test Toggle Livemode False',
+        type: FeatureType.Toggle,
+      },
+    ]
+
+    const createdFeaturesAndPfs =
+      await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: product.id,
+        catalogId: catalog.id,
+        livemode: false, // livemode: false for features
+        featureSpecs,
+      })
+
+    const [{ subscription, subscriptionItems }] =
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: false, // livemode: false for subscription
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      })
+
+    expect(subscription.livemode).toBe(false)
+    expect(subscriptionItems.length).toBe(1)
+    const subItem = subscriptionItems[0]
+    expect(subItem.livemode).toBe(false)
+
+    const createdSifs = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionItemFeatures(
+          { subscriptionItemId: [subItem.id] },
+          transaction
+        )
+      }
+    )
+
+    expect(createdSifs.length).toBe(1)
+    const sif = createdSifs[0]
+    expect(sif).toBeDefined()
+    expect(sif.livemode).toBe(false)
+    expect(sif.featureId).toBe(createdFeaturesAndPfs[0].feature.id)
+  })
+
+  it('should NOT create SubscriptionItemFeatures if the product has no associated features', async () => {
+    // Standard setupOrg creates product/price without features
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const [{ subscriptionItems }] = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product, // This product has no features
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(subscriptionItems.length).toBe(1)
+    const subItem = subscriptionItems[0]
+
+    const queriedSifs = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionItemFeatures(
+          { subscriptionItemId: [subItem.id] },
+          transaction
+        )
+      }
+    )
+    expect(queriedSifs.length).toBe(0)
   })
 })

@@ -39,6 +39,8 @@ import {
   DiscountAmountType,
   DiscountDuration,
   FeeCalculationType,
+  FeatureUsageGrantFrequency,
+  FeatureType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -66,8 +68,12 @@ import { BillingAddress } from '@/db/schema/organizations'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
+import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 import { memberships } from '@/db/schema/memberships'
+import { Feature } from '@/db/schema/features'
+import { ProductFeature } from '@/db/schema/productFeatures'
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
     'attempted to access seedDatabase.ts in production. This should never happen.'
@@ -564,7 +570,8 @@ export const setupPrice = async ({
         livemode,
         isDefault,
         setupFeeAmount,
-        trialPeriodDays,
+        trialPeriodDays:
+          type === PriceType.SinglePayment ? null : trialPeriodDays,
         currency,
         externalId: externalId ?? core.nanoid(),
         usageMeterId: usageMeterId ?? null,
@@ -1038,5 +1045,104 @@ export const setupUserAndApiKey = async ({
     const apiKey = apiKeyInsertResult as typeof apiKeys.$inferSelect
 
     return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
+  })
+}
+
+export const setupTestFeaturesAndProductFeatures = async (params: {
+  organizationId: string
+  productId: string
+  catalogId: string
+  livemode: boolean
+  featureSpecs: Array<{
+    name: string
+    type: FeatureType
+    amount?: number
+    renewalFrequency?: FeatureUsageGrantFrequency
+    usageMeterName?: string
+  }>
+}): Promise<
+  Array<{
+    feature: Feature.Record
+    productFeature: ProductFeature.Record
+  }>
+> => {
+  const {
+    organizationId,
+    productId,
+    catalogId,
+    livemode,
+    featureSpecs,
+  } = params
+  return adminTransaction(async ({ transaction }) => {
+    const createdData: Array<{
+      feature: Feature.Record
+      productFeature: ProductFeature.Record
+    }> = []
+    for (const spec of featureSpecs) {
+      let usageMeterId: string | null = null
+      if (
+        spec.type === FeatureType.UsageCreditGrant &&
+        spec.usageMeterName
+      ) {
+        const usageMeter = await setupUsageMeter({
+          organizationId,
+          name: spec.usageMeterName,
+          livemode,
+          catalogId,
+        })
+        usageMeterId = usageMeter.id
+      }
+
+      const baseFeatureInsertData = {
+        organizationId,
+        name: spec.name,
+        livemode,
+        description: `${spec.name} description`,
+        slug: `${spec.name.toLowerCase().replace(/\s+/g, '-')}-${core.nanoid(6)}`,
+      }
+
+      let featureInsertData: Feature.Insert
+
+      if (spec.type === FeatureType.UsageCreditGrant) {
+        featureInsertData = {
+          ...baseFeatureInsertData,
+          type: FeatureType.UsageCreditGrant,
+          amount: spec.amount ?? 0,
+          renewalFrequency:
+            spec.renewalFrequency ??
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          usageMeterId:
+            usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
+        }
+      } else if (spec.type === FeatureType.Toggle) {
+        featureInsertData = {
+          ...baseFeatureInsertData,
+          type: FeatureType.Toggle,
+          amount: null,
+          renewalFrequency: null,
+          usageMeterId: null,
+        }
+      } else {
+        throw new Error(
+          `Unsupported feature type in test setup: ${spec.type}`
+        )
+      }
+
+      const feature = await insertFeature(
+        featureInsertData,
+        transaction
+      )
+      const productFeature = await insertProductFeature(
+        {
+          organizationId,
+          livemode,
+          productId,
+          featureId: feature.id,
+        },
+        transaction
+      )
+      createdData.push({ feature, productFeature })
+    }
+    return createdData
   })
 }

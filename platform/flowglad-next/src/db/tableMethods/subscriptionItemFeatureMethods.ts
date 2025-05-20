@@ -5,6 +5,8 @@ import {
   createSelectFunction,
   createUpsertFunction,
   ORMMethodCreatorConfig,
+  createBulkInsertOrDoNothingFunction,
+  createBulkUpsertFunction,
 } from '@/db/tableUtils'
 import {
   subscriptionItemFeatures,
@@ -56,6 +58,26 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
     ],
     config
   )
+
+const bulkUpsertSubscriptionItemFeatures = createBulkUpsertFunction(
+  subscriptionItemFeatures,
+  config
+)
+
+export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId =
+  async (
+    inserts: SubscriptionItemFeature.Insert[],
+    transaction: DbTransaction
+  ) => {
+    return bulkUpsertSubscriptionItemFeatures(
+      inserts,
+      [
+        subscriptionItemFeatures.featureId,
+        subscriptionItemFeatures.subscriptionItemId,
+      ],
+      transaction
+    )
+  }
 
 export const expireSubscriptionItemFeature = async (
   subscriptionItemFeature: SubscriptionItemFeature.Record,

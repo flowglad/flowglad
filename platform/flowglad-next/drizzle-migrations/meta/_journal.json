@@ -1513,6 +1513,13 @@
       "when": 1747769789049,
       "tag": "0216_elite_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 217,
+      "version": "7",
+      "when": 1747777754888,
+      "tag": "0217_high_sir_ram",
+      "breakpoints": true
     }
   ]
 }
