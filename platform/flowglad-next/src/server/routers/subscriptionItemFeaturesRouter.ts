@@ -22,6 +22,7 @@ import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction
 import { idInputSchema } from '@/db/tableUtils'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { kebabCase } from 'change-case'
 
 const resourceName = 'subscriptionItemFeature' // Using camelCase for resource name consistent with other routers
 const pluralResourceName = 'subscriptionItemFeatures' // Explicitly define plural for openapi path
@@ -48,9 +49,11 @@ export const subscriptionItemFeaturesRouteConfigs: Record<
   RouteConfig
 > = {
   ...cleanedBaseRouteConfigs,
-  [`POST /${resourceName}s/:id/deactivate`]: {
-    procedure: 'subscriptionItemFeatures.deactivate',
-    pattern: new RegExp(`^${resourceName}s\/([^\/]+)\/deactivate$`),
+  [`POST /${kebabCase(pluralResourceName)}/:id/expire`]: {
+    procedure: 'subscriptionItemFeatures.expire',
+    pattern: new RegExp(
+      `^${kebabCase(pluralResourceName)}\/([^\/]+)\/expire$`
+    ),
     mapParams: (matches) => ({ id: matches[0] }),
   },
 }
@@ -138,9 +141,10 @@ const expireSubscriptionItemFeature = protectedProcedure
   .meta(
     createPostOpenApiMeta({
       resource: pluralResourceName, // Use plural form for the path base
-      summary: 'Deactivate a feature attached to a subscription',
+      summary:
+        'Expire a feature attached to a subscription item, no longer granting the customer access to it',
       tags: tags,
-      routeSuffix: 'deactivate', // This appends /deactivate
+      routeSuffix: 'expire', // This appends /deactivate
       requireIdParam: true, // This adds /{id}
       // idParamOverride is not needed if the param is 'id'
     })

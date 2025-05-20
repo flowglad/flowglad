@@ -13,7 +13,11 @@ import {
   createOrRestoreProductFeature as createOrRestoreProductFeatureMethod,
 } from '@/db/tableMethods/productFeatureMethods'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
-import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
+import {
+  createPostOpenApiMeta,
+  generateOpenApiMetas,
+  RouteConfig,
+} from '@/utils/openapi'
 import { idInputSchema } from '@/db/tableUtils'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 
@@ -98,7 +102,16 @@ export const getProductFeature = protectedProcedure
   )
 
 export const expireProductFeature = protectedProcedure
-  .meta(openApiMetas.POST)
+  .meta(
+    createPostOpenApiMeta({
+      resource: 'productFeature',
+      routeSuffix: 'expire',
+      requireIdParam: true,
+      summary:
+        'Expire a product feature, making it no longer available for subscription items',
+      tags: ['ProductFeatures'],
+    })
+  )
   .input(idInputSchema) // Input is the ID of the ProductFeature record
   .output(z.object({ success: z.boolean() })) // Indicate success
   .mutation(

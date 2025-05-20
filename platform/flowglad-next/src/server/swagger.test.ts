@@ -250,7 +250,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/prices',
       '/api/v1/product-features',
       '/api/v1/subscriptions',
-      '/api/v1/subscription-features',
+      '/api/v1/subscription-item-features',
       '/api/v1/payment-methods',
       '/api/v1/usage-meters',
       '/api/v1/usage-events',
@@ -605,21 +605,24 @@ describe('Swagger Configuration', () => {
       it('should have correct {id} route methods', () => {
         const route = paths[`${basePath}/{id}`]
         expect(route).toBeDefined()
-        // GET (by id), DELETE (by id) - No PUT for product-features as per our router
+        // GET (by id),  No PUT or DELETE for product-features as per our router
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['delete', 'get'].sort()
+          ['get'].sort()
         )
       })
     })
 
-    describe('Subscription Features Routes', () => {
-      const basePath = '/api/v1/subscription-features'
+    describe('Subscription Item Features Routes', () => {
+      const basePath = '/api/v1/subscription-item-features'
 
       it('should have correct base route methods', () => {
         const route = paths[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'post'].sort()
+          /**
+           * No list method for this resource
+           */
+          ['post'].sort()
         )
       })
 
@@ -631,8 +634,12 @@ describe('Swagger Configuration', () => {
         )
       })
 
-      it('should have correct {id}/deactivate route methods', () => {
-        const route = paths[`${basePath}/{id}/deactivate`]
+      it('should have correct {id}/expire route methods', () => {
+        const routes = Object.keys(paths).filter((key) =>
+          key.startsWith(basePath)
+        )
+        console.log('====routes', routes)
+        const route = paths[`${basePath}/{id}/expire`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
