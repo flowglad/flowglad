@@ -50,8 +50,8 @@ export const createProductFeature = protectedProcedure
         const productFeature = await insertProductFeature(
           {
             ...input.productFeature,
-            livemode: product.livemode, // Set livemode from the product
-            organizationId: product.organizationId, // Set organizationId from the product
+            livemode: product.livemode,
+            organizationId: product.organizationId,
           },
           transaction
         )
