@@ -5,7 +5,6 @@ import {
   createSelectFunction,
   createUpsertFunction,
   ORMMethodCreatorConfig,
-  createBulkInsertOrDoNothingFunction,
   createBulkUpsertFunction,
 } from '@/db/tableUtils'
 import {
