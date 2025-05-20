@@ -44,7 +44,10 @@ export const insertProductFeature = createInsertFunction(
   config
 )
 
-export const updateProductFeature = createUpdateFunction(
+/**
+ * No need to "update" a product feature in our business logic,
+ */
+const updateProductFeature = createUpdateFunction(
   productFeatures,
   config
 )
@@ -64,7 +67,38 @@ export const upsertProductFeatureByProductIdAndFeatureId =
 export const selectProductFeaturesPaginated =
   createPaginatedSelectFunction(productFeatures, config)
 
-export const deleteProductFeatureById =
-  createDeleteFunction(productFeatures)
+export const expireProductFeatureById = (
+  productFeatureId: string,
+  transaction: DbTransaction
+) => {
+  return updateProductFeature(
+    {
+      id: productFeatureId,
+      expiredAt: new Date(),
+    },
+    transaction
+  )
+}
 
-export type { ProductFeature }
+export const createOrRestoreProductFeature = async (
+  productFeature: ProductFeature.Insert,
+  transaction: DbTransaction
+) => {
+  const [existingProductFeature] = await selectProductFeatures(
+    {
+      productId: productFeature.productId,
+      featureId: productFeature.featureId,
+    },
+    transaction
+  )
+  if (existingProductFeature) {
+    return updateProductFeature(
+      {
+        id: existingProductFeature.id,
+        expiredAt: null,
+      },
+      transaction
+    )
+  }
+  return insertProductFeature(productFeature, transaction)
+}

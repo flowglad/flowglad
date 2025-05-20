@@ -7,13 +7,17 @@ import {
   productFeaturesPaginatedListSchema,
 } from '@/db/schema/productFeatures'
 import {
-  insertProductFeature,
   selectProductFeatureById,
   selectProductFeaturesPaginated,
-  deleteProductFeatureById,
+  expireProductFeatureById,
+  createOrRestoreProductFeature as createOrRestoreProductFeatureMethod,
 } from '@/db/tableMethods/productFeatureMethods'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
-import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
+import {
+  createPostOpenApiMeta,
+  generateOpenApiMetas,
+  RouteConfig,
+} from '@/utils/openapi'
 import { idInputSchema } from '@/db/tableUtils'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 
@@ -24,7 +28,7 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const productFeaturesRouteConfigs = routeConfigs
 
-export const createProductFeature = protectedProcedure
+export const createOrRestoreProductFeature = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createProductFeatureInputSchema)
   .output(
@@ -47,14 +51,15 @@ export const createProductFeature = protectedProcedure
           ) // TRPCError can be used here
         }
 
-        const productFeature = await insertProductFeature(
-          {
-            ...input.productFeature,
-            livemode: product.livemode,
-            organizationId: product.organizationId,
-          },
-          transaction
-        )
+        const productFeature =
+          await createOrRestoreProductFeatureMethod(
+            {
+              ...input.productFeature,
+              livemode: product.livemode,
+              organizationId: product.organizationId,
+            },
+            transaction
+          )
         return { productFeature }
       }
     )
@@ -96,29 +101,32 @@ export const getProductFeature = protectedProcedure
     )
   )
 
-export const deleteProductFeature = protectedProcedure
-  .meta(openApiMetas.DELETE)
+export const expireProductFeature = protectedProcedure
+  .meta(
+    createPostOpenApiMeta({
+      resource: 'productFeature',
+      routeSuffix: 'expire',
+      requireIdParam: true,
+      summary:
+        'Expire a product feature, making it no longer available for subscription items',
+      tags: ['ProductFeatures'],
+    })
+  )
   .input(idInputSchema) // Input is the ID of the ProductFeature record
   .output(z.object({ success: z.boolean() })) // Indicate success
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        // Before deleting, ensure the record exists and user has access (RLS handles this implicitly on select)
-        // Optional: explicitly select first to return a more specific error or the deleted object if needed.
-        // const existing = await selectProductFeatureById(input.id, transaction);
-        // if (!existing) {
-        //   throw new TRPCError({ code: 'NOT_FOUND', message: 'ProductFeature not found.' });
-        // }
-        await deleteProductFeatureById(input.id, transaction)
+        await expireProductFeatureById(input.id, transaction)
         return { success: true }
       }
     )
   )
 
 export const productFeaturesRouter = router({
-  create: createProductFeature,
+  createOrRestore: createOrRestoreProductFeature,
   list: listProductFeatures,
   get: getProductFeature,
-  delete: deleteProductFeature, // Add delete procedure
+  expire: expireProductFeature,
   // No update or delete procedures exposed to client
 })

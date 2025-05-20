@@ -12,6 +12,10 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   livemodePolicy,
+  timezoneWithTimestampColumn,
+  constructIndex,
+  membershipOrganizationIdIntegrityCheckPolicy,
+  parentForeignKeyIntegrityCheckPolicy,
 } from '@/db/tableUtils'
 import { products } from '@/db/schema/products'
 import { features } from '@/db/schema/features'
@@ -29,6 +33,7 @@ export const productFeatures = pgTable(
       'organization_id',
       organizations
     ),
+    expiredAt: timezoneWithTimestampColumn('expired_at'),
   },
   (table) => {
     return [
@@ -36,11 +41,18 @@ export const productFeatures = pgTable(
         table.productId,
         table.featureId,
       ]),
-      pgPolicy('Enable read for own organizations', {
-        as: 'permissive',
-        to: 'authenticated',
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      constructIndex(TABLE_NAME, [table.productId]),
+      constructIndex(TABLE_NAME, [table.organizationId]),
+      membershipOrganizationIdIntegrityCheckPolicy(),
+      parentForeignKeyIntegrityCheckPolicy({
+        parentTableName: 'products',
+        parentIdColumnInCurrentTable: 'product_id',
+        currentTableName: TABLE_NAME,
+      }),
+      parentForeignKeyIntegrityCheckPolicy({
+        parentTableName: 'features',
+        parentIdColumnInCurrentTable: 'feature_id',
+        currentTableName: TABLE_NAME,
       }),
       livemodePolicy(),
     ]

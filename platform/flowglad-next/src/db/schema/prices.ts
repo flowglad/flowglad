@@ -21,6 +21,7 @@ import {
   SelectConditions,
   ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
+  parentForeignKeyIntegrityCheckPolicy,
 } from '@/db/tableUtils'
 import {
   products,
@@ -124,11 +125,10 @@ export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
         withCheck: usageMeterBelongsToSameOrganization,
       }
     ),
-    pgPolicy('Enable all for self organizations via products', {
-      as: 'permissive',
-      to: 'authenticated',
-      for: 'all',
-      using: sql`"product_id" in (select "id" from "products")`,
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'products',
+      parentIdColumnInCurrentTable: 'product_id',
+      currentTableName: PRICES_TABLE_NAME,
     }),
     livemodePolicy(),
   ]

@@ -33,7 +33,7 @@ import core from '@/utils/core'
 import { parseUnkeyMeta } from '@/utils/unkey'
 import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
 import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
-import { subscriptionFeaturesRouteConfigs } from '@/server/routers/subscriptionFeaturesRouter'
+import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -73,7 +73,7 @@ const routes: Record<string, RouteConfig> = {
   ...customersRouteConfigs,
   ...discountsRouteConfigs,
   ...productsRouteConfigs,
-  ...subscriptionFeaturesRouteConfigs,
+  ...subscriptionItemFeaturesRouteConfigs,
   ...trpcToRest('utils.ping'),
   // note it's important to add the array routes last
   // because the more specific patterns above will match first,

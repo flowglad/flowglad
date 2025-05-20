@@ -1506,6 +1506,13 @@
       "when": 1747686045988,
       "tag": "0215_nappy_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 216,
+      "version": "7",
+      "when": 1747769789049,
+      "tag": "0216_elite_sentinel",
+      "breakpoints": true
     }
   ]
 }

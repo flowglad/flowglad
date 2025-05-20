@@ -211,3 +211,69 @@ const updatedCustomer = await updateCustomer({
 8. Clean up test data after each test
 9. Don't use "any" types, ever
 10. Import the types you need for various records. You can usually find the types you need in @/types or @/db/schema/[filForTable]
+
+
+## Notes for RLS Tests
+You should use these patterns whenever you are writing tests that test RLS policies.
+Files in db/schema/ should have RLS tests. So use these guidelines whenever you write tests in such files:
+
+- Always include a call to `setupUserAndApiKey` from '@/../seedDatabase' in your beforeEach:
+```ts
+  let org1Data: Awaited<ReturnType<typeof setupOrg>>
+  let org1ApiKeyToken: string
+
+  let org2Data: Awaited<ReturnType<typeof setupOrg>>
+
+  beforeEach(async () => {
+    org1Data = await setupOrg() // Sets up org, product, price in livemode (presumably true)
+    const userApiKeyOrg1 = await setupUserAndApiKey({
+      organizationId: org1Data.organization.id,
+      livemode: true, // API key for org1 is livemode: true
+    })
+    if (!userApiKeyOrg1.apiKey.token) {
+      throw new Error('API key token not found after setup for org1')
+    }
+    org1ApiKeyToken = userApiKeyOrg1.apiKey.token
+
+    org2Data = await setupOrg() // Sets up another org
+  })
+
+```
+- Always use `authenticatedTransaction` to test RLS policies
+```ts
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+
+...
+// remember that the transaction, userId, and livemode are all available in the handler args:
+await authenticatedTransaction(({ transaction, userId, livemode}) => {
+  insertProduct(productInsert, transaction)
+})
+```
+- Use the `insertX`, `updateX` ... etc. methods from the table's corresponding tableMethods file. We need this to ensure consistent behavior
+```ts
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  insertProduct
+} from '@/db/tableMethods/productMethods'
+
+...
+// inside your test suite:
+    await authenticatedTransaction(({ transction }) => {
+        const createdProduct = await insertProduct(
+          productInsert,
+          transaction
+        )   
+    }, { apiKey: org1ApiKeyToken })
+
+```
+
+- Test both the allow case AND the deny case for each policy:
+```ts
+  it('should ALLOW a user to manage within their organization', async () => {
+    // test...
+  })
+  it('should DENY a user from creating a catalog for another organization due to RLS', async () => {
+    // test...
+  })
+```
+- For now, don't write any tests against the livemodePolicy: we have not yet set up a way to parameterize transaction auth state to live vs test mode
