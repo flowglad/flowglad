@@ -44,6 +44,7 @@ const columns = {
    * from external processors onto Flowglad
    */
   externalId: text('external_id'),
+  expiredAt: timestamp('expired_at'),
 }
 
 export const subscriptionItems = pgTable(
@@ -72,6 +73,12 @@ const columnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
   quantity: core.safeZodPositiveInteger,
   metadata: metadataSchema.nullable(),
+  expiredAt: z
+    .date()
+    .nullable()
+    .describe(
+      'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list.'
+    ),
 }
 
 /*

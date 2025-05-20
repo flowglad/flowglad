@@ -94,40 +94,43 @@ const getFeaturesByPriceId = async (
   return result
 }
 
-const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature = (
-  subscriptionItem: SubscriptionItem.Record,
-  productFeature: ProductFeature.Record,
-  feature: Feature.Record
-): SubscriptionItemFeature.Insert => {
-  switch (feature.type) {
-    case FeatureType.UsageCreditGrant:
-      return {
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        type: FeatureType.UsageCreditGrant,
-        livemode: subscriptionItem.livemode,
-        usageMeterId: feature.usageMeterId,
-        amount: feature.amount,
-        renewalFrequency: feature.renewalFrequency,
-        productFeatureId: productFeature.id,
-        expiredAt: null,
-      }
-    case FeatureType.Toggle:
-      return {
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        type: FeatureType.Toggle,
-        livemode: subscriptionItem.livemode,
-        usageMeterId: null,
-        amount: null,
-        renewalFrequency: null,
-        productFeatureId: productFeature.id,
-        expiredAt: null,
-      }
-    default:
-      throw new Error(`Unknown feature type encountered: ${feature}`)
+export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
+  (
+    subscriptionItem: SubscriptionItem.Record,
+    productFeature: ProductFeature.Record,
+    feature: Feature.Record
+  ): SubscriptionItemFeature.Insert => {
+    switch (feature.type) {
+      case FeatureType.UsageCreditGrant:
+        return {
+          subscriptionItemId: subscriptionItem.id,
+          featureId: feature.id,
+          type: FeatureType.UsageCreditGrant,
+          livemode: subscriptionItem.livemode,
+          usageMeterId: feature.usageMeterId,
+          amount: feature.amount,
+          renewalFrequency: feature.renewalFrequency,
+          productFeatureId: productFeature.id,
+          expiredAt: null,
+        }
+      case FeatureType.Toggle:
+        return {
+          subscriptionItemId: subscriptionItem.id,
+          featureId: feature.id,
+          type: FeatureType.Toggle,
+          livemode: subscriptionItem.livemode,
+          usageMeterId: null,
+          amount: null,
+          renewalFrequency: null,
+          productFeatureId: productFeature.id,
+          expiredAt: null,
+        }
+      default:
+        throw new Error(
+          `Unknown feature type encountered: ${feature}`
+        )
+    }
   }
-}
 
 /**
  * Creates subscription item features for a list of subscription items.

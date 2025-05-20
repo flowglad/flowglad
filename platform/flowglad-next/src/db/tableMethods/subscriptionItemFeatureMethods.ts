@@ -12,9 +12,11 @@ import {
   subscriptionItemFeaturesInsertSchema,
   subscriptionItemFeaturesSelectSchema,
   subscriptionItemFeaturesUpdateSchema,
-  SubscriptionItemFeature, // Used for deactivate
+  SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
 import { DbTransaction } from '@/db/types'
+import { SubscriptionItem } from '../schema/subscriptionItems'
+import { eq } from 'drizzle-orm'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItemFeatures,
@@ -91,3 +93,26 @@ export const expireSubscriptionItemFeature = async (
     transaction
   )
 }
+
+export const expireSubscriptionItemFeaturesForSubscriptionItem =
+  async (
+    subscriptionItemId: string,
+    expiredAt: Date,
+    transaction: DbTransaction
+  ) => {
+    const result = await transaction
+      .update(subscriptionItemFeatures)
+      .set({
+        expiredAt,
+      })
+      .where(
+        eq(
+          subscriptionItemFeatures.subscriptionItemId,
+          subscriptionItemId
+        )
+      )
+      .returning()
+    return result.map((row) =>
+      subscriptionItemFeaturesSelectSchema.parse(row)
+    )
+  }

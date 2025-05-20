@@ -752,7 +752,6 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       await setupTestFeaturesAndProductFeatures({
         organizationId: organization.id,
         productId: product.id,
-        catalogId: catalog.id,
         livemode: true,
         featureSpecs,
       })
@@ -852,7 +851,6 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       await setupTestFeaturesAndProductFeatures({
         organizationId: organization.id,
         productId: product.id,
-        catalogId: catalog.id,
         livemode: false, // livemode: false for features
         featureSpecs,
       })

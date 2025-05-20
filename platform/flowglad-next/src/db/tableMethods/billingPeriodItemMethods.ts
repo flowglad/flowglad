@@ -76,7 +76,7 @@ export const bulkInsertBillingPeriodItems = createBulkInsertFunction(
   config
 )
 
-export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId =
+export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId =
   async (billingPeriodId: string, transaction: DbTransaction) => {
     const result = await transaction
       .select({

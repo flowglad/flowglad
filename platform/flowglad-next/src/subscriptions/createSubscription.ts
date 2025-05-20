@@ -20,7 +20,7 @@ import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import {
   bulkInsertSubscriptionItems,
-  selectRichSubscriptions,
+  selectRichSubscriptionsAndActiveItems,
   selectSubscriptionAndItems,
   selectSubscriptionItemsAndSubscriptionBysubscriptionId,
 } from '@/db/tableMethods/subscriptionItemMethods'
@@ -166,6 +166,7 @@ export const insertSubscriptionAndItems = async (
     unitPrice: price.unitPrice,
     metadata: null,
     externalId: null,
+    expiredAt: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(

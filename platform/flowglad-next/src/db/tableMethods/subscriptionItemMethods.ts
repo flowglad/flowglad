@@ -22,7 +22,7 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
-import { eq } from 'drizzle-orm'
+import { and, eq, gt, isNull, or } from 'drizzle-orm'
 import {
   RichSubscription,
   richSubscriptionClientSelectSchema,
@@ -32,6 +32,7 @@ import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionStatus } from '@/types'
+import { expireSubscriptionItemFeaturesForSubscriptionItem } from './subscriptionItemFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItems,
@@ -70,10 +71,8 @@ export const bulkInsertSubscriptionItems = createBulkInsertFunction(
   config
 )
 
-const bulkUpsertSubscriptionItems = createBulkUpsertFunction(
-  subscriptionItems,
-  config
-)
+const innerBulkCreateOrDoNothingSubscriptionItems =
+  createBulkInsertOrDoNothingFunction(subscriptionItems, config)
 
 export const selectSubscriptionAndItems = async (
   whereClause: SelectConditions<typeof subscriptions>,
@@ -121,28 +120,53 @@ export const selectSubscriptionItemsAndSubscriptionBysubscriptionId =
 
 export const bulkCreateOrUpdateSubscriptionItems = async (
   subscriptionItemUpdates: (
-    | SubscriptionItem.Record
     | SubscriptionItem.Insert
+    | SubscriptionItem.Update
   )[],
   transaction: DbTransaction
 ) => {
-  return bulkUpsertSubscriptionItems(
-    subscriptionItemUpdates,
+  const itemsWithIds = subscriptionItemUpdates.filter(
+    (item) => 'id' in item
+  ) as SubscriptionItem.Update[]
+  const itemsWithoutIds = subscriptionItemUpdates.filter(
+    (item) => !('id' in item)
+  ) as SubscriptionItem.Insert[]
+
+  const createdItems = await bulkInsertOrDoNothingSubscriptionItems(
+    itemsWithoutIds,
     [subscriptionItems.id],
+    transaction
+  )
+
+  const updatedItems = await Promise.all(
+    itemsWithIds.map((item) => {
+      return updateSubscriptionItem(item, transaction)
+    })
+  )
+
+  return [...createdItems, ...updatedItems]
+}
+
+export const expireSubscriptionItem = async (
+  subscriptionItemId: string,
+  expiredAt: Date,
+  transaction: DbTransaction
+) => {
+  await updateSubscriptionItem(
+    {
+      id: subscriptionItemId,
+      expiredAt,
+    },
+    transaction
+  )
+  await expireSubscriptionItemFeaturesForSubscriptionItem(
+    subscriptionItemId,
+    expiredAt,
     transaction
   )
 }
 
-export const deleteSubscriptionItem = async (
-  subscriptionItemId: string,
-  transaction: DbTransaction
-) => {
-  await transaction
-    .delete(subscriptionItems)
-    .where(eq(subscriptionItems.id, subscriptionItemId))
-}
-
-export const selectRichSubscriptions = async (
+export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
   transaction: DbTransaction
 ): Promise<RichSubscription[]> => {
@@ -153,21 +177,32 @@ export const selectRichSubscriptions = async (
       price: prices,
     })
     .from(subscriptionItems)
-    .innerJoin(
+    .leftJoin(
       subscriptions,
       eq(subscriptionItems.subscriptionId, subscriptions.id)
     )
     .innerJoin(prices, eq(subscriptionItems.priceId, prices.id))
-    .where(whereClauseFromObject(subscriptions, whereConditions))
+    .where(
+      and(
+        whereClauseFromObject(subscriptions, whereConditions),
+        or(
+          isNull(subscriptionItems.expiredAt),
+          gt(subscriptionItems.expiredAt, new Date())
+        )
+      )
+    )
 
-  const subscriptionItemsBysubscriptionId = result.reduce(
+  const subscriptionItemsBySubscriptionId = result.reduce(
     (acc, row) => {
-      const subscriptionId = row.subscription.id
+      const subscriptionId = row.subscription?.id
+      if (!subscriptionId) {
+        return acc
+      }
       if (!acc.has(subscriptionId)) {
         acc.set(subscriptionId, {
           ...subscriptionsSelectSchema.parse(row.subscription),
           current: isSubscriptionCurrent(
-            row.subscription.status as SubscriptionStatus
+            row.subscription?.status as SubscriptionStatus
           ),
           subscriptionItems: [],
         })
@@ -184,7 +219,7 @@ export const selectRichSubscriptions = async (
    * Typecheck before parsing so we can catch type errors before runtime ones
    */
   const richSubscriptions: RichSubscription[] = Array.from(
-    subscriptionItemsBysubscriptionId.values()
+    subscriptionItemsBySubscriptionId.values()
   )
 
   return richSubscriptions.map((item) =>
@@ -204,4 +239,25 @@ export const bulkInsertOrDoNothingSubscriptionItemsByExternalId = (
     [subscriptionItems.externalId],
     transaction
   )
+}
+
+export const selectCurrentlyActiveSubscriptionItems = async (
+  whereConditions: SelectConditions<typeof subscriptionItems>,
+  anchorDate: Date,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(subscriptionItems)
+    .where(
+      and(
+        whereClauseFromObject(subscriptionItems, whereConditions),
+        or(
+          isNull(subscriptionItems.expiredAt),
+          gt(subscriptionItems.expiredAt, anchorDate)
+        )
+      )
+    )
+
+  return result.map((row) => subscriptionItemsSelectSchema.parse(row))
 }

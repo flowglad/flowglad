@@ -3,8 +3,8 @@ import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
-  deleteSubscriptionItem,
-  selectSubscriptionItems,
+  expireSubscriptionItem,
+  selectCurrentlyActiveSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionInTerminalState,
@@ -66,11 +66,6 @@ export const adjustSubscription = async (
   const { adjustment, id } = params
   const { newSubscriptionItems, timing } = adjustment
   const subscription = await selectSubscriptionById(id, transaction)
-  const existingSubscriptionItems = await selectSubscriptionItems(
-    { subscriptionId: subscription.id },
-    transaction
-  )
-
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
   }
@@ -85,6 +80,13 @@ export const adjustSubscription = async (
   } else {
     throw new Error('Invalid timing')
   }
+
+  const existingSubscriptionItems =
+    await selectCurrentlyActiveSubscriptionItems(
+      { subscriptionId: subscription.id },
+      new Date(),
+      transaction
+    )
 
   const existingSubscriptionItemsToRemove =
     existingSubscriptionItems.filter(
@@ -104,11 +106,11 @@ export const adjustSubscription = async (
     }))
 
   for (const item of existingSubscriptionItemsToRemove) {
-    await deleteSubscriptionItem(item.id, transaction)
+    await expireSubscriptionItem(item.id, adjustmentDate, transaction)
   }
 
   const subscriptionItems = await bulkCreateOrUpdateSubscriptionItems(
-    // @ts-expect-error - TODO: fix this
+    // @ts-expect-error - upsert type mismatch
     subscriptionItemUpserts,
     transaction
   )

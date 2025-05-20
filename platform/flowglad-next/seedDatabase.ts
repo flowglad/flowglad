@@ -4,7 +4,10 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { countries } from '@/db/schema/countries'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
-import { insertProduct } from '@/db/tableMethods/productMethods'
+import {
+  insertProduct,
+  selectProductById,
+} from '@/db/tableMethods/productMethods'
 import {
   insertSubscription,
   selectSubscriptionById,
@@ -702,6 +705,7 @@ export const setupSubscriptionItem = async ({
         livemode: subscription.livemode,
         priceId: priceId ?? subscription.priceId!,
         addedDate: addedDate ?? new Date(),
+        expiredAt: null,
         metadata: metadata ?? {},
         externalId: null,
       },
@@ -1051,7 +1055,6 @@ export const setupUserAndApiKey = async ({
 export const setupTestFeaturesAndProductFeatures = async (params: {
   organizationId: string
   productId: string
-  catalogId: string
   livemode: boolean
   featureSpecs: Array<{
     name: string
@@ -1066,14 +1069,12 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
     productFeature: ProductFeature.Record
   }>
 > => {
-  const {
-    organizationId,
-    productId,
-    catalogId,
-    livemode,
-    featureSpecs,
-  } = params
+  const { organizationId, productId, livemode, featureSpecs } = params
   return adminTransaction(async ({ transaction }) => {
+    const product = await selectProductById(productId, transaction)
+    if (!product) {
+      throw new Error('Product not found')
+    }
     const createdData: Array<{
       feature: Feature.Record
       productFeature: ProductFeature.Record
@@ -1088,7 +1089,7 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
           organizationId,
           name: spec.usageMeterName,
           livemode,
-          catalogId,
+          catalogId: product.catalogId,
         })
         usageMeterId = usageMeter.id
       }
