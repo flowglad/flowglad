@@ -21,8 +21,7 @@
     "trigger:dev": "dotenvx run -f .env.local -- npx trigger.dev@4.0.0-v4-beta.11 dev",
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
-    "migrations:push": "tsx ./src/scripts/migrate.ts",
-    "seed-db": "tsx ./src/scripts/seedDatabase.ts"
+    "migrations:push": "tsx ./src/scripts/migrate.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.10",
