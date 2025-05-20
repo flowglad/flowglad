@@ -76,7 +76,7 @@ const insertCountries = async () => {
       {
         id: core.nanoid(),
         name: 'United States',
-        code: 'US',
+        code: CountryCode.US,
       },
     ])
     .onConflictDoNothing()

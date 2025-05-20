@@ -638,7 +638,6 @@ describe('Swagger Configuration', () => {
         const routes = Object.keys(paths).filter((key) =>
           key.startsWith(basePath)
         )
-        console.log('====routes', routes)
         const route = paths[`${basePath}/{id}/expire`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
