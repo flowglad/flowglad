@@ -15,19 +15,13 @@ import {
 } from '@/db/tableMethods/subscriptionFeatureMethods'
 import {
   generateOpenApiMetas,
-  trpcToRest,
   RouteConfig,
   createPostOpenApiMeta,
 } from '@/utils/openapi'
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
-import {
-  idInputSchema,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-} from '@/db/tableUtils'
+import { idInputSchema } from '@/db/tableUtils'
 import { z } from 'zod'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { TRPCError } from '@trpc/server'
 
 const resourceName = 'subscriptionFeature' // Using camelCase for resource name consistent with other routers
@@ -62,17 +56,17 @@ export const subscriptionFeaturesRouteConfigs: Record<
   },
 }
 
+const subscriptionFeatureClientResponse = z.object({
+  subscriptionFeature: subscriptionFeaturesClientSelectSchema,
+})
+
 const createSubscriptionFeature = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createSubscriptionFeatureInputSchema)
-  .output(
-    z.object({
-      [resourceName]: subscriptionFeaturesClientSelectSchema,
-    })
-  )
+  .output(subscriptionFeatureClientResponse)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode, ctx }) => {
+      async ({ input, transaction, ctx }) => {
         const organizationId = ctx.organizationId
         if (!organizationId) {
           throw new TRPCError({
@@ -83,14 +77,14 @@ const createSubscriptionFeature = protectedProcedure
         }
         // TODO: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
-        const result = await insertSubscriptionFeature(
+        const subscriptionFeature = await insertSubscriptionFeature(
           {
             ...input.subscriptionFeature,
             // livemode is part of tableBase, so it's handled by enhancedCreateInsertSchema
           },
           transaction
         )
-        return { [resourceName]: result }
+        return { subscriptionFeature }
       }
     )
   )
@@ -108,7 +102,7 @@ const listSubscriptionFeaturesProcedure = protectedProcedure
   ) // Example filter
   .output(
     z.object({
-      [resourceName + 's']: z.array(
+      subscriptionFeatures: z.array(
         subscriptionFeaturesClientSelectSchema
       ),
     })
@@ -140,7 +134,7 @@ const listSubscriptionFeaturesProcedure = protectedProcedure
           },
           transaction
         )
-        return { [resourceName + 's']: results }
+        return { subscriptionFeatures: results }
       }
     )
   )
@@ -148,35 +142,20 @@ const listSubscriptionFeaturesProcedure = protectedProcedure
 const editSubscriptionFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editSubscriptionFeatureInputSchema)
-  .output(
-    z.object({
-      [resourceName]: subscriptionFeaturesClientSelectSchema,
-    })
-  )
+  .output(subscriptionFeatureClientResponse)
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        // Addressing the type issue for the update operation.
-        // The input.subscriptionFeature is a ClientUpdate, which is a discriminated union.
-        // updateSubscriptionFeature expects the internal update schema, also a discriminated union.
-        // Direct spreading should work if the types align. The error suggests they might not.
-        // This could be due to optional fields in ClientUpdate that are required in Update,
-        // or vice-versa, specifically around the discriminator 'type'.
-
-        // Forcing the type to be present as it should be for an update of a discriminated union.
-        // This assumes that if 'type' is part of the update, it will be provided.
-        // If the schema definition of SubscriptionFeature.ClientUpdate allows for 'type' to be omitted
-        // during an update, this part of the logic or the schema itself needs reconsideration.
-        const updatePayload: SubscriptionFeature.Update = {
-          id: input.id,
+        const updatePayload = {
           ...input.subscriptionFeature,
-        } as SubscriptionFeature.Update // Cast to ensure alignment, may hide deeper schema issues
+          id: input.id,
+        } as SubscriptionFeature.Update
 
-        const result = await updateSubscriptionFeature(
+        const subscriptionFeature = await updateSubscriptionFeature(
           updatePayload,
           transaction
         )
-        return { [resourceName]: result }
+        return { subscriptionFeature }
       }
     )
   )
@@ -184,25 +163,19 @@ const editSubscriptionFeature = protectedProcedure
 const getSubscriptionFeature = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
-  .output(
-    z.object({
-      [resourceName]: subscriptionFeaturesClientSelectSchema,
-    })
-  )
+  .output(subscriptionFeatureClientResponse)
   .query(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const result = await selectSubscriptionFeatureById(
-          input.id,
-          transaction
-        )
-        if (!result) {
+        const subscriptionFeature =
+          await selectSubscriptionFeatureById(input.id, transaction)
+        if (!subscriptionFeature) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: `${resourceName} with id ${input.id} not found.`,
           })
         }
-        return { [resourceName]: result }
+        return { subscriptionFeature }
       }
     )
   )
@@ -219,11 +192,7 @@ const deactivateSubscriptionFeature = protectedProcedure
     })
   )
   .input(deactivateSubscriptionFeatureInputSchema)
-  .output(
-    z.object({
-      [resourceName]: subscriptionFeaturesClientSelectSchema,
-    })
-  )
+  .output(subscriptionFeatureClientResponse)
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
@@ -240,12 +209,13 @@ const deactivateSubscriptionFeature = protectedProcedure
           })
         }
 
-        const result = await deactivateSubscriptionFeatureMethod(
-          id,
-          deactivatedAt || new Date(), // Default to now if not provided
-          transaction
-        )
-        return { [resourceName]: result }
+        const subscriptionFeature =
+          await deactivateSubscriptionFeatureMethod(
+            existingFeature,
+            deactivatedAt || new Date(), // Default to now if not provided
+            transaction
+          )
+        return { subscriptionFeature }
       }
     )
   )
