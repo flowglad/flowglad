@@ -1,5 +1,5 @@
 {
-  "id": "aac38b3f-9e82-43c4-b361-a16b31680df2",
+  "id": "ce9a5cfe-1786-4dac-9a20-9f0c1337a229",
   "prevId": "6c72e913-f539-4f0e-9bb4-ea5e12e48983",
   "version": "7",
   "dialect": "postgresql",
@@ -7406,6 +7406,12 @@
         "external_id": {
           "name": "external_id",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expired_at": {
+          "name": "expired_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         }

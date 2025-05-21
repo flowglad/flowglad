@@ -23,17 +23,7 @@ import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { core } from '@/utils/core'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { Feature } from '@/db/schema/features'
-import { ProductFeature } from '@/db/schema/productFeatures'
-import {
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  CurrencyCode,
-} from '@/types'
-import { insertFeature } from '@/db/tableMethods/featureMethods'
-import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
-import { setupUsageMeter } from '../../seedDatabase'
-import { Catalog } from '@/db/schema/catalogs'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 
 describe('createSubscription', async () => {
   const { organization, product, price } = await setupOrg()

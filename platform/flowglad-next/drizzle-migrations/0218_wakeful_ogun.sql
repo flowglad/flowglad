@@ -1,1 +1,0 @@
-ALTER TABLE "subscription_items" ADD COLUMN "expired_at" timestamp;
