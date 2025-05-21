@@ -12,7 +12,7 @@ import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
-  selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId,
+  selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId,
 } from '@/db/tableMethods/billingPeriodItemMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
@@ -23,7 +23,7 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createBillingRun } from './billingRunHelpers'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
@@ -88,7 +88,9 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   >[] = []
   if (!params.trialPeriod) {
     const subscriptionItemsToPutTowardsBillingItems =
-      params.subscriptionItems
+      params.subscriptionItems.filter(
+        (item) => !item.expiredAt || item.expiredAt > new Date()
+      )
 
     billingPeriodItemInserts =
       subscriptionItemsToPutTowardsBillingItems.map((item) => {
@@ -154,7 +156,7 @@ export const attemptBillingPeriodClose = async (
     )
   }
   const { billingPeriodItems } =
-    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId(
+    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
       billingPeriod.id,
       transaction
     )
@@ -328,10 +330,13 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
         billingPeriodItems,
       }
     }
-    const subscriptionItems = await selectSubscriptionItems(
-      { subscriptionId: subscription.id },
-      transaction
-    )
+
+    const subscriptionItems =
+      await selectCurrentlyActiveSubscriptionItems(
+        { subscriptionId: subscription.id },
+        new Date(),
+        transaction
+      )
 
     const { billingPeriod: newBillingPeriod, billingPeriodItems } =
       await createBillingPeriodAndItems(

@@ -33,7 +33,6 @@ import {
 } from '../events'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 
 export const chargeStatusToPaymentStatus = (

@@ -9,7 +9,7 @@ import { Invoice } from '@/db/schema/invoices'
 import { Organization } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
+import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
   insertBillingRun,
@@ -279,7 +279,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     subscription,
     customer,
   } =
-    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationBybillingPeriodId(
+    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
       billingRun.billingPeriodId,
       transaction
     )

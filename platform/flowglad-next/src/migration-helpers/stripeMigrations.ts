@@ -371,5 +371,6 @@ export const stripeSubscriptionItemToSubscriptionItemInsert = (
     quantity: stripeSubscriptionItem.quantity ?? 0,
     addedDate: new Date(),
     externalId: stripeSubscriptionItem.id,
+    expiredAt: null,
   }
 }

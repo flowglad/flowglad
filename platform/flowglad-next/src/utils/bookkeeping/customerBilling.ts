@@ -1,6 +1,6 @@
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
-import { selectRichSubscriptions } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
@@ -19,7 +19,7 @@ export const customerBillingTransaction = async (
   transaction: DbTransaction
 ) => {
   const [customer] = await selectCustomers(params, transaction)
-  const subscriptions = await selectRichSubscriptions(
+  const subscriptions = await selectRichSubscriptionsAndActiveItems(
     { customerId: customer.id },
     transaction
   )

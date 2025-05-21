@@ -8,6 +8,7 @@ import {
   createPaginatedSelectFunction,
   createDeleteFunction,
   ORMMethodCreatorConfig,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
 import {
@@ -17,6 +18,8 @@ import {
   productFeaturesUpdateSchema,
   ProductFeature,
 } from '@/db/schema/productFeatures'
+import { eq } from 'drizzle-orm'
+import { features, featuresSelectSchema } from '../schema/features'
 
 // Define a truly empty Zod object schema for the update part
 const emptyUpdateSchema = z.object({}).strict()
@@ -101,4 +104,22 @@ export const createOrRestoreProductFeature = async (
     )
   }
   return insertProductFeature(productFeature, transaction)
+}
+
+export const selectFeaturesByProductFeatureWhere = async (
+  where: ProductFeature.Where,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      productFeature: productFeatures,
+      feature: features,
+    })
+    .from(productFeatures)
+    .where(whereClauseFromObject(productFeatures, where))
+    .innerJoin(features, eq(productFeatures.featureId, features.id))
+  return result.map(({ productFeature, feature }) => ({
+    productFeature: productFeaturesSelectSchema.parse(productFeature),
+    feature: featuresSelectSchema.parse(feature),
+  }))
 }

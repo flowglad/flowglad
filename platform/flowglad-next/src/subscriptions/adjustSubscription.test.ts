@@ -228,6 +228,7 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 300,
               livemode: subscription.livemode,
               externalId: null,
+              expiredAt: null,
             },
           ]
 
@@ -318,12 +319,14 @@ describe('adjustSubscription Integration Tests', async () => {
               name: 'Item 1',
               quantity: 1,
               unitPrice: 100,
+              expiredAt: null,
             },
             {
               ...subscriptionItemCore,
               name: 'Item 3',
               quantity: 3,
               unitPrice: 300,
+              expiredAt: null,
             },
           ]
 
@@ -348,7 +351,7 @@ describe('adjustSubscription Integration Tests', async () => {
           if (!result) {
             throw new Error('Result is null')
           }
-          expect(result.subscriptionItems.length).toBe(3)
+          expect(result.subscriptionItems.length).toBe(2)
 
           // Verify that no proration adjustments were made.
           const bp = await selectCurrentBillingPeriodForSubscription(
@@ -426,6 +429,7 @@ describe('adjustSubscription Integration Tests', async () => {
             unitPrice: 100,
             externalId: null,
             priceId: price.id,
+            expiredAt: null,
           },
           {
             name: 'Item 3',
@@ -437,6 +441,7 @@ describe('adjustSubscription Integration Tests', async () => {
             addedDate: new Date(),
             priceId: price.id,
             externalId: null,
+            expiredAt: null,
           },
         ]
 
@@ -559,6 +564,7 @@ describe('adjustSubscription Integration Tests', async () => {
             subscriptionId: subscription.id,
             priceId: price.id,
             externalId: null,
+            expiredAt: null,
           },
         ]
 
@@ -597,6 +603,7 @@ describe('adjustSubscription Integration Tests', async () => {
             name: 'New Item 1',
             quantity: 2,
             unitPrice: 150,
+            expiredAt: null,
           },
         ]
 
@@ -641,6 +648,7 @@ describe('adjustSubscription Integration Tests', async () => {
             quantity: 0, // Invalid quantity
             unitPrice: 100,
             livemode: false,
+            expiredAt: null,
           },
         ]
 
@@ -675,6 +683,7 @@ describe('adjustSubscription Integration Tests', async () => {
             quantity: 1,
             unitPrice: 0,
             livemode: false,
+            expiredAt: null,
           },
         ]
 
@@ -819,12 +828,14 @@ describe('adjustSubscription Integration Tests', async () => {
             name: 'Item 1',
             quantity: 1,
             unitPrice: 100,
+            expiredAt: null,
           },
           {
             ...subscriptionItemCore,
             name: 'Item 2',
             quantity: 2,
             unitPrice: 200,
+            expiredAt: null,
           },
         ]
         await adjustSubscription(
@@ -846,7 +857,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (!result) {
           throw new Error('Result is null')
         }
-        expect(result.subscriptionItems.length).toBe(3)
+        expect(result.subscriptionItems.length).toBe(2)
         const bpItems = await selectBillingPeriodItems(
           { billingPeriodId: billingPeriod.id },
           transaction
@@ -883,6 +894,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 quantity: 1,
                 unitPrice: 100,
                 priceId: 'invalid_price_id',
+                expiredAt: null,
               },
             ]
             await adjustSubscription(

@@ -5,15 +5,18 @@ import {
   createSelectFunction,
   createUpsertFunction,
   ORMMethodCreatorConfig,
+  createBulkUpsertFunction,
 } from '@/db/tableUtils'
 import {
   subscriptionItemFeatures,
   subscriptionItemFeaturesInsertSchema,
   subscriptionItemFeaturesSelectSchema,
   subscriptionItemFeaturesUpdateSchema,
-  SubscriptionItemFeature, // Used for deactivate
+  SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
 import { DbTransaction } from '@/db/types'
+import { SubscriptionItem } from '../schema/subscriptionItems'
+import { eq } from 'drizzle-orm'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItemFeatures,
@@ -57,6 +60,26 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
     config
   )
 
+const bulkUpsertSubscriptionItemFeatures = createBulkUpsertFunction(
+  subscriptionItemFeatures,
+  config
+)
+
+export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId =
+  async (
+    inserts: SubscriptionItemFeature.Insert[],
+    transaction: DbTransaction
+  ) => {
+    return bulkUpsertSubscriptionItemFeatures(
+      inserts,
+      [
+        subscriptionItemFeatures.featureId,
+        subscriptionItemFeatures.subscriptionItemId,
+      ],
+      transaction
+    )
+  }
+
 export const expireSubscriptionItemFeature = async (
   subscriptionItemFeature: SubscriptionItemFeature.Record,
   expiredAt: Date,
@@ -70,3 +93,26 @@ export const expireSubscriptionItemFeature = async (
     transaction
   )
 }
+
+export const expireSubscriptionItemFeaturesForSubscriptionItem =
+  async (
+    subscriptionItemId: string,
+    expiredAt: Date,
+    transaction: DbTransaction
+  ) => {
+    const result = await transaction
+      .update(subscriptionItemFeatures)
+      .set({
+        expiredAt,
+      })
+      .where(
+        eq(
+          subscriptionItemFeatures.subscriptionItemId,
+          subscriptionItemId
+        )
+      )
+      .returning()
+    return result.map((row) =>
+      subscriptionItemFeaturesSelectSchema.parse(row)
+    )
+  }
