@@ -23,10 +23,7 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import {
-  selectCurrentlyActiveSubscriptionItems,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createBillingRun } from './billingRunHelpers'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'

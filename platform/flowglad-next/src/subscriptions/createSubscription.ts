@@ -20,9 +20,7 @@ import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import {
   bulkInsertSubscriptionItems,
-  selectRichSubscriptionsAndActiveItems,
   selectSubscriptionAndItems,
-  selectSubscriptionItemsAndSubscriptionBysubscriptionId,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { createBillingPeriodAndItems } from './billingPeriodHelpers'
