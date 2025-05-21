@@ -11,7 +11,6 @@ import {
 import {
   BillingRunStatus,
   InvoiceStatus,
-  PaymentStatus,
   SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
@@ -34,7 +33,6 @@ import {
   sendAwaitingPaymentConfirmationEmail,
   sendOrganizationPaymentNotificationEmail,
   sendPaymentFailedEmail,
-  sendReceiptEmail,
 } from '@/utils/email'
 import { Payment } from '@/db/schema/payments'
 import { UserRecord } from '@/db/schema/users'
