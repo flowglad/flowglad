@@ -110,6 +110,88 @@ describe('Swagger Configuration', () => {
     })
   })
 
+  describe('OrganizationId in Request Body Validation', () => {
+    const checkSchemaForOrganizationId = (
+      schema: any,
+      path: string,
+      httpMethod: string // Renamed from methodKey for clarity, and used in error message
+    ) => {
+      if (!schema || typeof schema !== 'object') return
+
+      if (schema.properties && schema.properties.organizationId) {
+        throw new Error(
+          `Schema for ${httpMethod.toUpperCase()} at path ${path} contains forbidden field "organizationId" in properties`
+        )
+      }
+
+      if (
+        Array.isArray(schema.required) &&
+        schema.required.includes('organizationId')
+      ) {
+        throw new Error(
+          `Schema for ${httpMethod.toUpperCase()} at path ${path} contains forbidden field "organizationId" in required array`
+        )
+      }
+
+      // Recursively check nested schemas
+      Object.entries(schema).forEach(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          checkSchemaForOrganizationId(
+            value,
+            `${path}.${key}`,
+            httpMethod
+          )
+        }
+      })
+    }
+
+    it('should not have "organizationId" in any POST request body schemas', () => {
+      Object.entries(paths).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              if (
+                methodKey.toLowerCase() === 'post' &&
+                methodValue.requestBody?.content?.['application/json']
+                  ?.schema
+              ) {
+                checkSchemaForOrganizationId(
+                  methodValue.requestBody.content['application/json']
+                    .schema,
+                  pathKey,
+                  methodKey // Pass the actual method key (e.g., 'post')
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+
+    it('should not have "organizationId" in any PUT request body schemas', () => {
+      Object.entries(paths).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              if (
+                methodKey.toLowerCase() === 'put' &&
+                methodValue.requestBody?.content?.['application/json']
+                  ?.schema
+              ) {
+                checkSchemaForOrganizationId(
+                  methodValue.requestBody.content['application/json']
+                    .schema,
+                  pathKey,
+                  methodKey // Pass the actual method key (e.g., 'put')
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+  })
+
   describe('Customer Route Parameters', () => {
     it('should have {externalId} as the parameter for customer routes', () => {
       const customerPaths = Object.entries(paths).filter(([path]) =>
@@ -160,12 +242,15 @@ describe('Swagger Configuration', () => {
       '/api/v1/checkout-sessions',
       '/api/v1/customers',
       '/api/v1/discounts',
+      '/api/v1/features',
       '/api/v1/invoice-line-items',
       '/api/v1/invoices',
       '/api/v1/payments',
       '/api/v1/products',
       '/api/v1/prices',
+      '/api/v1/product-features',
       '/api/v1/subscriptions',
+      '/api/v1/subscription-item-features',
       '/api/v1/payment-methods',
       '/api/v1/usage-meters',
       '/api/v1/usage-events',
@@ -479,6 +564,107 @@ describe('Swagger Configuration', () => {
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
+        )
+      })
+    })
+
+    describe('Features Routes', () => {
+      const basePath = '/api/v1/features'
+
+      it('should have correct base route methods', () => {
+        const route = paths[basePath]
+        expect(route).toBeDefined()
+        // Assuming GET (list) and POST (create)
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get', 'post'].sort()
+        )
+      })
+
+      it('should have correct {id} route methods', () => {
+        const route = paths[`${basePath}/{id}`]
+        expect(route).toBeDefined()
+        // Assuming GET (by id) and PUT (update)
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get', 'put'].sort()
+        )
+      })
+    })
+
+    describe('Product Features Routes', () => {
+      const basePath = '/api/v1/product-features'
+
+      it('should have correct base route methods', () => {
+        const route = paths[basePath]
+        expect(route).toBeDefined()
+        // GET (list), POST (create)
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get', 'post'].sort()
+        )
+      })
+
+      it('should have correct {id} route methods', () => {
+        const route = paths[`${basePath}/{id}`]
+        expect(route).toBeDefined()
+        // GET (by id),  No PUT or DELETE for product-features as per our router
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get'].sort()
+        )
+      })
+    })
+
+    describe('Subscription Item Features Routes', () => {
+      const basePath = '/api/v1/subscription-item-features'
+
+      it('should have correct base route methods', () => {
+        const route = paths[basePath]
+        expect(route).toBeDefined()
+        expect(Object.keys(route || {}).sort()).toEqual(
+          /**
+           * No list method for this resource
+           */
+          ['post'].sort()
+        )
+      })
+
+      it('should have correct {id} route methods', () => {
+        const route = paths[`${basePath}/{id}`]
+        expect(route).toBeDefined()
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get', 'put'].sort()
+        )
+      })
+
+      it('should have correct {id}/expire route methods', () => {
+        const routes = Object.keys(paths).filter((key) =>
+          key.startsWith(basePath)
+        )
+        const route = paths[`${basePath}/{id}/expire`]
+        expect(route).toBeDefined()
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['post'].sort()
+        )
+      })
+    })
+
+    describe('Webhooks Routes', () => {
+      const basePath = '/api/v1/webhooks'
+
+      it('should have correct base route methods', () => {
+        const route = paths[basePath]
+        expect(route).toBeDefined()
+        // Assuming GET (list) and POST (create)
+        expect(Object.keys(route || {}).sort()).toEqual(
+          // TODO: standardize list methods / procedures
+          ['post'].sort()
+        )
+      })
+
+      it('should have correct {id} route methods', () => {
+        const route = paths[`${basePath}/{id}`]
+        expect(route).toBeDefined()
+        // Assuming GET (by id), PUT (update), and DELETE (by id)
+        expect(Object.keys(route || {}).sort()).toEqual(
+          ['get', 'put'].sort()
         )
       })
     })

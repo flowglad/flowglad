@@ -34,6 +34,9 @@ import { apiKeysRouter } from './routers/apiKeysRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
 import { requestBillingPortalLink } from './mutations/requestBillingPortalLink'
 import { webhooksRouter } from './routers/webhooksRouter'
+import { featuresRouter } from './routers/featuresRouter'
+import { productFeaturesRouter } from './routers/productFeaturesRouter'
+import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeaturesRouter'
 
 const filesRouter = router({
   create: createFile,
@@ -81,6 +84,9 @@ export const appRouter = router({
   usageMeters: usageMetersRouter,
   usageEvents: usageEventsRouter,
   webhooks: webhooksRouter,
+  features: featuresRouter,
+  productFeatures: productFeaturesRouter,
+  subscriptionItemFeatures: subscriptionItemFeaturesRouter,
 })
 
 // This would map to REST endpoints like:

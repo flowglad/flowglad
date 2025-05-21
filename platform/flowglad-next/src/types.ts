@@ -814,5 +814,12 @@ export enum UsageTransactionInitiatingSourceType {
   ManualAdjustment = 'manual_adjustment',
 }
 
-export enum UsagePlanType {}
-// ... existing code ...
+export enum FeatureType {
+  Toggle = 'toggle',
+  UsageCreditGrant = 'usage_credit_grant',
+}
+
+export enum FeatureUsageGrantFrequency {
+  Once = 'once',
+  EveryBillingPeriod = 'every_billing_period',
+}

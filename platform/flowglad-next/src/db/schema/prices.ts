@@ -21,11 +21,13 @@ import {
   SelectConditions,
   ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
+  parentForeignKeyIntegrityCheckPolicy,
 } from '@/db/tableUtils'
 import {
   products,
   productsClientInsertSchema,
   productsClientSelectSchema,
+  productsClientUpdateSchema,
   productsUpdateSchema,
 } from '@/db/schema/products'
 import core from '@/utils/core'
@@ -123,11 +125,10 @@ export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
         withCheck: usageMeterBelongsToSameOrganization,
       }
     ),
-    pgPolicy('Enable all for self organizations via products', {
-      as: 'permissive',
-      to: 'authenticated',
-      for: 'all',
-      using: sql`"product_id" in (select "id" from "products")`,
+    parentForeignKeyIntegrityCheckPolicy({
+      parentTableName: 'products',
+      parentIdColumnInCurrentTable: 'product_id',
+      currentTableName: PRICES_TABLE_NAME,
     }),
     livemodePolicy(),
   ]
@@ -472,8 +473,8 @@ export type CreateProductPriceInput = z.infer<
 export type CreateProductSchema = z.infer<typeof createProductSchema>
 
 export const editProductSchema = z.object({
-  product: productsUpdateSchema,
-  price: pricesUpdateSchema.optional(),
+  product: productsClientUpdateSchema,
+  price: pricesClientUpdateSchema.optional(),
   id: z.string(),
 })
 

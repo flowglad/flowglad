@@ -344,6 +344,45 @@ export const livemodePolicy = () =>
   })
 
 /**
+ * Ensure that the organization id for this record is consistent with the organization id for its parent table,
+ * in the case where there's a foreign key
+ * @param parentTableName
+ * @param parentIdColumn
+ * @returns
+ */
+interface ParentTableIdIntegrityCheckParams {
+  parentTableName: string
+  parentIdColumnInCurrentTable: string // FK in the current table pointing to parent's PK
+  parentTablePrimaryKeyColumn?: string // PK in parent table, defaults to 'id'
+  currentTableName: string
+  policyName?: string // Optional custom policy name
+}
+
+export const parentForeignKeyIntegrityCheckPolicy = ({
+  parentTableName,
+  parentIdColumnInCurrentTable,
+}: ParentTableIdIntegrityCheckParams) => {
+  return pgPolicy(
+    `Ensure organization integrity with ${parentTableName} parent table`,
+    {
+      as: 'permissive',
+      to: 'authenticated',
+      for: 'all',
+      using: sql`${sql.identifier(parentIdColumnInCurrentTable)} in (select ${sql.identifier('id')} from ${sql.identifier(parentTableName)})`,
+    }
+  )
+}
+
+export const membershipOrganizationIdIntegrityCheckPolicy = () => {
+  return pgPolicy('Enable read for own organizations', {
+    as: 'permissive',
+    to: 'authenticated',
+    for: 'all',
+    using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+  })
+}
+
+/**
  * Generates a pgEnum column declaration from a TypeScript enum,
  * giving the enum the name of the column
  */
