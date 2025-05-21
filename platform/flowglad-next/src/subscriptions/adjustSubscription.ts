@@ -56,6 +56,15 @@ export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   }
 }
 
+/**
+ * This function
+ * 1. Creates new subscription items if inputs are provided that do not have an id (meanign they don't exist yet)
+ * 2. Updates existing subscription items if inputs are provided that have an id (meaning they already exist)
+ * 3. Expires any existing subscription items on the subscription that are not included in the inputs
+ * @param params
+ * @param transaction
+ * @returns
+ */
 export const adjustSubscription = async (
   params: AdjustSubscriptionParams,
   transaction: DbTransaction

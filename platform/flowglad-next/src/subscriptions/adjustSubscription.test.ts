@@ -351,7 +351,7 @@ describe('adjustSubscription Integration Tests', async () => {
           if (!result) {
             throw new Error('Result is null')
           }
-          expect(result.subscriptionItems.length).toBe(3)
+          expect(result.subscriptionItems.length).toBe(2)
 
           // Verify that no proration adjustments were made.
           const bp = await selectCurrentBillingPeriodForSubscription(
@@ -857,7 +857,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (!result) {
           throw new Error('Result is null')
         }
-        expect(result.subscriptionItems.length).toBe(3)
+        expect(result.subscriptionItems.length).toBe(2)
         const bpItems = await selectBillingPeriodItems(
           { billingPeriodId: billingPeriod.id },
           transaction
