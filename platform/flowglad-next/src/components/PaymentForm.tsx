@@ -32,7 +32,7 @@ import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
-
+import { z } from 'zod'
 export const PaymentLoadingForm = ({
   disableAnimation,
 }: {
@@ -222,6 +222,9 @@ const PaymentForm = () => {
   const [emailComplete, setEmailComplete] = useState(
     Boolean(readonlyCustomerEmail)
   )
+  const [emailError, setEmailError] = useState<string | undefined>(
+    undefined
+  )
   const embedsReady =
     emailEmbedReady && paymentEmbedReady && addressEmbedReady
   const [errorMessage, setErrorMessage] = useState<
@@ -372,12 +375,23 @@ const PaymentForm = () => {
               return
             }
             if (event.complete) {
-              await editCheckoutSessionCustomerEmail({
-                id: checkoutSession.id,
-                customerEmail: event.value.email,
-              })
-              setEmailComplete(true)
-              router.refresh()
+              const parseResult = z
+                .string()
+                .email()
+                .safeParse(event.value.email)
+              if (parseResult.success) {
+                await editCheckoutSessionCustomerEmail({
+                  id: checkoutSession.id,
+                  customerEmail: parseResult.data,
+                })
+                setEmailComplete(true)
+                setEmailError(undefined)
+                router.refresh()
+              } else {
+                setEmailError(
+                  JSON.parse(parseResult.error.message)[0].message
+                )
+              }
             }
           }}
           onReady={() => {
@@ -385,6 +399,9 @@ const PaymentForm = () => {
           }}
           className={core.cn('pb-3', !embedsReady && 'opacity-0')}
         />
+        {emailError && (
+          <ErrorLabel error={emailError} className="pb-4" />
+        )}
         <PaymentElement
           onReady={() => {
             // setTimeout(() => {
