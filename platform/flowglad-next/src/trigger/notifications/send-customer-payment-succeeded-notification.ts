@@ -61,7 +61,6 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
         return selectInvoiceById(invoice.id, transaction)
       }
     )
-
     const result = await sendReceiptEmail({
       invoice: mostUpToDateInvoice,
       invoiceLineItems,
