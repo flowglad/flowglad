@@ -19,6 +19,7 @@ import {
   createUpdateSchema,
   pgEnumColumn,
   timestampWithTimezoneColumn,
+  SelectConditions,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -191,4 +192,5 @@ export namespace LedgerEntry {
   export type ClientRecord = z.infer<
     typeof ledgerEntriesClientSelectSchema
   >
+  export type Where = SelectConditions<typeof ledgerEntries>
 }

@@ -44,6 +44,8 @@ import {
   FeeCalculationType,
   FeatureUsageGrantFrequency,
   FeatureType,
+  LedgerEntryStatus,
+  LedgerEntryDirection,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -79,13 +81,18 @@ import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
 import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
 import { usageEvents } from '@/db/schema/usageEvents'
-import { ledgerTransactions } from '@/db/schema/ledgerTransactions'
-import { ledgerEntries } from '@/db/schema/ledgerEntries'
+import {
+  LedgerTransaction,
+  ledgerTransactions,
+} from '@/db/schema/ledgerTransactions'
+import { ledgerEntries, LedgerEntry } from '@/db/schema/ledgerEntries'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
 import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
 import { refunds } from '@/db/schema/refunds'
 import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
+import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
+import { insertLedgerEntry } from '@/db/tableMethods/ledgerEntryMethods'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -1222,19 +1229,18 @@ export const setupUsageEvent = async (
 }
 
 export const setupLedgerTransaction = async (
-  params: Partial<typeof ledgerTransactions.$inferInsert> & {
+  params: Partial<LedgerTransaction.Insert> & {
     organizationId: string
+    subscriptionId: string
   }
 ): Promise<typeof ledgerTransactions.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
-    // @ts-expect-error Assume insertLedgerTransaction is defined and imported
     return insertLedgerTransaction(
       {
         livemode: true,
         initiatingSourceType: 'test_setup',
         initiatingSourceId: `src_${core.nanoid()}`,
         description: 'Test Ledger Transaction',
-        metadata: {},
         ...params,
       },
       transaction
@@ -1253,28 +1259,26 @@ export type LedgerEntryType =
   | 'payment_refunded'
 // Add other entry types as needed from your spec
 
-export type LedgerEntryStatus = 'pending' | 'posted'
-
 export const setupLedgerEntry = async (
-  params: Partial<typeof ledgerEntries.$inferInsert> & {
+  params: Partial<LedgerEntry.Insert> & {
     organizationId: string
     subscriptionId: string
     ledgerTransactionId: string
+    ledgerAccountId: string
     entryType: LedgerEntryType
     amount: number // Positive for credit, negative for debit
-    currency: CurrencyCode
+    direction: LedgerEntryDirection
   }
 ): Promise<typeof ledgerEntries.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
     const now = new Date()
-    // @ts-expect-error Assume insertLedgerEntry is defined and imported
     return insertLedgerEntry(
       {
         livemode: true,
-        status: 'posted' as LedgerEntryStatus,
+        status: LedgerEntryStatus.Posted,
         description: `Test Ledger Entry - ${params.entryType}`,
         entryTimestamp: now,
-        metadata: {},
+        metadata: null,
         discardedAt: null,
         ...params,
       },

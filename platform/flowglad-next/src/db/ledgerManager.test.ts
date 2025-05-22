@@ -10,8 +10,6 @@ import {
   setupUsageMeter,
   setupLedgerTransaction,
   setupLedgerEntry,
-  LedgerEntryType,
-  LedgerEntryStatus,
 } from '../../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
@@ -26,7 +24,8 @@ import { Product } from '@/db/schema/products'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import { ledgerEntries as ledgerEntriesSchema } from '@/db/schema/ledgerEntries'
 import {
-  CurrencyCode,
+  LedgerEntryStatus,
+  LedgerEntryDirection,
   PaymentMethodType,
   SubscriptionStatus,
 } from '@/types'
@@ -106,54 +105,53 @@ describe('Ledger Management System', async () => {
   describe('I. Core Ledger & System-Wide Properties', () => {
     describe('1. Balance Integrity & Accuracy', () => {
       it('should accurately reflect the "posted" financial balance from posted LedgerEntries', async () => {
-        const ledgerTransaction = await setupLedgerTransaction({
+        const coreParams = {
           organizationId: organization.id,
           livemode: subscription.livemode,
-        })
+          subscriptionId: subscription.id,
+        }
+        const ledgerTransaction =
+          await setupLedgerTransaction(coreParams)
 
         const entry1Amount = 1000
         const entry2Amount = -200
         const entry3Amount = 50
 
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'usage_cost',
           amount: entry1Amount,
-          status: 'posted',
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          status: LedgerEntryStatus.Posted,
+          direction: LedgerEntryDirection.Debit,
+          ledgerAccountId: ledgerAccount.id,
         })
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'payment_recognized',
           amount: entry2Amount,
-          status: 'posted',
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          status: LedgerEntryStatus.Posted,
+          direction: LedgerEntryDirection.Credit,
+          ledgerAccountId: ledgerAccount.id,
         })
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'usage_cost',
           amount: entry3Amount,
-          status: 'posted',
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          status: LedgerEntryStatus.Posted,
+          direction: LedgerEntryDirection.Debit,
+          ledgerAccountId: ledgerAccount.id,
         })
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'usage_cost',
           amount: 9999,
-          status: 'pending',
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          status: LedgerEntryStatus.Pending,
+          direction: LedgerEntryDirection.Debit,
+          ledgerAccountId: ledgerAccount.id,
         })
 
         const expectedBalance =
@@ -180,10 +178,13 @@ describe('Ledger Management System', async () => {
         })
       })
       it('should accurately reflect the "effective/pending" balance from posted or active pending LedgerEntries', async () => {
-        const ledgerTransaction = await setupLedgerTransaction({
+        const coreParams = {
           organizationId: organization.id,
           livemode: subscription.livemode,
-        })
+          subscriptionId: subscription.id,
+        }
+        const ledgerTransaction =
+          await setupLedgerTransaction(coreParams)
 
         const postedAmount1 = 1000
         const postedAmount2 = -200
@@ -191,46 +192,43 @@ describe('Ledger Management System', async () => {
         const discardedPendingAmount = 10000
 
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'usage_cost',
           amount: postedAmount1,
-          status: 'posted',
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          status: LedgerEntryStatus.Posted,
+          direction: LedgerEntryDirection.Debit,
+          ledgerAccountId: ledgerAccount.id,
         })
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'payment_recognized',
           amount: postedAmount2,
-          status: 'posted',
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          status: LedgerEntryStatus.Posted,
+          direction: LedgerEntryDirection.Credit,
+          ledgerAccountId: ledgerAccount.id,
         })
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'usage_cost',
           amount: activePendingAmount,
-          status: 'pending',
+          status: LedgerEntryStatus.Pending,
           discardedAt: null,
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          ledgerAccountId: ledgerAccount.id,
+          direction: LedgerEntryDirection.Debit,
         })
+
         await setupLedgerEntry({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
+          ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
           entryType: 'usage_cost',
           amount: discardedPendingAmount,
-          status: 'pending',
+          status: LedgerEntryStatus.Pending,
           discardedAt: new Date(),
-          livemode: subscription.livemode,
-          currency: organization.defaultCurrency || CurrencyCode.USD,
+          ledgerAccountId: ledgerAccount.id,
+          direction: LedgerEntryDirection.Debit,
         })
 
         const expectedBalance =
@@ -263,10 +261,13 @@ describe('Ledger Management System', async () => {
         })
       })
       it('should correctly calculate balances with a mix of positive and negative entries', async () => {
-        const ledgerTransaction = await setupLedgerTransaction({
+        const coreParams = {
           organizationId: organization.id,
           livemode: subscription.livemode,
-        })
+          subscriptionId: subscription.id,
+        }
+        const ledgerTransaction =
+          await setupLedgerTransaction(coreParams)
 
         const amounts = [1500, -750, 200, -50, 1000, -1200]
         let expectedPostedBalance = 0
@@ -278,16 +279,19 @@ describe('Ledger Management System', async () => {
           const isDiscarded = isPending && i % 4 === 0
 
           await setupLedgerEntry({
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
+            ...coreParams,
             ledgerTransactionId: ledgerTransaction.id,
             entryType: 'usage_cost',
-            amount,
-            status: isPending ? 'pending' : 'posted',
+            amount: Math.abs(amount),
+            status: isPending
+              ? LedgerEntryStatus.Pending
+              : LedgerEntryStatus.Posted,
             discardedAt: isDiscarded ? new Date() : null,
-            livemode: subscription.livemode,
-            currency:
-              organization.defaultCurrency || CurrencyCode.USD,
+            direction:
+              amount > 0
+                ? LedgerEntryDirection.Debit
+                : LedgerEntryDirection.Credit,
+            ledgerAccountId: ledgerAccount.id,
           })
 
           if (!isPending) {
@@ -344,343 +348,343 @@ describe('Ledger Management System', async () => {
       })
     })
 
-    describe('2. Immutability & Lifecycle of LedgerEntries', () => {
-      it('should prevent alteration of core financial fields of a "posted" LedgerEntry', () => {
-        // Test logic: Attempt to update amount, currency, etc., of a posted entry
-      })
-      it('should ensure discarded_at remains NULL for "posted" LedgerEntries', () => {
-        // Test logic: Check discarded_at on posted entries
-      })
-      it('should allow "pending" LedgerEntries to have their discarded_at field set', () => {
-        // Test logic: Set discarded_at on a pending entry
-      })
-      it('should prevent a LedgerEntry with discarded_at IS NOT NULL from being transitioned to "posted"', () => {
-        // Test logic: Attempt to post a discarded entry
-      })
-      it('should reject or ignore attempts to update a "posted" entry (except non-critical metadata)', () => {
-        // Test logic: Attempt various updates
-      })
-      it('should correctly transition LedgerEntries from "pending" to "posted" status', () => {
-        // Test logic: Perform status transition
-      })
-      it('should only allow discarded_at to be set if status is "pending"', () => {
-        // Test logic: Attempt to set discarded_at on a posted entry
-      })
-    })
+    //     describe('2. Immutability & Lifecycle of LedgerEntries', () => {
+    //       it('should prevent alteration of core financial fields of a "posted" LedgerEntry', () => {
+    //         // Test logic: Attempt to update amount, currency, etc., of a posted entry
+    //       })
+    //       it('should ensure discarded_at remains NULL for "posted" LedgerEntries', () => {
+    //         // Test logic: Check discarded_at on posted entries
+    //       })
+    //       it('should allow "pending" LedgerEntries to have their discarded_at field set', () => {
+    //         // Test logic: Set discarded_at on a pending entry
+    //       })
+    //       it('should prevent a LedgerEntry with discarded_at IS NOT NULL from being transitioned to "posted"', () => {
+    //         // Test logic: Attempt to post a discarded entry
+    //       })
+    //       it('should reject or ignore attempts to update a "posted" entry (except non-critical metadata)', () => {
+    //         // Test logic: Attempt various updates
+    //       })
+    //       it('should correctly transition LedgerEntries from "pending" to "posted" status', () => {
+    //         // Test logic: Perform status transition
+    //       })
+    //       it('should only allow discarded_at to be set if status is "pending"', () => {
+    //         // Test logic: Attempt to set discarded_at on a posted entry
+    //       })
+    //     })
 
-    describe('3. Atomicity of Operations', () => {
-      it('should ensure all records are created or none are in a multi-record operation (e.g., UsageCredits and LedgerEntry)', () => {
-        // Test logic: Simulate success and failure scenarios for atomic operations
-      })
-      it('should correctly roll back transactions on failure during a multi-step ledger operation', () => {
-        // Test logic: Induce failure mid-operation
-      })
-    })
+    //     describe('3. Atomicity of Operations', () => {
+    //       it('should ensure all records are created or none are in a multi-record operation (e.g., UsageCredits and LedgerEntry)', () => {
+    //         // Test logic: Simulate success and failure scenarios for atomic operations
+    //       })
+    //       it('should correctly roll back transactions on failure during a multi-step ledger operation', () => {
+    //         // Test logic: Induce failure mid-operation
+    //       })
+    //     })
 
-    describe('4. Idempotency of Event Ingestion & Processing', () => {
-      it('should result in the same financial state when processing the same external event multiple times', () => {
-        // Test logic: Send duplicate payment confirmations, usage events
-      })
-    })
+    //     describe('4. Idempotency of Event Ingestion & Processing', () => {
+    //       it('should result in the same financial state when processing the same external event multiple times', () => {
+    //         // Test logic: Send duplicate payment confirmations, usage events
+    //       })
+    //     })
 
-    describe('5. Traceability & Referential Integrity', () => {
-      it('should ensure every LedgerEntry has a valid usage_transaction_id linking to an existing LedgerTransaction', () => {
-        // Test logic: Check FK constraints or query for orphaned entries
-      })
-      it('should ensure every LedgerEntry has valid foreign keys to its source record(s) as dictated by its entry_type', () => {
-        // Test logic: Check various entry_types and their source links
-      })
-      it('should prevent orphaned LedgerEntries (without a valid LedgerTransaction or source)', () => {
-        // Test logic: Query for entries with invalid FKs
-      })
-      it('should ensure all LedgerEntries for a given LedgerTransaction logically belong to the same originating business operation', () => {
-        // Test logic: Verify consistency of entries within a transaction
-      })
-    })
+    //     describe('5. Traceability & Referential Integrity', () => {
+    //       it('should ensure every LedgerEntry has a valid usage_transaction_id linking to an existing LedgerTransaction', () => {
+    //         // Test logic: Check FK constraints or query for orphaned entries
+    //       })
+    //       it('should ensure every LedgerEntry has valid foreign keys to its source record(s) as dictated by its entry_type', () => {
+    //         // Test logic: Check various entry_types and their source links
+    //       })
+    //       it('should prevent orphaned LedgerEntries (without a valid LedgerTransaction or source)', () => {
+    //         // Test logic: Query for entries with invalid FKs
+    //       })
+    //       it('should ensure all LedgerEntries for a given LedgerTransaction logically belong to the same originating business operation', () => {
+    //         // Test logic: Verify consistency of entries within a transaction
+    //       })
+    //     })
 
-    describe('6. Currency Consistency', () => {
-      it('should ensure all related financial records within a single financial event sequence use the same currency', () => {
-        // Test logic: Check currency across Payment -> UsageCredits -> LedgerEntry
-      })
-    })
+    //     describe('6. Currency Consistency', () => {
+    //       it('should ensure all related financial records within a single financial event sequence use the same currency', () => {
+    //         // Test logic: Check currency across Payment -> UsageCredits -> LedgerEntry
+    //       })
+    //     })
 
-    describe('7. LedgerTransaction Integrity', () => {
-      it('should create a LedgerTransaction record for each distinct business operation', () => {
-        // Test logic: Verify LedgerTransaction creation for various ops
-      })
-      it('should ensure LedgerTransaction records have appropriate initiating_source_type and initiating_source_id', () => {
-        // Test logic: Check these fields for correctness
-      })
-    })
-  })
+    //     describe('7. LedgerTransaction Integrity', () => {
+    //       it('should create a LedgerTransaction record for each distinct business operation', () => {
+    //         // Test logic: Verify LedgerTransaction creation for various ops
+    //       })
+    //       it('should ensure LedgerTransaction records have appropriate initiating_source_type and initiating_source_id', () => {
+    //         // Test logic: Check these fields for correctness
+    //       })
+    //     })
+    //   })
 
-  describe('II. Workflow-Specific Test Cases', () => {
-    describe('A. Usage Event Ingestion & Cost Accrual Workflow', () => {
-      it('should create a "usage_cost" LedgerEntry for a valid UsageEvent', () => {
-        // Test logic
-      })
-      it('should ensure the "usage_cost" LedgerEntry has correct negative amount, currency, and source links', () => {
-        // Test logic
-      })
-      it('should assign the correct initial status (posted or pending) to "usage_cost" LedgerEntries', () => {
-        // Test logic
-      })
-      it('should generate correct "usage_cost" LedgerEntries for multiple UsageEvents', () => {
-        // Test logic
-      })
-    })
+    //   describe('II. Workflow-Specific Test Cases', () => {
+    //     describe('A. Usage Event Ingestion & Cost Accrual Workflow', () => {
+    //       it('should create a "usage_cost" LedgerEntry for a valid UsageEvent', () => {
+    //         // Test logic
+    //       })
+    //       it('should ensure the "usage_cost" LedgerEntry has correct negative amount, currency, and source links', () => {
+    //         // Test logic
+    //       })
+    //       it('should assign the correct initial status (posted or pending) to "usage_cost" LedgerEntries', () => {
+    //         // Test logic
+    //       })
+    //       it('should generate correct "usage_cost" LedgerEntries for multiple UsageEvents', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('B. Payment Confirmation & Associated Credit Granting Workflow', () => {
-      it('should create a UsageCredits grant and a "payment_recognized" LedgerEntry on successful Payment confirmation for an Invoice', () => {
-        // Test logic
-      })
-      it('should correctly handle a standard invoice settlement scenario', () => {
-        // Test logic
-      })
-      it('should correctly handle a PAYG/Top-up payment scenario', () => {
-        // Test logic
-      })
-      it('should not create/activate UsageCredits or post "payment_recognized" LedgerEntry on failed Payment', () => {
-        // Test logic
-      })
-      it('should update Invoice status to "paid" upon successful payment and ledger posting', () => {
-        // Test logic
-      })
-    })
+    //     describe('B. Payment Confirmation & Associated Credit Granting Workflow', () => {
+    //       it('should create a UsageCredits grant and a "payment_recognized" LedgerEntry on successful Payment confirmation for an Invoice', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly handle a standard invoice settlement scenario', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly handle a PAYG/Top-up payment scenario', () => {
+    //         // Test logic
+    //       })
+    //       it('should not create/activate UsageCredits or post "payment_recognized" LedgerEntry on failed Payment', () => {
+    //         // Test logic
+    //       })
+    //       it('should update Invoice status to "paid" upon successful payment and ledger posting', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('C. Promotional / Goodwill / Non-Payment Credit Granting Workflow', () => {
-      it('should create a UsageCredits grant and a "credit_grant_recognized" LedgerEntry for admin/system credit grants', () => {
-        // Test logic
-      })
-      it('should correctly handle grants with an expires_at date', () => {
-        // Test logic
-      })
-      it('should correctly handle grants scoped to a specific billing_period_id or usage_meter_id', () => {
-        // Test logic
-      })
-    })
+    //     describe('C. Promotional / Goodwill / Non-Payment Credit Granting Workflow', () => {
+    //       it('should create a UsageCredits grant and a "credit_grant_recognized" LedgerEntry for admin/system credit grants', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly handle grants with an expires_at date', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly handle grants scoped to a specific billing_period_id or usage_meter_id', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('D. Applying Credits to Usage Workflow (e.g., during Billing Run)', () => {
-      describe('D.1. LedgerTransaction Context', () => {
-        it('should occur within a LedgerTransaction for credit application', () => {
-          // Test logic
-        })
-      })
-      describe('D.2. UsageCreditApplications Record Creation', () => {
-        it('should create correct UsageCreditApplications records for each grant portion applied', () => {
-          // Test logic
-        })
-      })
-      describe('D.3. LedgerEntry for Credit Application', () => {
-        it('should create a "credit_applied_to_usage" LedgerEntry with status "pending" initially', () => {
-          // Test logic
-        })
-        it('should ensure the "credit_applied_to_usage" LedgerEntry has correct positive amount and source links', () => {
-          // Test logic
-        })
-      })
-      describe('D.4. Lifecycle of "pending" Credit Application Entries', () => {
-        it('should correctly mark existing "pending" items as discarded_at if credit application logic iterates', () => {
-          // Test logic
-        })
-        it('should create new "pending" items superseding discarded ones during iteration', () => {
-          // Test logic
-        })
-        it('should transition all non-discarded "pending" items to "posted" at the end of the operational context', () => {
-          // Test logic
-        })
-        it('should NOT transition items with discarded_at IS NOT NULL to "posted"', () => {
-          // Test logic
-        })
-      })
-      describe('D.5. Credit Sufficiency Scenarios', () => {
-        it('should handle a single UsageCredits grant fully covering a usage_cost', () => {
-          // Test logic
-        })
-        it('should handle a single UsageCredits grant partially covering a usage_cost', () => {
-          // Test logic
-        })
-        it('should handle multiple UsageCredits grants combining to cover usage_cost(s)', () => {
-          // Test logic
-        })
-        it('should apply all available credit and leave a net debit if credit is insufficient', () => {
-          // Test logic
-        })
-      })
-      describe('D.6. Credit Application Rules', () => {
-        it('should follow specific ordering rules if implemented (e.g., oldest first, promo first)', () => {
-          // Test logic
-        })
-      })
-      describe('D.7. No Credit Available', () => {
-        it('should directly impact subscription balance with usage_cost if no credit is available', () => {
-          // Test logic
-        })
-      })
-    })
+    //     describe('D. Applying Credits to Usage Workflow (e.g., during Billing Run)', () => {
+    //       describe('D.1. LedgerTransaction Context', () => {
+    //         it('should occur within a LedgerTransaction for credit application', () => {
+    //           // Test logic
+    //         })
+    //       })
+    //       describe('D.2. UsageCreditApplications Record Creation', () => {
+    //         it('should create correct UsageCreditApplications records for each grant portion applied', () => {
+    //           // Test logic
+    //         })
+    //       })
+    //       describe('D.3. LedgerEntry for Credit Application', () => {
+    //         it('should create a "credit_applied_to_usage" LedgerEntry with status "pending" initially', () => {
+    //           // Test logic
+    //         })
+    //         it('should ensure the "credit_applied_to_usage" LedgerEntry has correct positive amount and source links', () => {
+    //           // Test logic
+    //         })
+    //       })
+    //       describe('D.4. Lifecycle of "pending" Credit Application Entries', () => {
+    //         it('should correctly mark existing "pending" items as discarded_at if credit application logic iterates', () => {
+    //           // Test logic
+    //         })
+    //         it('should create new "pending" items superseding discarded ones during iteration', () => {
+    //           // Test logic
+    //         })
+    //         it('should transition all non-discarded "pending" items to "posted" at the end of the operational context', () => {
+    //           // Test logic
+    //         })
+    //         it('should NOT transition items with discarded_at IS NOT NULL to "posted"', () => {
+    //           // Test logic
+    //         })
+    //       })
+    //       describe('D.5. Credit Sufficiency Scenarios', () => {
+    //         it('should handle a single UsageCredits grant fully covering a usage_cost', () => {
+    //           // Test logic
+    //         })
+    //         it('should handle a single UsageCredits grant partially covering a usage_cost', () => {
+    //           // Test logic
+    //         })
+    //         it('should handle multiple UsageCredits grants combining to cover usage_cost(s)', () => {
+    //           // Test logic
+    //         })
+    //         it('should apply all available credit and leave a net debit if credit is insufficient', () => {
+    //           // Test logic
+    //         })
+    //       })
+    //       describe('D.6. Credit Application Rules', () => {
+    //         it('should follow specific ordering rules if implemented (e.g., oldest first, promo first)', () => {
+    //           // Test logic
+    //         })
+    //       })
+    //       describe('D.7. No Credit Available', () => {
+    //         it('should directly impact subscription balance with usage_cost if no credit is available', () => {
+    //           // Test logic
+    //         })
+    //       })
+    //     })
 
-    describe('E. Administrative Adjustment of Credit Balance Workflow (e.g., Clawback)', () => {
-      it('should create UsageCreditBalanceAdjustments and "credit_balance_adjusted" LedgerEntry for admin adjustments', () => {
-        // Test logic
-      })
-      it('should correctly adjust an unspent UsageCredits grant', () => {
-        // Test logic
-      })
-      it('should correctly adjust a partially spent UsageCredits grant', () => {
-        // Test logic
-      })
-      it('should cap adjustment at unspent value or fail if attempting to adjust by more', () => {
-        // Test logic
-      })
-    })
+    //     describe('E. Administrative Adjustment of Credit Balance Workflow (e.g., Clawback)', () => {
+    //       it('should create UsageCreditBalanceAdjustments and "credit_balance_adjusted" LedgerEntry for admin adjustments', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly adjust an unspent UsageCredits grant', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly adjust a partially spent UsageCredits grant', () => {
+    //         // Test logic
+    //       })
+    //       it('should cap adjustment at unspent value or fail if attempting to adjust by more', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('F. Credit Grant Expiration Workflow', () => {
-      it('should create a "credit_grant_expired" LedgerEntry for an expired UsageCredits grant', () => {
-        // Test logic
-      })
-      it('should correctly handle a fully unused grant expiring', () => {
-        // Test logic
-      })
-      it('should correctly handle a partially used grant expiring (calculating remaining unused portion)', () => {
-        // Test logic
-      })
-      it('should not create a "credit_grant_expired" item if grant is fully used before expires_at', () => {
-        // Test logic
-      })
-      it('should ensure batch job for expirations correctly identifies and processes eligible credits', () => {
-        // Test logic
-      })
-    })
+    //     describe('F. Credit Grant Expiration Workflow', () => {
+    //       it('should create a "credit_grant_expired" LedgerEntry for an expired UsageCredits grant', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly handle a fully unused grant expiring', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly handle a partially used grant expiring (calculating remaining unused portion)', () => {
+    //         // Test logic
+    //       })
+    //       it('should not create a "credit_grant_expired" item if grant is fully used before expires_at', () => {
+    //         // Test logic
+    //       })
+    //       it('should ensure batch job for expirations correctly identifies and processes eligible credits', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('G. Payment Refund Processing Workflow', () => {
-      it('should create a Refunds record with "pending" status on refund initiation', () => {
-        // Test logic
-      })
-      it('should update Refunds status to "succeeded" and create a "payment_refunded" LedgerEntry on successful gateway confirmation', () => {
-        // Test logic
-      })
-      it('should update Refunds status to "failed" and not post "payment_refunded" LedgerEntry on failed gateway confirmation', () => {
-        // Test logic
-      })
-      it('should handle full refund for a Payment whose associated UsageCredits grant is unused', () => {
-        // Test logic
-      })
-      it('should handle partial refund for a Payment', () => {
-        // Test logic
-      })
-      it('should correctly reflect deficit in subscription balance if refunding a Payment whose credit was spent', () => {
-        // Test logic
-      })
-      it('(Optional) should create UsageCreditBalanceAdjustments for the original grant if its funding was refunded', () => {
-        // Test logic
-      })
-    })
+    //     describe('G. Payment Refund Processing Workflow', () => {
+    //       it('should create a Refunds record with "pending" status on refund initiation', () => {
+    //         // Test logic
+    //       })
+    //       it('should update Refunds status to "succeeded" and create a "payment_refunded" LedgerEntry on successful gateway confirmation', () => {
+    //         // Test logic
+    //       })
+    //       it('should update Refunds status to "failed" and not post "payment_refunded" LedgerEntry on failed gateway confirmation', () => {
+    //         // Test logic
+    //       })
+    //       it('should handle full refund for a Payment whose associated UsageCredits grant is unused', () => {
+    //         // Test logic
+    //       })
+    //       it('should handle partial refund for a Payment', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly reflect deficit in subscription balance if refunding a Payment whose credit was spent', () => {
+    //         // Test logic
+    //       })
+    //       it('(Optional) should create UsageCreditBalanceAdjustments for the original grant if its funding was refunded', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('H. Billing Recalculation and Adjustment Workflow', () => {
-      it('should create a new SMPC record and supersede the old one on recalculation', () => {
-        // Test logic: Check SMPC_new creation, SMPC_old status update
-      })
-      it('should create a "billing_adjustment" LedgerEntry reflecting the net change', () => {
-        // Test logic: Verify amount, source_billing_period_calculation_id
-      })
-      it('should handle positive adjustments (new charge higher)', () => {
-        // Test logic
-      })
-      it('should handle negative adjustments (new charge lower / credit)', () => {
-        // Test logic
-      })
-    })
+    //     describe('H. Billing Recalculation and Adjustment Workflow', () => {
+    //       it('should create a new SMPC record and supersede the old one on recalculation', () => {
+    //         // Test logic: Check SMPC_new creation, SMPC_old status update
+    //       })
+    //       it('should create a "billing_adjustment" LedgerEntry reflecting the net change', () => {
+    //         // Test logic: Verify amount, source_billing_period_calculation_id
+    //       })
+    //       it('should handle positive adjustments (new charge higher)', () => {
+    //         // Test logic
+    //       })
+    //       it('should handle negative adjustments (new charge lower / credit)', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('I. SubscriptionMeterPeriodCalculations (SMPC) Snapshot Generation Workflow', () => {
-      it('should create/update an SMPC record at the end of a calculation run', () => {
-        // Test logic
-      })
-      it('should ensure SMPC fields correctly aggregate amounts from relevant "posted" LedgerEntries', () => {
-        // Test logic: Check total_raw_usage_amount, credits_applied_amount, net_billed_amount
-      })
-      it('should correctly handle SMPC status (active, superseded)', () => {
-        // Test logic
-      })
-      it('should correctly link SMPC to source_invoice_id or source_credit_note_id', () => {
-        // Test logic
-      })
-      it('should respect the UNIQUE constraint on SMPC calculation_run_id', () => {
-        // Test logic: Attempt to create duplicate
-      })
-      it('should respect the UNIQUE constraint on SMPC (subscription_id, usage_meter_id, billing_period_id, status) WHERE status is active', () => {
-        // Test logic: Attempt to create duplicate active calculation
-      })
-    })
-  })
+    //     describe('I. SubscriptionMeterPeriodCalculations (SMPC) Snapshot Generation Workflow', () => {
+    //       it('should create/update an SMPC record at the end of a calculation run', () => {
+    //         // Test logic
+    //       })
+    //       it('should ensure SMPC fields correctly aggregate amounts from relevant "posted" LedgerEntries', () => {
+    //         // Test logic: Check total_raw_usage_amount, credits_applied_amount, net_billed_amount
+    //       })
+    //       it('should correctly handle SMPC status (active, superseded)', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly link SMPC to source_invoice_id or source_credit_note_id', () => {
+    //         // Test logic
+    //       })
+    //       it('should respect the UNIQUE constraint on SMPC calculation_run_id', () => {
+    //         // Test logic: Attempt to create duplicate
+    //       })
+    //       it('should respect the UNIQUE constraint on SMPC (subscription_id, usage_meter_id, billing_period_id, status) WHERE status is active', () => {
+    //         // Test logic: Attempt to create duplicate active calculation
+    //       })
+    //     })
+    //   })
 
-  describe('III. Scenario-Based Integration Tests', () => {
-    describe('1. Post-Paid Billing with Async Payment', () => {
-      it('should allow usage to accrue, ECCA balance goes negative (within credit limit)', () => {
-        // Test logic
-      })
-      it('should generate an Invoice when billing period ends', () => {
-        // Test logic
-      })
-      it('should handle async payment initiation (Payment.status = "processing")', () => {
-        // Test logic
-      })
-      it('should correctly process successful async payment (Invoice paid, UsageCredits granted, LedgerEntry posted, ECCA settles)', () => {
-        // Test logic
-      })
-      it('should correctly process failed async payment (Invoice remains open, ECCA remains negative)', () => {
-        // Test logic
-      })
-    })
+    //   describe('III. Scenario-Based Integration Tests', () => {
+    //     describe('1. Post-Paid Billing with Async Payment', () => {
+    //       it('should allow usage to accrue, ECCA balance goes negative (within credit limit)', () => {
+    //         // Test logic
+    //       })
+    //       it('should generate an Invoice when billing period ends', () => {
+    //         // Test logic
+    //       })
+    //       it('should handle async payment initiation (Payment.status = "processing")', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly process successful async payment (Invoice paid, UsageCredits granted, LedgerEntry posted, ECCA settles)', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly process failed async payment (Invoice remains open, ECCA remains negative)', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('2. One-Time Free Grant, then Paid Subscription with Expiring Monthly Credits', () => {
-      it('should grant free UsageCredits and post "promo_credit_recognized" LedgerEntry on signup', () => {
-        // Test logic
-      })
-      it('should allow usage to consume free credits', () => {
-        // Test logic
-      })
-      it('should handle transition to paid: Invoice for plan, payment, new monthly UsageCredits, "payment_recognized" LedgerEntry', () => {
-        // Test logic
-      })
-      it('should expire unused portion of monthly grant at period end and post "credit_grant_expired" LedgerEntry', () => {
-        // Test logic
-      })
-      it('should correctly handle subsequent monthly renewals (payment, new grant, old grant expiration)', () => {
-        // Test logic
-      })
-    })
+    //     describe('2. One-Time Free Grant, then Paid Subscription with Expiring Monthly Credits', () => {
+    //       it('should grant free UsageCredits and post "promo_credit_recognized" LedgerEntry on signup', () => {
+    //         // Test logic
+    //       })
+    //       it('should allow usage to consume free credits', () => {
+    //         // Test logic
+    //       })
+    //       it('should handle transition to paid: Invoice for plan, payment, new monthly UsageCredits, "payment_recognized" LedgerEntry', () => {
+    //         // Test logic
+    //       })
+    //       it('should expire unused portion of monthly grant at period end and post "credit_grant_expired" LedgerEntry', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly handle subsequent monthly renewals (payment, new grant, old grant expiration)', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('3. PAYG Wallet with Durable, Non-Expiring Credits', () => {
-      it('should handle customer top-up: Invoice, payment, durable UsageCredits grant, "payment_recognized" LedgerEntry', () => {
-        // Test logic: Ensure UsageCredits.expires_at is NULL
-      })
-      it('should allow usage to consume durable credits', () => {
-        // Test logic
-      })
-      it('should block further usage if balance is exhausted (and credit limit is zero)', () => {
-        // Test logic
-      })
-    })
+    //     describe('3. PAYG Wallet with Durable, Non-Expiring Credits', () => {
+    //       it('should handle customer top-up: Invoice, payment, durable UsageCredits grant, "payment_recognized" LedgerEntry', () => {
+    //         // Test logic: Ensure UsageCredits.expires_at is NULL
+    //       })
+    //       it('should allow usage to consume durable credits', () => {
+    //         // Test logic
+    //       })
+    //       it('should block further usage if balance is exhausted (and credit limit is zero)', () => {
+    //         // Test logic
+    //       })
+    //     })
 
-    describe('4. Monthly Plan with Expiring Credits + Overage (Spike & Payment Failure)', () => {
-      it('should grant monthly expiring UsageCredits on plan fee payment at start of period', () => {
-        // Test logic
-      })
-      it('should allow usage to consume granted credits and then accrue overage (ECCA goes negative within credit limit)', () => {
-        // Test logic
-      })
-      it('should check against credit limit before authorizing a large usage spike', () => {
-        // Test logic
-      })
-      it('should expire unused monthly credits and invoice for next period plan fee + current overage at end of period', () => {
-        // Test logic
-      })
-      it('should correctly process successful payment for combined invoice (new grant, overage settled)', () => {
-        // Test logic
-      })
-      it('should correctly process failed payment for combined invoice (no new grant, ECCA remains negative, subscription suspended)', () => {
-        // Test logic
-      })
-    })
+    //     describe('4. Monthly Plan with Expiring Credits + Overage (Spike & Payment Failure)', () => {
+    //       it('should grant monthly expiring UsageCredits on plan fee payment at start of period', () => {
+    //         // Test logic
+    //       })
+    //       it('should allow usage to consume granted credits and then accrue overage (ECCA goes negative within credit limit)', () => {
+    //         // Test logic
+    //       })
+    //       it('should check against credit limit before authorizing a large usage spike', () => {
+    //         // Test logic
+    //       })
+    //       it('should expire unused monthly credits and invoice for next period plan fee + current overage at end of period', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly process successful payment for combined invoice (new grant, overage settled)', () => {
+    //         // Test logic
+    //       })
+    //       it('should correctly process failed payment for combined invoice (no new grant, ECCA remains negative, subscription suspended)', () => {
+    //         // Test logic
+    //       })
+    //     })
   })
 })
