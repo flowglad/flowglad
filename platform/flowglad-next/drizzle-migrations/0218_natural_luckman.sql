@@ -85,8 +85,10 @@ ALTER TABLE "ledger_transactions" DROP CONSTRAINT "usage_transactions_id_unique"
 
 ALTER TABLE "ledger_transactions" ADD CONSTRAINT "ledger_transactions_id_unique" UNIQUE("id");--> statement-breakpoint
 
-ALTER TABLE "ledger_entries" ALTER COLUMN "status" SET DATA TYPE "LedgerEntryStatus";--> statement-breakpoint
-ALTER TABLE "ledger_entries" ALTER COLUMN "direction" SET DATA TYPE "LedgerEntryDirection";--> statement-breakpoint
+ALTER TABLE "ledger_entries" DROP COLUMN "status";--> statement-breakpoint
+ALTER TABLE "ledger_entries" ADD COLUMN "status" "LedgerEntryStatus" NOT NULL;--> statement-breakpoint
+ALTER TABLE "ledger_entries" DROP COLUMN "direction";--> statement-breakpoint
+ALTER TABLE "ledger_entries" ADD COLUMN "direction" "LedgerEntryDirection" NOT NULL;--> statement-breakpoint
 ALTER TABLE "usage_credits" ADD COLUMN "source_reference_type" "UsageCreditSourceReferenceType" NOT NULL;--> statement-breakpoint
 ALTER TABLE "ledger_entries" ADD COLUMN "ledger_account_id" text NOT NULL;--> statement-breakpoint
 ALTER TABLE "ledger_entries" ADD COLUMN "expired_at" timestamp with time zone;--> statement-breakpoint
