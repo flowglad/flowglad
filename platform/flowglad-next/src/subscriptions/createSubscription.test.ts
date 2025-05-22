@@ -1194,37 +1194,3 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
     expect(ledgerAccounts.length).toBe(0)
   })
 })
-
-describe('createSubscriptionWorkflow with credit grants and ledger accounts', () => {
-  it('should create ledger entries for credit grants when subscription is created with product features that include credit grants', async () => {
-    // TODO: Setup product with credit grant features
-    // TODO: Setup usage meter that the credit grants apply to
-    // TODO: Create subscription with that product
-    // TODO: Verify ledger entries were created with correct amounts
-    expect('').toBe('Test not yet implemented')
-  })
-
-  it('should create ledger entries with correct amounts for multiple credit grant features', async () => {
-    // TODO: Setup product with multiple credit grant features for different meters
-    // TODO: Setup usage meters
-    // TODO: Create subscription
-    // TODO: Verify ledger entries for each credit grant
-    expect('').toBe('Test not yet implemented')
-  })
-
-  it('should not create ledger entries for toggle features, only credit grants', async () => {
-    // TODO: Setup product with mix of toggle and credit grant features
-    // TODO: Setup usage meters for credit grants
-    // TODO: Create subscription
-    // TODO: Verify ledger entries only created for credit grants
-    expect('').toBe('Test not yet implemented')
-  })
-
-  it('should create ledger entries with correct livemode matching the subscription', async () => {
-    // TODO: Setup test mode product with credit grant features
-    // TODO: Setup usage meters
-    // TODO: Create test mode subscription
-    // TODO: Verify ledger entries have correct livemode
-    expect('').toBe('Test not yet implemented')
-  })
-})
