@@ -327,7 +327,7 @@ export const testDatabaseEnums = async (
     transaction
   )
 
-  // LedgerEntrys table
+  // LedgerEntries table
   await testEnumColumn(
     ledgerEntries,
     ledgerEntries.status,

@@ -771,8 +771,9 @@ export enum UsageCreditStatus {
 }
 
 export enum UsageCreditSourceReferenceType {
-  Payment = 'payment',
+  InvoiceSettlement = 'invoice_settlement',
   ManualAdjustment = 'manual_adjustment',
+  // TODO: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
 }
 
 export enum RefundStatus {
@@ -804,7 +805,7 @@ export enum LedgerEntryEntryType {
   PaymentRefunded = 'payment_refunded',
 }
 
-export enum UsageTransactionInitiatingSourceType {
+export enum LedgerTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
   Payment = 'payment',
   ManualAdjustment = 'manual_adjustment',

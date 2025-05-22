@@ -13,7 +13,7 @@ import {
 } from '@/db/schema/usageEvents'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
-import { UsageTransaction } from '@/db/schema/usageTransactions'
+import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 
 // Setup helpers from seedDatabase.ts
 import {
@@ -28,7 +28,7 @@ import {
 } from '@/../seedDatabase'
 import {
   PriceType,
-  UsageTransactionInitiatingSourceType,
+  LedgerTransactionInitiatingSourceType,
   IntervalUnit,
   CurrencyCode,
 } from '@/types'
@@ -37,7 +37,7 @@ import {
 import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
-import { selectUsageTransactions } from '@/db/tableMethods/usageTransactionMethods'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 
 describe('usageEventHelpers', () => {
@@ -152,24 +152,24 @@ describe('usageEventHelpers', () => {
         new Date(createdUsageEvent.usageDate!).getTime()
       ).toEqual(usageEventDetails.usageDate)
 
-      let usageTransactions: UsageTransaction.Record[] = []
+      let ledgerTransactions: LedgerTransaction.Record[] = []
       await adminTransaction(async ({ transaction }) => {
-        usageTransactions = await selectUsageTransactions(
+        ledgerTransactions = await selectLedgerTransactions(
           {
             initiatingSourceId: createdUsageEvent!.id,
             initiatingSourceType:
-              UsageTransactionInitiatingSourceType.UsageEvent,
+              LedgerTransactionInitiatingSourceType.UsageEvent,
           },
           transaction
         )
       })
-      expect(usageTransactions.length).toBe(1)
-      const usageTransactionId = usageTransactions[0].id
+      expect(ledgerTransactions.length).toBe(1)
+      const ledgerTransactionId = ledgerTransactions[0].id
 
       let ledgerItems: LedgerEntry.Record[] = []
       await adminTransaction(async ({ transaction }) => {
         ledgerItems = await selectLedgerEntries(
-          { usageTransactionId },
+          { ledgerTransactionId },
           transaction
         )
       })
@@ -198,25 +198,25 @@ describe('usageEventHelpers', () => {
         }
       )
 
-      let initialUsageTransactions: UsageTransaction.Record[] = []
+      let initialLedgerTransactions: LedgerTransaction.Record[] = []
       await adminTransaction(async ({ transaction }) => {
-        initialUsageTransactions = await selectUsageTransactions(
+        initialLedgerTransactions = await selectLedgerTransactions(
           {
             initiatingSourceId: initialEvent!.id,
             initiatingSourceType:
-              UsageTransactionInitiatingSourceType.UsageEvent,
+              LedgerTransactionInitiatingSourceType.UsageEvent,
           },
           transaction
         )
       })
       const initialLedgerItemCount =
-        initialUsageTransactions.length > 0
+        initialLedgerTransactions.length > 0
           ? (
               await adminTransaction(async ({ transaction }) =>
                 selectLedgerEntries(
                   {
-                    usageTransactionId:
-                      initialUsageTransactions[0].id,
+                    ledgerTransactionId:
+                      initialLedgerTransactions[0].id,
                   },
                   transaction
                 )
@@ -238,25 +238,26 @@ describe('usageEventHelpers', () => {
 
       expect(resultEvent.id).toBe(initialEvent.id)
 
-      let subsequentUsageTransactions: UsageTransaction.Record[] = []
+      let subsequentLedgerTransactions: LedgerTransaction.Record[] =
+        []
       await adminTransaction(async ({ transaction }) => {
-        subsequentUsageTransactions = await selectUsageTransactions(
+        subsequentLedgerTransactions = await selectLedgerTransactions(
           {
             initiatingSourceId: resultEvent!.id,
             initiatingSourceType:
-              UsageTransactionInitiatingSourceType.UsageEvent,
+              LedgerTransactionInitiatingSourceType.UsageEvent,
           },
           transaction
         )
       })
       const subsequentLedgerItemCount =
-        subsequentUsageTransactions.length > 0
+        subsequentLedgerTransactions.length > 0
           ? (
               await adminTransaction(async ({ transaction }) =>
                 selectLedgerEntries(
                   {
-                    usageTransactionId:
-                      subsequentUsageTransactions[0].id,
+                    ledgerTransactionId:
+                      subsequentLedgerTransactions[0].id,
                   },
                   transaction
                 )
@@ -460,13 +461,13 @@ describe('usageEventHelpers', () => {
         })
       expect(resultLiveTrue.livemode).toBe(true)
 
-      const liveTrueTransactions: UsageTransaction.Record[] =
+      const liveTrueTransactions: LedgerTransaction.Record[] =
         await adminTransaction(async ({ transaction }) => {
-          return selectUsageTransactions(
+          return selectLedgerTransactions(
             {
               initiatingSourceId: resultLiveTrue!.id,
               initiatingSourceType:
-                UsageTransactionInitiatingSourceType.UsageEvent,
+                LedgerTransactionInitiatingSourceType.UsageEvent,
             },
             transaction
           )
@@ -475,7 +476,7 @@ describe('usageEventHelpers', () => {
       const liveTrueLedgerItems: LedgerEntry.Record[] =
         await adminTransaction(async ({ transaction }) => {
           return selectLedgerEntries(
-            { usageTransactionId: liveTrueTransactions[0].id },
+            { ledgerTransactionId: liveTrueTransactions[0].id },
             transaction
           )
         })
@@ -499,13 +500,13 @@ describe('usageEventHelpers', () => {
       })
       expect(resultLiveFalse!.livemode).toBe(false)
 
-      const liveFalseTransactions: UsageTransaction.Record[] =
+      const liveFalseTransactions: LedgerTransaction.Record[] =
         await adminTransaction(async ({ transaction }) => {
-          return selectUsageTransactions(
+          return selectLedgerTransactions(
             {
               initiatingSourceId: resultLiveFalse!.id,
               initiatingSourceType:
-                UsageTransactionInitiatingSourceType.UsageEvent,
+                LedgerTransactionInitiatingSourceType.UsageEvent,
             },
             transaction
           )
@@ -514,7 +515,7 @@ describe('usageEventHelpers', () => {
       const liveFalseLedgerItems: LedgerEntry.Record[] =
         await adminTransaction(async ({ transaction }) => {
           return selectLedgerEntries(
-            { usageTransactionId: liveFalseTransactions[0].id },
+            { ledgerTransactionId: liveFalseTransactions[0].id },
             transaction
           )
         })

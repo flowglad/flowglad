@@ -7,14 +7,14 @@ This document outlines a comprehensive testing strategy for the usage aggregatio
 These tests ensure the fundamental integrity and reliability of the ledger system itself.
 
 1.  **Balance Integrity & Accuracy:**
-    *   **Test:** At any point, the sum of all `amount` fields in `LedgerEntrys` where `status = 'posted'`, OR (`status = 'pending' AND discarded_at IS NULL`) for a given subscription must accurately reflect its current effective financial balance. Distinguish tests for purely "posted balance" vs. "balance including pending."
+    *   **Test:** At any point, the sum of all `amount` fields in `LedgerEntries` where `status = 'posted'`, OR (`status = 'pending' AND discarded_at IS NULL`) for a given subscription must accurately reflect its current effective financial balance. Distinguish tests for purely "posted balance" vs. "balance including pending."
     *   **Why:** This is the single most crucial check of a ledger.
 
 2.  **Immutability & Lifecycle of Ledger Items:**
     *   **Test:** Once a `LedgerEntry` has `status = 'posted'`, its core financial fields (`amount`, `currency`, `entry_type`, `status`, `usage_transaction_id`, source links) cannot be altered, and `discarded_at` must remain `NULL`. Updates should only affect non-critical metadata or system timestamps like `updated_at` on the record (if applicable, though ledger items are often fully immutable once written, even `updated_at`).
-    *   **Test:** `LedgerEntrys` with `status = 'pending'` can have `discarded_at` set to a timestamp. Once `discarded_at` is set, the item is considered non-active and its `status` should remain `'pending'` (or a new dedicated status like `'discarded'` could be introduced if preferred, though `pending` + `discarded_at IS NOT NULL` is common).
+    *   **Test:** `LedgerEntries` with `status = 'pending'` can have `discarded_at` set to a timestamp. Once `discarded_at` is set, the item is considered non-active and its `status` should remain `'pending'` (or a new dedicated status like `'discarded'` could be introduced if preferred, though `pending` + `discarded_at IS NOT NULL` is common).
     *   **Test:** A `discarded_at` item cannot be transitioned to `'posted'`.
-    *   **Test:** All `LedgerEntrys` MUST have a valid `usage_transaction_id` linking to an existing `UsageTransaction`.
+    *   **Test:** All `LedgerEntries` MUST have a valid `usage_transaction_id` linking to an existing `LedgerTransaction`.
     *   **Why:** Ensures data integrity, auditability, and correct lifecycle management.
 
 3.  **Atomicity of Operations:**
@@ -57,8 +57,8 @@ These tests ensure the fundamental integrity and reliability of the ledger syste
 
 12. **Source Record Linkage & Traceability:**
     *   **Test:** Every `LedgerEntry` must be correctly linked to its originating source record(s) (e.g., `source_usage_event_id`, `source_payment_id`, `source_usage_credit_id`, `source_credit_application_id`, etc.) based on its `entry_type`.
-    *   **Test:** Every `LedgerEntry` must belong to a `UsageTransaction` that accurately reflects the conceptual business operation that generated the item(s).
-    *   **Test:** For a given `UsageTransaction`, all its associated `LedgerEntrys` should logically belong to the same overarching event (e.g., all items for one payment confirmation, all items for one admin adjustment).
+    *   **Test:** Every `LedgerEntry` must belong to a `LedgerTransaction` that accurately reflects the conceptual business operation that generated the item(s).
+    *   **Test:** For a given `LedgerTransaction`, all its associated `LedgerEntries` should logically belong to the same overarching event (e.g., all items for one payment confirmation, all items for one admin adjustment).
     *   **Why:** Critical for auditability and understanding the context of each financial event.
 
 ## II. Specific Use Cases & Flow Testing (Our System's Logic)
@@ -123,7 +123,7 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
 26. Refund status updates (`pending` -> `succeeded`/`failed`) correctly trigger or halt `posted` ledger item creation.
 
 **H. Billing Period Calculations & Snapshots (`SubscriptionMeterPeriodCalculations`):**
-27. `SubscriptionMeterPeriodCalculations` record correctly aggregates `total_raw_usage_amount`, `credits_applied_amount`, and `net_billed_amount` from relevant `LedgerEntrys` for the period and meter (considering only items that are `posted` by the end of the calculation run).
+27. `SubscriptionMeterPeriodCalculations` record correctly aggregates `total_raw_usage_amount`, `credits_applied_amount`, and `net_billed_amount` from relevant `LedgerEntries` for the period and meter (considering only items that are `posted` by the end of the calculation run).
 28. Correct handling of `active` vs. `superseded` calculation records when a period is recalculated/adjusted.
 29. Correct linkage of calculation records to source `Invoice` or `CreditNote` IDs.
 
@@ -137,33 +137,33 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
 
 *   **Unit Tests:**
     *   Functions creating/validating each backing parent record type.
-    *   Functions creating/validating `LedgerEntrys` (correct `entry_type`, sign of `amount`, all FKs populated, correct initial `status`, handling of `discarded_at`).
+    *   Functions creating/validating `LedgerEntries` (correct `entry_type`, sign of `amount`, all FKs populated, correct initial `status`, handling of `discarded_at`).
     *   Logic for transitioning `LedgerEntry.status` from `pending` to `posted`.
     *   Logic for setting `LedgerEntry.discarded_at`.
     *   Pricing logic functions.
     *   Credit selection/application logic functions (if complex, e.g., which grant to pick).
     *   Functions calculating remaining value on a `UsageCredits` grant.
-    *   Functions deriving balances from `LedgerEntrys` (correctly filtering by `status` and `discarded_at IS NULL`).
+    *   Functions deriving balances from `LedgerEntries` (correctly filtering by `status` and `discarded_at IS NULL`).
     *   Validation rules for Zod schemas, including `status` and `discarded_at` interdependencies.
 *   **Integration Tests:**
-    *   **End-to-End Flow Tests:** Each numbered use case in Section II should be an integration test, verifying the full lifecycle of `LedgerEntrys` including `pending`, `discarded_at` (if applicable to the flow), and `posted` states.
+    *   **End-to-End Flow Tests:** Each numbered use case in Section II should be an integration test, verifying the full lifecycle of `LedgerEntries` including `pending`, `discarded_at` (if applicable to the flow), and `posted` states.
     *   **Database Transaction Management:** Verify that operations involving multiple inserts/updates, including status changes and setting `discarded_at`, are correctly committed or rolled back.
     *   **Service Interactions (if applicable):** Test interactions with other internal services if the ledger system is part of a larger microservices architecture.
     *   **API Layer (if applicable):** If the ledger operations are exposed via an API, test the API endpoints for creating events that trigger ledger entries.
     *   **Query Logic:** Test complex queries used for reporting, balance calculation (differentiating posted vs. pending balances), or identifying records for processing (e.g., finding non-discarded `pending` items for a given `calculation_run_id` to transition them to `posted`).
 
-*   **Tables to Test:** `UsageCredits`, `UsageCreditApplications`, `UsageCreditBalanceAdjustments`, `Refunds`, `LedgerEntrys`, `SubscriptionMeterPeriodCalculations`, `UsageTransactions`.
+*   **Tables to Test:** `UsageCredits`, `UsageCreditApplications`, `UsageCreditBalanceAdjustments`, `Refunds`, `LedgerEntries`, `SubscriptionMeterPeriodCalculations`, `LedgerTransactions`.
 *   **Key Scenarios:**
     *   Creating each type of parent record (e.g., `UsageCredits`, `Refunds`).
-    *   Creating a `UsageTransaction` for each conceptual operation.
-    *   Creating `LedgerEntrys` linked to the correct `UsageTransaction` and source records, with correct `entry_type`, `status`, `amount`, `currency`.
-    *   Lifecycle of `LedgerEntrys`: `pending` -> `discarded_at` (if applicable) -> `posted`.
+    *   Creating a `LedgerTransaction` for each conceptual operation.
+    *   Creating `LedgerEntries` linked to the correct `LedgerTransaction` and source records, with correct `entry_type`, `status`, `amount`, `currency`.
+    *   Lifecycle of `LedgerEntries`: `pending` -> `discarded_at` (if applicable) -> `posted`.
 
 7.  **Billing Run Simulation (`billingRunHelpers.ts`):**
     *   **Test:** Simulate a full billing run for a subscription with various usage events and applicable credits (some that expire, some that are fully used, some partially used).
-    *   Verify that a `UsageTransaction` is created for the credit application phase.
+    *   Verify that a `LedgerTransaction` is created for the credit application phase.
     *   Verify that `UsageCreditApplications` records are created correctly.
-    *   Verify that `LedgerEntrys` with `entry_type='credit_applied_to_usage'` are created with `status='pending'` and linked to the correct `UsageTransaction` and `calculation_run_id`.
-    *   Verify that if the logic re-evaluates credit application within the same run, appropriate `pending` items are marked `discarded_at` and new `pending` items (linked to the same `UsageTransaction` and `calculation_run_id`) supersede them.
+    *   Verify that `LedgerEntries` with `entry_type='credit_applied_to_usage'` are created with `status='pending'` and linked to the correct `LedgerTransaction` and `calculation_run_id`.
+    *   Verify that if the logic re-evaluates credit application within the same run, appropriate `pending` items are marked `discarded_at` and new `pending` items (linked to the same `LedgerTransaction` and `calculation_run_id`) supersede them.
     *   Verify that at the end of the run, all non-discarded `pending` ledger items are transitioned to `status='posted'`.
     *   Verify correct creation/update of `SubscriptionMeterPeriodCalculations` based on the sum of `posted` ledger items for the run.

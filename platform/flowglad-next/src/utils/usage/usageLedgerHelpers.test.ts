@@ -22,7 +22,7 @@ import {
   LedgerEntryDirection,
   LedgerEntryEntryType,
   LedgerEntryStatus,
-  UsageTransactionInitiatingSourceType,
+  LedgerTransactionInitiatingSourceType,
 } from '@/types'
 
 // Function to test
@@ -96,7 +96,7 @@ describe('usageLedgerHelpers', () => {
   })
 
   describe('createUsageEventLedgerTransaction', () => {
-    it('should create a UsageTransaction and a LedgerEntry with correct properties on a happy path', async () => {
+    it('should create a LedgerTransaction and a LedgerEntry with correct properties on a happy path', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           return createUsageEventLedgerTransaction(
@@ -110,33 +110,33 @@ describe('usageLedgerHelpers', () => {
       )
 
       expect(result).toBeDefined()
-      expect(result.usageTransaction).toBeDefined()
+      expect(result.ledgerTransaction).toBeDefined()
       expect(result.ledgerEntries).toBeInstanceOf(Array)
       expect(result.ledgerEntries.length).toBe(1)
 
-      const createdUsageTransaction = result.usageTransaction
+      const createdLedgerTransaction = result.ledgerTransaction
       const createdLedgerEntry = result.ledgerEntries[0]
-      if (!createdUsageTransaction) {
+      if (!createdLedgerTransaction) {
         throw new Error('Usage transaction was not created')
       }
-      // Assertions for UsageTransaction
-      expect(createdUsageTransaction.livemode).toBe(
+      // Assertions for LedgerTransaction
+      expect(createdLedgerTransaction.livemode).toBe(
         usageEventInput.livemode
       )
-      expect(createdUsageTransaction.organizationId).toBe(
+      expect(createdLedgerTransaction.organizationId).toBe(
         organization.id
       )
-      expect(createdUsageTransaction.description).toBe(
+      expect(createdLedgerTransaction.description).toBe(
         `Ingesting Usage Event ${usageEventInput.id}`
       )
-      expect(createdUsageTransaction.initiatingSourceType).toBe(
-        UsageTransactionInitiatingSourceType.UsageEvent
+      expect(createdLedgerTransaction.initiatingSourceType).toBe(
+        LedgerTransactionInitiatingSourceType.UsageEvent
       )
-      expect(createdUsageTransaction.initiatingSourceId).toBe(
+      expect(createdLedgerTransaction.initiatingSourceId).toBe(
         usageEventInput.id
       )
       // Optionally, check if id is a valid format, e.g., not null/undefined
-      expect(createdUsageTransaction.id).toBeDefined()
+      expect(createdLedgerTransaction.id).toBeDefined()
 
       // Assertions for LedgerEntry
       expect(createdLedgerEntry.status).toBe(LedgerEntryStatus.Posted)
@@ -144,8 +144,8 @@ describe('usageLedgerHelpers', () => {
         usageEventInput.livemode
       )
       expect(createdLedgerEntry.organizationId).toBe(organization.id)
-      expect(createdLedgerEntry.usageTransactionId).toBe(
-        createdUsageTransaction.id
+      expect(createdLedgerEntry.ledgerTransactionId).toBe(
+        createdLedgerTransaction.id
       )
       expect(createdLedgerEntry.subscriptionId).toBe(
         usageEventInput.subscriptionId

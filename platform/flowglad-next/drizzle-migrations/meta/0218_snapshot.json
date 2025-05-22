@@ -1,5 +1,5 @@
 {
-  "id": "567aa046-9581-48d9-ac32-4c7958048848",
+  "id": "3a04e516-39a1-4737-9bed-fc5a70906bc5",
   "prevId": "ce9a5cfe-1786-4dac-9a20-9f0c1337a229",
   "version": "7",
   "dialect": "postgresql",
@@ -4133,8 +4133,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "usage_transaction_id": {
-          "name": "usage_transaction_id",
+        "ledger_transaction_id": {
+          "name": "ledger_transaction_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4250,8 +4250,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "expired_at_usage_transaction_id": {
-          "name": "expired_at_usage_transaction_id",
+        "expired_at_ledger_transaction_id": {
+          "name": "expired_at_ledger_transaction_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4348,11 +4348,11 @@
           "method": "btree",
           "with": {}
         },
-        "ledger_entries_usage_transaction_id_idx": {
-          "name": "ledger_entries_usage_transaction_id_idx",
+        "ledger_entries_ledger_transaction_id_idx": {
+          "name": "ledger_entries_ledger_transaction_id_idx",
           "columns": [
             {
-              "expression": "usage_transaction_id",
+              "expression": "ledger_transaction_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4513,12 +4513,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "ledger_entries_usage_transaction_id_usage_transactions_id_fk": {
-          "name": "ledger_entries_usage_transaction_id_usage_transactions_id_fk",
+        "ledger_entries_ledger_transaction_id_ledger_transactions_id_fk": {
+          "name": "ledger_entries_ledger_transaction_id_ledger_transactions_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "usage_transactions",
+          "tableTo": "ledger_transactions",
           "columnsFrom": [
-            "usage_transaction_id"
+            "ledger_transaction_id"
           ],
           "columnsTo": [
             "id"
@@ -4630,12 +4630,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "ledger_entries_expired_at_usage_transaction_id_usage_transactions_id_fk": {
-          "name": "ledger_entries_expired_at_usage_transaction_id_usage_transactions_id_fk",
+        "ledger_entries_expired_at_ledger_transaction_id_ledger_transactions_id_fk": {
+          "name": "ledger_entries_expired_at_ledger_transaction_id_ledger_transactions_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "usage_transactions",
+          "tableTo": "ledger_transactions",
           "columnsFrom": [
-            "expired_at_usage_transaction_id"
+            "expired_at_ledger_transaction_id"
           ],
           "columnsTo": [
             "id"
@@ -4689,6 +4689,272 @@
       },
       "checkConstraints": {},
       "isRLSEnabled": true
+    },
+    "public.ledger_transactions": {
+      "name": "ledger_transactions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "initiating_source_type": {
+          "name": "initiating_source_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "initiating_source_id": {
+          "name": "initiating_source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ledger_transactions_initiating_source_type_initiating_source_id_idx": {
+          "name": "ledger_transactions_initiating_source_type_initiating_source_id_idx",
+          "columns": [
+            {
+              "expression": "initiating_source_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "initiating_source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_transactions_usage_meter_id_idx": {
+          "name": "ledger_transactions_usage_meter_id_idx",
+          "columns": [
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_transactions_subscription_id_idx": {
+          "name": "ledger_transactions_subscription_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_transactions_organization_id_idx": {
+          "name": "ledger_transactions_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx": {
+          "name": "ledger_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx",
+          "columns": [
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ledger_transactions_organization_id_organizations_id_fk": {
+          "name": "ledger_transactions_organization_id_organizations_id_fk",
+          "tableFrom": "ledger_transactions",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_transactions_subscription_id_subscriptions_id_fk": {
+          "name": "ledger_transactions_subscription_id_subscriptions_id_fk",
+          "tableFrom": "ledger_transactions",
+          "tableTo": "subscriptions",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_transactions_usage_meter_id_usage_meters_id_fk": {
+          "name": "ledger_transactions_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "ledger_transactions",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ledger_transactions_id_unique": {
+          "name": "ledger_transactions_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+        },
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.links": {
       "name": "links",
@@ -10419,272 +10685,6 @@
       },
       "checkConstraints": {},
       "isRLSEnabled": true
-    },
-    "public.usage_transactions": {
-      "name": "usage_transactions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "created_by_commit": {
-          "name": "created_by_commit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by_commit": {
-          "name": "updated_by_commit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "livemode": {
-          "name": "livemode",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "position": {
-          "name": "position",
-          "type": "bigserial",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "initiating_source_type": {
-          "name": "initiating_source_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "initiating_source_id": {
-          "name": "initiating_source_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "subscription_id": {
-          "name": "subscription_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "usage_meter_id": {
-          "name": "usage_meter_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "usage_transactions_initiating_source_type_initiating_source_id_idx": {
-          "name": "usage_transactions_initiating_source_type_initiating_source_id_idx",
-          "columns": [
-            {
-              "expression": "initiating_source_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "initiating_source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_transactions_usage_meter_id_idx": {
-          "name": "usage_transactions_usage_meter_id_idx",
-          "columns": [
-            {
-              "expression": "usage_meter_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_transactions_subscription_id_idx": {
-          "name": "usage_transactions_subscription_id_idx",
-          "columns": [
-            {
-              "expression": "subscription_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_transactions_organization_id_idx": {
-          "name": "usage_transactions_organization_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx": {
-          "name": "usage_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx",
-          "columns": [
-            {
-              "expression": "idempotency_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "usage_meter_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "subscription_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "usage_transactions_organization_id_organizations_id_fk": {
-          "name": "usage_transactions_organization_id_organizations_id_fk",
-          "tableFrom": "usage_transactions",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_transactions_subscription_id_subscriptions_id_fk": {
-          "name": "usage_transactions_subscription_id_subscriptions_id_fk",
-          "tableFrom": "usage_transactions",
-          "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_transactions_usage_meter_id_usage_meters_id_fk": {
-          "name": "usage_transactions_usage_meter_id_usage_meters_id_fk",
-          "tableFrom": "usage_transactions",
-          "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "usage_transactions_id_unique": {
-          "name": "usage_transactions_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "policies": {
-        "Enable read for own organizations": {
-          "name": "Enable read for own organizations",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
-        },
-        "Check mode": {
-          "name": "Check mode",
-          "as": "RESTRICTIVE",
-          "for": "ALL",
-          "to": [
-            "authenticated"
-          ],
-          "using": "current_setting('app.livemode')::boolean = livemode"
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": false
     },
     "public.users": {
       "name": "users",

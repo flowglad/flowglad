@@ -22,7 +22,7 @@ import {
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { usageTransactions } from '@/db/schema/usageTransactions'
+import { ledgerTransactions } from '@/db/schema/ledgerTransactions'
 import { usageEvents } from '@/db/schema/usageEvents'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { payments } from '@/db/schema/payments'
@@ -49,9 +49,9 @@ export const ledgerEntries = pgTable(
      * References the usage transaction that caused
      * the ledger item to be created.
      */
-    usageTransactionId: notNullStringForeignKey(
-      'usage_transaction_id',
-      usageTransactions
+    ledgerTransactionId: notNullStringForeignKey(
+      'ledger_transaction_id',
+      ledgerTransactions
     ),
     subscriptionId: notNullStringForeignKey(
       'subscription_id',
@@ -115,9 +115,9 @@ export const ledgerEntries = pgTable(
     /**
      * References the usage transaction that caused the ledger item to expire.
      */
-    expiredAtUsageTransactionId: nullableStringForeignKey(
-      'expired_at_usage_transaction_id',
-      usageTransactions
+    expiredAtLedgerTransactionId: nullableStringForeignKey(
+      'expired_at_ledger_transaction_id',
+      ledgerTransactions
     ),
     calculationRunId: text('calculation_run_id'),
     metadata: jsonb('metadata'),
@@ -134,7 +134,7 @@ export const ledgerEntries = pgTable(
     constructIndex(TABLE_NAME, [table.ledgerAccountId]),
     constructIndex(TABLE_NAME, [table.entryType]),
     constructIndex(TABLE_NAME, [table.status, table.discardedAt]),
-    constructIndex(TABLE_NAME, [table.usageTransactionId]),
+    constructIndex(TABLE_NAME, [table.ledgerTransactionId]),
     constructIndex(TABLE_NAME, [table.sourceUsageEventId]),
     constructIndex(TABLE_NAME, [table.sourceUsageCreditId]),
     constructIndex(TABLE_NAME, [table.sourcePaymentId]),

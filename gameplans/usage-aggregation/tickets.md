@@ -17,7 +17,7 @@ To solve this, let's introduce the `usage_credits` table to store records of dis
 - The `usage_credits` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `usageCredits` is defined, accurately reflects the table, and can be used for validation and type inference.
 - Core fields like `issued_amount` are conceptually immutable in the Zod schema/application logic handling.
-- When a `UsageCredits` grant is recognized financially: Create a `UsageTransaction` record. Ensure the `LedgerEntry` (which credits the relevant End Customer Credit Account - ECCA) is linked to this transaction and the `source_usage_credit_id`.
+- When a `UsageCredits` grant is recognized financially: Create a `LedgerTransaction` record. Ensure the `LedgerEntry` (which credits the relevant End Customer Credit Account - ECCA) is linked to this transaction and the `source_usage_credit_id`.
 
 ### Test Coverage
 - Unit tests for Zod schema validation (e.g., correct types, required fields).
@@ -47,7 +47,7 @@ To solve this, let's introduce the `usage_credit_balance_adjustments` table to r
 - The `usage_credit_balance_adjustments` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `usageCreditBalanceAdjustments` is defined and accurately reflects the table.
 - Core fields defining the adjustment are conceptually immutable post-creation.
-- Create a `UsageTransaction` record for the adjustment operation, and ensure the `LedgerEntry` that reflects this adjustment is linked to this transaction.
+- Create a `LedgerTransaction` record for the adjustment operation, and ensure the `LedgerEntry` that reflects this adjustment is linked to this transaction.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
@@ -72,7 +72,7 @@ To solve this, let's introduce the `usage_credit_applications` table to store an
 - The `usage_credit_applications` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `usageCreditApplications` is defined and accurately reflects the table.
 - All fields are conceptually immutable post-creation.
-- The `LedgerEntrys` created from these applications will be linked to the `UsageTransaction` associated with the billing run's credit application phase.
+- The `LedgerEntries` created from these applications will be linked to the `LedgerTransaction` associated with the billing run's credit application phase.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
@@ -102,23 +102,23 @@ To solve this, let's introduce the `refunds` table to serve as the "backing pare
 - The `refunds` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `refunds` is defined and accurately reflects the table.
 - Core financial fields are immutable once the refund status is 'succeeded' or 'failed'.
-- Create a `UsageTransaction` record for the refund operation (e.g., upon confirmation), and ensure the `LedgerEntry` that reflects this refund is linked to this transaction.
+- Create a `LedgerTransaction` record for the refund operation (e.g., upon confirmation), and ensure the `LedgerEntry` that reflects this refund is linked to this transaction.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
 - Integration tests for table creation and simulating status transitions.
 
 ------
-## 4.1 Design `UsageTransactions` Table and Schema (New Ticket)
+## 4.1 Design `LedgerTransactions` Table and Schema (New Ticket)
 
 ### Background
-To provide clear grouping and auditability for ledger items stemming from a single conceptual business operation, we need a `UsageTransactions` table.
+To provide clear grouping and auditability for ledger items stemming from a single conceptual business operation, we need a `LedgerTransactions` table.
 
 ### Acceptance Criteria
 - Create `usage_transactions` table schema as per `product-spec.md` (Section 1.4).
 - This table will have fields like `id`, `organization_id`, `livemode`, `initiating_source_type`, `initiating_source_id`, `description`, `metadata`, `created_at`.
 - Define Zod schema and Drizzle ORM object.
-- Ensure this table is used by all workflows that create `LedgerEntrys` to bundle them.
+- Ensure this table is used by all workflows that create `LedgerEntries` to bundle them.
 
 ------
 ## 5. Implement `usage_ledger_items` Table and Schema
@@ -138,8 +138,8 @@ To solve this, let's introduce the `usage_ledger_items` table as the grand finan
 ### Acceptance Criteria
 - The `usage_ledger_items` table exists in the database with the correct schema and comprehensive indexing (including `status`, `discarded_at`).
 - The Drizzle Zod schema `ledgerEntries` is defined, accurately reflects the table, and enforces conditional source ID requirements and status/discarded_at logic.
-- `posted` `LedgerEntrys` are treated as immutable in application logic. `pending` items can be marked `discarded_at`.
-- Ensure `usage_transaction_id` is NOT NULL and correctly links to a `UsageTransaction`.
+- `posted` `LedgerEntries` are treated as immutable in application logic. `pending` items can be marked `discarded_at`.
+- Ensure `usage_transaction_id` is NOT NULL and correctly links to a `LedgerTransaction`.
 
 ### Test Coverage
 - Unit tests for Zod schema validation, especially conditional logic and status/discarded_at rules.
@@ -170,7 +170,7 @@ To solve this, let's introduce the `subscription_meter_period_calculations` tabl
 - The `subscription_meter_period_calculations` table exists with the correct schema, indexes, and unique constraint.
 - The Drizzle Zod schema `subscriptionMeterPeriodCalculations` is defined and accurately reflects the table.
 - Core calculation result fields are immutable once active; status changes are managed.
-- The creation of ledger items for billing adjustments based on these records will be part of a `UsageTransaction` specific to that adjustment.
+- The creation of ledger items for billing adjustments based on these records will be part of a `LedgerTransaction` specific to that adjustment.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
@@ -554,12 +554,12 @@ To solve this, let's refactor `billingRunHelpers.ts` to:
   - **Process Usage:**
     - For each relevant `UsageEvent`, ensure a `'usage_cost'` `LedgerEntry` is created (or verify its prior creation). If created as part of this run and not immediately final, its status should be `'pending'` initially. If already `posted` from prior individual processing, it's simply consumed.
   - **Apply Credits:**
-    - Implement logic from Ticket #10 to identify and apply credits. This involves creating `UsageCreditApplications` and `LedgerEntrys` with `entry_type = 'credit_applied_to_usage'` and `status = 'pending'`, all associated with the `calculation_run_id`. If the credit application strategy iterates, previously created `pending` items for this run are marked `discarded_at`, and new ones are created.
+    - Implement logic from Ticket #10 to identify and apply credits. This involves creating `UsageCreditApplications` and `LedgerEntries` with `entry_type = 'credit_applied_to_usage'` and `status = 'pending'`, all associated with the `calculation_run_id`. If the credit application strategy iterates, previously created `pending` items for this run are marked `discarded_at`, and new ones are created.
   - **Finalize Ledger Items for the Run:**
-    - After all usage processing and credit application iterations are complete for the `calculation_run_id`, transition all `LedgerEntrys` that were created with `status = 'pending'` during this run (and are not `discarded_at`) to `status = 'posted'`.
+    - After all usage processing and credit application iterations are complete for the `calculation_run_id`, transition all `LedgerEntries` that were created with `status = 'pending'` during this run (and are not `discarded_at`) to `status = 'posted'`.
   - **Generate `SubscriptionMeterPeriodCalculations`:**
     - After finalizing ledger items: 
-      - Summarize relevant `LedgerEntrys` (those with the current `calculation_run_id` and `status = 'posted'`, or those `posted` previously that fall into the period and are being processed by this run) for each meter in the period.
+      - Summarize relevant `LedgerEntries` (those with the current `calculation_run_id` and `status = 'posted'`, or those `posted` previously that fall into the period and are being processed by this run) for each meter in the period.
       - Populate `total_raw_usage_amount`, `credits_applied_amount`, `net_billed_amount`.
       - Create a `SubscriptionMeterPeriodCalculations` record with `status = 'active'`, linking it to the `calculation_run_id`.
       - If a previous 'active' calculation for the same scope exists, mark it 'superseded' and link it to the new one (similar to recalculation logic, but for standard runs that might supersede previous interim calculations).

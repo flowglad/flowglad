@@ -1,11 +1,4 @@
-import {
-  boolean,
-  text,
-  pgTable,
-  pgPolicy,
-  timestamp,
-  jsonb,
-} from 'drizzle-orm/pg-core'
+import { text, pgTable, pgPolicy, jsonb } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import {
@@ -23,12 +16,12 @@ import core from '@/utils/core'
 import { subscriptions } from './subscriptions'
 import { usageMeters } from './usageMeters'
 
-const TABLE_NAME = 'usage_transactions'
+const TABLE_NAME = 'ledger_transactions'
 
-export const usageTransactions = pgTable(
+export const ledgerTransactions = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('usage_transaction'),
+    ...tableBase('ledger_transaction'),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
@@ -75,22 +68,18 @@ const columnRefinements = {
   createdAt: core.safeZodDate,
 }
 
-export const usageTransactionsInsertSchema =
-  enhancedCreateInsertSchema(usageTransactions, columnRefinements)
+export const ledgerTransactionsInsertSchema =
+  enhancedCreateInsertSchema(ledgerTransactions, columnRefinements)
 
-export const usageTransactionsSelectSchema =
-  createSelectSchema(usageTransactions).extend(columnRefinements)
+export const ledgerTransactionsSelectSchema = createSelectSchema(
+  ledgerTransactions
+).extend(columnRefinements)
 
-export const usageTransactionsUpdateSchema = createUpdateSchema(
-  usageTransactions,
+export const ledgerTransactionsUpdateSchema = createUpdateSchema(
+  ledgerTransactions,
   columnRefinements
 )
 
-const createOnlyColumns = {} as const
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
 const hiddenColumns = {
   createdByCommit: true,
   updatedByCommit: true,
@@ -100,38 +89,39 @@ const clientWriteOmits = {
   livemode: true,
 } as const
 
-export const usageTransactionClientInsertSchema =
-  usageTransactionsInsertSchema.omit(clientWriteOmits)
-export const usageTransactionClientUpdateSchema =
-  usageTransactionsUpdateSchema.omit({ ...clientWriteOmits })
-export const usageTransactionClientSelectSchema =
-  usageTransactionsSelectSchema.omit(hiddenColumns)
+export const ledgerTransactionClientInsertSchema =
+  ledgerTransactionsInsertSchema.omit(clientWriteOmits)
+export const ledgerTransactionClientUpdateSchema =
+  ledgerTransactionsUpdateSchema.omit({ ...clientWriteOmits })
+export const ledgerTransactionClientSelectSchema =
+  ledgerTransactionsSelectSchema.omit(hiddenColumns)
 
-export namespace UsageTransaction {
-  export type Insert = z.infer<typeof usageTransactionsInsertSchema>
-  export type Update = z.infer<typeof usageTransactionsUpdateSchema>
-  export type Record = z.infer<typeof usageTransactionsSelectSchema>
+export namespace LedgerTransaction {
+  export type Insert = z.infer<typeof ledgerTransactionsInsertSchema>
+  export type Update = z.infer<typeof ledgerTransactionsUpdateSchema>
+  export type Record = z.infer<typeof ledgerTransactionsSelectSchema>
   export type ClientInsert = z.infer<
-    typeof usageTransactionClientInsertSchema
+    typeof ledgerTransactionClientInsertSchema
   >
   export type ClientUpdate = z.infer<
-    typeof usageTransactionClientUpdateSchema
+    typeof ledgerTransactionClientUpdateSchema
   >
   export type ClientRecord = z.infer<
-    typeof usageTransactionClientSelectSchema
+    typeof ledgerTransactionClientSelectSchema
   >
 }
 
-export const createUsageTransactionInputSchema = z.object({
-  usageTransaction: usageTransactionClientInsertSchema,
+export const createLedgerTransactionInputSchema = z.object({
+  ledgerTransaction: ledgerTransactionClientInsertSchema,
 })
-export type CreateUsageTransactionInput = z.infer<
-  typeof createUsageTransactionInputSchema
+
+export type CreateLedgerTransactionInput = z.infer<
+  typeof createLedgerTransactionInputSchema
 >
 
-export const editUsageTransactionInputSchema = z.object({
-  usageTransaction: usageTransactionClientUpdateSchema,
+export const editLedgerTransactionInputSchema = z.object({
+  ledgerTransaction: ledgerTransactionClientUpdateSchema,
 })
-export type EditUsageTransactionInput = z.infer<
-  typeof editUsageTransactionInputSchema
+export type EditLedgerTransactionInput = z.infer<
+  typeof editLedgerTransactionInputSchema
 >

@@ -14,7 +14,7 @@ import {
 import { DbTransaction } from '../types'
 import { LedgerEntryStatus } from '@/types'
 import { and, eq, inArray } from 'drizzle-orm'
-import { UsageTransaction } from '../schema/usageTransactions'
+import { LedgerTransaction } from '../schema/ledgerTransactions'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -45,12 +45,12 @@ export const selectLedgerEntries = createSelectFunction(
   config
 )
 
-export const expirePendingLedgerEntrysForPayment = async (
+export const expirePendingLedgerEntriesForPayment = async (
   paymentId: string,
-  usageTransaction: UsageTransaction.Record,
+  ledgerTransaction: LedgerTransaction.Record,
   transaction: DbTransaction
 ) => {
-  const pendingLedgerEntrys = await selectLedgerEntries(
+  const pendingLedgerEntries = await selectLedgerEntries(
     {
       sourcePaymentId: paymentId,
       status: LedgerEntryStatus.Pending,
@@ -61,21 +61,21 @@ export const expirePendingLedgerEntrysForPayment = async (
     .update(ledgerEntries)
     .set({
       expiredAt: new Date(),
-      expiredAtUsageTransactionId: usageTransaction.id,
+      expiredAtLedgerTransactionId: ledgerTransaction.id,
     })
     .where(
       and(
         inArray(
           ledgerEntries.id,
-          pendingLedgerEntrys.map((item) => item.id)
+          pendingLedgerEntries.map((item) => item.id)
         ),
         eq(
           ledgerEntries.subscriptionId,
-          usageTransaction.subscriptionId
+          ledgerTransaction.subscriptionId
         )
       )
     )
     .returning()
 
-  return pendingLedgerEntrys
+  return pendingLedgerEntries
 }
