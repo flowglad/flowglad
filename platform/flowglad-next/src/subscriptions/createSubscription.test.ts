@@ -572,6 +572,39 @@ describe('createSubscription', async () => {
       defaultCustPaymentMethod.id
     )
   })
+
+  it('throws an error if defaultPaymentMethod customerId does not match customer id', async () => {
+    // Setup a different customer for the payment method
+    const anotherCustomer = await setupCustomer({
+      organizationId: organization.id, // Use org from beforeEach
+      email: `another+${core.nanoid()}@test.com`, // Ensure different email
+    })
+    const stripeSetupIntentIdMismatch = `setupintent_mismatch_${core.nanoid()}`
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          {
+            organization, // from beforeEach
+            product, // from beforeEach
+            price: defaultPrice, // from beforeEach
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod, // Belongs to anotherCustomer
+            customer: anotherCustomer, // The main customer for the subscription (from beforeEach)
+            stripeSetupIntentId: stripeSetupIntentIdMismatch,
+            autoStart: true,
+          },
+          transaction
+        )
+      })
+    ).rejects.toThrow(
+      `Customer ${anotherCustomer.id} does not match default payment method ${paymentMethod.customerId}`
+    )
+  })
 })
 
 describe('createSubscriptionWorkflow billing run creation', async () => {
