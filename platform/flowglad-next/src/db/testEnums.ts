@@ -45,20 +45,22 @@ import {
   UsageCreditType,
   UsageCreditStatus,
   RefundStatus,
-  UsageLedgerItemStatus,
-  UsageLedgerItemDirection,
+  LedgerEntryStatus,
+  LedgerEntryDirection,
   SubscriptionMeterPeriodCalculationStatus,
   FeatureType,
   FeatureUsageGrantFrequency,
+  NormalBalanceType,
 } from '@/types'
 import { DbTransaction } from './types'
 
 // Add new schema imports needed for the moved tests
 import { usageCredits } from '@/db/schema/usageCredits'
 import { refunds } from '@/db/schema/refunds'
-import { usageLedgerItems } from '@/db/schema/usageLedgerItems'
+import { ledgerEntries } from '@/db/schema/ledgerEntries'
 import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
 import { features } from '@/db/schema/features'
+import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
 
 export const testDatabaseEnums = async (
   transaction: DbTransaction
@@ -325,17 +327,17 @@ export const testDatabaseEnums = async (
     transaction
   )
 
-  // UsageLedgerItems table
+  // LedgerEntries table
   await testEnumColumn(
-    usageLedgerItems,
-    usageLedgerItems.status,
-    UsageLedgerItemStatus,
+    ledgerEntries,
+    ledgerEntries.status,
+    LedgerEntryStatus,
     transaction
   )
   await testEnumColumn(
-    usageLedgerItems,
-    usageLedgerItems.direction,
-    UsageLedgerItemDirection,
+    ledgerEntries,
+    ledgerEntries.direction,
+    LedgerEntryDirection,
     transaction
   )
 
@@ -359,6 +361,14 @@ export const testDatabaseEnums = async (
     features,
     features.renewalFrequency,
     FeatureUsageGrantFrequency,
+    transaction
+  )
+
+  // LedgerAccounts table
+  await testEnumColumn(
+    ledgerAccounts,
+    ledgerAccounts.normalBalance,
+    NormalBalanceType,
     transaction
   )
 }

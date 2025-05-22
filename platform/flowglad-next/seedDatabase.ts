@@ -75,6 +75,7 @@ import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 import { memberships } from '@/db/schema/memberships'
+import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
 import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
 if (process.env.VERCEL_ENV === 'production') {
@@ -562,6 +563,27 @@ export const setupPrice = async ({
   active?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
+    if (type === PriceType.SinglePayment) {
+      return insertPrice(
+        {
+          productId,
+          name: `${name} (Single Payment)`,
+          type,
+          unitPrice,
+          currency: CurrencyCode.USD,
+          externalId: externalId ?? core.nanoid(),
+          active,
+          usageMeterId: null,
+          intervalUnit: null,
+          intervalCount: null,
+          livemode,
+          isDefault,
+          setupFeeAmount: null,
+          trialPeriodDays: null,
+        },
+        transaction
+      )
+    }
     return insertPrice(
       {
         productId,
@@ -573,8 +595,7 @@ export const setupPrice = async ({
         livemode,
         isDefault,
         setupFeeAmount,
-        trialPeriodDays:
-          type === PriceType.SinglePayment ? null : trialPeriodDays,
+        trialPeriodDays,
         currency,
         externalId: externalId ?? core.nanoid(),
         usageMeterId: usageMeterId ?? null,
@@ -1049,6 +1070,25 @@ export const setupUserAndApiKey = async ({
     const apiKey = apiKeyInsertResult as typeof apiKeys.$inferSelect
 
     return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
+  })
+}
+
+export const setupLedgerAccount = async ({
+  subscriptionId,
+  usageMeterId,
+  livemode,
+  organizationId,
+}: {
+  subscriptionId: string
+  usageMeterId: string
+  livemode: boolean
+  organizationId: string
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerAccount(
+      { subscriptionId, usageMeterId, livemode, organizationId },
+      transaction
+    )
   })
 }
 

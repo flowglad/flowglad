@@ -181,7 +181,7 @@ export const createInitialInvoiceForPurchase = async (
   const invoiceLineItemInput: InvoiceLineItem.Insert = {
     invoiceId: '1',
     priceId,
-    description: `${purchase.name} First Invoice`,
+    description: `${purchase.name}`,
     quantity: 1,
     price: purchase.firstInvoiceValue!,
     livemode: purchase.livemode,

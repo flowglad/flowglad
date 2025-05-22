@@ -352,13 +352,13 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
   }
   let discount: Discount.Record | null = null
   let discountRedemption: DiscountRedemption.Record | null = null
-  let feeCalculation: FeeCalculation.Record | null = null
-  feeCalculation = await selectLatestFeeCalculation(
-    {
-      checkoutSessionId: checkoutSession.id,
-    },
-    transaction
-  )
+  let feeCalculation: FeeCalculation.Record | null =
+    await selectLatestFeeCalculation(
+      {
+        checkoutSessionId: checkoutSession.id,
+      },
+      transaction
+    )
   if (!feeCalculation) {
     throw new Error(
       `No fee calculation found for purchase session ${checkoutSession.id}`

@@ -18,10 +18,11 @@ import {
   livemodePolicy,
   createUpdateSchema,
   pgEnumColumn,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { usageTransactions } from '@/db/schema/usageTransactions'
+import { ledgerTransactions } from '@/db/schema/ledgerTransactions'
 import { usageEvents } from '@/db/schema/usageEvents'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { payments } from '@/db/schema/payments'
@@ -31,21 +32,26 @@ import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
-import {
-  UsageLedgerItemStatus,
-  UsageLedgerItemDirection,
-  UsageLedgerItemEntryType,
-} from '@/types'
+import { LedgerEntryStatus, LedgerEntryDirection } from '@/types'
+import { ledgerAccounts } from './ledgerAccounts'
 
-const TABLE_NAME = 'usage_ledger_items'
+const TABLE_NAME = 'ledger_entries'
 
-export const usageLedgerItems = pgTable(
+export const ledgerEntries = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('uli'),
-    usageTransactionId: notNullStringForeignKey(
-      'usage_transaction_id',
-      usageTransactions
+    ...tableBase('ledger_entry'),
+    ledgerAccountId: notNullStringForeignKey(
+      'ledger_account_id',
+      ledgerAccounts
+    ),
+    /**
+     * References the usage transaction that caused
+     * the ledger item to be created.
+     */
+    ledgerTransactionId: notNullStringForeignKey(
+      'ledger_transaction_id',
+      ledgerTransactions
     ),
     subscriptionId: notNullStringForeignKey(
       'subscription_id',
@@ -57,14 +63,14 @@ export const usageLedgerItems = pgTable(
       .notNull()
       .defaultNow(),
     status: pgEnumColumn({
-      enumName: 'UsageLedgerItemStatus',
+      enumName: 'LedgerEntryStatus',
       columnName: 'status',
-      enumBase: UsageLedgerItemStatus,
+      enumBase: LedgerEntryStatus,
     }).notNull(),
     direction: pgEnumColumn({
-      enumName: 'UsageLedgerItemDirection',
+      enumName: 'LedgerEntryDirection',
       columnName: 'direction',
-      enumBase: UsageLedgerItemDirection,
+      enumBase: LedgerEntryDirection,
     }).notNull(),
     /**
      * This should be the enum
@@ -105,6 +111,14 @@ export const usageLedgerItems = pgTable(
       'usage_meter_id',
       usageMeters
     ),
+    expiredAt: timestampWithTimezoneColumn('expired_at'),
+    /**
+     * References the usage transaction that caused the ledger item to expire.
+     */
+    expiredAtLedgerTransactionId: nullableStringForeignKey(
+      'expired_at_ledger_transaction_id',
+      ledgerTransactions
+    ),
     calculationRunId: text('calculation_run_id'),
     metadata: jsonb('metadata'),
     organizationId: notNullStringForeignKey(
@@ -117,9 +131,10 @@ export const usageLedgerItems = pgTable(
       table.subscriptionId,
       table.entryTimestamp,
     ]),
+    constructIndex(TABLE_NAME, [table.ledgerAccountId]),
     constructIndex(TABLE_NAME, [table.entryType]),
     constructIndex(TABLE_NAME, [table.status, table.discardedAt]),
-    constructIndex(TABLE_NAME, [table.usageTransactionId]),
+    constructIndex(TABLE_NAME, [table.ledgerTransactionId]),
     constructIndex(TABLE_NAME, [table.sourceUsageEventId]),
     constructIndex(TABLE_NAME, [table.sourceUsageCreditId]),
     constructIndex(TABLE_NAME, [table.sourcePaymentId]),
@@ -144,33 +159,35 @@ export const usageLedgerItems = pgTable(
 ).enableRLS()
 
 const columnRefinements = {
-  status: core.createSafeZodEnum(UsageLedgerItemStatus),
-  direction: core.createSafeZodEnum(UsageLedgerItemDirection),
+  status: core.createSafeZodEnum(LedgerEntryStatus),
+  direction: core.createSafeZodEnum(LedgerEntryDirection),
   amount: core.safeZodPositiveInteger,
   entryTimestamp: core.safeZodDate,
   discardedAt: core.safeZodDate.nullable(),
   metadata: z.record(z.string(), z.any()).nullable(),
 }
 
-export const usageLedgerItemsInsertSchema =
-  enhancedCreateInsertSchema(usageLedgerItems, columnRefinements)
-export const usageLedgerItemsSelectSchema =
-  createSelectSchema(usageLedgerItems).extend(columnRefinements)
-export const usageLedgerItemsUpdateSchema = createUpdateSchema(
-  usageLedgerItems,
+export const ledgerEntriesInsertSchema = enhancedCreateInsertSchema(
+  ledgerEntries,
+  columnRefinements
+)
+export const ledgerEntriesSelectSchema =
+  createSelectSchema(ledgerEntries).extend(columnRefinements)
+export const ledgerEntriesUpdateSchema = createUpdateSchema(
+  ledgerEntries,
   columnRefinements
 )
 
 const hiddenColumns = {} as const
 
-export const usageLedgerItemClientSelectSchema =
-  usageLedgerItemsSelectSchema.omit(hiddenColumns)
+export const ledgerEntriesClientSelectSchema =
+  ledgerEntriesSelectSchema.omit(hiddenColumns)
 
-export namespace UsageLedgerItem {
-  export type Insert = z.infer<typeof usageLedgerItemsInsertSchema>
-  export type Update = z.infer<typeof usageLedgerItemsUpdateSchema>
-  export type Record = z.infer<typeof usageLedgerItemsSelectSchema>
+export namespace LedgerEntry {
+  export type Insert = z.infer<typeof ledgerEntriesInsertSchema>
+  export type Update = z.infer<typeof ledgerEntriesUpdateSchema>
+  export type Record = z.infer<typeof ledgerEntriesSelectSchema>
   export type ClientRecord = z.infer<
-    typeof usageLedgerItemClientSelectSchema
+    typeof ledgerEntriesClientSelectSchema
   >
 }

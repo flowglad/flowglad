@@ -770,25 +770,33 @@ export enum UsageCreditStatus {
   Posted = 'posted',
 }
 
+export enum UsageCreditSourceReferenceType {
+  InvoiceSettlement = 'invoice_settlement',
+  ManualAdjustment = 'manual_adjustment',
+  // TODO: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
+}
+
 export enum RefundStatus {
   Pending = 'pending',
   Succeeded = 'succeeded',
   Failed = 'failed',
 }
 
-export enum UsageLedgerItemStatus {
+export enum LedgerEntryStatus {
   Pending = 'pending',
   Posted = 'posted',
 }
 
-export enum UsageLedgerItemDirection {
+export enum LedgerEntryDirection {
   Debit = 'debit',
   Credit = 'credit',
 }
 
-export enum UsageLedgerItemEntryType {
+export enum LedgerEntryEntryType {
   UsageCost = 'usage_cost',
-  PaymentRecognized = 'payment_recognized',
+  PaymentSucceeded = 'payment_succeeded',
+  PaymentInitiated = 'payment_initiated',
+  PaymentFailed = 'payment_failed',
   CreditGrantRecognized = 'credit_grant_recognized',
   CreditAppliedToUsage = 'credit_applied_to_usage',
   CreditBalanceAdjusted = 'credit_balance_adjusted',
@@ -797,8 +805,10 @@ export enum UsageLedgerItemEntryType {
   PaymentRefunded = 'payment_refunded',
 }
 
-export enum UsageTransactionInitiatingSourceType {
+export enum LedgerTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
+  Payment = 'payment',
+  ManualAdjustment = 'manual_adjustment',
 }
 
 export enum FeatureType {
@@ -809,4 +819,16 @@ export enum FeatureType {
 export enum FeatureUsageGrantFrequency {
   Once = 'once',
   EveryBillingPeriod = 'every_billing_period',
+}
+
+export enum PlanInterval {
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum NormalBalanceType {
+  DEBIT = 'debit',
+  CREDIT = 'credit',
 }

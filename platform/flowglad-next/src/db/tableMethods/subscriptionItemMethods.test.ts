@@ -6,7 +6,7 @@ import {
   selectSubscriptionItems,
   bulkInsertSubscriptionItems,
   selectSubscriptionAndItems,
-  selectSubscriptionItemsAndSubscriptionBysubscriptionId,
+  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
   expireSubscriptionItem,
   selectRichSubscriptionsAndActiveItems,
   bulkInsertOrDoNothingSubscriptionItemsByExternalId,
@@ -288,11 +288,11 @@ describe('subscriptionItemMethods', async () => {
     })
   })
 
-  describe('selectSubscriptionItemsAndSubscriptionBysubscriptionId', () => {
+  describe('selectSubscriptionItemsAndSubscriptionBySubscriptionId', () => {
     it('should return the subscription and its items when a valid subscriptionId is provided', async () => {
       await adminTransaction(async ({ transaction }) => {
         const result =
-          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
             subscription.id,
             transaction
           )
@@ -305,7 +305,7 @@ describe('subscriptionItemMethods', async () => {
     it('should return null if the subscriptionId does not exist', async () => {
       await adminTransaction(async ({ transaction }) => {
         const result =
-          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
             core.nanoid(),
             transaction
           )
