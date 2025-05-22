@@ -1068,3 +1068,129 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     expect(queriedSifs.length).toBe(0)
   })
 })
+
+describe('createSubscriptionWorkflow ledger account creation', async () => {
+  let organization: Organization.Record
+  let defaultProduct: Product.Record
+  let defaultSubscriptionPrice: Price.Record
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    defaultProduct = orgData.product
+    defaultSubscriptionPrice = orgData.price
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+  })
+
+  it('creates ledger accounts when the price is a usage price', async () => {
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      catalogId: defaultProduct.catalogId,
+      name: 'Test Usage Meter for Ledger Account',
+    })
+
+    const [{ subscription }] = await adminTransaction(
+      async ({ transaction }) => {
+        const usagePriceUpdatePayload: Price.Update = {
+          ...defaultSubscriptionPrice,
+          id: defaultSubscriptionPrice.id,
+          type: PriceType.Usage,
+          usageMeterId: usageMeter.id,
+          name: `${defaultSubscriptionPrice.name} (Usage)`,
+          trialPeriodDays: null,
+          setupFeeAmount: null,
+          intervalUnit: undefined,
+          intervalCount: undefined,
+        }
+
+        const usagePrice = await updatePrice(
+          usagePriceUpdatePayload,
+          transaction
+        )
+        const stripeSetupIntentId = `setupintent_ledger_usage_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product: defaultProduct,
+            price: usagePrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    const ledgerAccounts = await adminTransaction(
+      async ({ transaction }) => {
+        return selectLedgerAccounts(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+
+    expect(ledgerAccounts.length).toBeGreaterThan(0)
+    const accountForMeter = ledgerAccounts.find(
+      (acc) => acc.usageMeterId === usageMeter.id
+    )
+    expect(accountForMeter).toBeDefined()
+    expect(accountForMeter?.subscriptionId).toBe(subscription.id)
+  })
+
+  it('does NOT create ledger accounts when the price is not a usage price (e.g., subscription type)', async () => {
+    // Pre-condition check for the default price from setupOrg (now from beforeEach)
+    expect(defaultSubscriptionPrice.type).not.toBe(PriceType.Usage)
+    expect(defaultSubscriptionPrice.usageMeterId).toBeNull()
+
+    const [{ subscription }] = await adminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_ledger_nonusage_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product: defaultProduct,
+            price: defaultSubscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    const ledgerAccounts = await adminTransaction(
+      async ({ transaction }) => {
+        return selectLedgerAccounts(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+
+    expect(ledgerAccounts.length).toBe(0)
+  })
+})
