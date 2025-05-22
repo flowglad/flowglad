@@ -9,7 +9,6 @@ DO $$ BEGIN
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
-
 CREATE TABLE IF NOT EXISTS "ledger_accounts" (
 	"id" text PRIMARY KEY NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -68,6 +67,8 @@ DROP INDEX IF EXISTS "usage_ledger_items_source_billing_period_calculation_id_id
 DROP INDEX IF EXISTS "usage_ledger_items_applied_to_ledger_item_id_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "usage_ledger_items_billing_period_id_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "usage_ledger_items_usage_meter_id_idx";--> statement-breakpoint
+ALTER TABLE "ledger_entries" ALTER COLUMN "status" SET DATA TYPE "LedgerEntryStatus";--> statement-breakpoint
+ALTER TABLE "ledger_entries" ALTER COLUMN "direction" SET DATA TYPE "LedgerEntryDirection";--> statement-breakpoint
 ALTER TABLE "usage_credits" ADD COLUMN "source_reference_type" "UsageCreditSourceReferenceType" NOT NULL;--> statement-breakpoint
 ALTER TABLE "ledger_entries" ADD COLUMN "ledger_account_id" text NOT NULL;--> statement-breakpoint
 ALTER TABLE "ledger_entries" ADD COLUMN "expired_at" timestamp with time zone;--> statement-breakpoint
@@ -198,6 +199,5 @@ CREATE INDEX IF NOT EXISTS "usage_transactions_usage_meter_id_idx" ON "usage_tra
 CREATE INDEX IF NOT EXISTS "usage_transactions_subscription_id_idx" ON "usage_transactions" USING btree ("subscription_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "usage_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx" ON "usage_transactions" USING btree ("idempotency_key","usage_meter_id","subscription_id");--> statement-breakpoint
 ALTER TABLE "ledger_entries" ADD CONSTRAINT "ledger_entries_id_unique" UNIQUE("id");--> statement-breakpoint
-ALTER POLICY "Enable all for self organizations via products" ON "prices" RENAME TO "Ensure organization integrity with products parent table";--> statement-breakpoint
 CREATE POLICY "Enable read for own organizations" ON "ledger_accounts" AS PERMISSIVE FOR ALL TO "authenticated" USING ("organization_id" in (select "organization_id" from "memberships"));--> statement-breakpoint
 CREATE POLICY "Check mode" ON "ledger_accounts" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);

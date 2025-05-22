@@ -11,7 +11,10 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  selectCurrentlyActiveSubscriptionItems,
+  selectSubscriptionItems,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { createBillingPeriodAndItems } from '@/subscriptions/billingPeriodHelpers'
 import type { DbTransaction } from '@/db/types'
@@ -110,10 +113,12 @@ export const migrateSingleSubscriptionBillingPeriod = async (
   }
 
   // Get subscription items for this subscription
-  const subscriptionItems = await selectSubscriptionItems(
-    { subscriptionId: subscription.id },
-    transaction
-  )
+  const subscriptionItems =
+    await selectCurrentlyActiveSubscriptionItems(
+      { subscriptionId: subscription.id },
+      new Date(),
+      transaction
+    )
 
   if (subscriptionItems.length === 0) {
     console.log(

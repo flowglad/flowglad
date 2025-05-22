@@ -1,13 +1,6 @@
 import * as R from 'ramda'
 import { z } from 'zod'
-import { sql } from 'drizzle-orm'
-import {
-  text,
-  pgTable,
-  pgPolicy,
-  integer,
-  timestamp,
-} from 'drizzle-orm/pg-core'
+import { pgTable, integer } from 'drizzle-orm/pg-core'
 import {
   tableBase,
   notNullStringForeignKey,
@@ -70,7 +63,7 @@ export const subscriptionItemFeatures = pgTable(
     constructIndex(TABLE_NAME, [table.productFeatureId]),
     constructIndex(TABLE_NAME, [table.type]),
     constructUniqueIndex(TABLE_NAME, [
-      table.productFeatureId,
+      table.featureId,
       table.subscriptionItemId,
     ]),
     parentForeignKeyIntegrityCheckPolicy({
@@ -104,7 +97,6 @@ const columnRefinements = {
     .nullable(),
   amount: z.number().int().nullable(),
   usageMeterId: z.string().nullable(),
-  deactivatedAt: core.safeZodDate.nullable(),
 }
 
 /*

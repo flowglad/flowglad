@@ -20,7 +20,6 @@ import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import {
   bulkInsertSubscriptionItems,
-  selectRichSubscriptions,
   selectSubscriptionAndItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -40,6 +39,7 @@ import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId } from '@/db/tableMethods/ledgerAccountMethods'
+import { createSubscriptionFeatureItems } from './subscriptionItemFeatureHelpers'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -162,6 +162,7 @@ export const insertSubscriptionAndItems = async (
     unitPrice: price.unitPrice,
     metadata: null,
     externalId: null,
+    expiredAt: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(
@@ -345,6 +346,14 @@ const setupLedgerAccounts = async (
   )
 }
 
+/**
+ * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
+ * This is because the subscription will not be active until the organization has started it,
+ * and we do not want to create a billing run if the organization has not explicitly opted to start the subscription.
+ * @param params
+ * @param transaction
+ * @returns
+ */
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
@@ -390,6 +399,7 @@ export const createSubscriptionWorkflow = async (
     )
   }
 
+  await createSubscriptionFeatureItems(subscriptionItems, transaction)
   const scheduledFor = subscription.runBillingAtPeriodStart
     ? subscription.currentBillingPeriodStart
     : subscription.currentBillingPeriodEnd
