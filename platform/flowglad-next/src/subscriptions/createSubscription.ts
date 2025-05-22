@@ -22,22 +22,14 @@ import {
   bulkInsertSubscriptionItems,
   selectRichSubscriptions,
   selectSubscriptionAndItems,
-  selectSubscriptionItemsAndSubscriptionBysubscriptionId,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { createBillingPeriodAndItems } from './billingPeriodHelpers'
-import {
-  createBillingRun,
-  executeBillingRun,
-} from './billingRunHelpers'
+import { createBillingRun } from './billingRunHelpers'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import core, { isNil } from '@/utils/core'
-import {
-  selectBillingPeriodAndItemsByBillingPeriodWhere,
-  selectBillingPeriodAndItemsForDate,
-} from '@/db/tableMethods/billingPeriodItemMethods'
+import { selectBillingPeriodAndItemsByBillingPeriodWhere } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
 import { BillingRun } from '@/db/schema/billingRuns'
@@ -47,6 +39,7 @@ import { Event } from '@/db/schema/events'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
+import { bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId } from '@/db/tableMethods/ledgerAccountMethods'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -177,51 +170,6 @@ export const insertSubscriptionAndItems = async (
   )
 
   return { subscription, subscriptionItems }
-}
-
-const subscriptionForSetupIntent = async (
-  stripeSetupIntentId: string,
-  transaction: DbTransaction
-) => {
-  const [existingSubscriptionAndItemsForSetupIntent] =
-    await selectRichSubscriptions(
-      {
-        stripeSetupIntentId,
-      },
-      transaction
-    )
-  if (existingSubscriptionAndItemsForSetupIntent) {
-    return {
-      subscription: existingSubscriptionAndItemsForSetupIntent,
-      subscriptionItems:
-        existingSubscriptionAndItemsForSetupIntent.subscriptionItems,
-    }
-  }
-  return null
-}
-
-const billingRunForSubscription = async (
-  subscription: Subscription.Record,
-  transaction: DbTransaction
-) => {
-  const billingPeriodAndItems =
-    await selectBillingPeriodAndItemsByBillingPeriodWhere(
-      {
-        subscriptionId: subscription.id,
-      },
-      transaction
-    )
-  if (!billingPeriodAndItems) {
-    throw new Error('Billing period and items not found')
-  }
-  const { billingPeriod } = billingPeriodAndItems
-  const [existingBillingRun] = await selectBillingRuns(
-    {
-      billingPeriodId: billingPeriod.id,
-    },
-    transaction
-  )
-  return existingBillingRun
 }
 
 const safelyProcessCreationForExistingSubscription = async (
@@ -374,14 +322,29 @@ interface CreateSubscriptionResult {
   billingPeriodItems: BillingPeriodItem.Record[]
   billingRun: BillingRun.Record | null
 }
-/**
- * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
- * This is because the subscription will not be active until the organization has started it,
- * and we do not want to create a billing run if the organization has not explicitly opted to start the subscription.
- * @param params
- * @param transaction
- * @returns
- */
+
+const setupLedgerAccounts = async (
+  params: {
+    subscription: Subscription.Record
+    subscriptionItems: SubscriptionItem.Record[]
+    price: Price.Record
+  },
+  transaction: DbTransaction
+) => {
+  const { subscription, price } = params
+  await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
+    [
+      {
+        subscriptionId: subscription.id,
+        usageMeterId: price.usageMeterId,
+        livemode: subscription.livemode,
+        organizationId: subscription.organizationId,
+      },
+    ],
+    transaction
+  )
+}
+
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
@@ -414,6 +377,19 @@ export const createSubscriptionWorkflow = async (
     )
   const { subscription, subscriptionItems } =
     await insertSubscriptionAndItems(params, transaction)
+
+  const { price } = params
+  if (price.type === PriceType.Usage) {
+    await setupLedgerAccounts(
+      {
+        subscription,
+        subscriptionItems,
+        price,
+      },
+      transaction
+    )
+  }
+
   const scheduledFor = subscription.runBillingAtPeriodStart
     ? subscription.currentBillingPeriodStart
     : subscription.currentBillingPeriodEnd

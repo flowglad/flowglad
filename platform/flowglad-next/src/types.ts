@@ -763,15 +763,11 @@ export enum UsageCreditType {
    * Unlocked as a result of a payment, including a subscription payment.
    */
   Payment = 'payment',
-  PaymentTopUp = 'payment_top_up',
-  PaymentPeriodSettlement = 'payment_period_settlement',
 }
 
 export enum UsageCreditStatus {
   Pending = 'pending',
   Posted = 'posted',
-  Expired = 'expired',
-  Exhausted = 'exhausted',
 }
 
 export enum UsageCreditSourceReferenceType {
@@ -785,17 +781,17 @@ export enum RefundStatus {
   Failed = 'failed',
 }
 
-export enum UsageLedgerItemStatus {
+export enum LedgerEntryStatus {
   Pending = 'pending',
   Posted = 'posted',
 }
 
-export enum UsageLedgerItemDirection {
+export enum LedgerEntryDirection {
   Debit = 'debit',
   Credit = 'credit',
 }
 
-export enum UsageLedgerItemEntryType {
+export enum LedgerEntryEntryType {
   UsageCost = 'usage_cost',
   PaymentSucceeded = 'payment_succeeded',
   PaymentInitiated = 'payment_initiated',
@@ -822,4 +818,16 @@ export enum FeatureType {
 export enum FeatureUsageGrantFrequency {
   Once = 'once',
   EveryBillingPeriod = 'every_billing_period',
+}
+
+export enum PlanInterval {
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum NormalBalanceType {
+  DEBIT = 'debit',
+  CREDIT = 'credit',
 }

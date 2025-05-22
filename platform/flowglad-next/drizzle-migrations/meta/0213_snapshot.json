@@ -8721,14 +8721,14 @@
         },
         "status": {
           "name": "status",
-          "type": "UsageLedgerItemStatus",
+          "type": "LedgerEntryStatus",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "direction": {
           "name": "direction",
-          "type": "UsageLedgerItemDirection",
+          "type": "LedgerEntryDirection",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true

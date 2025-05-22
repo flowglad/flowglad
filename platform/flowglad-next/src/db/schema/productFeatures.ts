@@ -12,7 +12,7 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   livemodePolicy,
-  timezoneWithTimestampColumn,
+  timestampWithTimezoneColumn,
   constructIndex,
   membershipOrganizationIdIntegrityCheckPolicy,
   parentForeignKeyIntegrityCheckPolicy,
@@ -33,7 +33,7 @@ export const productFeatures = pgTable(
       'organization_id',
       organizations
     ),
-    expiredAt: timezoneWithTimestampColumn('expired_at'),
+    expiredAt: timestampWithTimezoneColumn('expired_at'),
   },
   (table) => {
     return [

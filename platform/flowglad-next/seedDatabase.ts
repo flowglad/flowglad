@@ -68,6 +68,7 @@ import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 import { memberships } from '@/db/schema/memberships'
+import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
     'attempted to access seedDatabase.ts in production. This should never happen.'
@@ -553,6 +554,27 @@ export const setupPrice = async ({
   active?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
+    if (type === PriceType.SinglePayment) {
+      return insertPrice(
+        {
+          productId,
+          name: `${name} (Single Payment)`,
+          type,
+          unitPrice,
+          currency: CurrencyCode.USD,
+          externalId: externalId ?? core.nanoid(),
+          active,
+          usageMeterId: null,
+          intervalUnit: null,
+          intervalCount: null,
+          livemode,
+          isDefault,
+          setupFeeAmount: null,
+          trialPeriodDays: null,
+        },
+        transaction
+      )
+    }
     return insertPrice(
       {
         productId,
@@ -1038,5 +1060,24 @@ export const setupUserAndApiKey = async ({
     const apiKey = apiKeyInsertResult as typeof apiKeys.$inferSelect
 
     return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
+  })
+}
+
+export const setupLedgerAccount = async ({
+  subscriptionId,
+  usageMeterId,
+  livemode,
+  organizationId,
+}: {
+  subscriptionId: string
+  usageMeterId: string
+  livemode: boolean
+  organizationId: string
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerAccount(
+      { subscriptionId, usageMeterId, livemode, organizationId },
+      transaction
+    )
   })
 }

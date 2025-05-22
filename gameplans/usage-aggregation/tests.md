@@ -7,18 +7,18 @@ This document outlines a comprehensive testing strategy for the usage aggregatio
 These tests ensure the fundamental integrity and reliability of the ledger system itself.
 
 1.  **Balance Integrity & Accuracy:**
-    *   **Test:** At any point, the sum of all `amount` fields in `UsageLedgerItems` where `status = 'posted'`, OR (`status = 'pending' AND discarded_at IS NULL`) for a given subscription must accurately reflect its current effective financial balance. Distinguish tests for purely "posted balance" vs. "balance including pending."
+    *   **Test:** At any point, the sum of all `amount` fields in `LedgerEntrys` where `status = 'posted'`, OR (`status = 'pending' AND discarded_at IS NULL`) for a given subscription must accurately reflect its current effective financial balance. Distinguish tests for purely "posted balance" vs. "balance including pending."
     *   **Why:** This is the single most crucial check of a ledger.
 
 2.  **Immutability & Lifecycle of Ledger Items:**
-    *   **Test:** Once a `UsageLedgerItem` has `status = 'posted'`, its core financial fields (`amount`, `currency`, `entry_type`, `status`, `usage_transaction_id`, source links) cannot be altered, and `discarded_at` must remain `NULL`. Updates should only affect non-critical metadata or system timestamps like `updated_at` on the record (if applicable, though ledger items are often fully immutable once written, even `updated_at`).
-    *   **Test:** `UsageLedgerItems` with `status = 'pending'` can have `discarded_at` set to a timestamp. Once `discarded_at` is set, the item is considered non-active and its `status` should remain `'pending'` (or a new dedicated status like `'discarded'` could be introduced if preferred, though `pending` + `discarded_at IS NOT NULL` is common).
+    *   **Test:** Once a `LedgerEntry` has `status = 'posted'`, its core financial fields (`amount`, `currency`, `entry_type`, `status`, `usage_transaction_id`, source links) cannot be altered, and `discarded_at` must remain `NULL`. Updates should only affect non-critical metadata or system timestamps like `updated_at` on the record (if applicable, though ledger items are often fully immutable once written, even `updated_at`).
+    *   **Test:** `LedgerEntrys` with `status = 'pending'` can have `discarded_at` set to a timestamp. Once `discarded_at` is set, the item is considered non-active and its `status` should remain `'pending'` (or a new dedicated status like `'discarded'` could be introduced if preferred, though `pending` + `discarded_at IS NOT NULL` is common).
     *   **Test:** A `discarded_at` item cannot be transitioned to `'posted'`.
-    *   **Test:** All `UsageLedgerItems` MUST have a valid `usage_transaction_id` linking to an existing `UsageTransaction`.
+    *   **Test:** All `LedgerEntrys` MUST have a valid `usage_transaction_id` linking to an existing `UsageTransaction`.
     *   **Why:** Ensures data integrity, auditability, and correct lifecycle management.
 
 3.  **Atomicity of Operations:**
-    *   **Test:** Any operation that results in multiple database records (e.g., a payment creating a `UsageCredits` grant AND a `UsageLedgerItem`) must be atomic. Either all records are created successfully, or none are (transaction rollback).
+    *   **Test:** Any operation that results in multiple database records (e.g., a payment creating a `UsageCredits` grant AND a `LedgerEntry`) must be atomic. Either all records are created successfully, or none are (transaction rollback).
     *   **Why:** Prevents inconsistent states and orphaned records.
 
 4.  **Idempotency of Event Ingestion & Processing:**
@@ -26,7 +26,7 @@ These tests ensure the fundamental integrity and reliability of the ledger syste
     *   **Why:** Essential for resilience against network issues or retries from external systems.
 
 5.  **Traceability & Referential Integrity:**
-    *   **Test:** Every `UsageLedgerItem` must have valid foreign keys pointing to its originating backing parent record(s) (e.g., `source_usage_event_id`, `source_usage_credit_id`, etc.). No orphaned ledger items.
+    *   **Test:** Every `LedgerEntry` must have valid foreign keys pointing to its originating backing parent record(s) (e.g., `source_usage_event_id`, `source_usage_credit_id`, etc.). No orphaned ledger items.
     *   **Test:** Conversely, ensure no orphaned backing records that *should* have resulted in ledger activity but didn't.
     *   **Why:** Guarantees a complete audit trail and data consistency.
 
@@ -56,9 +56,9 @@ These tests ensure the fundamental integrity and reliability of the ledger syste
     *   **Why:** Ensures long-term maintainability and avoids breaking old data when the system evolves. Artifacts from past versions should still be interpretable correctly.
 
 12. **Source Record Linkage & Traceability:**
-    *   **Test:** Every `UsageLedgerItem` must be correctly linked to its originating source record(s) (e.g., `source_usage_event_id`, `source_payment_id`, `source_usage_credit_id`, `source_credit_application_id`, etc.) based on its `entry_type`.
-    *   **Test:** Every `UsageLedgerItem` must belong to a `UsageTransaction` that accurately reflects the conceptual business operation that generated the item(s).
-    *   **Test:** For a given `UsageTransaction`, all its associated `UsageLedgerItems` should logically belong to the same overarching event (e.g., all items for one payment confirmation, all items for one admin adjustment).
+    *   **Test:** Every `LedgerEntry` must be correctly linked to its originating source record(s) (e.g., `source_usage_event_id`, `source_payment_id`, `source_usage_credit_id`, `source_credit_application_id`, etc.) based on its `entry_type`.
+    *   **Test:** Every `LedgerEntry` must belong to a `UsageTransaction` that accurately reflects the conceptual business operation that generated the item(s).
+    *   **Test:** For a given `UsageTransaction`, all its associated `LedgerEntrys` should logically belong to the same overarching event (e.g., all items for one payment confirmation, all items for one admin adjustment).
     *   **Why:** Critical for auditability and understanding the context of each financial event.
 
 ## II. Specific Use Cases & Flow Testing (Our System's Logic)
@@ -66,18 +66,18 @@ These tests ensure the fundamental integrity and reliability of the ledger syste
 These tests cover the end-to-end financial logic as defined in `gameplans/usage-aggregation.md`.
 
 **A. Usage & Cost Accrual:**
-1.  Single `UsageEvent` -> Correct `usage_cost` `UsageLedgerItem` (negative amount, correct pricing, correct initial `status` - e.g., `'posted'` if immediately final, or `'pending'` if part of a batch to be finalized).
+1.  Single `UsageEvent` -> Correct `usage_cost` `LedgerEntry` (negative amount, correct pricing, correct initial `status` - e.g., `'posted'` if immediately final, or `'pending'` if part of a batch to be finalized).
 2.  Multiple `UsageEvents` (same/different meters, same/different billing periods) -> Correct set of `usage_cost` ledger items with appropriate statuses.
 3.  `UsageEvent` with complex pricing rules (if applicable) -> Correct cost calculation reflected in ledger item.
 
 **B. Payments & Credit Granting (Initial Funding):**
-4.  Successful `Payment` (PAYG) -> `UsageCredits` grant created -> `payment_recognized` `UsageLedgerItem` (positive, `status = 'posted'`).
+4.  Successful `Payment` (PAYG) -> `UsageCredits` grant created -> `payment_recognized` `LedgerEntry` (positive, `status = 'posted'`).
 5.  Successful `Payment` (Invoice Settlement) -> `UsageCredits` grant created -> `payment_recognized` ledger item (`status = 'posted'`).
 6.  Failed `Payment` -> No `UsageCredits` grant, no `payment_recognized` ledger item.
 7.  Payment confirmation arrives *after* related usage -> Order of operations handled correctly, ledger items reflect final state.
 
 **C. Non-Payment Credit Granting (Promos, Goodwill):**
-8.  Admin/System grants promo credit -> `UsageCredits` grant created -> `credit_grant_recognized` `UsageLedgerItem` (positive, `status = 'posted'`).
+8.  Admin/System grants promo credit -> `UsageCredits` grant created -> `credit_grant_recognized` `LedgerEntry` (positive, `status = 'posted'`).
 9.  Credit grant with an `expires_at` date.
 10. Credit grant scoped to a specific `billing_period_id` or `usage_meter_id`.
 
@@ -88,7 +88,7 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
     *   Multiple grants combine to cover `usage_cost`(s).
     *   Credit application results in:
         *   Correct `UsageCreditApplications` record(s).
-        *   Correct `credit_applied_to_usage` `UsageLedgerItem`(s) (positive, offsetting cost), initially created with `status = 'pending'`.
+        *   Correct `credit_applied_to_usage` `LedgerEntry`(s) (positive, offsetting cost), initially created with `status = 'pending'`.
         *   Test scenarios where credit application logic iterates within a run: existing `pending` items are correctly marked `discarded_at`, and new `pending` items are created.
         *   Test that at the end of the operational context (e.g., billing run), all non-discarded `pending` items are transitioned to `status = 'posted'`.
         *   Test that `discarded_at` items are NOT transitioned to `posted`.
@@ -100,20 +100,20 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
     *   `usage_cost` directly impacts balance, no credit application occurs.
 
 **E. Credit Expiration:**
-15. Fully unused `UsageCredits` grant expires -> `credit_grant_expired` `UsageLedgerItem` (negative, for full issued amount, `status = 'posted'`).
+15. Fully unused `UsageCredits` grant expires -> `credit_grant_expired` `LedgerEntry` (negative, for full issued amount, `status = 'posted'`).
 16. Partially used grant expires -> `credit_grant_expired` ledger item for the *correct remaining unused portion* (`status = 'posted'`). (Requires checking `UsageCreditApplications` and their ledger items, considering only `posted` or non-discarded `pending` applications).
 17. Grant is fully used *before* `expires_at` (all applications `posted` or finalized as `posted`) -> No `credit_grant_expired` ledger item created.
 18. Batch job for expirations correctly identifies and processes all eligible expired credits, creating `posted` ledger items.
 
 **F. Administrative Adjustments (Clawbacks, Corrections):**
-19. Admin reduces an *unspent* `UsageCredits` grant -> `UsageCreditBalanceAdjustments` record -> `credit_balance_adjusted` `UsageLedgerItem` (negative, `status = 'posted'`).
+19. Admin reduces an *unspent* `UsageCredits` grant -> `UsageCreditBalanceAdjustments` record -> `credit_balance_adjusted` `LedgerEntry` (negative, `status = 'posted'`).
 20. Admin attempts to reduce a grant by *more than its unspent value* (expected behavior: fail or cap at unspent value based on active ledger effects).
 21. Admin adjusts a *partially spent* grant (effects are on already `posted` ledger items, so this adjustment is a new `posted` item).
 
 **G. Refunds:**
 22. Full refund for a `Payment` whose credit is *unused*:
     *   `Refunds` record created.
-    *   `payment_refunded` `UsageLedgerItem` (negative, `status = 'posted'`).
+    *   `payment_refunded` `LedgerEntry` (negative, `status = 'posted'`).
     *   (Optional secondary effect): Test if corresponding `UsageCredits` grant is also adjusted/invalidated via `UsageCreditBalanceAdjustments`.
 23. Partial refund for a `Payment`.
 24. Refund for a `Payment` whose credit was *already fully or partially spent*:
@@ -123,7 +123,7 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
 26. Refund status updates (`pending` -> `succeeded`/`failed`) correctly trigger or halt `posted` ledger item creation.
 
 **H. Billing Period Calculations & Snapshots (`SubscriptionMeterPeriodCalculations`):**
-27. `SubscriptionMeterPeriodCalculations` record correctly aggregates `total_raw_usage_amount`, `credits_applied_amount`, and `net_billed_amount` from relevant `UsageLedgerItems` for the period and meter (considering only items that are `posted` by the end of the calculation run).
+27. `SubscriptionMeterPeriodCalculations` record correctly aggregates `total_raw_usage_amount`, `credits_applied_amount`, and `net_billed_amount` from relevant `LedgerEntrys` for the period and meter (considering only items that are `posted` by the end of the calculation run).
 28. Correct handling of `active` vs. `superseded` calculation records when a period is recalculated/adjusted.
 29. Correct linkage of calculation records to source `Invoice` or `CreditNote` IDs.
 
@@ -137,33 +137,33 @@ These tests cover the end-to-end financial logic as defined in `gameplans/usage-
 
 *   **Unit Tests:**
     *   Functions creating/validating each backing parent record type.
-    *   Functions creating/validating `UsageLedgerItems` (correct `entry_type`, sign of `amount`, all FKs populated, correct initial `status`, handling of `discarded_at`).
-    *   Logic for transitioning `UsageLedgerItem.status` from `pending` to `posted`.
-    *   Logic for setting `UsageLedgerItem.discarded_at`.
+    *   Functions creating/validating `LedgerEntrys` (correct `entry_type`, sign of `amount`, all FKs populated, correct initial `status`, handling of `discarded_at`).
+    *   Logic for transitioning `LedgerEntry.status` from `pending` to `posted`.
+    *   Logic for setting `LedgerEntry.discarded_at`.
     *   Pricing logic functions.
     *   Credit selection/application logic functions (if complex, e.g., which grant to pick).
     *   Functions calculating remaining value on a `UsageCredits` grant.
-    *   Functions deriving balances from `UsageLedgerItems` (correctly filtering by `status` and `discarded_at IS NULL`).
+    *   Functions deriving balances from `LedgerEntrys` (correctly filtering by `status` and `discarded_at IS NULL`).
     *   Validation rules for Zod schemas, including `status` and `discarded_at` interdependencies.
 *   **Integration Tests:**
-    *   **End-to-End Flow Tests:** Each numbered use case in Section II should be an integration test, verifying the full lifecycle of `UsageLedgerItems` including `pending`, `discarded_at` (if applicable to the flow), and `posted` states.
+    *   **End-to-End Flow Tests:** Each numbered use case in Section II should be an integration test, verifying the full lifecycle of `LedgerEntrys` including `pending`, `discarded_at` (if applicable to the flow), and `posted` states.
     *   **Database Transaction Management:** Verify that operations involving multiple inserts/updates, including status changes and setting `discarded_at`, are correctly committed or rolled back.
     *   **Service Interactions (if applicable):** Test interactions with other internal services if the ledger system is part of a larger microservices architecture.
     *   **API Layer (if applicable):** If the ledger operations are exposed via an API, test the API endpoints for creating events that trigger ledger entries.
     *   **Query Logic:** Test complex queries used for reporting, balance calculation (differentiating posted vs. pending balances), or identifying records for processing (e.g., finding non-discarded `pending` items for a given `calculation_run_id` to transition them to `posted`).
 
-*   **Tables to Test:** `UsageCredits`, `UsageCreditApplications`, `UsageCreditBalanceAdjustments`, `Refunds`, `UsageLedgerItems`, `SubscriptionMeterPeriodCalculations`, `UsageTransactions`.
+*   **Tables to Test:** `UsageCredits`, `UsageCreditApplications`, `UsageCreditBalanceAdjustments`, `Refunds`, `LedgerEntrys`, `SubscriptionMeterPeriodCalculations`, `UsageTransactions`.
 *   **Key Scenarios:**
     *   Creating each type of parent record (e.g., `UsageCredits`, `Refunds`).
     *   Creating a `UsageTransaction` for each conceptual operation.
-    *   Creating `UsageLedgerItems` linked to the correct `UsageTransaction` and source records, with correct `entry_type`, `status`, `amount`, `currency`.
-    *   Lifecycle of `UsageLedgerItems`: `pending` -> `discarded_at` (if applicable) -> `posted`.
+    *   Creating `LedgerEntrys` linked to the correct `UsageTransaction` and source records, with correct `entry_type`, `status`, `amount`, `currency`.
+    *   Lifecycle of `LedgerEntrys`: `pending` -> `discarded_at` (if applicable) -> `posted`.
 
 7.  **Billing Run Simulation (`billingRunHelpers.ts`):**
     *   **Test:** Simulate a full billing run for a subscription with various usage events and applicable credits (some that expire, some that are fully used, some partially used).
     *   Verify that a `UsageTransaction` is created for the credit application phase.
     *   Verify that `UsageCreditApplications` records are created correctly.
-    *   Verify that `UsageLedgerItems` with `entry_type='credit_applied_to_usage'` are created with `status='pending'` and linked to the correct `UsageTransaction` and `calculation_run_id`.
+    *   Verify that `LedgerEntrys` with `entry_type='credit_applied_to_usage'` are created with `status='pending'` and linked to the correct `UsageTransaction` and `calculation_run_id`.
     *   Verify that if the logic re-evaluates credit application within the same run, appropriate `pending` items are marked `discarded_at` and new `pending` items (linked to the same `UsageTransaction` and `calculation_run_id`) supersede them.
     *   Verify that at the end of the run, all non-discarded `pending` ledger items are transitioned to `status='posted'`.
     *   Verify correct creation/update of `SubscriptionMeterPeriodCalculations` based on the sum of `posted` ledger items for the run.

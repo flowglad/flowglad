@@ -6,10 +6,10 @@ This is a flexible roadmap; the decision to implement any phase or feature shoul
 
 ## Phase 1: Strengthening Core Operations and Auditability (Enhancements to V1 Base)
 
-This phase focuses on enhancing the V1 ledger (which includes `UsageLedgerItems` with `status`/`discarded_at` and a linking-only `UsageTransactions` table) with features that improve data accuracy, concurrency handling for common scenarios, and deeper audit trails *beyond* the basic ledger structure.
+This phase focuses on enhancing the V1 ledger (which includes `LedgerEntrys` with `status`/`discarded_at` and a linking-only `UsageTransactions` table) with features that improve data accuracy, concurrency handling for common scenarios, and deeper audit trails *beyond* the basic ledger structure.
 
 ### 1.1. Formalize Idempotency for Ledger-Modifying Operations
-*   **Concept:** While V1 might rely on DB constraints or application-level checks for idempotency of source events (e.g., `Payment` processing), this step involves formalizing idempotency keys directly for operations that create `UsageTransaction` bundles and their associated `UsageLedgerItems`.
+*   **Concept:** While V1 might rely on DB constraints or application-level checks for idempotency of source events (e.g., `Payment` processing), this step involves formalizing idempotency keys directly for operations that create `UsageTransaction` bundles and their associated `LedgerEntrys`.
     *   Consider adding an `idempotency_key` to the `UsageTransactions` table. The system creating a bundle of ledger items would generate/use this key.
     *   Alternatively, if source records (like `Payments`) have robust idempotency keys, ensure the linkage from `UsageTransaction` to the source (via `initiating_source_id`/`type`) is always clear and used to prevent duplicate transaction bundle creation.
 *   **Benefit:** Prevents accidental duplicate ledger entries from retries or concurrent requests at the point of ledger interaction itself, making the system more resilient.
@@ -31,8 +31,8 @@ This phase represents a more significant structural evolution, building upon the
 
 ### 2.1. Enhance `UsageTransactions` to a Stateful Entity
 *   **Concept:** Evolve the existing `UsageTransactions` table (currently primarily for linking) into a more formal `LedgerTransaction` entity. This would involve adding a `status` field (e.g., `pending`, `committed`, `rolled_back`, `archived`) to the `UsageTransactions` table itself.
-    *   `UsageLedgerItems` would continue to be grouped under and belong to a `UsageTransaction`.
-    *   The `status` and `discarded_at` fields on `UsageLedgerItems` would continue to manage the lifecycle of individual entries *within* such a transaction, especially for iterative processes like billing runs.
+    *   `LedgerEntrys` would continue to be grouped under and belong to a `UsageTransaction`.
+    *   The `status` and `discarded_at` fields on `LedgerEntrys` would continue to manage the lifecycle of individual entries *within* such a transaction, especially for iterative processes like billing runs.
     *   The `UsageTransaction`'s own status would govern the atomicity of the entire bundle of entries. For instance, all entries might be `pending` until the `UsageTransaction` is `committed`.
 *   **Benefit:**
     *   Provides a formal mechanism for atomicity and balancing for multi-legged financial events *within the ledger itself* if that granularity of control is needed beyond database transactions.
@@ -45,7 +45,7 @@ This phase represents a more significant structural evolution, building upon the
 As the ledger scales in terms of data volume and query load, these features become important.
 
 ### 3.1. Model Explicit Pending/Available Balances (Enhanced)
-*   **Concept:** While the V1 introduction of `status` (`'pending'`, `'posted'`) and `discarded_at` on `UsageLedgerItems` provides a basis for distinguishing provisional versus final entries, this phase would involve building more sophisticated and potentially cached views for different balance types (e.g., truly "Available for Use" vs. "Posted/Settled" vs. "Pending Incoming"). This could involve more complex querying, dedicated balance snapshot tables, or specific views tailored to different consumer needs within the application.
+*   **Concept:** While the V1 introduction of `status` (`'pending'`, `'posted'`) and `discarded_at` on `LedgerEntrys` provides a basis for distinguishing provisional versus final entries, this phase would involve building more sophisticated and potentially cached views for different balance types (e.g., truly "Available for Use" vs. "Posted/Settled" vs. "Pending Incoming"). This could involve more complex querying, dedicated balance snapshot tables, or specific views tailored to different consumer needs within the application.
 *   **Benefit:** Supports more nuanced financial reporting, user-facing balance displays (e.g., showing what's truly spendable now versus what's provisionally allocated), and advanced risk management rules.
 *   **Considerations:** Increases the complexity of balance calculation and presentation logic. Requires careful design to ensure consistency and performance of these different balance views.
 

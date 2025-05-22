@@ -109,7 +109,7 @@ export const selectSubscriptionAndItems = async (
   }
 }
 
-export const selectSubscriptionItemsAndSubscriptionBysubscriptionId =
+export const selectSubscriptionItemsAndSubscriptionBySubscriptionId =
   async (subscriptionId: string, transaction: DbTransaction) => {
     return selectSubscriptionAndItems(
       {

@@ -1,6 +1,6 @@
 {
-  "id": "e24af501-ee01-429d-8a85-014f4845f91f",
-  "prevId": "5dfc1aa6-ef9a-49aa-8cef-d1365273dc17",
+  "id": "cac77519-5041-4648-801d-935fadc10f6c",
+  "prevId": "6c72e913-f539-4f0e-9bb4-ea5e12e48983",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2475,6 +2475,219 @@
       "checkConstraints": {},
       "isRLSEnabled": true
     },
+    "public.features": {
+      "name": "features",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "FeatureType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "renewal_frequency": {
+          "name": "renewal_frequency",
+          "type": "FeatureUsageGrantFrequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "features_organization_id_idx": {
+          "name": "features_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "features_type_idx": {
+          "name": "features_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "features_organization_id_slug_unique_idx": {
+          "name": "features_organization_id_slug_unique_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "features_organization_id_organizations_id_fk": {
+          "name": "features_organization_id_organizations_id_fk",
+          "tableFrom": "features",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "features_usage_meter_id_usage_meters_id_fk": {
+          "name": "features_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "features",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "features_id_unique": {
+          "name": "features_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+        },
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
     "public.fee_calculations": {
       "name": "fee_calculations",
       "schema": "",
@@ -3604,6 +3817,866 @@
         }
       },
       "policies": {
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.ledger_accounts": {
+      "name": "ledger_accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "normal_balance": {
+          "name": "normal_balance",
+          "type": "NormalBalanceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'credit'"
+        },
+        "posted_credits_sum": {
+          "name": "posted_credits_sum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "posted_debits_sum": {
+          "name": "posted_debits_sum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "pending_credits_sum": {
+          "name": "pending_credits_sum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "pending_debits_sum": {
+          "name": "pending_debits_sum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ledger_accounts_organization_id_idx": {
+          "name": "ledger_accounts_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_accounts_subscription_id_idx": {
+          "name": "ledger_accounts_subscription_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_accounts_subscription_id_usage_meter_id_unique_idx": {
+          "name": "ledger_accounts_subscription_id_usage_meter_id_unique_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ledger_accounts_organization_id_organizations_id_fk": {
+          "name": "ledger_accounts_organization_id_organizations_id_fk",
+          "tableFrom": "ledger_accounts",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_accounts_subscription_id_subscriptions_id_fk": {
+          "name": "ledger_accounts_subscription_id_subscriptions_id_fk",
+          "tableFrom": "ledger_accounts",
+          "tableTo": "subscriptions",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_accounts_usage_meter_id_usage_meters_id_fk": {
+          "name": "ledger_accounts_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "ledger_accounts",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ledger_accounts_id_unique": {
+          "name": "ledger_accounts_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+        },
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.ledger_entries": {
+      "name": "ledger_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ledger_account_id": {
+          "name": "ledger_account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usage_transaction_id": {
+          "name": "usage_transaction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry_timestamp": {
+          "name": "entry_timestamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "LedgerEntryStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "LedgerEntryDirection",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry_type": {
+          "name": "entry_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "discarded_at": {
+          "name": "discarded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_usage_event_id": {
+          "name": "source_usage_event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_usage_credit_id": {
+          "name": "source_usage_credit_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_payment_id": {
+          "name": "source_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_credit_application_id": {
+          "name": "source_credit_application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_credit_balance_adjustment_id": {
+          "name": "source_credit_balance_adjustment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_billing_period_calculation_id": {
+          "name": "source_billing_period_calculation_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applied_to_ledger_item_id": {
+          "name": "applied_to_ledger_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "billing_period_id": {
+          "name": "billing_period_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expired_at": {
+          "name": "expired_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expired_at_usage_transaction_id": {
+          "name": "expired_at_usage_transaction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "calculation_run_id": {
+          "name": "calculation_run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ledger_entries_subscription_id_entry_timestamp_idx": {
+          "name": "ledger_entries_subscription_id_entry_timestamp_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entry_timestamp",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_ledger_account_id_idx": {
+          "name": "ledger_entries_ledger_account_id_idx",
+          "columns": [
+            {
+              "expression": "ledger_account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_entry_type_idx": {
+          "name": "ledger_entries_entry_type_idx",
+          "columns": [
+            {
+              "expression": "entry_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_status_discarded_at_idx": {
+          "name": "ledger_entries_status_discarded_at_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "discarded_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_usage_transaction_id_idx": {
+          "name": "ledger_entries_usage_transaction_id_idx",
+          "columns": [
+            {
+              "expression": "usage_transaction_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_source_usage_event_id_idx": {
+          "name": "ledger_entries_source_usage_event_id_idx",
+          "columns": [
+            {
+              "expression": "source_usage_event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_source_usage_credit_id_idx": {
+          "name": "ledger_entries_source_usage_credit_id_idx",
+          "columns": [
+            {
+              "expression": "source_usage_credit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_source_payment_id_idx": {
+          "name": "ledger_entries_source_payment_id_idx",
+          "columns": [
+            {
+              "expression": "source_payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_source_credit_application_id_idx": {
+          "name": "ledger_entries_source_credit_application_id_idx",
+          "columns": [
+            {
+              "expression": "source_credit_application_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_source_credit_balance_adjustment_id_idx": {
+          "name": "ledger_entries_source_credit_balance_adjustment_id_idx",
+          "columns": [
+            {
+              "expression": "source_credit_balance_adjustment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_source_billing_period_calculation_id_idx": {
+          "name": "ledger_entries_source_billing_period_calculation_id_idx",
+          "columns": [
+            {
+              "expression": "source_billing_period_calculation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_applied_to_ledger_item_id_idx": {
+          "name": "ledger_entries_applied_to_ledger_item_id_idx",
+          "columns": [
+            {
+              "expression": "applied_to_ledger_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_billing_period_id_idx": {
+          "name": "ledger_entries_billing_period_id_idx",
+          "columns": [
+            {
+              "expression": "billing_period_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_entries_usage_meter_id_idx": {
+          "name": "ledger_entries_usage_meter_id_idx",
+          "columns": [
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ledger_entries_ledger_account_id_ledger_accounts_id_fk": {
+          "name": "ledger_entries_ledger_account_id_ledger_accounts_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "ledger_accounts",
+          "columnsFrom": [
+            "ledger_account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_usage_transaction_id_usage_transactions_id_fk": {
+          "name": "ledger_entries_usage_transaction_id_usage_transactions_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "usage_transactions",
+          "columnsFrom": [
+            "usage_transaction_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_subscription_id_subscriptions_id_fk": {
+          "name": "ledger_entries_subscription_id_subscriptions_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "subscriptions",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_source_usage_event_id_usage_events_id_fk": {
+          "name": "ledger_entries_source_usage_event_id_usage_events_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "usage_events",
+          "columnsFrom": [
+            "source_usage_event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_source_usage_credit_id_usage_credits_id_fk": {
+          "name": "ledger_entries_source_usage_credit_id_usage_credits_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "usage_credits",
+          "columnsFrom": [
+            "source_usage_credit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_source_payment_id_payments_id_fk": {
+          "name": "ledger_entries_source_payment_id_payments_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "source_payment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk": {
+          "name": "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "usage_credit_applications",
+          "columnsFrom": [
+            "source_credit_application_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_source_credit_balance_adjustment_id_usage_credit_balance_adjustments_id_fk": {
+          "name": "ledger_entries_source_credit_balance_adjustment_id_usage_credit_balance_adjustments_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "usage_credit_balance_adjustments",
+          "columnsFrom": [
+            "source_credit_balance_adjustment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_billing_period_id_billing_periods_id_fk": {
+          "name": "ledger_entries_billing_period_id_billing_periods_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "billing_periods",
+          "columnsFrom": [
+            "billing_period_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_usage_meter_id_usage_meters_id_fk": {
+          "name": "ledger_entries_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_expired_at_usage_transaction_id_usage_transactions_id_fk": {
+          "name": "ledger_entries_expired_at_usage_transaction_id_usage_transactions_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "usage_transactions",
+          "columnsFrom": [
+            "expired_at_usage_transaction_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_organization_id_organizations_id_fk": {
+          "name": "ledger_entries_organization_id_organizations_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ledger_entries_id_unique": {
+          "name": "ledger_entries_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+        },
         "Check mode": {
           "name": "Check mode",
           "as": "RESTRICTIVE",
@@ -5424,14 +6497,232 @@
           ],
           "withCheck": "\"usage_meter_id\" IS NULL OR \"usage_meter_id\" IN (\n  SELECT \"id\" FROM \"usage_meters\"\n  WHERE \"usage_meters\".\"organization_id\" = (\n    SELECT \"organization_id\" FROM \"products\" \n    WHERE \"products\".\"id\" = \"prices\".\"product_id\"\n  )\n)"
         },
-        "Enable all for self organizations via products": {
-          "name": "Enable all for self organizations via products",
+        "Ensure organization integrity with products parent table": {
+          "name": "Ensure organization integrity with products parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "authenticated"
           ],
           "using": "\"product_id\" in (select \"id\" from \"products\")"
+        },
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.product_features": {
+      "name": "product_features",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "feature_id": {
+          "name": "feature_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expired_at": {
+          "name": "expired_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "product_features_product_id_feature_id_unique_idx": {
+          "name": "product_features_product_id_feature_id_unique_idx",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "feature_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "product_features_product_id_idx": {
+          "name": "product_features_product_id_idx",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "product_features_organization_id_idx": {
+          "name": "product_features_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "product_features_product_id_products_id_fk": {
+          "name": "product_features_product_id_products_id_fk",
+          "tableFrom": "product_features",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "product_features_feature_id_features_id_fk": {
+          "name": "product_features_feature_id_features_id_fk",
+          "tableFrom": "product_features",
+          "tableTo": "features",
+          "columnsFrom": [
+            "feature_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "product_features_organization_id_organizations_id_fk": {
+          "name": "product_features_organization_id_organizations_id_fk",
+          "tableFrom": "product_features",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "product_features_id_unique": {
+          "name": "product_features_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
+        },
+        "Ensure organization integrity with products parent table": {
+          "name": "Ensure organization integrity with products parent table",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"product_id\" in (select \"id\" from \"products\")"
+        },
+        "Ensure organization integrity with features parent table": {
+          "name": "Ensure organization integrity with features parent table",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"feature_id\" in (select \"id\" from \"features\")"
         },
         "Check mode": {
           "name": "Check mode",
@@ -6586,6 +7877,302 @@
       "checkConstraints": {},
       "isRLSEnabled": true
     },
+    "public.subscription_item_features": {
+      "name": "subscription_item_features",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subscription_item_id": {
+          "name": "subscription_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "feature_id": {
+          "name": "feature_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_feature_id": {
+          "name": "product_feature_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "FeatureType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "renewal_frequency": {
+          "name": "renewal_frequency",
+          "type": "FeatureUsageGrantFrequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expired_at": {
+          "name": "expired_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "subscription_item_features_subscription_item_id_idx": {
+          "name": "subscription_item_features_subscription_item_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_item_features_feature_id_idx": {
+          "name": "subscription_item_features_feature_id_idx",
+          "columns": [
+            {
+              "expression": "feature_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_item_features_product_feature_id_idx": {
+          "name": "subscription_item_features_product_feature_id_idx",
+          "columns": [
+            {
+              "expression": "product_feature_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_item_features_type_idx": {
+          "name": "subscription_item_features_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_item_features_product_feature_id_subscription_item_id_unique_idx": {
+          "name": "subscription_item_features_product_feature_id_subscription_item_id_unique_idx",
+          "columns": [
+            {
+              "expression": "product_feature_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subscription_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "subscription_item_features_subscription_item_id_subscription_items_id_fk": {
+          "name": "subscription_item_features_subscription_item_id_subscription_items_id_fk",
+          "tableFrom": "subscription_item_features",
+          "tableTo": "subscription_items",
+          "columnsFrom": [
+            "subscription_item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_item_features_feature_id_features_id_fk": {
+          "name": "subscription_item_features_feature_id_features_id_fk",
+          "tableFrom": "subscription_item_features",
+          "tableTo": "features",
+          "columnsFrom": [
+            "feature_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_item_features_product_feature_id_product_features_id_fk": {
+          "name": "subscription_item_features_product_feature_id_product_features_id_fk",
+          "tableFrom": "subscription_item_features",
+          "tableTo": "product_features",
+          "columnsFrom": [
+            "product_feature_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_item_features_usage_meter_id_usage_meters_id_fk": {
+          "name": "subscription_item_features_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "subscription_item_features",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "subscription_item_features_id_unique": {
+          "name": "subscription_item_features_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "Ensure organization integrity with subscription_items parent table": {
+          "name": "Ensure organization integrity with subscription_items parent table",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"subscription_item_id\" in (select \"id\" from \"subscription_items\")"
+        },
+        "Ensure organization integrity with product_features parent table": {
+          "name": "Ensure organization integrity with product_features parent table",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"product_feature_id\" in (select \"id\" from \"product_features\")"
+        },
+        "Ensure organization integrity with features parent table": {
+          "name": "Ensure organization integrity with features parent table",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"feature_id\" in (select \"id\" from \"features\")"
+        },
+        "Ensure organization integrity with usage_meters parent table": {
+          "name": "Ensure organization integrity with usage_meters parent table",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"usage_meter_id\" in (select \"id\" from \"usage_meters\")"
+        },
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
     "public.subscription_items": {
       "name": "subscription_items",
       "schema": "",
@@ -6777,6 +8364,418 @@
             "authenticated"
           ],
           "using": "\"subscriptionId\" in (select \"id\" from \"Subscriptions\")"
+        },
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.subscription_meter_period_calculations": {
+      "name": "subscription_meter_period_calculations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "billing_run_id": {
+          "name": "billing_run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "billing_period_id": {
+          "name": "billing_period_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "calculated_at": {
+          "name": "calculated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "total_raw_usage_amount": {
+          "name": "total_raw_usage_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credits_applied_amount": {
+          "name": "credits_applied_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "net_billed_amount": {
+          "name": "net_billed_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "SubscriptionMeterPeriodCalculationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "superseded_by_calculation_id": {
+          "name": "superseded_by_calculation_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_invoice_id": {
+          "name": "source_invoice_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "subscription_meter_period_calculations_subscription_id_idx": {
+          "name": "subscription_meter_period_calculations_subscription_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_usage_meter_id_idx": {
+          "name": "subscription_meter_period_calculations_usage_meter_id_idx",
+          "columns": [
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_billing_period_id_idx": {
+          "name": "subscription_meter_period_calculations_billing_period_id_idx",
+          "columns": [
+            {
+              "expression": "billing_period_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_organization_id_idx": {
+          "name": "subscription_meter_period_calculations_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_status_idx": {
+          "name": "subscription_meter_period_calculations_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_billing_run_id_idx": {
+          "name": "subscription_meter_period_calculations_billing_run_id_idx",
+          "columns": [
+            {
+              "expression": "billing_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_superseded_by_calculation_id_idx": {
+          "name": "subscription_meter_period_calculations_superseded_by_calculation_id_idx",
+          "columns": [
+            {
+              "expression": "superseded_by_calculation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_source_invoice_id_idx": {
+          "name": "subscription_meter_period_calculations_source_invoice_id_idx",
+          "columns": [
+            {
+              "expression": "source_invoice_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "subscription_meter_period_calculations_active_calculation_uq": {
+          "name": "subscription_meter_period_calculations_active_calculation_uq",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "billing_period_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"subscription_meter_period_calculations\".\"status\" = $1",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "subscription_meter_period_calculations_billing_run_id_billing_runs_id_fk": {
+          "name": "subscription_meter_period_calculations_billing_run_id_billing_runs_id_fk",
+          "tableFrom": "subscription_meter_period_calculations",
+          "tableTo": "billing_runs",
+          "columnsFrom": [
+            "billing_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_meter_period_calculations_subscription_id_subscriptions_id_fk": {
+          "name": "subscription_meter_period_calculations_subscription_id_subscriptions_id_fk",
+          "tableFrom": "subscription_meter_period_calculations",
+          "tableTo": "subscriptions",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_meter_period_calculations_usage_meter_id_usage_meters_id_fk": {
+          "name": "subscription_meter_period_calculations_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "subscription_meter_period_calculations",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_meter_period_calculations_billing_period_id_billing_periods_id_fk": {
+          "name": "subscription_meter_period_calculations_billing_period_id_billing_periods_id_fk",
+          "tableFrom": "subscription_meter_period_calculations",
+          "tableTo": "billing_periods",
+          "columnsFrom": [
+            "billing_period_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_meter_period_calculations_organization_id_organizations_id_fk": {
+          "name": "subscription_meter_period_calculations_organization_id_organizations_id_fk",
+          "tableFrom": "subscription_meter_period_calculations",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_meter_period_calculations_source_invoice_id_invoices_id_fk": {
+          "name": "subscription_meter_period_calculations_source_invoice_id_invoices_id_fk",
+          "tableFrom": "subscription_meter_period_calculations",
+          "tableTo": "invoices",
+          "columnsFrom": [
+            "source_invoice_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "subscription_meter_period_calculations_superseded_by_id_fk": {
+          "name": "subscription_meter_period_calculations_superseded_by_id_fk",
+          "tableFrom": "subscription_meter_period_calculations",
+          "tableTo": "subscription_meter_period_calculations",
+          "columnsFrom": [
+            "superseded_by_calculation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "subscription_meter_period_calculations_id_unique": {
+          "name": "subscription_meter_period_calculations_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read for own organizations": {
+          "name": "Enable read for own organizations",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
         "Check mode": {
           "name": "Check mode",
@@ -7639,6 +9638,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "source_reference_type": {
+          "name": "source_reference_type",
+          "type": "UsageCreditSourceReferenceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
         "billing_period_id": {
           "name": "billing_period_id",
           "type": "text",
@@ -8240,558 +10246,6 @@
       "checkConstraints": {},
       "isRLSEnabled": true
     },
-    "public.usage_ledger_items": {
-      "name": "usage_ledger_items",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "created_by_commit": {
-          "name": "created_by_commit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by_commit": {
-          "name": "updated_by_commit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "livemode": {
-          "name": "livemode",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "position": {
-          "name": "position",
-          "type": "bigserial",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "usage_transaction_id": {
-          "name": "usage_transaction_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "subscription_id": {
-          "name": "subscription_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entry_timestamp": {
-          "name": "entry_timestamp",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "status": {
-          "name": "status",
-          "type": "LedgerEntryStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "direction": {
-          "name": "direction",
-          "type": "LedgerEntryDirection",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entry_type": {
-          "name": "entry_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "discarded_at": {
-          "name": "discarded_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_usage_event_id": {
-          "name": "source_usage_event_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_usage_credit_id": {
-          "name": "source_usage_credit_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_payment_id": {
-          "name": "source_payment_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_credit_application_id": {
-          "name": "source_credit_application_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_credit_balance_adjustment_id": {
-          "name": "source_credit_balance_adjustment_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_billing_period_calculation_id": {
-          "name": "source_billing_period_calculation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "applied_to_ledger_item_id": {
-          "name": "applied_to_ledger_item_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "billing_period_id": {
-          "name": "billing_period_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "usage_meter_id": {
-          "name": "usage_meter_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "calculation_run_id": {
-          "name": "calculation_run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "usage_ledger_items_subscription_id_entry_timestamp_idx": {
-          "name": "usage_ledger_items_subscription_id_entry_timestamp_idx",
-          "columns": [
-            {
-              "expression": "subscription_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "entry_timestamp",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_entry_type_idx": {
-          "name": "usage_ledger_items_entry_type_idx",
-          "columns": [
-            {
-              "expression": "entry_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_status_discarded_at_idx": {
-          "name": "usage_ledger_items_status_discarded_at_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "discarded_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_usage_transaction_id_idx": {
-          "name": "usage_ledger_items_usage_transaction_id_idx",
-          "columns": [
-            {
-              "expression": "usage_transaction_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_source_usage_event_id_idx": {
-          "name": "usage_ledger_items_source_usage_event_id_idx",
-          "columns": [
-            {
-              "expression": "source_usage_event_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_source_usage_credit_id_idx": {
-          "name": "usage_ledger_items_source_usage_credit_id_idx",
-          "columns": [
-            {
-              "expression": "source_usage_credit_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_source_payment_id_idx": {
-          "name": "usage_ledger_items_source_payment_id_idx",
-          "columns": [
-            {
-              "expression": "source_payment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_source_credit_application_id_idx": {
-          "name": "usage_ledger_items_source_credit_application_id_idx",
-          "columns": [
-            {
-              "expression": "source_credit_application_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_source_credit_balance_adjustment_id_idx": {
-          "name": "usage_ledger_items_source_credit_balance_adjustment_id_idx",
-          "columns": [
-            {
-              "expression": "source_credit_balance_adjustment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_source_billing_period_calculation_id_idx": {
-          "name": "usage_ledger_items_source_billing_period_calculation_id_idx",
-          "columns": [
-            {
-              "expression": "source_billing_period_calculation_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_applied_to_ledger_item_id_idx": {
-          "name": "usage_ledger_items_applied_to_ledger_item_id_idx",
-          "columns": [
-            {
-              "expression": "applied_to_ledger_item_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_billing_period_id_idx": {
-          "name": "usage_ledger_items_billing_period_id_idx",
-          "columns": [
-            {
-              "expression": "billing_period_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "usage_ledger_items_usage_meter_id_idx": {
-          "name": "usage_ledger_items_usage_meter_id_idx",
-          "columns": [
-            {
-              "expression": "usage_meter_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "usage_ledger_items_usage_transaction_id_usage_transactions_id_fk": {
-          "name": "usage_ledger_items_usage_transaction_id_usage_transactions_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "usage_transactions",
-          "columnsFrom": [
-            "usage_transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_subscription_id_subscriptions_id_fk": {
-          "name": "usage_ledger_items_subscription_id_subscriptions_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "subscriptions",
-          "columnsFrom": [
-            "subscription_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_source_usage_event_id_usage_events_id_fk": {
-          "name": "usage_ledger_items_source_usage_event_id_usage_events_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "usage_events",
-          "columnsFrom": [
-            "source_usage_event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_source_usage_credit_id_usage_credits_id_fk": {
-          "name": "usage_ledger_items_source_usage_credit_id_usage_credits_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "usage_credits",
-          "columnsFrom": [
-            "source_usage_credit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_source_payment_id_payments_id_fk": {
-          "name": "usage_ledger_items_source_payment_id_payments_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "payments",
-          "columnsFrom": [
-            "source_payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_source_credit_application_id_usage_credit_applications_id_fk": {
-          "name": "usage_ledger_items_source_credit_application_id_usage_credit_applications_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "usage_credit_applications",
-          "columnsFrom": [
-            "source_credit_application_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_source_credit_balance_adjustment_id_usage_credit_balance_adjustments_id_fk": {
-          "name": "usage_ledger_items_source_credit_balance_adjustment_id_usage_credit_balance_adjustments_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "usage_credit_balance_adjustments",
-          "columnsFrom": [
-            "source_credit_balance_adjustment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_billing_period_id_billing_periods_id_fk": {
-          "name": "usage_ledger_items_billing_period_id_billing_periods_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "billing_periods",
-          "columnsFrom": [
-            "billing_period_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_usage_meter_id_usage_meters_id_fk": {
-          "name": "usage_ledger_items_usage_meter_id_usage_meters_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "usage_meters",
-          "columnsFrom": [
-            "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_ledger_items_organization_id_organizations_id_fk": {
-          "name": "usage_ledger_items_organization_id_organizations_id_fk",
-          "tableFrom": "usage_ledger_items",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "usage_ledger_items_id_unique": {
-          "name": "usage_ledger_items_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "policies": {
-        "Enable read for own organizations": {
-          "name": "Enable read for own organizations",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
-        },
-        "Check mode": {
-          "name": "Check mode",
-          "as": "RESTRICTIVE",
-          "for": "ALL",
-          "to": [
-            "authenticated"
-          ],
-          "using": "current_setting('app.livemode')::boolean = livemode"
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
     "public.usage_meters": {
       "name": "usage_meters",
       "schema": "",
@@ -9037,6 +10491,24 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -9061,6 +10533,36 @@
           "method": "btree",
           "with": {}
         },
+        "usage_transactions_usage_meter_id_idx": {
+          "name": "usage_transactions_usage_meter_id_idx",
+          "columns": [
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "usage_transactions_subscription_id_idx": {
+          "name": "usage_transactions_subscription_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "usage_transactions_organization_id_idx": {
           "name": "usage_transactions_organization_id_idx",
           "columns": [
@@ -9075,6 +10577,33 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "usage_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx": {
+          "name": "usage_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx",
+          "columns": [
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -9084,6 +10613,32 @@
           "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "usage_transactions_subscription_id_subscriptions_id_fk": {
+          "name": "usage_transactions_subscription_id_subscriptions_id_fk",
+          "tableFrom": "usage_transactions",
+          "tableTo": "subscriptions",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "usage_transactions_usage_meter_id_usage_meters_id_fk": {
+          "name": "usage_transactions_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "usage_transactions",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
           ],
           "columnsTo": [
             "id"

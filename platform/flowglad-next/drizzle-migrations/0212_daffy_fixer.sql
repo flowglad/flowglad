@@ -5,13 +5,13 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-    CREATE TYPE "UsageLedgerItemStatus" AS ENUM ('pending', 'posted');
+    CREATE TYPE "LedgerEntryStatus" AS ENUM ('pending', 'posted');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-    CREATE TYPE "UsageLedgerItemDirection" AS ENUM ('debit', 'credit');
+    CREATE TYPE "LedgerEntryDirection" AS ENUM ('debit', 'credit');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS "usage_ledger_items" (
 	"usage_transaction_id" text NOT NULL,
 	"subscription_id" text NOT NULL,
 	"entry_timestamp" timestamp with time zone DEFAULT now() NOT NULL,
-	"status" "UsageLedgerItemStatus" NOT NULL,
-	"direction" "UsageLedgerItemDirection" NOT NULL,
+	"status" "LedgerEntryStatus" NOT NULL,
+	"direction" "LedgerEntryDirection" NOT NULL,
 	"entry_type" text NOT NULL,
 	"amount" integer NOT NULL,
 	"description" text,

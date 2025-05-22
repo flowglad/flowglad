@@ -20,7 +20,7 @@ import {
   pgEnumColumn,
   SelectConditions,
   hiddenColumnsForClientSchema as baseHiddenColumnsForClientSchema,
-  timezoneWithTimestampColumn,
+  timestampWithTimezoneColumn,
   ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
   parentForeignKeyIntegrityCheckPolicy,
 } from '@/db/tableUtils'
@@ -62,7 +62,7 @@ export const subscriptionItemFeatures = pgTable(
       columnName: 'renewal_frequency',
       enumBase: FeatureUsageGrantFrequency,
     }),
-    expiredAt: timezoneWithTimestampColumn('expired_at'),
+    expiredAt: timestampWithTimezoneColumn('expired_at'),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionItemId]),

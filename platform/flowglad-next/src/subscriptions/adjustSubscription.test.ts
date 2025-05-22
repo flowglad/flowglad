@@ -25,7 +25,7 @@ import {
 } from '../../seedDatabase'
 
 // Helpers to query the database after adjustments
-import { selectSubscriptionItemsAndSubscriptionBysubscriptionId } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItemsAndSubscriptionBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   selectCurrentBillingPeriodForSubscription,
   updateBillingPeriod,
@@ -245,7 +245,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
           // Verify that subscription items were updated with addedDate/removedDate.
           const result =
-            await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
+            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
               subscription.id,
               transaction
             )
@@ -340,7 +340,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
 
           const result =
-            await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
+            await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
               subscription.id,
               transaction
             )
@@ -453,7 +453,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         const result =
-          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
             subscription.id,
             transaction
           )
@@ -613,7 +613,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         const result =
-          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
             subscription.id,
             transaction
           )
@@ -839,7 +839,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         const result =
-          await selectSubscriptionItemsAndSubscriptionBysubscriptionId(
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
             subscription.id,
             transaction
           )
