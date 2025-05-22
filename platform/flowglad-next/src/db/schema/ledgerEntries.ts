@@ -170,7 +170,8 @@ const columnRefinements = {
 export const ledgerEntriesInsertSchema = enhancedCreateInsertSchema(
   ledgerEntries,
   columnRefinements
-)
+).extend(columnRefinements)
+
 export const ledgerEntriesSelectSchema =
   createSelectSchema(ledgerEntries).extend(columnRefinements)
 export const ledgerEntriesUpdateSchema = createUpdateSchema(

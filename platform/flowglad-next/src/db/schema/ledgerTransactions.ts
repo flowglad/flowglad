@@ -14,7 +14,6 @@ import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { subscriptions } from './subscriptions'
-import { usageMeters } from './usageMeters'
 
 const TABLE_NAME = 'ledger_transactions'
 
@@ -34,10 +33,6 @@ export const ledgerTransactions = pgTable(
       'subscription_id',
       subscriptions
     ),
-    usageMeterId: notNullStringForeignKey(
-      'usage_meter_id',
-      usageMeters
-    ),
     idempotencyKey: text('idempotency_key'),
   },
   (table) => [
@@ -45,12 +40,10 @@ export const ledgerTransactions = pgTable(
       table.initiatingSourceType,
       table.initiatingSourceId,
     ]),
-    constructIndex(TABLE_NAME, [table.usageMeterId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructUniqueIndex(TABLE_NAME, [
       table.idempotencyKey,
-      table.usageMeterId,
       table.subscriptionId,
     ]),
     pgPolicy('Enable read for own organizations', {
