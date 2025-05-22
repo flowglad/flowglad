@@ -243,12 +243,19 @@ const PriceFormFields = ({
                   setValue('price.intervalCount', 1)
                   setValue('price.intervalUnit', IntervalUnit.Month)
                   setValue('price.setupFeeAmount', null)
+                  setValue('price.usageMeterId', null)
+                  setValue('price.trialPeriodDays', 0)
                 }
                 if (value === PriceType.SinglePayment) {
                   setValue('price.intervalCount', null)
                   setValue('price.intervalUnit', null)
                   setValue('price.usageMeterId', null)
                   setValue('price.trialPeriodDays', null)
+                }
+                if (value === PriceType.Subscription) {
+                  setValue('price.intervalCount', 1)
+                  setValue('price.intervalUnit', IntervalUnit.Month)
+                  setValue('price.trialPeriodDays', 0)
                 }
                 if (value !== PriceType.Usage) {
                   setValue('price.usageMeterId', null)
