@@ -78,6 +78,15 @@ import { memberships } from '@/db/schema/memberships'
 import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
 import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
+import { usageEvents } from '@/db/schema/usageEvents'
+import { ledgerTransactions } from '@/db/schema/ledgerTransactions'
+import { ledgerEntries } from '@/db/schema/ledgerEntries'
+import { usageCredits } from '@/db/schema/usageCredits'
+import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
+import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
+import { refunds } from '@/db/schema/refunds'
+import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
+
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
     'attempted to access seedDatabase.ts in production. This should never happen.'
@@ -1185,5 +1194,244 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
       createdData.push({ feature, productFeature })
     }
     return createdData
+  })
+}
+
+export const setupUsageEvent = async (
+  params: Partial<typeof usageEvents.$inferInsert> & {
+    organizationId: string
+    subscriptionId: string
+    usageMeterId: string
+    quantity: number
+  }
+): Promise<typeof usageEvents.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertUsageEvent is defined and imported
+    return insertUsageEvent(
+      {
+        eventTimestamp: now,
+        livemode: true,
+        idempotencyKey: `uevt_${core.nanoid()}`,
+        metadata: {},
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupLedgerTransaction = async (
+  params: Partial<typeof ledgerTransactions.$inferInsert> & {
+    organizationId: string
+  }
+): Promise<typeof ledgerTransactions.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    // @ts-expect-error Assume insertLedgerTransaction is defined and imported
+    return insertLedgerTransaction(
+      {
+        livemode: true,
+        initiatingSourceType: 'test_setup',
+        initiatingSourceId: `src_${core.nanoid()}`,
+        description: 'Test Ledger Transaction',
+        metadata: {},
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export type LedgerEntryType =
+  | 'usage_cost'
+  | 'payment_recognized'
+  | 'credit_grant_recognized'
+  | 'credit_applied_to_usage'
+  | 'credit_balance_adjusted'
+  | 'credit_grant_expired'
+  | 'billing_adjustment'
+  | 'payment_refunded'
+// Add other entry types as needed from your spec
+
+export type LedgerEntryStatus = 'pending' | 'posted'
+
+export const setupLedgerEntry = async (
+  params: Partial<typeof ledgerEntries.$inferInsert> & {
+    organizationId: string
+    subscriptionId: string
+    ledgerTransactionId: string
+    entryType: LedgerEntryType
+    amount: number // Positive for credit, negative for debit
+    currency: CurrencyCode
+  }
+): Promise<typeof ledgerEntries.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertLedgerEntry is defined and imported
+    return insertLedgerEntry(
+      {
+        livemode: true,
+        status: 'posted' as LedgerEntryStatus,
+        description: `Test Ledger Entry - ${params.entryType}`,
+        entryTimestamp: now,
+        metadata: {},
+        discardedAt: null,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupUsageCredit = async (
+  params: Partial<typeof usageCredits.$inferInsert> & {
+    organizationId: string
+    subscriptionId: string
+    creditType: string
+    issuedAmount: number
+    currency: CurrencyCode
+  }
+): Promise<typeof usageCredits.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertUsageCredit is defined and imported
+    return insertUsageCredit(
+      {
+        livemode: true,
+        initialStatus: 'granted_active',
+        issuedAt: now,
+        sourceReferenceId: `src_ref_${core.nanoid()}`,
+        metadata: {},
+        notes: 'Test Usage Credit',
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupUsageCreditApplication = async (
+  params: Partial<typeof usageCreditApplications.$inferInsert> & {
+    organizationId: string
+    usageCreditId: string
+    amountApplied: number
+    currency: CurrencyCode
+  }
+): Promise<typeof usageCreditApplications.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertUsageCreditApplication is defined and imported
+    return insertUsageCreditApplication(
+      {
+        livemode: true,
+        appliedAt: now,
+        calculationRunId: `calc_run_${core.nanoid()}`,
+        metadata: {},
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupUsageCreditBalanceAdjustment = async (
+  params: Partial<
+    typeof usageCreditBalanceAdjustments.$inferInsert
+  > & {
+    organizationId: string
+    adjustedUsageCreditId: string
+    adjustmentType: string
+    amountAdjusted: number // Positive value representing amount removed/added
+    currency: CurrencyCode
+    reason: string
+  }
+): Promise<typeof usageCreditBalanceAdjustments.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertUsageCreditBalanceAdjustment is defined and imported
+    return insertUsageCreditBalanceAdjustment(
+      {
+        livemode: true,
+        adjustmentInitiatedAt: now,
+        adjustedByUserId: `user_${core.nanoid()}`,
+        metadata: {},
+        notes: 'Test Usage Credit Balance Adjustment',
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export type RefundStatus = 'pending' | 'succeeded' | 'failed'
+
+export const setupRefund = async (
+  params: Partial<typeof refunds.$inferInsert> & {
+    organizationId: string
+    paymentId: string
+    subscriptionId: string
+    amount: number
+    currency: CurrencyCode
+  }
+): Promise<typeof refunds.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    // @ts-expect-error Assume insertRefund is defined and imported
+    return insertRefund(
+      {
+        livemode: true,
+        status: 'succeeded' as RefundStatus,
+        reason: 'Test Refund',
+        gatewayRefundId: `ref_gw_${core.nanoid()}`,
+        refundProcessedAt: new Date(),
+        metadata: {},
+        notes: 'Test Refund Notes',
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export type SMPCalculationStatus =
+  | 'active'
+  | 'superseded'
+  | 'pending_confirmation'
+export type SMPCalculationType =
+  | 'billing_run'
+  | 'interim_estimate'
+  | 'adjustment_recalculation'
+
+export const setupSubscriptionMeterPeriodCalculation = async (
+  params: Partial<
+    typeof subscriptionMeterPeriodCalculations.$inferInsert
+  > & {
+    organizationId: string
+    subscriptionId: string
+    usageMeterId: string
+    billingPeriodId: string
+    calculationRunId: string
+    totalRawUsageAmount: number
+    creditsAppliedAmount: number
+    netBilledAmount: number
+    currency: CurrencyCode
+  }
+): Promise<
+  typeof subscriptionMeterPeriodCalculations.$inferSelect
+> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertSubscriptionMeterPeriodCalculation is defined and imported
+    return insertSubscriptionMeterPeriodCalculation(
+      {
+        livemode: true,
+        calculatedAt: now,
+        calculationType: 'billing_run' as SMPCalculationType,
+        status: 'active' as SMPCalculationStatus,
+        metadata: {},
+        notes: 'Test SMPC',
+        ...params,
+      },
+      transaction
+    )
   })
 }

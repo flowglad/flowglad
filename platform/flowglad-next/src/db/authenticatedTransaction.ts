@@ -161,13 +161,12 @@ export function eventfulAuthenticatedTransaction<T>(
   ) => Promise<[T, Event.Insert[]]>,
   options: AuthenticatedTransactionOptions
 ) {
-  return authenticatedTransaction(async (params) => {
+  return comprehensiveAuthenticatedTransaction(async (params) => {
     const [result, eventInserts] = await fn(params)
-    await bulkInsertOrDoNothingEventsByHash(
-      eventInserts,
-      params.transaction
-    )
-    return result
+    return {
+      result,
+      eventsToLog: eventInserts,
+    }
   }, options)
 }
 

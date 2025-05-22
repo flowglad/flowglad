@@ -201,7 +201,7 @@ export async function processLedgerCommand(
     initiatingSourceType,
     initiatingSourceId,
     description,
-    metadata,
+    metadata: metadata as {},
     subscriptionId,
   }
 

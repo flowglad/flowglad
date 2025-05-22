@@ -115,7 +115,6 @@ export async function eventfulAdminTransaction<T>(
     return {
       result,
       eventsToLog: eventInserts,
-      // ledgerCommand will be undefined by default in this adapter
     }
   }, options)
 }
