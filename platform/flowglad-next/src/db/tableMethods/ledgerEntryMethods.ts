@@ -10,10 +10,11 @@ import {
   ledgerEntriesInsertSchema,
   ledgerEntriesSelectSchema,
   ledgerEntriesUpdateSchema,
+  LedgerEntry,
 } from '@/db/schema/ledgerEntries'
 import { DbTransaction } from '../types'
-import { LedgerEntryStatus } from '@/types'
-import { and, eq, inArray } from 'drizzle-orm'
+import { LedgerEntryDirection, LedgerEntryStatus } from '@/types'
+import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
 
 const config: ORMMethodCreatorConfig<
@@ -90,4 +91,57 @@ export const expirePendingLedgerEntriesForPayment = async (
     .returning()
 
   return pendingLedgerEntries
+}
+
+const balanceTypeWhereStatement = (
+  balanceType: 'pending' | 'posted' | 'available'
+) => {
+  switch (balanceType) {
+    case 'posted':
+      return eq(ledgerEntries.status, LedgerEntryStatus.Posted)
+    case 'pending':
+      return inArray(ledgerEntries.status, [
+        LedgerEntryStatus.Pending,
+        LedgerEntryStatus.Posted,
+      ])
+    case 'available':
+      /**
+       * include both posted OR
+       * pending + debit
+       * (exclude pending + credit)
+       */
+      return or(
+        eq(ledgerEntries.status, LedgerEntryStatus.Posted),
+        and(
+          eq(ledgerEntries.status, LedgerEntryStatus.Pending),
+          eq(ledgerEntries.direction, LedgerEntryDirection.Debit)
+        )
+      )
+  }
+}
+
+export const aggregateBalanceForLedgerAccountFromEntries = async (
+  ledgerAccountId: string,
+  balanceType: 'pending' | 'posted' | 'available',
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(ledgerEntries)
+    .where(
+      and(
+        eq(ledgerEntries.ledgerAccountId, ledgerAccountId),
+        or(
+          isNull(ledgerEntries.discardedAt),
+          gt(ledgerEntries.discardedAt, new Date())
+        ),
+        balanceTypeWhereStatement(balanceType)
+      )
+    )
+  const balance = result.reduce((acc, entry) => {
+    return entry.direction === LedgerEntryDirection.Credit
+      ? acc + entry.amount
+      : acc - entry.amount
+  }, 0)
+  return balance
 }
