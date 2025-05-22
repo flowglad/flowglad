@@ -55,7 +55,6 @@ export const createUsageEventLedgerTransaction = async (
         LedgerTransactionInitiatingSourceType.UsageEvent,
       initiatingSourceId: usageEvent.id,
       subscriptionId: usageEvent.subscriptionId,
-      usageMeterId: usageEvent.usageMeterId,
     },
     transaction
   )
@@ -78,6 +77,12 @@ export const createUsageEventLedgerTransaction = async (
       amount: usageEvent.amount,
       description: `Ingesting Usage Event ${usageEvent.id}`,
       ledgerAccountId: ledgerAccount.id,
+      metadata: {
+        usageEventId: usageEvent.id,
+      },
+      entryTimestamp: usageEvent.createdAt,
+      expiredAt: null,
+      discardedAt: null,
     },
     transaction
   )
@@ -133,6 +138,12 @@ export const createPaymentInitiationLedgerTransaction = async (
       description: `Payment ${payment.id} initiated`,
       sourcePaymentId: payment.id,
       ledgerAccountId: ledgerAccount.id,
+      metadata: {
+        paymentId: payment.id,
+      },
+      entryTimestamp: payment.createdAt,
+      expiredAt: null,
+      discardedAt: null,
     },
     transaction
   )
@@ -173,7 +184,6 @@ const createLedgerTransactionForPayment = async (
           LedgerTransactionInitiatingSourceType.Payment,
         initiatingSourceId: payment.id,
         subscriptionId,
-        usageMeterId: usageMeter.id,
         idempotencyKey: `${payment.id}-${payment.status}`,
       },
       transaction
@@ -253,6 +263,12 @@ export const postPaymentConfirmationLedgerTransaction = async (
       description: `Payment ${payment.id} recognized and credits issued`,
       sourcePaymentId: payment.id,
       ledgerAccountId: ledgerAccount.id,
+      metadata: {
+        paymentId: payment.id,
+      },
+      entryTimestamp: payment.createdAt,
+      expiredAt: null,
+      discardedAt: null,
     },
     transaction
   )
