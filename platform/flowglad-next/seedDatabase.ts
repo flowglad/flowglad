@@ -46,6 +46,9 @@ import {
   FeatureType,
   LedgerEntryStatus,
   LedgerEntryDirection,
+  LedgerEntryEntryType,
+  LedgerEntryDebitableEntryType,
+  LedgerEntryCreditableEntryType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -1233,7 +1236,7 @@ export const setupLedgerTransaction = async (
     organizationId: string
     subscriptionId: string
   }
-): Promise<typeof ledgerTransactions.$inferSelect> => {
+): Promise<LedgerTransaction.Record> => {
   return adminTransaction(async ({ transaction }) => {
     return insertLedgerTransaction(
       {
@@ -1241,6 +1244,8 @@ export const setupLedgerTransaction = async (
         initiatingSourceType: 'test_setup',
         initiatingSourceId: `src_${core.nanoid()}`,
         description: 'Test Ledger Transaction',
+        metadata:
+          params.metadata === undefined ? null : params.metadata,
         ...params,
       },
       transaction
@@ -1248,39 +1253,105 @@ export const setupLedgerTransaction = async (
   })
 }
 
-export type LedgerEntryType =
-  | 'usage_cost'
-  | 'payment_recognized'
-  | 'credit_grant_recognized'
-  | 'credit_applied_to_usage'
-  | 'credit_balance_adjusted'
-  | 'credit_grant_expired'
-  | 'billing_adjustment'
-  | 'payment_refunded'
-// Add other entry types as needed from your spec
-
 export const setupLedgerEntry = async (
   params: Partial<LedgerEntry.Insert> & {
     organizationId: string
     subscriptionId: string
     ledgerTransactionId: string
     ledgerAccountId: string
-    entryType: LedgerEntryType
-    amount: number // Positive for credit, negative for debit
+    entryType: LedgerEntryEntryType
     direction: LedgerEntryDirection
+    amount: number
   }
 ): Promise<typeof ledgerEntries.$inferSelect> => {
+  if (
+    params.amount < 0 &&
+    params.direction === LedgerEntryDirection.Credit
+  ) {
+    throw new Error(
+      'setupLedgerEntry: credit amount must be positive'
+    )
+  }
+  if (
+    params.amount < 0 &&
+    params.direction === LedgerEntryDirection.Debit
+  ) {
+    throw new Error('setupLedgerEntry: debit amount must be positive')
+  }
+  const dbAmount = Math.abs(params.amount)
+
   return adminTransaction(async ({ transaction }) => {
     const now = new Date()
     return insertLedgerEntry(
       {
         livemode: true,
-        status: LedgerEntryStatus.Posted,
+        status: params.status ?? LedgerEntryStatus.Posted,
         description: `Test Ledger Entry - ${params.entryType}`,
         entryTimestamp: now,
-        metadata: null,
+        metadata: params.metadata ?? {},
         discardedAt: null,
         ...params,
+        amount: dbAmount,
+      },
+      transaction
+    )
+  })
+}
+
+type DirectedSetupEntryParams<T extends LedgerEntryDirection> = Omit<
+  Partial<LedgerEntry.Insert>,
+  'direction'
+> & {
+  organizationId: string
+  subscriptionId: string
+  ledgerTransactionId: string
+  ledgerAccountId: string
+  amount: number
+  entryType: T extends LedgerEntryDirection.Debit
+    ? LedgerEntryDebitableEntryType
+    : LedgerEntryCreditableEntryType
+}
+
+const coreLedgerEntryFromParams = <T extends LedgerEntryDirection>(
+  params: DirectedSetupEntryParams<T>
+): Omit<LedgerEntry.Insert, 'direction'> => {
+  return {
+    ...params,
+    amount: Math.abs(params.amount),
+    status: params.status ?? LedgerEntryStatus.Posted,
+    livemode: params.livemode ?? true,
+    metadata: params.metadata ?? null,
+    entryTimestamp: params.entryTimestamp ?? new Date(),
+    expiredAt: params.expiredAt ?? null,
+    discardedAt: params.discardedAt ?? null,
+  }
+}
+
+export const setupDebitLedgerEntry = async (
+  params: DirectedSetupEntryParams<LedgerEntryDirection.Debit>
+): Promise<LedgerEntry.Record> => {
+  if (params.amount < 0) {
+    throw new Error('setupDebitLedgerEntry: amount must be positive')
+  }
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerEntry(
+      {
+        ...coreLedgerEntryFromParams(params),
+        direction: LedgerEntryDirection.Debit,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupCreditLedgerEntry = async (
+  params: DirectedSetupEntryParams<LedgerEntryDirection.Credit>
+): Promise<LedgerEntry.Record> => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerEntry(
+      {
+        ...coreLedgerEntryFromParams(params),
+        direction: LedgerEntryDirection.Credit,
       },
       transaction
     )
@@ -1345,7 +1416,7 @@ export const setupUsageCreditBalanceAdjustment = async (
     organizationId: string
     adjustedUsageCreditId: string
     adjustmentType: string
-    amountAdjusted: number // Positive value representing amount removed/added
+    amountAdjusted: number
     currency: CurrencyCode
     reason: string
   }

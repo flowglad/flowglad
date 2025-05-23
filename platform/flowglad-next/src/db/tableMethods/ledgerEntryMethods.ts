@@ -70,27 +70,30 @@ export const expirePendingLedgerEntriesForPayment = async (
     },
     transaction
   )
-  await transaction
+  const whereClause = and(
+    inArray(
+      ledgerEntries.id,
+      pendingLedgerEntries.map((item) => item.id)
+    ),
+    eq(
+      ledgerEntries.subscriptionId,
+      ledgerTransaction.subscriptionId
+    ),
+    eq(ledgerEntries.ledgerTransactionId, ledgerTransaction.id)
+  )
+  const toBeExpiredLedgerEntries = await transaction
+    .select()
+    .from(ledgerEntries)
+    .where(whereClause)
+
+  return await transaction
     .update(ledgerEntries)
     .set({
       expiredAt: new Date(),
       expiredAtLedgerTransactionId: ledgerTransaction.id,
     })
-    .where(
-      and(
-        inArray(
-          ledgerEntries.id,
-          pendingLedgerEntries.map((item) => item.id)
-        ),
-        eq(
-          ledgerEntries.subscriptionId,
-          ledgerTransaction.subscriptionId
-        )
-      )
-    )
+    .where(whereClause)
     .returning()
-
-  return pendingLedgerEntries
 }
 
 const balanceTypeWhereStatement = (

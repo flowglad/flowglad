@@ -162,7 +162,7 @@ export const ledgerEntries = pgTable(
 const columnRefinements = {
   status: core.createSafeZodEnum(LedgerEntryStatus),
   direction: core.createSafeZodEnum(LedgerEntryDirection),
-  amount: core.safeZodPositiveInteger,
+  amount: core.safeZodPositiveIntegerOrZero,
   entryTimestamp: core.safeZodDate,
   discardedAt: core.safeZodDate.nullable(),
   metadata: z.record(z.string(), z.any()).nullable(),

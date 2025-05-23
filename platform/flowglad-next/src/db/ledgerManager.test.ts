@@ -10,6 +10,8 @@ import {
   setupUsageMeter,
   setupLedgerTransaction,
   setupLedgerEntry,
+  setupDebitLedgerEntry,
+  setupCreditLedgerEntry,
 } from '../../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
@@ -28,6 +30,7 @@ import {
   LedgerEntryDirection,
   PaymentMethodType,
   SubscriptionStatus,
+  LedgerEntryEntryType,
 } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
 import db from '@/db/client'
@@ -118,40 +121,36 @@ describe('Ledger Management System', async () => {
         const entry2Amount = 200
         const entry3Amount = -50
 
-        await setupLedgerEntry({
+        await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'usage_cost',
+          entryType: LedgerEntryEntryType.UsageCost,
           amount: Math.abs(entry1Amount),
           status: LedgerEntryStatus.Posted,
-          direction: LedgerEntryDirection.Debit,
           ledgerAccountId: ledgerAccount.id,
         })
-        await setupLedgerEntry({
+        await setupCreditLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'payment_recognized',
+          entryType: LedgerEntryEntryType.PaymentSucceeded,
           amount: Math.abs(entry2Amount),
           status: LedgerEntryStatus.Posted,
-          direction: LedgerEntryDirection.Credit,
           ledgerAccountId: ledgerAccount.id,
         })
-        await setupLedgerEntry({
+        await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'usage_cost',
+          entryType: LedgerEntryEntryType.UsageCost,
           amount: Math.abs(entry3Amount),
           status: LedgerEntryStatus.Posted,
-          direction: LedgerEntryDirection.Debit,
           ledgerAccountId: ledgerAccount.id,
         })
-        await setupLedgerEntry({
+        await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'usage_cost',
+          entryType: LedgerEntryEntryType.UsageCost,
           amount: 9999,
           status: LedgerEntryStatus.Pending,
-          direction: LedgerEntryDirection.Debit,
           ledgerAccountId: ledgerAccount.id,
         })
 
@@ -182,44 +181,40 @@ describe('Ledger Management System', async () => {
         const activePendingCostAmount = 500
         const discardedPendingCostAmount = 10000
 
-        await setupLedgerEntry({
+        await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'usage_cost',
+          entryType: LedgerEntryEntryType.UsageCost,
           amount: Math.abs(postedCostAmount1),
           status: LedgerEntryStatus.Posted,
-          direction: LedgerEntryDirection.Debit,
           ledgerAccountId: ledgerAccount.id,
         })
-        await setupLedgerEntry({
+        await setupCreditLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'payment_recognized',
+          entryType: LedgerEntryEntryType.PaymentSucceeded,
           amount: Math.abs(postedPaymentCreditAmount2),
           status: LedgerEntryStatus.Posted,
-          direction: LedgerEntryDirection.Credit,
           ledgerAccountId: ledgerAccount.id,
         })
-        await setupLedgerEntry({
+        await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'usage_cost',
+          entryType: LedgerEntryEntryType.UsageCost,
           amount: Math.abs(activePendingCostAmount),
           status: LedgerEntryStatus.Pending,
           discardedAt: null,
           ledgerAccountId: ledgerAccount.id,
-          direction: LedgerEntryDirection.Debit,
         })
 
-        await setupLedgerEntry({
+        await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: 'usage_cost',
+          entryType: LedgerEntryEntryType.UsageCost,
           amount: Math.abs(discardedPendingCostAmount),
           status: LedgerEntryStatus.Pending,
           discardedAt: new Date(),
           ledgerAccountId: ledgerAccount.id,
-          direction: LedgerEntryDirection.Debit,
         })
 
         const expectedBalance =
@@ -242,10 +237,15 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           livemode: subscription.livemode,
           subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
         }
+
         const ledgerTransaction =
           await setupLedgerTransaction(coreParams)
-
+        const paramsWithTransaction = {
+          ...coreParams,
+          ledgerTransactionId: ledgerTransaction.id,
+        }
         const amounts = [1500, -750, 200, -50, 1000, -1200, 1000]
         let expectedPostedBalance = 0
         let expectedEffectiveBalance = 0
@@ -254,22 +254,25 @@ describe('Ledger Management System', async () => {
           const amount = amounts[i]
           const isPending = i % 2 === 0
           const isDiscarded = isPending && i % 4 === 0
-          const ledgerEntryInsert = {
-            ...coreParams,
-            ledgerTransactionId: ledgerTransaction.id,
-            entryType: 'usage_cost',
-            amount: Math.abs(amount),
-            status: isPending
-              ? LedgerEntryStatus.Pending
-              : LedgerEntryStatus.Posted,
-            discardedAt: isDiscarded ? new Date() : null,
-            direction:
-              amount > 0
-                ? LedgerEntryDirection.Credit
-                : LedgerEntryDirection.Debit,
-            ledgerAccountId: ledgerAccount.id,
-          } as const
-          await setupLedgerEntry(ledgerEntryInsert)
+          if (amount > 0) {
+            await setupCreditLedgerEntry({
+              ...paramsWithTransaction,
+              entryType: LedgerEntryEntryType.CreditGrantRecognized,
+              amount: Math.abs(amount),
+              status: isPending
+                ? LedgerEntryStatus.Pending
+                : LedgerEntryStatus.Posted,
+            })
+          } else {
+            await setupDebitLedgerEntry({
+              ...paramsWithTransaction,
+              entryType: LedgerEntryEntryType.UsageCost,
+              amount: Math.abs(amount),
+              status: isPending
+                ? LedgerEntryStatus.Pending
+                : LedgerEntryStatus.Posted,
+            })
+          }
 
           if (!isPending && !isDiscarded) {
             expectedPostedBalance += amount
