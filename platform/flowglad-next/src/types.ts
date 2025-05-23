@@ -847,3 +847,15 @@ export enum NormalBalanceType {
   DEBIT = 'debit',
   CREDIT = 'credit',
 }
+
+export enum LedgerTransactionType {
+  UsageEventProcessed = 'usage_event_processed',
+  PaymentConfirmed = 'payment_confirmed',
+  PromoCreditGranted = 'promo_credit_granted',
+  BillingRunUsageProcessed = 'billing_run_usage_processed',
+  BillingRunCreditApplied = 'billing_run_credit_applied',
+  AdminCreditAdjusted = 'admin_credit_adjusted',
+  CreditGrantExpired = 'credit_grant_expired',
+  PaymentRefunded = 'payment_refunded',
+  BillingRecalculated = 'billing_recalculated',
+}

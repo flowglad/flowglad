@@ -1527,6 +1527,13 @@
       "when": 1747936147969,
       "tag": "0218_natural_luckman",
       "breakpoints": true
+    },
+    {
+      "idx": 219,
+      "version": "7",
+      "when": 1748018489601,
+      "tag": "0219_furry_vance_astro",
+      "breakpoints": true
     }
   ]
 }

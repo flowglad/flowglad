@@ -9,11 +9,13 @@ import {
   livemodePolicy,
   createUpdateSchema,
   constructUniqueIndex,
+  pgEnumColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { subscriptions } from './subscriptions'
+import { LedgerTransactionType } from '@/types'
 
 const TABLE_NAME = 'ledger_transactions'
 
@@ -25,6 +27,11 @@ export const ledgerTransactions = pgTable(
       'organization_id',
       organizations
     ),
+    type: pgEnumColumn({
+      enumName: 'LedgerTransactionType',
+      columnName: 'type',
+      enumBase: LedgerTransactionType,
+    }),
     initiatingSourceType: text('initiating_source_type'),
     initiatingSourceId: text('initiating_source_id'),
     description: text('description'),
@@ -46,6 +53,13 @@ export const ledgerTransactions = pgTable(
       table.idempotencyKey,
       table.subscriptionId,
     ]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.type,
+      table.initiatingSourceType,
+      table.initiatingSourceId,
+      table.livemode,
+      table.organizationId,
+    ]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
       to: 'authenticated',
@@ -58,7 +72,7 @@ export const ledgerTransactions = pgTable(
 
 const columnRefinements = {
   metadata: z.record(z.string(), z.any()).nullable(),
-  createdAt: core.safeZodDate,
+  type: z.nativeEnum(LedgerTransactionType),
 }
 
 export const ledgerTransactionsInsertSchema =
