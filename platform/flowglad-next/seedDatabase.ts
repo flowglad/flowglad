@@ -49,6 +49,7 @@ import {
   LedgerEntryEntryType,
   LedgerEntryDebitableEntryType,
   LedgerEntryCreditableEntryType,
+  LedgerEntryType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -96,6 +97,8 @@ import { refunds } from '@/db/schema/refunds'
 import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { insertLedgerEntry } from '@/db/tableMethods/ledgerEntryMethods'
+// @ts-expect-error Assume insertUsageCredit is defined and imported
+import { insertUsageCredit } from '@/db/models/usageCredits'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -1253,108 +1256,298 @@ export const setupLedgerTransaction = async (
   })
 }
 
-export const setupLedgerEntry = async (
-  params: Partial<LedgerEntry.Insert> & {
-    organizationId: string
-    subscriptionId: string
-    ledgerTransactionId: string
-    ledgerAccountId: string
-    entryType: LedgerEntryEntryType
-    direction: LedgerEntryDirection
-    amount: number
-  }
-): Promise<typeof ledgerEntries.$inferSelect> => {
-  if (
-    params.amount < 0 &&
-    params.direction === LedgerEntryDirection.Credit
-  ) {
-    throw new Error(
-      'setupLedgerEntry: credit amount must be positive'
-    )
-  }
-  if (
-    params.amount < 0 &&
-    params.direction === LedgerEntryDirection.Debit
-  ) {
-    throw new Error('setupLedgerEntry: debit amount must be positive')
-  }
-  const dbAmount = Math.abs(params.amount)
-
-  return adminTransaction(async ({ transaction }) => {
-    const now = new Date()
-    return insertLedgerEntry(
-      {
-        livemode: true,
-        status: params.status ?? LedgerEntryStatus.Posted,
-        description: `Test Ledger Entry - ${params.entryType}`,
-        entryTimestamp: now,
-        metadata: params.metadata ?? {},
-        discardedAt: null,
-        ...params,
-        amount: dbAmount,
-      },
-      transaction
-    )
-  })
-}
-
-type DirectedSetupEntryParams<T extends LedgerEntryDirection> = Omit<
-  Partial<LedgerEntry.Insert>,
-  'direction'
-> & {
+interface CoreLedgerEntryUserParams {
   organizationId: string
   subscriptionId: string
   ledgerTransactionId: string
   ledgerAccountId: string
-  amount: number
-  entryType: T extends LedgerEntryDirection.Debit
-    ? LedgerEntryDebitableEntryType
-    : LedgerEntryCreditableEntryType
+  amount: number // User provides positive amount; sign/direction handled by logic
+
+  description?: string
+  entryTimestamp?: Date
+  status?: LedgerEntryStatus
+  livemode?: boolean
+  metadata?: Record<string, any> | null
+  discardedAt?: Date | null
+  expiredAt?: Date | null
+  billingPeriodId?: string | null
+  usageMeterId?: string | null
+  calculationRunId?: string | null
+  appliedToLedgerItemId?: string | null
 }
 
-const coreLedgerEntryFromParams = <T extends LedgerEntryDirection>(
-  params: DirectedSetupEntryParams<T>
-): Omit<LedgerEntry.Insert, 'direction'> => {
-  return {
-    ...params,
-    amount: Math.abs(params.amount),
-    status: params.status ?? LedgerEntryStatus.Posted,
-    livemode: params.livemode ?? true,
-    metadata: params.metadata ?? null,
-    entryTimestamp: params.entryTimestamp ?? new Date(),
-    expiredAt: params.expiredAt ?? null,
-    discardedAt: params.discardedAt ?? null,
-  }
+// --- Debit Ledger Entry Setup ---
+type SetupDebitUsageCostParams = CoreLedgerEntryUserParams & {
+  entryType: LedgerEntryType.UsageCost
+  sourceUsageEventId: string
 }
+
+type SetupDebitCreditGrantExpiredParams =
+  CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType.CreditGrantExpired
+    sourceUsageCreditId: string
+  }
+
+type SetupDebitPaymentRefundedParams = CoreLedgerEntryUserParams & {
+  entryType: LedgerEntryType.PaymentRefunded
+  sourcePaymentId: string
+  // sourceRefundId?: string; // Optional: if it gets added to schema/refinements
+}
+
+type SetupDebitCreditBalanceAdjustedParams =
+  CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType.CreditBalanceAdjusted
+    sourceCreditBalanceAdjustmentId: string
+    sourceUsageCreditId: string
+  }
+
+type SetupDebitBillingAdjustmentParams = CoreLedgerEntryUserParams & {
+  entryType: LedgerEntryType.BillingAdjustment
+  sourceBillingPeriodCalculationId: string
+}
+
+export type DebitLedgerEntrySetupParams =
+  | SetupDebitUsageCostParams
+  | SetupDebitCreditGrantExpiredParams
+  | SetupDebitPaymentRefundedParams
+  | SetupDebitCreditBalanceAdjustedParams
+  | SetupDebitBillingAdjustmentParams
 
 export const setupDebitLedgerEntry = async (
-  params: DirectedSetupEntryParams<LedgerEntryDirection.Debit>
+  params: DebitLedgerEntrySetupParams
 ): Promise<LedgerEntry.Record> => {
-  if (params.amount < 0) {
-    throw new Error('setupDebitLedgerEntry: amount must be positive')
-  }
-  return adminTransaction(async ({ transaction }) => {
-    return insertLedgerEntry(
-      {
-        ...coreLedgerEntryFromParams(params),
-        direction: LedgerEntryDirection.Debit,
-      },
-      transaction
+  if (params.amount <= 0) {
+    throw new Error(
+      'setupDebitLedgerEntry: input amount must be greater than 0.'
     )
+  }
+
+  const now = new Date()
+  const dbAmount = Math.abs(params.amount)
+  const nulledSourceIdColumns = {
+    sourceUsageEventId: null,
+    sourcePaymentId: null,
+    sourceCreditApplicationId: null,
+    sourceCreditBalanceAdjustmentId: null,
+    sourceBillingPeriodCalculationId: null,
+    sourceUsageCreditId: null,
+  }
+  const baseProps = {
+    ...nulledSourceIdColumns,
+    organizationId: params.organizationId,
+    subscriptionId: params.subscriptionId,
+    ledgerTransactionId: params.ledgerTransactionId,
+    ledgerAccountId: params.ledgerAccountId,
+    livemode: params.livemode ?? true,
+    status: params.status ?? LedgerEntryStatus.Posted,
+    description:
+      params.description ?? `Test Ledger Entry - ${params.entryType}`,
+    entryTimestamp: params.entryTimestamp ?? now,
+    metadata: params.metadata ?? {},
+    discardedAt: params.discardedAt ?? null,
+    expiredAt: params.expiredAt ?? null,
+    billingPeriodId: params.billingPeriodId ?? null,
+    usageMeterId: params.usageMeterId ?? null,
+    calculationRunId: params.calculationRunId ?? null,
+    appliedToLedgerItemId: params.appliedToLedgerItemId ?? null,
+    amount: dbAmount,
+    direction: LedgerEntryDirection.Debit,
+  } as const
+
+  let insertData: LedgerEntry.Insert
+
+  switch (params.entryType) {
+    case LedgerEntryType.UsageCost:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceUsageEventId: params.sourceUsageEventId,
+      } satisfies LedgerEntry.UsageCostInsert
+      break
+
+    case LedgerEntryType.CreditGrantExpired:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditGrantExpiredInsert
+      break
+
+    case LedgerEntryType.PaymentRefunded:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourcePaymentId: params.sourcePaymentId,
+      } satisfies LedgerEntry.PaymentRefundedInsert
+      break
+
+    case LedgerEntryType.CreditBalanceAdjusted:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditBalanceAdjustmentId:
+          params.sourceCreditBalanceAdjustmentId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditBalanceAdjustedInsert
+      break
+
+    case LedgerEntryType.BillingAdjustment:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceBillingPeriodCalculationId:
+          params.sourceBillingPeriodCalculationId,
+      } satisfies LedgerEntry.BillingAdjustmentInsert
+      break
+
+    default:
+      throw new Error(`Unsupported entryType for debit ledger entry.`)
+  }
+
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerEntry(insertData, transaction)
   })
 }
 
+// --- Credit Ledger Entry Setup ---
+type SetupCreditPaymentRecognizedParams =
+  CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType.PaymentRecognized
+    sourcePaymentId: string
+    sourceUsageCreditId: string
+  }
+
+type SetupCreditCreditGrantRecognizedParams =
+  CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType.CreditGrantRecognized
+    sourceUsageCreditId: string
+  }
+
+type SetupCreditCreditAppliedToUsageParams =
+  CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType.CreditAppliedToUsage
+    sourceCreditApplicationId: string
+    sourceUsageCreditId: string
+  }
+
+type SetupCreditCreditBalanceAdjustedParams =
+  CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType.CreditBalanceAdjusted
+    sourceCreditBalanceAdjustmentId: string
+    sourceUsageCreditId: string
+  }
+
+type SetupCreditBillingAdjustmentParams =
+  CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType.BillingAdjustment
+    sourceBillingPeriodCalculationId: string
+  }
+
+export type CreditLedgerEntrySetupParams =
+  | SetupCreditPaymentRecognizedParams
+  | SetupCreditCreditGrantRecognizedParams
+  | SetupCreditCreditAppliedToUsageParams
+  | SetupCreditCreditBalanceAdjustedParams
+  | SetupCreditBillingAdjustmentParams
+
 export const setupCreditLedgerEntry = async (
-  params: DirectedSetupEntryParams<LedgerEntryDirection.Credit>
+  params: CreditLedgerEntrySetupParams
 ): Promise<LedgerEntry.Record> => {
-  return adminTransaction(async ({ transaction }) => {
-    return insertLedgerEntry(
-      {
-        ...coreLedgerEntryFromParams(params),
-        direction: LedgerEntryDirection.Credit,
-      },
-      transaction
+  if (params.amount <= 0) {
+    throw new Error(
+      'setupCreditLedgerEntry: input amount must be greater than 0.'
     )
+  }
+
+  const now = new Date()
+  const dbAmount = Math.abs(params.amount)
+  const nulledSourceIdColumns = {
+    sourceUsageEventId: null,
+    sourcePaymentId: null,
+    sourceCreditApplicationId: null,
+    sourceUsageCreditId: null,
+    sourceCreditBalanceAdjustmentId: null,
+    sourceBillingPeriodCalculationId: null,
+  }
+
+  const baseProps = {
+    ...nulledSourceIdColumns,
+    organizationId: params.organizationId,
+    subscriptionId: params.subscriptionId,
+    ledgerTransactionId: params.ledgerTransactionId,
+    ledgerAccountId: params.ledgerAccountId,
+    livemode: params.livemode ?? true,
+    status: params.status ?? LedgerEntryStatus.Posted,
+    description:
+      params.description ?? `Test Ledger Entry - ${params.entryType}`,
+    entryTimestamp: params.entryTimestamp ?? now,
+    metadata: params.metadata ?? {},
+    discardedAt: params.discardedAt ?? null,
+    expiredAt: params.expiredAt ?? null,
+    billingPeriodId: params.billingPeriodId ?? null,
+    usageMeterId: params.usageMeterId ?? null,
+    calculationRunId: params.calculationRunId ?? null,
+    appliedToLedgerItemId: params.appliedToLedgerItemId ?? null,
+    amount: dbAmount,
+    direction: LedgerEntryDirection.Credit,
+  } as const
+
+  let insertData: LedgerEntry.Insert
+
+  switch (params.entryType) {
+    case LedgerEntryType.PaymentRecognized:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourcePaymentId: params.sourcePaymentId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.PaymentRecognizedInsert
+      break
+
+    case LedgerEntryType.CreditGrantRecognized:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditGrantRecognizedInsert
+      break
+
+    case LedgerEntryType.CreditAppliedToUsage:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditApplicationId: params.sourceCreditApplicationId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditAppliedToUsageInsert
+      break
+
+    case LedgerEntryType.CreditBalanceAdjusted:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditBalanceAdjustmentId:
+          params.sourceCreditBalanceAdjustmentId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditBalanceAdjustedInsert
+      break
+
+    case LedgerEntryType.BillingAdjustment:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceBillingPeriodCalculationId:
+          params.sourceBillingPeriodCalculationId,
+      } satisfies LedgerEntry.BillingAdjustmentInsert
+      break
+
+    default:
+      throw new Error(
+        `Unsupported entryType for credit ledger entry.`
+      )
+  }
+
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerEntry(insertData, transaction)
   })
 }
 
@@ -1369,15 +1562,14 @@ export const setupUsageCredit = async (
 ): Promise<typeof usageCredits.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
     const now = new Date()
-    // @ts-expect-error Assume insertUsageCredit is defined and imported
     return insertUsageCredit(
       {
-        livemode: true,
-        initialStatus: 'granted_active',
-        issuedAt: now,
-        sourceReferenceId: `src_ref_${core.nanoid()}`,
-        metadata: {},
-        notes: 'Test Usage Credit',
+        livemode: params.livemode ?? true,
+        issuedAt: params.issuedAt ?? now,
+        sourceReferenceId:
+          params.sourceReferenceId ?? `src_ref_${core.nanoid()}`,
+        metadata: params.metadata ?? {},
+        notes: params.notes ?? 'Test Usage Credit',
         ...params,
       },
       transaction
