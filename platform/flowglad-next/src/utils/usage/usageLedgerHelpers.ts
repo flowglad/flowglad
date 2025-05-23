@@ -10,17 +10,12 @@ import {
   insertLedgerTransaction,
   insertLedgerTransactionOrDoNothingByIdempotencyKey,
 } from '@/db/tableMethods/ledgerTransactionMethods'
-import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
-import { UsageCredit } from '@/db/schema/usageCredits'
 import { DbTransaction } from '@/db/types'
 import {
   LedgerEntryDirection,
   LedgerEntryEntryType,
   LedgerEntryStatus,
   LedgerTransactionInitiatingSourceType,
-  UsageCreditType,
-  UsageCreditStatus,
-  UsageCreditSourceReferenceType,
   PaymentStatus,
 } from '@/types'
 import { UsageMeter } from '@/db/schema/usageMeters'
