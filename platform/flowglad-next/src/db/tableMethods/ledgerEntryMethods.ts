@@ -81,12 +81,8 @@ export const expirePendingLedgerEntriesForPayment = async (
     ),
     eq(ledgerEntries.ledgerTransactionId, ledgerTransaction.id)
   )
-  const toBeExpiredLedgerEntries = await transaction
-    .select()
-    .from(ledgerEntries)
-    .where(whereClause)
 
-  return await transaction
+  const rawResults = await transaction
     .update(ledgerEntries)
     .set({
       expiredAt: new Date(),
@@ -94,6 +90,9 @@ export const expirePendingLedgerEntriesForPayment = async (
     })
     .where(whereClause)
     .returning()
+  return rawResults.map((item) =>
+    ledgerEntriesSelectSchema.parse(item)
+  )
 }
 
 const balanceTypeWhereStatement = (
