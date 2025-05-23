@@ -859,3 +859,14 @@ export enum LedgerTransactionType {
   PaymentRefunded = 'payment_refunded',
   BillingRecalculated = 'billing_recalculated',
 }
+
+export enum LedgerEntryType {
+  UsageCost = 'usage_cost',
+  PaymentRecognized = 'payment_recognized',
+  CreditGrantRecognized = 'credit_grant_recognized',
+  CreditAppliedToUsage = 'credit_applied_to_usage',
+  CreditBalanceAdjusted = 'credit_balance_adjusted',
+  CreditGrantExpired = 'credit_grant_expired',
+  PaymentRefunded = 'payment_refunded',
+  BillingAdjustment = 'billing_adjustment',
+}

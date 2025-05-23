@@ -1,5 +1,5 @@
 {
-  "id": "458f4dcf-27df-422e-97bc-250f632e68dd",
+  "id": "b878b4da-6ed6-4e99-b85f-862087f784ad",
   "prevId": "3a04e516-39a1-4737-9bed-fc5a70906bc5",
   "version": "7",
   "dialect": "postgresql",
@@ -4168,7 +4168,8 @@
         },
         "entry_type": {
           "name": "entry_type",
-          "type": "text",
+          "type": "LedgerEntryType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
