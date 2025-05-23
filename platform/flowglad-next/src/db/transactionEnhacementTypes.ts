@@ -15,25 +15,26 @@ import { paymentsSelectSchema } from '@/db/schema/payments'
 import { invoicesSelectSchema } from '@/db/schema/invoices'
 import { subscriptionMeterPeriodCalculationSelectSchema } from '@/db/schema/subscriptionMeterPeriodCalculations'
 // TODO: Import other relevant Zod SELECT schemas as they become sources for ledger entries
-// For example:
-// import { refundsSelectSchema } from '@/db/schema/refunds';
+import { refundsSelectSchema } from '@/db/schema/refunds'
 
 // Define the union of all record types that can back ledger entries
 // These should typically be the Drizzle Zod `Insert` types for the respective tables
 
 // Zod schema for validating backing records (now using select schemas)
 export const ledgerBackingRecordsSchema = z.object({
-  usageCredits: usageCreditsSelectSchema.array(),
-  usageCreditApplications:
-    usageCreditApplicationsSelectSchema.array(),
+  usageCredits: usageCreditsSelectSchema.array().optional(),
+  usageCreditApplications: usageCreditApplicationsSelectSchema
+    .array()
+    .optional(),
   usageCreditBalanceAdjustments:
-    usageCreditBalanceAdjustmentsSelectSchema.array(),
-  payments: paymentsSelectSchema.array(),
-  invoices: invoicesSelectSchema.array(),
+    usageCreditBalanceAdjustmentsSelectSchema.array().optional(),
+  payments: paymentsSelectSchema.array().optional(),
+  invoices: invoicesSelectSchema.array().optional(),
   subscriptionMeterPeriodCalculations:
-    subscriptionMeterPeriodCalculationSelectSchema.array(),
+    subscriptionMeterPeriodCalculationSelectSchema.array().optional(),
+  refunds: refundsSelectSchema.array().optional(),
   // TODO: Add other Zod select schemas here
-  // refunds: refundsSelectSchema.array(),
+  // usageEvents: usageEventsSelectSchema.array().optional(),
 })
 
 // Inferred TypeScript type from the Zod schema

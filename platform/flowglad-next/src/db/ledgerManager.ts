@@ -7,17 +7,145 @@ import {
   LedgerCommand,
   LedgerBackingRecord,
 } from './transactionEnhacementTypes'
-import {
-  LedgerTransaction,
-  ledgerTransactions,
-} from '@/db/schema/ledgerTransactions'
+import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { LedgerEntryDirection, LedgerEntryStatus } from '@/types'
 import { insertLedgerTransaction } from './tableMethods/ledgerTransactionMethods'
+import { PaymentStatus } from '@/types'
 
 // TODO: Import other backing record schemas as they are added to LedgerBackingRecordUnion
 // e.g., import { payments } from '@/db/schema/payments';
+
+interface IdempotencyParts {
+  initiatingSourceType: string
+  initiatingSourceId: string
+}
+
+/**
+ * Derives the initiatingSourceType and initiatingSourceId for a LedgerTransaction
+ * based on the primary backing record and its state.
+ * This is crucial for ensuring idempotency at the LedgerTransaction level.
+ */
+const deriveLedgerTransactionIdempotencyParts = (
+  backingRecords: LedgerBackingRecord,
+  commandDetails: LedgerCommand['transactionDetails']
+): IdempotencyParts => {
+  // Payments take precedence if present and have a relevant status for idempotency
+  if (backingRecords.payments && backingRecords.payments.length > 0) {
+    const payment = backingRecords.payments[0] // Assuming the first payment is primary for this transaction
+    if (!payment.id) {
+      throw new Error(
+        'Payment record is missing an ID, cannot derive idempotency parts.'
+      )
+    }
+    switch (payment.status) {
+      case PaymentStatus.Succeeded:
+        return {
+          initiatingSourceType: 'payment_succeeded_confirmation',
+          initiatingSourceId: payment.id,
+        }
+      case PaymentStatus.Failed:
+        return {
+          initiatingSourceType: 'payment_failed_notification',
+          initiatingSourceId: payment.id,
+        }
+      case PaymentStatus.Processing: // Covers 'pending' as well if PaymentStatus.Pending is mapped to 'processing' or similar
+        // case PaymentStatus.Pending: // If 'pending' is a distinct status in your enum and has its own ledger logic
+        return {
+          initiatingSourceType: 'payment_processing_update',
+          initiatingSourceId: payment.id,
+        }
+      // Add other relevant payment statuses that trigger ledger transactions
+      // e.g. case PaymentStatus.RequiresAction, case PaymentStatus.RequiresConfirmation
+      default:
+        // If payment status isn't one that defines a clear ledger operation type itself,
+        // fall through or use a hint if available. For now, we'll throw error if no type is clear.
+        throw new Error(
+          `Cannot derive idempotency parts for payment with status: ${payment.status}`
+        )
+    }
+  }
+
+  // Refunds
+  if (backingRecords.refunds && backingRecords.refunds.length > 0) {
+    const refund = backingRecords.refunds[0]
+    if (!refund.id) {
+      throw new Error(
+        'Refund record is missing an ID, cannot derive idempotency parts.'
+      )
+    }
+    // Assuming refund creation/processing is the primary event here
+    return {
+      initiatingSourceType: 'payment_refund_processed', // Could also use refund.status if it varies
+      initiatingSourceId: refund.id,
+    }
+  }
+
+  // UsageCredits (e.g., grant recognition, expiration - might need hints or more context)
+  if (
+    backingRecords.usageCredits &&
+    backingRecords.usageCredits.length > 0
+  ) {
+    const credit = backingRecords.usageCredits[0]
+    if (!credit.id) {
+      throw new Error(
+        'UsageCredit record is missing an ID, cannot derive idempotency parts.'
+      )
+    }
+    // This is a bit generic. The actual event (grant, expiration, etc.)
+    // might need to be hinted or determined from a more specific flow.
+    // For now, let's assume a generic grant recognition if no other context.
+    // If commandDetails has explicit source type/id, those could be used as a fallback or primary.
+    if (
+      commandDetails.initiatingSourceType &&
+      commandDetails.initiatingSourceId
+    ) {
+      return {
+        initiatingSourceType: commandDetails.initiatingSourceType,
+        initiatingSourceId: commandDetails.initiatingSourceId,
+      }
+    }
+    // Example: if this is purely about the credit grant itself being recognized
+    return {
+      initiatingSourceType: 'credit_grant_recognized',
+      initiatingSourceId: credit.id,
+    }
+  }
+
+  // UsageCreditBalanceAdjustments
+  if (
+    backingRecords.usageCreditBalanceAdjustments &&
+    backingRecords.usageCreditBalanceAdjustments.length > 0
+  ) {
+    const adjustment = backingRecords.usageCreditBalanceAdjustments[0]
+    if (!adjustment.id) {
+      throw new Error(
+        'UsageCreditBalanceAdjustment record is missing an ID.'
+      )
+    }
+    return {
+      initiatingSourceType: 'credit_balance_adjustment_processed',
+      initiatingSourceId: adjustment.id,
+    }
+  }
+
+  // Fallback or error if no primary backing record type found or logic implemented
+  // If the command details provided explicit source type/id, use them if no other rule matched.
+  if (
+    commandDetails.initiatingSourceType &&
+    commandDetails.initiatingSourceId
+  ) {
+    return {
+      initiatingSourceType: commandDetails.initiatingSourceType,
+      initiatingSourceId: commandDetails.initiatingSourceId,
+    }
+  }
+
+  throw new Error(
+    'Could not derive LedgerTransaction idempotency parts: No primary backing record type matched or details provided.'
+  )
+}
 
 /**
  * Maps a backing financial record (like a UsageCredit or Payment) to one or more LedgerEntry.Insert objects.
@@ -188,12 +316,17 @@ export async function processLedgerCommand(
 ): Promise<void> {
   const {
     organizationId: orgIdForLedgerTx,
-    initiatingSourceType,
-    initiatingSourceId,
     description,
     metadata,
     subscriptionId,
   } = command.transactionDetails
+
+  // Derive initiatingSourceType and initiatingSourceId for idempotency
+  const { initiatingSourceType, initiatingSourceId } =
+    deriveLedgerTransactionIdempotencyParts(
+      command.backingRecords,
+      command.transactionDetails
+    )
 
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: orgIdForLedgerTx,

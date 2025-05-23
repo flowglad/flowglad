@@ -122,11 +122,12 @@ CREATE TABLE usage_transactions (
     id TEXT PRIMARY KEY DEFAULT Nanoid('utxn'),
     organization_id TEXT NOT NULL REFERENCES organizations(id),
     livemode BOOLEAN NOT NULL,
-    initiating_source_type TEXT,                        -- Optional: Describes what triggered this bundle (e.g., 'payment_confirmation', 'admin_credit_grant', 'billing_run_credit_application')
-    initiating_source_id TEXT,                          -- Optional: The ID of the specific record that was the primary trigger (e.g., Payment.id, admin_user_id, calculation_run_id)
+    initiating_source_type TEXT NOT NULL,                        -- Describes what triggered this bundle (e.g., 'payment_confirmation', 'admin_credit_grant', 'billing_run_credit_application')
+    initiating_source_id TEXT NOT NULL,                          -- The ID of the specific record that was the primary trigger (e.g., Payment.id, admin_user_id, calculation_run_id)
     description TEXT,                                   -- Optional: A human-readable description for the transaction bundle.
     metadata JSONB,                                     -- Optional: For any other contextual data related to the transaction bundle itself.
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_ledger_transaction_idempotency UNIQUE (organization_id, livemode, initiating_source_type, initiating_source_id)
 );
 
 -- Indexes
@@ -271,6 +272,15 @@ CREATE INDEX idx_uli_entry_type ON usage_ledger_items(entry_type);
 CREATE INDEX idx_uli_status_discarded_at ON usage_ledger_items(status, discarded_at); -- For querying active items
 CREATE INDEX idx_uli_usage_transaction_id ON usage_ledger_items(usage_transaction_id); -- For grouping by transaction
 -- Add indexes for all source_..._id columns that will be queried.
+
+-- Partial unique indexes for idempotency safeguards
+CREATE UNIQUE INDEX uq_uli_usage_event_cost ON usage_ledger_items (organization_id, livemode, source_usage_event_id, entry_type) WHERE entry_type = 'usage_cost';
+CREATE UNIQUE INDEX uq_uli_credit_grant_recognized ON usage_ledger_items (organization_id, livemode, source_usage_credit_id, entry_type) WHERE entry_type = 'credit_grant_recognized';
+CREATE UNIQUE INDEX uq_uli_credit_applied ON usage_ledger_items (organization_id, livemode, source_credit_application_id, entry_type) WHERE entry_type = 'credit_applied_to_usage';
+CREATE UNIQUE INDEX uq_uli_credit_adjusted ON usage_ledger_items (organization_id, livemode, source_credit_balance_adjustment_id, entry_type) WHERE entry_type = 'credit_balance_adjusted';
+CREATE UNIQUE INDEX uq_uli_payment_recognized ON usage_ledger_items (organization_id, livemode, source_payment_id, source_usage_credit_id, entry_type) WHERE entry_type = 'payment_recognized';
+CREATE UNIQUE INDEX uq_uli_payment_refunded ON usage_ledger_items (organization_id, livemode, source_payment_id, source_refund_id, entry_type) WHERE entry_type = 'payment_refunded';
+CREATE UNIQUE INDEX uq_uli_credit_grant_expired ON usage_ledger_items (organization_id, livemode, source_usage_credit_id, entry_type) WHERE entry_type = 'credit_grant_expired';
 ```
 
 **Zod Schema (`ledgerEntriess.ts`):**
@@ -359,6 +369,28 @@ Before detailing specific event flows, the following principles guide ledger ope
 
 *   **Idempotency:** All external write operations that result in the creation of financial records (e.g., initiating payments, granting credits via API, processing webhook-driven events like payment confirmations or usage event ingestion) should ideally support an idempotency key provided by the client or initiating system. This key allows the system to safely retry operations without risk of duplicate record creation. While not all V1 interfaces may expose this immediately, the underlying services should be designed with idempotency in mind for future-proofing. Operations that create `UsageCredits`, `UsageCreditBalanceAdjustments`, or direct `LedgerEntries` from external triggers are key candidates for this.
 
+    *   **Operational Idempotency via `LedgerTransactions` (Primary Mechanism):**
+        *   The primary strategy for ensuring ledger operations are idempotent is to focus on the business operation that generates a set of ledger entries. The `usage_transactions` table (which records a `LedgerTransaction` for each distinct operation) is central to this.
+        *   For operations designed to be idempotent (e.g., processing a payment confirmation, applying a specific administrative adjustment), the combination of `organization_id`, `livemode`, `initiating_source_type` (defining the specific lifecycle event or operation type), and `initiating_source_id` (identifying the specific backing record instance) on the `LedgerTransaction` serves as a natural and unique idempotency key for that operation.
+        *   **Database-Enforced Guarantee:** A `UNIQUE` constraint on (`organization_id`, `livemode`, `initiating_source_type`, `initiating_source_id`) in the `usage_transactions` table provides a definitive, database-level guarantee that a `LedgerTransaction` for a specific lifecycle event of a particular backing record can only be created once.
+        *   **Application-Level Check (Best Practice):** Before attempting to create a new `LedgerTransaction`, the system (typically within the comprehensive transaction wrappers or the service layer) should perform an application-level check:
+            1.  Query the `usage_transactions` table for an existing record matching the `organization_id`, `livemode`, `initiating_source_type`, and `initiating_source_id` of the current operation.
+            2.  If such a `LedgerTransaction` exists (which, due to the unique constraint, implies its associated ledger entries were, or are being, processed), the current operation is considered a duplicate. The system should then bypass further processing and return a success response, effectively treating the retry as a pass. This check helps avoid hitting database constraint violation errors directly and allows for more graceful handling of retries.
+            3.  If no such pre-existing transaction is found, the operation proceeds to create the new `LedgerTransaction` and its entries.
+        *   This multi-layered approach (database constraint + application check) ensures that the entire bundle of ledger entries for an idempotent operation is applied only once, robustly and efficiently.
+
+    *   **Specific Unique Constraints on `usage_ledger_items` (Secondary Safeguard):**
+        *   As a defense-in-depth measure, for critical and unambiguous one-to-one relationships between a source/backing record and a specific *type* of ledger entry, partial unique indexes should be defined on the `usage_ledger_items` table.
+        *   These constraints prevent the direct insertion of duplicate ledger entries for these specific, well-defined cases, acting as a final backstop.
+        *   Examples:
+            *   A single `UsageEvent` should only generate one `usage_cost` ledger item: `UNIQUE(source_usage_event_id, entry_type)` where `entry_type = 'usage_cost'`.
+            *   A `UsageCredits` grant should only be recognized once with a `credit_grant_recognized` entry: `UNIQUE(source_usage_credit_id, entry_type)` where `entry_type = 'credit_grant_recognized'`.
+            *   A `UsageCreditApplications` record should only generate one `credit_applied_to_usage` entry: `UNIQUE(source_credit_application_id, entry_type)` where `entry_type = 'credit_applied_to_usage'`.
+            *   A `UsageCreditBalanceAdjustments` record should only generate one `credit_balance_adjusted` entry: `UNIQUE(source_credit_balance_adjustment_id, entry_type)` where `entry_type = 'credit_balance_adjusted'`.
+            *   A `UsageCredits` grant should only be recognized once with a `payment_recognized` entry: `UNIQUE(source_payment_id, source_usage_credit_id, entry_type)` where `entry_type = 'payment_recognized'`.
+            *   A `UsageCredits` grant should only be recognized once with a `payment_refunded` entry: `UNIQUE(source_payment_id, source_refund_id, entry_type)` where `entry_type = 'payment_refunded'`.
+            *   A `UsageCredits` grant should only be recognized once with a `credit_grant_expired` entry: `UNIQUE(source_usage_credit_id, entry_type)` where `entry_type = 'credit_grant_expired'`.
+
 *   **Timestamp Conventions:** Clarity in timestamps is crucial for accurate financial record-keeping and auditability.
     *   `LedgerEntries.entry_timestamp`: This timestamp (defaulting to `CURRENT_TIMESTAMP` upon record creation) represents when the ledger item was created *in our system*. It does not change if the item's `status` changes or `discarded_at` is set.
     *   `LedgerEntries.discarded_at`: If a `pending` ledger item is superseded, this timestamp marks when that occurred.
@@ -379,7 +411,7 @@ Before detailing specific event flows, the following principles guide ledger ope
         *   `'pending'`: Typically used for items generated during iterative or multi-step processes (e.g., credit applications within a billing run). These items are not yet considered final.
         *   `'posted'`: Used for items representing immediately final financial events (e.g., a direct administrative adjustment, a payment recognition, or a usage cost processed individually and finalized).
     *   **Superseding Pending Items:** If a `pending` item needs to be amended or replaced *within the same operational context* (e.g., due to recalculation of credit use within a single `calculation_run_id`), the original `pending` item has its `discarded_at` field set to the current timestamp. A new `pending` item is then created with the corrected information. This avoids polluting the ledger with many intermediate reversal entries for non-finalized states.
-    *   **Finalization (Posting):** Once an operational process concludes (e.g., a billing run is complete and its `SubscriptionMeterPeriodCalculations` record is finalized), all `pending` `LedgerEntries` associated with that operation (and not marked `discarded_at`) are transitioned to `status = 'posted'`.
+    *   **Finalization (Posting):** Once an operational process concludes (e.g., a billing run is complete and its `SubscriptionMeterPeriodCalculations` record is finalized), all `pending` `LedgerEntries` associated with that operation (and not marked `discarded_at`) are transitioned to `status: 'posted'`.
     *   **Immutability of Posted Items:** Once a `LedgerEntry` has `status = 'posted'`, it is considered immutable. Its financial fields (`amount`, `currency`, `entry_type`, source links) must not change. `discarded_at` must be `NULL` for `posted` items.
     *   **Correcting Posted Items:** If a `posted` ledger item is found to be financially incorrect (e.g., due to an error in its immutable backing record or a change in business policy requiring retroactive adjustment), the correction is made by creating *new* `LedgerEntries` (e.g., of type `'billing_adjustment'` or `'credit_balance_adjusted'`) that counteract or amend the financial impact. The original `posted` item remains untouched.
     *   **Balance Calculation:** Accurate financial balances are typically derived from `SUM(amount)` of `LedgerEntries` where `status = 'posted'`, OR (`status = 'pending'` AND `discarded_at IS NULL`). Reporting may differentiate between "posted balance" and "pending/provisional balance."
