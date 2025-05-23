@@ -50,6 +50,7 @@ import {
   LedgerEntryDebitableEntryType,
   LedgerEntryCreditableEntryType,
   LedgerEntryType,
+  LedgerTransactionType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -89,7 +90,11 @@ import {
   LedgerTransaction,
   ledgerTransactions,
 } from '@/db/schema/ledgerTransactions'
-import { ledgerEntries, LedgerEntry } from '@/db/schema/ledgerEntries'
+import {
+  ledgerEntries,
+  LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '@/db/schema/ledgerEntries'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
 import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
@@ -1238,6 +1243,7 @@ export const setupLedgerTransaction = async (
   params: Partial<LedgerTransaction.Insert> & {
     organizationId: string
     subscriptionId: string
+    type: LedgerTransactionType
   }
 ): Promise<LedgerTransaction.Record> => {
   return adminTransaction(async ({ transaction }) => {
@@ -1324,16 +1330,8 @@ export const setupDebitLedgerEntry = async (
 
   const now = new Date()
   const dbAmount = Math.abs(params.amount)
-  const nulledSourceIdColumns = {
-    sourceUsageEventId: null,
-    sourcePaymentId: null,
-    sourceCreditApplicationId: null,
-    sourceCreditBalanceAdjustmentId: null,
-    sourceBillingPeriodCalculationId: null,
-    sourceUsageCreditId: null,
-  }
   const baseProps = {
-    ...nulledSourceIdColumns,
+    ...ledgerEntryNulledSourceIdColumns,
     organizationId: params.organizationId,
     subscriptionId: params.subscriptionId,
     ledgerTransactionId: params.ledgerTransactionId,
@@ -1412,7 +1410,7 @@ export const setupDebitLedgerEntry = async (
 // --- Credit Ledger Entry Setup ---
 type SetupCreditPaymentRecognizedParams =
   CoreLedgerEntryUserParams & {
-    entryType: LedgerEntryType.PaymentRecognized
+    entryType: LedgerEntryType.PaymentSucceeded
     sourcePaymentId: string
     sourceUsageCreditId: string
   }
@@ -1461,17 +1459,9 @@ export const setupCreditLedgerEntry = async (
 
   const now = new Date()
   const dbAmount = Math.abs(params.amount)
-  const nulledSourceIdColumns = {
-    sourceUsageEventId: null,
-    sourcePaymentId: null,
-    sourceCreditApplicationId: null,
-    sourceUsageCreditId: null,
-    sourceCreditBalanceAdjustmentId: null,
-    sourceBillingPeriodCalculationId: null,
-  }
 
   const baseProps = {
-    ...nulledSourceIdColumns,
+    ...ledgerEntryNulledSourceIdColumns,
     organizationId: params.organizationId,
     subscriptionId: params.subscriptionId,
     ledgerTransactionId: params.ledgerTransactionId,
@@ -1495,13 +1485,13 @@ export const setupCreditLedgerEntry = async (
   let insertData: LedgerEntry.Insert
 
   switch (params.entryType) {
-    case LedgerEntryType.PaymentRecognized:
+    case LedgerEntryType.PaymentSucceeded:
       insertData = {
         ...baseProps,
         entryType: params.entryType,
         sourcePaymentId: params.sourcePaymentId,
         sourceUsageCreditId: params.sourceUsageCreditId,
-      } satisfies LedgerEntry.PaymentRecognizedInsert
+      } satisfies LedgerEntry.PaymentSucceededInsert
       break
 
     case LedgerEntryType.CreditGrantRecognized:

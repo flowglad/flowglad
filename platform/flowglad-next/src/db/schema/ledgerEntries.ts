@@ -185,6 +185,15 @@ const nulledSourceColumnRefinements = {
   sourceBillingPeriodCalculationId: z.null(),
 }
 
+export const ledgerEntryNulledSourceIdColumns = {
+  sourceUsageEventId: null,
+  sourcePaymentId: null,
+  sourceCreditApplicationId: null,
+  sourceCreditBalanceAdjustmentId: null,
+  sourceBillingPeriodCalculationId: null,
+  sourceUsageCreditId: null,
+}
+
 export const usageCostEntryRefinements = {
   ...nulledSourceColumnRefinements,
   direction: z.literal(LedgerEntryDirection.Debit),
@@ -192,10 +201,10 @@ export const usageCostEntryRefinements = {
   sourceUsageEventId: z.string(),
 }
 
-export const paymentRecognizedEntryRefinements = {
+export const paymentSucceededEntryRefinements = {
   ...nulledSourceColumnRefinements,
   direction: z.literal(LedgerEntryDirection.Credit),
-  entryType: z.literal(LedgerEntryType.PaymentRecognized),
+  entryType: z.literal(LedgerEntryType.PaymentSucceeded),
   sourcePaymentId: z.string(),
   sourceUsageCreditId: z.string(),
 }
@@ -204,14 +213,6 @@ export const creditGrantRecognizedEntryRefinements = {
   ...nulledSourceColumnRefinements,
   direction: z.literal(LedgerEntryDirection.Credit),
   entryType: z.literal(LedgerEntryType.CreditGrantRecognized),
-  sourceUsageCreditId: z.string(),
-}
-
-export const creditAppliedToUsageEntryRefinements = {
-  ...nulledSourceColumnRefinements,
-  direction: z.literal(LedgerEntryDirection.Credit),
-  entryType: z.literal(LedgerEntryType.CreditAppliedToUsage),
-  sourceCreditApplicationId: z.string(),
   sourceUsageCreditId: z.string(),
 }
 
@@ -249,17 +250,11 @@ const coreLedgerEntryInsertSchema = enhancedCreateInsertSchema(
 
 export const usageCostInsertSchema =
   coreLedgerEntryInsertSchema.extend(usageCostEntryRefinements)
-export const paymentRecognizedInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    paymentRecognizedEntryRefinements
-  )
+export const paymentSucceededInsertSchema =
+  coreLedgerEntryInsertSchema.extend(paymentSucceededEntryRefinements)
 export const creditGrantRecognizedInsertSchema =
   coreLedgerEntryInsertSchema.extend(
     creditGrantRecognizedEntryRefinements
-  )
-export const creditAppliedToUsageInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    creditAppliedToUsageEntryRefinements
   )
 export const creditBalanceAdjustedInsertSchema =
   coreLedgerEntryInsertSchema.extend(
@@ -280,9 +275,8 @@ export const ledgerEntriesInsertSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostInsertSchema,
-    paymentRecognizedInsertSchema,
+    paymentSucceededInsertSchema,
     creditGrantRecognizedInsertSchema,
-    creditAppliedToUsageInsertSchema,
     creditBalanceAdjustedInsertSchema,
     creditGrantExpiredInsertSchema,
     paymentRefundedInsertSchema,
@@ -295,18 +289,15 @@ export const coreLedgerEntriesSelectSchema =
 
 export const usageCostSelectSchema =
   coreLedgerEntriesSelectSchema.extend(usageCostEntryRefinements)
-export const paymentRecognizedSelectSchema =
+export const paymentSucceededSelectSchema =
   coreLedgerEntriesSelectSchema.extend(
-    paymentRecognizedEntryRefinements
+    paymentSucceededEntryRefinements
   )
 export const creditGrantRecognizedSelectSchema =
   coreLedgerEntriesSelectSchema.extend(
     creditGrantRecognizedEntryRefinements
   )
-export const creditAppliedToUsageSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    creditAppliedToUsageEntryRefinements
-  )
+
 export const creditBalanceAdjustedSelectSchema =
   coreLedgerEntriesSelectSchema.extend(
     creditBalanceAdjustedEntryRefinements
@@ -328,9 +319,8 @@ export const ledgerEntriesSelectSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostSelectSchema,
-    paymentRecognizedSelectSchema,
+    paymentSucceededSelectSchema,
     creditGrantRecognizedSelectSchema,
-    creditAppliedToUsageSelectSchema,
     creditBalanceAdjustedSelectSchema,
     creditGrantExpiredSelectSchema,
     paymentRefundedSelectSchema,
@@ -345,17 +335,13 @@ export const coreLedgerEntriesUpdateSchema = createUpdateSchema(
 
 export const usageCostUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(usageCostEntryRefinements)
-export const paymentRecognizedUpdateSchema =
+export const paymentSucceededUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(
-    paymentRecognizedEntryRefinements
+    paymentSucceededEntryRefinements
   )
 export const creditGrantRecognizedUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(
     creditGrantRecognizedEntryRefinements
-  )
-export const creditAppliedToUsageUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    creditAppliedToUsageEntryRefinements
   )
 export const creditBalanceAdjustedUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(
@@ -378,9 +364,8 @@ export const ledgerEntriesUpdateSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostUpdateSchema,
-    paymentRecognizedUpdateSchema,
+    paymentSucceededUpdateSchema,
     creditGrantRecognizedUpdateSchema,
-    creditAppliedToUsageUpdateSchema,
     creditBalanceAdjustedUpdateSchema,
     creditGrantExpiredUpdateSchema,
     paymentRefundedUpdateSchema,
@@ -393,12 +378,10 @@ const hiddenColumns = {} as const
 // Client-specific individual select schemas
 export const usageCostClientSelectSchema =
   usageCostSelectSchema.omit(hiddenColumns)
-export const paymentRecognizedClientSelectSchema =
-  paymentRecognizedSelectSchema.omit(hiddenColumns)
+export const paymentSucceededClientSelectSchema =
+  paymentSucceededSelectSchema.omit(hiddenColumns)
 export const creditGrantRecognizedClientSelectSchema =
   creditGrantRecognizedSelectSchema.omit(hiddenColumns)
-export const creditAppliedToUsageClientSelectSchema =
-  creditAppliedToUsageSelectSchema.omit(hiddenColumns)
 export const creditBalanceAdjustedClientSelectSchema =
   creditBalanceAdjustedSelectSchema.omit(hiddenColumns)
 export const creditGrantExpiredClientSelectSchema =
@@ -412,9 +395,8 @@ export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostClientSelectSchema,
-    paymentRecognizedClientSelectSchema,
+    paymentSucceededClientSelectSchema,
     creditGrantRecognizedClientSelectSchema,
-    creditAppliedToUsageClientSelectSchema,
     creditBalanceAdjustedClientSelectSchema,
     creditGrantExpiredClientSelectSchema,
     paymentRefundedClientSelectSchema,
@@ -432,14 +414,11 @@ export namespace LedgerEntry {
   export type Where = SelectConditions<typeof ledgerEntries>
 
   export type UsageCostInsert = z.infer<typeof usageCostInsertSchema>
-  export type PaymentRecognizedInsert = z.infer<
-    typeof paymentRecognizedInsertSchema
+  export type PaymentSucceededInsert = z.infer<
+    typeof paymentSucceededInsertSchema
   >
   export type CreditGrantRecognizedInsert = z.infer<
     typeof creditGrantRecognizedInsertSchema
-  >
-  export type CreditAppliedToUsageInsert = z.infer<
-    typeof creditAppliedToUsageInsertSchema
   >
   export type CreditBalanceAdjustedInsert = z.infer<
     typeof creditBalanceAdjustedInsertSchema
@@ -455,13 +434,10 @@ export namespace LedgerEntry {
   >
   export type UsageCostRecord = z.infer<typeof usageCostSelectSchema>
   export type PaymentRecognizedRecord = z.infer<
-    typeof paymentRecognizedSelectSchema
+    typeof paymentSucceededSelectSchema
   >
   export type CreditGrantRecognizedRecord = z.infer<
     typeof creditGrantRecognizedSelectSchema
-  >
-  export type CreditAppliedToUsageRecord = z.infer<
-    typeof creditAppliedToUsageSelectSchema
   >
   export type CreditBalanceAdjustedRecord = z.infer<
     typeof creditBalanceAdjustedSelectSchema
@@ -477,13 +453,10 @@ export namespace LedgerEntry {
   >
   export type UsageCostUpdate = z.infer<typeof usageCostUpdateSchema>
   export type PaymentRecognizedUpdate = z.infer<
-    typeof paymentRecognizedUpdateSchema
+    typeof paymentSucceededUpdateSchema
   >
   export type CreditGrantRecognizedUpdate = z.infer<
     typeof creditGrantRecognizedUpdateSchema
-  >
-  export type CreditAppliedToUsageUpdate = z.infer<
-    typeof creditAppliedToUsageUpdateSchema
   >
   export type CreditBalanceAdjustedUpdate = z.infer<
     typeof creditBalanceAdjustedUpdateSchema

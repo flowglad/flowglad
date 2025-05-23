@@ -850,7 +850,7 @@ export enum NormalBalanceType {
 
 export enum LedgerTransactionType {
   UsageEventProcessed = 'usage_event_processed',
-  PaymentConfirmed = 'payment_confirmed',
+  PaymentConfirmed = 'payment_succeeded',
   PromoCreditGranted = 'promo_credit_granted',
   BillingRunUsageProcessed = 'billing_run_usage_processed',
   BillingRunCreditApplied = 'billing_run_credit_applied',
@@ -862,9 +862,8 @@ export enum LedgerTransactionType {
 
 export enum LedgerEntryType {
   UsageCost = 'usage_cost',
-  PaymentRecognized = 'payment_recognized',
+  PaymentSucceeded = 'payment_succeeded',
   CreditGrantRecognized = 'credit_grant_recognized',
-  CreditAppliedToUsage = 'credit_applied_to_usage',
   CreditBalanceAdjusted = 'credit_balance_adjusted',
   CreditGrantExpired = 'credit_grant_expired',
   PaymentRefunded = 'payment_refunded',

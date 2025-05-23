@@ -442,18 +442,50 @@ Once a backing parent record is created and represents a factual financial event
 
 All workflows operate within database transactions to ensure atomicity. Each distinct business operation that creates ledger items will first create a `LedgerTransaction` record, to which all resulting `LedgerEntries` will be linked.
 
-1.  **Usage Event Ingestion & Processing**
+1.  **Usage Event Ingestion & Processing (with potential real-time credit application)**
     *   **Event:** A `UsageEvent` is successfully ingested and validated for a subscription.
     *   **Transaction & Ledger Posting:**
         *   Create one `LedgerTransaction` (e.g., `initiating_source_type='usage_event_processing'`, `initiating_source_id`=UsageEvent.id).
-        *   Create one `LedgerEntry` (linked to the LedgerTransaction):
+        *   **Calculate Cost:** Determine the cost of the usage based on pricing logic.
+        *   **Create `UsageCost` Ledger Entry:** Within the `LedgerTransaction`, create one `LedgerEntry`:
             *   `entry_type`: `'usage_cost'`
             *   `status`: `'posted'` (assuming immediate finality; or `'pending'` if part of a batch processed later).
-            *   `amount`: Negative value representing the calculated cost of the usage (pricing logic applied here).
+            *   `amount`: Negative value representing the calculated cost of the usage.
             *   `currency`: Currency of the usage cost.
             *   `description`: e.g., "Usage for meter X on YYYY-MM-DD".
             *   `source_usage_event_id`: The `id` of the `UsageEvent`.
             *   `subscription_id`, `organization_id`, `livemode`, `billing_period_id` (if applicable), `usage_meter_id`.
+
+        *   **Query for Available Credit Balances:** For the `subscription_id` (or relevant `ledgerAccountId`), query to determine available, applicable `UsageCredits` grants and their remaining balances (e.g., using a helper like `getAvailableCreditGrantBalances`).
+        *   **If Credits Are Available and Applied:**
+            *   Based on the available credits and application rules (e.g., apply oldest, specific type), determine the `amountToApply` from one or more grants.
+            *   For each portion of a grant applied:
+                *   **Create `UsageCreditApplications` Record:**
+                    *   `usage_credit_id`: The `id` of the `UsageCredits` grant being applied.
+                    *   `amount_applied`: The portion of the credit grant being used.
+                    *   `currency`: Credit currency.
+                    *   `applied_at`: Current timestamp.
+                    *   `target_usage_meter_id` (optional), `organization_id`, `livemode`.
+                    *   `calculation_run_id`: Could be null if applied in real-time outside a batch, or could be an ID representing this specific real-time processing if grouped.
+                *   **Create `CreditAppliedToUsage` Ledger Entries (within the same `LedgerTransaction`):**
+                    *   **Entry 1 (Debit from Grant):**
+                        *   `entry_type`: `'credit_applied_to_usage'`
+                        *   `direction`: `'debit'`
+                        *   `status`: `'posted'` (if `UsageCost` is posted) or `'pending'` (if `UsageCost` is pending).
+                        *   `amount`: The `amount_applied`.
+                        *   `currency`: Credit currency.
+                        *   `source_usage_credit_id`: The `id` of the `UsageCredits` grant used.
+                        *   `source_credit_application_id`: The `id` of the `UsageCreditApplications` record created above.
+                        *   `description`: e.g., "Credit from grant X consumed for usage event Y".
+                    *   **Entry 2 (Credit towards Cost):**
+                        *   `entry_type`: `'credit_applied_to_usage'`
+                        *   `direction`: `'credit'`
+                        *   `status`: `'posted'` (if `UsageCost` is posted) or `'pending'` (if `UsageCost` is pending).
+                        *   `amount`: The `amount_applied`.
+                        *   `currency`: Credit currency.
+                        *   `source_credit_application_id`: The `id` of the `UsageCreditApplications` record.
+                        *   `applied_to_ledger_item_id`: The `id` of the `usage_cost` `LedgerEntry` created earlier in this transaction.
+                        *   `description`: e.g., "Usage cost for event Y offset by credit application".
     *   **Parent Record Creation (`UsageCredits`):**
         *   Create one `UsageCredits` record:
             *   `credit_type`: `'payment_top_up'` (for PAYG) or `'payment_period_settlement'` (for invoice payment).
@@ -498,8 +530,8 @@ All workflows operate within database transactions to ensure atomicity. Each dis
             *   `subscription_id`, `organization_id`, `livemode`.
 
 3.  **Applying Credits to Usage (During Billing Run or Real-time for PAYG)**
-    *   **Event:** The system (e.g., billing run logic with `calculation_run_id`) identifies an applicable `UsageCredits` grant and decides to use a portion (or all) of it to offset accumulated `usage_cost` ledger items.
-    *   **Transaction Context:** This typically happens within a broader `LedgerTransaction` associated with the current billing run's credit application phase (e.g., `initiating_source_type='billing_run_credit_application'`, `initiating_source_id`=calculation_run_id).
+    *   **Event:** The system (e.g., billing run logic with `calculation_run_id` or a real-time usage processing flow) identifies an applicable `UsageCredits` grant and decides to use a portion (or all) of it to offset an accumulated or current `usage_cost` ledger item.
+    *   **Transaction Context:** The `LedgerEntry` items related to credit application (`'credit_applied_to_usage'`) are created within the **same `LedgerTransaction` as the `'usage_cost'` ledger item they are offsetting**. This `LedgerTransaction` is typically initiated by the `UsageEvent` (via `initiating_source_type='usage_event_processing'`, `initiating_source_id`=UsageEvent.id) or by the batch process finalizing usage costs (e.g., `initiating_source_type='billing_run_usage_finalization'`, `initiating_source_id`=calculation_run_id). A billing run might process many such `UsageEvent`-initiated transactions.
     *   **Parent Record Creation (`UsageCreditApplications`):**
         *   Create one `UsageCreditApplications` record for each distinct grant application:
             *   `usage_credit_id`: The `id` of the `UsageCredits` grant being applied.

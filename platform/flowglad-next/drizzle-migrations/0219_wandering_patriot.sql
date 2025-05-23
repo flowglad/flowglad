@@ -5,7 +5,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-    CREATE TYPE "LedgerEntryType" AS ENUM ('usage_cost', 'payment_recognized', 'credit_grant_recognized', 'credit_applied_to_usage', 'credit_balance_adjusted', 'credit_grant_expired', 'payment_refunded', 'billing_adjustment');
+    CREATE TYPE "LedgerEntryType" AS ENUM ('usage_cost', 'payment_recognized', 'credit_grant_recognized', 'credit_balance_adjusted', 'credit_grant_expired', 'payment_refunded', 'billing_adjustment');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

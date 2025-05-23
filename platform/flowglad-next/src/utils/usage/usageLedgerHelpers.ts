@@ -1,5 +1,8 @@
 import { UsageEvent } from '@/db/schema/usageEvents'
-import { LedgerEntry } from '@/db/schema/ledgerEntries'
+import {
+  LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '@/db/schema/ledgerEntries'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import { Payment } from '@/db/schema/payments'
 import {
@@ -15,11 +18,14 @@ import {
   LedgerEntryDirection,
   LedgerEntryEntryType,
   LedgerEntryStatus,
+  LedgerEntryType,
   LedgerTransactionInitiatingSourceType,
+  LedgerTransactionType,
   PaymentStatus,
 } from '@/types'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import { UsageCredit } from '@/db/schema/usageCredits'
 
 interface UsageLedgerTransactionResult {
   ledgerEntries: LedgerEntry.Record[]
@@ -41,6 +47,7 @@ export const createUsageEventLedgerTransaction = async (
       `Usage event amount must be 0 or greater. Received ${usageEvent.amount} for usage event ${usageEvent.id}`
     )
   }
+
   const ledgerTransaction = await insertLedgerTransaction(
     {
       livemode: usageEvent.livemode,
@@ -50,9 +57,12 @@ export const createUsageEventLedgerTransaction = async (
         LedgerTransactionInitiatingSourceType.UsageEvent,
       initiatingSourceId: usageEvent.id,
       subscriptionId: usageEvent.subscriptionId,
+      type: LedgerTransactionType.UsageEventProcessed,
+      metadata: {},
     },
     transaction
   )
+
   const [ledgerAccount] = await selectLedgerAccounts(
     {
       subscriptionId: usageEvent.subscriptionId,
@@ -62,13 +72,15 @@ export const createUsageEventLedgerTransaction = async (
   )
   const ledgerEntries = await insertLedgerEntry(
     {
+      ...ledgerEntryNulledSourceIdColumns,
+      sourceUsageEventId: usageEvent.id,
       status: LedgerEntryStatus.Posted,
       livemode: usageEvent.livemode,
       organizationId,
       ledgerTransactionId: ledgerTransaction.id,
       subscriptionId: usageEvent.subscriptionId,
       direction: LedgerEntryDirection.Debit,
-      entryType: LedgerEntryEntryType.UsageCost,
+      entryType: LedgerEntryType.UsageCost,
       amount: usageEvent.amount,
       description: `Ingesting Usage Event ${usageEvent.id}`,
       ledgerAccountId: ledgerAccount.id,
@@ -88,68 +100,6 @@ export const createUsageEventLedgerTransaction = async (
 }
 
 /**
- * Creates a ledger transaction for a payment initiation.
- * This will create a pending usage ledger item for the payment amount.
- * The pending usage ledger item will be expired if the payment is confirmed.
- */
-export const createPaymentInitiationLedgerTransaction = async (
-  {
-    payment,
-    usageMeter,
-  }: { payment: Payment.Record; usageMeter: UsageMeter.Record },
-  transaction: DbTransaction
-): Promise<UsageLedgerTransactionResult> => {
-  const ledgerTransaction = await createLedgerTransactionForPayment(
-    payment,
-    usageMeter,
-    transaction
-  )
-  if (!ledgerTransaction) {
-    return {
-      ledgerEntries: [],
-      ledgerTransaction: null,
-    }
-  }
-  const [ledgerAccount] = await selectLedgerAccounts(
-    {
-      subscriptionId: payment.subscriptionId!,
-      usageMeterId: usageMeter.id,
-    },
-    transaction
-  )
-  const ledgerEntries = await insertLedgerEntry(
-    {
-      status: LedgerEntryStatus.Pending,
-      livemode: payment.livemode,
-      organizationId: payment.organizationId,
-      ledgerTransactionId: ledgerTransaction.id,
-      subscriptionId: payment.subscriptionId!,
-      direction: LedgerEntryDirection.Credit,
-      entryType: LedgerEntryEntryType.PaymentInitiated,
-      /**
-       * TODO: figure out how much the payment grants the user in credits (?????)
-       */
-      amount: -1,
-      description: `Payment ${payment.id} initiated`,
-      sourcePaymentId: payment.id,
-      ledgerAccountId: ledgerAccount.id,
-      metadata: {
-        paymentId: payment.id,
-      },
-      entryTimestamp: payment.createdAt,
-      expiredAt: null,
-      discardedAt: null,
-    },
-    transaction
-  )
-
-  return {
-    ledgerEntries: [ledgerEntries],
-    ledgerTransaction,
-  }
-}
-
-/**
  * TODO: do not create a usage transaction if there is already one
  * for the payment at this status: use payment + status as idempotency key.
  * @param payment
@@ -157,7 +107,7 @@ export const createPaymentInitiationLedgerTransaction = async (
  * @param transaction
  * @returns
  */
-const createLedgerTransactionForPayment = async (
+const createLedgerTransactionForPaymentRecognition = async (
   payment: Payment.Record,
   usageMeter: UsageMeter.Record,
   transaction: DbTransaction
@@ -175,11 +125,13 @@ const createLedgerTransactionForPayment = async (
         livemode: payment.livemode,
         organizationId,
         description: `Recognizing ${payment.status} payment: ${payment.id}`,
+        type: LedgerTransactionType.PaymentConfirmed,
         initiatingSourceType:
           LedgerTransactionInitiatingSourceType.Payment,
         initiatingSourceId: payment.id,
         subscriptionId,
         idempotencyKey: `${payment.id}-${payment.status}`,
+        metadata: {},
       },
       transaction
     )
@@ -213,9 +165,11 @@ export const postPaymentConfirmationLedgerTransaction = async (
   {
     payment,
     usageMeter,
+    usageCredit,
   }: {
     payment: Payment.Record
     usageMeter: UsageMeter.Record
+    usageCredit: UsageCredit.Record
   },
   transaction: DbTransaction
 ): Promise<UsageLedgerTransactionResult> => {
@@ -226,18 +180,18 @@ export const postPaymentConfirmationLedgerTransaction = async (
     )
   }
 
-  const ledgerTransaction = await createLedgerTransactionForPayment(
-    payment,
-    usageMeter,
-    transaction
-  )
+  const ledgerTransaction =
+    await createLedgerTransactionForPaymentRecognition(
+      payment,
+      usageMeter,
+      transaction
+    )
   if (!ledgerTransaction) {
     return {
       ledgerEntries: [],
       ledgerTransaction: null,
     }
   }
-  const entryType = entryTypeFromPaymentStatus(payment)
   const [ledgerAccount] = await selectLedgerAccounts(
     {
       subscriptionId: payment.subscriptionId!,
@@ -245,38 +199,33 @@ export const postPaymentConfirmationLedgerTransaction = async (
     },
     transaction
   )
-  const ledgerEntries = await insertLedgerEntry(
+  const paymentSucceededLedgerEntryInsert: LedgerEntry.PaymentSucceededInsert =
     {
+      ...ledgerEntryNulledSourceIdColumns,
       status: LedgerEntryStatus.Posted,
       livemode: payment.livemode,
       organizationId: payment.organizationId,
       ledgerTransactionId: ledgerTransaction.id,
       subscriptionId: payment.subscriptionId!,
       direction: LedgerEntryDirection.Credit,
-      entryType,
+      entryType: LedgerEntryType.PaymentSucceeded,
       amount: payment.amount,
       description: `Payment ${payment.id} recognized and credits issued`,
       sourcePaymentId: payment.id,
+      sourceUsageCreditId: usageCredit.id,
       ledgerAccountId: ledgerAccount.id,
-      metadata: {
-        paymentId: payment.id,
-      },
-      entryTimestamp: payment.createdAt,
-      expiredAt: null,
       discardedAt: null,
-    },
+      expiredAt: null,
+      entryTimestamp: payment.createdAt,
+      metadata: {},
+    }
+  const ledgerEntry = await insertLedgerEntry(
+    paymentSucceededLedgerEntryInsert,
     transaction
   )
 
-  const expiredLedgerEntries =
-    await expirePendingLedgerEntriesForPayment(
-      payment.id,
-      ledgerTransaction,
-      transaction
-    )
-
   return {
-    ledgerEntries: [ledgerEntries, ...expiredLedgerEntries],
+    ledgerEntries: [ledgerEntry],
     ledgerTransaction,
   }
 }
@@ -299,11 +248,12 @@ export const postPaymentFailedLedgerTransaction = async (
       `Payment ${payment.id} has no subscription ID. Cannot create usage credit.`
     )
   }
-  const ledgerTransaction = await createLedgerTransactionForPayment(
-    payment,
-    usageMeter,
-    transaction
-  )
+  const ledgerTransaction =
+    await createLedgerTransactionForPaymentRecognition(
+      payment,
+      usageMeter,
+      transaction
+    )
   if (!ledgerTransaction) {
     return {
       ledgerEntries: [],

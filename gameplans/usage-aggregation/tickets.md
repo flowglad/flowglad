@@ -72,16 +72,16 @@ To solve this, let's introduce the `usage_credit_applications` table to store an
 - The `usage_credit_applications` table exists in the database with the correct schema and indexes.
 - The Drizzle Zod schema `usageCreditApplications` is defined and accurately reflects the table.
 - All fields are conceptually immutable post-creation.
-- The `LedgerEntries` created from these applications will be linked to the `LedgerTransaction` associated with the billing run's credit application phase.
+- The `LedgerEntries` created from these applications will be linked to the `LedgerTransaction` associated with the `UsageEvent` that generated the cost being offset, or the batch finalization transaction for that cost.
 
 ### Test Coverage
 - Unit tests for Zod schema validation.
 - Integration tests for table creation and ensuring records can be created.
 
 ### Notes
-- **Timing of Ledger Creation:** `LedgerEntry` records with `entry_type: 'credit_applied_to_usage'` (and their corresponding `UsageCreditApplications` parent records) are created specifically when the system decides to use an available `UsageCredits` grant to offset `'usage_cost'` items. This typically happens during a defined calculation process, such as a billing run (as described in Ticket #15) or a real-time credit application mechanism for PAYG models.
-- **`calculation_run_id`:** These `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications` records) MUST be associated with the `calculation_run_id` of the specific billing run or calculation process that triggered the credit application. This distinguishes them from the earlier `'usage_cost'` ledger items which might have a different (or no) `calculation_run_id` from their ingestion time.
-- **Test Cases:** Ensure test cases verify that `'credit_applied_to_usage'` items are only created during the credit application phase and are correctly linked via `calculation_run_id` to the process that applied them. Test scenarios with different credit prioritization rules and ensure correct `source_usage_credit_id` and `source_credit_application_id` linkage.
+- **Timing of Ledger Creation:** `LedgerEntry` records with `entry_type: 'credit_applied_to_usage'` (and their corresponding `UsageCreditApplications` parent records) are created specifically when the system decides to use an available `UsageCredits` grant to offset `'usage_cost'` items. These credit application entries are part of the **same `LedgerTransaction` as the `'usage_cost'` ledger item they are offsetting**. This typically happens during a defined calculation process, such as a billing run (as described in Ticket #15) or a real-time credit application mechanism for PAYG models.
+- **`calculation_run_id`:** These `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications` records) will be associated with the `calculation_run_id` of the specific billing run or calculation process that triggered the credit application if they are processed in a batch. However, their `ledgerTransactionId` links them to the transaction of the original usage cost.
+- **Test Cases:** Ensure test cases verify that `'credit_applied_to_usage'` items are only created during the credit application phase and are correctly linked via `calculation_run_id` to the process that applied them, and via `ledgerTransactionId` to the original usage cost's transaction. Test scenarios with different credit prioritization rules and ensure correct `source_usage_credit_id` and `source_credit_application_id` linkage.
 
 ------
 ## 4. Implement `refunds` Table and Schema
@@ -304,10 +304,10 @@ This is a problem because a core function of the credit system – using credits
 
 To solve this, let's implement logic within the billing process (or a service it calls) that:
 1. Identifies applicable `UsageCredits` grants.
-2. For each portion of a grant applied:
+2. For each portion of a grant applied to a specific `UsageCost` (which has its own `LedgerTransaction`):
     a. Creates a `UsageCreditApplications` record.
-    b. Creates a `LedgerEntry` of type `'credit_applied_to_usage'` with `status: 'pending'`.
-3. If credit application logic iterates/revises within the run, existing `pending` items for this run are marked `discarded_at`, and new `pending` items are created.
+    b. Creates `LedgerEntry` records of type `'credit_applied_to_usage'` (one debit from grant, one credit to offset cost) with `status: 'pending'`, linked to the **`UsageCost`'s `LedgerTransaction`**.
+3. If credit application logic iterates/revises within the run, existing `pending` items for this run are marked `discarded_at`, and new `pending` items are created (still linked to the same `UsageCost`'s `LedgerTransaction`).
 4. At the end of the run, non-discarded `pending` items are transitioned to `status: 'posted'`.
 
 ### Changes
@@ -326,6 +326,7 @@ To solve this, let's implement logic within the billing process (or a service it
           -   `amount`: Positive value of the credit amount applied.
           -   `source_usage_credit_id`: The `id` of the `UsageCredits` grant.
           -   `source_credit_application_id`: The `id` of the new `UsageCreditApplications` record.
+          -   **`ledgerTransactionId`**: Must be the `id` of the `LedgerTransaction` associated with the `UsageCost` being offset.
           -   Populate other relevant fields.
   - Ensure these operations are part of the billing run's transaction.
 
@@ -342,9 +343,9 @@ To solve this, let's implement logic within the billing process (or a service it
 - Integration tests simulating a billing run with various credit scenarios (e.g., full coverage, partial coverage, multiple credits).
 
 ### Notes
-- **Timing of Ledger Creation & Lifecycle:** `LedgerEntry` records with `entry_type: 'credit_applied_to_usage'` (and their corresponding `UsageCreditApplications` parent records) are created with `status: 'pending'` specifically when the system decides to use an available `UsageCredits` grant. If the application logic within the same `calculation_run_id` iterates (e.g., tries a different credit strategy), it will mark the previous set of `pending` `'credit_applied_to_usage'` items as `discarded_at` and create new `pending` ones. Once the calculation run finalizes its decisions, these non-discarded `pending` items are updated to `status: 'posted'`.
-- **`calculation_run_id`:** These `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications` records) MUST be associated with the `calculation_run_id` of the specific billing run or calculation process that triggered the credit application. This distinguishes them from the earlier `'usage_cost'` ledger items which might have a different (or no) `calculation_run_id` from their ingestion time.
-- **Test Cases:** Ensure test cases verify that `'credit_applied_to_usage'` items are created as `'pending'`, can be `discarded_at` and replaced by new `pending` items within the same run, and are correctly transitioned to `'posted'` upon run completion. Test scenarios with different credit prioritization rules and ensure correct `source_usage_credit_id` and `source_credit_application_id` linkage. Verify that `discarded_at` items are not posted.
+- **Timing of Ledger Creation & Lifecycle:** `LedgerEntry` records with `entry_type: 'credit_applied_to_usage'` (and their corresponding `UsageCreditApplications` parent records) are created with `status: 'pending'` specifically when the system decides to use an available `UsageCredits` grant. These entries are part of the **same `LedgerTransaction` as the `'usage_cost'` ledger item they are offsetting**. If the application logic within the same `calculation_run_id` iterates, it will mark the previous set of `pending` `'credit_applied_to_usage'` items as `discarded_at` and create new `pending` ones. Once the calculation run finalizes its decisions, these non-discarded `pending` items are updated to `status: 'posted'`.
+- **`calculation_run_id`:** These `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications` records) MUST be associated with the `calculation_run_id` of the specific billing run or calculation process that triggered the credit application. This distinguishes them from the earlier `'usage_cost'` ledger items which might have a different (or no) `calculation_run_id` from their ingestion time. The `ledgerTransactionId` however, links them to the original cost's transaction.
+- **Test Cases:** Ensure test cases verify that `'credit_applied_to_usage'` items are created as `'pending'`, are part of the `UsageCost`'s transaction, can be `discarded_at` and replaced by new `pending` items within the same run, and are correctly transitioned to `'posted'` upon run completion. Test scenarios with different credit prioritization rules and ensure correct `source_usage_credit_id` and `source_credit_application_id` linkage. Verify that `discarded_at` items are not posted.
 
 ------
 ## 11. Implement Administrative Adjustment of Credit Balance Workflow
@@ -554,7 +555,7 @@ To solve this, let's refactor `billingRunHelpers.ts` to:
   - **Process Usage:**
     - For each relevant `UsageEvent`, ensure a `'usage_cost'` `LedgerEntry` is created (or verify its prior creation). If created as part of this run and not immediately final, its status should be `'pending'` initially. If already `posted` from prior individual processing, it's simply consumed.
   - **Apply Credits:**
-    - Implement logic from Ticket #10 to identify and apply credits. This involves creating `UsageCreditApplications` and `LedgerEntries` with `entry_type = 'credit_applied_to_usage'` and `status = 'pending'`, all associated with the `calculation_run_id`. If the credit application strategy iterates, previously created `pending` items for this run are marked `discarded_at`, and new ones are created.
+    - Implement logic from Ticket #10 to identify and apply credits. This involves creating `UsageCreditApplications` and `LedgerEntries` with `entry_type = 'credit_applied_to_usage'` (debit from grant, credit towards cost) and `status = 'pending'`, all associated with the `calculation_run_id` and, critically, with the **`LedgerTransaction` of the `UsageCost` being offset**. If the credit application strategy iterates, previously created `pending` items for this run are marked `discarded_at`, and new ones are created.
   - **Finalize Ledger Items for the Run:**
     - After all usage processing and credit application iterations are complete for the `calculation_run_id`, transition all `LedgerEntries` that were created with `status = 'pending'` during this run (and are not `discarded_at`) to `status = 'posted'`.
   - **Generate `SubscriptionMeterPeriodCalculations`:**
@@ -582,13 +583,13 @@ To solve this, let's refactor `billingRunHelpers.ts` to:
 ### Notes
 - **`calculation_run_id` as a Link:** This ticket is central to orchestrating the `calculation_run_id`. A new `calculation_run_id` should be generated at the start of each distinct billing run (for a specific subscription/period).
 - **Timing of Ledger Item Association:**
-    - `'usage_cost'` ledger items are either created *prior* to this billing run (as per Ticket #7, potentially with `status: 'posted'`) or *during* this run (initially `status: 'pending'`, then transitioned to `'posted'` at the end of the run). This process will *select* and *process* these items. They are effectively finalized or confirmed by this run for summarization.
-    - `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications`) are created *during* this billing run with `status: 'pending'` and tagged with the current `calculation_run_id`. They are transitioned to `'posted'` at the end of the run if not `discarded_at`.
+    - `'usage_cost'` ledger items are either created *prior* to this billing run (as per Ticket #7, potentially with `status: 'posted'` and its own `LedgerTransaction`) or *during* this run (initially `status: 'pending'`, then transitioned to `'posted'` at the end of the run, associated with a `LedgerTransaction` specific to its batch or individual processing). This billing run process will *select* and *process* these items.
+    - `'credit_applied_to_usage'` ledger items (and their parent `UsageCreditApplications`) are created *during* this billing run with `status: 'pending'`, tagged with the current `calculation_run_id`, and linked to the **`LedgerTransaction` of the `UsageCost` they are offsetting**. They are transitioned to `'posted'` at the end of the run if not `discarded_at`.
     - The `SubscriptionMeterPeriodCalculations` record is also created *at the end* of this process for the current `calculation_run_id`, summarizing ledger items that are now `posted` and relevant to this specific run.
-- **Distinction from Real-time PAYG:** For pure PAYG models that might apply credits in near real-time immediately after a usage event, the `calculation_run_id` might represent a much smaller, more frequent micro-batch or even individual event processing context. The principles of linking usage cost, credit application, and a summary/snapshot via a common `calculation_run_id` still apply, but the scope of the "run" is different.
+- **Distinction from Real-time PAYG:** For pure PAYG models that might apply credits in near real-time immediately after a usage event, the `calculation_run_id` might represent a much smaller, more frequent micro-batch or even individual event processing context. The principles of linking usage cost, credit application (within the same transaction), and a summary/snapshot via a common `calculation_run_id` still apply, but the scope of the "run" is different.
 - **Test Cases:** Include tests that verify:
     - Correct generation and propagation of `calculation_run_id`.
-    - Selection of appropriate pre-existing `'usage_cost'` items.
-    - Creation of `'credit_applied_to_usage'` items as `'pending'`, their potential discard and replacement with new `pending` items, and their final transition to `'posted'` at run completion.
+    - Selection of appropriate pre-existing `'usage_cost'` items and their `LedgerTransactions`.
+    - Creation of `'credit_applied_to_usage'` items as `'pending'`, their inclusion in the `UsageCost`'s transaction, their potential discard and replacement with new `pending` items, and their final transition to `'posted'` at run completion.
     - Accurate summarization in `SubscriptionMeterPeriodCalculations` based *only* on ledger items relevant to the current `calculation_run_id` that have achieved `'posted'` status by the end of the run.
     - Handling of scenarios where `'usage_cost'` items might have their own original `calculation_run_id` and/or `status` but are correctly processed and finalized by the current billing run.

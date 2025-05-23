@@ -33,14 +33,17 @@ export const selectLedgerEntryById = createSelectById(
   ledgerEntries,
   config
 )
+
 export const insertLedgerEntry = createInsertFunction(
   ledgerEntries,
   config
 )
+
 export const updateLedgerEntry = createUpdateFunction(
   ledgerEntries,
   config
 )
+
 export const selectLedgerEntries = createSelectFunction(
   ledgerEntries,
   config

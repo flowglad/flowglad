@@ -31,7 +31,7 @@ export const ledgerTransactions = pgTable(
       enumName: 'LedgerTransactionType',
       columnName: 'type',
       enumBase: LedgerTransactionType,
-    }),
+    }).notNull(),
     initiatingSourceType: text('initiating_source_type'),
     initiatingSourceId: text('initiating_source_id'),
     description: text('description'),
@@ -76,7 +76,10 @@ const columnRefinements = {
 }
 
 export const ledgerTransactionsInsertSchema =
-  enhancedCreateInsertSchema(ledgerTransactions, columnRefinements)
+  enhancedCreateInsertSchema(
+    ledgerTransactions,
+    columnRefinements
+  ).extend(columnRefinements)
 
 export const ledgerTransactionsSelectSchema = createSelectSchema(
   ledgerTransactions
