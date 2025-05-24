@@ -112,8 +112,8 @@ const columnRefinements = {
   issuedAmount: core.safeZodPositiveInteger,
   issuedAt: core.safeZodDate,
   expiresAt: core.safeZodDate.nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
-  paymentId: z.string().nullable().optional(),
+  metadata: z.record(z.string(), z.string()).nullable(),
+  paymentId: z.string().nullable(),
 }
 
 /*
@@ -122,10 +122,12 @@ const columnRefinements = {
 export const usageCreditsInsertSchema = enhancedCreateInsertSchema(
   usageCredits,
   columnRefinements
-)
+).extend(columnRefinements)
 
-export const usageCreditsSelectSchema =
-  createSelectSchema(usageCredits).extend(columnRefinements)
+export const usageCreditsSelectSchema = createSelectSchema(
+  usageCredits,
+  columnRefinements
+).extend(columnRefinements)
 
 export const usageCreditsUpdateSchema = createUpdateSchema(
   usageCredits,
@@ -147,11 +149,6 @@ const readOnlyColumns = {
 const hiddenColumns = {
   createdByCommit: true,
   updatedByCommit: true,
-} as const
-
-const clientProhibitedColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
 } as const
 
 const clientWriteOmits = {
