@@ -26,7 +26,7 @@ import {
 } from '@/types'
 
 // Function to test
-import { createUsageEventLedgerTransaction } from '@/utils/usage/usageLedgerHelpers'
+import { createUsageEventLedgerTransaction } from '@/utils/usage/ledgerHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'

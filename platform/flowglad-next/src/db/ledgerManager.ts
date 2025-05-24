@@ -2,14 +2,13 @@ import { DbTransaction } from '@/db/types'
 import {
   LedgerCommand,
   UsageEventProcessedLedgerCommand,
-  PaymentConfirmedLedgerCommand,
-  PromoCreditGrantedLedgerCommand,
   BillingRunUsageProcessedLedgerCommand,
   BillingRunCreditAppliedLedgerCommand,
   AdminCreditAdjustedLedgerCommand,
   CreditGrantExpiredLedgerCommand,
   PaymentRefundedLedgerCommand,
   BillingRecalculatedLedgerCommand,
+  CreditGrantRecognizedLedgerCommand,
 } from '@/db/ledgerManagerTypes'
 import {
   LedgerTransactionType,
@@ -26,9 +25,6 @@ import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMeth
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from './tableMethods/ledgerAccountMethods'
 import { LedgerAccount } from './schema/ledgerAccounts'
-
-const PLACEHOLDER_ECCA_ID =
-  'NEEDS_ECCA_ID_LOOKUP_OR_CONSTRUCTION' as const
 
 const processUsageEventProcessedLedgerCommand = async (
   command: UsageEventProcessedLedgerCommand,
@@ -48,76 +44,8 @@ const processUsageEventProcessedLedgerCommand = async (
   await insertLedgerTransaction(ledgerTransactionInput, transaction)
 }
 
-const processPaymentConfirmedLedgerCommand = async (
-  command: PaymentConfirmedLedgerCommand,
-  transaction: DbTransaction
-): Promise<void> => {
-  const ledgerTransactionInput: LedgerTransaction.Insert = {
-    organizationId: command.organizationId,
-    livemode: command.livemode,
-    type: command.type,
-    description:
-      command.transactionDescription ??
-      `Payment ${command.payload.payment.id} confirmed, funding credit ${command.payload.usageCredit.id}`,
-    metadata: command.transactionMetadata ?? null,
-    initiatingSourceType: command.type,
-    initiatingSourceId: command.payload.payment.id,
-    subscriptionId: command.subscriptionId!,
-  }
-  const insertedLedgerTransaction = await insertLedgerTransaction(
-    ledgerTransactionInput,
-    transaction
-  )
-
-  if (!insertedLedgerTransaction || !insertedLedgerTransaction.id) {
-    throw new Error(
-      'Failed to insert ledger transaction for PaymentConfirmed command or retrieve its ID'
-    )
-  }
-  const [ledgerAccount] = await selectLedgerAccounts(
-    {
-      organizationId: command.organizationId,
-      livemode: command.livemode,
-      subscriptionId: command.subscriptionId!,
-      usageMeterId: command.payload.usageCredit.usageMeterId,
-    },
-    transaction
-  )
-  if (!ledgerAccount) {
-    throw new Error(
-      'Failed to select ledger account for PaymentConfirmed command'
-    )
-  }
-  const ledgerEntryInput: LedgerEntry.CreditGrantRecognizedInsert = {
-    ...ledgerEntryNulledSourceIdColumns,
-    ledgerTransactionId: insertedLedgerTransaction.id,
-    ledgerAccountId: ledgerAccount.id,
-    subscriptionId: command.subscriptionId!,
-    organizationId: command.organizationId,
-    livemode: command.livemode,
-    entryTimestamp: new Date(),
-    status: LedgerEntryStatus.Posted,
-    discardedAt: null,
-    direction: LedgerEntryDirection.Credit,
-    entryType: LedgerEntryType.CreditGrantRecognized,
-    amount: command.payload.usageCredit.issuedAmount,
-    description: `Credit grant ${command.payload.usageCredit.id} recognized, funded by payment ${command.payload.payment.id}`,
-    sourceUsageCreditId: command.payload.usageCredit.id,
-    billingPeriodId:
-      command.payload.usageCredit.billingPeriodId ?? null,
-    usageMeterId: command.payload.usageCredit.usageMeterId ?? null,
-    calculationRunId: null,
-    metadata: {
-      ledgerCommandType: command.type,
-      paymentId: command.payload.payment.id,
-    },
-  }
-
-  await bulkInsertLedgerEntries([ledgerEntryInput], transaction)
-}
-
-const processPromoCreditGrantedLedgerCommand = async (
-  command: PromoCreditGrantedLedgerCommand,
+const processCreditGrantRecognizedLedgerCommand = async (
+  command: CreditGrantRecognizedLedgerCommand,
   transaction: DbTransaction
 ): Promise<void> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
@@ -169,11 +97,6 @@ const processPromoCreditGrantedLedgerCommand = async (
     amount: command.payload.usageCredit.issuedAmount,
     description: `Promotional credit ${command.payload.usageCredit.id} granted.`,
     sourceUsageCreditId: command.payload.usageCredit.id,
-    sourceUsageEventId: null,
-    sourceCreditApplicationId: null,
-    sourceCreditBalanceAdjustmentId: null,
-    sourceBillingPeriodCalculationId: null,
-    appliedToLedgerItemId: null,
     billingPeriodId:
       command.payload.usageCredit.billingPeriodId ?? null,
     usageMeterId: command.payload.usageCredit.usageMeterId ?? null,
@@ -437,13 +360,8 @@ export const processLedgerCommand = async (
         command,
         transaction
       )
-    case LedgerTransactionType.PaymentConfirmed:
-      return processPaymentConfirmedLedgerCommand(
-        command,
-        transaction
-      )
-    case LedgerTransactionType.PromoCreditGranted:
-      return processPromoCreditGrantedLedgerCommand(
+    case LedgerTransactionType.CreditGrantRecognized:
+      return processCreditGrantRecognizedLedgerCommand(
         command,
         transaction
       )

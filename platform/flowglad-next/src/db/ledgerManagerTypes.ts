@@ -45,27 +45,15 @@ export type UsageEventProcessedLedgerCommand = z.infer<
   typeof usageEventProcessedLedgerCommandSchema
 >
 
-export const paymentConfirmedLedgerCommandSchema = z.object({
+export const creditGrantRecognizedLedgerCommandSchema = z.object({
   ...baseLedgerCommandFields,
-  type: z.literal(LedgerTransactionType.PaymentConfirmed),
-  payload: z.object({
-    payment: paymentsSelectSchema, // Its id is initiatingSourceId
-    usageCredit: usageCreditsSelectSchema, // The credit grant created/funded by this payment
-  }),
-})
-export type PaymentConfirmedLedgerCommand = z.infer<
-  typeof paymentConfirmedLedgerCommandSchema
->
-
-export const promoCreditGrantedLedgerCommandSchema = z.object({
-  ...baseLedgerCommandFields,
-  type: z.literal(LedgerTransactionType.PromoCreditGranted),
+  type: z.literal(LedgerTransactionType.CreditGrantRecognized),
   payload: z.object({
     usageCredit: usageCreditsSelectSchema, // Its id is initiatingSourceId
   }),
 })
-export type PromoCreditGrantedLedgerCommand = z.infer<
-  typeof promoCreditGrantedLedgerCommandSchema
+export type CreditGrantRecognizedLedgerCommand = z.infer<
+  typeof creditGrantRecognizedLedgerCommandSchema
 >
 
 export const billingRunUsageProcessedLedgerCommandSchema = z.object({
@@ -168,8 +156,7 @@ export type BillingRecalculatedLedgerCommand = z.infer<
 
 export const LedgerCommandSchema = z.discriminatedUnion('type', [
   usageEventProcessedLedgerCommandSchema,
-  paymentConfirmedLedgerCommandSchema,
-  promoCreditGrantedLedgerCommandSchema,
+  creditGrantRecognizedLedgerCommandSchema,
   billingRunUsageProcessedLedgerCommandSchema,
   billingRunCreditAppliedLedgerCommandSchema,
   adminCreditAdjustedLedgerCommandSchema,

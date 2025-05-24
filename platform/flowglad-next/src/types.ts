@@ -794,8 +794,11 @@ export enum LedgerEntryDirection {
 
 export enum LedgerTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
-  Payment = 'payment',
   ManualAdjustment = 'manual_adjustment',
+  BillingRun = 'billing_run',
+  Admin = 'admin',
+  CreditGrant = 'credit_grant',
+  Refund = 'refund',
 }
 
 export enum FeatureType {
@@ -822,8 +825,7 @@ export enum NormalBalanceType {
 
 export enum LedgerTransactionType {
   UsageEventProcessed = 'usage_event_processed',
-  PaymentConfirmed = 'payment_succeeded',
-  PromoCreditGranted = 'promo_credit_granted',
+  CreditGrantRecognized = 'credit_grant_recognized',
   BillingRunUsageProcessed = 'billing_run_usage_processed',
   BillingRunCreditApplied = 'billing_run_credit_applied',
   AdminCreditAdjusted = 'admin_credit_adjusted',
