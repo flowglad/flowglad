@@ -8,7 +8,7 @@ import {
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { DbTransaction } from '@/db/types'
 import { CreateUsageEventInput } from '@/db/schema/usageEvents'
-import { createUsageEventLedgerTransaction } from './usageLedgerHelpers'
+import { createUsageEventLedgerTransaction } from './ledgerHelpers'
 
 export const ingestAndProcessUsageEvent = async (
   {

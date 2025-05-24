@@ -4,16 +4,18 @@ import {
   createUpdateFunction,
   createSelectFunction,
   ORMMethodCreatorConfig,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   ledgerEntries,
   ledgerEntriesInsertSchema,
   ledgerEntriesSelectSchema,
   ledgerEntriesUpdateSchema,
+  LedgerEntry,
 } from '@/db/schema/ledgerEntries'
 import { DbTransaction } from '../types'
-import { LedgerEntryStatus } from '@/types'
-import { and, eq, inArray } from 'drizzle-orm'
+import { LedgerEntryDirection, LedgerEntryStatus } from '@/types'
+import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
 
 const config: ORMMethodCreatorConfig<
@@ -32,50 +34,152 @@ export const selectLedgerEntryById = createSelectById(
   ledgerEntries,
   config
 )
+
 export const insertLedgerEntry = createInsertFunction(
   ledgerEntries,
   config
 )
+
 export const updateLedgerEntry = createUpdateFunction(
   ledgerEntries,
   config
 )
+
 export const selectLedgerEntries = createSelectFunction(
   ledgerEntries,
   config
 )
 
-export const expirePendingLedgerEntriesForPayment = async (
-  paymentId: string,
-  ledgerTransaction: LedgerTransaction.Record,
+export const bulkInsertLedgerEntries = async (
+  data: Array<typeof ledgerEntries.$inferInsert>,
   transaction: DbTransaction
 ) => {
-  const pendingLedgerEntries = await selectLedgerEntries(
-    {
-      sourcePaymentId: paymentId,
-      status: LedgerEntryStatus.Pending,
-    },
-    transaction
-  )
-  await transaction
-    .update(ledgerEntries)
-    .set({
-      expiredAt: new Date(),
-      expiredAtLedgerTransactionId: ledgerTransaction.id,
-    })
-    .where(
-      and(
-        inArray(
-          ledgerEntries.id,
-          pendingLedgerEntries.map((item) => item.id)
-        ),
-        eq(
-          ledgerEntries.subscriptionId,
-          ledgerTransaction.subscriptionId
+  if (data.length === 0) {
+    return []
+  }
+  // Assuming ledgerEntriesInsertSchema can validate an array, or we validate each item if needed.
+  // For simplicity, direct insert is used here. Validation should occur before calling this.
+  return transaction.insert(ledgerEntries).values(data).returning()
+}
+
+const balanceTypeWhereStatement = (
+  balanceType: 'pending' | 'posted' | 'available'
+) => {
+  switch (balanceType) {
+    case 'posted':
+      return eq(ledgerEntries.status, LedgerEntryStatus.Posted)
+    case 'pending':
+      return inArray(ledgerEntries.status, [
+        LedgerEntryStatus.Pending,
+        LedgerEntryStatus.Posted,
+      ])
+    case 'available':
+      /**
+       * include both posted OR
+       * pending + debit
+       * (exclude pending + credit)
+       */
+      return or(
+        eq(ledgerEntries.status, LedgerEntryStatus.Posted),
+        and(
+          eq(ledgerEntries.status, LedgerEntryStatus.Pending),
+          eq(ledgerEntries.direction, LedgerEntryDirection.Debit)
         )
       )
-    )
-    .returning()
+  }
+}
 
-  return pendingLedgerEntries
+const discardedAtFilterOutStatement = () => {
+  return or(
+    isNull(ledgerEntries.discardedAt),
+    gt(ledgerEntries.discardedAt, new Date())
+  )
+}
+
+const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
+  return entries.reduce((acc, entry) => {
+    return entry.direction === LedgerEntryDirection.Credit
+      ? acc + entry.amount
+      : acc - entry.amount
+  }, 0)
+}
+export const aggregateBalanceForLedgerAccountFromEntries = async (
+  scopedWhere: Pick<
+    LedgerEntry.Where,
+    | 'ledgerAccountId'
+    | 'status'
+    | 'sourceBillingPeriodCalculationId'
+    | 'sourceCreditApplicationId'
+    | 'sourceCreditBalanceAdjustmentId'
+    | 'sourceUsageEventId'
+    | 'sourceUsageCreditId'
+    | 'sourceCreditApplicationId'
+  >,
+  balanceType: 'pending' | 'posted' | 'available',
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(ledgerEntries)
+    .where(
+      and(
+        whereClauseFromObject(ledgerEntries, scopedWhere),
+        discardedAtFilterOutStatement(),
+        balanceTypeWhereStatement(balanceType)
+      )
+    )
+  return balanceFromEntries(
+    result.map((item) => ledgerEntriesSelectSchema.parse(item))
+  )
+}
+
+export const aggregateAvailableBalanceForUsageCredit = async (
+  scopedWhere: Pick<
+    LedgerEntry.Where,
+    'ledgerAccountId' | 'sourceUsageCreditId'
+  >,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(ledgerEntries)
+    .where(
+      and(
+        whereClauseFromObject(ledgerEntries, scopedWhere),
+        balanceTypeWhereStatement('available'),
+        discardedAtFilterOutStatement()
+      )
+    )
+  console.log('=====result', result)
+  const entriesByUsageCreditId = new Map<
+    string,
+    LedgerEntry.Record[]
+  >()
+  result.forEach((item) => {
+    const usageCreditId = item.sourceUsageCreditId
+    if (!usageCreditId) {
+      return
+    }
+    if (!entriesByUsageCreditId.has(usageCreditId)) {
+      entriesByUsageCreditId.set(usageCreditId, [])
+    }
+    entriesByUsageCreditId
+      .get(usageCreditId)
+      ?.push(ledgerEntriesSelectSchema.parse(item))
+  })
+  console.log('====entriesByUsageCreditId', entriesByUsageCreditId)
+  console.log(
+    'Array.from(entriesByUsageCreditId.entries())',
+    Array.from(entriesByUsageCreditId.entries())
+  )
+  const balances = Array.from(entriesByUsageCreditId.entries()).map(
+    ([usageCreditId, entries]) => {
+      return {
+        usageCreditId,
+        balance: balanceFromEntries(entries),
+      }
+    }
+  )
+  console.log('====balances', balances)
+  return balances
 }

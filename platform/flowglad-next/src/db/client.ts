@@ -29,13 +29,13 @@ let logger = false
 if (core.IS_PROD) {
   logger = true
 } else if (core.IS_TEST) {
-  logger = false
+  logger = true
 } else if (core.IS_DEV) {
   logger = true
 }
 
 export const db = drizzle(client, {
-  logger: logger,
+  logger,
 })
 
 export default db

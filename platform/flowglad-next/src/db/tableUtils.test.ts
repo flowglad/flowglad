@@ -119,6 +119,9 @@ describe('createCursorPaginatedSelectFunction', () => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
           pageSize: 15,
+          filters: {
+            organizationId,
+          },
         },
         transaction,
       })

@@ -792,23 +792,13 @@ export enum LedgerEntryDirection {
   Credit = 'credit',
 }
 
-export enum LedgerEntryEntryType {
-  UsageCost = 'usage_cost',
-  PaymentSucceeded = 'payment_succeeded',
-  PaymentInitiated = 'payment_initiated',
-  PaymentFailed = 'payment_failed',
-  CreditGrantRecognized = 'credit_grant_recognized',
-  CreditAppliedToUsage = 'credit_applied_to_usage',
-  CreditBalanceAdjusted = 'credit_balance_adjusted',
-  CreditGrantExpired = 'credit_grant_expired',
-  BillingAdjustment = 'billing_adjustment',
-  PaymentRefunded = 'payment_refunded',
-}
-
 export enum LedgerTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
-  Payment = 'payment',
   ManualAdjustment = 'manual_adjustment',
+  BillingRun = 'billing_run',
+  Admin = 'admin',
+  CreditGrant = 'credit_grant',
+  Refund = 'refund',
 }
 
 export enum FeatureType {
@@ -832,3 +822,39 @@ export enum NormalBalanceType {
   DEBIT = 'debit',
   CREDIT = 'credit',
 }
+
+export enum LedgerTransactionType {
+  UsageEventProcessed = 'usage_event_processed',
+  CreditGrantRecognized = 'credit_grant_recognized',
+  BillingRunUsageProcessed = 'billing_run_usage_processed',
+  BillingRunCreditApplied = 'billing_run_credit_applied',
+  AdminCreditAdjusted = 'admin_credit_adjusted',
+  CreditGrantExpired = 'credit_grant_expired',
+  PaymentRefunded = 'payment_refunded',
+  BillingRecalculated = 'billing_recalculated',
+}
+
+export enum LedgerEntryType {
+  UsageCost = 'usage_cost',
+  PaymentInitiated = 'payment_initiated',
+  PaymentFailed = 'payment_failed',
+  CreditGrantRecognized = 'credit_grant_recognized',
+  CreditBalanceAdjusted = 'credit_balance_adjusted',
+  CreditGrantExpired = 'credit_grant_expired',
+  PaymentRefunded = 'payment_refunded',
+  BillingAdjustment = 'billing_adjustment',
+}
+
+type CreditableEntryType =
+  | 'payment_initiated'
+  | 'credit_grant_recognized'
+
+export type LedgerEntryDebitableEntryType = Exclude<
+  LedgerEntryType,
+  CreditableEntryType
+>
+
+export type LedgerEntryCreditableEntryType = Extract<
+  LedgerEntryType,
+  CreditableEntryType
+>

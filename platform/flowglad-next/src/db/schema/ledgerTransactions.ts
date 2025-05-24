@@ -9,12 +9,13 @@ import {
   livemodePolicy,
   createUpdateSchema,
   constructUniqueIndex,
+  pgEnumColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { subscriptions } from './subscriptions'
-import { usageMeters } from './usageMeters'
+import { LedgerTransactionType } from '@/types'
 
 const TABLE_NAME = 'ledger_transactions'
 
@@ -26,6 +27,11 @@ export const ledgerTransactions = pgTable(
       'organization_id',
       organizations
     ),
+    type: pgEnumColumn({
+      enumName: 'LedgerTransactionType',
+      columnName: 'type',
+      enumBase: LedgerTransactionType,
+    }).notNull(),
     initiatingSourceType: text('initiating_source_type'),
     initiatingSourceId: text('initiating_source_id'),
     description: text('description'),
@@ -34,10 +40,6 @@ export const ledgerTransactions = pgTable(
       'subscription_id',
       subscriptions
     ),
-    usageMeterId: notNullStringForeignKey(
-      'usage_meter_id',
-      usageMeters
-    ),
     idempotencyKey: text('idempotency_key'),
   },
   (table) => [
@@ -45,13 +47,18 @@ export const ledgerTransactions = pgTable(
       table.initiatingSourceType,
       table.initiatingSourceId,
     ]),
-    constructIndex(TABLE_NAME, [table.usageMeterId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructUniqueIndex(TABLE_NAME, [
       table.idempotencyKey,
-      table.usageMeterId,
       table.subscriptionId,
+    ]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.type,
+      table.initiatingSourceType,
+      table.initiatingSourceId,
+      table.livemode,
+      table.organizationId,
     ]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
@@ -65,11 +72,14 @@ export const ledgerTransactions = pgTable(
 
 const columnRefinements = {
   metadata: z.record(z.string(), z.any()).nullable(),
-  createdAt: core.safeZodDate,
+  type: z.nativeEnum(LedgerTransactionType),
 }
 
 export const ledgerTransactionsInsertSchema =
-  enhancedCreateInsertSchema(ledgerTransactions, columnRefinements)
+  enhancedCreateInsertSchema(
+    ledgerTransactions,
+    columnRefinements
+  ).extend(columnRefinements)
 
 export const ledgerTransactionsSelectSchema = createSelectSchema(
   ledgerTransactions
