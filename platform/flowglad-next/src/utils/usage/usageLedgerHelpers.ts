@@ -5,10 +5,7 @@ import {
 } from '@/db/schema/ledgerEntries'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import { Payment } from '@/db/schema/payments'
-import {
-  expirePendingLedgerEntriesForPayment,
-  insertLedgerEntry,
-} from '@/db/tableMethods/ledgerEntryMethods'
+import { insertLedgerEntry } from '@/db/tableMethods/ledgerEntryMethods'
 import {
   insertLedgerTransaction,
   insertLedgerTransactionOrDoNothingByIdempotencyKey,
@@ -259,11 +256,6 @@ export const postPaymentFailedLedgerTransaction = async (
       ledgerTransaction: null,
     }
   }
-  await expirePendingLedgerEntriesForPayment(
-    payment.id,
-    ledgerTransaction,
-    transaction
-  )
   return {
     ledgerEntries: [],
     ledgerTransaction,

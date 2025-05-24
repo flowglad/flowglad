@@ -85,11 +85,7 @@ export async function comprehensiveAdminTransaction<T>(
 
     // Process ledger command if any
     if (output.ledgerCommand) {
-      await processLedgerCommand(
-        output.ledgerCommand,
-        paramsForFn,
-        transaction
-      )
+      await processLedgerCommand(output.ledgerCommand, transaction)
     }
 
     // No RESET ROLE typically needed here as admin role wasn't set via session context

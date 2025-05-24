@@ -111,11 +111,11 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     )
 
     const paramsForFn = {
-      transaction: transaction as DbTransaction,
+      transaction,
       userId,
       livemode,
       organizationId,
-    } as AuthenticatedTransactionParams
+    }
 
     const output = await fn(paramsForFn)
 
@@ -129,18 +129,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
 
     // Process ledger command if any
     if (output.ledgerCommand) {
-      if (
-        output.ledgerCommand.transactionDetails &&
-        !output.ledgerCommand.transactionDetails.organizationId
-      ) {
-        output.ledgerCommand.transactionDetails.organizationId =
-          organizationId
-      }
-      await processLedgerCommand(
-        output.ledgerCommand,
-        paramsForFn,
-        transaction as DbTransaction
-      )
+      await processLedgerCommand(output.ledgerCommand, transaction)
     }
 
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
