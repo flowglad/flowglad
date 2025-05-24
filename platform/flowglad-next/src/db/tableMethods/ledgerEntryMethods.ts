@@ -89,6 +89,20 @@ const balanceTypeWhereStatement = (
   }
 }
 
+const discardedAtFilterOutStatement = () => {
+  return or(
+    isNull(ledgerEntries.discardedAt),
+    gt(ledgerEntries.discardedAt, new Date())
+  )
+}
+
+const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
+  return entries.reduce((acc, entry) => {
+    return entry.direction === LedgerEntryDirection.Credit
+      ? acc + entry.amount
+      : acc - entry.amount
+  }, 0)
+}
 export const aggregateBalanceForLedgerAccountFromEntries = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
@@ -110,17 +124,62 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
     .where(
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
-        or(
-          isNull(ledgerEntries.discardedAt),
-          gt(ledgerEntries.discardedAt, new Date())
-        ),
+        discardedAtFilterOutStatement(),
         balanceTypeWhereStatement(balanceType)
       )
     )
-  const balance = result.reduce((acc, entry) => {
-    return entry.direction === LedgerEntryDirection.Credit
-      ? acc + entry.amount
-      : acc - entry.amount
-  }, 0)
-  return balance
+  return balanceFromEntries(
+    result.map((item) => ledgerEntriesSelectSchema.parse(item))
+  )
+}
+
+export const aggregateAvailableBalanceForUsageCredit = async (
+  scopedWhere: Pick<
+    LedgerEntry.Where,
+    'ledgerAccountId' | 'sourceUsageCreditId'
+  >,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(ledgerEntries)
+    .where(
+      and(
+        whereClauseFromObject(ledgerEntries, scopedWhere),
+        balanceTypeWhereStatement('available'),
+        discardedAtFilterOutStatement()
+      )
+    )
+  console.log('=====result', result)
+  const entriesByUsageCreditId = new Map<
+    string,
+    LedgerEntry.Record[]
+  >()
+  result.forEach((item) => {
+    const usageCreditId = item.sourceUsageCreditId
+    if (!usageCreditId) {
+      return
+    }
+    if (!entriesByUsageCreditId.has(usageCreditId)) {
+      entriesByUsageCreditId.set(usageCreditId, [])
+    }
+    entriesByUsageCreditId
+      .get(usageCreditId)
+      ?.push(ledgerEntriesSelectSchema.parse(item))
+  })
+  console.log('====entriesByUsageCreditId', entriesByUsageCreditId)
+  console.log(
+    'Array.from(entriesByUsageCreditId.entries())',
+    Array.from(entriesByUsageCreditId.entries())
+  )
+  const balances = Array.from(entriesByUsageCreditId.entries()).map(
+    ([usageCreditId, entries]) => {
+      return {
+        usageCreditId,
+        balance: balanceFromEntries(entries),
+      }
+    }
+  )
+  console.log('====balances', balances)
+  return balances
 }
