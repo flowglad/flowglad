@@ -109,6 +109,9 @@ export const usageCredits = pgTable(
 const columnRefinements = {
   creditType: core.createSafeZodEnum(UsageCreditType),
   status: core.createSafeZodEnum(UsageCreditStatus),
+  sourceReferenceType: core.createSafeZodEnum(
+    UsageCreditSourceReferenceType
+  ),
   issuedAmount: core.safeZodPositiveInteger,
   issuedAt: core.safeZodDate,
   expiresAt: core.safeZodDate.nullable(),

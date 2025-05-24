@@ -1,5 +1,5 @@
 {
-  "id": "b878b4da-6ed6-4e99-b85f-862087f784ad",
+  "id": "08b5c1c0-db5f-4456-a4d6-b057128df30b",
   "prevId": "3a04e516-39a1-4737-9bed-fc5a70906bc5",
   "version": "7",
   "dialect": "postgresql",
@@ -4203,12 +4203,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "source_payment_id": {
-          "name": "source_payment_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "source_credit_application_id": {
           "name": "source_credit_application_id",
           "type": "text",
@@ -4223,6 +4217,12 @@
         },
         "source_billing_period_calculation_id": {
           "name": "source_billing_period_calculation_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_refund_id": {
+          "name": "source_refund_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4394,21 +4394,6 @@
           "method": "btree",
           "with": {}
         },
-        "ledger_entries_source_payment_id_idx": {
-          "name": "ledger_entries_source_payment_id_idx",
-          "columns": [
-            {
-              "expression": "source_payment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "ledger_entries_source_credit_application_id_idx": {
           "name": "ledger_entries_source_credit_application_id_idx",
           "columns": [
@@ -4566,19 +4551,6 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "ledger_entries_source_payment_id_payments_id_fk": {
-          "name": "ledger_entries_source_payment_id_payments_id_fk",
-          "tableFrom": "ledger_entries",
-          "tableTo": "payments",
-          "columnsFrom": [
-            "source_payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk": {
           "name": "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk",
           "tableFrom": "ledger_entries",
@@ -4598,6 +4570,19 @@
           "tableTo": "usage_credit_balance_adjustments",
           "columnsFrom": [
             "source_credit_balance_adjustment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_entries_source_refund_id_refunds_id_fk": {
+          "name": "ledger_entries_source_refund_id_refunds_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "refunds",
+          "columnsFrom": [
+            "source_refund_id"
           ],
           "columnsTo": [
             "id"
@@ -4750,7 +4735,7 @@
           "type": "LedgerTransactionType",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "initiating_source_type": {
           "name": "initiating_source_type",
@@ -9934,6 +9919,12 @@
           "name": "usage_meter_id",
           "type": "text",
           "primaryKey": false,
+          "notNull": true
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "text",
+          "primaryKey": false,
           "notNull": false
         },
         "issued_amount": {
@@ -10080,6 +10071,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "usage_credits_payment_id_idx": {
+          "name": "usage_credits_payment_id_idx",
+          "columns": [
+            {
+              "expression": "payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -10128,6 +10134,19 @@
           "tableTo": "usage_meters",
           "columnsFrom": [
             "usage_meter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "usage_credits_payment_id_payments_id_fk": {
+          "name": "usage_credits_payment_id_payments_id_fk",
+          "tableFrom": "usage_credits",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "payment_id"
           ],
           "columnsTo": [
             "id"

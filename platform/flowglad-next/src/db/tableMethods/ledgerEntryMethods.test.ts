@@ -16,6 +16,7 @@ import {
   setupUsageEvent,
   setupUsageCredit,
   setupUsageCreditApplication,
+  setupRefund,
 } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
@@ -37,6 +38,7 @@ import {
   LedgerTransactionType,
   LedgerEntryType,
   UsageCreditType,
+  RefundStatus,
 } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -264,6 +266,7 @@ describe('ledgerEntryMethods', () => {
     let paymentId1: string
     let usageEventId: string
     let usageCreditId: string
+    let refundId: string
     beforeEach(async () => {
       testLedgerTransaction = await setupLedgerTransaction({
         organizationId: organization.id,
@@ -287,12 +290,27 @@ describe('ledgerEntryMethods', () => {
         invoiceId: invoice1.id,
       })
       paymentId1 = payment1.id
+      const refund = await setupRefund({
+        organizationId: organization.id,
+        livemode: true,
+        amount: 100,
+        paymentId: payment1.id,
+        status: RefundStatus.Succeeded,
+        subscriptionId: subscription.id,
+        currency: payment1.currency,
+      })
+      refundId = refund.id
       const usageEvent = await setupUsageEvent({
         organizationId: organization.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         livemode: true,
-        quantity: 100,
+        amount: 100,
+        priceId: price.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: core.nanoid(),
+        customerId: customer.id,
+        properties: {},
       })
       usageEventId = usageEvent.id
       const usageCredit = await setupUsageCredit({
@@ -301,6 +319,7 @@ describe('ledgerEntryMethods', () => {
         issuedAmount: 1000,
         creditType: UsageCreditType.Grant,
         subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
       })
       usageCreditId = usageCredit.id
     })
@@ -368,7 +387,7 @@ describe('ledgerEntryMethods', () => {
           entryType: LedgerEntryType.PaymentRefunded,
           amount: 300,
           status: LedgerEntryStatus.Posted,
-          sourcePaymentId: paymentId1,
+          sourceRefundId: refundId,
         })
 
         await adminTransaction(async ({ transaction }) => {
@@ -432,7 +451,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.PaymentRefunded,
             amount: 50,
             status: LedgerEntryStatus.Posted,
-            sourcePaymentId: paymentId1,
+            sourceRefundId: refundId,
           })
           const balance =
             await aggregateBalanceForLedgerAccountFromEntries(
@@ -1005,7 +1024,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.PaymentRefunded,
             amount: 200,
             status: LedgerEntryStatus.Posted,
-            sourcePaymentId: paymentId1,
+            sourceRefundId: refundId,
           })
           // Non-discarded Pending Debit: -300
           await setupDebitLedgerEntry({
@@ -1063,7 +1082,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.PaymentRefunded,
             amount: 100,
             status: LedgerEntryStatus.Posted,
-            sourcePaymentId: paymentId1,
+            sourceRefundId: refundId,
           })
           // Pending Credit (ignored for available)
           await setupCreditLedgerEntry({
@@ -1326,7 +1345,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.PaymentRefunded,
             amount: 200,
             status: LedgerEntryStatus.Posted,
-            sourcePaymentId: paymentId1,
+            sourceRefundId: refundId,
           })
           // Non-discarded Pending Debit: -100
           await setupDebitLedgerEntry({
@@ -1372,7 +1391,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.PaymentRefunded,
             amount: 200,
             status: LedgerEntryStatus.Posted,
-            sourcePaymentId: paymentId1,
+            sourceRefundId: refundId,
           })
           // Non-discarded Pending Debit: -300
           await setupDebitLedgerEntry({
@@ -1643,6 +1662,7 @@ describe('ledgerEntryMethods', () => {
           issuedAmount: 1000,
           creditType: UsageCreditType.Grant,
           subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
         })
         const usageCreditApplication =
           await setupUsageCreditApplication({
@@ -1740,6 +1760,7 @@ describe('ledgerEntryMethods', () => {
           issuedAmount: 1000,
           creditType: UsageCreditType.Grant,
           subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
         })
         await adminTransaction(async ({ transaction }) => {
           const postedCreditAmount = 100
@@ -1815,6 +1836,7 @@ describe('ledgerEntryMethods', () => {
             issuedAmount: 1000,
             creditType: UsageCreditType.Grant,
             subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
           })
           await setupCreditLedgerEntry({
             organizationId: organization.id,
@@ -1895,6 +1917,7 @@ describe('ledgerEntryMethods', () => {
           issuedAmount: 1000,
           creditType: UsageCreditType.Grant,
           subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
         })
         const usageCreditApplication =
           await setupUsageCreditApplication({

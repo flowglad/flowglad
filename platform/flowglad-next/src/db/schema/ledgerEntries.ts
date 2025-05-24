@@ -40,6 +40,7 @@ import {
 } from '@/types'
 import { ledgerAccounts } from './ledgerAccounts'
 import { EqualApproximately } from 'lucide-react'
+import { refunds } from './refunds'
 
 const TABLE_NAME = 'ledger_entries'
 
@@ -107,6 +108,10 @@ export const ledgerEntries = pgTable(
     ),
     sourceBillingPeriodCalculationId: text(
       'source_billing_period_calculation_id'
+    ),
+    sourceRefundId: nullableStringForeignKey(
+      'source_refund_id',
+      refunds
     ),
     appliedToLedgerItemId: text('applied_to_ledger_item_id'),
     billingPeriodId: nullableStringForeignKey(
@@ -220,7 +225,7 @@ export const paymentRefundedEntryRefinements = {
   ...nulledSourceColumnRefinements,
   direction: z.literal(LedgerEntryDirection.Debit),
   entryType: z.literal(LedgerEntryType.PaymentRefunded),
-  sourcePaymentId: z.string(),
+  sourceRefundId: z.string(),
 }
 
 export const billingAdjustmentEntryRefinements = {

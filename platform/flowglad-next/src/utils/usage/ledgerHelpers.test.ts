@@ -13,6 +13,8 @@ import {
   setupSubscription,
   setupUsageMeter,
   setupLedgerAccount,
+  setupUsageEvent,
+  setupBillingPeriod,
 } from '@/../seedDatabase'
 
 import { DbTransaction } from '@/db/types'
@@ -23,6 +25,7 @@ import {
   LedgerEntryType,
   LedgerEntryStatus,
   LedgerTransactionInitiatingSourceType,
+  BillingPeriodStatus,
 } from '@/types'
 
 // Function to test
@@ -30,6 +33,7 @@ import { createUsageEventLedgerTransaction } from '@/utils/usage/ledgerHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import { core } from '../core'
 
 // Global transaction provided by the test environment for each test case.
 // This is assumed based on `new-test-suite.txt` examples where `transaction`
@@ -41,16 +45,7 @@ describe('usageLedgerHelpers', () => {
   let organization: Organization.Record
   let subscription: Subscription.Record
   // Define usageEventInput with only properties known to UsageEvent.Record and used by the function
-  let usageEventInput: Pick<
-    UsageEvent.Record,
-    | 'id'
-    | 'livemode'
-    | 'subscriptionId'
-    | 'amount'
-    | 'createdAt'
-    | 'updatedAt'
-    | 'usageMeterId'
-  >
+  let usageEvent: UsageEvent.Record
   let usageMeter: UsageMeter.Record
   let ledgerAccount: LedgerAccount.Record
   beforeEach(async () => {
@@ -84,15 +79,23 @@ describe('usageLedgerHelpers', () => {
       livemode: true,
       organizationId: organization.id,
     })
-    usageEventInput = {
-      id: `uev_${nanoid()}`,
-      livemode: true, // Defaulting livemode for test setup consistency
+    const billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
-      amount: 100, // Positive amount, ensuring it's > 0 as per function's internal check
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      startDate: new Date(),
+      endDate: new Date(),
+      status: BillingPeriodStatus.Active,
+    })
+    usageEvent = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
       usageMeterId: usageMeter.id,
-    }
+      amount: 100,
+      priceId: price.id,
+      billingPeriodId: billingPeriod.id,
+      transactionId: core.nanoid(),
+      customerId: customer.id,
+      properties: {},
+    })
   })
 
   describe('createUsageEventLedgerTransaction', () => {
@@ -101,7 +104,7 @@ describe('usageLedgerHelpers', () => {
         async ({ transaction }) => {
           return createUsageEventLedgerTransaction(
             {
-              usageEvent: usageEventInput as UsageEvent.Record,
+              usageEvent,
               organizationId: organization.id,
             },
             transaction
@@ -121,34 +124,32 @@ describe('usageLedgerHelpers', () => {
       }
       // Assertions for LedgerTransaction
       expect(createdLedgerTransaction.livemode).toBe(
-        usageEventInput.livemode
+        usageEvent.livemode
       )
       expect(createdLedgerTransaction.organizationId).toBe(
         organization.id
       )
       expect(createdLedgerTransaction.description).toBe(
-        `Ingesting Usage Event ${usageEventInput.id}`
+        `Ingesting Usage Event ${usageEvent.id}`
       )
       expect(createdLedgerTransaction.initiatingSourceType).toBe(
         LedgerTransactionInitiatingSourceType.UsageEvent
       )
       expect(createdLedgerTransaction.initiatingSourceId).toBe(
-        usageEventInput.id
+        usageEvent.id
       )
       // Optionally, check if id is a valid format, e.g., not null/undefined
       expect(createdLedgerTransaction.id).toBeDefined()
 
       // Assertions for LedgerEntry
       expect(createdLedgerEntry.status).toBe(LedgerEntryStatus.Posted)
-      expect(createdLedgerEntry.livemode).toBe(
-        usageEventInput.livemode
-      )
+      expect(createdLedgerEntry.livemode).toBe(usageEvent.livemode)
       expect(createdLedgerEntry.organizationId).toBe(organization.id)
       expect(createdLedgerEntry.ledgerTransactionId).toBe(
         createdLedgerTransaction.id
       )
       expect(createdLedgerEntry.subscriptionId).toBe(
-        usageEventInput.subscriptionId
+        usageEvent.subscriptionId
       )
       expect(createdLedgerEntry.direction).toBe(
         LedgerEntryDirection.Debit
@@ -156,9 +157,9 @@ describe('usageLedgerHelpers', () => {
       expect(createdLedgerEntry.entryType).toBe(
         LedgerEntryType.UsageCost
       )
-      expect(createdLedgerEntry.amount).toBe(usageEventInput.amount)
+      expect(createdLedgerEntry.amount).toBe(usageEvent.amount)
       expect(createdLedgerEntry.description).toBe(
-        `Ingesting Usage Event ${usageEventInput.id}`
+        `Ingesting Usage Event ${usageEvent.id}`
       )
       // Optionally, check if id is a valid format
       expect(createdLedgerEntry.id).toBeDefined()

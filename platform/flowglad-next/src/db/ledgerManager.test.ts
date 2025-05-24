@@ -123,7 +123,11 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-          quantity: 100,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: core.nanoid(),
+          customerId: customer.id,
+          amount: 100,
         })
         await setupDebitLedgerEntry({
           ...coreParams,
@@ -155,7 +159,11 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-          quantity: 100,
+          amount: 100,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: core.nanoid(),
+          customerId: customer.id,
         })
         await setupDebitLedgerEntry({
           ...coreParams,
@@ -170,7 +178,11 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-          quantity: 100,
+          amount: 100,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: core.nanoid(),
+          customerId: customer.id,
         })
         await setupDebitLedgerEntry({
           ...coreParams,
@@ -185,18 +197,18 @@ describe('Ledger Management System', async () => {
         const expectedBalance =
           usageCredit.issuedAmount -
           usageEvent.amount -
-          secondUsageEvent.amount -
-          thirdUsageEvent.amount
+          secondUsageEvent.amount // omit thirdUsageEvent, which is pending
 
-        await adminTransaction(async ({ transaction }) => {
-          const result =
-            await aggregateBalanceForLedgerAccountFromEntries(
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
               'posted',
               transaction
             )
-          expect(result).toBe(expectedBalance)
-        })
+          }
+        )
+        expect(result).toBe(expectedBalance)
       })
       it('should accurately reflect the "effective/pending" balance from posted or active pending LedgerEntries', async () => {
         const coreParams = {
@@ -208,15 +220,16 @@ describe('Ledger Management System', async () => {
         const ledgerTransaction =
           await setupLedgerTransaction(coreParams)
 
-        const postedCostAmount1 = 1000
-        const postedPaymentCreditAmount2 = 200
-        const activePendingCostAmount = 500
-        const discardedPendingCostAmount = 10000
         const usageEvent = await setupUsageEvent({
           organizationId: organization.id,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-          quantity: 100,
+          amount: 100,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: core.nanoid(),
+          customerId: customer.id,
+          properties: {},
         })
         await setupDebitLedgerEntry({
           ...coreParams,
@@ -248,7 +261,12 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-          quantity: 100,
+          amount: 100,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: core.nanoid(),
+          customerId: customer.id,
+          properties: {},
         })
         await setupDebitLedgerEntry({
           ...coreParams,
@@ -264,7 +282,12 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
-          quantity: 100,
+          amount: 100,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: core.nanoid(),
+          customerId: customer.id,
+          properties: {},
         })
         await setupDebitLedgerEntry({
           ...coreParams,
@@ -278,19 +301,21 @@ describe('Ledger Management System', async () => {
         })
 
         const expectedBalance =
-          postedPaymentCreditAmount2 -
-          postedCostAmount1 -
-          activePendingCostAmount
+          usageCredit.issuedAmount -
+          secondUsageEvent.amount -
+          secondUsageEvent.amount
+        // omit thirdUsageEvent, which is DISCARDED
 
-        await adminTransaction(async ({ transaction }) => {
-          const result =
-            await aggregateBalanceForLedgerAccountFromEntries(
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
               'available',
               transaction
             )
-          expect(result).toBe(expectedBalance)
-        })
+          }
+        )
+        expect(result).toBe(expectedBalance)
       })
       it('should correctly calculate balances with a mix of positive and negative entries', async () => {
         const coreParams = {
@@ -338,7 +363,11 @@ describe('Ledger Management System', async () => {
               organizationId: organization.id,
               subscriptionId: subscription.id,
               usageMeterId: usageMeter.id,
-              quantity: Math.abs(amount),
+              amount: Math.abs(amount),
+              priceId: price.id,
+              billingPeriodId: billingPeriod.id,
+              transactionId: core.nanoid(),
+              customerId: customer.id,
             })
             await setupDebitLedgerEntry({
               ...paramsWithTransaction,

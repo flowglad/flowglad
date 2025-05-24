@@ -48,6 +48,9 @@ import {
   LedgerEntryDirection,
   LedgerEntryType,
   LedgerTransactionType,
+  UsageCreditStatus,
+  UsageCreditSourceReferenceType,
+  RefundStatus,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -82,7 +85,7 @@ import { memberships } from '@/db/schema/memberships'
 import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
 import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
-import { usageEvents } from '@/db/schema/usageEvents'
+import { UsageEvent, usageEvents } from '@/db/schema/usageEvents'
 import {
   LedgerTransaction,
   ledgerTransactions,
@@ -93,14 +96,19 @@ import {
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
 import { UsageCredit, usageCredits } from '@/db/schema/usageCredits'
-import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
+import {
+  UsageCreditApplication,
+  usageCreditApplications,
+} from '@/db/schema/usageCreditApplications'
 import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
-import { refunds } from '@/db/schema/refunds'
+import { Refund, refunds } from '@/db/schema/refunds'
 import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { insertLedgerEntry } from '@/db/tableMethods/ledgerEntryMethods'
-// @ts-expect-error Assume insertUsageCredit is defined and imported
-import { insertUsageCredit } from '@/db/models/usageCredits'
+import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
+import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
+import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
+import { insertRefund } from '@/db/tableMethods/refundMethods'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -1213,22 +1221,23 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
 }
 
 export const setupUsageEvent = async (
-  params: Partial<typeof usageEvents.$inferInsert> & {
+  params: Partial<UsageEvent.Insert> & {
     organizationId: string
     subscriptionId: string
     usageMeterId: string
-    quantity: number
+    amount: number
+    priceId: string
+    billingPeriodId: string
+    transactionId: string
+    customerId: string
   }
-): Promise<typeof usageEvents.$inferSelect> => {
+): Promise<UsageEvent.Record> => {
   return adminTransaction(async ({ transaction }) => {
-    const now = new Date()
-    // @ts-expect-error Assume insertUsageEvent is defined and imported
     return insertUsageEvent(
       {
-        eventTimestamp: now,
         livemode: true,
-        idempotencyKey: `uevt_${core.nanoid()}`,
-        metadata: {},
+        usageDate: params.usageDate,
+        properties: params.properties ?? {},
         ...params,
       },
       transaction
@@ -1293,7 +1302,7 @@ type SetupDebitCreditGrantExpiredParams =
 
 type SetupDebitPaymentRefundedParams = CoreLedgerEntryUserParams & {
   entryType: LedgerEntryType.PaymentRefunded
-  sourcePaymentId: string
+  sourceRefundId: string
   // sourceRefundId?: string; // Optional: if it gets added to schema/refinements
 }
 
@@ -1319,9 +1328,9 @@ export type DebitLedgerEntrySetupParams =
 export const setupDebitLedgerEntry = async (
   params: DebitLedgerEntrySetupParams
 ): Promise<LedgerEntry.Record> => {
-  if (params.amount <= 0) {
+  if (params.amount < 0) {
     throw new Error(
-      'setupDebitLedgerEntry: input amount must be greater than 0.'
+      'setupDebitLedgerEntry: input amount must be greater than or equal to 0.'
     )
   }
 
@@ -1372,7 +1381,7 @@ export const setupDebitLedgerEntry = async (
       insertData = {
         ...baseProps,
         entryType: params.entryType,
-        sourcePaymentId: params.sourcePaymentId,
+        sourceRefundId: params.sourceRefundId,
       } satisfies LedgerEntry.PaymentRefundedInsert
       break
 
@@ -1432,9 +1441,9 @@ export type CreditLedgerEntrySetupParams =
 export const setupCreditLedgerEntry = async (
   params: CreditLedgerEntrySetupParams
 ): Promise<LedgerEntry.Record> => {
-  if (params.amount <= 0) {
+  if (params.amount < 0) {
     throw new Error(
-      'setupCreditLedgerEntry: input amount must be greater than 0.'
+      'setupCreditLedgerEntry: input amount must be greater than or equal to 0.'
     )
   }
 
@@ -1510,6 +1519,7 @@ export const setupUsageCredit = async (
     subscriptionId: string
     creditType: string
     issuedAmount: number
+    usageMeterId: string
   }
 ): Promise<typeof usageCredits.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
@@ -1522,6 +1532,11 @@ export const setupUsageCredit = async (
           params.sourceReferenceId ?? `src_ref_${core.nanoid()}`,
         metadata: params.metadata ?? {},
         notes: params.notes ?? 'Test Usage Credit',
+        status: params.status ?? UsageCreditStatus.Posted,
+        sourceReferenceType:
+          UsageCreditSourceReferenceType.InvoiceSettlement,
+        paymentId: params.paymentId ?? null,
+        expiresAt: params.expiresAt ?? null,
         ...params,
       },
       transaction
@@ -1530,7 +1545,7 @@ export const setupUsageCredit = async (
 }
 
 export const setupUsageCreditApplication = async (
-  params: Partial<typeof usageCreditApplications.$inferInsert> & {
+  params: Partial<UsageCreditApplication.Insert> & {
     organizationId: string
     usageCreditId: string
     amountApplied: number
@@ -1538,13 +1553,11 @@ export const setupUsageCreditApplication = async (
 ): Promise<typeof usageCreditApplications.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
     const now = new Date()
-    // @ts-expect-error Assume insertUsageCreditApplication is defined and imported
     return insertUsageCreditApplication(
       {
         livemode: true,
         appliedAt: now,
         calculationRunId: `calc_run_${core.nanoid()}`,
-        metadata: {},
         ...params,
       },
       transaction
@@ -1581,10 +1594,8 @@ export const setupUsageCreditBalanceAdjustment = async (
   })
 }
 
-export type RefundStatus = 'pending' | 'succeeded' | 'failed'
-
 export const setupRefund = async (
-  params: Partial<typeof refunds.$inferInsert> & {
+  params: Partial<Refund.Insert> & {
     organizationId: string
     paymentId: string
     subscriptionId: string
@@ -1593,15 +1604,13 @@ export const setupRefund = async (
   }
 ): Promise<typeof refunds.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
-    // @ts-expect-error Assume insertRefund is defined and imported
     return insertRefund(
       {
         livemode: true,
-        status: 'succeeded' as RefundStatus,
+        status: RefundStatus.Succeeded,
         reason: 'Test Refund',
         gatewayRefundId: `ref_gw_${core.nanoid()}`,
         refundProcessedAt: new Date(),
-        metadata: {},
         notes: 'Test Refund Notes',
         ...params,
       },
