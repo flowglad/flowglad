@@ -9,9 +9,10 @@ import {
   setupLedgerAccount,
   setupUsageMeter,
   setupLedgerTransaction,
-  setupLedgerEntry,
   setupDebitLedgerEntry,
   setupCreditLedgerEntry,
+  setupUsageEvent,
+  setupUsageCredit,
 } from '../../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
@@ -23,18 +24,15 @@ import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { Catalog } from '@/db/schema/catalogs'
 import { Product } from '@/db/schema/products'
-import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
-import { ledgerEntries as ledgerEntriesSchema } from '@/db/schema/ledgerEntries'
 import {
   LedgerEntryStatus,
-  LedgerEntryDirection,
   PaymentMethodType,
   SubscriptionStatus,
-  LedgerEntryEntryType,
+  LedgerEntryType,
+  LedgerTransactionType,
+  UsageCreditType,
 } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
-import db from '@/db/client'
-import { eq, and, or, isNull, sum } from 'drizzle-orm'
 import { aggregateBalanceForLedgerAccountFromEntries } from './tableMethods/ledgerEntryMethods'
 
 describe('Ledger Management System', async () => {
@@ -113,6 +111,7 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           livemode: subscription.livemode,
           subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
         }
         const ledgerTransaction =
           await setupLedgerTransaction(coreParams)
@@ -120,47 +119,79 @@ describe('Ledger Management System', async () => {
         const entry1Amount = -1000
         const entry2Amount = 200
         const entry3Amount = -50
-
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          quantity: 100,
+        })
         await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.UsageCost,
-          amount: Math.abs(entry1Amount),
+          entryType: LedgerEntryType.UsageCost,
+          amount: usageEvent.amount,
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageEventId: usageEvent.id,
+        })
+        const usageCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          issuedAmount: 100,
+          livemode: subscription.livemode,
+          creditType: UsageCreditType.Payment,
         })
         await setupCreditLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.PaymentSucceeded,
-          amount: Math.abs(entry2Amount),
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: usageCredit.issuedAmount,
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageCreditId: usageCredit.id,
+        })
+        const secondUsageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          quantity: 100,
         })
         await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.UsageCost,
-          amount: Math.abs(entry3Amount),
+          entryType: LedgerEntryType.UsageCost,
+          amount: secondUsageEvent.amount,
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageEventId: secondUsageEvent.id,
+        })
+        const thirdUsageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          quantity: 100,
         })
         await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.UsageCost,
-          amount: 9999,
+          entryType: LedgerEntryType.UsageCost,
+          amount: thirdUsageEvent.amount,
           status: LedgerEntryStatus.Pending,
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageEventId: thirdUsageEvent.id,
         })
 
         const expectedBalance =
-          entry1Amount + entry2Amount + entry3Amount
+          usageCredit.issuedAmount -
+          usageEvent.amount -
+          secondUsageEvent.amount -
+          thirdUsageEvent.amount
 
         await adminTransaction(async ({ transaction }) => {
           const result =
             await aggregateBalanceForLedgerAccountFromEntries(
-              ledgerAccount.id,
+              { ledgerAccountId: ledgerAccount.id },
               'posted',
               transaction
             )
@@ -172,6 +203,7 @@ describe('Ledger Management System', async () => {
           organizationId: organization.id,
           livemode: subscription.livemode,
           subscriptionId: subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
         }
         const ledgerTransaction =
           await setupLedgerTransaction(coreParams)
@@ -180,41 +212,69 @@ describe('Ledger Management System', async () => {
         const postedPaymentCreditAmount2 = 200
         const activePendingCostAmount = 500
         const discardedPendingCostAmount = 10000
-
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          quantity: 100,
+        })
         await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.UsageCost,
-          amount: Math.abs(postedCostAmount1),
+          entryType: LedgerEntryType.UsageCost,
+          amount: usageEvent.amount,
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageEventId: usageEvent.id,
+        })
+        const usageCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          issuedAmount: 100,
+          livemode: subscription.livemode,
+          creditType: UsageCreditType.Payment,
         })
         await setupCreditLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.PaymentSucceeded,
-          amount: Math.abs(postedPaymentCreditAmount2),
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: usageCredit.issuedAmount,
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageCreditId: usageCredit.id,
+        })
+        const secondUsageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          quantity: 100,
         })
         await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.UsageCost,
-          amount: Math.abs(activePendingCostAmount),
+          entryType: LedgerEntryType.UsageCost,
+          amount: secondUsageEvent.amount,
           status: LedgerEntryStatus.Pending,
           discardedAt: null,
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageEventId: secondUsageEvent.id,
         })
-
+        const thirdUsageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          quantity: 100,
+        })
         await setupDebitLedgerEntry({
           ...coreParams,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryEntryType.UsageCost,
-          amount: Math.abs(discardedPendingCostAmount),
+          entryType: LedgerEntryType.UsageCost,
+          amount: thirdUsageEvent.amount,
           status: LedgerEntryStatus.Pending,
           discardedAt: new Date(),
           ledgerAccountId: ledgerAccount.id,
+          sourceUsageEventId: thirdUsageEvent.id,
         })
 
         const expectedBalance =
@@ -225,7 +285,7 @@ describe('Ledger Management System', async () => {
         await adminTransaction(async ({ transaction }) => {
           const result =
             await aggregateBalanceForLedgerAccountFromEntries(
-              ledgerAccount.id,
+              { ledgerAccountId: ledgerAccount.id },
               'available',
               transaction
             )
@@ -238,6 +298,7 @@ describe('Ledger Management System', async () => {
           livemode: subscription.livemode,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
+          type: LedgerTransactionType.UsageEventProcessed,
         }
 
         const ledgerTransaction =
@@ -255,22 +316,38 @@ describe('Ledger Management System', async () => {
           const isPending = i % 2 === 0
           const isDiscarded = isPending && i % 4 === 0
           if (amount > 0) {
+            const usageCredit = await setupUsageCredit({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              issuedAmount: amount,
+              livemode: subscription.livemode,
+              creditType: UsageCreditType.Payment,
+            })
             await setupCreditLedgerEntry({
               ...paramsWithTransaction,
-              entryType: LedgerEntryEntryType.CreditGrantRecognized,
+              entryType: LedgerEntryType.CreditGrantRecognized,
               amount: Math.abs(amount),
               status: isPending
                 ? LedgerEntryStatus.Pending
                 : LedgerEntryStatus.Posted,
+              sourceUsageCreditId: usageCredit.id,
             })
           } else {
+            const usageEvent = await setupUsageEvent({
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              quantity: Math.abs(amount),
+            })
             await setupDebitLedgerEntry({
               ...paramsWithTransaction,
-              entryType: LedgerEntryEntryType.UsageCost,
+              entryType: LedgerEntryType.UsageCost,
               amount: Math.abs(amount),
               status: isPending
                 ? LedgerEntryStatus.Pending
                 : LedgerEntryStatus.Posted,
+              sourceUsageEventId: usageEvent.id,
             })
           }
 
@@ -285,7 +362,7 @@ describe('Ledger Management System', async () => {
         await adminTransaction(async ({ transaction }) => {
           const postedResult =
             await aggregateBalanceForLedgerAccountFromEntries(
-              ledgerAccount.id,
+              { ledgerAccountId: ledgerAccount.id },
               'posted',
               transaction
             )

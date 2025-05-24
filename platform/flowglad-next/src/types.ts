@@ -792,34 +792,6 @@ export enum LedgerEntryDirection {
   Credit = 'credit',
 }
 
-export enum LedgerEntryEntryType {
-  PaymentSucceeded = 'payment_succeeded',
-  PaymentInitiated = 'payment_initiated',
-  CreditGrantRecognized = 'credit_grant_recognized',
-  UsageCost = 'usage_cost',
-  PaymentFailed = 'payment_failed',
-  CreditAppliedToUsage = 'credit_applied_to_usage',
-  CreditBalanceAdjusted = 'credit_balance_adjusted',
-  CreditGrantExpired = 'credit_grant_expired',
-  BillingAdjustment = 'billing_adjustment',
-  PaymentRefunded = 'payment_refunded',
-}
-
-type CreditableEntryType =
-  | 'payment_succeeded'
-  | 'payment_initiated'
-  | 'credit_grant_recognized'
-
-export type LedgerEntryDebitableEntryType = Exclude<
-  LedgerEntryEntryType,
-  CreditableEntryType
->
-
-export type LedgerEntryCreditableEntryType = Extract<
-  LedgerEntryEntryType,
-  CreditableEntryType
->
-
 export enum LedgerTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
   Payment = 'payment',
@@ -862,10 +834,25 @@ export enum LedgerTransactionType {
 
 export enum LedgerEntryType {
   UsageCost = 'usage_cost',
-  PaymentSucceeded = 'payment_succeeded',
+  PaymentInitiated = 'payment_initiated',
+  PaymentFailed = 'payment_failed',
   CreditGrantRecognized = 'credit_grant_recognized',
   CreditBalanceAdjusted = 'credit_balance_adjusted',
   CreditGrantExpired = 'credit_grant_expired',
   PaymentRefunded = 'payment_refunded',
   BillingAdjustment = 'billing_adjustment',
 }
+
+type CreditableEntryType =
+  | 'payment_initiated'
+  | 'credit_grant_recognized'
+
+export type LedgerEntryDebitableEntryType = Exclude<
+  LedgerEntryType,
+  CreditableEntryType
+>
+
+export type LedgerEntryCreditableEntryType = Extract<
+  LedgerEntryType,
+  CreditableEntryType
+>

@@ -20,7 +20,7 @@ import { DbTransaction } from '@/db/types'
 // Enum/type imports from @/types
 import {
   LedgerEntryDirection,
-  LedgerEntryEntryType,
+  LedgerEntryType,
   LedgerEntryStatus,
   LedgerTransactionInitiatingSourceType,
 } from '@/types'
@@ -154,7 +154,7 @@ describe('usageLedgerHelpers', () => {
         LedgerEntryDirection.Debit
       )
       expect(createdLedgerEntry.entryType).toBe(
-        LedgerEntryEntryType.UsageCost
+        LedgerEntryType.UsageCost
       )
       expect(createdLedgerEntry.amount).toBe(usageEventInput.amount)
       expect(createdLedgerEntry.description).toBe(

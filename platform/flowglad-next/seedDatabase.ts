@@ -46,9 +46,6 @@ import {
   FeatureType,
   LedgerEntryStatus,
   LedgerEntryDirection,
-  LedgerEntryEntryType,
-  LedgerEntryDebitableEntryType,
-  LedgerEntryCreditableEntryType,
   LedgerEntryType,
   LedgerTransactionType,
 } from '@/types'
@@ -95,7 +92,7 @@ import {
   LedgerEntry,
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
-import { usageCredits } from '@/db/schema/usageCredits'
+import { UsageCredit, usageCredits } from '@/db/schema/usageCredits'
 import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
 import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
 import { refunds } from '@/db/schema/refunds'
@@ -1408,23 +1405,9 @@ export const setupDebitLedgerEntry = async (
 }
 
 // --- Credit Ledger Entry Setup ---
-type SetupCreditPaymentRecognizedParams =
-  CoreLedgerEntryUserParams & {
-    entryType: LedgerEntryType.PaymentSucceeded
-    sourcePaymentId: string
-    sourceUsageCreditId: string
-  }
-
 type SetupCreditCreditGrantRecognizedParams =
   CoreLedgerEntryUserParams & {
     entryType: LedgerEntryType.CreditGrantRecognized
-    sourceUsageCreditId: string
-  }
-
-type SetupCreditCreditAppliedToUsageParams =
-  CoreLedgerEntryUserParams & {
-    entryType: LedgerEntryType.CreditAppliedToUsage
-    sourceCreditApplicationId: string
     sourceUsageCreditId: string
   }
 
@@ -1442,9 +1425,7 @@ type SetupCreditBillingAdjustmentParams =
   }
 
 export type CreditLedgerEntrySetupParams =
-  | SetupCreditPaymentRecognizedParams
   | SetupCreditCreditGrantRecognizedParams
-  | SetupCreditCreditAppliedToUsageParams
   | SetupCreditCreditBalanceAdjustedParams
   | SetupCreditBillingAdjustmentParams
 
@@ -1485,30 +1466,12 @@ export const setupCreditLedgerEntry = async (
   let insertData: LedgerEntry.Insert
 
   switch (params.entryType) {
-    case LedgerEntryType.PaymentSucceeded:
-      insertData = {
-        ...baseProps,
-        entryType: params.entryType,
-        sourcePaymentId: params.sourcePaymentId,
-        sourceUsageCreditId: params.sourceUsageCreditId,
-      } satisfies LedgerEntry.PaymentSucceededInsert
-      break
-
     case LedgerEntryType.CreditGrantRecognized:
       insertData = {
         ...baseProps,
         entryType: params.entryType,
         sourceUsageCreditId: params.sourceUsageCreditId,
       } satisfies LedgerEntry.CreditGrantRecognizedInsert
-      break
-
-    case LedgerEntryType.CreditAppliedToUsage:
-      insertData = {
-        ...baseProps,
-        entryType: params.entryType,
-        sourceCreditApplicationId: params.sourceCreditApplicationId,
-        sourceUsageCreditId: params.sourceUsageCreditId,
-      } satisfies LedgerEntry.CreditAppliedToUsageInsert
       break
 
     case LedgerEntryType.CreditBalanceAdjusted:
@@ -1542,12 +1505,11 @@ export const setupCreditLedgerEntry = async (
 }
 
 export const setupUsageCredit = async (
-  params: Partial<typeof usageCredits.$inferInsert> & {
+  params: Partial<UsageCredit.Insert> & {
     organizationId: string
     subscriptionId: string
     creditType: string
     issuedAmount: number
-    currency: CurrencyCode
   }
 ): Promise<typeof usageCredits.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
@@ -1572,7 +1534,6 @@ export const setupUsageCreditApplication = async (
     organizationId: string
     usageCreditId: string
     amountApplied: number
-    currency: CurrencyCode
   }
 ): Promise<typeof usageCreditApplications.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {

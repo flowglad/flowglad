@@ -93,10 +93,10 @@ export const billingRunCreditAppliedLedgerCommandSchema = z.object({
       .describe(
         'The calculation_run_id for this billing run phase. This is the initiatingSourceId.'
       ),
-    usageCreditApplications:
-      usageCreditApplicationsSelectSchema.array(),
+    usageCredits: usageCreditsSelectSchema.array(),
   }),
 })
+
 export type BillingRunCreditAppliedLedgerCommand = z.infer<
   typeof billingRunCreditAppliedLedgerCommandSchema
 >
@@ -131,13 +131,23 @@ export type CreditGrantExpiredLedgerCommand = z.infer<
   typeof creditGrantExpiredLedgerCommandSchema
 >
 
+enum PaymentRefundedLedgerCommandAdjustmentBehavior {
+  RevertAllCredits = 'revert_all_credits',
+  RevertUnusedCredits = 'revert_unused_credits',
+  PreserveCredits = 'preserve_credits',
+}
+
 export const paymentRefundedLedgerCommandSchema = z.object({
   ...baseLedgerCommandFields,
   type: z.literal(LedgerTransactionType.PaymentRefunded),
   payload: z.object({
     refund: refundsSelectSchema, // Its id is initiatingSourceId
+    adjustmentBehavior: z.nativeEnum(
+      PaymentRefundedLedgerCommandAdjustmentBehavior
+    ),
   }),
 })
+
 export type PaymentRefundedLedgerCommand = z.infer<
   typeof paymentRefundedLedgerCommandSchema
 >

@@ -39,6 +39,7 @@ import {
   LedgerEntryType,
 } from '@/types'
 import { ledgerAccounts } from './ledgerAccounts'
+import { EqualApproximately } from 'lucide-react'
 
 const TABLE_NAME = 'ledger_entries'
 
@@ -96,10 +97,6 @@ export const ledgerEntries = pgTable(
       'source_usage_credit_id',
       usageCredits
     ),
-    sourcePaymentId: nullableStringForeignKey(
-      'source_payment_id',
-      payments
-    ),
     sourceCreditApplicationId: nullableStringForeignKey(
       'source_credit_application_id',
       usageCreditApplications
@@ -146,7 +143,6 @@ export const ledgerEntries = pgTable(
     constructIndex(TABLE_NAME, [table.ledgerTransactionId]),
     constructIndex(TABLE_NAME, [table.sourceUsageEventId]),
     constructIndex(TABLE_NAME, [table.sourceUsageCreditId]),
-    constructIndex(TABLE_NAME, [table.sourcePaymentId]),
     constructIndex(TABLE_NAME, [table.sourceCreditApplicationId]),
     constructIndex(TABLE_NAME, [
       table.sourceCreditBalanceAdjustmentId,
@@ -179,7 +175,6 @@ const columnRefinements = {
 const nulledSourceColumnRefinements = {
   sourceUsageEventId: z.null(),
   sourceUsageCreditId: z.null(),
-  sourcePaymentId: z.null(),
   sourceCreditApplicationId: z.null(),
   sourceCreditBalanceAdjustmentId: z.null(),
   sourceBillingPeriodCalculationId: z.null(),
@@ -187,11 +182,10 @@ const nulledSourceColumnRefinements = {
 
 export const ledgerEntryNulledSourceIdColumns = {
   sourceUsageEventId: null,
-  sourcePaymentId: null,
+  sourceUsageCreditId: null,
   sourceCreditApplicationId: null,
   sourceCreditBalanceAdjustmentId: null,
   sourceBillingPeriodCalculationId: null,
-  sourceUsageCreditId: null,
 }
 
 export const usageCostEntryRefinements = {
@@ -199,14 +193,6 @@ export const usageCostEntryRefinements = {
   direction: z.literal(LedgerEntryDirection.Debit),
   entryType: z.literal(LedgerEntryType.UsageCost),
   sourceUsageEventId: z.string(),
-}
-
-export const paymentSucceededEntryRefinements = {
-  ...nulledSourceColumnRefinements,
-  direction: z.literal(LedgerEntryDirection.Credit),
-  entryType: z.literal(LedgerEntryType.PaymentSucceeded),
-  sourcePaymentId: z.string(),
-  sourceUsageCreditId: z.string(),
 }
 
 export const creditGrantRecognizedEntryRefinements = {
@@ -250,8 +236,6 @@ const coreLedgerEntryInsertSchema = enhancedCreateInsertSchema(
 
 export const usageCostInsertSchema =
   coreLedgerEntryInsertSchema.extend(usageCostEntryRefinements)
-export const paymentSucceededInsertSchema =
-  coreLedgerEntryInsertSchema.extend(paymentSucceededEntryRefinements)
 export const creditGrantRecognizedInsertSchema =
   coreLedgerEntryInsertSchema.extend(
     creditGrantRecognizedEntryRefinements
@@ -275,7 +259,6 @@ export const ledgerEntriesInsertSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostInsertSchema,
-    paymentSucceededInsertSchema,
     creditGrantRecognizedInsertSchema,
     creditBalanceAdjustedInsertSchema,
     creditGrantExpiredInsertSchema,
@@ -289,10 +272,6 @@ export const coreLedgerEntriesSelectSchema =
 
 export const usageCostSelectSchema =
   coreLedgerEntriesSelectSchema.extend(usageCostEntryRefinements)
-export const paymentSucceededSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    paymentSucceededEntryRefinements
-  )
 export const creditGrantRecognizedSelectSchema =
   coreLedgerEntriesSelectSchema.extend(
     creditGrantRecognizedEntryRefinements
@@ -319,7 +298,6 @@ export const ledgerEntriesSelectSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostSelectSchema,
-    paymentSucceededSelectSchema,
     creditGrantRecognizedSelectSchema,
     creditBalanceAdjustedSelectSchema,
     creditGrantExpiredSelectSchema,
@@ -335,10 +313,6 @@ export const coreLedgerEntriesUpdateSchema = createUpdateSchema(
 
 export const usageCostUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(usageCostEntryRefinements)
-export const paymentSucceededUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    paymentSucceededEntryRefinements
-  )
 export const creditGrantRecognizedUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(
     creditGrantRecognizedEntryRefinements
@@ -364,7 +338,6 @@ export const ledgerEntriesUpdateSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostUpdateSchema,
-    paymentSucceededUpdateSchema,
     creditGrantRecognizedUpdateSchema,
     creditBalanceAdjustedUpdateSchema,
     creditGrantExpiredUpdateSchema,
@@ -378,8 +351,6 @@ const hiddenColumns = {} as const
 // Client-specific individual select schemas
 export const usageCostClientSelectSchema =
   usageCostSelectSchema.omit(hiddenColumns)
-export const paymentSucceededClientSelectSchema =
-  paymentSucceededSelectSchema.omit(hiddenColumns)
 export const creditGrantRecognizedClientSelectSchema =
   creditGrantRecognizedSelectSchema.omit(hiddenColumns)
 export const creditBalanceAdjustedClientSelectSchema =
@@ -395,7 +366,6 @@ export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
   'entryType',
   [
     usageCostClientSelectSchema,
-    paymentSucceededClientSelectSchema,
     creditGrantRecognizedClientSelectSchema,
     creditBalanceAdjustedClientSelectSchema,
     creditGrantExpiredClientSelectSchema,
@@ -414,9 +384,6 @@ export namespace LedgerEntry {
   export type Where = SelectConditions<typeof ledgerEntries>
 
   export type UsageCostInsert = z.infer<typeof usageCostInsertSchema>
-  export type PaymentSucceededInsert = z.infer<
-    typeof paymentSucceededInsertSchema
-  >
   export type CreditGrantRecognizedInsert = z.infer<
     typeof creditGrantRecognizedInsertSchema
   >
@@ -433,9 +400,6 @@ export namespace LedgerEntry {
     typeof billingAdjustmentInsertSchema
   >
   export type UsageCostRecord = z.infer<typeof usageCostSelectSchema>
-  export type PaymentRecognizedRecord = z.infer<
-    typeof paymentSucceededSelectSchema
-  >
   export type CreditGrantRecognizedRecord = z.infer<
     typeof creditGrantRecognizedSelectSchema
   >
@@ -452,9 +416,6 @@ export namespace LedgerEntry {
     typeof billingAdjustmentSelectSchema
   >
   export type UsageCostUpdate = z.infer<typeof usageCostUpdateSchema>
-  export type PaymentRecognizedUpdate = z.infer<
-    typeof paymentSucceededUpdateSchema
-  >
   export type CreditGrantRecognizedUpdate = z.infer<
     typeof creditGrantRecognizedUpdateSchema
   >

@@ -4,6 +4,7 @@ import {
   createUpdateFunction,
   createSelectFunction,
   ORMMethodCreatorConfig,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   ledgerEntries,
@@ -61,43 +62,6 @@ export const bulkInsertLedgerEntries = async (
   return transaction.insert(ledgerEntries).values(data).returning()
 }
 
-export const expirePendingLedgerEntriesForPayment = async (
-  paymentId: string,
-  ledgerTransaction: LedgerTransaction.Record,
-  transaction: DbTransaction
-) => {
-  const pendingLedgerEntries = await selectLedgerEntries(
-    {
-      sourcePaymentId: paymentId,
-      status: LedgerEntryStatus.Pending,
-    },
-    transaction
-  )
-  const whereClause = and(
-    inArray(
-      ledgerEntries.id,
-      pendingLedgerEntries.map((item) => item.id)
-    ),
-    eq(
-      ledgerEntries.subscriptionId,
-      ledgerTransaction.subscriptionId
-    ),
-    eq(ledgerEntries.ledgerTransactionId, ledgerTransaction.id)
-  )
-
-  const rawResults = await transaction
-    .update(ledgerEntries)
-    .set({
-      expiredAt: new Date(),
-      expiredAtLedgerTransactionId: ledgerTransaction.id,
-    })
-    .where(whereClause)
-    .returning()
-  return rawResults.map((item) =>
-    ledgerEntriesSelectSchema.parse(item)
-  )
-}
-
 const balanceTypeWhereStatement = (
   balanceType: 'pending' | 'posted' | 'available'
 ) => {
@@ -126,7 +90,17 @@ const balanceTypeWhereStatement = (
 }
 
 export const aggregateBalanceForLedgerAccountFromEntries = async (
-  ledgerAccountId: string,
+  scopedWhere: Pick<
+    LedgerEntry.Where,
+    | 'ledgerAccountId'
+    | 'status'
+    | 'sourceBillingPeriodCalculationId'
+    | 'sourceCreditApplicationId'
+    | 'sourceCreditBalanceAdjustmentId'
+    | 'sourceUsageEventId'
+    | 'sourceUsageCreditId'
+    | 'sourceCreditApplicationId'
+  >,
   balanceType: 'pending' | 'posted' | 'available',
   transaction: DbTransaction
 ) => {
@@ -135,7 +109,7 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
     .from(ledgerEntries)
     .where(
       and(
-        eq(ledgerEntries.ledgerAccountId, ledgerAccountId),
+        whereClauseFromObject(ledgerEntries, scopedWhere),
         or(
           isNull(ledgerEntries.discardedAt),
           gt(ledgerEntries.discardedAt, new Date())

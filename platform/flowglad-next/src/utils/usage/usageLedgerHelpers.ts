@@ -16,7 +16,6 @@ import {
 import { DbTransaction } from '@/db/types'
 import {
   LedgerEntryDirection,
-  LedgerEntryEntryType,
   LedgerEntryStatus,
   LedgerEntryType,
   LedgerTransactionInitiatingSourceType,
@@ -143,11 +142,11 @@ const createLedgerTransactionForPaymentRecognition = async (
 
 const entryTypeFromPaymentStatus = (payment: Payment.Record) => {
   if (payment.status === PaymentStatus.Succeeded) {
-    return LedgerEntryEntryType.PaymentSucceeded
+    return LedgerEntryType.PaymentSucceeded
   } else if (payment.status === PaymentStatus.Failed) {
-    return LedgerEntryEntryType.PaymentFailed
+    return LedgerEntryType.PaymentFailed
   } else if (payment.status === PaymentStatus.Processing) {
-    return LedgerEntryEntryType.PaymentInitiated
+    return LedgerEntryType.PaymentInitiated
   } else {
     throw new Error(
       `Payment ${payment.id} has unknown status. Cannot create usage ledger item.`
