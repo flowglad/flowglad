@@ -843,6 +843,8 @@ export enum LedgerEntryType {
   CreditGrantExpired = 'credit_grant_expired',
   PaymentRefunded = 'payment_refunded',
   BillingAdjustment = 'billing_adjustment',
+  UsageCreditApplicationDebitFromCreditBalance = 'usage_credit_application_debit_from_credit_balance',
+  UsageCreditApplicationCreditTowardsUsageCost = 'usage_credit_application_credit_towards_usage_cost',
 }
 
 type CreditableEntryType =

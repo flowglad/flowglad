@@ -33,7 +33,6 @@ export const usageCreditApplications = pgTable(
       'usage_credit_id',
       usageCredits
     ),
-    calculationRunId: text('calculation_run_id').notNull(),
     amountApplied: integer('amount_applied').notNull(),
     appliedAt: timestamp('applied_at', {
       withTimezone: true,
@@ -53,7 +52,6 @@ export const usageCreditApplications = pgTable(
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
-    constructIndex(TABLE_NAME, [table.calculationRunId]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
       to: 'authenticated',

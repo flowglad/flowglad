@@ -13,6 +13,7 @@ import {
   setupCreditLedgerEntry,
   setupUsageEvent,
   setupUsageCredit,
+  setupLedgerEntries,
 } from '../../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
@@ -231,15 +232,6 @@ describe('Ledger Management System', async () => {
           customerId: customer.id,
           properties: {},
         })
-        await setupDebitLedgerEntry({
-          ...coreParams,
-          ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.UsageCost,
-          amount: usageEvent.amount,
-          status: LedgerEntryStatus.Posted,
-          ledgerAccountId: ledgerAccount.id,
-          sourceUsageEventId: usageEvent.id,
-        })
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -247,15 +239,6 @@ describe('Ledger Management System', async () => {
           issuedAmount: 100,
           livemode: subscription.livemode,
           creditType: UsageCreditType.Payment,
-        })
-        await setupCreditLedgerEntry({
-          ...coreParams,
-          ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.CreditGrantRecognized,
-          amount: usageCredit.issuedAmount,
-          status: LedgerEntryStatus.Posted,
-          ledgerAccountId: ledgerAccount.id,
-          sourceUsageCreditId: usageCredit.id,
         })
         const secondUsageEvent = await setupUsageEvent({
           organizationId: organization.id,
@@ -268,16 +251,6 @@ describe('Ledger Management System', async () => {
           customerId: customer.id,
           properties: {},
         })
-        await setupDebitLedgerEntry({
-          ...coreParams,
-          ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.UsageCost,
-          amount: secondUsageEvent.amount,
-          status: LedgerEntryStatus.Pending,
-          discardedAt: null,
-          ledgerAccountId: ledgerAccount.id,
-          sourceUsageEventId: secondUsageEvent.id,
-        })
         const thirdUsageEvent = await setupUsageEvent({
           organizationId: organization.id,
           subscriptionId: subscription.id,
@@ -289,15 +262,39 @@ describe('Ledger Management System', async () => {
           customerId: customer.id,
           properties: {},
         })
-        await setupDebitLedgerEntry({
-          ...coreParams,
+        await setupLedgerEntries({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
           ledgerTransactionId: ledgerTransaction.id,
-          entryType: LedgerEntryType.UsageCost,
-          amount: thirdUsageEvent.amount,
-          status: LedgerEntryStatus.Pending,
-          discardedAt: new Date(),
           ledgerAccountId: ledgerAccount.id,
-          sourceUsageEventId: thirdUsageEvent.id,
+          entries: [
+            {
+              entryType: LedgerEntryType.UsageCost,
+              amount: usageEvent.amount,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageEventId: usageEvent.id,
+            },
+            {
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: usageCredit.issuedAmount,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageCreditId: usageCredit.id,
+            },
+            {
+              entryType: LedgerEntryType.UsageCost,
+              amount: secondUsageEvent.amount,
+              status: LedgerEntryStatus.Pending,
+              discardedAt: null,
+              sourceUsageEventId: secondUsageEvent.id,
+            },
+            {
+              entryType: LedgerEntryType.UsageCost,
+              amount: thirdUsageEvent.amount,
+              status: LedgerEntryStatus.Pending,
+              discardedAt: new Date(),
+              sourceUsageEventId: thirdUsageEvent.id,
+            },
+          ],
         })
 
         const expectedBalance =
@@ -425,6 +422,7 @@ describe('Ledger Management System', async () => {
       })
     })
 
+    // TODO: figure out how to enforce these at the db layer, and maybe in the business logic layer
     //     describe('2. Immutability & Lifecycle of LedgerEntries', () => {
     //       it('should prevent alteration of core financial fields of a "posted" LedgerEntry', () => {
     //         // Test logic: Attempt to update amount, currency, etc., of a posted entry
@@ -449,15 +447,6 @@ describe('Ledger Management System', async () => {
     //       })
     //     })
 
-    //     describe('3. Atomicity of Operations', () => {
-    //       it('should ensure all records are created or none are in a multi-record operation (e.g., UsageCredits and LedgerEntry)', () => {
-    //         // Test logic: Simulate success and failure scenarios for atomic operations
-    //       })
-    //       it('should correctly roll back transactions on failure during a multi-step ledger operation', () => {
-    //         // Test logic: Induce failure mid-operation
-    //       })
-    //     })
-
     //     describe('4. Idempotency of Event Ingestion & Processing', () => {
     //       it('should result in the same financial state when processing the same external event multiple times', () => {
     //         // Test logic: Send duplicate payment confirmations, usage events
@@ -476,12 +465,6 @@ describe('Ledger Management System', async () => {
     //       })
     //       it('should ensure all LedgerEntries for a given LedgerTransaction logically belong to the same originating business operation', () => {
     //         // Test logic: Verify consistency of entries within a transaction
-    //       })
-    //     })
-
-    //     describe('6. Currency Consistency', () => {
-    //       it('should ensure all related financial records within a single financial event sequence use the same currency', () => {
-    //         // Test logic: Check currency across Payment -> UsageCredits -> LedgerEntry
     //       })
     //     })
 

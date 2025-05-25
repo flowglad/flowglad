@@ -234,6 +234,26 @@ export const billingAdjustmentEntryRefinements = {
   sourceBillingPeriodCalculationId: z.string(),
 }
 
+export const usageCreditApplicationDebitFromCreditBalanceEntryRefinements =
+  {
+    ...nulledSourceColumnRefinements,
+    direction: z.literal(LedgerEntryDirection.Debit),
+    entryType: z.literal(
+      LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+    ),
+    sourceCreditApplicationId: z.string(),
+  }
+
+export const usageCreditApplicationCreditTowardsUsageCostEntryRefinements =
+  {
+    ...nulledSourceColumnRefinements,
+    direction: z.literal(LedgerEntryDirection.Credit),
+    entryType: z.literal(
+      LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+    ),
+    sourceCreditApplicationId: z.string(),
+  }
+
 const coreLedgerEntryInsertSchema = enhancedCreateInsertSchema(
   ledgerEntries,
   columnRefinements
@@ -260,6 +280,16 @@ export const billingAdjustmentInsertSchema =
     billingAdjustmentEntryRefinements
   )
 
+export const usageCreditApplicationDebitFromCreditBalanceInsertSchema =
+  coreLedgerEntryInsertSchema.extend(
+    usageCreditApplicationDebitFromCreditBalanceEntryRefinements
+  )
+
+export const usageCreditApplicationCreditTowardsUsageCostInsertSchema =
+  coreLedgerEntryInsertSchema.extend(
+    usageCreditApplicationCreditTowardsUsageCostEntryRefinements
+  )
+
 export const ledgerEntriesInsertSchema = z.discriminatedUnion(
   'entryType',
   [
@@ -269,6 +299,8 @@ export const ledgerEntriesInsertSchema = z.discriminatedUnion(
     creditGrantExpiredInsertSchema,
     paymentRefundedInsertSchema,
     billingAdjustmentInsertSchema,
+    usageCreditApplicationDebitFromCreditBalanceInsertSchema,
+    usageCreditApplicationCreditTowardsUsageCostInsertSchema,
   ]
 )
 
@@ -299,6 +331,16 @@ export const billingAdjustmentSelectSchema =
     billingAdjustmentEntryRefinements
   )
 
+export const usageCreditApplicationDebitFromCreditBalanceSelectSchema =
+  coreLedgerEntriesSelectSchema.extend(
+    usageCreditApplicationDebitFromCreditBalanceEntryRefinements
+  )
+
+export const usageCreditApplicationCreditTowardsUsageCostSelectSchema =
+  coreLedgerEntriesSelectSchema.extend(
+    usageCreditApplicationCreditTowardsUsageCostEntryRefinements
+  )
+
 export const ledgerEntriesSelectSchema = z.discriminatedUnion(
   'entryType',
   [
@@ -308,6 +350,8 @@ export const ledgerEntriesSelectSchema = z.discriminatedUnion(
     creditGrantExpiredSelectSchema,
     paymentRefundedSelectSchema,
     billingAdjustmentSelectSchema,
+    usageCreditApplicationDebitFromCreditBalanceSelectSchema,
+    usageCreditApplicationCreditTowardsUsageCostSelectSchema,
   ]
 )
 
@@ -339,6 +383,16 @@ export const billingAdjustmentUpdateSchema =
     billingAdjustmentEntryRefinements
   )
 
+export const usageCreditApplicationDebitFromCreditBalanceUpdateSchema =
+  coreLedgerEntriesUpdateSchema.extend(
+    usageCreditApplicationDebitFromCreditBalanceEntryRefinements
+  )
+
+export const usageCreditApplicationCreditTowardsUsageCostUpdateSchema =
+  coreLedgerEntriesUpdateSchema.extend(
+    usageCreditApplicationCreditTowardsUsageCostEntryRefinements
+  )
+
 export const ledgerEntriesUpdateSchema = z.discriminatedUnion(
   'entryType',
   [
@@ -348,6 +402,8 @@ export const ledgerEntriesUpdateSchema = z.discriminatedUnion(
     creditGrantExpiredUpdateSchema,
     paymentRefundedUpdateSchema,
     billingAdjustmentUpdateSchema,
+    usageCreditApplicationDebitFromCreditBalanceUpdateSchema,
+    usageCreditApplicationCreditTowardsUsageCostUpdateSchema,
   ]
 )
 
@@ -367,6 +423,15 @@ export const paymentRefundedClientSelectSchema =
 export const billingAdjustmentClientSelectSchema =
   billingAdjustmentSelectSchema.omit(hiddenColumns)
 
+export const usageCreditApplicationDebitFromCreditBalanceClientSelectSchema =
+  usageCreditApplicationDebitFromCreditBalanceSelectSchema.omit(
+    hiddenColumns
+  )
+export const usageCreditApplicationCreditTowardsUsageCostClientSelectSchema =
+  usageCreditApplicationCreditTowardsUsageCostSelectSchema.omit(
+    hiddenColumns
+  )
+
 export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
   'entryType',
   [
@@ -376,6 +441,8 @@ export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
     creditGrantExpiredClientSelectSchema,
     paymentRefundedClientSelectSchema,
     billingAdjustmentClientSelectSchema,
+    usageCreditApplicationDebitFromCreditBalanceClientSelectSchema,
+    usageCreditApplicationCreditTowardsUsageCostClientSelectSchema,
   ]
 )
 
@@ -404,6 +471,14 @@ export namespace LedgerEntry {
   export type BillingAdjustmentInsert = z.infer<
     typeof billingAdjustmentInsertSchema
   >
+  export type UsageCreditApplicationDebitFromCreditBalanceInsert =
+    z.infer<
+      typeof usageCreditApplicationDebitFromCreditBalanceInsertSchema
+    >
+  export type UsageCreditApplicationCreditTowardsUsageCostInsert =
+    z.infer<
+      typeof usageCreditApplicationCreditTowardsUsageCostInsertSchema
+    >
   export type UsageCostRecord = z.infer<typeof usageCostSelectSchema>
   export type CreditGrantRecognizedRecord = z.infer<
     typeof creditGrantRecognizedSelectSchema
@@ -420,6 +495,14 @@ export namespace LedgerEntry {
   export type BillingAdjustmentRecord = z.infer<
     typeof billingAdjustmentSelectSchema
   >
+  export type UsageCreditApplicationDebitFromCreditBalanceRecord =
+    z.infer<
+      typeof usageCreditApplicationDebitFromCreditBalanceSelectSchema
+    >
+  export type UsageCreditApplicationCreditTowardsUsageCostRecord =
+    z.infer<
+      typeof usageCreditApplicationCreditTowardsUsageCostSelectSchema
+    >
   export type UsageCostUpdate = z.infer<typeof usageCostUpdateSchema>
   export type CreditGrantRecognizedUpdate = z.infer<
     typeof creditGrantRecognizedUpdateSchema
@@ -436,4 +519,12 @@ export namespace LedgerEntry {
   export type BillingAdjustmentUpdate = z.infer<
     typeof billingAdjustmentUpdateSchema
   >
+  export type UsageCreditApplicationDebitFromCreditBalanceUpdate =
+    z.infer<
+      typeof usageCreditApplicationDebitFromCreditBalanceUpdateSchema
+    >
+  export type UsageCreditApplicationCreditTowardsUsageCostUpdate =
+    z.infer<
+      typeof usageCreditApplicationCreditTowardsUsageCostUpdateSchema
+    >
 }
