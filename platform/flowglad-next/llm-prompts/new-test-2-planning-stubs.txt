@@ -1,0 +1,42 @@
+# Planning Test Cases
+This is a guide designed to help you complete the second of three steps in writing a comprehensive test suite: writing the stubbed out code the test cases.
+
+This is the middle step from taking the gameplan you developed in step 1, and implementing it in step 3. 
+
+The idea here is that we will have a test file that has each of the test cases enumerated in describe / it / expect notation.
+The goal is to have the test cases written out in bare minimum, stubbed form. The internal handler for each test case should have no code.
+Instead it should just have comments describing:
+1. What the setup should be, in steps
+2. What the execptations should be, in some detail
+
+The goal here is to create the pseudo code in comment form that will allow the agent in the third step to easily implement these tests given knowlege of the function and our own internal tooling for setting up test state.
+
+Here's an example output. Note that absence of inner test code, but the comment format. This will be much easier for the agent to pick up in step 3.
+
+```ts
+import { describe, it, expect } from 'vitest'
+
+describe("categorizeUnicornRiders", () => {
+
+   it("should order unicorn riders by status and then alphabetically, both in ascending order", () => {
+    // setup:
+    // - create 6 unicorn riders
+    // - update the 3rd one's status to "retired"
+
+    // expects:
+    // all 3 unicorn riders returned
+    // retired one is last
+    // other 5 are first, sorted alphabetically
+   })
+   it("should return zero riders when the organization has none but other organizations have riders", () => {
+    // setup:
+    // - create "otherOrganization"
+    // - create 6 unicorn riders for otherOrganization
+    // - create no riders for main organization
+
+    // expects
+    // - function should return an empty array
+   })
+   // .... rest of test cases in this manner
+})
+```
