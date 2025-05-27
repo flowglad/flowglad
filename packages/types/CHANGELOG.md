@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.10.9
+
+### Patch Changes
+
+- Window undefined check for useThemeDetector
+
 ## 0.10.8
 
 ### Patch Changes
