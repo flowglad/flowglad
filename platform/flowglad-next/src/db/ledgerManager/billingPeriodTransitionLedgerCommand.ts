@@ -7,7 +7,6 @@ import {
   UsageCreditStatus,
   UsageCreditType,
   UsageCreditSourceReferenceType,
-  UsageCreditApplicationStatus,
 } from '@/types'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
