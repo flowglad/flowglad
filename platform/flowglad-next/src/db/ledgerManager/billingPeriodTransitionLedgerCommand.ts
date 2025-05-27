@@ -25,6 +25,7 @@ import { UsageCredit } from '../schema/usageCredits'
 import { bulkInsertUsageCredits } from '../tableMethods/usageCreditMethods'
 import { createUsageCreditApplicationsForUsageEvent } from './usageEventProcessedLedgerCommand'
 import { UsageCreditApplication } from '../schema/usageCreditApplications'
+import { UsageEvent } from '../schema/usageEvents'
 
 const processOverageUsageCostCredits = async (
   params: {
@@ -135,7 +136,10 @@ const processOverageUsageCostCredits = async (
 
   const usageCostsAndUsageCreditByLedgerAccountId: Record<
     string,
-    { usageCost: UsageCost.Record; usageCredit: UsageCredit.Record }
+    {
+      usageEvent: UsageEvent.Record[]
+      usageCredit: UsageCredit.Record
+    }
   > = {}
 }
 
