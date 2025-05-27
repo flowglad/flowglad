@@ -10,7 +10,7 @@ import {
 
 // New imports for ledger and transaction output types
 import { TransactionOutput } from './transactionEnhacementTypes'
-import { processLedgerCommand } from './ledgerManager'
+import { processLedgerCommand } from './ledgerManager/ledgerManager'
 
 interface AdminTransactionOptions {
   livemode?: boolean

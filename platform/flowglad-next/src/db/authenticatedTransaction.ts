@@ -10,7 +10,7 @@ import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 
 // New imports for ledger and transaction output types
 import { TransactionOutput } from './transactionEnhacementTypes'
-import { processLedgerCommand } from './ledgerManager'
+import { processLedgerCommand } from './ledgerManager/ledgerManager'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string

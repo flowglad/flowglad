@@ -252,6 +252,7 @@ export const usageCreditApplicationCreditTowardsUsageCostEntryRefinements =
       LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
     ),
     sourceCreditApplicationId: z.string(),
+    sourceUsageEventId: z.string(),
   }
 
 const coreLedgerEntryInsertSchema = enhancedCreateInsertSchema(

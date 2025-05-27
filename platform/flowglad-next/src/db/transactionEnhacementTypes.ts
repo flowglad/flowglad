@@ -1,4 +1,4 @@
-import { LedgerCommand } from './ledgerManagerTypes'
+import { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import { Event } from './schema/events'
 
 // Unified output structure for functions running within our transactions

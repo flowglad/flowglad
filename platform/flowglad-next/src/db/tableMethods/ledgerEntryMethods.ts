@@ -17,6 +17,8 @@ import { DbTransaction } from '../types'
 import { LedgerEntryDirection, LedgerEntryStatus } from '@/types'
 import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
+import { selectUsageCredits } from './usageCreditMethods'
+import { selectUsageEvents } from './usageEventMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -103,6 +105,7 @@ const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
       : acc - entry.amount
   }, 0)
 }
+
 export const aggregateBalanceForLedgerAccountFromEntries = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
@@ -133,13 +136,54 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
   )
 }
 
+const usageCreditsFromLedgerEntryWhere = (
+  scopedWhere: Pick<LedgerEntry.Where, 'sourceUsageCreditId'>,
+  transaction: DbTransaction
+) => {
+  if (!scopedWhere.sourceUsageCreditId) {
+    return []
+  }
+  if (typeof scopedWhere.sourceUsageCreditId === 'string') {
+    return selectUsageCredits(
+      {
+        id: scopedWhere.sourceUsageCreditId,
+      },
+      transaction
+    )
+  }
+  const definedUsageCreditIds =
+    scopedWhere.sourceUsageCreditId.filter(
+      (id): id is string => id !== null
+    )
+  if (definedUsageCreditIds.length === 0) {
+    return []
+  }
+  return selectUsageCredits(
+    {
+      id: definedUsageCreditIds,
+    },
+    transaction
+  )
+}
+
 export const aggregateAvailableBalanceForUsageCredit = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
     'ledgerAccountId' | 'sourceUsageCreditId'
   >,
   transaction: DbTransaction
-) => {
+): Promise<
+  {
+    usageCreditId: string
+    ledgerAccountId: string
+    balance: number
+    expiresAt: Date | null
+  }[]
+> => {
+  const usageCredits = await usageCreditsFromLedgerEntryWhere(
+    scopedWhere,
+    transaction
+  )
   const result = await transaction
     .select()
     .from(ledgerEntries)
@@ -150,7 +194,6 @@ export const aggregateAvailableBalanceForUsageCredit = async (
         discardedAtFilterOutStatement()
       )
     )
-  console.log('=====result', result)
   const entriesByUsageCreditId = new Map<
     string,
     LedgerEntry.Record[]
@@ -167,19 +210,124 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       .get(usageCreditId)
       ?.push(ledgerEntriesSelectSchema.parse(item))
   })
-  console.log('====entriesByUsageCreditId', entriesByUsageCreditId)
-  console.log(
-    'Array.from(entriesByUsageCreditId.entries())',
-    Array.from(entriesByUsageCreditId.entries())
-  )
+  const expiresAtByUsageCreditId = new Map<string, Date>()
+  usageCredits.forEach((usageCredit) => {
+    if (usageCredit.expiresAt) {
+      expiresAtByUsageCreditId.set(
+        usageCredit.id,
+        usageCredit.expiresAt
+      )
+    }
+  })
+  /**
+   * Assumptions to test:
+   * 1. Each usageCreditId will be unique
+   * 2. Expires at will match the usageCreditId
+   * 3. LedgerAccountId will match the ledger account implied by the usage credit id
+   */
   const balances = Array.from(entriesByUsageCreditId.entries()).map(
     ([usageCreditId, entries]) => {
       return {
         usageCreditId,
         balance: balanceFromEntries(entries),
+        ledgerAccountId: entries[0].ledgerAccountId,
+        expiresAt:
+          expiresAtByUsageCreditId.get(usageCreditId) ?? null,
       }
     }
   )
-  console.log('====balances', balances)
+  return balances
+}
+
+const usageEventsFromLedgerEntryWhere = (
+  scopedWhere: Pick<LedgerEntry.Where, 'sourceUsageEventId'>,
+  transaction: DbTransaction
+) => {
+  if (!scopedWhere.sourceUsageEventId) {
+    return []
+  }
+  if (typeof scopedWhere.sourceUsageEventId === 'string') {
+    return selectUsageEvents(
+      {
+        id: scopedWhere.sourceUsageEventId,
+      },
+      transaction
+    )
+  }
+  const definedUsageEventIds = scopedWhere.sourceUsageEventId.filter(
+    (id): id is string => id !== null
+  )
+  if (definedUsageEventIds.length === 0) {
+    return []
+  }
+  return selectUsageEvents(
+    {
+      id: definedUsageEventIds,
+    },
+    transaction
+  )
+}
+
+export const aggregateOutstandingBalanceForUsageCosts = async (
+  scopedWhere: Pick<
+    LedgerEntry.Where,
+    'ledgerAccountId' | 'sourceUsageEventId'
+  >,
+  transaction: DbTransaction
+): Promise<
+  {
+    usageEventId: string
+    usageMeterId: string
+    ledgerAccountId: string
+    balance: number
+  }[]
+> => {
+  const usageEvents = await usageEventsFromLedgerEntryWhere(
+    scopedWhere,
+    transaction
+  )
+  const result = await transaction
+    .select()
+    .from(ledgerEntries)
+    .where(
+      and(
+        whereClauseFromObject(ledgerEntries, scopedWhere),
+        balanceTypeWhereStatement('posted'),
+        discardedAtFilterOutStatement()
+      )
+    )
+  const entriesByUsageEventId = new Map<
+    string,
+    LedgerEntry.Record[]
+  >()
+  result.forEach((item) => {
+    const usageEventId = item.sourceUsageEventId
+    if (!usageEventId) {
+      return
+    }
+    if (!entriesByUsageEventId.has(usageEventId)) {
+      entriesByUsageEventId.set(usageEventId, [])
+    }
+    entriesByUsageEventId
+      .get(usageEventId)
+      ?.push(ledgerEntriesSelectSchema.parse(item))
+  })
+
+  /**
+   * Assumptions to test:
+   * 1. Each usageCreditId will be unique
+   * 2. Expires at will match the usageCreditId
+   * 3. LedgerAccountId will match the ledger account implied by the usage credit id
+   */
+  const balances = Array.from(entriesByUsageEventId.entries()).map(
+    ([usageEventId, entries]) => {
+      return {
+        usageEventId,
+        balance: balanceFromEntries(entries),
+        ledgerAccountId: entries[0].ledgerAccountId,
+        usageMeterId: entries[0].usageMeterId!,
+      }
+    }
+  )
   return balances
 }

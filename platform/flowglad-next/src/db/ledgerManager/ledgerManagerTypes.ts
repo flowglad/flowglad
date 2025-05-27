@@ -7,6 +7,9 @@ import { usageCreditsSelectSchema } from '@/db/schema/usageCredits'
 import { usageCreditBalanceAdjustmentsSelectSchema } from '@/db/schema/usageCreditBalanceAdjustments'
 import { refundsSelectSchema } from '@/db/schema/refunds'
 import { subscriptionMeterPeriodCalculationSelectSchema } from '@/db/schema/subscriptionMeterPeriodCalculations'
+import { usageCreditGrantSubscriptionItemFeatureClientSelectSchema } from '../schema/subscriptionItemFeatures'
+import { subscriptionsSelectSchema } from '../schema/subscriptions'
+import { billingPeriodsSelectSchema } from '../schema/billingPeriods'
 
 // Base fields for all ledger commands, primarily for the LedgerTransaction record
 const baseLedgerCommandFields = {
@@ -56,37 +59,30 @@ export type CreditGrantRecognizedLedgerCommand = z.infer<
   typeof creditGrantRecognizedLedgerCommandSchema
 >
 
-export const billingRunUsageProcessedLedgerCommandSchema = z.object({
+export const billingPeriodTransitionLedgerCommandSchema = z.object({
   ...baseLedgerCommandFields,
-  type: z.literal(LedgerTransactionType.BillingRunUsageProcessed),
+  type: z.literal(LedgerTransactionType.BillingPeriodTransition),
   payload: z.object({
-    calculationRunId: z
+    billingRunId: z
       .string()
       .describe(
-        'The calculation_run_id for this billing run phase. This is the initiatingSourceId.'
+        'The billing_run_id for this billing run phase. This is the initiatingSourceId.'
       ),
-    usageEvents: usageEventsSelectSchema.array(),
-  }),
-})
-export type BillingRunUsageProcessedLedgerCommand = z.infer<
-  typeof billingRunUsageProcessedLedgerCommandSchema
->
-
-export const billingRunCreditAppliedLedgerCommandSchema = z.object({
-  ...baseLedgerCommandFields,
-  type: z.literal(LedgerTransactionType.BillingRunCreditApplied),
-  payload: z.object({
-    calculationRunId: z
-      .string()
-      .describe(
-        'The calculation_run_id for this billing run phase. This is the initiatingSourceId.'
-      ),
-    usageCredits: usageCreditsSelectSchema.array(),
+    subscription: subscriptionsSelectSchema,
+    previousBillingPeriod: billingPeriodsSelectSchema,
+    newBillingPeriod: billingPeriodsSelectSchema,
+    payment: paymentsSelectSchema.optional(),
+    subscriptionFeatureItems:
+      usageCreditGrantSubscriptionItemFeatureClientSelectSchema
+        .array()
+        .describe(
+          'The subscription feature items that were active during this billing run for the given subscription.'
+        ),
   }),
 })
 
-export type BillingRunCreditAppliedLedgerCommand = z.infer<
-  typeof billingRunCreditAppliedLedgerCommandSchema
+export type BillingPeriodTransitionLedgerCommand = z.infer<
+  typeof billingPeriodTransitionLedgerCommandSchema
 >
 
 export const adminCreditAdjustedLedgerCommandSchema = z.object({
@@ -157,8 +153,7 @@ export type BillingRecalculatedLedgerCommand = z.infer<
 export const LedgerCommandSchema = z.discriminatedUnion('type', [
   usageEventProcessedLedgerCommandSchema,
   creditGrantRecognizedLedgerCommandSchema,
-  billingRunUsageProcessedLedgerCommandSchema,
-  billingRunCreditAppliedLedgerCommandSchema,
+  billingPeriodTransitionLedgerCommandSchema,
   adminCreditAdjustedLedgerCommandSchema,
   creditGrantExpiredLedgerCommandSchema,
   paymentRefundedLedgerCommandSchema,

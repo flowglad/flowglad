@@ -1,0 +1,218 @@
+import { DbTransaction } from '@/db/types'
+import { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  LedgerEntryStatus,
+  LedgerEntryDirection,
+  LedgerEntryType,
+} from '@/types'
+import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
+import {
+  LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '@/db/schema/ledgerEntries'
+import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
+import {
+  aggregateAvailableBalanceForUsageCredit,
+  bulkInsertLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
+import { bulkInsertUsageCreditApplications } from '../tableMethods/usageCreditApplicationMethods'
+import { UsageCreditApplication } from '../schema/usageCreditApplications'
+import { UsageEvent } from '../schema/usageEvents'
+import { LedgerAccount } from '../schema/ledgerAccounts'
+
+export const createUsageCreditApplicationsForUsageEvent = async (
+  params: {
+    organizationId: string
+    usageEvent: UsageEvent.Record
+    availableCreditBalances: {
+      usageCreditId: string
+      balance: number
+    }[]
+  },
+  transaction: DbTransaction
+): Promise<UsageCreditApplication.Record[]> => {
+  const { organizationId, usageEvent, availableCreditBalances } =
+    params
+  if (availableCreditBalances.length === 0) {
+    return []
+  }
+
+  let outstandingBalance = usageEvent.amount
+  const applications: UsageCreditApplication.Insert[] = []
+
+  for (const creditBalance of availableCreditBalances) {
+    if (creditBalance.balance === 0) {
+      continue
+    }
+
+    const applicationAmount = Math.min(
+      creditBalance.balance,
+      outstandingBalance
+    )
+
+    applications.push({
+      organizationId,
+      livemode: usageEvent.livemode,
+      amountApplied: applicationAmount,
+      appliedAt: new Date(),
+      targetUsageMeterId: usageEvent.usageMeterId,
+      usageCreditId: creditBalance.usageCreditId,
+      usageEventId: usageEvent.id,
+    })
+
+    outstandingBalance -= applicationAmount
+
+    if (outstandingBalance === 0) {
+      break
+    }
+  }
+
+  return await bulkInsertUsageCreditApplications(
+    applications,
+    transaction
+  )
+}
+
+export const createLedgerEntryInsertsForUsageCreditApplications =
+  (params: {
+    usageCreditApplications: UsageCreditApplication.Record[]
+    ledgerAccount: LedgerAccount.Record
+    ledgerTransaction: LedgerTransaction.Record
+  }): LedgerEntry.Insert[] => {
+    const {
+      usageCreditApplications,
+      ledgerAccount,
+      ledgerTransaction,
+    } = params
+    const ledgerEntryInserts: LedgerEntry.Insert[] =
+      usageCreditApplications.flatMap((application) => {
+        // Create debit entry from credit balance
+        const debitEntry: LedgerEntry.UsageCreditApplicationDebitFromCreditBalanceInsert =
+          {
+            ...ledgerEntryNulledSourceIdColumns,
+            ledgerAccountId: ledgerAccount.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            subscriptionId: ledgerAccount.subscriptionId,
+            entryTimestamp: application.appliedAt,
+            status: LedgerEntryStatus.Posted,
+            direction: LedgerEntryDirection.Debit,
+            entryType:
+              LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance,
+            amount: application.amountApplied,
+            description: `Debit from credit balance for usage credit application ${application.id}`,
+            sourceCreditApplicationId: application.id,
+            organizationId: application.organizationId,
+            livemode: application.livemode,
+            metadata: null,
+            discardedAt: null,
+          }
+
+        // Create credit entry towards usage cost
+        const creditEntry: LedgerEntry.UsageCreditApplicationCreditTowardsUsageCostInsert =
+          {
+            ...ledgerEntryNulledSourceIdColumns,
+            ledgerAccountId: ledgerAccount.id,
+            ledgerTransactionId: ledgerTransaction.id,
+            subscriptionId: ledgerAccount.subscriptionId,
+            entryTimestamp: application.appliedAt,
+            status: LedgerEntryStatus.Posted,
+            direction: LedgerEntryDirection.Credit,
+            entryType:
+              LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost,
+            amount: application.amountApplied,
+            description: `Credit towards usage cost for usage credit application ${application.id}`,
+            sourceCreditApplicationId: application.id,
+            organizationId: application.organizationId,
+            livemode: application.livemode,
+            metadata: null,
+            discardedAt: null,
+            sourceUsageEventId: application.usageEventId,
+          }
+
+        return [debitEntry, creditEntry]
+      })
+
+    return ledgerEntryInserts
+  }
+
+export const processUsageEventProcessedLedgerCommand = async (
+  command: UsageEventProcessedLedgerCommand,
+  transaction: DbTransaction
+): Promise<void> => {
+  const ledgerTransactionInput: LedgerTransaction.Insert = {
+    organizationId: command.organizationId,
+    livemode: command.livemode,
+    type: command.type,
+    description: command.transactionDescription ?? null,
+    metadata: command.transactionMetadata ?? null,
+    initiatingSourceType: command.type,
+    initiatingSourceId: command.payload.usageEvent.id,
+    subscriptionId: command.subscriptionId!,
+  }
+  const ledgerTransaction = await insertLedgerTransaction(
+    ledgerTransactionInput,
+    transaction
+  )
+  const [ledgerAccount] = await selectLedgerAccounts(
+    {
+      organizationId: command.organizationId,
+      livemode: command.livemode,
+      subscriptionId: command.subscriptionId!,
+      usageMeterId: command.payload.usageEvent.usageMeterId,
+    },
+    transaction
+  )
+  if (!ledgerAccount) {
+    throw new Error(
+      'Failed to select ledger account for UsageEventProcessed command'
+    )
+  }
+  const availableCreditBalances =
+    await aggregateAvailableBalanceForUsageCredit(
+      {
+        ledgerAccountId: ledgerAccount.id,
+      },
+      transaction
+    )
+  const usageCreditApplications =
+    await createUsageCreditApplicationsForUsageEvent(
+      {
+        organizationId: command.organizationId,
+        usageEvent: command.payload.usageEvent,
+        availableCreditBalances,
+      },
+      transaction
+    )
+  const usageCostLedgerEntry: LedgerEntry.Insert = {
+    ...ledgerEntryNulledSourceIdColumns,
+    ledgerTransactionId: ledgerTransaction.id,
+    ledgerAccountId: ledgerAccount.id,
+    subscriptionId: command.subscriptionId!,
+    organizationId: command.organizationId,
+    livemode: command.livemode,
+    entryTimestamp: new Date(),
+    status: LedgerEntryStatus.Posted,
+    discardedAt: null,
+    direction: LedgerEntryDirection.Debit,
+    entryType: LedgerEntryType.UsageCost,
+    amount: command.payload.usageEvent.amount,
+    description: `Usage event ${command.payload.usageEvent.id} processed.`,
+    sourceUsageEventId: command.payload.usageEvent.id,
+    billingPeriodId:
+      command.payload.usageEvent.billingPeriodId ?? null,
+    usageMeterId: command.payload.usageEvent.usageMeterId ?? null,
+    metadata: null,
+  }
+  const creditApplicationLedgerEntries: LedgerEntry.Insert[] =
+    createLedgerEntryInsertsForUsageCreditApplications({
+      usageCreditApplications,
+      ledgerAccount,
+      ledgerTransaction,
+    })
+  const ledgerEntryInserts = [
+    usageCostLedgerEntry,
+    ...creditApplicationLedgerEntries,
+  ]
+  await bulkInsertLedgerEntries(ledgerEntryInserts, transaction)
+}
