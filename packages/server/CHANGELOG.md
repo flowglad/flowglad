@@ -1,5 +1,13 @@
 # @flowglad/server
 
+## 0.10.9
+
+### Patch Changes
+
+- Window undefined check for useThemeDetector
+- Updated dependencies
+  - @flowglad/shared@0.10.9
+
 ## 0.10.8
 
 ### Patch Changes

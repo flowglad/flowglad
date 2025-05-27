@@ -1,5 +1,15 @@
 # @flowglad/express
 
+## 0.10.9
+
+### Patch Changes
+
+- Window undefined check for useThemeDetector
+- Updated dependencies
+  - @flowglad/react@0.10.9
+  - @flowglad/server@0.10.9
+  - @flowglad/shared@0.10.9
+
 ## 0.10.8
 
 ### Patch Changes
