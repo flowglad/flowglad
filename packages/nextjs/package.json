@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/nextjs",
-  "version": "0.10.8",
+  "version": "0.10.9",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
