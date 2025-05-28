@@ -51,6 +51,7 @@ import {
   UsageCreditStatus,
   UsageCreditSourceReferenceType,
   RefundStatus,
+  UsageCreditApplicationStatus,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -1541,7 +1542,7 @@ export const setupUsageCredit = async (
     issuedAmount: number
     usageMeterId: string
   }
-): Promise<typeof usageCredits.$inferSelect> => {
+): Promise<UsageCredit.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const now = new Date()
     return insertUsageCredit(
@@ -1569,15 +1570,17 @@ export const setupUsageCreditApplication = async (
     organizationId: string
     usageCreditId: string
     amountApplied: number
+    usageEventId: string
+    status?: UsageCreditApplicationStatus
   }
-): Promise<typeof usageCreditApplications.$inferSelect> => {
+): Promise<UsageCreditApplication.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const now = new Date()
     return insertUsageCreditApplication(
       {
         livemode: true,
         appliedAt: now,
-        calculationRunId: `calc_run_${core.nanoid()}`,
+        status: params.status ?? UsageCreditApplicationStatus.Posted,
         ...params,
       },
       transaction
