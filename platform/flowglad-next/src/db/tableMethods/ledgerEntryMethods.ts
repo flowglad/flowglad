@@ -323,7 +323,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     ([usageEventId, entries]) => {
       return {
         usageEventId,
-        balance: balanceFromEntries(entries),
+        balance: balanceFromEntries(entries) * -1,
         ledgerAccountId: entries[0].ledgerAccountId,
         usageMeterId: entries[0].usageMeterId!,
       }
