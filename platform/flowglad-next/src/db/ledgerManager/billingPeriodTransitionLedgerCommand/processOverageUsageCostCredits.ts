@@ -84,34 +84,40 @@ const createPendingOverageUsageCreditsAndEntries = async (
   pendingUsageCredits: UsageCredit.Record[]
   pendingUsageCreditLedgerEntryInserts: LedgerEntry.CreditGrantRecognizedInsert[]
 }> => {
-  const pendingUsageCreditInserts: UsageCredit.Insert[] =
-    Object.values(outstandingUsageCostsByLedgerAccountId).map(
-      (costItem) => {
-        return {
-          organizationId: command.organizationId,
-          livemode: command.livemode,
-          amount: costItem.outstandingBalance,
-          status: UsageCreditStatus.Pending,
-          usageMeterId: costItem.usageMeterId,
-          subscriptionId: command.subscriptionId!,
-          notes: null,
-          metadata: null,
-          expiresAt: null,
-          creditType: UsageCreditType.Grant,
-          sourceReferenceType:
-            UsageCreditSourceReferenceType.BillingPeriodTransition,
-          paymentId: command.payload.payment?.id ?? null,
-          issuedAmount: costItem.outstandingBalance,
-          issuedAt: new Date(),
-        }
-      }
-    )
-
+  const pendingUsageCreditInserts: UsageCredit.Insert[] = Array.from(
+    outstandingUsageCostsByLedgerAccountId.values()
+  ).map((costItem) => {
+    return {
+      organizationId: command.organizationId,
+      livemode: command.livemode,
+      amount: costItem.outstandingBalance,
+      status: UsageCreditStatus.Pending,
+      usageMeterId: costItem.usageMeterId,
+      subscriptionId: command.subscriptionId!,
+      notes: null,
+      metadata: null,
+      expiresAt: null,
+      creditType: UsageCreditType.Grant,
+      sourceReferenceType:
+        UsageCreditSourceReferenceType.BillingPeriodTransition,
+      paymentId: command.payload.payment?.id ?? null,
+      issuedAmount: costItem.outstandingBalance,
+      issuedAt: new Date(),
+    }
+  })
+  console.log(
+    '===pendingUsageCreditInserts',
+    pendingUsageCreditInserts
+  )
   const pendingUsageCredits = await bulkInsertUsageCredits(
     pendingUsageCreditInserts,
     transaction
   )
-
+  console.log('===pendingUsageCredits', pendingUsageCredits)
+  console.log(
+    'ledgerAccountsByUsageMeterId',
+    ledgerAccountsByUsageMeterId
+  )
   const pendingUsageCreditLedgerEntryInserts: LedgerEntry.CreditGrantRecognizedInsert[] =
     pendingUsageCredits.map((usageCredit) => {
       return {
@@ -134,7 +140,10 @@ const createPendingOverageUsageCreditsAndEntries = async (
         sourceUsageCreditId: usageCredit.id,
       }
     })
-
+  console.log(
+    '===pendingUsageCreditLedgerEntryInserts',
+    pendingUsageCreditLedgerEntryInserts
+  )
   return { pendingUsageCredits, pendingUsageCreditLedgerEntryInserts }
 }
 
@@ -359,7 +368,11 @@ export const processOverageUsageCostCredits = async (
     command.subscriptionId!,
     transaction
   )
-
+  console.log(
+    '===outstandingUsageCostsByLedgerAccountId',
+    outstandingUsageCostsByLedgerAccountId
+  )
+  console.log('===rawOutstandingUsageCosts', rawOutstandingUsageCosts)
   const {
     pendingUsageCredits,
     pendingUsageCreditLedgerEntryInserts,
@@ -370,21 +383,28 @@ export const processOverageUsageCostCredits = async (
     command,
     transaction
   )
-
+  console.log('===pendingUsageCredits', pendingUsageCredits)
+  console.log(
+    '===pendingUsageCreditLedgerEntryInserts',
+    pendingUsageCreditLedgerEntryInserts
+  )
   const usageCostsAndUsageCreditByLedgerAccountId =
     prepareDataForCreditApplications(
       rawOutstandingUsageCosts,
       pendingUsageCredits,
       pendingUsageCreditLedgerEntryInserts
     )
-
+  console.log(
+    '===usageCostsAndUsageCreditByLedgerAccountId',
+    usageCostsAndUsageCreditByLedgerAccountId
+  )
   const usageCreditApplications =
     await createPendingUsageCreditApplications(
       usageCostsAndUsageCreditByLedgerAccountId,
       command,
       transaction
     )
-
+  console.log('===usageCreditApplications', usageCreditApplications)
   const usageCreditApplicationLedgerEntryInserts =
     createLedgerEntriesForApplications(
       usageCreditApplications,
@@ -392,8 +412,11 @@ export const processOverageUsageCostCredits = async (
       ledgerAccountsByUsageMeterId,
       command
     )
-
-  await bulkInsertLedgerEntries(
+  console.log(
+    '===usageCreditApplicationLedgerEntryInserts',
+    usageCreditApplicationLedgerEntryInserts
+  )
+  return await bulkInsertLedgerEntries(
     [
       ...pendingUsageCreditLedgerEntryInserts,
       ...usageCreditApplicationLedgerEntryInserts,

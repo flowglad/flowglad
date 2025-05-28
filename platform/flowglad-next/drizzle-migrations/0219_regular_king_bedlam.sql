@@ -16,6 +16,12 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+DO $$ BEGIN
+    ALTER TYPE "UsageCreditSourceReferenceType" ADD VALUE 'billing_period_transition';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 
 ALTER TABLE "ledger_entries" DROP CONSTRAINT "ledger_entries_source_payment_id_payments_id_fk";
 --> statement-breakpoint

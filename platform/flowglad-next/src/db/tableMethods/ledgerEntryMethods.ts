@@ -329,5 +329,6 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       }
     }
   )
+  console.log('===balances', balances)
   return balances
 }
