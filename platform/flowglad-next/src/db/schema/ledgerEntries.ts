@@ -242,6 +242,8 @@ export const usageCreditApplicationDebitFromCreditBalanceEntryRefinements =
       LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
     ),
     sourceCreditApplicationId: z.string(),
+    sourceUsageEventId: z.string(),
+    sourceUsageCreditId: z.string(),
   }
 
 export const usageCreditApplicationCreditTowardsUsageCostEntryRefinements =
@@ -252,6 +254,7 @@ export const usageCreditApplicationCreditTowardsUsageCostEntryRefinements =
       LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
     ),
     sourceCreditApplicationId: z.string(),
+    sourceUsageCreditId: z.string(),
     sourceUsageEventId: z.string(),
   }
 
