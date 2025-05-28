@@ -1,0 +1,106 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Flowglad Docs",
+  "colors": {
+    "primary": "#1e90ff",
+    "light": "#1eeeff",
+    "dark": "#1e90ff"
+  },
+  "integrations": {
+    "posthog": {
+        "apiKey": "phc_NDDBDoAw8gMHPIhSfAvlBF6TdnRP2uqSAQ0eBSNXAKk"
+    }
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "quickstart",
+              "setup-by-prompt"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/products",
+              "features/prices",
+              "features/discounts",
+              "features/catalogs",
+              "features/subscriptions",
+              "features/checkout-sessions",
+              "features/billing-ui",
+              "features/invoices",
+              "features/usage",
+              "features/webhooks"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "principles"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "openapi": {
+          "source": "https://app.flowglad.com/api/openapi",
+          "directory": "api-reference"
+        },
+        "groups": [
+          {
+            "group": "API Documentation",
+            "pages": [
+              "api-reference/introduction"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Community",
+          "href": "https://app.flowglad.com/invite-discord",
+          "icon": "discord"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "background": {
+    "color": {
+      "light": "#ffffff",
+      "dark": "#1b1b1b"
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:agree.ahmed@flowglad.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://app.flowglad.com"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/flowglad",
+      "x": "https://x.com/flowglad"
+    }
+  }
+}
