@@ -1,5 +1,13 @@
 # @flowglad/react
 
+## 0.10.10
+
+### Patch Changes
+
+- Export type explicitly for request handler input
+- Updated dependencies
+  - @flowglad/shared@0.10.10
+
 ## 0.10.9
 
 ### Patch Changes

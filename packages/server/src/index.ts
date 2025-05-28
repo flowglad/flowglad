@@ -4,7 +4,7 @@ export { routeToHandlerMap } from './subrouteHandlers'
 export {
   createRequestHandler,
   RequestHandlerError,
-  RequestHandlerInput,
-  RequestHandlerOutput,
-  RequestHandlerOptions,
+  type RequestHandlerInput,
+  type RequestHandlerOutput,
+  type RequestHandlerOptions,
 } from './requestHandler'
