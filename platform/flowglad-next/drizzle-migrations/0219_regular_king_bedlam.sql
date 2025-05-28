@@ -1,11 +1,11 @@
 DO $$ BEGIN
-    CREATE TYPE "LedgerTransactionType" AS ENUM ('usage_event_processed', 'payment_confirmed', 'promo_credit_granted', 'billing_run_usage_processed', 'billing_run_credit_applied', 'admin_credit_adjusted', 'credit_grant_expired', 'payment_refunded', 'billing_recalculated');
+    CREATE TYPE "LedgerTransactionType" AS ENUM ('usage_event_processed', 'payment_confirmed', 'credit_grant_recognized', 'billing_period_transition', 'admin_credit_adjusted', 'credit_grant_expired', 'payment_refunded', 'billing_recalculated');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-    CREATE TYPE "LedgerEntryType" AS ENUM ('usage_cost', 'payment_recognized', 'credit_grant_recognized', 'credit_balance_adjusted', 'credit_grant_expired', 'payment_refunded', 'billing_adjustment');
+    CREATE TYPE "LedgerEntryType" AS ENUM ('usage_cost', 'payment_initiated', 'payment_failed', 'credit_grant_recognized', 'credit_balance_adjusted', 'credit_grant_expired', 'payment_refunded', 'billing_adjustment', 'usage_credit_application_debit_from_credit_balance', 'usage_credit_application_credit_towards_usage_cost');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

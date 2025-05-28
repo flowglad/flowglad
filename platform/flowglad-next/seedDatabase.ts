@@ -632,7 +632,7 @@ export const setupPrice = async ({
         isDefault,
         setupFeeAmount,
         trialPeriodDays,
-        currency,
+        currency: currency ?? CurrencyCode.USD,
         externalId: externalId ?? core.nanoid(),
         usageMeterId: usageMeterId ?? null,
         active,
