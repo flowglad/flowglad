@@ -239,12 +239,15 @@ const PriceFormFields = ({
               value={field.value}
               orientation="horizontal"
               onValueChange={(value) => {
-                if (isPriceTypeSubscription(value as PriceType)) {
-                  setValue('price.intervalCount', 1)
-                  setValue('price.intervalUnit', IntervalUnit.Month)
-                  setValue('price.setupFeeAmount', null)
-                  setValue('price.usageMeterId', null)
-                  setValue('price.trialPeriodDays', 0)
+                /**
+                 * When price type changes,
+                 * set default values for the new price type to ensure
+                 * that the price will parse correctly.
+                 */
+                if (value === PriceType.Usage) {
+                  Object.entries(usagePriceDefaultColumns).forEach(
+                    assignPriceValueFromTuple
+                  )
                 }
                 if (value === PriceType.SinglePayment) {
                   setValue('price.intervalCount', null)
