@@ -80,12 +80,29 @@ export default function DiscountFormFields({
             control={control}
             name="discount.amount"
             render={({ field }) => {
+              const parseError = errors.discount?.amount?.message
+              const moreThan100 = field.value && field.value > 100
+              const lessThan0 = field.value && field.value < 0
+              let logicError: string | undefined
+              if (moreThan100) {
+                logicError = 'Amount must be less than 100'
+              }
+              if (lessThan0) {
+                logicError = 'Amount must be greater than 0'
+              }
               return (
                 <NumberInput
-                  {...field}
+                  value={field.value?.toString() ?? ''}
                   label="Amount"
                   className="flex-1"
                   showControls={false}
+                  onValueChange={(value) => {
+                    console.log('value', value)
+                    field.onChange(value.floatValue)
+                  }}
+                  error={parseError ?? logicError}
+                  max={100}
+                  min={0}
                   iconTrailing={<Percent size={16} />}
                 />
               )

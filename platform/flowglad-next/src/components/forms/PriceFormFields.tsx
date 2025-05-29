@@ -10,7 +10,12 @@ import Switch from '@/components/ion/Switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import Select from '@/components/ion/Select'
 import NumberInput from '@/components/ion/NumberInput'
-import { CreateProductSchema } from '@/db/schema/prices'
+import {
+  CreateProductSchema,
+  singlePaymentPriceDefaultColumns,
+  subscriptionPriceDefaultColumns,
+  usagePriceDefaultColumns,
+} from '@/db/schema/prices'
 import {
   Controller,
   FieldError,
@@ -219,6 +224,13 @@ const PriceFormFields = ({
       )
       break
   }
+
+  const assignPriceValueFromTuple = (tuple: [string, any]) => {
+    const [key, value] = tuple
+    // @ts-expect-error - key is a valid key of usagePriceDefaultColumns
+    setValue(`price.${key}`, value)
+  }
+
   return (
     <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
       {priceOnly && (
@@ -239,26 +251,20 @@ const PriceFormFields = ({
               value={field.value}
               orientation="horizontal"
               onValueChange={(value) => {
-                if (isPriceTypeSubscription(value as PriceType)) {
-                  setValue('price.intervalCount', 1)
-                  setValue('price.intervalUnit', IntervalUnit.Month)
-                  setValue('price.setupFeeAmount', null)
-                  setValue('price.usageMeterId', null)
-                  setValue('price.trialPeriodDays', 0)
+                if (value === PriceType.Usage) {
+                  Object.entries(usagePriceDefaultColumns).forEach(
+                    assignPriceValueFromTuple
+                  )
                 }
                 if (value === PriceType.SinglePayment) {
-                  setValue('price.intervalCount', null)
-                  setValue('price.intervalUnit', null)
-                  setValue('price.usageMeterId', null)
-                  setValue('price.trialPeriodDays', null)
+                  Object.entries(
+                    singlePaymentPriceDefaultColumns
+                  ).forEach(assignPriceValueFromTuple)
                 }
                 if (value === PriceType.Subscription) {
-                  setValue('price.intervalCount', 1)
-                  setValue('price.intervalUnit', IntervalUnit.Month)
-                  setValue('price.trialPeriodDays', 0)
-                }
-                if (value !== PriceType.Usage) {
-                  setValue('price.usageMeterId', null)
+                  Object.entries(
+                    subscriptionPriceDefaultColumns
+                  ).forEach(assignPriceValueFromTuple)
                 }
                 field.onChange(value)
               }}
