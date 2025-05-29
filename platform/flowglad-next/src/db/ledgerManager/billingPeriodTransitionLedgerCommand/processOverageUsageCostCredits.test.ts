@@ -49,6 +49,7 @@ import {
   setupBillingRun,
   setupUsageCredit,
   setupUsageCreditApplication,
+  setupProduct,
 } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -1810,8 +1811,15 @@ describe('processOverageUsageCostCredits', () => {
 
   it('should process multiple ledger accounts, creating entities only for those with costs', async () => {
     const setupUsagePrice = async (usageMeterId: string) => {
+      const usageProduct = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        active: true,
+        livemode: true,
+        catalogId: catalog.id,
+      })
       return await setupPrice({
-        productId: product.id,
+        productId: usageProduct.id,
         name: 'Test Price ' + usageMeterId,
         type: PriceType.Usage,
         unitPrice: 100,
@@ -1851,7 +1859,7 @@ describe('processOverageUsageCostCredits', () => {
       usageMeterId: newUsageMeter1.id,
       livemode: true,
       amount: 70,
-      priceId: usageBasedPrice1.id,
+      priceId: price1.id,
       billingPeriodId: previousBillingPeriodOverageTest.id,
       transactionId: 'dummy_txn_1_' + Math.random(),
       customerId: customer.id,
@@ -1862,7 +1870,7 @@ describe('processOverageUsageCostCredits', () => {
       usageMeterId: newUsageMeter2.id,
       livemode: true,
       amount: 30,
-      priceId: usageBasedPrice1.id,
+      priceId: price2.id,
       billingPeriodId: previousBillingPeriodOverageTest.id,
       transactionId: 'dummy_txn_2_' + Math.random(),
       customerId: customer.id,
@@ -1872,30 +1880,60 @@ describe('processOverageUsageCostCredits', () => {
       subscriptionId: subscription.id,
       usageMeterId: newUsageMeter3.id,
       livemode: true,
-      amount: 0,
-      priceId: usageBasedPrice1.id,
+      amount: 10,
+      priceId: price3.id,
       billingPeriodId: previousBillingPeriodOverageTest.id,
       transactionId: 'dummy_txn_3_' + Math.random(),
       customerId: customer.id,
     })
-    const ledgerAccount1 = await setupLedgerAccount({
+    const coreLedgerAccountParams = {
       organizationId: organization.id,
       subscriptionId: subscription.id,
-      usageMeterId: newUsageMeter1.id,
       livemode: true,
+    }
+    const ledgerAccount1 = await setupLedgerAccount({
+      ...coreLedgerAccountParams,
+      usageMeterId: newUsageMeter1.id,
     })
     const ledgerAccount2 = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
+      ...coreLedgerAccountParams,
       usageMeterId: newUsageMeter2.id,
-      livemode: true,
     })
     const ledgerAccount3 = await setupLedgerAccount({
+      ...coreLedgerAccountParams,
+      usageMeterId: newUsageMeter3.id,
+    })
+    const coreDebitLedgerEntryParams = {
       organizationId: organization.id,
       subscriptionId: subscription.id,
-      usageMeterId: newUsageMeter3.id,
       livemode: true,
+      entryType: LedgerEntryType.UsageCost,
+      entryTimestamp: new Date(),
+      status: LedgerEntryStatus.Posted,
+      ledgerTransactionId: mainLedgerTransaction.id,
+    } as const
+    await setupDebitLedgerEntry({
+      ...coreDebitLedgerEntryParams,
+      usageMeterId: newUsageMeter1.id,
+      amount: usageEvent1.amount,
+      sourceUsageEventId: usageEvent1.id,
+      ledgerAccountId: ledgerAccount1.id,
     })
+    await setupDebitLedgerEntry({
+      ...coreDebitLedgerEntryParams,
+      usageMeterId: newUsageMeter2.id,
+      amount: usageEvent2.amount,
+      sourceUsageEventId: usageEvent2.id,
+      ledgerAccountId: ledgerAccount2.id,
+    })
+    await setupDebitLedgerEntry({
+      ...coreDebitLedgerEntryParams,
+      usageMeterId: newUsageMeter3.id,
+      amount: usageEvent3.amount,
+      sourceUsageEventId: usageEvent3.id,
+      ledgerAccountId: ledgerAccount3.id,
+    })
+
     // setup:
     // - Create LedgerAccounts: la_mix1 (um_mix1), la_mix2 (um_mix2), la_mix3 (um_mix3).
     // - Create LedgerTransaction: ltx_mix.
@@ -1911,6 +1949,51 @@ describe('processOverageUsageCostCredits', () => {
     //   - Two UsageCreditApplication records created (one for ue_mix1, one for ue_mix3).
     //   - Six new LedgerEntry records created (2 grants + 2*2 application-related).
     //   - No entities created related to la_mix2.
+    const ledgerEntries = await adminTransaction(
+      async ({ transaction }) => {
+        return await processOverageUsageCostCredits(
+          {
+            ledgerAccountsForSubscription: [
+              ledgerAccount1,
+              ledgerAccount2,
+              ledgerAccount3,
+            ],
+            ledgerTransaction: mainLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      }
+    )
+    console.log('====ledgerEntries', ledgerEntries)
+    const validateLedgerEntryAccount1 = createLedgerEntryValidator({
+      ledgerAccountId: ledgerAccount1.id,
+      ledgerTransactionId: mainLedgerTransaction.id,
+    })
+    const validateLedgerEntryAccount2 = createLedgerEntryValidator({
+      ledgerAccountId: ledgerAccount2.id,
+      ledgerTransactionId: mainLedgerTransaction.id,
+    })
+    const validateLedgerEntryAccount3 = createLedgerEntryValidator({
+      ledgerAccountId: ledgerAccount3.id,
+      ledgerTransactionId: mainLedgerTransaction.id,
+    })
+    const coreParams = {
+      status: LedgerEntryStatus.Pending,
+    }
+    validateLedgerEntryAccount1(ledgerEntries[0], {
+      ...coreParams,
+      entryType: LedgerEntryType.CreditGrantRecognized,
+      direction: LedgerEntryDirection.Credit,
+      amount: usageEvent1.amount,
+    })
+    validateLedgerEntryAccount2(ledgerEntries[1], {
+      ...coreParams,
+      entryType: LedgerEntryType.CreditGrantRecognized,
+      direction: LedgerEntryDirection.Credit,
+      amount: usageEvent1.amount,
+    })
+    await expectLedgerAccountBalanceToBeZero(ledgerAccount1.id)
   })
 
   // it('should handle data that would trigger internal warnings in prepareDataForCreditApplications gracefully', async () => {

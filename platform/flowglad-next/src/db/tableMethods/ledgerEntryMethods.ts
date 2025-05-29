@@ -5,6 +5,7 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   whereClauseFromObject,
+  createBulkInsertFunction,
 } from '@/db/tableUtils'
 import {
   ledgerEntries,
@@ -56,17 +57,10 @@ export const selectLedgerEntries = createSelectFunction(
   config
 )
 
-export const bulkInsertLedgerEntries = async (
-  data: Array<typeof ledgerEntries.$inferInsert>,
-  transaction: DbTransaction
-) => {
-  if (data.length === 0) {
-    return []
-  }
-  // Assuming ledgerEntriesInsertSchema can validate an array, or we validate each item if needed.
-  // For simplicity, direct insert is used here. Validation should occur before calling this.
-  return transaction.insert(ledgerEntries).values(data).returning()
-}
+export const bulkInsertLedgerEntries = createBulkInsertFunction(
+  ledgerEntries,
+  config
+)
 
 const balanceTypeWhereStatement = (
   balanceType: 'pending' | 'posted' | 'available'

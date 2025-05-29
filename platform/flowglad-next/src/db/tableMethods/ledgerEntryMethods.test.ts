@@ -47,7 +47,10 @@ import {
   aggregateBalanceForLedgerAccountFromEntries,
   aggregateAvailableBalanceForUsageCredit,
 } from './ledgerEntryMethods'
-import { ledgerEntryNulledSourceIdColumns } from '../schema/ledgerEntries'
+import {
+  LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '../schema/ledgerEntries'
 
 describe('ledgerEntryMethods', () => {
   let organization: Organization.Record
@@ -126,13 +129,33 @@ describe('ledgerEntryMethods', () => {
       })
     })
     it('should successfully insert a single valid ledger entry and return it', async () => {
+      const localLedgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        catalogId: catalog.id,
+        livemode: true,
+      })
+      const usageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+        amount: 100,
+        priceId: price.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: localLedgerTransaction.id,
+        customerId: customer.id,
+      })
       await adminTransaction(async ({ transaction }) => {
-        const localLedgerTransaction = await setupLedgerTransaction({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          type: LedgerTransactionType.AdminCreditAdjusted,
-        })
-        const entryData = {
+        const entryData: LedgerEntry.Insert = {
+          ...ledgerEntryNulledSourceIdColumns,
+          metadata: {},
+          discardedAt: null,
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
@@ -143,6 +166,7 @@ describe('ledgerEntryMethods', () => {
           status: LedgerEntryStatus.Posted,
           livemode: true,
           entryTimestamp: new Date(),
+          sourceUsageEventId: usageEvent.id,
         }
         const result = await bulkInsertLedgerEntries(
           [entryData],
@@ -159,7 +183,21 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           type: LedgerTransactionType.AdminCreditAdjusted,
         })
-        const entryData1 = {
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          amount: 100,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: localLedgerTransaction.id,
+          customerId: customer.id,
+        })
+        const entryData1: LedgerEntry.Insert = {
+          ...ledgerEntryNulledSourceIdColumns,
+          metadata: {},
+          discardedAt: null,
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
@@ -170,8 +208,20 @@ describe('ledgerEntryMethods', () => {
           status: LedgerEntryStatus.Posted,
           livemode: true,
           entryTimestamp: new Date(),
+          sourceUsageEventId: usageEvent.id,
         }
-        const entryData2 = {
+        const usageCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          livemode: true,
+          issuedAmount: 1000,
+          creditType: UsageCreditType.Grant,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+        })
+        const entryData2: LedgerEntry.Insert = {
+          ...ledgerEntryNulledSourceIdColumns,
+          metadata: {},
+          discardedAt: null,
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
@@ -181,6 +231,7 @@ describe('ledgerEntryMethods', () => {
           amount: 50,
           status: LedgerEntryStatus.Posted,
           livemode: true,
+          sourceUsageCreditId: usageCredit.id,
           entryTimestamp: new Date(),
         }
         const result = await bulkInsertLedgerEntries(
