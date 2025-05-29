@@ -14,7 +14,11 @@ import {
   LedgerEntry,
 } from '@/db/schema/ledgerEntries'
 import { DbTransaction } from '../types'
-import { LedgerEntryDirection, LedgerEntryStatus } from '@/types'
+import {
+  LedgerEntryDirection,
+  LedgerEntryStatus,
+  LedgerEntryType,
+} from '@/types'
 import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
 import { selectUsageCredits } from './usageCreditMethods'
@@ -98,7 +102,7 @@ const discardedAtFilterOutStatement = () => {
   )
 }
 
-const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
+export const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
   return entries.reduce((acc, entry) => {
     return entry.direction === LedgerEntryDirection.Credit
       ? acc + entry.amount
@@ -282,20 +286,23 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     balance: number
   }[]
 > => {
-  const usageEvents = await usageEventsFromLedgerEntryWhere(
-    scopedWhere,
-    transaction
-  )
   const result = await transaction
     .select()
     .from(ledgerEntries)
     .where(
       and(
-        whereClauseFromObject(ledgerEntries, scopedWhere),
+        and(
+          whereClauseFromObject(ledgerEntries, scopedWhere),
+          inArray(ledgerEntries.entryType, [
+            LedgerEntryType.UsageCost,
+            LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost,
+          ])
+        ),
         balanceTypeWhereStatement('posted'),
         discardedAtFilterOutStatement()
       )
     )
+
   const entriesByUsageEventId = new Map<
     string,
     LedgerEntry.Record[]
@@ -329,6 +336,5 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       }
     }
   )
-  console.log('===balances', balances)
   return balances
 }

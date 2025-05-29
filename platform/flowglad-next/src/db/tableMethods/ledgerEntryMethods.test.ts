@@ -1785,6 +1785,7 @@ describe('ledgerEntryMethods', () => {
             livemode: true,
             usageCreditId: usageCredit.id,
             amountApplied: 1000,
+            usageEventId: usageEventId,
           })
         await adminTransaction(async ({ transaction }) => {
           const initialCreditAmount = 500
@@ -1919,6 +1920,8 @@ describe('ledgerEntryMethods', () => {
       expect(result[0]).toEqual({
         usageCreditId: usageCreditId1,
         balance: totalExpectedBalance,
+        expiresAt: null,
+        ledgerAccountId: ledgerAccount.id,
       })
     })
 
@@ -1958,6 +1961,8 @@ describe('ledgerEntryMethods', () => {
         expect(result[0]).toEqual({
           usageCreditId: usageCreditId1,
           balance: 0,
+          expiresAt: null,
+          ledgerAccountId: ledgerAccount.id,
         })
       })
     })
@@ -2065,9 +2070,24 @@ describe('ledgerEntryMethods', () => {
         )
 
         const expectedBalances = [
-          { usageCreditId: usageCreditA.id, balance: 700 },
-          { usageCreditId: usageCreditB.id, balance: -300 },
-          { usageCreditId: usageCreditC.id, balance: 0 },
+          {
+            usageCreditId: usageCreditA.id,
+            balance: 700,
+            expiresAt: null,
+            ledgerAccountId: ledgerAccount.id,
+          },
+          {
+            usageCreditId: usageCreditB.id,
+            balance: -300,
+            expiresAt: null,
+            ledgerAccountId: ledgerAccount.id,
+          },
+          {
+            usageCreditId: usageCreditC.id,
+            balance: 0,
+            expiresAt: null,
+            ledgerAccountId: ledgerAccount.id,
+          },
         ].sort((x, y) =>
           x.usageCreditId.localeCompare(y.usageCreditId)
         )
@@ -2127,6 +2147,8 @@ describe('ledgerEntryMethods', () => {
         expect(result[0]).toEqual({
           usageCreditId: usageCreditId1,
           balance: expectedBalance,
+          expiresAt: null,
+          ledgerAccountId: ledgerAccount.id,
         })
       })
     })
@@ -2174,6 +2196,8 @@ describe('ledgerEntryMethods', () => {
         expect(result[0]).toEqual({
           usageCreditId: usageCreditId1,
           balance: postedCreditAmount, // Only posted credit should count
+          expiresAt: null,
+          ledgerAccountId: ledgerAccount.id,
         })
       })
     })
@@ -2241,6 +2265,8 @@ describe('ledgerEntryMethods', () => {
         expect(result[0]).toEqual({
           usageCreditId: usageCreditId1,
           balance: expectedBalance,
+          expiresAt: null,
+          ledgerAccountId: ledgerAccount.id,
         })
       })
     })
@@ -2494,6 +2520,8 @@ describe('ledgerEntryMethods', () => {
         expect(result[0]).toEqual({
           usageCreditId: commonUsageCredit.id,
           balance: amountA, // Should only be the amount from ledgerAccountA's entry
+          expiresAt: null,
+          ledgerAccountId: ledgerAccount.id,
         })
       })
     })
@@ -2549,6 +2577,8 @@ describe('ledgerEntryMethods', () => {
         expect(result[0]).toEqual({
           usageCreditId: usageCreditId1,
           balance: expectedBalance,
+          expiresAt: null,
+          ledgerAccountId: ledgerAccount.id,
         })
       })
     })
