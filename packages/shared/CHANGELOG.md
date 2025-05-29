@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.10.10
+
+### Patch Changes
+
+- Export type explicitly for request handler input
+
 ## 0.10.9
 
 ### Patch Changes
