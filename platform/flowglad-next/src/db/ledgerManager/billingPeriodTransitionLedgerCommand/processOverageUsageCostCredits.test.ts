@@ -1809,6 +1809,93 @@ describe('processOverageUsageCostCredits', () => {
   })
 
   it('should process multiple ledger accounts, creating entities only for those with costs', async () => {
+    const setupUsagePrice = async (usageMeterId: string) => {
+      return await setupPrice({
+        productId: product.id,
+        name: 'Test Price ' + usageMeterId,
+        type: PriceType.Usage,
+        unitPrice: 100,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        setupFeeAmount: 0,
+        isDefault: true,
+        active: true,
+        livemode: true,
+        usageMeterId,
+      })
+    }
+    const newUsageMeter1 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Overage Usage Meter 1',
+      catalogId: catalog.id,
+      livemode: true,
+    })
+    const price1 = await setupUsagePrice(newUsageMeter1.id)
+    const newUsageMeter2 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Overage Usage Meter 2',
+      catalogId: catalog.id,
+      livemode: true,
+    })
+    const price2 = await setupUsagePrice(newUsageMeter2.id)
+    const newUsageMeter3 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Overage Usage Meter 3',
+      catalogId: catalog.id,
+      livemode: true,
+    })
+    const price3 = await setupUsagePrice(newUsageMeter3.id)
+    const usageEvent1 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: newUsageMeter1.id,
+      livemode: true,
+      amount: 70,
+      priceId: usageBasedPrice1.id,
+      billingPeriodId: previousBillingPeriodOverageTest.id,
+      transactionId: 'dummy_txn_1_' + Math.random(),
+      customerId: customer.id,
+    })
+    const usageEvent2 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: newUsageMeter2.id,
+      livemode: true,
+      amount: 30,
+      priceId: usageBasedPrice1.id,
+      billingPeriodId: previousBillingPeriodOverageTest.id,
+      transactionId: 'dummy_txn_2_' + Math.random(),
+      customerId: customer.id,
+    })
+    const usageEvent3 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: newUsageMeter3.id,
+      livemode: true,
+      amount: 0,
+      priceId: usageBasedPrice1.id,
+      billingPeriodId: previousBillingPeriodOverageTest.id,
+      transactionId: 'dummy_txn_3_' + Math.random(),
+      customerId: customer.id,
+    })
+    const ledgerAccount1 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: newUsageMeter1.id,
+      livemode: true,
+    })
+    const ledgerAccount2 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: newUsageMeter2.id,
+      livemode: true,
+    })
+    const ledgerAccount3 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: newUsageMeter3.id,
+      livemode: true,
+    })
     // setup:
     // - Create LedgerAccounts: la_mix1 (um_mix1), la_mix2 (um_mix2), la_mix3 (um_mix3).
     // - Create LedgerTransaction: ltx_mix.
