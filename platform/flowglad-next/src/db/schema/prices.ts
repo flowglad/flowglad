@@ -519,3 +519,36 @@ export const productsTableRowDataSchema = z.object({
 export type ProductsTableRowData = z.infer<
   typeof productsTableRowDataSchema
 >
+
+export const subscriptionPriceDefaultColumns: Pick<
+  Price.SubscriptionInsert,
+  keyof typeof subscriptionPriceColumns
+> = {
+  intervalCount: 1,
+  intervalUnit: IntervalUnit.Month,
+  setupFeeAmount: 0,
+  trialPeriodDays: 0,
+  type: PriceType.Subscription,
+}
+
+export const usagePriceDefaultColumns: Pick<
+  Price.UsageInsert,
+  keyof typeof usagePriceColumns
+> = {
+  ...subscriptionPriceDefaultColumns,
+  trialPeriodDays: null,
+  type: PriceType.Usage,
+  usageMeterId: '',
+}
+
+export const singlePaymentPriceDefaultColumns: Pick<
+  Price.SinglePaymentInsert,
+  keyof typeof singlePaymentPriceColumns
+> = {
+  intervalCount: null,
+  intervalUnit: null,
+  setupFeeAmount: null,
+  trialPeriodDays: null,
+  usageMeterId: null,
+  type: PriceType.SinglePayment,
+}
