@@ -1,4 +1,8 @@
-import { Price } from '@/db/schema/prices'
+import {
+  Price,
+  singlePaymentPriceDefaultColumns,
+  usagePriceDefaultColumns,
+} from '@/db/schema/prices'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 
 export const subscriptionDummyPrice: Price.SubscriptionRecord = {
@@ -22,4 +26,14 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
+}
+
+export const singlePaymentDummyPrice: Price.SinglePaymentRecord = {
+  ...subscriptionDummyPrice,
+  ...singlePaymentPriceDefaultColumns,
+}
+
+export const usageDummyPrice: Price.UsageRecord = {
+  ...subscriptionDummyPrice,
+  ...usagePriceDefaultColumns,
 }

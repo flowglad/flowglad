@@ -13,19 +13,11 @@ import FormModal from '@/components/forms/FormModal'
 import { toast } from 'sonner'
 import { Product } from '@/db/schema/products'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { singlePaymentDummyPrice } from '@/stubs/priceStubs'
 
-const defaultPrice: Price.ClientSinglePaymentInsert = {
-  name: '',
-  type: PriceType.SinglePayment,
-  unitPrice: 100,
-  productId: '1',
-  isDefault: true,
-  intervalCount: null,
-  intervalUnit: null,
-  trialPeriodDays: null,
-  setupFeeAmount: null,
-  active: true,
-  usageMeterId: null,
+export const defaultPrice: Price.ClientSinglePaymentInsert = {
+  ...singlePaymentDummyPrice,
+  name: 'Default Price',
 }
 
 const defaultProduct: Product.ClientInsert = {
