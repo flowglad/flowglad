@@ -4,6 +4,7 @@ import {
   SubscriptionPrice,
   Price,
 } from '@flowglad/types'
+import { useFlowgladTheme } from '../FlowgladTheme'
 
 export const CurrencyLabel = ({
   currency,
@@ -47,9 +48,10 @@ export const PriceLabel = ({
   >
   className?: string
 }) => {
+  const { themedCn } = useFlowgladTheme()
   if (price.type === 'subscription') {
     return (
-      <div className={cn(className)}>
+      <div className={themedCn(className)}>
         {humanReadableCurrencyAmount(price.currency, price.unitPrice)}{' '}
         per {(price as SubscriptionPrice).intervalUnit}
       </div>
@@ -57,7 +59,7 @@ export const PriceLabel = ({
   }
 
   return (
-    <div className={cn(className)}>
+    <div className={themedCn(className)}>
       {humanReadableCurrencyAmount(price.currency, price.unitPrice)}
     </div>
   )

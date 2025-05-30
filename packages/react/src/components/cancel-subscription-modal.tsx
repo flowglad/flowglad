@@ -24,7 +24,6 @@ export const CancelSubscriptionModal = ({
 }) => {
   const [cancelLoading, setCancelLoading] = useState(false)
   const [open, setOpen] = useState(false)
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger

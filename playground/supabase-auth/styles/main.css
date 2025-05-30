@@ -24,8 +24,9 @@ html {
 
 html,
 body {
-  font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Helvetica Neue',
-    'Helvetica', sans-serif;
+  font-family:
+    -apple-system, system-ui, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica',
+    sans-serif;
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
   @apply text-white bg-zinc-800 antialiased;
