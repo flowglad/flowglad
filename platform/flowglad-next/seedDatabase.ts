@@ -80,7 +80,6 @@ import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
-import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 import { memberships } from '@/db/schema/memberships'
 import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
@@ -113,6 +112,9 @@ import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
 import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
 import { insertRefund } from '@/db/tableMethods/refundMethods'
+import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { insertFeature } from '@/db/tableMethods/featureMethods'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -1761,4 +1763,115 @@ export const setupLedgerEntries = async (params: {
       transaction
     )
   })
+}
+
+export const setupToggleFeature = async (
+  params: Partial<Omit<Feature.ToggleInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    livemode: boolean
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    const insert: Feature.ToggleInsert = {
+      type: FeatureType.Toggle,
+      description: params.description ?? '',
+      slug: params.slug ?? `test-feature-${core.nanoid()}`,
+      amount: null,
+      usageMeterId: null,
+      renewalFrequency: null,
+      ...params,
+    }
+    return insertFeature(insert, transaction)
+  })
+}
+
+export const setupUsageCreditGrantFeature = async (
+  params: Partial<Omit<Feature.UsageCreditGrantInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    usageMeterId: string
+    renewalFrequency: FeatureUsageGrantFrequency
+    livemode: boolean
+  }
+): Promise<Feature.UsageCreditGrantRecord> => {
+  return adminTransaction(async ({ transaction }) => {
+    const insert: Feature.UsageCreditGrantInsert = {
+      type: FeatureType.UsageCreditGrant,
+      description: params.description ?? '',
+      slug: params.slug ?? `test-feature-${core.nanoid()}`,
+      amount: params.amount ?? 1,
+      ...params,
+    }
+    return insertFeature(
+      insert,
+      transaction
+    ) as Promise<Feature.UsageCreditGrantRecord>
+  })
+}
+
+export const setupProductFeature = async (
+  params: Partial<ProductFeature.Insert> & {
+    productId: string
+    featureId: string
+    expiredAt?: Date | null
+    organizationId: string
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertProductFeature(
+      {
+        livemode: true,
+        expiredAt: params.expiredAt ?? null,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupSubscriptionItemFeature = async (
+  params: Partial<SubscriptionItemFeature.Insert> & {
+    subscriptionItemId: string
+    usageMeterId: string
+    featureId: string
+    productFeatureId: string
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertSubscriptionItemFeature(
+      {
+        livemode: true,
+        type: FeatureType.UsageCreditGrant,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        amount: params.amount ?? 1,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupSubscriptionItemFeatureUsageCreditGrant = async (
+  params: Partial<SubscriptionItemFeature.Insert> & {
+    subscriptionItemId: string
+    usageMeterId: string
+    featureId: string
+    productFeatureId: string
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertSubscriptionItemFeature(
+      {
+        livemode: true,
+        type: FeatureType.UsageCreditGrant,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        amount: params.amount ?? 1,
+        ...params,
+      },
+      transaction
+    )
+  }) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
 }
