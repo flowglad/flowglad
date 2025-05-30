@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { setupOrg, setupCatalog } from '../../seedDatabase'
-import { cloneCatalogTransaction } from './catalog'
+import {
+  setupOrg,
+  setupCatalog,
+  setupUserAndApiKey,
+} from '../../seedDatabase'
+import {
+  cloneCatalogTransaction,
+  createProductTransaction,
+} from './catalog'
 import { IntervalUnit, PriceType, CurrencyCode } from '@/types'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 import {
@@ -11,10 +18,13 @@ import {
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
+import { Organization } from '@/db/schema/organizations'
+import { Catalog } from '@/db/schema/catalogs'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 
 describe('cloneCatalogTransaction', () => {
-  let organization: any
-  let sourceCatalog: any
+  let organization: Organization.Record
+  let sourceCatalog: Catalog.Record
   let product: Product.Record
   let price: Price.Record
 
@@ -478,5 +488,78 @@ describe('cloneCatalogTransaction', () => {
       expect(clonedProducts).toHaveLength(1)
       //   expect(clonedCatalog.products[0].prices).toHaveLength(1)
     })
+  })
+})
+
+describe('createProductTransaction', () => {
+  let organization: Organization.Record
+  let sourceCatalog: Catalog.Record
+  let org1ApiKeyToken: string
+  let userId: string
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+    sourceCatalog = await setupCatalog({
+      organizationId: organization.id,
+      name: 'Test Catalog',
+      livemode: false,
+    })
+
+    console.log('======sourceCatalog', sourceCatalog)
+    const userApiKeyOrg1 = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    console.log('======userApiKeyOrg1', userApiKeyOrg1)
+    if (!userApiKeyOrg1.apiKey.token) {
+      throw new Error('API key token not found after setup for org1')
+    }
+    org1ApiKeyToken = userApiKeyOrg1.apiKey.token
+    userId = userApiKeyOrg1.user.id
+  })
+  it('should create a product with a default price', async () => {
+    await authenticatedTransaction(
+      async ({ transaction }) => {
+        console.log('======transaction??', transaction)
+        return createProductTransaction(
+          {
+            product: {
+              name: 'Test Product',
+              description: 'Test Description',
+              active: true,
+              imageURL: null,
+              displayFeatures: [],
+              singularQuantityLabel: 'singular',
+              pluralQuantityLabel: 'plural',
+              catalogId: sourceCatalog.id,
+            },
+            prices: [
+              {
+                name: 'Test Price',
+                type: PriceType.Subscription,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 1000,
+                setupFeeAmount: 0,
+                trialPeriodDays: 0,
+                active: true,
+                usageMeterId: null,
+                // @ts-expect-error - enforcing isDefault
+                isDefault: undefined,
+              },
+            ],
+          },
+          {
+            userId,
+            apiKeyToken: org1ApiKeyToken,
+            transaction,
+            livemode: false,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
   })
 })

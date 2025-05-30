@@ -66,7 +66,12 @@ export const createProduct = protectedProcedure
         return createProductTransaction(
           {
             product,
-            prices: [price],
+            prices: [
+              {
+                ...price,
+                isDefault: true,
+              },
+            ],
           },
           { transaction, userId, livemode }
         )
