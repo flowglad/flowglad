@@ -198,6 +198,30 @@ export const authenticatedProcedureTransaction = <
   }
 }
 
+export const authenticatedProcedureComprehensiveTransaction = <
+  TInput,
+  TOutput,
+  TContext extends { apiKey?: string },
+>(
+  handler: (
+    params: AuthenticatedProcedureTransactionParams<
+      TInput,
+      TOutput,
+      TContext
+    >
+  ) => Promise<TransactionOutput<TOutput>>
+) => {
+  return async (opts: { input: TInput; ctx: TContext }) => {
+    return comprehensiveAuthenticatedTransaction(
+      (params) =>
+        handler({ ...params, input: opts.input, ctx: opts.ctx }),
+      {
+        apiKey: opts.ctx.apiKey,
+      }
+    )
+  }
+}
+
 export function eventfulAuthenticatedProcedureTransaction<
   TInput,
   TOutput,

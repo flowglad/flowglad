@@ -4,6 +4,7 @@ import {
   LedgerEntryStatus,
   LedgerEntryDirection,
   LedgerEntryType,
+  LedgerTransactionInitiatingSourceType,
 } from '@/types'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
@@ -150,10 +151,12 @@ export const processUsageEventProcessedLedgerCommand = async (
     type: command.type,
     description: command.transactionDescription ?? null,
     metadata: command.transactionMetadata ?? null,
-    initiatingSourceType: command.type,
+    initiatingSourceType:
+      LedgerTransactionInitiatingSourceType.UsageEvent,
     initiatingSourceId: command.payload.usageEvent.id,
     subscriptionId: command.subscriptionId!,
   }
+  console.log('ledgerTransactionInput', ledgerTransactionInput)
   const ledgerTransaction = await insertLedgerTransaction(
     ledgerTransactionInput,
     transaction
@@ -218,5 +221,10 @@ export const processUsageEventProcessedLedgerCommand = async (
     usageCostLedgerEntry,
     ...creditApplicationLedgerEntries,
   ]
+  console.log(
+    'UsageEventProcessedLedgerCommand ledgerEntryInserts',
+    ledgerEntryInserts
+  )
   await bulkInsertLedgerEntries(ledgerEntryInserts, transaction)
+  console.log('UsageEventProcessedLedgerCommand processed.....')
 }

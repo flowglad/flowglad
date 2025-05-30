@@ -13,6 +13,7 @@ import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
 
 import { usageProcedure } from '@/server/trpc'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -36,13 +37,12 @@ export const createUsageEvent = usageProcedure
   .input(createUsageEventSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, livemode, transaction }) => {
-        const usageEvent = await ingestAndProcessUsageEvent(
-          { input, livemode },
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transaction }) => {
+        return ingestAndProcessUsageEvent(
+          { input, livemode: ctx.livemode },
           transaction
         )
-        return { usageEvent }
       }
     )
   )
