@@ -35,7 +35,7 @@ if (core.IS_PROD) {
 }
 
 export const db = drizzle(client, {
-  logger: logger,
+  logger,
 })
 
 export default db

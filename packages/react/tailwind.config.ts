@@ -4,6 +4,7 @@ import tailwindAnimate from 'tailwindcss-animate'
 
 export default {
   prefix: 'flowglad-',
+  important: '.flowglad-root',
   darkMode: ['class'],
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {

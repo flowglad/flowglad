@@ -1,4 +1,4 @@
-# Creating a New Test Suite
+# Implementing a New Test Suite
 
 This guide outlines the process for creating a new test suite in the Flowglad codebase. The test suite should follow these guidelines and patterns to ensure consistency and maintainability.
 
