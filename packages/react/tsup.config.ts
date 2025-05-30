@@ -2,11 +2,6 @@ import { runAfterLast } from '../../scripts/runAfterLast'
 // @ts-ignore
 import { name, version } from './package.json'
 import { defineConfig, type Options } from 'tsup'
-import postcss from 'postcss'
-import tailwindcss from 'tailwindcss'
-import autoprefixer from 'autoprefixer'
-import fs from 'fs/promises'
-import path from 'path'
 
 export default defineConfig((overrideOptions) => {
   const isProd = overrideOptions.env?.NODE_ENV === 'production'

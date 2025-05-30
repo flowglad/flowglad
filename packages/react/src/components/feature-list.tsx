@@ -8,6 +8,7 @@ import {
 
 import { Check, X } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useFlowgladTheme } from '../FlowgladTheme'
 
 interface FeatureListProps {
   features: NonNullable<Product['displayFeatures']>
@@ -81,8 +82,10 @@ export function FeatureItem({
 }
 
 export function FeatureList({ features }: FeatureListProps) {
+  const { themedCn } = useFlowgladTheme()
+
   return (
-    <div className="flowglad-space-y-3">
+    <div className={themedCn('flowglad-space-y-3')}>
       {features.map((feature, index) => (
         <FeatureItem key={index} feature={feature} />
       ))}

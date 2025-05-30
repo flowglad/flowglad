@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 
-import { cn } from '../../lib/utils'
+import { useFlowgladTheme } from '../../FlowgladTheme'
 
 function TooltipProvider({
   delayDuration = 0,
@@ -43,12 +43,13 @@ function TooltipContent({
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  const { themedCn } = useFlowgladTheme()
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}
-        className={cn(
+        className={themedCn(
           'flowglad-bg-primary flowglad-text-primary-foreground flowglad-animate-in flowglad-fade-in-0 flowglad-zoom-in-95 data-[state=closed]:flowglad-animate-out data-[state=closed]:flowglad-fade-out-0 data-[state=closed]:flowglad-zoom-out-95 data-[side=bottom]:flowglad-slide-in-from-top-2 data-[side=left]:flowglad-slide-in-from-right-2 data-[side=right]:flowglad-slide-in-from-left-2 data-[side=top]:flowglad-slide-in-from-bottom-2 flowglad-z-50 flowglad-w-fit flowglad-rounded-md flowglad-px-3 flowglad-py-1 flowglad-text-xs flowglad-text-balance',
           className
         )}

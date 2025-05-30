@@ -1,5 +1,13 @@
 # @flowglad/server
 
+## 0.10.11
+
+### Patch Changes
+
+- Fix FlowgladThemeProvider styles
+- Updated dependencies
+  - @flowglad/shared@0.10.11
+
 ## 0.10.10
 
 ### Patch Changes

@@ -1,12 +1,14 @@
 import * as React from 'react'
 
 import { cn } from '../../lib/utils'
+import { useFlowgladTheme } from '../../FlowgladTheme'
 
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
+  const { themedCn } = useFlowgladTheme()
   return (
     <div
       data-slot="card"
-      className={cn(
+      className={themedCn(
         'flowglad-bg-card flowglad-text-card-foreground flowglad-flex flowglad-flex-col flowglad-gap-6 flowglad-rounded-xl flowglad-border flowglad-py-6 flowglad-shadow-sm',
         className
       )}

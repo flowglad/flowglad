@@ -3,15 +3,19 @@
 import * as React from 'react'
 
 import { cn } from '../../lib/utils'
+import { useFlowgladTheme } from '../../FlowgladTheme'
 
 function Table({
   className,
   ...props
 }: React.ComponentProps<'table'>) {
+  const { themedCn } = useFlowgladTheme()
   return (
     <div
       data-slot="table-container"
-      className="flowglad-relative flowglad-w-full flowglad-overflow-x-auto"
+      className={themedCn(
+        'flowglad-relative flowglad-w-full flowglad-overflow-x-auto'
+      )}
     >
       <table
         data-slot="table"
