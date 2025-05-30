@@ -1527,6 +1527,13 @@
       "when": 1747936147969,
       "tag": "0218_natural_luckman",
       "breakpoints": true
+    },
+    {
+      "idx": 219,
+      "version": "7",
+      "when": 1748631240675,
+      "tag": "0219_tearful_vulcan",
+      "breakpoints": true
     }
   ]
 }
