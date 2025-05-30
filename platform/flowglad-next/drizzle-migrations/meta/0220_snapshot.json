@@ -1,5 +1,5 @@
 {
-  "id": "173716c0-a1f2-4e08-9414-6d30ff403065",
+  "id": "f85f1f22-781f-4c25-8b07-0397a4429439",
   "prevId": "23e1c5be-215d-4067-b167-4b8ccd493b73",
   "version": "7",
   "dialect": "postgresql",
@@ -2171,8 +2171,8 @@
           "method": "btree",
           "with": {}
         },
-        "discounts_code_organization_id_unique_idx": {
-          "name": "discounts_code_organization_id_unique_idx",
+        "discounts_code_organization_id_livemode_unique_idx": {
+          "name": "discounts_code_organization_id_livemode_unique_idx",
           "columns": [
             {
               "expression": "code",
@@ -2182,6 +2182,12 @@
             },
             {
               "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "livemode",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

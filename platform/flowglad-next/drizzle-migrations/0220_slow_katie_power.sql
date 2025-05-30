@@ -22,17 +22,18 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
-
 ALTER TABLE "ledger_entries" DROP CONSTRAINT "ledger_entries_source_payment_id_payments_id_fk";
 --> statement-breakpoint
 ALTER TABLE "ledger_transactions" DROP CONSTRAINT IF EXISTS "ledger_transactions_usage_meter_id_usage_meters_id_fk";
 --> statement-breakpoint
+DROP INDEX IF EXISTS "discounts_code_organization_id_unique_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "ledger_entries_source_payment_id_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "ledger_transactions_usage_meter_id_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "ledger_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "usage_credit_applications_calculation_run_id_idx";--> statement-breakpoint
-ALTER TABLE "ledger_entries" DROP COLUMN IF EXISTS "entry_type";
-ALTER TABLE "ledger_entries" ADD COLUMN "entry_type" "LedgerEntryType";ALTER TABLE "usage_credits" ALTER COLUMN "usage_meter_id" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "ledger_entries" DROP COLUMN "entry_type";--> statement-breakpoint
+ALTER TABLE "ledger_entries" ADD COLUMN "entry_type" "LedgerEntryType" NOT NULL;--> statement-breakpoint
+ALTER TABLE "usage_credits" ALTER COLUMN "usage_meter_id" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "ledger_entries" ADD COLUMN "source_refund_id" text;--> statement-breakpoint
 ALTER TABLE "ledger_transactions" ADD COLUMN "type" "LedgerTransactionType" NOT NULL;--> statement-breakpoint
 ALTER TABLE "usage_credit_applications" ADD COLUMN "status" "UsageCreditApplicationStatus" NOT NULL;--> statement-breakpoint
@@ -56,6 +57,7 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "discounts_code_organization_id_livemode_unique_idx" ON "discounts" USING btree ("code","organization_id","livemode");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "ledger_transactions_idempotency_key_subscription_id_unique_idx" ON "ledger_transactions" USING btree ("idempotency_key","subscription_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "ledger_transactions_type_initiating_source_type_initiating_source_id_livemode_organization_id_unique_idx" ON "ledger_transactions" USING btree ("type","initiating_source_type","initiating_source_id","livemode","organization_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "usage_credits_payment_id_idx" ON "usage_credits" USING btree ("payment_id");--> statement-breakpoint
