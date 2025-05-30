@@ -1,3 +1,5 @@
+import { useFlowgladTheme } from '../FlowgladTheme'
+
 interface CustomerBillingDetailsProps {
   name: string
   email: string
@@ -16,8 +18,13 @@ export const CustomerBillingDetails = ({
   email,
   billingAddress,
 }: CustomerBillingDetailsProps) => {
+  const { themedCn } = useFlowgladTheme()
   return (
-    <dl className="flowglad-grid flowglad-grid-cols-[auto_1fr] flowglad-gap-x-4 flowglad-gap-y-2">
+    <dl
+      className={themedCn(
+        'flowglad-grid flowglad-grid-cols-[auto_1fr] flowglad-gap-x-4 flowglad-gap-y-2'
+      )}
+    >
       <dt className="flowglad-text-base flowglad-font-medium flowglad-text-muted-foreground">
         Name
       </dt>

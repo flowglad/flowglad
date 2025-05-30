@@ -12,6 +12,7 @@ import { Button, buttonVariants } from './ui/button'
 import { SubscriptionCardSubscription } from '../types'
 import { formatDate } from '../lib/utils'
 import { useState } from 'react'
+import { useFlowgladTheme } from '../FlowgladTheme'
 
 export const CancelSubscriptionModal = ({
   subscription,
@@ -24,13 +25,16 @@ export const CancelSubscriptionModal = ({
 }) => {
   const [cancelLoading, setCancelLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const { themedCn } = useFlowgladTheme()
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        className={buttonVariants({
-          variant: 'destructiveGhost',
-          size: 'sm',
-        })}
+        className={themedCn(
+          buttonVariants({
+            variant: 'destructiveGhost',
+            size: 'sm',
+          })
+        )}
       >
         Cancel
       </DialogTrigger>
