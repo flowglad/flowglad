@@ -30,7 +30,7 @@ export default function Pricing({ user }: Props) {
     );
   }
 
-  const products = billing.catalog.products.map((item) => {
+  const products = billing.catalog?.products.map((item) => {
     return {
       ...item.product,
       primaryButtonText: 'Subscribe',
