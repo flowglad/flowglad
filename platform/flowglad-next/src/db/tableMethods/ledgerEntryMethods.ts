@@ -20,7 +20,7 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
 } from '@/types'
-import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
 import { selectUsageCredits } from './usageCreditMethods'
 import { selectUsageEvents } from './usageEventMethods'
@@ -129,6 +129,7 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
         balanceTypeWhereStatement(balanceType)
       )
     )
+    .orderBy(asc(ledgerEntries.position))
   return balanceFromEntries(
     result.map((item) => ledgerEntriesSelectSchema.parse(item))
   )
@@ -192,6 +193,7 @@ export const aggregateAvailableBalanceForUsageCredit = async (
         discardedAtFilterOutStatement()
       )
     )
+    .orderBy(asc(ledgerEntries.position))
   const entriesByUsageCreditId = new Map<
     string,
     LedgerEntry.Record[]
@@ -235,35 +237,6 @@ export const aggregateAvailableBalanceForUsageCredit = async (
     }
   )
   return balances
-}
-
-const usageEventsFromLedgerEntryWhere = (
-  scopedWhere: Pick<LedgerEntry.Where, 'sourceUsageEventId'>,
-  transaction: DbTransaction
-) => {
-  if (!scopedWhere.sourceUsageEventId) {
-    return []
-  }
-  if (typeof scopedWhere.sourceUsageEventId === 'string') {
-    return selectUsageEvents(
-      {
-        id: scopedWhere.sourceUsageEventId,
-      },
-      transaction
-    )
-  }
-  const definedUsageEventIds = scopedWhere.sourceUsageEventId.filter(
-    (id): id is string => id !== null
-  )
-  if (definedUsageEventIds.length === 0) {
-    return []
-  }
-  return selectUsageEvents(
-    {
-      id: definedUsageEventIds,
-    },
-    transaction
-  )
 }
 
 export const aggregateOutstandingBalanceForUsageCosts = async (

@@ -1731,14 +1731,6 @@ describe('processOverageUsageCostCredits', () => {
       ledgerTransactionId: externalLedgerTransaction.id,
       ledgerAccountId: ledgerAccount1.id,
     })
-    const ledgerEntriesForAccount = await adminTransaction(
-      async ({ transaction }) => {
-        return await selectLedgerEntries(
-          { ledgerAccountId: ledgerAccount1.id },
-          transaction
-        )
-      }
-    )
     const ledgerAccountsForSubscription: LedgerAccountSchema.Record[] =
       [ledgerAccount1]
     const result = await adminTransaction(async ({ transaction }) => {
@@ -1765,6 +1757,7 @@ describe('processOverageUsageCostCredits', () => {
       }
     )
     expect(newLedgerEntries.length).toBe(5)
+    console.log('newLedgerEntries', newLedgerEntries)
     const validateLedgerEntry = createLedgerEntryValidator({
       ledgerAccountId: ledgerAccount1.id,
       ledgerTransactionId: mainLedgerTransaction.id,
@@ -1785,6 +1778,7 @@ describe('processOverageUsageCostCredits', () => {
       direction: LedgerEntryDirection.Credit,
       amount: usageEvent1.amount,
     })
+    console.log('newLedgerEntries[2]', newLedgerEntries[2])
     validateLedgerEntry(newLedgerEntries[2], {
       ...coreParams,
       entryType:

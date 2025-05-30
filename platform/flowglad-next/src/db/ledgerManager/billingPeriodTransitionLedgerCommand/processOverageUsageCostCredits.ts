@@ -158,7 +158,28 @@ type UsageCostsAndUsageCreditByLedgerAccountId = Record<
   }
 >
 
-// Helper function to prepare data for credit applications
+/**
+ * Prepares a mapping from ledger account IDs to their corresponding pending usage credit and outstanding usage cost details.
+ *
+ * This function processes raw aggregated outstanding usage cost records along with the pending usage credits and their associated
+ * ledger entries. Specifically, it takes:
+ * - rawOutstandingUsageCosts: an array of usage cost entries, each containing the ledger account ID, usage event ID, and the outstanding balance.
+ * - pendingUsageCredits: an array of pending usage credit records that have been inserted for ledger accounts with outstanding costs.
+ * - pendingUsageCreditLedgerEntryInserts: an array of ledger entry insert records corresponding to the pending usage credits.
+ *
+ * The function consolidates these inputs into an object where each key is a ledger account ID and the value is an object that includes:
+ *   - ledgerAccountId: the ID of the ledger account.
+ *   - usageEventOutstandingBalances: an array of objects, each with a usageEventId and its associated outstanding balance.
+ *   - usageCredit: the pending usage credit record for that ledger account.
+ *
+ * This structured mapping is used later to create pending usage credit applications, allowing for the creation of ledger entries that
+ * debit the credit balance and credit towards the outstanding usage cost.
+ *
+ * @param rawOutstandingUsageCosts Aggregated outstanding usage cost entries across ledger accounts.
+ * @param pendingUsageCredits Array of pending usage credit records that were inserted.
+ * @param pendingUsageCreditLedgerEntryInserts Ledger entry insert records associated with the pending usage credits.
+ * @returns An object mapping ledger account IDs to their corresponding usage credit and outstanding usage cost details.
+ */
 const prepareDataForCreditApplications = (
   rawOutstandingUsageCosts: Awaited<
     ReturnType<typeof aggregateOutstandingBalanceForUsageCosts>
