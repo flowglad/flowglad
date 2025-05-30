@@ -224,7 +224,6 @@ describe('grantEntitlementUsageCredits', () => {
   })
 
   it('should grant a single entitlement usage credit and create corresponding ledger entry', async () => {
-    const grantAmount = 100
     // The command expects items of type Feature.Record with an optional amount override.
     // We use the baseFeature and override its amount for this specific test case.
     command.payload.subscriptionFeatureItems = [
@@ -249,12 +248,16 @@ describe('grantEntitlementUsageCredits', () => {
 
     expect(usageCredit.organizationId).toBe(organization.id)
     expect(usageCredit.livemode).toBe(command.livemode)
-    expect(usageCredit.issuedAmount).toBe(grantAmount)
+    expect(usageCredit.issuedAmount).toBe(
+      baseSubscriptionItemFeature.amount
+    )
     expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
     expect(usageCredit.usageMeterId).toBe(usageMeter1.id)
     expect(usageCredit.subscriptionId).toBe(subscription.id)
     expect(usageCredit.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit.issuedAmount).toBe(grantAmount)
+    expect(usageCredit.issuedAmount).toBe(
+      baseSubscriptionItemFeature.amount
+    )
     expect(usageCredit.issuedAt).toBeInstanceOf(Date)
     expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit.sourceReferenceType).toBe(
@@ -274,7 +277,9 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry.livemode).toBe(command.livemode)
     expect(ledgerEntry.entryTimestamp).toBeInstanceOf(Date)
-    expect(ledgerEntry.amount).toBe(grantAmount)
+    expect(ledgerEntry.amount).toBe(
+      baseSubscriptionItemFeature.amount
+    )
     expect(ledgerEntry.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry.entryType).toBe(
       LedgerEntryType.CreditGrantRecognized

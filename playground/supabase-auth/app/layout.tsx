@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
   } = await supabase.auth.getUser();
   return (
     <html lang="en">
-      <body className="bg-black">
+      <body>
         <FlowgladProvider
           loadBilling={!!user}
           requestConfig={{
@@ -39,8 +39,8 @@ export default async function RootLayout({ children }: PropsWithChildren) {
           theme={{
             mode: 'dark',
             dark: {
-              background: '#1b1b1b',
-              card: 'rgb(35 35 35)'
+              // background: '#1b1b1b',
+              // card: 'rgb(35 35 35)'
               // card: 'hsl(125 85% 3.9%)',
               // cardForeground: 'rgba(255, 0, 0, 0.8)',
               // foreground: 'rgba(255, 0, 0, 0.5)',

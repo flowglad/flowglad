@@ -91,6 +91,12 @@ export const events = pgTable(
       ]),
       constructUniqueIndex(TABLE_NAME, [table.hash]),
       livemodePolicy(),
+      pgPolicy('Enable insert for own organizations', {
+        as: 'permissive',
+        to: 'authenticated',
+        for: 'insert',
+        withCheck: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }),
       pgPolicy('Enable all actions for own organization', {
         as: 'permissive',
         to: 'authenticated',

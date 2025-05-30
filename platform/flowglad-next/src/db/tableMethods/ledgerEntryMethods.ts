@@ -269,6 +269,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
         discardedAtFilterOutStatement()
       )
     )
+    .orderBy(asc(ledgerEntries.position))
 
   const entriesByUsageEventId = new Map<
     string,

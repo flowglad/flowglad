@@ -63,7 +63,7 @@ function DefaultBadge() {
             Default
           </Badge>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent className="flowglad-bg-primary flowglad-text-primary-foreground">
           This is your default payment method
         </TooltipContent>
       </Tooltip>

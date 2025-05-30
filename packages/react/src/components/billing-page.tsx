@@ -12,8 +12,7 @@ import {
   useBilling,
 } from '../FlowgladContext'
 import { useCallback } from 'react'
-import { CreateCheckoutSessionParams } from '@flowglad/shared'
-import { FlowgladTheme } from '../FlowgladTheme'
+import { useFlowgladTheme } from '../FlowgladTheme'
 import { Button } from './ui/button'
 
 const SectionTitle = ({
@@ -116,14 +115,15 @@ export function BillingPage({
   darkMode?: boolean
 }) {
   const billing = useBilling()
+  const { themedCn } = useFlowgladTheme()
   if (!billing.loadBilling || !billing.loaded || !billing.catalog) {
     return <div>Loading...</div>
   }
   const { createAddPaymentMethodCheckoutSession } = billing
   return (
     <div
-      className={cn(
-        'flowglad-flex flowglad-flex-col flowglad-gap-4 flowglad-p-4 flowglad-base-theme',
+      className={themedCn(
+        'flowglad-flex flowglad-flex-col flowglad-gap-4 flowglad-p-4',
         className
       )}
     >

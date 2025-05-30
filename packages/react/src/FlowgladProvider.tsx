@@ -9,7 +9,7 @@ import {
   RequestConfig,
 } from './FlowgladContext'
 import { validateUrl } from './utils'
-import { FlowgladTheme } from './FlowgladTheme'
+import { FlowgladThemeProvider } from './FlowgladTheme'
 import { FlowgladThemeConfig } from './lib/themes'
 
 const queryClient = new QueryClient()
@@ -40,7 +40,9 @@ export const FlowgladProvider = ({
         loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
-        <FlowgladTheme theme={theme}>{children}</FlowgladTheme>
+        <FlowgladThemeProvider theme={theme}>
+          {children}
+        </FlowgladThemeProvider>
       </FlowgladContextProvider>
     </QueryClientProvider>
   )

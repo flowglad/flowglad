@@ -5,6 +5,7 @@ import { FeatureList } from './feature-list'
 import { cn } from '../lib/utils'
 import { PriceLabel } from './currency-label'
 import { useState } from 'react'
+import { useFlowgladTheme } from '../FlowgladTheme'
 
 interface PricingTableProduct
   extends Pick<Product, 'name' | 'description' | 'displayFeatures'> {
@@ -141,8 +142,13 @@ function PricingTableProductColumn({
 }
 
 export function PricingTable({ products }: PricingTableProps) {
+  const { themedCn } = useFlowgladTheme()
   return (
-    <div className="flowglad-flex flowglad-flex-row flowglad-gap-4 flowglad-w-full">
+    <div
+      className={themedCn(
+        'flowglad-flex flowglad-flex-row flowglad-gap-4 flowglad-w-full'
+      )}
+    >
       {products.map((product, index) => (
         <PricingTableProductColumn key={index} product={product} />
       ))}

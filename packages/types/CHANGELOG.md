@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.10.11
+
+### Patch Changes
+
+- Fix FlowgladThemeProvider styles
+
 ## 0.10.10
 
 ### Patch Changes
