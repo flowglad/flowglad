@@ -59,6 +59,7 @@ export const createUsageCreditApplicationsForUsageEvent = async (
       targetUsageMeterId: usageEvent.usageMeterId,
       usageCreditId: creditBalance.usageCreditId,
       usageEventId: usageEvent.id,
+      status: LedgerEntryStatus.Posted,
     })
 
     outstandingBalance -= applicationAmount
@@ -106,6 +107,8 @@ export const createLedgerEntryInsertsForUsageCreditApplications =
             livemode: application.livemode,
             metadata: null,
             discardedAt: null,
+            sourceUsageEventId: application.usageEventId!,
+            sourceUsageCreditId: application.usageCreditId,
           }
 
         // Create credit entry towards usage cost
@@ -127,7 +130,8 @@ export const createLedgerEntryInsertsForUsageCreditApplications =
             livemode: application.livemode,
             metadata: null,
             discardedAt: null,
-            sourceUsageEventId: application.usageEventId,
+            sourceUsageEventId: application.usageEventId!,
+            sourceUsageCreditId: application.usageCreditId,
           }
 
         return [debitEntry, creditEntry]

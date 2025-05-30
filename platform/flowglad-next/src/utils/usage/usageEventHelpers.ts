@@ -8,7 +8,6 @@ import {
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { DbTransaction } from '@/db/types'
 import { CreateUsageEventInput } from '@/db/schema/usageEvents'
-import { createUsageEventLedgerTransaction } from './ledgerHelpers'
 
 export const ingestAndProcessUsageEvent = async (
   {
@@ -70,10 +69,6 @@ export const ingestAndProcessUsageEvent = async (
         ? new Date(usageEventInput.usageDate)
         : undefined,
     },
-    transaction
-  )
-  await createUsageEventLedgerTransaction(
-    { usageEvent, organizationId: subscription.organizationId },
     transaction
   )
   return usageEvent
