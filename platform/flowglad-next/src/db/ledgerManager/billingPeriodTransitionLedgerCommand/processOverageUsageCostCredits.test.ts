@@ -345,851 +345,851 @@ describe('tabulateOutstandingUsageCosts', () => {
     })
   })
 
-  //   it('should correctly tabulate costs for multiple ledger accounts, some with and some without costs', async () => {
-  //     const la1 = await setupLedgerAccount({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       usageMeterId: usageMeter.id,
-  //       livemode: true,
-  //     })
-  //     const anotherUsageMeter = await setupUsageMeter({
-  //       organizationId: organization.id,
-  //       name: 'Another Meter',
-  //       catalogId: catalog.id,
-  //     })
-  //     const la2 = await setupLedgerAccount({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       usageMeterId: anotherUsageMeter.id,
-  //       livemode: true,
-  //     })
-  //     const usageMeter3 = await setupUsageMeter({
-  //       organizationId: organization.id,
-  //       name: 'Another Meter 3',
-  //       catalogId: catalog.id,
-  //     })
-  //     const la3 = await setupLedgerAccount({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       usageMeterId: usageMeter3.id,
-  //       livemode: true,
-  //     })
+  it('should correctly tabulate costs for multiple ledger accounts, some with and some without costs', async () => {
+    const la1 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+    const anotherUsageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Another Meter',
+      catalogId: catalog.id,
+    })
+    const la2 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: anotherUsageMeter.id,
+      livemode: true,
+    })
+    const usageMeter3 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Another Meter 3',
+      catalogId: catalog.id,
+    })
+    const la3 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter3.id,
+      livemode: true,
+    })
 
-  //     const lt = await setupLedgerTransaction({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       type: LedgerTransactionType.UsageEventProcessed,
-  //     })
-  //     const billingPeriod = await setupBillingPeriod({
-  //       subscriptionId: subscription.id,
-  //       startDate: new Date(Date.now() - 1000),
-  //       endDate: new Date(Date.now() + 1000),
-  //       status: BillingPeriodStatus.Active,
-  //       livemode: true,
-  //     })
-  //     const ue1 = await setupUsageEvent({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       usageMeterId: usageMeter.id,
-  //       amount: 10,
-  //       priceId: usageBasedPrice.id,
-  //       billingPeriodId: billingPeriod.id,
-  //       transactionId: 'strp_d3' + Math.random(),
-  //       customerId: customer.id,
-  //     })
-  //     await setupDebitLedgerEntry({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       ledgerTransactionId: lt.id,
-  //       ledgerAccountId: la1.id,
-  //       amount: 100,
-  //       entryType: LedgerEntryType.UsageCost,
-  //       sourceUsageEventId: ue1.id,
-  //       status: LedgerEntryStatus.Posted,
-  //       usageMeterId: usageMeter.id,
-  //     })
+    const lt = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.UsageEventProcessed,
+    })
+    const billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: new Date(Date.now() - 1000),
+      endDate: new Date(Date.now() + 1000),
+      status: BillingPeriodStatus.Active,
+      livemode: true,
+    })
+    const ue1 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      amount: 10,
+      priceId: usageBasedPrice.id,
+      billingPeriodId: billingPeriod.id,
+      transactionId: 'strp_d3' + Math.random(),
+      customerId: customer.id,
+    })
+    await setupDebitLedgerEntry({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: lt.id,
+      ledgerAccountId: la1.id,
+      amount: 100,
+      entryType: LedgerEntryType.UsageCost,
+      sourceUsageEventId: ue1.id,
+      status: LedgerEntryStatus.Posted,
+      usageMeterId: usageMeter.id,
+    })
 
-  //     const ue3 = await setupUsageEvent({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       usageMeterId: usageMeter3.id,
-  //       amount: 20,
-  //       priceId: usageBasedPrice.id,
-  //       billingPeriodId: billingPeriod.id,
-  //       transactionId: 'strp_d4' + Math.random(),
-  //       customerId: customer.id,
-  //     })
-  //     await setupDebitLedgerEntry({
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       ledgerTransactionId: lt.id,
-  //       ledgerAccountId: la3.id,
-  //       amount: 200,
-  //       entryType: LedgerEntryType.UsageCost,
-  //       sourceUsageEventId: ue3.id,
-  //       status: LedgerEntryStatus.Posted,
-  //       usageMeterId: usageMeter.id,
-  //     })
+    const ue3 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter3.id,
+      amount: 20,
+      priceId: usageBasedPrice.id,
+      billingPeriodId: billingPeriod.id,
+      transactionId: 'strp_d4' + Math.random(),
+      customerId: customer.id,
+    })
+    await setupDebitLedgerEntry({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: lt.id,
+      ledgerAccountId: la3.id,
+      amount: 200,
+      entryType: LedgerEntryType.UsageCost,
+      sourceUsageEventId: ue3.id,
+      status: LedgerEntryStatus.Posted,
+      usageMeterId: usageMeter.id,
+    })
 
-  //     await adminTransaction(async ({ transaction }) => {
-  //       const result = await tabulateOutstandingUsageCosts(
-  //         [la1.id, la2.id, la3.id],
-  //         subscription.id,
-  //         transaction
-  //       )
+    await adminTransaction(async ({ transaction }) => {
+      const result = await tabulateOutstandingUsageCosts(
+        [la1.id, la2.id, la3.id],
+        subscription.id,
+        transaction
+      )
 
-  //       expect(result.rawOutstandingUsageCosts.length).toBe(2)
-  //       expect(result.outstandingUsageCostsByLedgerAccountId.size).toBe(
-  //         2
-  //       )
+      expect(result.rawOutstandingUsageCosts.length).toBe(2)
+      expect(result.outstandingUsageCostsByLedgerAccountId.size).toBe(
+        2
+      )
 
-  //       const costLa1Raw = result.rawOutstandingUsageCosts.find(
-  //         (c) => c.ledgerAccountId === la1.id
-  //       )
-  //       const costLa3Raw = result.rawOutstandingUsageCosts.find(
-  //         (c) => c.ledgerAccountId === la3.id
-  //       )
-  //       expect(costLa1Raw?.balance).toBe(100)
-  //       expect(costLa3Raw?.balance).toBe(200)
+      const costLa1Raw = result.rawOutstandingUsageCosts.find(
+        (c) => c.ledgerAccountId === la1.id
+      )
+      const costLa3Raw = result.rawOutstandingUsageCosts.find(
+        (c) => c.ledgerAccountId === la3.id
+      )
+      expect(costLa1Raw?.balance).toBe(100)
+      expect(costLa3Raw?.balance).toBe(200)
 
-  //       const aggCostLa1 =
-  //         result.outstandingUsageCostsByLedgerAccountId.get(la1.id)
-  //       expect(aggCostLa1).toEqual<OutstandingUsageCostAggregation>({
-  //         ledgerAccountId: la1.id,
-  //         usageMeterId: usageMeter.id,
-  //         subscriptionId: subscription.id,
-  //         outstandingBalance: 100,
-  //       })
+      const aggCostLa1 =
+        result.outstandingUsageCostsByLedgerAccountId.get(la1.id)
+      expect(aggCostLa1).toEqual<OutstandingUsageCostAggregation>({
+        ledgerAccountId: la1.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        outstandingBalance: 100,
+      })
 
-  //       const aggCostLa3 =
-  //         result.outstandingUsageCostsByLedgerAccountId.get(la3.id)
-  //       expect(aggCostLa3).toEqual<OutstandingUsageCostAggregation>({
-  //         ledgerAccountId: la3.id,
-  //         usageMeterId: usageMeter.id,
-  //         subscriptionId: subscription.id,
-  //         outstandingBalance: 200,
-  //       })
+      const aggCostLa3 =
+        result.outstandingUsageCostsByLedgerAccountId.get(la3.id)
+      expect(aggCostLa3).toEqual<OutstandingUsageCostAggregation>({
+        ledgerAccountId: la3.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        outstandingBalance: 200,
+      })
 
-  //       expect(
-  //         result.outstandingUsageCostsByLedgerAccountId.has(la2.id)
-  //       ).toBe(false)
-  //     })
-  //   })
-  // })
-
-  // describe('createPendingUsageCreditApplications', () => {
-  //   let organization: Organization.Record
-  //   let catalog: Catalog.Record
-  //   let product: Product.Record // setupOrg typically creates these
-  //   let price: Price.Record // setupOrg typically creates these
-  //   let usageMeter1: UsageMeter.Record
-  //   let usageMeter2: UsageMeter.Record
-  //   let customer: Customer.Record
-  //   let paymentMethod: PaymentMethod.Record
-  //   let commandParams: BillingPeriodTransitionLedgerCommand
-  //   let usageCostsAndUsageCreditByLedgerAccountId: Record<
-  //     string,
-  //     {
-  //       ledgerAccountId: string
-  //       usageEventOutstandingBalances: Array<{
-  //         usageEventId: string
-  //         outstandingBalance: number
-  //       }>
-  //       usageCredit: UsageCredit.Record
-  //     }
-  //   >
-  //   let ledgerTransaction: LedgerTransaction.Record
-  //   let usageCredit: UsageCredit.Record
-  //   let ledgerAccountsForSubscription: LedgerAccount.Record[]
-  //   let usageEvent1: UsageEvent.Record
-  //   beforeEach(async () => {
-  //     const orgData = await setupOrg()
-  //     organization = orgData.organization
-  //     catalog = orgData.catalog
-  //     product = orgData.product
-  //     price = orgData.price
-  //     customer = await setupCustomer({
-  //       organizationId: organization.id,
-  //       livemode: true,
-  //       email: `test+${Math.random()}@test.com`,
-  //     })
-  //     paymentMethod = await setupPaymentMethod({
-  //       organizationId: organization.id,
-  //       livemode: true,
-  //       type: PaymentMethodType.Card,
-  //       customerId: customer.id,
-  //     })
-  //     usageMeter1 = await setupUsageMeter({
-  //       organizationId: organization.id,
-  //       name: 'Test Usage Meter for App 1',
-  //       catalogId: catalog.id,
-  //     })
-
-  //     usageMeter2 = await setupUsageMeter({
-  //       organizationId: organization.id,
-  //       name: 'Test Usage Meter for App 2',
-  //       catalogId: catalog.id,
-  //     })
-
-  //     const subscription = await setupSubscription({
-  //       organizationId: organization.id,
-  //       customerId: customer.id,
-  //       paymentMethodId: paymentMethod.id,
-  //       priceId: price.id,
-  //       interval: IntervalUnit.Month,
-  //       intervalCount: 1,
-  //       livemode: true,
-  //       startDate: new Date(),
-  //     })
-  //     const transitionDate = new Date()
-  //     const previousBillingPeriod = await setupBillingPeriod({
-  //       subscriptionId: subscription.id,
-  //       startDate: new Date(Date.now() - 100000),
-  //       endDate: transitionDate,
-  //       status: BillingPeriodStatus.Active,
-  //       livemode: true,
-  //     })
-  //     const newBillingPeriod = await setupBillingPeriod({
-  //       subscriptionId: subscription.id,
-  //       startDate: transitionDate,
-  //       endDate: new Date(Date.now() + 100000),
-  //       status: BillingPeriodStatus.Active,
-  //       livemode: true,
-  //     })
-  //     const billingRun = await setupBillingRun({
-  //       livemode: true,
-  //       subscriptionId: subscription.id,
-  //       billingPeriodId: previousBillingPeriod.id,
-  //       paymentMethodId: paymentMethod.id,
-  //     })
-  //     commandParams = {
-  //       type: LedgerTransactionType.BillingPeriodTransition,
-  //       livemode: true,
-  //       organizationId: organization.id,
-  //       subscriptionId: subscription.id,
-  //       payload: {
-  //         billingRunId: billingRun.id,
-  //         subscription,
-  //         subscriptionFeatureItems: [],
-  //         previousBillingPeriod,
-  //         newBillingPeriod,
-  //       },
-  //     }
-  //     const ledgerAccount = await setupLedgerAccount({
-  //       organizationId: organization.id,
-  //       usageMeterId: usageMeter1.id,
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       livemode: true,
-  //     })
-  //     usageEvent1 = await setupUsageEvent({
-  //       organizationId: organization.id,
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       usageMeterId: usageMeter1.id,
-  //       amount: 1000,
-  //       priceId: price.id,
-  //       billingPeriodId: commandParams.payload.previousBillingPeriod.id,
-  //       transactionId: 'strp_d1' + Math.random(),
-  //       customerId: customer.id,
-  //     })
-  //     usageCredit = await setupUsageCredit({
-  //       organizationId: organization.id,
-  //       usageMeterId: usageMeter1.id,
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       livemode: true,
-  //       issuedAmount: 900,
-  //       creditType: UsageCreditType.Grant,
-  //     })
-  //     usageCostsAndUsageCreditByLedgerAccountId = {
-  //       [ledgerAccount.id]: {
-  //         ledgerAccountId: ledgerAccount.id,
-  //         usageEventOutstandingBalances: [
-  //           { usageEventId: usageEvent1.id, outstandingBalance: 100 },
-  //         ],
-  //         usageCredit,
-  //       },
-  //     }
-  //     ledgerAccountsForSubscription = [ledgerAccount]
-  //     ledgerTransaction = await setupLedgerTransaction({
-  //       organizationId: organization.id,
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       type: LedgerTransactionType.BillingPeriodTransition,
-  //       livemode: true,
-  //     })
-  //   })
-
-  //   afterEach(async () => {
-  //     if (organization) {
-  //       await teardownOrg({ organizationId: organization.id })
-  //     }
-  //   })
-
-  //   it('should return an empty array and not create DB entries if input is empty', async () => {
-  //     await adminTransaction(async ({ transaction }) => {
-  //       const usageCostsAndUsageCreditByLedgerAccountId: Record<
-  //         string,
-  //         {
-  //           ledgerAccountId: string
-  //           usageEventOutstandingBalances: Array<{
-  //             usageEventId: string
-  //             outstandingBalance: number
-  //           }>
-  //           usageCredit: UsageCreditSchema.Record
-  //         }
-  //       > = {}
-  //       const result = await createPendingUsageCreditApplications(
-  //         usageCostsAndUsageCreditByLedgerAccountId,
-  //         commandParams,
-  //         transaction
-  //       )
-
-  //       expect(result).toEqual([])
-
-  //       const createdApplications = await db
-  //         .select()
-  //         .from(usageCreditApplications)
-  //         .where(
-  //           eq(usageCreditApplications.organizationId, organization.id)
-  //         ) // Limit scope
-  //       expect(createdApplications.length).toBe(0)
-  //     })
-  //   })
-
-  //   it('should create one application in DB for one ledger account with one usage event', async () => {
-  //     await adminTransaction(async ({ transaction }) => {
-  //       const result = await createPendingUsageCreditApplications(
-  //         usageCostsAndUsageCreditByLedgerAccountId,
-  //         commandParams,
-  //         transaction
-  //       )
-
-  //       expect(result.length).toBe(1)
-  //       const createdApp = result[0]
-
-  //       expect(createdApp.organizationId).toBe(organization.id)
-  //       expect(createdApp.livemode).toBe(true)
-  //       expect(createdApp.usageCreditId).toBe(usageCredit.id)
-  //       expect(createdApp.usageEventId).toBe(usageEvent1.id)
-  //       expect(createdApp.amountApplied).toBe(100)
-  //       expect(createdApp.targetUsageMeterId).toBe(usageMeter1.id)
-  //       expect(createdApp.status).toBe(
-  //         UsageCreditApplicationStatus.Pending
-  //       )
-  //     })
-  //   })
-
-  //   it('should create multiple applications in DB for one ledger account with multiple usage events', async () => {
-  //     const usageEvent2 = await setupUsageEvent({
-  //       organizationId: organization.id,
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       usageMeterId: usageMeter1.id,
-  //       amount: 500,
-  //       priceId: price.id,
-  //       billingPeriodId: commandParams.payload.previousBillingPeriod.id,
-  //       transactionId: 'strp_d2' + Math.random(),
-  //       customerId: customer.id,
-  //     })
-  //     usageCostsAndUsageCreditByLedgerAccountId[
-  //       ledgerAccountsForSubscription[0].id
-  //     ].usageEventOutstandingBalances.push({
-  //       usageEventId: usageEvent2.id,
-  //       outstandingBalance: 500,
-  //     })
-  //     await adminTransaction(async ({ transaction }) => {
-  //       const result = await createPendingUsageCreditApplications(
-  //         usageCostsAndUsageCreditByLedgerAccountId,
-  //         commandParams,
-  //         transaction
-  //       )
-  //       expect(result.length).toBe(2)
-  //       expect(result[0].usageEventId).toBe(usageEvent1.id)
-  //       expect(result[1].usageEventId).toBe(usageEvent2.id)
-  //     })
-  //   })
-
-  //   it('should create applications in DB for multiple ledger accounts', async () => {
-  //     // Setup a second ledger account and usage event
-  //     const ledgerAccount2 = await setupLedgerAccount({
-  //       organizationId: organization.id,
-  //       usageMeterId: usageMeter2.id, // Assuming usageMeter2 is set up in beforeEach or globally
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       livemode: true,
-  //     })
-
-  //     const usageEvent2 = await setupUsageEvent({
-  //       organizationId: organization.id,
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       usageMeterId: usageMeter2.id, // Corresponding to ledgerAccount2
-  //       amount: 500,
-  //       priceId: price.id,
-  //       billingPeriodId: commandParams.payload.previousBillingPeriod.id,
-  //       transactionId: 'strp_d_multi_2_' + Math.random(), // Unique transactionId
-  //       customerId: customer.id,
-  //     })
-
-  //     const usageCredit2 = await setupUsageCredit({
-  //       organizationId: organization.id,
-  //       usageMeterId: usageMeter2.id, // Corresponding to ledgerAccount2
-  //       subscriptionId: commandParams.payload.subscription.id,
-  //       livemode: true,
-  //       issuedAmount: 450, // Example amount
-  //       creditType: UsageCreditType.Grant,
-  //     })
-
-  //     // Prepare data for both ledger accounts
-  //     const localUsageCostsAndUsageCreditByLedgerAccountId = {
-  //       ...usageCostsAndUsageCreditByLedgerAccountId, // from beforeEach
-  //       [ledgerAccount2.id]: {
-  //         ledgerAccountId: ledgerAccount2.id,
-  //         usageEventOutstandingBalances: [
-  //           { usageEventId: usageEvent2.id, outstandingBalance: 50 }, // Example balance
-  //         ],
-  //         usageCredit: usageCredit2,
-  //       },
-  //     }
-
-  //     await adminTransaction(async ({ transaction }) => {
-  //       const result = await createPendingUsageCreditApplications(
-  //         localUsageCostsAndUsageCreditByLedgerAccountId,
-  //         commandParams,
-  //         transaction
-  //       )
-
-  //       expect(result.length).toBe(2)
-  //       // Sort results by usageEventId to ensure consistent order for assertions
-  //       const sortedResults = result.sort((a, b) =>
-  //         a.usageEventId.localeCompare(b.usageEventId)
-  //       )
-  //       const sortedExpectedEventIds = [
-  //         usageEvent1.id,
-  //         usageEvent2.id,
-  //       ].sort((a, b) => a.localeCompare(b))
-
-  //       expect(sortedResults[0].usageEventId).toBe(
-  //         sortedExpectedEventIds[0]
-  //       )
-  //       expect(sortedResults[1].usageEventId).toBe(
-  //         sortedExpectedEventIds[1]
-  //       )
-  //     })
-  //   })
-
-  //   it('should handle an item with no usage credit gracefully and not create DB entries for it', async () => {
-  //     await adminTransaction(async ({ transaction }) => {
-  //       const result = await createPendingUsageCreditApplications(
-  //         {},
-  //         commandParams,
-  //         transaction
-  //       )
-  //       expect(result.length).toBe(0)
-  //     })
-  //   })
+      expect(
+        result.outstandingUsageCostsByLedgerAccountId.has(la2.id)
+      ).toBe(false)
+    })
+  })
 })
 
-// describe('createLedgerEntriesForApplications', () => {
-//   let organization: Organization.Record
-//   let catalog: Catalog.Record
-//   let product: Product.Record
-//   let price: Price.Record
-//   let customer: Customer.Record
-//   let paymentMethod: PaymentMethod.Record
-//   let subscription: Subscription.Record
-//   let ledgerTransaction: LedgerTransactionSchema.Record
-//   let usageMeter1: UsageMeter.Record
-//   let usageMeter2: UsageMeter.Record
-//   let ledgerAccount1: LedgerAccountSchema.Record
-//   let ledgerAccount2: LedgerAccountSchema.Record
-//   let ledgerAccountsByUsageMeterId: Map<
-//     string,
-//     LedgerAccountSchema.Record
-//   >
-//   let command: BillingPeriodTransitionLedgerCommand
-//   beforeEach(async () => {
-//     const orgData = await setupOrg()
-//     organization = orgData.organization
-//     catalog = orgData.catalog
-//     product = orgData.product
-//     price = orgData.price
+describe('createPendingUsageCreditApplications', () => {
+  let organization: Organization.Record
+  let catalog: Catalog.Record
+  let product: Product.Record // setupOrg typically creates these
+  let price: Price.Record // setupOrg typically creates these
+  let usageMeter1: UsageMeter.Record
+  let usageMeter2: UsageMeter.Record
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let commandParams: BillingPeriodTransitionLedgerCommand
+  let usageCostsAndUsageCreditByLedgerAccountId: Record<
+    string,
+    {
+      ledgerAccountId: string
+      usageEventOutstandingBalances: Array<{
+        usageEventId: string
+        outstandingBalance: number
+      }>
+      usageCredit: UsageCredit.Record
+    }
+  >
+  let ledgerTransaction: LedgerTransaction.Record
+  let usageCredit: UsageCredit.Record
+  let ledgerAccountsForSubscription: LedgerAccount.Record[]
+  let usageEvent1: UsageEvent.Record
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    catalog = orgData.catalog
+    product = orgData.product
+    price = orgData.price
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+      email: `test+${Math.random()}@test.com`,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      livemode: true,
+      type: PaymentMethodType.Card,
+      customerId: customer.id,
+    })
+    usageMeter1 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter for App 1',
+      catalogId: catalog.id,
+    })
 
-//     customer = await setupCustomer({
-//       organizationId: organization.id,
-//       livemode: true,
-//     })
+    usageMeter2 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter for App 2',
+      catalogId: catalog.id,
+    })
 
-//     paymentMethod = await setupPaymentMethod({
-//       organizationId: organization.id,
-//       customerId: customer.id,
-//       livemode: true,
-//     })
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      startDate: new Date(),
+    })
+    const transitionDate = new Date()
+    const previousBillingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: new Date(Date.now() - 100000),
+      endDate: transitionDate,
+      status: BillingPeriodStatus.Active,
+      livemode: true,
+    })
+    const newBillingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: transitionDate,
+      endDate: new Date(Date.now() + 100000),
+      status: BillingPeriodStatus.Active,
+      livemode: true,
+    })
+    const billingRun = await setupBillingRun({
+      livemode: true,
+      subscriptionId: subscription.id,
+      billingPeriodId: previousBillingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+    })
+    commandParams = {
+      type: LedgerTransactionType.BillingPeriodTransition,
+      livemode: true,
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      payload: {
+        billingRunId: billingRun.id,
+        subscription,
+        subscriptionFeatureItems: [],
+        previousBillingPeriod,
+        newBillingPeriod,
+      },
+    }
+    const ledgerAccount = await setupLedgerAccount({
+      organizationId: organization.id,
+      usageMeterId: usageMeter1.id,
+      subscriptionId: commandParams.payload.subscription.id,
+      livemode: true,
+    })
+    usageEvent1 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: commandParams.payload.subscription.id,
+      usageMeterId: usageMeter1.id,
+      amount: 1000,
+      priceId: price.id,
+      billingPeriodId: commandParams.payload.previousBillingPeriod.id,
+      transactionId: 'strp_d1' + Math.random(),
+      customerId: customer.id,
+    })
+    usageCredit = await setupUsageCredit({
+      organizationId: organization.id,
+      usageMeterId: usageMeter1.id,
+      subscriptionId: commandParams.payload.subscription.id,
+      livemode: true,
+      issuedAmount: 900,
+      creditType: UsageCreditType.Grant,
+    })
+    usageCostsAndUsageCreditByLedgerAccountId = {
+      [ledgerAccount.id]: {
+        ledgerAccountId: ledgerAccount.id,
+        usageEventOutstandingBalances: [
+          { usageEventId: usageEvent1.id, outstandingBalance: 100 },
+        ],
+        usageCredit,
+      },
+    }
+    ledgerAccountsForSubscription = [ledgerAccount]
+    ledgerTransaction = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: commandParams.payload.subscription.id,
+      type: LedgerTransactionType.BillingPeriodTransition,
+      livemode: true,
+    })
+  })
 
-//     subscription = await setupSubscription({
-//       organizationId: organization.id,
-//       customerId: customer.id,
-//       paymentMethodId: paymentMethod.id,
-//       priceId: price.id,
-//       status: SubscriptionStatus.Active,
-//       livemode: true,
-//     })
+  afterEach(async () => {
+    if (organization) {
+      await teardownOrg({ organizationId: organization.id })
+    }
+  })
 
-//     ledgerTransaction = await setupLedgerTransaction({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       type: LedgerTransactionType.BillingPeriodTransition,
-//       livemode: true,
-//     })
+  it('should return an empty array and not create DB entries if input is empty', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const usageCostsAndUsageCreditByLedgerAccountId: Record<
+        string,
+        {
+          ledgerAccountId: string
+          usageEventOutstandingBalances: Array<{
+            usageEventId: string
+            outstandingBalance: number
+          }>
+          usageCredit: UsageCreditSchema.Record
+        }
+      > = {}
+      const result = await createPendingUsageCreditApplications(
+        usageCostsAndUsageCreditByLedgerAccountId,
+        commandParams,
+        transaction
+      )
 
-//     usageMeter1 = await setupUsageMeter({
-//       organizationId: organization.id,
-//       name: 'Test Usage Meter 1 for CreateEntries',
-//       catalogId: catalog.id,
-//     })
+      expect(result).toEqual([])
 
-//     usageMeter2 = await setupUsageMeter({
-//       organizationId: organization.id,
-//       name: 'Test Usage Meter 2 for CreateEntries',
-//       catalogId: catalog.id,
-//     })
+      const createdApplications = await db
+        .select()
+        .from(usageCreditApplications)
+        .where(
+          eq(usageCreditApplications.organizationId, organization.id)
+        ) // Limit scope
+      expect(createdApplications.length).toBe(0)
+    })
+  })
 
-//     ledgerAccount1 = await setupLedgerAccount({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter1.id,
-//       livemode: true,
-//     })
+  it('should create one application in DB for one ledger account with one usage event', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await createPendingUsageCreditApplications(
+        usageCostsAndUsageCreditByLedgerAccountId,
+        commandParams,
+        transaction
+      )
 
-//     ledgerAccount2 = await setupLedgerAccount({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter2.id,
-//       livemode: true,
-//     })
+      expect(result.length).toBe(1)
+      const createdApp = result[0]
 
-//     ledgerAccountsByUsageMeterId = new Map([
-//       [usageMeter1.id, ledgerAccount1],
-//       [usageMeter2.id, ledgerAccount2],
-//     ])
-//     const previousBillingPeriod = await setupBillingPeriod({
-//       subscriptionId: subscription.id,
-//       startDate: new Date('2024-01-01'),
-//       endDate: new Date('2024-01-31'),
-//       status: BillingPeriodStatus.Active,
-//     })
+      expect(createdApp.organizationId).toBe(organization.id)
+      expect(createdApp.livemode).toBe(true)
+      expect(createdApp.usageCreditId).toBe(usageCredit.id)
+      expect(createdApp.usageEventId).toBe(usageEvent1.id)
+      expect(createdApp.amountApplied).toBe(100)
+      expect(createdApp.targetUsageMeterId).toBe(usageMeter1.id)
+      expect(createdApp.status).toBe(
+        UsageCreditApplicationStatus.Pending
+      )
+    })
+  })
 
-//     const newBillingPeriod = await setupBillingPeriod({
-//       subscriptionId: subscription.id,
-//       startDate: new Date('2024-02-01'),
-//       endDate: new Date('2024-02-28'),
-//       status: BillingPeriodStatus.Active,
-//     })
-//     const billingRun = await setupBillingRun({
-//       livemode: true,
-//       subscriptionId: subscription.id,
-//       billingPeriodId: previousBillingPeriod.id,
-//       paymentMethodId: paymentMethod.id,
-//     })
-//     command = {
-//       type: LedgerTransactionType.BillingPeriodTransition,
-//       organizationId: organization.id,
-//       livemode: true,
-//       subscriptionId: subscription.id,
-//       payload: {
-//         billingRunId: billingRun.id,
-//         subscription,
-//         previousBillingPeriod,
-//         newBillingPeriod,
-//         subscriptionFeatureItems: [],
-//       },
-//     }
-//   })
+  it('should create multiple applications in DB for one ledger account with multiple usage events', async () => {
+    const usageEvent2 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: commandParams.payload.subscription.id,
+      usageMeterId: usageMeter1.id,
+      amount: 500,
+      priceId: price.id,
+      billingPeriodId: commandParams.payload.previousBillingPeriod.id,
+      transactionId: 'strp_d2' + Math.random(),
+      customerId: customer.id,
+    })
+    usageCostsAndUsageCreditByLedgerAccountId[
+      ledgerAccountsForSubscription[0].id
+    ].usageEventOutstandingBalances.push({
+      usageEventId: usageEvent2.id,
+      outstandingBalance: 500,
+    })
+    await adminTransaction(async ({ transaction }) => {
+      const result = await createPendingUsageCreditApplications(
+        usageCostsAndUsageCreditByLedgerAccountId,
+        commandParams,
+        transaction
+      )
+      expect(result.length).toBe(2)
+      expect(result[0].usageEventId).toBe(usageEvent1.id)
+      expect(result[1].usageEventId).toBe(usageEvent2.id)
+    })
+  })
 
-//   afterEach(async () => {
-//     if (organization) {
-//       await teardownOrg({ organizationId: organization.id })
-//     }
-//   })
+  it('should create applications in DB for multiple ledger accounts', async () => {
+    // Setup a second ledger account and usage event
+    const ledgerAccount2 = await setupLedgerAccount({
+      organizationId: organization.id,
+      usageMeterId: usageMeter2.id, // Assuming usageMeter2 is set up in beforeEach or globally
+      subscriptionId: commandParams.payload.subscription.id,
+      livemode: true,
+    })
 
-//   it('should return an empty array if no usage credit applications are provided', () => {
-//     // setup:
-//     // - usageCreditApplications is an empty array
-//     const usageCreditApplications: UsageCreditApplication.Record[] =
-//       []
+    const usageEvent2 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: commandParams.payload.subscription.id,
+      usageMeterId: usageMeter2.id, // Corresponding to ledgerAccount2
+      amount: 500,
+      priceId: price.id,
+      billingPeriodId: commandParams.payload.previousBillingPeriod.id,
+      transactionId: 'strp_d_multi_2_' + Math.random(), // Unique transactionId
+      customerId: customer.id,
+    })
 
-//     const result = createLedgerEntriesForApplications(
-//       usageCreditApplications,
-//       ledgerTransaction.id,
-//       ledgerAccountsByUsageMeterId,
-//       command
-//     )
+    const usageCredit2 = await setupUsageCredit({
+      organizationId: organization.id,
+      usageMeterId: usageMeter2.id, // Corresponding to ledgerAccount2
+      subscriptionId: commandParams.payload.subscription.id,
+      livemode: true,
+      issuedAmount: 450, // Example amount
+      creditType: UsageCreditType.Grant,
+    })
 
-//     // expects:
-//     // - The function to return an empty array
-//     expect(result).toEqual([])
-//   })
+    // Prepare data for both ledger accounts
+    const localUsageCostsAndUsageCreditByLedgerAccountId = {
+      ...usageCostsAndUsageCreditByLedgerAccountId, // from beforeEach
+      [ledgerAccount2.id]: {
+        ledgerAccountId: ledgerAccount2.id,
+        usageEventOutstandingBalances: [
+          { usageEventId: usageEvent2.id, outstandingBalance: 50 }, // Example balance
+        ],
+        usageCredit: usageCredit2,
+      },
+    }
 
-//   it('should create two ledger entry insert objects (credit and debit) for one usage credit application', async () => {
-//     // setup:
-//     // Create actual DB records for UsageEvent and UsageCredit to be referenced by the application
-//     const usageEvent = await setupUsageEvent({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter1.id, // Reference from beforeEach
-//       amount: 50, // Example amount
-//       priceId: price.id, // Reference from beforeEach
-//       billingPeriodId: command.payload.previousBillingPeriod.id, // Reference from command in beforeEach
-//       transactionId: 'ue_test_' + core.nanoid(),
-//       customerId: customer.id, // Reference from beforeEach
-//       usageDate: new Date(),
-//     })
+    await adminTransaction(async ({ transaction }) => {
+      const result = await createPendingUsageCreditApplications(
+        localUsageCostsAndUsageCreditByLedgerAccountId,
+        commandParams,
+        transaction
+      )
 
-//     const usageCredit = await setupUsageCredit({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter1.id, // Match the target meter
-//       creditType: UsageCreditType.Grant,
-//       issuedAmount: 200, // Example amount, should be >= amountApplied
-//       livemode: command.livemode,
-//     })
+      expect(result.length).toBe(2)
+      // Sort results by usageEventId to ensure consistent order for assertions
+      const sortedResults = result.sort((a, b) =>
+        a.usageEventId.localeCompare(b.usageEventId)
+      )
+      const sortedExpectedEventIds = [
+        usageEvent1.id,
+        usageEvent2.id,
+      ].sort((a, b) => a.localeCompare(b))
 
-//     const amountToApply = 100
+      expect(sortedResults[0].usageEventId).toBe(
+        sortedExpectedEventIds[0]
+      )
+      expect(sortedResults[1].usageEventId).toBe(
+        sortedExpectedEventIds[1]
+      )
+    })
+  })
 
-//     const usageCreditApplication = await setupUsageCreditApplication({
-//       organizationId: organization.id,
-//       usageCreditId: usageCredit.id,
-//       usageEventId: usageEvent.id,
-//       amountApplied: amountToApply,
-//       targetUsageMeterId: usageMeter1.id,
-//       status: UsageCreditApplicationStatus.Pending,
-//     })
+  it('should handle an item with no usage credit gracefully and not create DB entries for it', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await createPendingUsageCreditApplications(
+        {},
+        commandParams,
+        transaction
+      )
+      expect(result.length).toBe(0)
+    })
+  })
+})
 
-//     const testUsageCreditApplications: UsageCreditApplication.Record[] =
-//       [usageCreditApplication]
+describe('createLedgerEntriesForApplications', () => {
+  let organization: Organization.Record
+  let catalog: Catalog.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let subscription: Subscription.Record
+  let ledgerTransaction: LedgerTransactionSchema.Record
+  let usageMeter1: UsageMeter.Record
+  let usageMeter2: UsageMeter.Record
+  let ledgerAccount1: LedgerAccountSchema.Record
+  let ledgerAccount2: LedgerAccountSchema.Record
+  let ledgerAccountsByUsageMeterId: Map<
+    string,
+    LedgerAccountSchema.Record
+  >
+  let command: BillingPeriodTransitionLedgerCommand
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    catalog = orgData.catalog
+    product = orgData.product
+    price = orgData.price
 
-//     // expects:
-//     // - The function to return an array with two ledger entry insert objects
-//     const result = createLedgerEntriesForApplications(
-//       testUsageCreditApplications,
-//       ledgerTransaction.id,
-//       ledgerAccountsByUsageMeterId,
-//       command
-//     )
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
 
-//     expect(result.length).toBe(2)
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
 
-//     const creditEntry = result.find(
-//       (entry) => entry.direction === LedgerEntryDirection.Credit
-//     ) as LedgerEntry.UsageCreditApplicationCreditTowardsUsageCostInsert
-//     const debitEntry = result.find(
-//       (entry) => entry.direction === LedgerEntryDirection.Debit
-//     ) as LedgerEntry.UsageCreditApplicationDebitFromCreditBalanceInsert
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
 
-//     expect(creditEntry).toBeDefined()
-//     expect(debitEntry).toBeDefined()
+    ledgerTransaction = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.BillingPeriodTransition,
+      livemode: true,
+    })
 
-//     // Validate properties of the first entry (CreditTowardsUsageCost)
-//     expect(creditEntry.ledgerTransactionId).toBe(ledgerTransaction.id)
-//     expect(creditEntry.ledgerAccountId).toBe(ledgerAccount1.id) // from ledgerAccountsByUsageMeterId.get(usageMeter1.id).id
-//     expect(creditEntry.subscriptionId).toBe(subscription.id)
-//     expect(creditEntry.organizationId).toBe(organization.id)
-//     expect(creditEntry.livemode).toBe(command.livemode)
-//     expect(creditEntry.status).toBe(LedgerEntryStatus.Pending)
-//     expect(creditEntry.direction).toBe(LedgerEntryDirection.Credit)
-//     expect(creditEntry.entryType).toBe(
-//       LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
-//     )
-//     expect(creditEntry.sourceCreditApplicationId).toBe(
-//       usageCreditApplication.id
-//     )
-//     expect(creditEntry.amount).toBe(amountToApply)
-//     expect(creditEntry.sourceUsageEventId).toBe(usageEvent.id)
-//     expect(creditEntry.sourceUsageCreditId).toBe(usageCredit.id)
-//     expect(creditEntry.entryTimestamp).toEqual(expect.any(Date))
+    usageMeter1 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter 1 for CreateEntries',
+      catalogId: catalog.id,
+    })
 
-//     // Validate properties of the second entry (DebitFromCreditBalance)
-//     expect(debitEntry.ledgerTransactionId).toBe(ledgerTransaction.id)
-//     expect(debitEntry.ledgerAccountId).toBe(ledgerAccount1.id)
-//     expect(debitEntry.subscriptionId).toBe(subscription.id)
-//     expect(debitEntry.organizationId).toBe(organization.id)
-//     expect(debitEntry.livemode).toBe(command.livemode)
-//     expect(debitEntry.status).toBe(LedgerEntryStatus.Pending)
-//     expect(debitEntry.direction).toBe(LedgerEntryDirection.Debit)
-//     expect(debitEntry.entryType).toBe(
-//       LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
-//     )
-//     expect(debitEntry.sourceCreditApplicationId).toBe(
-//       usageCreditApplication.id
-//     )
-//     expect(debitEntry.amount).toBe(amountToApply)
-//     expect(debitEntry.sourceUsageEventId).toBe(usageEvent.id)
-//     expect(debitEntry.sourceUsageCreditId).toBe(usageCredit.id)
-//     expect(debitEntry.entryTimestamp).toEqual(expect.any(Date))
-//   })
+    usageMeter2 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter 2 for CreateEntries',
+      catalogId: catalog.id,
+    })
 
-//   it('should create 2*N ledger entry insert objects for N usage credit applications', async () => {
-//     // setup:
-//     // Create data for the first application (app1)
-//     const usageEvent1 = await setupUsageEvent({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter1.id,
-//       amount: 150,
-//       priceId: price.id,
-//       billingPeriodId: command.payload.previousBillingPeriod.id,
-//       transactionId: 'ue_test_n1_' + core.nanoid(),
-//       customerId: customer.id,
-//       usageDate: new Date(),
-//     })
-//     const usageCredit1 = await setupUsageCredit({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter1.id,
-//       creditType: UsageCreditType.Grant,
-//       issuedAmount: 200,
-//       livemode: command.livemode,
-//     })
-//     const amountToApply1 = 100
-//     const usageCreditApplication1 = await setupUsageCreditApplication(
-//       {
-//         organizationId: organization.id,
-//         usageCreditId: usageCredit1.id,
-//         usageEventId: usageEvent1.id,
-//         amountApplied: amountToApply1,
-//         targetUsageMeterId: usageMeter1.id,
-//         status: UsageCreditApplicationStatus.Pending,
-//       }
-//     )
+    ledgerAccount1 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter1.id,
+      livemode: true,
+    })
 
-//     // Create data for the second application (app2)
-//     const usageEvent2 = await setupUsageEvent({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter2.id, // Different usage meter
-//       amount: 75,
-//       priceId: price.id,
-//       billingPeriodId: command.payload.previousBillingPeriod.id,
-//       transactionId: 'ue_test_n2_' + core.nanoid(),
-//       customerId: customer.id,
-//       usageDate: new Date(),
-//     })
-//     const usageCredit2 = await setupUsageCredit({
-//       organizationId: organization.id,
-//       subscriptionId: subscription.id,
-//       usageMeterId: usageMeter2.id, // Match the target meter for app2
-//       creditType: UsageCreditType.Grant,
-//       issuedAmount: 100,
-//       livemode: command.livemode,
-//     })
-//     const amountToApply2 = 50
-//     const usageCreditApplication2 = await setupUsageCreditApplication(
-//       {
-//         organizationId: organization.id,
-//         usageCreditId: usageCredit2.id,
-//         usageEventId: usageEvent2.id,
-//         amountApplied: amountToApply2,
-//         targetUsageMeterId: usageMeter2.id,
-//         status: UsageCreditApplicationStatus.Pending,
-//       }
-//     )
+    ledgerAccount2 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter2.id,
+      livemode: true,
+    })
 
-//     const testUsageCreditApplications: UsageCreditApplication.Record[] =
-//       [usageCreditApplication1, usageCreditApplication2]
+    ledgerAccountsByUsageMeterId = new Map([
+      [usageMeter1.id, ledgerAccount1],
+      [usageMeter2.id, ledgerAccount2],
+    ])
+    const previousBillingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-01-31'),
+      status: BillingPeriodStatus.Active,
+    })
 
-//     // expects:
-//     // - The function to return an array with 4 ledger entry insert objects.
-//     const result = createLedgerEntriesForApplications(
-//       testUsageCreditApplications,
-//       ledgerTransaction.id,
-//       ledgerAccountsByUsageMeterId,
-//       command
-//     )
+    const newBillingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: new Date('2024-02-01'),
+      endDate: new Date('2024-02-28'),
+      status: BillingPeriodStatus.Active,
+    })
+    const billingRun = await setupBillingRun({
+      livemode: true,
+      subscriptionId: subscription.id,
+      billingPeriodId: previousBillingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+    })
+    command = {
+      type: LedgerTransactionType.BillingPeriodTransition,
+      organizationId: organization.id,
+      livemode: true,
+      subscriptionId: subscription.id,
+      payload: {
+        billingRunId: billingRun.id,
+        subscription,
+        previousBillingPeriod,
+        newBillingPeriod,
+        subscriptionFeatureItems: [],
+      },
+    }
+  })
 
-//     expect(result.length).toBe(4)
+  afterEach(async () => {
+    if (organization) {
+      await teardownOrg({ organizationId: organization.id })
+    }
+  })
 
-//     // Helper to find entries for a specific application
-//     const findEntriesForApp = (appId: string) => {
-//       const entries = result.filter(
-//         (entry) => entry.sourceCreditApplicationId === appId
-//       )
-//       const creditEntry = entries.find(
-//         (e) => e.direction === LedgerEntryDirection.Credit
-//       ) as LedgerEntry.UsageCreditApplicationCreditTowardsUsageCostInsert
-//       const debitEntry = entries.find(
-//         (e) => e.direction === LedgerEntryDirection.Debit
-//       ) as LedgerEntry.UsageCreditApplicationDebitFromCreditBalanceInsert
-//       return { creditEntry, debitEntry }
-//     }
+  it('should return an empty array if no usage credit applications are provided', () => {
+    // setup:
+    // - usageCreditApplications is an empty array
+    const usageCreditApplications: UsageCreditApplication.Record[] =
+      []
 
-//     // Validate entries for app1
-//     const { creditEntry: creditEntry1, debitEntry: debitEntry1 } =
-//       findEntriesForApp(usageCreditApplication1.id)
-//     expect(creditEntry1).toBeDefined()
-//     expect(debitEntry1).toBeDefined()
+    const result = createLedgerEntriesForApplications(
+      usageCreditApplications,
+      ledgerTransaction.id,
+      ledgerAccountsByUsageMeterId,
+      command
+    )
 
-//     expect(creditEntry1.ledgerTransactionId).toBe(
-//       ledgerTransaction.id
-//     )
-//     expect(creditEntry1.ledgerAccountId).toBe(ledgerAccount1.id)
-//     expect(creditEntry1.subscriptionId).toBe(subscription.id)
-//     expect(creditEntry1.organizationId).toBe(organization.id)
-//     expect(creditEntry1.livemode).toBe(command.livemode)
-//     expect(creditEntry1.status).toBe(LedgerEntryStatus.Pending)
-//     expect(creditEntry1.entryType).toBe(
-//       LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
-//     )
-//     expect(creditEntry1.amount).toBe(amountToApply1)
-//     expect(creditEntry1.sourceUsageEventId).toBe(usageEvent1.id)
-//     expect(creditEntry1.sourceUsageCreditId).toBe(usageCredit1.id)
-//     expect(creditEntry1.entryTimestamp).toEqual(expect.any(Date))
+    // expects:
+    // - The function to return an empty array
+    expect(result).toEqual([])
+  })
 
-//     expect(debitEntry1.ledgerTransactionId).toBe(ledgerTransaction.id)
-//     expect(debitEntry1.ledgerAccountId).toBe(ledgerAccount1.id)
-//     expect(debitEntry1.subscriptionId).toBe(subscription.id)
-//     expect(debitEntry1.organizationId).toBe(organization.id)
-//     expect(debitEntry1.livemode).toBe(command.livemode)
-//     expect(debitEntry1.status).toBe(LedgerEntryStatus.Pending)
-//     expect(debitEntry1.entryType).toBe(
-//       LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
-//     )
-//     expect(debitEntry1.amount).toBe(amountToApply1)
-//     expect(debitEntry1.sourceUsageEventId).toBe(usageEvent1.id)
-//     expect(debitEntry1.sourceUsageCreditId).toBe(usageCredit1.id)
-//     expect(debitEntry1.entryTimestamp).toEqual(expect.any(Date))
+  it('should create two ledger entry insert objects (credit and debit) for one usage credit application', async () => {
+    // setup:
+    // Create actual DB records for UsageEvent and UsageCredit to be referenced by the application
+    const usageEvent = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter1.id, // Reference from beforeEach
+      amount: 50, // Example amount
+      priceId: price.id, // Reference from beforeEach
+      billingPeriodId: command.payload.previousBillingPeriod.id, // Reference from command in beforeEach
+      transactionId: 'ue_test_' + core.nanoid(),
+      customerId: customer.id, // Reference from beforeEach
+      usageDate: new Date(),
+    })
 
-//     // Validate entries for app2
-//     const { creditEntry: creditEntry2, debitEntry: debitEntry2 } =
-//       findEntriesForApp(usageCreditApplication2.id)
-//     expect(creditEntry2).toBeDefined()
-//     expect(debitEntry2).toBeDefined()
+    const usageCredit = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter1.id, // Match the target meter
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 200, // Example amount, should be >= amountApplied
+      livemode: command.livemode,
+    })
 
-//     expect(creditEntry2.ledgerTransactionId).toBe(
-//       ledgerTransaction.id
-//     )
-//     expect(creditEntry2.ledgerAccountId).toBe(ledgerAccount2.id) // Correct ledger account for app2
-//     expect(creditEntry2.subscriptionId).toBe(subscription.id)
-//     expect(creditEntry2.organizationId).toBe(organization.id)
-//     expect(creditEntry2.livemode).toBe(command.livemode)
-//     expect(creditEntry2.status).toBe(LedgerEntryStatus.Pending)
-//     expect(creditEntry2.entryType).toBe(
-//       LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
-//     )
-//     expect(creditEntry2.amount).toBe(amountToApply2)
-//     expect(creditEntry2.sourceUsageEventId).toBe(usageEvent2.id)
-//     expect(creditEntry2.sourceUsageCreditId).toBe(usageCredit2.id)
-//     expect(creditEntry2.entryTimestamp).toEqual(expect.any(Date))
+    const amountToApply = 100
 
-//     expect(debitEntry2.ledgerTransactionId).toBe(ledgerTransaction.id)
-//     expect(debitEntry2.ledgerAccountId).toBe(ledgerAccount2.id) // Correct ledger account for app2
-//     expect(debitEntry2.subscriptionId).toBe(subscription.id)
-//     expect(debitEntry2.organizationId).toBe(organization.id)
-//     expect(debitEntry2.livemode).toBe(command.livemode)
-//     expect(debitEntry2.status).toBe(LedgerEntryStatus.Pending)
-//     expect(debitEntry2.entryType).toBe(
-//       LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
-//     )
-//     expect(debitEntry2.amount).toBe(amountToApply2)
-//     expect(debitEntry2.sourceUsageEventId).toBe(usageEvent2.id)
-//     expect(debitEntry2.sourceUsageCreditId).toBe(usageCredit2.id)
-//     expect(debitEntry2.entryTimestamp).toEqual(expect.any(Date))
-//   })
-// })
+    const usageCreditApplication = await setupUsageCreditApplication({
+      organizationId: organization.id,
+      usageCreditId: usageCredit.id,
+      usageEventId: usageEvent.id,
+      amountApplied: amountToApply,
+      targetUsageMeterId: usageMeter1.id,
+      status: UsageCreditApplicationStatus.Pending,
+    })
+
+    const testUsageCreditApplications: UsageCreditApplication.Record[] =
+      [usageCreditApplication]
+
+    // expects:
+    // - The function to return an array with two ledger entry insert objects
+    const result = createLedgerEntriesForApplications(
+      testUsageCreditApplications,
+      ledgerTransaction.id,
+      ledgerAccountsByUsageMeterId,
+      command
+    )
+
+    expect(result.length).toBe(2)
+
+    const creditEntry = result.find(
+      (entry) => entry.direction === LedgerEntryDirection.Credit
+    ) as LedgerEntry.UsageCreditApplicationCreditTowardsUsageCostInsert
+    const debitEntry = result.find(
+      (entry) => entry.direction === LedgerEntryDirection.Debit
+    ) as LedgerEntry.UsageCreditApplicationDebitFromCreditBalanceInsert
+
+    expect(creditEntry).toBeDefined()
+    expect(debitEntry).toBeDefined()
+
+    // Validate properties of the first entry (CreditTowardsUsageCost)
+    expect(creditEntry.ledgerTransactionId).toBe(ledgerTransaction.id)
+    expect(creditEntry.ledgerAccountId).toBe(ledgerAccount1.id) // from ledgerAccountsByUsageMeterId.get(usageMeter1.id).id
+    expect(creditEntry.subscriptionId).toBe(subscription.id)
+    expect(creditEntry.organizationId).toBe(organization.id)
+    expect(creditEntry.livemode).toBe(command.livemode)
+    expect(creditEntry.status).toBe(LedgerEntryStatus.Pending)
+    expect(creditEntry.direction).toBe(LedgerEntryDirection.Credit)
+    expect(creditEntry.entryType).toBe(
+      LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+    )
+    expect(creditEntry.sourceCreditApplicationId).toBe(
+      usageCreditApplication.id
+    )
+    expect(creditEntry.amount).toBe(amountToApply)
+    expect(creditEntry.sourceUsageEventId).toBe(usageEvent.id)
+    expect(creditEntry.sourceUsageCreditId).toBe(usageCredit.id)
+    expect(creditEntry.entryTimestamp).toEqual(expect.any(Date))
+
+    // Validate properties of the second entry (DebitFromCreditBalance)
+    expect(debitEntry.ledgerTransactionId).toBe(ledgerTransaction.id)
+    expect(debitEntry.ledgerAccountId).toBe(ledgerAccount1.id)
+    expect(debitEntry.subscriptionId).toBe(subscription.id)
+    expect(debitEntry.organizationId).toBe(organization.id)
+    expect(debitEntry.livemode).toBe(command.livemode)
+    expect(debitEntry.status).toBe(LedgerEntryStatus.Pending)
+    expect(debitEntry.direction).toBe(LedgerEntryDirection.Debit)
+    expect(debitEntry.entryType).toBe(
+      LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+    )
+    expect(debitEntry.sourceCreditApplicationId).toBe(
+      usageCreditApplication.id
+    )
+    expect(debitEntry.amount).toBe(amountToApply)
+    expect(debitEntry.sourceUsageEventId).toBe(usageEvent.id)
+    expect(debitEntry.sourceUsageCreditId).toBe(usageCredit.id)
+    expect(debitEntry.entryTimestamp).toEqual(expect.any(Date))
+  })
+
+  it('should create 2*N ledger entry insert objects for N usage credit applications', async () => {
+    // setup:
+    // Create data for the first application (app1)
+    const usageEvent1 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter1.id,
+      amount: 150,
+      priceId: price.id,
+      billingPeriodId: command.payload.previousBillingPeriod.id,
+      transactionId: 'ue_test_n1_' + core.nanoid(),
+      customerId: customer.id,
+      usageDate: new Date(),
+    })
+    const usageCredit1 = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter1.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 200,
+      livemode: command.livemode,
+    })
+    const amountToApply1 = 100
+    const usageCreditApplication1 = await setupUsageCreditApplication(
+      {
+        organizationId: organization.id,
+        usageCreditId: usageCredit1.id,
+        usageEventId: usageEvent1.id,
+        amountApplied: amountToApply1,
+        targetUsageMeterId: usageMeter1.id,
+        status: UsageCreditApplicationStatus.Pending,
+      }
+    )
+
+    // Create data for the second application (app2)
+    const usageEvent2 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter2.id, // Different usage meter
+      amount: 75,
+      priceId: price.id,
+      billingPeriodId: command.payload.previousBillingPeriod.id,
+      transactionId: 'ue_test_n2_' + core.nanoid(),
+      customerId: customer.id,
+      usageDate: new Date(),
+    })
+    const usageCredit2 = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter2.id, // Match the target meter for app2
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 100,
+      livemode: command.livemode,
+    })
+    const amountToApply2 = 50
+    const usageCreditApplication2 = await setupUsageCreditApplication(
+      {
+        organizationId: organization.id,
+        usageCreditId: usageCredit2.id,
+        usageEventId: usageEvent2.id,
+        amountApplied: amountToApply2,
+        targetUsageMeterId: usageMeter2.id,
+        status: UsageCreditApplicationStatus.Pending,
+      }
+    )
+
+    const testUsageCreditApplications: UsageCreditApplication.Record[] =
+      [usageCreditApplication1, usageCreditApplication2]
+
+    // expects:
+    // - The function to return an array with 4 ledger entry insert objects.
+    const result = createLedgerEntriesForApplications(
+      testUsageCreditApplications,
+      ledgerTransaction.id,
+      ledgerAccountsByUsageMeterId,
+      command
+    )
+
+    expect(result.length).toBe(4)
+
+    // Helper to find entries for a specific application
+    const findEntriesForApp = (appId: string) => {
+      const entries = result.filter(
+        (entry) => entry.sourceCreditApplicationId === appId
+      )
+      const creditEntry = entries.find(
+        (e) => e.direction === LedgerEntryDirection.Credit
+      ) as LedgerEntry.UsageCreditApplicationCreditTowardsUsageCostInsert
+      const debitEntry = entries.find(
+        (e) => e.direction === LedgerEntryDirection.Debit
+      ) as LedgerEntry.UsageCreditApplicationDebitFromCreditBalanceInsert
+      return { creditEntry, debitEntry }
+    }
+
+    // Validate entries for app1
+    const { creditEntry: creditEntry1, debitEntry: debitEntry1 } =
+      findEntriesForApp(usageCreditApplication1.id)
+    expect(creditEntry1).toBeDefined()
+    expect(debitEntry1).toBeDefined()
+
+    expect(creditEntry1.ledgerTransactionId).toBe(
+      ledgerTransaction.id
+    )
+    expect(creditEntry1.ledgerAccountId).toBe(ledgerAccount1.id)
+    expect(creditEntry1.subscriptionId).toBe(subscription.id)
+    expect(creditEntry1.organizationId).toBe(organization.id)
+    expect(creditEntry1.livemode).toBe(command.livemode)
+    expect(creditEntry1.status).toBe(LedgerEntryStatus.Pending)
+    expect(creditEntry1.entryType).toBe(
+      LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+    )
+    expect(creditEntry1.amount).toBe(amountToApply1)
+    expect(creditEntry1.sourceUsageEventId).toBe(usageEvent1.id)
+    expect(creditEntry1.sourceUsageCreditId).toBe(usageCredit1.id)
+    expect(creditEntry1.entryTimestamp).toEqual(expect.any(Date))
+
+    expect(debitEntry1.ledgerTransactionId).toBe(ledgerTransaction.id)
+    expect(debitEntry1.ledgerAccountId).toBe(ledgerAccount1.id)
+    expect(debitEntry1.subscriptionId).toBe(subscription.id)
+    expect(debitEntry1.organizationId).toBe(organization.id)
+    expect(debitEntry1.livemode).toBe(command.livemode)
+    expect(debitEntry1.status).toBe(LedgerEntryStatus.Pending)
+    expect(debitEntry1.entryType).toBe(
+      LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+    )
+    expect(debitEntry1.amount).toBe(amountToApply1)
+    expect(debitEntry1.sourceUsageEventId).toBe(usageEvent1.id)
+    expect(debitEntry1.sourceUsageCreditId).toBe(usageCredit1.id)
+    expect(debitEntry1.entryTimestamp).toEqual(expect.any(Date))
+
+    // Validate entries for app2
+    const { creditEntry: creditEntry2, debitEntry: debitEntry2 } =
+      findEntriesForApp(usageCreditApplication2.id)
+    expect(creditEntry2).toBeDefined()
+    expect(debitEntry2).toBeDefined()
+
+    expect(creditEntry2.ledgerTransactionId).toBe(
+      ledgerTransaction.id
+    )
+    expect(creditEntry2.ledgerAccountId).toBe(ledgerAccount2.id) // Correct ledger account for app2
+    expect(creditEntry2.subscriptionId).toBe(subscription.id)
+    expect(creditEntry2.organizationId).toBe(organization.id)
+    expect(creditEntry2.livemode).toBe(command.livemode)
+    expect(creditEntry2.status).toBe(LedgerEntryStatus.Pending)
+    expect(creditEntry2.entryType).toBe(
+      LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+    )
+    expect(creditEntry2.amount).toBe(amountToApply2)
+    expect(creditEntry2.sourceUsageEventId).toBe(usageEvent2.id)
+    expect(creditEntry2.sourceUsageCreditId).toBe(usageCredit2.id)
+    expect(creditEntry2.entryTimestamp).toEqual(expect.any(Date))
+
+    expect(debitEntry2.ledgerTransactionId).toBe(ledgerTransaction.id)
+    expect(debitEntry2.ledgerAccountId).toBe(ledgerAccount2.id) // Correct ledger account for app2
+    expect(debitEntry2.subscriptionId).toBe(subscription.id)
+    expect(debitEntry2.organizationId).toBe(organization.id)
+    expect(debitEntry2.livemode).toBe(command.livemode)
+    expect(debitEntry2.status).toBe(LedgerEntryStatus.Pending)
+    expect(debitEntry2.entryType).toBe(
+      LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+    )
+    expect(debitEntry2.amount).toBe(amountToApply2)
+    expect(debitEntry2.sourceUsageEventId).toBe(usageEvent2.id)
+    expect(debitEntry2.sourceUsageCreditId).toBe(usageCredit2.id)
+    expect(debitEntry2.entryTimestamp).toEqual(expect.any(Date))
+  })
+})
 
 const expectLedgerAccountBalanceToBeZero = async (
   ledgerAccountId: string
@@ -1903,6 +1903,11 @@ describe('processOverageUsageCostCredits', () => {
       ...coreLedgerAccountParams,
       usageMeterId: newUsageMeter3.id,
     })
+    const usageEventsByLedgerAccountId = {
+      [ledgerAccount1.id]: [usageEvent1],
+      [ledgerAccount2.id]: [usageEvent2],
+      [ledgerAccount3.id]: [usageEvent3],
+    }
     const coreDebitLedgerEntryParams = {
       organizationId: organization.id,
       subscriptionId: subscription.id,
@@ -1933,7 +1938,16 @@ describe('processOverageUsageCostCredits', () => {
       sourceUsageEventId: usageEvent3.id,
       ledgerAccountId: ledgerAccount3.id,
     })
-
+    const newUsageMeter4 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Overage Usage Meter 4',
+      catalogId: catalog.id,
+      livemode: true,
+    })
+    const ledgerAccount4 = await setupLedgerAccount({
+      ...coreLedgerAccountParams,
+      usageMeterId: newUsageMeter4.id,
+    })
     // setup:
     // - Create LedgerAccounts: la_mix1 (um_mix1), la_mix2 (um_mix2), la_mix3 (um_mix3).
     // - Create LedgerTransaction: ltx_mix.
@@ -1957,6 +1971,7 @@ describe('processOverageUsageCostCredits', () => {
               ledgerAccount1,
               ledgerAccount2,
               ledgerAccount3,
+              ledgerAccount4,
             ],
             ledgerTransaction: mainLedgerTransaction,
             command,
@@ -1965,35 +1980,117 @@ describe('processOverageUsageCostCredits', () => {
         )
       }
     )
-    console.log('====ledgerEntries', ledgerEntries)
-    const validateLedgerEntryAccount1 = createLedgerEntryValidator({
-      ledgerAccountId: ledgerAccount1.id,
-      ledgerTransactionId: mainLedgerTransaction.id,
-    })
-    const validateLedgerEntryAccount2 = createLedgerEntryValidator({
-      ledgerAccountId: ledgerAccount2.id,
-      ledgerTransactionId: mainLedgerTransaction.id,
-    })
-    const validateLedgerEntryAccount3 = createLedgerEntryValidator({
-      ledgerAccountId: ledgerAccount3.id,
-      ledgerTransactionId: mainLedgerTransaction.id,
-    })
-    const coreParams = {
-      status: LedgerEntryStatus.Pending,
+    const usageEventsById = R.groupBy(
+      (event) => event.id,
+      [usageEvent1, usageEvent2, usageEvent3]
+    )
+    const usageEventsByLedgerEntryId = new Map(
+      ledgerEntries
+        .filter((entry) => entry.sourceUsageEventId)
+        .map((entry) => [
+          entry.sourceUsageEventId!,
+          usageEventsById[entry.sourceUsageEventId!]!,
+        ])
+    )
+    /**
+     * Expect 9 ledger entries to have been created:
+     * - 3 grants (one for each ledger account)
+     * - 6 applications (2 for each ledger account)
+     */
+    expect(ledgerEntries.length).toBe(9)
+
+    const ledgerEntriesByAccountId = R.groupBy(
+      (entry) => entry.ledgerAccountId,
+      ledgerEntries
+    )
+    const account1LedgerEntries =
+      ledgerEntriesByAccountId[ledgerAccount1.id]
+    const account2LedgerEntries =
+      ledgerEntriesByAccountId[ledgerAccount2.id]
+    const account3LedgerEntries =
+      ledgerEntriesByAccountId[ledgerAccount3.id]
+    /**
+     * For each entry account, expect 3 ledger entries:
+     * - 1 grant
+     * - 2 applications (one for each usage event)
+     * @param accountId
+     * @param entries
+     */
+    const validateEntriesForAccount = (
+      accountId: string,
+      entries: LedgerEntry.Record[]
+    ) => {
+      const validateLedgerEntry = createLedgerEntryValidator({
+        ledgerAccountId: accountId,
+        ledgerTransactionId: mainLedgerTransaction.id,
+      })
+      entries.forEach((entry, index) => {
+        let entryType: LedgerEntryType | undefined
+        let direction: LedgerEntryDirection | undefined
+        const amount =
+          usageEventsByLedgerAccountId[accountId]![0].amount
+
+        if (index === 0) {
+          entryType = LedgerEntryType.CreditGrantRecognized
+          direction = LedgerEntryDirection.Credit
+        } else if (index === 1) {
+          entryType =
+            LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+          direction = LedgerEntryDirection.Credit
+        } else if (index === 2) {
+          entryType =
+            LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+          direction = LedgerEntryDirection.Debit
+        } else if (index === 3) {
+          entryType =
+            LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+          direction = LedgerEntryDirection.Debit
+        } else if (index === 4) {
+          entryType =
+            LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+          direction = LedgerEntryDirection.Credit
+        } else if (index === 5) {
+          entryType =
+            LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+          direction = LedgerEntryDirection.Debit
+        }
+        if (!entryType) {
+          throw new Error('Entry type not found')
+        }
+        if (!direction) {
+          throw new Error('Direction not found')
+        }
+        if (!amount) {
+          throw new Error('Amount not found')
+        }
+        validateLedgerEntry(entry, {
+          status: LedgerEntryStatus.Pending,
+          entryType,
+          direction,
+          amount,
+        })
+      })
     }
-    validateLedgerEntryAccount1(ledgerEntries[0], {
-      ...coreParams,
-      entryType: LedgerEntryType.CreditGrantRecognized,
-      direction: LedgerEntryDirection.Credit,
-      amount: usageEvent1.amount,
-    })
-    validateLedgerEntryAccount2(ledgerEntries[1], {
-      ...coreParams,
-      entryType: LedgerEntryType.CreditGrantRecognized,
-      direction: LedgerEntryDirection.Credit,
-      amount: usageEvent1.amount,
-    })
+    validateEntriesForAccount(
+      ledgerAccount1.id,
+      account1LedgerEntries ?? []
+    )
+    validateEntriesForAccount(
+      ledgerAccount2.id,
+      account2LedgerEntries ?? []
+    )
+    validateEntriesForAccount(
+      ledgerAccount3.id,
+      account3LedgerEntries ?? []
+    )
+    const entriesForAccount4 = ledgerEntries.filter(
+      (entry) => entry.ledgerAccountId === ledgerAccount4.id
+    )
+    expect(entriesForAccount4.length).toBe(0)
     await expectLedgerAccountBalanceToBeZero(ledgerAccount1.id)
+    await expectLedgerAccountBalanceToBeZero(ledgerAccount2.id)
+    await expectLedgerAccountBalanceToBeZero(ledgerAccount3.id)
+    await expectLedgerAccountBalanceToBeZero(ledgerAccount4.id)
   })
 
   // it('should handle data that would trigger internal warnings in prepareDataForCreditApplications gracefully', async () => {

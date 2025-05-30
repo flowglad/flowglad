@@ -96,10 +96,6 @@ const createPendingOverageUsageCreditsAndEntries = async (
   pendingUsageCredits: UsageCredit.Record[]
   pendingUsageCreditLedgerEntryInserts: LedgerEntry.CreditGrantRecognizedInsert[]
 }> => {
-  console.log(
-    'outstandingUsageCostsByLedgerAccountId',
-    outstandingUsageCostsByLedgerAccountId
-  )
   const pendingUsageCreditInserts: UsageCredit.Insert[] = Array.from(
     outstandingUsageCostsByLedgerAccountId.values()
   ).map((costItem) => {
@@ -121,10 +117,6 @@ const createPendingOverageUsageCreditsAndEntries = async (
       issuedAt: new Date(),
     }
   })
-  console.log(
-    '===pendingUsageCreditInserts',
-    pendingUsageCreditInserts
-  )
   const pendingUsageCredits = await bulkInsertUsageCredits(
     pendingUsageCreditInserts,
     transaction
