@@ -24,7 +24,7 @@ import {
   ProductWithPrices,
 } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { Product } from '@/db/schema/products'
+import { productsInsertSchema, Product } from '@/db/schema/products'
 import {
   insertCatalog,
   selectCatalogById,
@@ -67,9 +67,24 @@ export const createProductTransaction = async (
     },
     transaction
   )
+  const pricesWithSafelyDefaultPrice = payload.prices.some(
+    (price) => price.isDefault
+  )
+    ? payload.prices
+    : [
+        {
+          ...payload.prices[0],
+          isDefault: true,
+        },
+        ...payload.prices.slice(1),
+      ]
+  console.log(
+    '======pricesWithSafelyDefaultPrice',
+    pricesWithSafelyDefaultPrice
+  )
 
   const createdPrices = await Promise.all(
-    payload.prices.map(async (price) => {
+    pricesWithSafelyDefaultPrice.map(async (price) => {
       return createPrice(
         {
           ...price,
