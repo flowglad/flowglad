@@ -8,7 +8,7 @@
   <p align="center">
     Open-source Billing for Web Devs & Vibe Coders
     <br />
-    <a href="https://flowglad.com"><strong>Learn more »</strong></a>
+    <a href="https://flowglad.com"><strong>Get Started</strong></a>
     <br />
     <br />
     ·
