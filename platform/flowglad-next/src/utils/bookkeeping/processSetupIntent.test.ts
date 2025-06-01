@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  vi,
+  afterEach,
+} from 'vitest'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -550,35 +557,115 @@ describe('Process setup intent', async () => {
   })
 
   describe('calculateTrialEnd', () => {
-    it('returns undefined when trialPeriodDays is null', () => {
-      const result = calculateTrialEnd({
-        hasHadTrial: false,
-        trialPeriodDays: null,
+    // Scenario 1: Invalid or Zero Trial Period Days
+    describe('when trialPeriodDays is invalid or zero', () => {
+      it('should return undefined when trialPeriodDays is null', () => {
+        // setup:
+        const params = { hasHadTrial: false, trialPeriodDays: null }
+        // expects:
+        expect(calculateTrialEnd(params)).toBeUndefined()
       })
-      expect(result).toBeUndefined()
+
+      it('should return undefined when trialPeriodDays is null and hasHadTrial is true', () => {
+        // setup:
+        const params = { hasHadTrial: true, trialPeriodDays: null }
+        // expects:
+        expect(calculateTrialEnd(params)).toBeUndefined()
+      })
+
+      it('should return undefined when trialPeriodDays is undefined', () => {
+        // setup:
+        const params = {
+          hasHadTrial: false,
+          trialPeriodDays: undefined as any, // Cast to any to test undefined path
+        }
+        // expects:
+        expect(calculateTrialEnd(params)).toBeUndefined()
+      })
+
+      it('should return undefined when trialPeriodDays is undefined and hasHadTrial is true', () => {
+        // setup:
+        const params = {
+          hasHadTrial: true,
+          trialPeriodDays: undefined as any, // Cast to any to test undefined path
+        }
+        // expects:
+        expect(calculateTrialEnd(params)).toBeUndefined()
+      })
+
+      it('should return undefined when trialPeriodDays is 0', () => {
+        // setup:
+        const params = { hasHadTrial: false, trialPeriodDays: 0 }
+        // expects:
+        expect(calculateTrialEnd(params)).toBeUndefined()
+      })
+
+      it('should return undefined when trialPeriodDays is 0 and hasHadTrial is true', () => {
+        // setup:
+        const params = { hasHadTrial: true, trialPeriodDays: 0 }
+        // expects:
+        expect(calculateTrialEnd(params)).toBeUndefined()
+      })
     })
 
-    it('returns undefined when hasHadTrial is true', () => {
-      const result = calculateTrialEnd({
-        hasHadTrial: true,
-        trialPeriodDays: 14,
+    // Scenario 2: User Has Already Had a Trial
+    describe('when user has already had a trial', () => {
+      it('should return undefined with a positive trialPeriodDays', () => {
+        // setup:
+        const params = { hasHadTrial: true, trialPeriodDays: 7 }
+        // expects:
+        expect(calculateTrialEnd(params)).toBeUndefined()
       })
-      expect(result).toBeUndefined()
     })
 
-    it('returns a future date when hasHadTrial is false and trialPeriodDays is provided', () => {
-      const now = new Date()
-      const result = calculateTrialEnd({
-        hasHadTrial: false,
-        trialPeriodDays: 14,
+    // Scenario 3: User Has Not Had a Trial and trialPeriodDays is Positive
+    describe('when user has not had a trial and trialPeriodDays is positive', () => {
+      const mockDate = new Date(2024, 0, 1, 12, 0, 0) // Jan 1, 2024, 12:00:00
+
+      beforeEach(() => {
+        vi.useFakeTimers()
+        vi.setSystemTime(mockDate)
       })
 
-      expect(result).toBeDefined()
-      expect(result instanceof Date).toBe(true)
-      expect(result!.getTime()).toBeGreaterThan(now.getTime())
-      expect(result!.getTime() - now.getTime()).toBeLessThanOrEqual(
-        14 * 24 * 60 * 60 * 1000 + 1000
-      ) // Allow 1 second for test execution
+      afterEach(() => {
+        vi.useRealTimers()
+      })
+
+      it('should return a future date for trialPeriodDays = 7', () => {
+        // setup:
+        const params = { hasHadTrial: false, trialPeriodDays: 7 }
+        const expectedDate = new Date(
+          mockDate.getTime() + 7 * 24 * 60 * 60 * 1000
+        )
+        // expects:
+        const result = calculateTrialEnd(params)
+        expect(result).toBeInstanceOf(Date)
+        expect(result?.getTime()).toEqual(expectedDate.getTime())
+      })
+
+      it('should return a future date for trialPeriodDays = 30', () => {
+        // setup:
+        const params = { hasHadTrial: false, trialPeriodDays: 30 }
+        const expectedDate = new Date(
+          mockDate.getTime() + 30 * 24 * 60 * 60 * 1000
+        )
+        // expects:
+        const result = calculateTrialEnd(params)
+        expect(result).toBeInstanceOf(Date)
+        expect(result?.getTime()).toEqual(expectedDate.getTime())
+      })
+
+      it('should return a future date for trialPeriodDays = 1', () => {
+        // setup:
+        const params = { hasHadTrial: false, trialPeriodDays: 1 }
+        const expectedDate = new Date(
+          mockDate.getTime() + 1 * 24 * 60 * 60 * 1000
+        )
+        // expects:
+        const result = calculateTrialEnd(params)
+        expect(result).toBeInstanceOf(Date)
+        expect(result?.getTime()).toEqual(expectedDate.getTime())
+      })
     })
   })
 

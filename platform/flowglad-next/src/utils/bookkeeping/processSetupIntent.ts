@@ -165,7 +165,11 @@ export const calculateTrialEnd = (params: {
   trialPeriodDays: number | null
 }): Date | undefined => {
   const { hasHadTrial, trialPeriodDays } = params
-  if (trialPeriodDays === null) {
+  if (
+    trialPeriodDays === null ||
+    trialPeriodDays === undefined ||
+    trialPeriodDays === 0
+  ) {
     return undefined
   }
   return hasHadTrial
