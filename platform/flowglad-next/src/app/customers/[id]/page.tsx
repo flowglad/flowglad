@@ -5,7 +5,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
 import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
-import { selectPaymentsBycustomerId } from '@/db/tableMethods/paymentMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 
 export type CustomerPageParams = {
@@ -51,8 +51,10 @@ const CustomerPage = async ({
           { customerId: result.customer.id },
           transaction
         )
-      const paymentsForCustomer = await selectPaymentsBycustomerId(
-        result.customer.id,
+      const paymentsForCustomer = await selectPayments(
+        {
+          customerId: result.customer.id,
+        },
         transaction
       )
       const prices = await selectPricesAndProductsForOrganization(
