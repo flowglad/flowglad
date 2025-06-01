@@ -1,12 +1,6 @@
 import { Table, TableBody, TableCell, TableRow } from './ui/table'
 import { PaymentMethod } from '@flowglad/types'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './ui/tooltip'
-import {
   AmericanExpressLogo,
   DinersClubLogo,
   DiscoverLogo,
@@ -53,21 +47,12 @@ export function CardLogoBadge({ brand }: { brand: string }) {
 
 function DefaultBadge() {
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <Badge
-            variant="outline"
-            className="flowglad-bg-muted flowglad-text-muted-foreground"
-          >
-            Default
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent className="flowglad-bg-primary flowglad-text-primary-foreground">
-          This is your default payment method
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Badge
+      variant="outline"
+      className="flowglad-bg-muted flowglad-text-muted-foreground"
+    >
+      Default
+    </Badge>
   )
 }
 
