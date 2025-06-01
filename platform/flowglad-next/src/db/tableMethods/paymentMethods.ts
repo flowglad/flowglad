@@ -34,6 +34,8 @@ import {
   paymentMethodsSelectSchema,
 } from '../schema/paymentMethods'
 import { selectCustomers } from './customerMethods'
+import { prices } from '../schema/prices'
+import { purchases } from '../schema/purchases'
 
 const config: ORMMethodCreatorConfig<
   typeof payments,
@@ -78,37 +80,6 @@ export const upsertPaymentByStripeChargeId = async (
   return upsertedPayments[0]
 }
 
-export const selectSettledPaymentsByinvoiceId = async (
-  invoiceId: string,
-  transaction: DbTransaction
-) => {
-  const result = await transaction
-    .select()
-    .from(payments)
-    .where(
-      and(
-        eq(payments.invoiceId, invoiceId),
-        eq(payments.status, PaymentStatus.Succeeded)
-      )
-    )
-  return result.map((row) => paymentsSelectSchema.parse(row))
-}
-
-export const selectPaymentsBycustomerId = async (
-  customerId: string,
-  transaction: DbTransaction
-) => {
-  const result = await transaction
-    .select({
-      payment: payments,
-    })
-    .from(payments)
-    .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
-    .where(eq(invoices.customerId, customerId))
-
-  return result.map((row) => paymentsSelectSchema.parse(row.payment))
-}
-
 export const selectRevenueDataForOrganization = async (
   params: GetRevenueDataInput,
   transaction: DbTransaction
@@ -124,24 +95,30 @@ export const selectRevenueDataForOrganization = async (
     sql`
       WITH dates AS (
         SELECT generate_series(
-          date_trunc(${revenueChartIntervalUnit}, ${fromDate.toISOString()}::timestamp),
-          date_trunc(${revenueChartIntervalUnit}, ${toDate.toISOString()}::timestamp),
+          date_trunc(${revenueChartIntervalUnit}, (${fromDate.toISOString()}::timestamp AT TIME ZONE 'UTC')),
+          date_trunc(${revenueChartIntervalUnit}, (${toDate.toISOString()}::timestamp AT TIME ZONE 'UTC')),
           (1 || ' ' || ${revenueChartIntervalUnit})::interval
         ) AS date
       ),
       revenues AS (
         SELECT 
-          date_trunc(${revenueChartIntervalUnit}, ${
-            payments.chargeDate
-          }) as date,
-          SUM(${payments.amount} - COALESCE(${
-            payments.refundedAmount
-          }, 0)) as revenue
+          date_trunc(${revenueChartIntervalUnit}, (${payments.chargeDate} AT TIME ZONE 'UTC')) as date,
+          SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)) as revenue
         FROM ${payments}
+        ${
+          params.productId
+            ? sql`INNER JOIN ${purchases} ON ${payments.purchaseId} = ${purchases.id} INNER JOIN ${prices} ON ${purchases.priceId} = ${prices.id}`
+            : sql``
+        }
         WHERE 
           ${payments.organizationId} = ${organizationId}
           AND ${payments.chargeDate} >= ${fromDate.toISOString()}
           AND ${payments.chargeDate} <= ${toDate.toISOString()}
+          ${
+            params.productId
+              ? sql`AND ${prices.productId} = ${params.productId}`
+              : sql``
+          }
         GROUP BY 1
       )
       SELECT

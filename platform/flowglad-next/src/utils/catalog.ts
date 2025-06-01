@@ -78,11 +78,6 @@ export const createProductTransaction = async (
         },
         ...payload.prices.slice(1),
       ]
-  console.log(
-    '======pricesWithSafelyDefaultPrice',
-    pricesWithSafelyDefaultPrice
-  )
-
   const createdPrices = await Promise.all(
     pricesWithSafelyDefaultPrice.map(async (price) => {
       return createPrice(
