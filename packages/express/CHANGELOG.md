@@ -1,5 +1,25 @@
 # @flowglad/express
 
+## 0.10.13
+
+### Patch Changes
+
+- Fix flowglad-root styles
+- Updated dependencies
+  - @flowglad/server@0.10.13
+  - @flowglad/shared@0.10.13
+  - @flowglad/react@0.10.13
+
+## 0.10.12
+
+### Patch Changes
+
+- Fix flowglad-root styling on billing-page
+- Updated dependencies
+  - @flowglad/react@0.10.12
+  - @flowglad/server@0.10.12
+  - @flowglad/shared@0.10.12
+
 ## 0.10.11
 
 ### Patch Changes

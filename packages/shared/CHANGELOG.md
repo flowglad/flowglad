@@ -1,5 +1,17 @@
 # @flowglad/shared
 
+## 0.10.13
+
+### Patch Changes
+
+- Fix flowglad-root styles
+
+## 0.10.12
+
+### Patch Changes
+
+- Fix flowglad-root styling on billing-page
+
 ## 0.10.11
 
 ### Patch Changes
