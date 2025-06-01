@@ -518,7 +518,7 @@ describe('createProductTransaction', () => {
     userId = userApiKeyOrg1.user.id
   })
   it('should create a product with a default price', async () => {
-    await authenticatedTransaction(
+    const result = await authenticatedTransaction(
       async ({ transaction }) => {
         console.log('======transaction??', transaction)
         return createProductTransaction(
@@ -561,5 +561,29 @@ describe('createProductTransaction', () => {
         apiKey: org1ApiKeyToken,
       }
     )
+    const { product, prices } = result
+    const price = prices[0]
+    expect(product.name).toBe('Test Product')
+    expect(product.description).toBe('Test Description')
+    expect(product.active).toBe(true)
+    expect(product.imageURL).toBe(null)
+    expect(product.displayFeatures).toEqual([])
+    expect(product.singularQuantityLabel).toBe('singular')
+    expect(product.pluralQuantityLabel).toBe('plural')
+    expect(product.catalogId).toBe(sourceCatalog.id)
+    expect(prices).toHaveLength(1)
+    expect(price.name).toBe('Test Price')
+    expect(price.type).toBe(PriceType.Subscription)
+    expect(price.intervalCount).toBe(1)
+    expect(price.intervalUnit).toBe(IntervalUnit.Month)
+    expect(price.unitPrice).toBe(1000)
+    expect(price.setupFeeAmount).toBe(0)
+    expect(price.trialPeriodDays).toBe(0)
+    expect(price.currency).toBe(CurrencyCode.USD)
+    expect(price.externalId).toBe(null)
+    expect(price.usageMeterId).toBe(null)
+    expect(price.isDefault).toBe(true)
+    expect(price.active).toBe(true)
+    expect(price.livemode).toBe(false)
   })
 })

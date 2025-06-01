@@ -23,6 +23,8 @@ import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
 import { insertInvoice } from '@/db/tableMethods/invoiceMethods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import { invoicesInsertSchema } from '@/db/schema/invoices'
+import { z } from 'zod'
 import {
   PriceType,
   IntervalUnit,
@@ -505,6 +507,7 @@ export const setupInvoice = async ({
   status = InvoiceStatus.Draft,
   livemode = true,
   priceId,
+  purchaseId: existingPurchaseId,
 }: {
   billingPeriodId?: string
   customerId: string
@@ -513,27 +516,33 @@ export const setupInvoice = async ({
   livemode?: boolean
   type?: InvoiceType
   priceId: string
+  purchaseId?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let billingPeriod: BillingPeriod.Record | null = null
-    let purchaseId: string | null = null
+    let purchaseIdToUse: string | null = existingPurchaseId ?? null
+
     if (billingPeriodId) {
       billingPeriod = await selectBillingPeriodById(
         billingPeriodId,
         transaction
       )
-    } else {
-      const purchase = await setupPurchase({
+      if (purchaseIdToUse && billingPeriod) {
+        throw new Error(
+          'Invoice cannot be for both a billingPeriodId and an existing purchaseId.'
+        )
+      }
+    } else if (!purchaseIdToUse) {
+      const newInternalPurchase = await setupPurchase({
         customerId,
         organizationId,
         livemode,
         priceId,
       })
-      purchaseId = purchase.id
+      purchaseIdToUse = newInternalPurchase.id
     }
 
     const invoice = await insertInvoice(
-      // @ts-expect-error
       {
         billingPeriodId: billingPeriod?.id ?? null,
         customerId,
@@ -548,11 +557,11 @@ export const setupInvoice = async ({
         type: billingPeriod
           ? InvoiceType.Subscription
           : InvoiceType.Purchase,
-        purchaseId,
+        purchaseId: purchaseIdToUse,
         currency: CurrencyCode.USD,
         taxCountry: CountryCode.US,
         subscriptionId: billingPeriod?.subscriptionId ?? null,
-      },
+      } as z.infer<typeof invoicesInsertSchema>,
       transaction
     )
     await insertInvoiceLineItem(
@@ -659,6 +668,8 @@ export const setupPayment = async ({
   refunded = false,
   refundedAmount = 0,
   refundedAt,
+  chargeDate,
+  purchaseId,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -674,6 +685,8 @@ export const setupPayment = async ({
   refunded?: boolean
   refundedAmount?: number
   refundedAt?: Date
+  chargeDate?: Date
+  purchaseId?: string
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -689,9 +702,10 @@ export const setupPayment = async ({
         billingPeriodId,
         currency: CurrencyCode.USD,
         paymentMethod: paymentMethod ?? PaymentMethodType.Card,
-        chargeDate: new Date(),
+        chargeDate: chargeDate ?? new Date(),
         taxCountry: CountryCode.US,
         subscriptionId: subscriptionId ?? null,
+        purchaseId: purchaseId ?? null,
         refunded,
         refundedAmount,
         refundedAt,
