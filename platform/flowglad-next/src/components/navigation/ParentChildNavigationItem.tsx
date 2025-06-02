@@ -47,9 +47,23 @@ const ParentChildNavigationItem = ({
       </NavigationMenuLink>
       {isOpen && (
         <NavigationMenu>
-          <NavigationMenuList className="w-full flex flex-col gap-1 pl-[26px]">
+          <NavigationMenuList className="w-full flex flex-col pl-5 relative">
+            {childItems.length > 1 && (
+              <div
+                className="absolute top-0 bottom-0 flex pl-5"
+                style={{ left: '0px' }}
+              >
+                <div
+                  className="w-px bg-stroke-subtle"
+                  style={{
+                    marginTop: '1rem',
+                    marginBottom: '1rem',
+                  }}
+                />
+              </div>
+            )}
             {childItems.map((child) => (
-              <NavigationMenuItem key={child.href}>
+              <NavigationMenuItem key={child.href} className="pl-4">
                 <NavigationMenuLink
                   className="w-full"
                   isChild
