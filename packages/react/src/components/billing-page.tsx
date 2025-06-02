@@ -121,76 +121,79 @@ export function BillingPage({
   }
   const { createAddPaymentMethodCheckoutSession } = billing
   return (
-    <div
-      className={themedCn(
-        'flowglad-flex flowglad-flex-col flowglad-gap-4 flowglad-p-4',
-        className
-      )}
-    >
-      <Section>
-        <CurrentSubscriptionOrPricingTable
-          catalog={billing.catalog!}
-          currentSubscriptions={billing.currentSubscriptions}
-        />
-      </Section>
-      <Section>
-        <SectionTitle
-          button={
-            <Button
-              variant="outline"
-              onClick={() => {
-                createAddPaymentMethodCheckoutSession({
-                  successUrl: window.location.href,
-                  cancelUrl: window.location.href,
-                  autoRedirect: true,
-                })
-              }}
-            >
-              Add Payment Method
-            </Button>
-          }
-        >
-          Payment Methods
-        </SectionTitle>
-        <PaymentMethods paymentMethods={billing.paymentMethods} />
-      </Section>
-      <Section>
-        <SectionTitle>Billing Details</SectionTitle>
-        <CustomerBillingDetails
-          name={billing.customer.name ?? ''}
-          email={billing.customer.email}
-          billingAddress={
-            !billing.customer.billingAddress
-              ? undefined
-              : {
-                  line1:
-                    billing.customer.billingAddress.address.line1,
-                  line2:
-                    billing.customer.billingAddress.address.line2 ??
-                    undefined,
-                  city: billing.customer.billingAddress.address.city,
-                  state:
-                    billing.customer.billingAddress.address.state,
-                  postalCode:
-                    billing.customer.billingAddress.address
-                      .postal_code,
-                  country:
-                    billing.customer.billingAddress.address.country,
-                }
-          }
-        />
-      </Section>
-      <Section>
-        <SectionTitle>Invoices</SectionTitle>
-        <Invoices
-          invoices={billing.invoices.map(
-            ({ invoice, invoiceLineItems }) => ({
-              ...invoice,
-              lineItems: invoiceLineItems,
-            })
-          )}
-        />
-      </Section>
+    <div className={themedCn()}>
+      <div
+        className={themedCn(
+          'flowglad-flex flowglad-flex-col flowglad-gap-4 flowglad-p-4',
+          className
+        )}
+      >
+        <Section>
+          <CurrentSubscriptionOrPricingTable
+            catalog={billing.catalog!}
+            currentSubscriptions={billing.currentSubscriptions}
+          />
+        </Section>
+        <Section>
+          <SectionTitle
+            button={
+              <Button
+                variant="outline"
+                onClick={() => {
+                  createAddPaymentMethodCheckoutSession({
+                    successUrl: window.location.href,
+                    cancelUrl: window.location.href,
+                    autoRedirect: true,
+                  })
+                }}
+              >
+                Add Payment Method
+              </Button>
+            }
+          >
+            Payment Methods
+          </SectionTitle>
+          <PaymentMethods paymentMethods={billing.paymentMethods} />
+        </Section>
+        <Section>
+          <SectionTitle>Billing Details</SectionTitle>
+          <CustomerBillingDetails
+            name={billing.customer.name ?? ''}
+            email={billing.customer.email}
+            billingAddress={
+              !billing.customer.billingAddress
+                ? undefined
+                : {
+                    line1:
+                      billing.customer.billingAddress.address.line1,
+                    line2:
+                      billing.customer.billingAddress.address.line2 ??
+                      undefined,
+                    city: billing.customer.billingAddress.address
+                      .city,
+                    state:
+                      billing.customer.billingAddress.address.state,
+                    postalCode:
+                      billing.customer.billingAddress.address
+                        .postal_code,
+                    country:
+                      billing.customer.billingAddress.address.country,
+                  }
+            }
+          />
+        </Section>
+        <Section>
+          <SectionTitle>Invoices</SectionTitle>
+          <Invoices
+            invoices={billing.invoices.map(
+              ({ invoice, invoiceLineItems }) => ({
+                ...invoice,
+                lineItems: invoiceLineItems,
+              })
+            )}
+          />
+        </Section>
+      </div>
     </div>
   )
 }

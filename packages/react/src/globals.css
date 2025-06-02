@@ -2,10 +2,10 @@
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
-
+  
   @plugin 'tailwindcss-animate';
   @custom-variant dark (&:is(.dark *));
-
+  
   /* --flowglad-background: 0 0% 100%; */
   /* --flowglad-foreground: hsl(240 10% 3.9%); */
   /* --flowglad-card: hsl(0 0% 100%);
