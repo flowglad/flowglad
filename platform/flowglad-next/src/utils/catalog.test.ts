@@ -505,12 +505,10 @@ describe('createProductTransaction', () => {
       livemode: false,
     })
 
-    console.log('======sourceCatalog', sourceCatalog)
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: true,
     })
-    console.log('======userApiKeyOrg1', userApiKeyOrg1)
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }

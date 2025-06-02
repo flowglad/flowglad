@@ -42,12 +42,12 @@ export type ButtonProps =
 
 export const buttonVariants = cva(
   [
-    'flex',
+    'flex border-primary',
     'items-center',
     'justify-center',
     'disabled:pointer-events-none',
     'whitespace-nowrap',
-    'border',
+    'border border-primary',
     'h-fit',
     'w-fit',
     'disabled:text-on-disabled',
@@ -57,7 +57,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         filled: 'disabled:bg-disabled border-transparent',
-        outline: 'disabled:border-stroke-disabled',
+        outline: 'disabled:border-stroke-disabled border-primary',
         soft: 'disabled:bg-transparent disabled:border-stroke-disabled border-transparent',
         gradient: 'disabled:bg-disabled border-none',
         ghost: 'focus:bg-opacity-0 border-transparent',
@@ -121,8 +121,8 @@ export const buttonVariants = cva(
               className: [
                 `text-${color}`,
                 color === 'neutral'
-                  ? `border-stroke`
-                  : `border-stroke-${color}`,
+                  ? `border-primary`
+                  : `border-${color}`,
                 `hover:bg-${color}-accent`,
                 `active:bg-${color}-container  `,
                 `active:text-on-${color}-container`,
@@ -192,8 +192,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             (iconLeading || iconTrailing) && !children
               ? `icon-${size}`
               : variant === `link`
-              ? `link-${size}`
-              : size,
+                ? `link-${size}`
+                : size,
         }),
         'transition-shadows transition-colors',
         disabledTooltip && 'group relative',

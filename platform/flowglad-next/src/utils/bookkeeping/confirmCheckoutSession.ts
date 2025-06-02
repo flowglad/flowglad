@@ -92,6 +92,7 @@ export const confirmCheckoutSessionTransaction = async (
         organizationId: checkoutSession.organizationId,
         name:
           checkoutSession.customerName ||
+          checkoutSession.billingAddress?.name ||
           checkoutSession.customerEmail,
         billingAddress: checkoutSession.billingAddress,
         externalId: core.nanoid(),

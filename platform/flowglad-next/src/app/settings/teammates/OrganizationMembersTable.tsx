@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { UserRecord } from '@/db/schema/users'
 import { Membership } from '@/db/schema/memberships'
 import TableTitle from '@/components/ion/TableTitle'
@@ -49,7 +49,7 @@ const OrganizationMembersTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => (
@@ -58,7 +58,7 @@ const OrganizationMembersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Email" column={column} />
+            <ColumnHeaderCell title="Email" column={column} />
           ),
           accessorKey: 'email',
           cell: ({ row: { original: cellData } }) => (

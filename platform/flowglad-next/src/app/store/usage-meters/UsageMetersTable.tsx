@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { core } from '@/utils/core'
 import TableTitle from '@/components/ion/TableTitle'
@@ -47,7 +47,7 @@ const UsageMetersTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'usageMeter.name',
           cell: ({ row: { original: cellData } }) => (
@@ -58,10 +58,7 @@ const UsageMetersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Catalog"
-              column={column}
-            />
+            <ColumnHeaderCell title="Catalog" column={column} />
           ),
           accessorKey: 'catalog.name',
           cell: ({ row: { original: cellData } }) => (
@@ -70,7 +67,7 @@ const UsageMetersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
+            <ColumnHeaderCell
               title="Aggregation Type"
               column={column}
             />
@@ -86,10 +83,7 @@ const UsageMetersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'usageMeter.createdAt',
           cell: ({ row: { original: cellData } }) => (
@@ -100,7 +94,7 @@ const UsageMetersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'usageMeter.id',
           cell: ({ row: { original: cellData } }) => (
@@ -121,14 +115,6 @@ const UsageMetersTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
-      <TableTitle
-        title="Usage Meters"
-        buttonIcon={<Plus size={16} strokeWidth={2} />}
-        buttonLabel="Create Usage Meter"
-        buttonOnClick={() => {
-          setIsCreateModalOpen(true)
-        }}
-      />
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">

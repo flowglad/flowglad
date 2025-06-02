@@ -1,7 +1,6 @@
 // ion/TableContainer: Generated with Ion on 9/20/2024, 10:31:46 PM
 import {
   type ColumnDef,
-  type SortingState,
   type Table as TableType,
   flexRender,
   getCoreRowModel,
@@ -9,7 +8,6 @@ import {
   getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
 import clsx from 'clsx'
@@ -342,22 +340,19 @@ function Table<TData, TValue>({
   pagination,
   isLoading = false,
 }: TableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
   const [rowSelection, setRowSelection] = useState({})
 
   const table = useReactTable({
     data,
     columns,
+    enableSorting: false,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-    onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     state: {
-      sorting,
       rowSelection,
       pagination: pagination
         ? {

@@ -19,7 +19,7 @@ export function TableRowPopoverMenu({
     <div onClick={(e) => e.stopPropagation()}>
       <Popover>
         <PopoverTrigger className="w-8 h-8 justify-center">
-          <Ellipsis size={16} />
+          <Ellipsis size={16} className="rotate-90" />
         </PopoverTrigger>
         <PopoverContent className="w-fit" align="end">
           <PopoverMenu items={items} />

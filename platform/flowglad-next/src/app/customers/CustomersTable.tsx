@@ -1,7 +1,7 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import {
   Customer,
   InferredCustomerStatus,
@@ -138,7 +138,7 @@ const CustomersTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
@@ -147,7 +147,7 @@ const CustomersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Email" column={column} />
+            <ColumnHeaderCell title="Email" column={column} />
           ),
           accessorKey: 'customer.email',
           cell: ({ row: { original: cellData } }) => (
@@ -156,10 +156,7 @@ const CustomersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Total Spend"
-              column={column}
-            />
+            <ColumnHeaderCell title="Total Spend" column={column} />
           ),
           accessorKey: 'totalSpend',
           cell: ({ row: { original: cellData } }) => (
@@ -173,10 +170,7 @@ const CustomersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Payments"
-              column={column}
-            />
+            <ColumnHeaderCell title="Payments" column={column} />
           ),
           accessorKey: 'payments',
           cell: ({ row: { original: cellData } }) => (
@@ -185,10 +179,7 @@ const CustomersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created At"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created At" column={column} />
           ),
           accessorKey: 'customer.createdAt',
           cell: ({ row: { original: cellData } }) => (
@@ -199,7 +190,7 @@ const CustomersTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'customer.id',
           cell: ({ row: { original: cellData } }) => (
