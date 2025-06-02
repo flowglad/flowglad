@@ -7,12 +7,14 @@ import {
 } from '@/components/ion/Navigation'
 import { usePathname } from 'next/navigation'
 import { ReactNode } from 'react'
+import { cn } from '@/utils/core'
 
 interface StandaloneNavigationItemProps {
   title: string
   href: string
   icon: ReactNode
   basePath: string
+  isCollapsed: boolean
 }
 
 const StandaloneNavigationItem = ({
@@ -20,20 +22,35 @@ const StandaloneNavigationItem = ({
   href,
   icon,
   basePath,
+  isCollapsed,
 }: StandaloneNavigationItemProps) => {
   const pathname = usePathname()
 
   return (
     <NavigationMenu>
       <NavigationMenuList className="w-full flex flex-col">
-        <NavigationMenuItem>
+        <NavigationMenuItem className="w-full">
           <NavigationMenuLink
             iconLeading={icon}
-            className="w-full"
+            className={cn(
+              'w-full flex items-center transition-all duration-300 ease-in-out',
+              isCollapsed
+                ? 'justify-center px-2'
+                : 'justify-start px-3'
+            )}
             href={href}
             selected={pathname.startsWith(basePath)}
           >
-            {title}
+            <span
+              className={cn(
+                'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+                isCollapsed
+                  ? 'max-w-0 opacity-0 ml-0'
+                  : 'max-w-xs opacity-100 ml-2'
+              )}
+            >
+              {isCollapsed ? null : title}
+            </span>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

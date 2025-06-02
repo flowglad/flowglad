@@ -7,8 +7,13 @@ import {
 import { BusinessOnboardingStatus } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
 import { usePathname } from 'next/navigation'
+import { cn } from '@/utils/core'
 
-const OnboardingNavigationSection = () => {
+const OnboardingNavigationSection = ({
+  isCollapsed,
+}: {
+  isCollapsed: boolean
+}) => {
   const pathname = usePathname()
   const selectedPath = pathname
   const { organization } = useAuthContext()
@@ -19,17 +24,33 @@ const OnboardingNavigationSection = () => {
     return null
   }
   return (
-    <NavigationMenuItem>
+    <NavigationMenuItem className="w-full">
       <NavigationMenuLink
         iconLeading={
           <TriangleRight size={14} strokeWidth={2} color="orange" />
         }
-        iconTrailing={<ChevronRight size={16} strokeWidth={2} />}
-        className="w-full"
+        iconTrailing={
+          isCollapsed ? null : (
+            <ChevronRight size={16} strokeWidth={2} />
+          )
+        }
+        className={cn(
+          'w-full flex items-center transition-all duration-300 ease-in-out',
+          isCollapsed ? 'justify-center px-2' : 'justify-start px-3'
+        )}
         href="/onboarding"
         selected={selectedPath.startsWith('/onboarding')}
       >
-        Set Up
+        <span
+          className={cn(
+            'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+            isCollapsed
+              ? 'max-w-0 opacity-0 ml-0'
+              : 'max-w-xs opacity-100 ml-2'
+          )}
+        >
+          {isCollapsed ? null : 'Set Up'}
+        </span>
       </NavigationMenuLink>
     </NavigationMenuItem>
   )
