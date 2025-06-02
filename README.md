@@ -6,11 +6,13 @@
   <h3 align="center">Flowglad</h3>
 
   <p align="center">
-    Open-source Billing for Web Devs & Vibe Coders
+    Open-source payment and billing for web devs & vibe coders
     <br />
     <a href="https://flowglad.com"><strong>Get Started</strong></a>
     <br />
-    <br />
+    <br />   
+    ·
+    <a href="https://docs.flowglad.com/quickstart">Quickstart</a>
     ·
     <a href="https://flowglad.com">Website</a>
     ·
