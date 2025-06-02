@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import PricingCellView from '@/components/PricingCellView'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { Catalog } from '@/db/schema/catalogs'
 import { trpc } from '@/app/_trpc/client'
@@ -155,7 +155,7 @@ export const ProductsTable = ({
         {
           id: 'name',
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'product.name',
           cell: ({ row: { original: cellData } }) => (
@@ -168,10 +168,7 @@ export const ProductsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Pricing"
-              column={column}
-            />
+            <ColumnHeaderCell title="Pricing" column={column} />
           ),
           accessorKey: 'prices',
           cell: ({ row: { original: cellData } }) => (
@@ -181,10 +178,7 @@ export const ProductsTable = ({
         {
           id: 'status',
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'product.active',
           cell: ({ row: { original: cellData } }) => (
@@ -194,10 +188,7 @@ export const ProductsTable = ({
         {
           id: 'created',
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'product.createdAt',
           cell: ({ row: { original: cellData } }) => (
@@ -207,10 +198,7 @@ export const ProductsTable = ({
         {
           id: 'catalog',
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Catalog"
-              column={column}
-            />
+            <ColumnHeaderCell title="Catalog" column={column} />
           ),
           accessorKey: 'catalog.name',
           cell: ({ row: { original: cellData } }) => {
@@ -223,7 +211,7 @@ export const ProductsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'product.id',
           cell: ({ row: { original: cellData } }) => (

@@ -13,7 +13,7 @@ import {
 import Badge, { BadgeColor } from '@/components/ion/Badge'
 import TableTitle from '@/components/ion/TableTitle'
 import EndPurchaseModal from '@/components/forms/EndPurchaseModal'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { Payment } from '@/db/schema/payments'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode, PurchaseStatus } from '@/types'
@@ -115,7 +115,7 @@ const PurchasesTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => {
@@ -135,10 +135,7 @@ const PurchasesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Revenue"
-              column={column}
-            />
+            <ColumnHeaderCell title="Revenue" column={column} />
           ),
           accessorKey: 'amount',
           cell: ({ row: { original: cellData } }) => (
@@ -159,10 +156,7 @@ const PurchasesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Purchase Date"
-              column={column}
-            />
+            <ColumnHeaderCell title="Purchase Date" column={column} />
           ),
           accessorKey: 'startDate',
           cell: ({ row: { original: cellData } }) => (
@@ -175,10 +169,7 @@ const PurchasesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
@@ -187,7 +178,7 @@ const PurchasesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'purchase.id',
           cell: ({ row: { original: cellData } }) => (

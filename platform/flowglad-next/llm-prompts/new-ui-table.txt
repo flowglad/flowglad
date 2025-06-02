@@ -16,7 +16,7 @@ The columns should be like so:
 import { useMemo } from 'react'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 // the prompt may provider another source for the type - if so, import it from there
 import { UnicornRiderRecord } from '@/db/schema/unicorn-riders'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
@@ -50,7 +50,7 @@ const UnicornRidersTable = ({
   const columns = useMemo(() => [
     {
       header: ({ column }) => (
-        <SortableColumnHeaderCell
+        <ColumnHeaderCell
           title="Name"
           column={column}
         />
@@ -62,7 +62,7 @@ const UnicornRidersTable = ({
     },
     {
       header: ({ column }) => (
-        <SortableColumnHeaderCell
+        <ColumnHeaderCell
           title="Type"
           column={column}
         />
@@ -74,7 +74,7 @@ const UnicornRidersTable = ({
     },
     {
       header: ({ column }) => (
-        <SortableColumnHeaderCell title="Pricing" column={column} />
+        <ColumnHeaderCell title="Pricing" column={column} />
       ),
       accessorKey: 'pricing',
       cell: ({ row: { original: cellData } }) => (
@@ -83,7 +83,7 @@ const UnicornRidersTable = ({
     },
     {
       header: ({ column }) => (
-        <SortableColumnHeaderCell title="Status" column={column} />
+        <ColumnHeaderCell title="Status" column={column} />
       ),
       accessorKey: 'status',
       cell: ({ row: { original: cellData } }) => (
@@ -92,7 +92,7 @@ const UnicornRidersTable = ({
     },
     {
       header: ({ column }) => (
-        <SortableColumnHeaderCell title="Created" column={column} />
+        <ColumnHeaderCell title="Created" column={column} />
       ),
       accessorKey: 'createdAt',
       cell: ({ row: { original: cellData } }) => (
@@ -101,7 +101,7 @@ const UnicornRidersTable = ({
     },
     {
       header: ({ column }) => (
-        <SortableColumnHeaderCell title="ID" column={column} />
+        <ColumnHeaderCell title="ID" column={column} />
       ),
       accessorKey: 'id',
       cell: ({ row: { original: cellData } }) => (
@@ -179,7 +179,7 @@ import TableTitleRow from '@/components/TableTitleRow'
 ```
 {
   header: ({ column }) => (
-    <SortableColumnHeaderCell
+    <ColumnHeaderCell
       title="ID"
       column={column}
     />

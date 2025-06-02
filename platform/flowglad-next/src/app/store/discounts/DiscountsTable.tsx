@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { Discount } from '@/db/schema/discounts'
 import core from '@/utils/core'
 import {
@@ -127,7 +127,7 @@ const DiscountsTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'discount.name',
           cell: ({ row: { original: cellData } }) => (
@@ -136,7 +136,7 @@ const DiscountsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Code" column={column} />
+            <ColumnHeaderCell title="Code" column={column} />
           ),
           accessorKey: 'discount.code',
           cell: ({ row: { original: cellData } }) => (
@@ -145,10 +145,7 @@ const DiscountsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Amount"
-              column={column}
-            />
+            <ColumnHeaderCell title="Amount" column={column} />
           ),
           accessorKey: 'discount.amount',
           cell: ({ row: { original: cellData } }) => (
@@ -157,10 +154,7 @@ const DiscountsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Duration"
-              column={column}
-            />
+            <ColumnHeaderCell title="Duration" column={column} />
           ),
           accessorKey: 'discount.duration',
           cell: ({ row: { original: cellData } }) => (
@@ -169,10 +163,7 @@ const DiscountsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Redemptions"
-              column={column}
-            />
+            <ColumnHeaderCell title="Redemptions" column={column} />
           ),
           accessorKey: 'discountRedemptionsCount',
           cell: ({ row: { original: cellData } }) => (
@@ -183,10 +174,7 @@ const DiscountsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'discount.active',
           cell: ({ row: { original: cellData } }) => (
@@ -195,10 +183,7 @@ const DiscountsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'discount.createdAt',
           cell: ({ row: { original: cellData } }) => (

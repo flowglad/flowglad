@@ -18,7 +18,7 @@ import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
 import PricingCellView from '@/components/PricingCellView'
 import { PriceType } from '@/types'
 import TableTitle from '@/components/ion/TableTitle'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
@@ -189,7 +189,7 @@ const PaginatedPricesTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Price" column={column} />
+            <ColumnHeaderCell title="Price" column={column} />
           ),
           accessorKey: 'price',
           cell: ({ row: { original: cellData } }) => (
@@ -198,7 +198,7 @@ const PaginatedPricesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Type" column={column} />
+            <ColumnHeaderCell title="Type" column={column} />
           ),
           accessorKey: 'type',
           cell: ({ row: { original: cellData } }) => (
@@ -207,10 +207,7 @@ const PaginatedPricesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Pricing"
-              column={column}
-            />
+            <ColumnHeaderCell title="Pricing" column={column} />
           ),
           accessorKey: 'pricing',
           cell: ({ row: { original: cellData } }) => (
@@ -219,10 +216,7 @@ const PaginatedPricesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
@@ -250,10 +244,7 @@ const PaginatedPricesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
@@ -262,7 +253,7 @@ const PaginatedPricesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'price.id',
           cell: ({ row: { original: cellData } }) => (

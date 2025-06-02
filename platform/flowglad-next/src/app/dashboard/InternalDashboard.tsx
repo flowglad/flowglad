@@ -7,6 +7,8 @@ import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
 import { DateRangePicker } from '@/components/ion/Datepicker'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 const ChartContainer = ({
   children,
@@ -35,57 +37,57 @@ function InternalDashboardPage({
   })
 
   return (
-    <>
-      <div className="bg-internal flex-1 flex items-start gap-6 p-6 h-full w-full overflow-y-scroll">
-        <div className="w-full flex flex-col gap-10 rounded-radius-sm">
-          <div className="flex justify-between items-center">
-            <PageTitle>Dashboard</PageTitle>
-            <DateRangePicker
+    <InternalPageContainer>
+      <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
+        <Breadcrumb />
+        <div className="flex flex-row justify-between">
+          <PageTitle>Dashboard</PageTitle>
+        </div>
+        <div className="flex justify-between items-center">
+          <DateRangePicker
+            fromDate={range.from}
+            toDate={range.to}
+            minDate={new Date(organizationCreatedAt)}
+            maxDate={new Date()}
+            onSelect={(newRange) => {
+              if (newRange) {
+                setRange({
+                  from:
+                    newRange.from ?? new Date(organizationCreatedAt),
+                  to: newRange.to ?? new Date(),
+                })
+              }
+            }}
+            mode="range"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          <ChartContainer>
+            <DateRangeRevenueChart
+              organizationCreatedAt={organizationCreatedAt}
               fromDate={range.from}
               toDate={range.to}
-              minDate={new Date(organizationCreatedAt)}
-              maxDate={new Date()}
-              onSelect={(newRange) => {
-                if (newRange) {
-                  setRange({
-                    from:
-                      newRange.from ??
-                      new Date(organizationCreatedAt),
-                    to: newRange.to ?? new Date(),
-                  })
-                }
-              }}
-              mode="range"
             />
-          </div>
-          <div className="grid grid-cols-1 gap-6">
+          </ChartContainer>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ChartContainer>
-              <DateRangeRevenueChart
+              <DateRangeRecurringRevenueChart
                 organizationCreatedAt={organizationCreatedAt}
                 fromDate={range.from}
                 toDate={range.to}
               />
             </ChartContainer>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ChartContainer>
-                <DateRangeRecurringRevenueChart
-                  organizationCreatedAt={organizationCreatedAt}
-                  fromDate={range.from}
-                  toDate={range.to}
-                />
-              </ChartContainer>
-              <ChartContainer>
-                <DateRangeActiveSubscribersChart
-                  organizationCreatedAt={organizationCreatedAt}
-                  fromDate={range.from}
-                  toDate={range.to}
-                />
-              </ChartContainer>
-            </div>
+            <ChartContainer>
+              <DateRangeActiveSubscribersChart
+                organizationCreatedAt={organizationCreatedAt}
+                fromDate={range.from}
+                toDate={range.to}
+              />
+            </ChartContainer>
           </div>
         </div>
       </div>
-    </>
+    </InternalPageContainer>
   )
 }
 
