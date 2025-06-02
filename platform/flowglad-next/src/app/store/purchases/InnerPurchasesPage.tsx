@@ -1,5 +1,7 @@
 'use client'
-import { PageHeader } from '@/components/ion/PageHeader'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
+import PageTitle from '@/components/ion/PageTitle'
 import PurchasesTable from '@/app/customers/[id]/PurchasesTable'
 
 const InnerPurchasesPage = ({
@@ -8,21 +10,15 @@ const InnerPurchasesPage = ({
   organizationId: string
 }) => {
   return (
-    <div className="h-full flex justify-between items-center gap-2.5">
-      <div className="bg-internal flex-1 h-full w-full flex flex-col p-6">
-        <PageHeader
-          title="Purchases"
-          tabs={[
-            {
-              label: 'All',
-              subPath: '',
-              Component: () => <PurchasesTable />,
-            },
-          ]}
-          hideTabs
-        />
+    <InternalPageContainer>
+      <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
+        <Breadcrumb />
+        <div className="flex flex-row justify-between items-center mb-6 gap-8">
+          <PageTitle>Purchases</PageTitle>
+        </div>
       </div>
-    </div>
+      <PurchasesTable />
+    </InternalPageContainer>
   )
 }
 

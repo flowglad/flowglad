@@ -115,14 +115,6 @@ const UsageMetersTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5 pb-8">
-      <TableTitle
-        title="Usage Meters"
-        buttonIcon={<Plus size={16} strokeWidth={2} />}
-        buttonLabel="Create Usage Meter"
-        buttonOnClick={() => {
-          setIsCreateModalOpen(true)
-        }}
-      />
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
