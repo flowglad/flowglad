@@ -71,7 +71,7 @@ function InternalDiscountsPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="mb-4">
+          <TabsList className="gap-8 border-b border-stroke-subtle">
             <DiscountStatusTab
               status="all"
               isActive={activeTab === 'all'}

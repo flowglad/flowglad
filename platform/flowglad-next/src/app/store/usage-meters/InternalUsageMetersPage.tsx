@@ -1,5 +1,5 @@
 'use client'
-import { PageHeader } from '@/components/ion/PageHeader'
+import PageTitle from '@/components/ion/PageTitle'
 import UsageMetersTable, {
   UsageMetersTableFilters,
 } from './UsageMetersTable'
@@ -8,6 +8,7 @@ import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import Button from '@/components/ion/Button'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 export default function UsageMetersPage() {
   const [createUsageMeterModalOpen, setCreateUsageMeterModalOpen] =
@@ -16,25 +17,19 @@ export default function UsageMetersPage() {
 
   return (
     <InternalPageContainer>
-      <PageHeader
-        title="Usage Meters"
-        tabs={[
-          {
-            label: 'Usage Meters',
-            subPath: '/usage-meters',
-            Component: () => <UsageMetersTable filters={filters} />,
-          },
-        ]}
-        primaryButton={
+      <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
+        <Breadcrumb />
+        <div className="flex flex-row justify-between items-center mb-6 gap-8">
+          <PageTitle>Usage Meters</PageTitle>
           <Button
             onClick={() => setCreateUsageMeterModalOpen(true)}
             iconLeading={<Plus size={16} strokeWidth={2} />}
           >
             Create Usage Meter
           </Button>
-        }
-        hideTabs={true}
-      />
+        </div>
+        <UsageMetersTable filters={filters} />
+      </div>
       <CreateUsageMeterModal
         isOpen={createUsageMeterModalOpen}
         setIsOpen={setCreateUsageMeterModalOpen}

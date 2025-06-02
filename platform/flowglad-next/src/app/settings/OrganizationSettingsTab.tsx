@@ -1,5 +1,5 @@
 'use client'
-
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { DetailLabel } from '@/components/DetailLabel'
@@ -39,6 +39,7 @@ const OrganizationSettingsTab = () => {
           <TableTitle title="Team" noButtons />
           <Button
             onClick={() => setIsInviteModalOpen(true)}
+            iconLeading={<Plus className="w-4 h-4" strokeWidth={2} />}
             size="sm"
             variant="outline"
             color="primary"

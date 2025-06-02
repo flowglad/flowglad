@@ -44,7 +44,7 @@ const InternalInvoicesPage = () => {
         </div>
 
         <Tabs value={selectedStatus} onValueChange={handleTabChange}>
-          <TabsList>
+          <TabsList className="gap-8 border-b border-stroke-subtle">
             <InvoiceStatusTab
               status="all"
               isActive={selectedStatus === 'all'}
@@ -73,7 +73,7 @@ const InternalInvoicesPage = () => {
             />
           </TabsList>
 
-          <TabsContent value={selectedStatus}>
+          <TabsContent value={selectedStatus} className="mt-6">
             <InvoicesTable filters={filters} />
           </TabsContent>
         </Tabs>

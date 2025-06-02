@@ -61,7 +61,7 @@ function InternalProductsPage({ products: initialProducts }: Props) {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="mb-4">
+          <TabsList className="gap-8 border-b border-stroke-subtle w-full">
             <ProductStatusTab
               status="all"
               isActive={activeTab === 'all'}
@@ -76,7 +76,7 @@ function InternalProductsPage({ products: initialProducts }: Props) {
             />
           </TabsList>
 
-          <TabsContent value={activeTab}>
+          <TabsContent value={activeTab} className="mt-6">
             <ProductsTable filters={getFilterForTab(activeTab)} />
           </TabsContent>
         </Tabs>

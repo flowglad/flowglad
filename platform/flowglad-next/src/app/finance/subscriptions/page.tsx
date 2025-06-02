@@ -48,7 +48,7 @@ function InternalSubscriptionsPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="mb-4">
+          <TabsList className="gap-8 border-b border-stroke-subtle">
             <SubscriptionsTab
               status="all"
               isActive={activeTab === 'all'}
@@ -78,7 +78,7 @@ function InternalSubscriptionsPage() {
               isActive={activeTab === SubscriptionStatus.Incomplete}
             />
           </TabsList>
-          <TabsContent value={activeTab}>
+          <TabsContent value={activeTab} className="mt-6">
             <SubscriptionsTable
               filters={getFilterForTab(activeTab)}
             />
