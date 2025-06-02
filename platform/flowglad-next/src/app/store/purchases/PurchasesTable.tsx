@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { formatDate } from '@/utils/core'
 import { Purchase } from '@/db/schema/purchases'
 
@@ -15,10 +15,7 @@ const PurchasesTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Customer"
-              column={column}
-            />
+            <ColumnHeaderCell title="Customer" column={column} />
           ),
           id: 'customer',
           cell: ({ row: { original: cellData } }) => (
@@ -27,10 +24,7 @@ const PurchasesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Product"
-              column={column}
-            />
+            <ColumnHeaderCell title="Product" column={column} />
           ),
           accessorKey: 'product',
           cell: ({ row: { original: cellData } }) => (
@@ -39,10 +33,7 @@ const PurchasesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
@@ -53,7 +44,7 @@ const PurchasesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Date" column={column} />
+            <ColumnHeaderCell title="Date" column={column} />
           ),
           accessorKey: 'purchaseDate',
           cell: ({ row: { original: cellData } }) => (

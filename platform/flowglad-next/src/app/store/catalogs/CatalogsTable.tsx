@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Table, {
   type ColumnDefWithWidth,
 } from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import Badge from '@/components/ion/Badge'
 import { Catalog } from '@/db/schema/catalogs'
 import EditCatalogModal from '@/components/forms/EditCatalogModal'
@@ -77,7 +77,7 @@ const CatalogsTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'catalog.name',
           width: '20%',
@@ -94,10 +94,7 @@ const CatalogsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Products"
-              column={column}
-            />
+            <ColumnHeaderCell title="Products" column={column} />
           ),
           accessorKey: 'productsCount',
           width: '30%',
@@ -107,7 +104,7 @@ const CatalogsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'catalog.id',
           width: '30%',

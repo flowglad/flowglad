@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { Payment } from '@/db/schema/payments'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
@@ -103,10 +103,7 @@ const PaymentsTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Amount"
-              column={column}
-            />
+            <ColumnHeaderCell title="Amount" column={column} />
           ),
           accessorKey: 'payment.amount',
           cell: ({ row: { original: cellData } }) => (
@@ -120,10 +117,7 @@ const PaymentsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'payment.status',
           cell: ({ row: { original: cellData } }) => (
@@ -132,10 +126,7 @@ const PaymentsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Customer"
-              column={column}
-            />
+            <ColumnHeaderCell title="Customer" column={column} />
           ),
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
@@ -150,7 +141,7 @@ const PaymentsTable = ({
         {
           id: 'refundedAmount',
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Date" column={column} />
+            <ColumnHeaderCell title="Date" column={column} />
           ),
           accessorKey: 'payment.refundedDate',
           cell: ({ row: { original: cellData } }) => (
@@ -161,7 +152,7 @@ const PaymentsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'payment.id',
           cell: ({ row: { original: cellData } }) => (

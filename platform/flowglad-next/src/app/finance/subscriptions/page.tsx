@@ -1,7 +1,5 @@
 'use client'
 
-import { PageHeader } from '@/components/ion/PageHeader'
-import { Subscription } from '@/db/schema/subscriptions'
 import SubscriptionsTable, {
   SubscriptionsTableFilters,
 } from './SubscriptionsTable'
