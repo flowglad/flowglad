@@ -66,6 +66,12 @@ export const sendReceiptEmail = async (params: {
       path: invoice.receiptPdfURL,
     })
   }
+  /**
+   * Don't send for test mode invoices
+   */
+  if (!invoice.livemode) {
+    return
+  }
   return safeSend({
     from: `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`,
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
