@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { Webhook } from '@/db/schema/webhooks'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import StatusBadge from '@/components/StatusBadge'
@@ -94,7 +94,7 @@ const WebhooksTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Name" column={column} />
+            <ColumnHeaderCell title="Name" column={column} />
           ),
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => (
@@ -103,7 +103,7 @@ const WebhooksTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="URL" column={column} />
+            <ColumnHeaderCell title="URL" column={column} />
           ),
           accessorKey: 'url',
           cell: ({ row: { original: cellData } }) => (
@@ -114,10 +114,7 @@ const WebhooksTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'active',
           cell: ({ row: { original: cellData } }) => (
@@ -126,7 +123,7 @@ const WebhooksTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'id',
           cell: ({ row: { original: cellData } }) => (

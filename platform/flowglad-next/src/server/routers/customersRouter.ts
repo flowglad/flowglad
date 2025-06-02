@@ -18,7 +18,6 @@ import {
   editCustomerInputSchema,
   customersPaginatedSelectSchema,
   customersPaginatedListSchema,
-  InferredCustomerStatus,
   customersPaginatedTableRowOutputSchema,
   customersPaginatedTableRowInputSchema,
 } from '@/db/schema/customers'
