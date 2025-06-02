@@ -34,7 +34,7 @@ export default function InternalPaymentsPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="mb-4">
+          <TabsList className="gap-8 border-b border-stroke-subtle">
             <PaymentsTab
               status="all"
               isActive={activeTab === 'all'}
@@ -57,7 +57,7 @@ export default function InternalPaymentsPage() {
             />
           </TabsList>
 
-          <TabsContent value={activeTab}>
+          <TabsContent value={activeTab} className="mt-6">
             <PaymentsTable filters={getFiltersForTab(activeTab)} />
           </TabsContent>
         </Tabs>

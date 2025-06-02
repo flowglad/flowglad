@@ -34,7 +34,6 @@ export const ActiveSubscribersChart = ({
   toDate: Date
   productId?: string
 }) => {
-  const { organization } = useAuthenticatedContext()
   const [interval, setInterval] =
     React.useState<RevenueChartIntervalUnit>(
       RevenueChartIntervalUnit.Month
