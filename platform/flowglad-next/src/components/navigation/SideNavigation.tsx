@@ -196,32 +196,12 @@ export const SideNavigation = () => {
                 setIsCollapsed(false)
               }}
             />
-            <ParentChildNavigationItem
-              parentLabel="Settings"
-              parentLeadingIcon={<Settings size={16} />}
-              childItems={[
-                {
-                  label: 'Organization Details',
-                  href: '/settings/organization-details',
-                },
-                {
-                  label: 'Teammates',
-                  href: '/settings/teammates',
-                },
-                {
-                  label: 'API Keys',
-                  href: '/settings/api-keys',
-                },
-                {
-                  label: 'Webhooks',
-                  href: '/settings/webhooks',
-                },
-              ]}
+            <StandaloneNavigationItem
+              title="Settings"
+              href="/settings"
+              icon={<Settings size={16} />}
               basePath="/settings"
               isCollapsed={isCollapsed}
-              onClickParent={() => {
-                setIsCollapsed(false)
-              }}
             />
           </NavigationMenuList>
           <div className="flex-1" />
