@@ -3,16 +3,19 @@
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import InternalDashboard from './InternalDashboard'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { redirect } from 'next/navigation'
 
 export default async function Home() {
   const organization = await authenticatedTransaction(
     async ({ userId, transaction }) => {
-      const { organization } =
-        await selectFocusedMembershipAndOrganization(
-          userId,
-          transaction
-        )
-      return organization
+      const result = await selectFocusedMembershipAndOrganization(
+        userId,
+        transaction
+      )
+      if (!result.organization) {
+        redirect('/onboarding')
+      }
+      return result.organization
     }
   )
   return (
