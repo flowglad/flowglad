@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { Subscription } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
 import { SubscriptionStatus } from '@/types'
@@ -97,10 +97,7 @@ const SubscriptionsTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Customer"
-              column={column}
-            />
+            <ColumnHeaderCell title="Customer" column={column} />
           ),
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
@@ -109,10 +106,7 @@ const SubscriptionsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'subscription.status',
           cell: ({ row: { original: cellData } }) => (
@@ -123,10 +117,7 @@ const SubscriptionsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Product"
-              column={column}
-            />
+            <ColumnHeaderCell title="Product" column={column} />
           ),
           accessorKey: 'product.name',
           cell: ({ row: { original: cellData } }) => (
@@ -135,10 +126,7 @@ const SubscriptionsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'subscription.createdAt',
           cell: ({ row: { original: cellData } }) => (
@@ -147,10 +135,7 @@ const SubscriptionsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Canceled"
-              column={column}
-            />
+            <ColumnHeaderCell title="Canceled" column={column} />
           ),
           accessorKey: 'subscription.canceledAt',
           cell: ({ row: { original: cellData } }) => (
@@ -163,7 +148,7 @@ const SubscriptionsTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'subscription.id',
           cell: ({ row: { original: cellData } }) => (

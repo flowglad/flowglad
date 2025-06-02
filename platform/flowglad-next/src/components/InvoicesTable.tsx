@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import Badge, { BadgeProps } from './ion/Badge'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import CreateInvoiceModal from './forms/CreateInvoiceModal'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { PopoverMenuItem } from './PopoverMenu'
@@ -154,10 +154,7 @@ const InvoicesTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Amount"
-              column={column}
-            />
+            <ColumnHeaderCell title="Amount" column={column} />
           ),
           accessorKey: 'amount',
           width: '10%',
@@ -175,10 +172,7 @@ const InvoicesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Status"
-              column={column}
-            />
+            <ColumnHeaderCell title="Status" column={column} />
           ),
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
@@ -187,7 +181,7 @@ const InvoicesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
+            <ColumnHeaderCell
               title="Invoice Number"
               column={column}
             />
@@ -199,7 +193,7 @@ const InvoicesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Due" column={column} />
+            <ColumnHeaderCell title="Due" column={column} />
           ),
           accessorKey: 'due',
           width: '15%',
@@ -213,10 +207,7 @@ const InvoicesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'createdAt',
           width: '15%',
@@ -226,7 +217,7 @@ const InvoicesTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="ID" column={column} />
+            <ColumnHeaderCell title="ID" column={column} />
           ),
           accessorKey: 'invoice.id',
           width: '15%',

@@ -8,6 +8,7 @@ import {
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
+import { cn } from '@/utils/core'
 
 type NavigationChild = {
   label: string
@@ -19,6 +20,8 @@ type ParentChildNavigationItemProps = {
   parentLeadingIcon: ReactNode
   childItems: NavigationChild[]
   basePath: string
+  isCollapsed: boolean
+  onClickParent?: () => void
 }
 
 const ParentChildNavigationItem = ({
@@ -26,30 +29,67 @@ const ParentChildNavigationItem = ({
   parentLeadingIcon,
   childItems,
   basePath,
+  isCollapsed,
+  onClickParent,
 }: ParentChildNavigationItemProps) => {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(pathname.startsWith(basePath))
   return (
-    <NavigationMenuItem>
+    <NavigationMenuItem className="w-full min-w-8">
       <NavigationMenuLink
         iconLeading={parentLeadingIcon}
         iconTrailing={
-          isOpen ? (
+          isCollapsed ? null : isOpen ? (
             <ChevronUp size={16} strokeWidth={2} />
           ) : (
             <ChevronDown size={16} strokeWidth={2} />
           )
         }
-        className="w-full"
-        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          'w-full flex items-center transition-all duration-300 ease-in-out',
+          isCollapsed ? 'justify-center px-2' : 'justify-between'
+        )}
+        onClick={() => {
+          onClickParent?.()
+          setIsOpen(!isOpen)
+        }}
       >
-        {parentLabel}
+        <span
+          className={cn(
+            'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+            isCollapsed
+              ? 'max-w-0 opacity-0 ml-0'
+              : 'max-w-xs opacity-100 ml-2'
+          )}
+        >
+          {isCollapsed ? null : parentLabel}
+        </span>
       </NavigationMenuLink>
-      {isOpen && (
+      {isOpen && !isCollapsed && (
         <NavigationMenu>
-          <NavigationMenuList className="w-full flex flex-col gap-1 pl-[26px]">
+          <NavigationMenuList className="w-full flex flex-col pl-5 relative">
+            {childItems.length > 1 && !isCollapsed && (
+              <div
+                className="absolute top-0 bottom-0 flex pl-5"
+                style={{ left: '0px' }}
+              >
+                <div
+                  className="w-px bg-stroke-subtle"
+                  style={{
+                    marginTop: '1rem',
+                    marginBottom: '1rem',
+                  }}
+                />
+              </div>
+            )}
             {childItems.map((child) => (
-              <NavigationMenuItem key={child.href}>
+              <NavigationMenuItem
+                key={child.href}
+                className={cn(
+                  'transition-opacity duration-300',
+                  isCollapsed ? 'opacity-0' : 'opacity-100 pl-4'
+                )}
+              >
                 <NavigationMenuLink
                   className="w-full"
                   isChild

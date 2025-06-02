@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
-import SortableColumnHeaderCell from '@/components/ion/SortableColumnHeaderCell'
+import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from '@/utils/core'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
@@ -85,7 +85,7 @@ const ApiKeysTable = ({
       [
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
+            <ColumnHeaderCell
               title="Name"
               column={column}
               className="w-24"
@@ -100,7 +100,7 @@ const ApiKeysTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell title="Token" column={column} />
+            <ColumnHeaderCell title="Token" column={column} />
           ),
           accessorKey: 'token',
           cell: ({ row: { original: cellData } }) => {
@@ -109,10 +109,7 @@ const ApiKeysTable = ({
         },
         {
           header: ({ column }) => (
-            <SortableColumnHeaderCell
-              title="Created"
-              column={column}
-            />
+            <ColumnHeaderCell title="Created" column={column} />
           ),
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
