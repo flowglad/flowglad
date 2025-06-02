@@ -144,14 +144,16 @@ function PricingTableProductColumn({
 export function PricingTable({ products }: PricingTableProps) {
   const { themedCn } = useFlowgladTheme()
   return (
-    <div
-      className={themedCn(
-        'flowglad-flex flowglad-flex-row flowglad-gap-4 flowglad-w-full'
-      )}
-    >
-      {products.map((product, index) => (
-        <PricingTableProductColumn key={index} product={product} />
-      ))}
+    <div className={themedCn()}>
+      <div
+        className={themedCn(
+          'flowglad-flex flowglad-flex-row flowglad-gap-4 flowglad-w-full'
+        )}
+      >
+        {products.map((product, index) => (
+          <PricingTableProductColumn key={index} product={product} />
+        ))}
+      </div>
     </div>
   )
 }

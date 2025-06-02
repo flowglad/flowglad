@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/express",
-  "version": "0.10.11",
+  "version": "0.10.13",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
