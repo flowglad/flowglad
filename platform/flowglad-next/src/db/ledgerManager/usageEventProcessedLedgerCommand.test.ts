@@ -49,8 +49,13 @@ import {
   setupUsageCreditApplication,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { selectUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { UsageCredit } from '@/db/schema/usageCredits'
+import { eq, and } from 'drizzle-orm'
+import { selectLedgerTransactions } from '../tableMethods/ledgerTransactionMethods'
+import { updateUsageEvent } from '../tableMethods/usageEventMethods'
+import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
 
 const TEST_LIVEMODE = true
 
@@ -603,84 +608,563 @@ describe('createLedgerEntryInsertsForUsageCreditApplications', () => {
 describe('processUsageEventProcessedLedgerCommand', () => {
   it('should process a usage event with no credits available/applied', async () => {
     await adminTransaction(async ({ transaction }) => {
-      // setup:
-      // - A sampleUsageEvent is available from global beforeEach.
-      // - Create a command object using createActualCommand(sampleUsageEvent).
-      // - Ensure no usage credits with available balance exist for the ledgerAccount via DB setup if necessary,
-      //   or rely on aggregateAvailableBalanceForUsageCredit to correctly return [] if ledger account has no credit entries.
-      // expects:
-      // - insertLedgerTransaction to be called (verify by checking DB for the new transaction).
-      // - findOrCreateLedgerAccountsForSubscriptionAndUsageMeters to be effectively called (verify ledger account exists).
-      // - aggregateAvailableBalanceForUsageCredit to be called (this will run against DB).
-      // - bulkInsertLedgerEntries to be called (verify by checking DB for ledger entries).
-      //   - One UsageCost entry should be created for the full amount of sampleUsageEvent.
-      //   - No credit application entries should be created.
+      // Setup: command
+      const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} without credits`
+      const command: UsageEventProcessedLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        payload: {
+          usageEvent: sampleUsageEvent,
+        },
+        type: LedgerTransactionType.UsageEventProcessed,
+        transactionDescription: commandDescription,
+        transactionMetadata: { scenario: 'no_credits_applied' },
+        livemode: TEST_LIVEMODE,
+      }
+
+      // Execute
+      const { ledgerTransaction, ledgerEntries } =
+        await processUsageEventProcessedLedgerCommand(
+          command,
+          transaction
+        )
+
+      // Verify: LedgerTransaction created
+
+      expect(ledgerTransaction).toBeDefined()
+      expect(ledgerTransaction.description).toBe(commandDescription)
+      expect(ledgerTransaction.metadata).toEqual({
+        scenario: 'no_credits_applied',
+      })
+      expect(ledgerTransaction.initiatingSourceType).toBe(
+        LedgerTransactionInitiatingSourceType.UsageEvent
+      )
+
+      // Verify: LedgerEntries created (only UsageCost)
+      const createdLedgerEntries = ledgerEntries
+      expect(createdLedgerEntries.length).toBe(1)
+      const usageCostEntry = createdLedgerEntries.find(
+        (le) => le.entryType === LedgerEntryType.UsageCost
+      )
+
+      expect(usageCostEntry).toBeDefined()
+      if (usageCostEntry) {
+        expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
+        expect(usageCostEntry.direction).toBe(
+          LedgerEntryDirection.Debit
+        )
+        expect(usageCostEntry.amount).toBe(sampleUsageEvent.amount)
+        expect(usageCostEntry.status).toBe(LedgerEntryStatus.Posted)
+        expect(usageCostEntry.sourceUsageEventId).toBe(
+          sampleUsageEvent.id
+        )
+        expect(usageCostEntry.organizationId).toBe(organization.id)
+        expect(usageCostEntry.livemode).toBe(TEST_LIVEMODE)
+        expect(usageCostEntry.description).toBe(
+          `Usage event ${sampleUsageEvent.id} processed.`
+        )
+        expect(usageCostEntry.billingPeriodId).toBe(
+          sampleUsageEvent.billingPeriodId
+        )
+        expect(usageCostEntry.usageMeterId).toBe(
+          sampleUsageEvent.usageMeterId
+        )
+      }
+
+      // Verify: No UsageCreditApplication records created for this usage event
+      const creditApplications = await selectUsageCreditApplications(
+        {
+          organizationId: organization.id,
+          usageEventId: sampleUsageEvent.id,
+        },
+        transaction
+      )
+
+      expect(creditApplications.length).toBe(0)
     })
   })
 
   it('should process a usage event and apply credits partially', async () => {
     await adminTransaction(async ({ transaction }) => {
-      // setup:
-      // - Use sampleUsageEvent (e.g., amount = 100).
-      // - Create a UsageCredit record for ledgerAccount with an initial issuedAmount (e.g. 30).
-      // - Create a LedgerTransaction for this credit grant.
-      // - Create a LedgerEntry of type CreditGrantRecognized for this UsageCredit on the ledgerAccount for 30.
-      //   This makes `aggregateAvailableBalanceForUsageCredit` return a balance.
-      // - Create a command using createActualCommand(sampleUsageEvent).
-      // expects:
-      // - A new LedgerTransaction (for UsageEventProcessed) is created.
-      // - UsageCreditApplications are created (one for 30).
-      // - LedgerEntries are created:
-      //   - One UsageCost entry for 100 (Debit).
-      //   - One UsageCreditApplicationDebitFromCreditBalance entry for 30 (Debit).
-      //   - One UsageCreditApplicationCreditTowardsUsageCost entry for 30 (Credit).
-      // - Verify these records in the database with correct amounts and links.
+      // Setup: Create a partial credit
+      const creditAmount = 30
+      const usageCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id, // Assuming credits can be tied to usage meters
+        creditType: UsageCreditType.Grant,
+        issuedAmount: creditAmount,
+        livemode: TEST_LIVEMODE,
+      })
+
+      const creditGrantTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+        description: 'Test: Grant partial credit',
+        livemode: TEST_LIVEMODE,
+      })
+
+      await setupCreditLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerAccountId: ledgerAccount.id,
+        ledgerTransactionId: creditGrantTransaction.id,
+        sourceUsageCreditId: usageCredit.id,
+        entryType: LedgerEntryType.CreditGrantRecognized,
+        amount: creditAmount,
+        livemode: TEST_LIVEMODE,
+      })
+
+      // Setup: Command for usage event (amount 100)
+      const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} with partial credit`
+      const command: UsageEventProcessedLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        payload: { usageEvent: sampleUsageEvent },
+        type: LedgerTransactionType.UsageEventProcessed,
+        transactionDescription: commandDescription,
+        transactionMetadata: { scenario: 'partial_credit_applied' },
+        livemode: TEST_LIVEMODE,
+      }
+
+      // Execute
+      const {
+        ledgerTransaction: processedTx,
+        ledgerEntries: processedEntries,
+      } = await processUsageEventProcessedLedgerCommand(
+        command,
+        transaction
+      )
+
+      // Verify: Processed LedgerTransaction
+      expect(processedTx).toBeDefined()
+      expect(processedTx.description).toBe(commandDescription)
+      expect(processedTx.type).toBe(
+        LedgerTransactionType.UsageEventProcessed
+      )
+      expect(processedTx.initiatingSourceId).toBe(sampleUsageEvent.id)
+      expect(processedTx.initiatingSourceType).toBe(
+        LedgerTransactionInitiatingSourceType.UsageEvent
+      )
+      expect(processedTx.organizationId).toBe(organization.id)
+      expect(processedTx.livemode).toBe(TEST_LIVEMODE)
+
+      // Verify: UsageCreditApplication created
+      const creditApplications = await selectUsageCreditApplications(
+        {
+          organizationId: organization.id,
+          usageEventId: sampleUsageEvent.id,
+        },
+        transaction
+      )
+      expect(creditApplications.length).toBe(1)
+      const application = creditApplications[0]
+      expect(application.amountApplied).toBe(creditAmount)
+      expect(application.usageCreditId).toBe(usageCredit.id)
+      expect(application.status).toBe(
+        UsageCreditApplicationStatus.Posted
+      )
+      expect(application.organizationId).toBe(organization.id)
+      expect(application.livemode).toBe(TEST_LIVEMODE)
+
+      // Verify: LedgerEntries created
+      expect(processedEntries.length).toBe(3)
+
+      const usageCostEntry = processedEntries.find(
+        (le) => le.entryType === LedgerEntryType.UsageCost
+      )!
+      expect(usageCostEntry).toBeDefined()
+      expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
+      expect(usageCostEntry.direction).toBe(
+        LedgerEntryDirection.Debit
+      )
+      expect(usageCostEntry.amount).toBe(sampleUsageEvent.amount) // Full amount
+      expect(usageCostEntry.status).toBe(LedgerEntryStatus.Posted)
+      expect(usageCostEntry.sourceUsageEventId).toBe(
+        sampleUsageEvent.id
+      )
+      expect(usageCostEntry.ledgerTransactionId).toBe(processedTx.id)
+      expect(usageCostEntry.organizationId).toBe(organization.id)
+      expect(usageCostEntry.livemode).toBe(TEST_LIVEMODE)
+
+      const debitFromCreditBalanceEntry = processedEntries.find(
+        (le) =>
+          le.entryType ===
+          LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+      )!
+      expect(debitFromCreditBalanceEntry).toBeDefined()
+      expect(debitFromCreditBalanceEntry.ledgerAccountId).toBe(
+        ledgerAccount.id
+      )
+      expect(debitFromCreditBalanceEntry.direction).toBe(
+        LedgerEntryDirection.Debit
+      )
+      expect(debitFromCreditBalanceEntry.amount).toBe(creditAmount)
+      expect(debitFromCreditBalanceEntry.status).toBe(
+        LedgerEntryStatus.Posted
+      )
+      expect(
+        debitFromCreditBalanceEntry.sourceCreditApplicationId
+      ).toBe(application.id)
+      expect(debitFromCreditBalanceEntry.ledgerTransactionId).toBe(
+        processedTx.id
+      )
+      expect(debitFromCreditBalanceEntry.organizationId).toBe(
+        organization.id
+      )
+      expect(debitFromCreditBalanceEntry.livemode).toBe(TEST_LIVEMODE)
+
+      const creditTowardsUsageCostEntry = processedEntries.find(
+        (le) =>
+          le.entryType ===
+          LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+      )!
+      expect(creditTowardsUsageCostEntry).toBeDefined()
+      expect(creditTowardsUsageCostEntry.ledgerAccountId).toBe(
+        ledgerAccount.id
+      )
+      expect(creditTowardsUsageCostEntry.direction).toBe(
+        LedgerEntryDirection.Credit
+      )
+      expect(creditTowardsUsageCostEntry.amount).toBe(creditAmount)
+      expect(creditTowardsUsageCostEntry.status).toBe(
+        LedgerEntryStatus.Posted
+      )
+      expect(
+        creditTowardsUsageCostEntry.sourceCreditApplicationId
+      ).toBe(application.id)
+      expect(creditTowardsUsageCostEntry.ledgerTransactionId).toBe(
+        processedTx.id
+      )
+      expect(creditTowardsUsageCostEntry.organizationId).toBe(
+        organization.id
+      )
+      expect(creditTowardsUsageCostEntry.livemode).toBe(TEST_LIVEMODE)
     })
   })
 
   it('should process a usage event and apply credits fully', async () => {
     await adminTransaction(async ({ transaction }) => {
-      // setup:
-      // - Use sampleUsageEvent (e.g., amount = 100).
-      // - Create a UsageCredit for ledgerAccount with issuedAmount >= 100 (e.g. 120).
-      // - Create LedgerEntry CreditGrantRecognized for 120.
-      // - Create command.
-      // expects:
-      // - LedgerTransaction created.
-      // - UsageCreditApplications created (one for 100).
-      // - LedgerEntries created:
-      //   - UsageCost for 100 (Debit).
-      //   - UsageCreditApplicationDebitFromCreditBalance for 100 (Debit).
-      //   - UsageCreditApplicationCreditTowardsUsageCost for 100 (Credit).
+      // Setup: Create a credit that fully covers the usage event
+      const creditIssuedAmount = 120 // sampleUsageEvent.amount is 100
+      const usageCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: creditIssuedAmount,
+        livemode: TEST_LIVEMODE,
+      })
+
+      const creditGrantTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+        description: 'Test: Grant full credit',
+        livemode: TEST_LIVEMODE,
+      })
+
+      await setupCreditLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerAccountId: ledgerAccount.id,
+        ledgerTransactionId: creditGrantTransaction.id,
+        sourceUsageCreditId: usageCredit.id,
+        entryType: LedgerEntryType.CreditGrantRecognized,
+        amount: creditIssuedAmount,
+        livemode: TEST_LIVEMODE,
+      })
+
+      // Setup: Command for usage event (amount 100)
+      const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} with full credit`
+      const command: UsageEventProcessedLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        payload: { usageEvent: sampleUsageEvent },
+        type: LedgerTransactionType.UsageEventProcessed,
+        transactionDescription: commandDescription,
+        transactionMetadata: { scenario: 'full_credit_applied' },
+        livemode: TEST_LIVEMODE,
+      }
+
+      // Execute
+      const {
+        ledgerTransaction: processedTx,
+        ledgerEntries: processedEntries,
+      } = await processUsageEventProcessedLedgerCommand(
+        command,
+        transaction
+      )
+
+      // Verify: Processed LedgerTransaction
+      expect(processedTx).toBeDefined()
+      expect(processedTx.description).toBe(commandDescription)
+      expect(processedTx.type).toBe(
+        LedgerTransactionType.UsageEventProcessed
+      )
+      expect(processedTx.initiatingSourceId).toBe(sampleUsageEvent.id)
+      expect(processedTx.initiatingSourceType).toBe(
+        LedgerTransactionInitiatingSourceType.UsageEvent
+      )
+      expect(processedTx.organizationId).toBe(organization.id)
+      expect(processedTx.livemode).toBe(TEST_LIVEMODE)
+
+      // Verify: UsageCreditApplication created
+      const creditApplications = await selectUsageCreditApplications(
+        {
+          organizationId: organization.id,
+          usageEventId: sampleUsageEvent.id,
+        },
+        transaction
+      )
+      expect(creditApplications.length).toBe(1)
+      const application = creditApplications[0]
+      expect(application.amountApplied).toBe(sampleUsageEvent.amount) // Applied amount is capped at usage event amount
+      expect(application.usageCreditId).toBe(usageCredit.id)
+      expect(application.status).toBe(
+        UsageCreditApplicationStatus.Posted
+      )
+      expect(application.organizationId).toBe(organization.id)
+      expect(application.livemode).toBe(TEST_LIVEMODE)
+
+      // Verify: LedgerEntries created
+      expect(processedEntries.length).toBe(3)
+
+      const usageCostEntry = processedEntries.find(
+        (le) => le.entryType === LedgerEntryType.UsageCost
+      )!
+      expect(usageCostEntry).toBeDefined()
+      expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
+      expect(usageCostEntry.direction).toBe(
+        LedgerEntryDirection.Debit
+      )
+      expect(usageCostEntry.amount).toBe(sampleUsageEvent.amount) // Full event amount
+      expect(usageCostEntry.status).toBe(LedgerEntryStatus.Posted)
+      expect(usageCostEntry.sourceUsageEventId).toBe(
+        sampleUsageEvent.id
+      )
+      expect(usageCostEntry.ledgerTransactionId).toBe(processedTx.id)
+      expect(usageCostEntry.organizationId).toBe(organization.id)
+      expect(usageCostEntry.livemode).toBe(TEST_LIVEMODE)
+
+      const debitFromCreditBalanceEntry = processedEntries.find(
+        (le) =>
+          le.entryType ===
+          LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+      )!
+      expect(debitFromCreditBalanceEntry).toBeDefined()
+      expect(debitFromCreditBalanceEntry.ledgerAccountId).toBe(
+        ledgerAccount.id
+      )
+      expect(debitFromCreditBalanceEntry.direction).toBe(
+        LedgerEntryDirection.Debit
+      )
+      // Amount debited from credit balance is capped at usage event amount
+      expect(debitFromCreditBalanceEntry.amount).toBe(
+        sampleUsageEvent.amount
+      )
+      expect(debitFromCreditBalanceEntry.status).toBe(
+        LedgerEntryStatus.Posted
+      )
+      expect(
+        debitFromCreditBalanceEntry.sourceCreditApplicationId
+      ).toBe(application.id)
+      expect(debitFromCreditBalanceEntry.ledgerTransactionId).toBe(
+        processedTx.id
+      )
+      expect(debitFromCreditBalanceEntry.organizationId).toBe(
+        organization.id
+      )
+      expect(debitFromCreditBalanceEntry.livemode).toBe(TEST_LIVEMODE)
+
+      const creditTowardsUsageCostEntry = processedEntries.find(
+        (le) =>
+          le.entryType ===
+          LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+      )!
+      expect(creditTowardsUsageCostEntry).toBeDefined()
+      expect(creditTowardsUsageCostEntry.ledgerAccountId).toBe(
+        ledgerAccount.id
+      )
+      expect(creditTowardsUsageCostEntry.direction).toBe(
+        LedgerEntryDirection.Credit
+      )
+      // Amount credited towards usage cost is capped at usage event amount
+      expect(creditTowardsUsageCostEntry.amount).toBe(
+        sampleUsageEvent.amount
+      )
+      expect(creditTowardsUsageCostEntry.status).toBe(
+        LedgerEntryStatus.Posted
+      )
+      expect(
+        creditTowardsUsageCostEntry.sourceCreditApplicationId
+      ).toBe(application.id)
+      expect(creditTowardsUsageCostEntry.ledgerTransactionId).toBe(
+        processedTx.id
+      )
+      expect(creditTowardsUsageCostEntry.organizationId).toBe(
+        organization.id
+      )
+      expect(creditTowardsUsageCostEntry.livemode).toBe(TEST_LIVEMODE)
     })
   })
 
   it('should throw an error if findOrCreateLedgerAccountsForSubscriptionAndUsageMeters effectively fails (e.g. bad subscriptionId in command)', async () => {
-    // setup:
-    // - Create a command with a non-existent/invalid subscriptionId.
-    //   (Note: findOrCreateLedgerAccountsForSubscriptionAndUsageMeters might create if not found based on its logic, so this test needs care.
-    //    The function being tested, processUsageEventProcessedLedgerCommand, throws if the result of findOrCreate... is empty.)
-    //   To guarantee an error: pass a subscriptionId that won't match any existing or be creatable for the org, or an invalid usageMeterId if that causes a failure in findOrCreate...
-    // expects:
-    // - The call to processUsageEventProcessedLedgerCommand within adminTransaction to throw an error
-    //   (specifically "Failed to select ledger account for UsageEventProcessed command").
-    // - No new ledger transactions or entries should be created for this faulty command.
+    const invalidSubscriptionId = `sub_invalid_${Date.now()}` // Unique non-existent ID
+
+    // Command with a subscriptionId that does not belong to the organization.id or is simply invalid
+    const command: UsageEventProcessedLedgerCommand = {
+      organizationId: organization.id, // Valid organization
+      subscriptionId: invalidSubscriptionId, // Invalid/non-existent subscription for this org
+      payload: { usageEvent: sampleUsageEvent },
+      type: LedgerTransactionType.UsageEventProcessed,
+      transactionDescription: 'Test with invalid subscriptionId',
+      livemode: TEST_LIVEMODE,
+    }
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        // Expects: The call to processUsageEventProcessedLedgerCommand to throw an error
+        return await processUsageEventProcessedLedgerCommand(
+          command,
+          transaction
+        )
+      })
+    ).rejects.toThrowError(
+      'insert or update on table "ledger_transactions" violates foreign key constraint "ledger_transactions_subscription_id_subscriptions_id_fk"'
+    )
+    const rogueTransactions = await adminTransaction(
+      async ({ transaction }) => {
+        return selectLedgerTransactions(
+          {
+            organizationId: organization.id,
+            subscriptionId: invalidSubscriptionId,
+          },
+          transaction
+        )
+      }
+    )
+    expect(rogueTransactions.length).toBe(0)
   })
 
-  it('should handle null optional fields in the command and usageEvent correctly', async () => {
+  it('should create a new ledger account if one does not exist for the subscription and usage meter', async () => {
     await adminTransaction(async ({ transaction }) => {
-      // setup:
-      // - Create a usageEvent specifically for this test with billingPeriodId = null, etc.
-      //   (sampleUsageEvent might have these fields set, so create a new one or update it for this test context).
-      // - Create a command using this special usageEvent, with transactionDescription = null, transactionMetadata = null.
-      // expects:
-      // - A new LedgerTransaction is created in the DB.
-      //   - Its description field should be null.
-      //   - Its metadata field should be null.
-      // - A UsageCost ledger entry is created.
-      //   - Its billingPeriodId should be null.
-      //   - Its usageMeterId should be based on the usageEvent (which could be null if the event's usageMeterId was null, though usageMeterId on usageEvent is usually non-null).
-      // - The process to complete successfully.
+      // 1. Setup a new UsageMeter that doesn\\'t have a ledger account with the existing subscription
+      const newUsageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        catalogId: catalog.id,
+        name: 'New Meter for LA Creation Test',
+        livemode: TEST_LIVEMODE,
+      })
+
+      // 2. Create a new UsageEvent for this new meter
+      const newUsageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: newUsageMeter.id, // Linked to the new meter
+        amount: 75,
+        priceId: price.id, // price.id is from the global setup, tied to global usageMeter. This is fine.
+        billingPeriodId: billingPeriod.id,
+        transactionId: defaultLedgerTransaction.id, // Re-use existing or create new
+        customerId: customer.id,
+        livemode: TEST_LIVEMODE,
+        usageDate: new Date(),
+      })
+
+      // 3. VERIFY: No LedgerAccount exists yet for this specific subscription and new usage meter
+      const ledgerAccountsBefore = await transaction
+        .select()
+        .from(ledgerAccounts)
+        .where(
+          and(
+            eq(ledgerAccounts.subscriptionId, subscription.id),
+            eq(ledgerAccounts.usageMeterId, newUsageMeter.id),
+            eq(ledgerAccounts.organizationId, organization.id),
+            eq(ledgerAccounts.livemode, TEST_LIVEMODE)
+          )
+        )
+      expect(ledgerAccountsBefore.length).toBe(0)
+
+      // 4. Setup: Command
+      const commandDescription = `Test LA creation for UE ${newUsageEvent.id} with new meter ${newUsageMeter.id}`
+      const command: UsageEventProcessedLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        payload: {
+          usageEvent: newUsageEvent,
+        },
+        type: LedgerTransactionType.UsageEventProcessed,
+        transactionDescription: commandDescription,
+        livemode: TEST_LIVEMODE,
+      }
+
+      // 5. Execute
+      const { ledgerTransaction, ledgerEntries } =
+        await processUsageEventProcessedLedgerCommand(
+          command,
+          transaction
+        )
+
+      // 6. VERIFY: LedgerTransaction created
+      expect(ledgerTransaction).toBeDefined()
+      expect(ledgerTransaction.subscriptionId).toBe(subscription.id)
+      expect(ledgerTransaction.initiatingSourceId).toBe(
+        newUsageEvent.id
+      )
+      expect(ledgerTransaction.organizationId).toBe(organization.id)
+      expect(ledgerTransaction.livemode).toBe(TEST_LIVEMODE)
+
+      // 7. VERIFY: LedgerAccount was created
+      const ledgerAccountsAfter = await transaction
+        .select()
+        .from(ledgerAccounts)
+        .where(
+          and(
+            eq(ledgerAccounts.subscriptionId, subscription.id),
+            eq(ledgerAccounts.usageMeterId, newUsageMeter.id),
+            eq(ledgerAccounts.organizationId, organization.id),
+            eq(ledgerAccounts.livemode, TEST_LIVEMODE)
+          )
+        )
+      expect(ledgerAccountsAfter.length).toBe(1)
+      const createdLedgerAccount = ledgerAccountsAfter[0]
+      expect(createdLedgerAccount).toBeDefined()
+      expect(createdLedgerAccount.subscriptionId).toBe(
+        subscription.id
+      )
+      expect(createdLedgerAccount.usageMeterId).toBe(newUsageMeter.id)
+      expect(createdLedgerAccount.organizationId).toBe(
+        organization.id
+      )
+      expect(createdLedgerAccount.livemode).toBe(TEST_LIVEMODE)
+      // Default normal_balance for a new ledger account via findOrCreate should be 'credit'
+      expect(createdLedgerAccount.normalBalance).toBe('credit')
+
+      // 8. VERIFY: LedgerEntries created and linked to the new LedgerAccount
+      expect(ledgerEntries.length).toBe(1) // Expecting only UsageCost as no credits were set up for this new meter
+      const usageCostEntry = ledgerEntries.find(
+        (le) => le.entryType === LedgerEntryType.UsageCost
+      )
+      expect(usageCostEntry).toBeDefined()
+      if (usageCostEntry) {
+        expect(usageCostEntry.ledgerAccountId).toBe(
+          createdLedgerAccount.id
+        )
+        expect(usageCostEntry.amount).toBe(newUsageEvent.amount)
+        expect(usageCostEntry.sourceUsageEventId).toBe(
+          newUsageEvent.id
+        )
+        expect(usageCostEntry.subscriptionId).toBe(subscription.id)
+        expect(usageCostEntry.organizationId).toBe(organization.id)
+        expect(usageCostEntry.livemode).toBe(TEST_LIVEMODE)
+        expect(usageCostEntry.billingPeriodId).toBe(
+          newUsageEvent.billingPeriodId
+        )
+        expect(usageCostEntry.usageMeterId).toBe(
+          newUsageEvent.usageMeterId
+        )
+      }
     })
   })
 })

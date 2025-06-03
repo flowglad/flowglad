@@ -144,7 +144,10 @@ export const createLedgerEntryInsertsForUsageCreditApplications =
 export const processUsageEventProcessedLedgerCommand = async (
   command: UsageEventProcessedLedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<{
+  ledgerTransaction: LedgerTransaction.Record
+  ledgerEntries: LedgerEntry.Record[]
+}> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -156,7 +159,6 @@ export const processUsageEventProcessedLedgerCommand = async (
     initiatingSourceId: command.payload.usageEvent.id,
     subscriptionId: command.subscriptionId!,
   }
-  console.log('ledgerTransactionInput', ledgerTransactionInput)
   const ledgerTransaction = await insertLedgerTransaction(
     ledgerTransactionInput,
     transaction
@@ -220,5 +222,12 @@ export const processUsageEventProcessedLedgerCommand = async (
     usageCostLedgerEntry,
     ...creditApplicationLedgerEntries,
   ]
-  await bulkInsertLedgerEntries(ledgerEntryInserts, transaction)
+  const createdLedgerEntries = await bulkInsertLedgerEntries(
+    ledgerEntryInserts,
+    transaction
+  )
+  return {
+    ledgerTransaction,
+    ledgerEntries: createdLedgerEntries,
+  }
 }
