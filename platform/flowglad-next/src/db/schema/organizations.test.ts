@@ -22,15 +22,16 @@ describe('billing address schema parser', () => {
   })
   it('should parse nested billing address input (2)', () => {
     const input = {
-      name: 'a',
-      email: '_____@example.com',
+      name: 'Agree Ahmed',
+      email: 'agree.ahmed@gmail.com',
       address: {
-        city: 'New York',
-        line1: '___ ____ ____',
+        city: 'Brooklyn',
+        name: 'Agree Ahmed',
+        line1: '33 Halsey Street',
         line2: null,
-        state: '___ ____',
+        state: 'NY',
         country: 'US',
-        postal_code: '00000',
+        postal_code: '11216',
       },
     }
     const output = billingAddressSchema.parse(input)
