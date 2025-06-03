@@ -116,6 +116,7 @@ const MoreMenuCell = ({
 export interface InvoicesTableFilters {
   status?: InvoiceStatus
   customerId?: string
+  subscriptionId?: string
 }
 
 const InvoicesTable = ({
