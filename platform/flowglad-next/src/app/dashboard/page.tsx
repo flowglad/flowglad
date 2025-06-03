@@ -12,7 +12,7 @@ export default async function Home() {
         userId,
         transaction
       )
-      if (!result.organization) {
+      if (!result || !result.organization) {
         redirect('/onboarding')
       }
       return result.organization
