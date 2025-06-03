@@ -233,9 +233,6 @@ export const subscriptionWithCurrent = <
   }
 }
 
-const bulkInsertOrDoNothingSubscriptions =
-  createBulkInsertOrDoNothingFunction(subscriptions, config)
-
 export const bulkInsertOrDoNothingSubscriptionsByExternalId = (
   subscriptionInserts: Subscription.Insert[],
   transaction: DbTransaction

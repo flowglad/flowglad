@@ -354,12 +354,14 @@ function Table<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     state: {
       rowSelection,
-      pagination: pagination
+      ...(pagination
         ? {
-            pageIndex: pagination.pageIndex,
-            pageSize: pagination.pageSize,
+            pagination: {
+              pageIndex: pagination.pageIndex,
+              pageSize: pagination.pageSize,
+            },
           }
-        : undefined,
+        : {}),
     },
     manualPagination: !!pagination,
     pageCount: pagination
@@ -445,7 +447,7 @@ function Table<TData, TValue>({
 
   if (!isLoading && rowLength === 0) {
     return (
-      <div className="w-full border-dashed border-2 border-stroke-subtle rounded-radius flex items-center justify-center h-32 my-4">
+      <div className="w-full border-dashed border-2 border-stroke-subtle rounded-radius flex items-center justify-center h-32">
         <span className="text-secondary">No items.</span>
       </div>
     )

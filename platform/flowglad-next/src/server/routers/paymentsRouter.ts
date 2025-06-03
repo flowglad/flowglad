@@ -77,6 +77,7 @@ const getTableRowsProcedure = protectedProcedure
       z.object({
         status: z.nativeEnum(PaymentStatus).optional(),
         customerId: z.string().optional(),
+        subscriptionId: z.string().optional(),
       })
     )
   )

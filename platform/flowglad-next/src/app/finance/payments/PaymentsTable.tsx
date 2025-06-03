@@ -74,6 +74,7 @@ export interface PaymentsTableFilters {
   status?: PaymentStatus
   customerId?: string
   organizationId?: string
+  subscriptionId?: string
 }
 
 const PaymentsTable = ({
