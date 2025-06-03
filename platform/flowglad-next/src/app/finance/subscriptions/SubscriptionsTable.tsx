@@ -13,6 +13,7 @@ import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useRouter } from 'next/navigation'
 
 const subscriptionStatusColors: Record<
   SubscriptionStatus,
@@ -173,6 +174,7 @@ const SubscriptionsTable = ({
 
   const tableData = data?.items || []
   const total = data?.total || 0
+  const router = useRouter()
 
   return (
     <Table
@@ -180,6 +182,9 @@ const SubscriptionsTable = ({
       data={tableData}
       className="bg-nav"
       bordered
+      onClickRow={(row) => {
+        router.push(`/finance/subscriptions/${row.subscription.id}`)
+      }}
       pagination={{
         pageIndex,
         pageSize,

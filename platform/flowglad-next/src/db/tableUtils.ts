@@ -81,10 +81,10 @@ export const createSelectById = <
 ) => {
   const selectSchema = config.selectSchema
 
-  return async (
+  return async function selectById(
     id: InferSelectModel<T>['id'] extends string ? string : number,
     transaction: DbTransaction
-  ): Promise<z.infer<S>> => {
+  ): Promise<z.infer<S>> {
     /**
      * NOTE we don't simply use selectByIds here
      * because a simple equality check is generally more performant
