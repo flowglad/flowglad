@@ -144,7 +144,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
     })
   })
 
-  it('should create new ledger accounts for all usage meters and return an empty array (due to current implementation returning only initially found accounts) if none exist', async () => {
+  it('should create new ledger accounts for all usage meters if none exist', async () => {
     await adminTransaction(async ({ transaction }) => {
       // setup:
       const usageMeterIdsToCreateFor = [
@@ -171,7 +171,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
         )
 
       // expectations:
-      expect(result).toEqual([])
+      expect(result).toHaveLength(2)
 
       const createdLedgerAccounts = await selectLedgerAccounts(
         {
@@ -195,7 +195,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
     })
   })
 
-  it('should create missing ledger accounts and return only the initially existing accounts (due to current implementation)', async () => {
+  it('should create missing ledger accounts and return the initially existing accounts and the newly created ones', async () => {
     await adminTransaction(async ({ transaction }) => {
       // setup:
       const usageMeterIdsToProcess = [usageMeter1.id, usageMeter2.id]
@@ -232,9 +232,10 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
         )
 
       // expectations:
-      expect(result).toHaveLength(1)
+      expect(result).toHaveLength(2)
       expect(result[0].id).toBe(ledgerAccountForUsageMeter1.id)
       expect(result[0].usageMeterId).toBe(usageMeter1.id)
+      expect(result[1].usageMeterId).toBe(usageMeter2.id)
 
       const newLedgerAccountForUM2 = await selectLedgerAccounts(
         {

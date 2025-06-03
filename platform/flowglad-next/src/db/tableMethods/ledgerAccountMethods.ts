@@ -102,22 +102,24 @@ export const findOrCreateLedgerAccountsForSubscriptionAndUsageMeters =
               ledgerAccount.usageMeterId === usageMeterId
           )
       )
-    if (unAccountedForUsageMeterIds.length > 0) {
-      const subscription = await selectSubscriptionById(
+    if (unAccountedForUsageMeterIds.length === 0) {
+      return ledgerAccounts
+    }
+    const subscription = await selectSubscriptionById(
+      subscriptionId,
+      transaction
+    )
+    const ledgerAccountInserts: LedgerAccount.Insert[] =
+      unAccountedForUsageMeterIds.map((usageMeterId) => ({
         subscriptionId,
-        transaction
-      )
-      const ledgerAccountInserts: LedgerAccount.Insert[] =
-        unAccountedForUsageMeterIds.map((usageMeterId) => ({
-          subscriptionId,
-          usageMeterId,
-          organizationId: subscription.organizationId,
-          livemode: subscription.livemode,
-        }))
+        usageMeterId,
+        organizationId: subscription.organizationId,
+        livemode: subscription.livemode,
+      }))
+    const createdLedgerAccounts =
       await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
         ledgerAccountInserts,
         transaction
       )
-    }
-    return ledgerAccounts
+    return [...ledgerAccounts, ...createdLedgerAccounts]
   }

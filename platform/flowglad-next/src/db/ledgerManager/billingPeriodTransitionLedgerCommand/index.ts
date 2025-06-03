@@ -216,6 +216,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
       ledgerAccount,
     ])
   )
+
   await grantEntitlementUsageCredits(
     {
       ledgerAccountsByUsageMeterId,

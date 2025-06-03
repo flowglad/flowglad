@@ -17,6 +17,7 @@ import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { UsageCredit } from '@/db/schema/usageCredits'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
 
 export const grantEntitlementUsageCredits = async (
   params: {
@@ -35,6 +36,29 @@ export const grantEntitlementUsageCredits = async (
     command.payload.subscriptionFeatureItems.filter(
       (featureItem) => featureItem.usageMeterId
     )
+  const usageMetersWithoutLedgerAccounts =
+    subscriptionFeatureItemsWithUsageMeters.filter(
+      (featureItem) =>
+        !ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId!)
+    )
+  if (usageMetersWithoutLedgerAccounts.length > 0) {
+    const newlyCreatedLedgerAccounts =
+      await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
+        {
+          subscriptionId: command.subscriptionId!,
+          usageMeterIds: usageMetersWithoutLedgerAccounts.map(
+            (featureItem) => featureItem.usageMeterId!
+          ),
+        },
+        transaction
+      )
+    newlyCreatedLedgerAccounts.forEach((ledgerAccount) => {
+      ledgerAccountsByUsageMeterId.set(
+        ledgerAccount.usageMeterId!,
+        ledgerAccount
+      )
+    })
+  }
 
   const usageCreditInserts: UsageCredit.Insert[] =
     subscriptionFeatureItemsWithUsageMeters.map((featureItem) => {
@@ -61,7 +85,6 @@ export const grantEntitlementUsageCredits = async (
     usageCreditInserts,
     transaction
   )
-
   const entitlementCreditLedgerInserts: LedgerEntry.CreditGrantRecognizedInsert[] =
     usageCredits.map((usageCredit) => {
       const entitlementCreditLedgerEntry: LedgerEntry.CreditGrantRecognizedInsert =
