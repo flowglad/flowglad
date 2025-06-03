@@ -16,11 +16,11 @@ import {
   aggregateAvailableBalanceForUsageCredit,
   bulkInsertLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
-import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
-import { bulkInsertUsageCreditApplications } from '../tableMethods/usageCreditApplicationMethods'
-import { UsageCreditApplication } from '../schema/usageCreditApplications'
-import { UsageEvent } from '../schema/usageEvents'
-import { LedgerAccount } from '../schema/ledgerAccounts'
+import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/tableMethods/ledgerAccountMethods'
+import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
+import { UsageCreditApplication } from '@/db/schema/usageCreditApplications'
+import { UsageEvent } from '@/db/schema/usageEvents'
+import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 
 export const createUsageCreditApplicationsForUsageEvent = async (
   params: {
@@ -161,15 +161,14 @@ export const processUsageEventProcessedLedgerCommand = async (
     ledgerTransactionInput,
     transaction
   )
-  const [ledgerAccount] = await selectLedgerAccounts(
-    {
-      organizationId: command.organizationId,
-      livemode: command.livemode,
-      subscriptionId: command.subscriptionId!,
-      usageMeterId: command.payload.usageEvent.usageMeterId,
-    },
-    transaction
-  )
+  const [ledgerAccount] =
+    await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
+      {
+        subscriptionId: command.subscriptionId!,
+        usageMeterIds: [command.payload.usageEvent.usageMeterId],
+      },
+      transaction
+    )
   if (!ledgerAccount) {
     throw new Error(
       'Failed to select ledger account for UsageEventProcessed command'
@@ -221,10 +220,5 @@ export const processUsageEventProcessedLedgerCommand = async (
     usageCostLedgerEntry,
     ...creditApplicationLedgerEntries,
   ]
-  console.log(
-    'UsageEventProcessedLedgerCommand ledgerEntryInserts',
-    ledgerEntryInserts
-  )
   await bulkInsertLedgerEntries(ledgerEntryInserts, transaction)
-  console.log('UsageEventProcessedLedgerCommand processed.....')
 }
