@@ -13,6 +13,7 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
 import { PaymentMethodType } from '@/types'
 import Label from '@/components/ion/Label'
+import InvoicesTable from '@/components/InvoicesTable'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -71,6 +72,10 @@ const InnerSubscriptionPage = ({
         <TableTitle title="Items" noButtons />
         <SubscriptionItemsTable
           subscriptionItems={subscription.subscriptionItems}
+        />
+        <TableTitle title="Invoices" noButtons />
+        <InvoicesTable
+          filters={{ subscriptionId: subscription.id }}
         />
         <TableTitle title="Payments" noButtons />
         <PaymentsTable
