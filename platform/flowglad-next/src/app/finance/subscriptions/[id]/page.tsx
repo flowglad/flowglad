@@ -7,7 +7,7 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 const SubscriptionPage = async ({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) => {
   const { id } = await params
   const { subscription, defaultPaymentMethod } =
