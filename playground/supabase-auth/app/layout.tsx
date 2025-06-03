@@ -37,7 +37,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
             }
           }}
           theme={{
-            mode: 'light',
+            mode: 'dark',
             dark: {
               // background: '#1b1b1b',
               // card: 'rgb(35 35 35)'
