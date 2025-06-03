@@ -17,7 +17,7 @@ const buttonVariants = cva(
         destructive:
           'flowglad-bg-destructive flowglad-text-white flowglad-shadow-xs hover:flowglad-bg-destructive/90 flowglad-focus-visible:ring-destructive/20 flowglad-dark:focus-visible:ring-destructive/40',
         outline:
-          'flowglad-border flowglad-border-input flowglad-bg-background flowglad-shadow-xs hover:flowglad-bg-accent hover:flowglad-text-accent-foreground',
+          'flowglad-border flowglad-border-input flowglad-bg-background flowglad-text-accent-foreground flowglad-shadow-xs hover:flowglad-bg-accent hover:flowglad-text-accent-foreground',
         destructiveOutline:
           'flowglad-border flowglad-border-destructive flowglad-text-destructive flowglad-bg-background flowglad-shadow-xs hover:flowglad-bg-destructive/10 flowglad-focus-visible:ring-destructive/20 flowglad-dark:focus-visible:ring-destructive/40',
         destructiveGhost:

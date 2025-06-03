@@ -133,7 +133,7 @@ export function Invoices({
             <TableCell className="flowglad-font-medium flowglad-text-muted-foreground flowglad-w-32 flowglad-pl-0">
               {formatDate(invoice.createdAt)}
             </TableCell>
-            <TableCell className="flowglad-font-medium flowglad-w-32">
+            <TableCell className="flowglad-font-medium flowglad-w-32 flowglad-text-foreground">
               {humanReadableCurrencyAmount(
                 invoice.currency,
                 totalAmountForInvoice(invoice)
