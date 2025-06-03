@@ -1,5 +1,8 @@
 import { DbTransaction } from '@/db/types'
-import { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  LedgerCommandResult,
+  UsageEventProcessedLedgerCommand,
+} from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   LedgerEntryStatus,
   LedgerEntryDirection,
@@ -144,10 +147,7 @@ export const createLedgerEntryInsertsForUsageCreditApplications =
 export const processUsageEventProcessedLedgerCommand = async (
   command: UsageEventProcessedLedgerCommand,
   transaction: DbTransaction
-): Promise<{
-  ledgerTransaction: LedgerTransaction.Record
-  ledgerEntries: LedgerEntry.Record[]
-}> => {
+): Promise<LedgerCommandResult> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,

@@ -5,6 +5,7 @@ import {
   CreditGrantExpiredLedgerCommand,
   PaymentRefundedLedgerCommand,
   BillingRecalculatedLedgerCommand,
+  LedgerCommandResult,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   LedgerTransactionType,
@@ -27,7 +28,7 @@ import { processCreditGrantRecognizedLedgerCommand } from './creditGrantRecogniz
 const processAdminCreditAdjustedLedgerCommand = async (
   command: AdminCreditAdjustedLedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<LedgerCommandResult> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -99,13 +100,20 @@ const processAdminCreditAdjustedLedgerCommand = async (
     metadata: { ledgerCommandType: command.type },
   }
 
-  await bulkInsertLedgerEntries([ledgerEntryInput], transaction)
+  const [insertedLedgerEntry] = await bulkInsertLedgerEntries(
+    [ledgerEntryInput],
+    transaction
+  )
+  return {
+    ledgerTransaction: insertedLedgerTransaction,
+    ledgerEntries: [insertedLedgerEntry],
+  }
 }
 
 const processCreditGrantExpiredLedgerCommand = async (
   command: CreditGrantExpiredLedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<LedgerCommandResult> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -117,13 +125,20 @@ const processCreditGrantExpiredLedgerCommand = async (
     subscriptionId: command.subscriptionId!,
   }
   // TODO: Implement LedgerEntry creation for CreditGrantExpired
-  await insertLedgerTransaction(ledgerTransactionInput, transaction)
+  const insertedLedgerTransaction = await insertLedgerTransaction(
+    ledgerTransactionInput,
+    transaction
+  )
+  return {
+    ledgerTransaction: insertedLedgerTransaction,
+    ledgerEntries: [],
+  }
 }
 
 const processPaymentRefundedLedgerCommand = async (
   command: PaymentRefundedLedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<LedgerCommandResult> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -144,12 +159,16 @@ const processPaymentRefundedLedgerCommand = async (
       'Failed to insert ledger transaction for PaymentRefunded command or retrieve its ID'
     )
   }
+  return {
+    ledgerTransaction: insertedLedgerTransaction,
+    ledgerEntries: [],
+  }
 }
 
 const processBillingRecalculatedLedgerCommand = async (
   command: BillingRecalculatedLedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<LedgerCommandResult> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -161,13 +180,20 @@ const processBillingRecalculatedLedgerCommand = async (
     subscriptionId: command.subscriptionId!,
   }
   // TODO: Implement LedgerEntry creation for BillingRecalculated
-  await insertLedgerTransaction(ledgerTransactionInput, transaction)
+  const insertedLedgerTransaction = await insertLedgerTransaction(
+    ledgerTransactionInput,
+    transaction
+  )
+  return {
+    ledgerTransaction: insertedLedgerTransaction,
+    ledgerEntries: [],
+  }
 }
 
 export const processLedgerCommand = async (
   command: LedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<LedgerCommandResult> => {
   switch (command.type) {
     case LedgerTransactionType.UsageEventProcessed:
       return processUsageEventProcessedLedgerCommand(

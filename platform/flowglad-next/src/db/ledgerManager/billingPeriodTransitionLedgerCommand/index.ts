@@ -1,5 +1,8 @@
 import { DbTransaction } from '@/db/types'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  BillingPeriodTransitionLedgerCommand,
+  LedgerCommandResult,
+} from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   LedgerEntryStatus,
   LedgerEntryDirection,
@@ -88,7 +91,7 @@ export const grantEntitlementUsageCredits = async (
       return entitlementCreditLedgerEntry
     })
 
-  await bulkInsertLedgerEntries(
+  return await bulkInsertLedgerEntries(
     entitlementCreditLedgerInserts,
     transaction
   )
@@ -146,16 +149,20 @@ export const expireCreditsAtEndOfBillingPeriod = async (
         }
       return creditExpirationLedgerEntry
     })
-  await bulkInsertLedgerEntries(
+  const entries = await bulkInsertLedgerEntries(
     creditExpirationLedgerInserts,
     transaction
   )
+  return {
+    ledgerTransaction,
+    ledgerEntries: entries,
+  }
 }
 
 export const processBillingPeriodTransitionLedgerCommand = async (
   command: BillingPeriodTransitionLedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<LedgerCommandResult> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -180,14 +187,15 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     transaction
   )
 
-  await processOverageUsageCostCredits(
-    {
-      ledgerAccountsForSubscription,
-      ledgerTransaction,
-      command,
-    },
-    transaction
-  )
+  const overageUsageCostLedgerEntries =
+    await processOverageUsageCostCredits(
+      {
+        ledgerAccountsForSubscription,
+        ledgerTransaction,
+        command,
+      },
+      transaction
+    )
   /**
    * Grant usage credits for the new billing period based on entitlements
    * First: find or create all the ledger accounts needed to grant the entitlements
@@ -217,7 +225,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     ])
   )
 
-  await grantEntitlementUsageCredits(
+  const entitlementLedgerEntries = await grantEntitlementUsageCredits(
     {
       ledgerAccountsByUsageMeterId,
       ledgerTransaction,
@@ -225,4 +233,11 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     },
     transaction
   )
+  return {
+    ledgerTransaction,
+    ledgerEntries: [
+      ...overageUsageCostLedgerEntries,
+      ...entitlementLedgerEntries,
+    ],
+  }
 }

@@ -518,7 +518,6 @@ describe('createProductTransaction', () => {
   it('should create a product with a default price', async () => {
     const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        console.log('======transaction??', transaction)
         return createProductTransaction(
           {
             product: {

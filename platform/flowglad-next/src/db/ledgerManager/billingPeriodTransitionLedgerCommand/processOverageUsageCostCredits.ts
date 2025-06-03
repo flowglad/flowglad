@@ -363,7 +363,7 @@ export const processOverageUsageCostCredits = async (
     command: BillingPeriodTransitionLedgerCommand
   },
   transaction: DbTransaction
-) => {
+): Promise<LedgerEntry.Record[]> => {
   const {
     ledgerAccountsForSubscription,
     ledgerTransaction,

@@ -12,12 +12,15 @@ import {
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
-import { CreditGrantRecognizedLedgerCommand } from './ledgerManagerTypes'
+import {
+  CreditGrantRecognizedLedgerCommand,
+  LedgerCommandResult,
+} from './ledgerManagerTypes'
 
 export const processCreditGrantRecognizedLedgerCommand = async (
   command: CreditGrantRecognizedLedgerCommand,
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<LedgerCommandResult> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -73,5 +76,12 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     calculationRunId: null,
     metadata: { ledgerCommandType: command.type },
   }
-  await bulkInsertLedgerEntries([ledgerEntryInput], transaction)
+  const [insertedLedgerEntry] = await bulkInsertLedgerEntries(
+    [ledgerEntryInput],
+    transaction
+  )
+  return {
+    ledgerTransaction: insertedLedgerTransaction,
+    ledgerEntries: [insertedLedgerEntry],
+  }
 }

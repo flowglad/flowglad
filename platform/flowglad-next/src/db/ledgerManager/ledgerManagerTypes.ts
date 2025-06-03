@@ -7,9 +7,11 @@ import { usageCreditsSelectSchema } from '@/db/schema/usageCredits'
 import { usageCreditBalanceAdjustmentsSelectSchema } from '@/db/schema/usageCreditBalanceAdjustments'
 import { refundsSelectSchema } from '@/db/schema/refunds'
 import { subscriptionMeterPeriodCalculationSelectSchema } from '@/db/schema/subscriptionMeterPeriodCalculations'
-import { usageCreditGrantSubscriptionItemFeatureClientSelectSchema } from '../schema/subscriptionItemFeatures'
-import { subscriptionsSelectSchema } from '../schema/subscriptions'
-import { billingPeriodsSelectSchema } from '../schema/billingPeriods'
+import { usageCreditGrantSubscriptionItemFeatureClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import { subscriptionsSelectSchema } from '@/db/schema/subscriptions'
+import { billingPeriodsSelectSchema } from '@/db/schema/billingPeriods'
+import { LedgerEntry } from '@/db/schema/ledgerEntries'
+import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 
 // Base fields for all ledger commands, primarily for the LedgerTransaction record
 const baseLedgerCommandFields = {
@@ -161,3 +163,8 @@ export const LedgerCommandSchema = z.discriminatedUnion('type', [
 ])
 
 export type LedgerCommand = z.infer<typeof LedgerCommandSchema>
+
+export interface LedgerCommandResult {
+  ledgerTransaction: LedgerTransaction.Record
+  ledgerEntries: LedgerEntry.Record[]
+}
