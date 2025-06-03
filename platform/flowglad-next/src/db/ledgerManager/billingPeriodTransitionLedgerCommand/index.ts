@@ -18,7 +18,10 @@ import {
   aggregateAvailableBalanceForUsageCredit,
   bulkInsertLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
-import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import {
+  findOrCreateLedgerAccountsForSubscriptionAndUsageMeters,
+  selectLedgerAccounts,
+} from '@/db/tableMethods/ledgerAccountMethods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { UsageCredit } from '@/db/schema/usageCredits'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
@@ -176,6 +179,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     },
     transaction
   )
+
   await processOverageUsageCostCredits(
     {
       ledgerAccountsForSubscription,
@@ -186,18 +190,19 @@ export const processBillingPeriodTransitionLedgerCommand = async (
   )
   /**
    * Grant usage credits for the new billing period based on entitlements
+   * First: find or create all the ledger accounts needed to grant the entitlements
+   * Second: ...grant the entitlements!
    */
-  const entitlementLedgerAccounts = await selectLedgerAccounts(
-    {
-      organizationId: command.organizationId,
-      livemode: command.livemode,
-      subscriptionId: command.payload.subscription.id,
-      usageMeterId: command.payload.subscriptionFeatureItems.map(
-        (featureItem) => featureItem.usageMeterId
-      ),
-    },
-    transaction
-  )
+  const entitlementLedgerAccounts =
+    await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
+      {
+        subscriptionId: command.payload.subscription.id,
+        usageMeterIds: command.payload.subscriptionFeatureItems.map(
+          (featureItem) => featureItem.usageMeterId
+        ),
+      },
+      transaction
+    )
   const ledgerAccountsWithUsageMeterId =
     entitlementLedgerAccounts.filter(
       (ledgerAccount) => ledgerAccount.usageMeterId !== null

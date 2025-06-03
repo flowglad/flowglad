@@ -192,7 +192,7 @@ describe('ModuleName', async () => {
 
 1. Always use `setupOrg()` in `beforeEach` to prevent test state pollution
 2. Use helper functions from `@/../seedDatabase.ts` for database setup
-3. Avoid using mock functions or spyOn
+3. Avoid using mock functions or spyOn - we are interested in reading and writing and reading database state!
 4. Test both individual functions and their compositions
 5. Use update methods from tableMethods for state changes: don't do this:
 ```ts
@@ -211,7 +211,7 @@ const updatedCustomer = await updateCustomer({
 8. Clean up test data after each test
 9. Don't use "any" types, ever
 10. Import the types you need for various records. You can usually find the types you need in @/types or @/db/schema/[filForTable]
-
+11. Leave comments explaining rationale for tests, especially when the test case gets lengthy. The goal should be to leave behind code that a human or AI agent can parse 6 months from now.
 
 ## Notes for RLS Tests
 You should use these patterns whenever you are writing tests that test RLS policies.
