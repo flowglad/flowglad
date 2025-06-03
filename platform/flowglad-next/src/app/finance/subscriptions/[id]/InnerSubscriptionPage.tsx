@@ -49,7 +49,7 @@ const InnerSubscriptionPage = ({
                 ? ` - ${core.formatDate(subscription.canceledAt)}`
                 : ' -'}
             </div>
-            <div className="flex w-full flex-col items-center gap-2">
+            <div className="flex w-full flex-col gap-2">
               <Label>Payment Method</Label>
               {defaultPaymentMethod &&
                 defaultPaymentMethod.type ===
