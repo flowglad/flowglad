@@ -28,14 +28,14 @@ export const CustomerBillingDetails = ({
       <dt className="flowglad-text-base flowglad-font-medium flowglad-text-muted-foreground">
         Name
       </dt>
-      <dd className="flowglad-text-base flowglad-font-medium">
+      <dd className="flowglad-text-base flowglad-font-medium flowglad-text-foreground">
         {name}
       </dd>
 
       <dt className="flowglad-text-base flowglad-font-medium flowglad-text-muted-foreground">
         Email
       </dt>
-      <dd className="flowglad-text-base flowglad-font-medium">
+      <dd className="flowglad-text-base flowglad-font-medium flowglad-text-foreground">
         {email}
       </dd>
 
@@ -43,7 +43,7 @@ export const CustomerBillingDetails = ({
         Billing address
       </dt>
       {billingAddress && (
-        <dd className="flowglad-flex flowglad-flex-col">
+        <dd className="flowglad-flex flowglad-flex-col flowglad-text-foreground">
           <span className="flowglad-text-base flowglad-font-medium">
             {billingAddress.line1}
           </span>

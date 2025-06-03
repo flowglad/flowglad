@@ -24,7 +24,7 @@ const SectionTitle = ({
 }) => {
   return (
     <div className="flowglad-flex flowglad-flex-row flowglad-items-center flowglad-justify-between">
-      <h3 className="flowglad-text-xl flowglad-font-semibold">
+      <h3 className="flowglad-text-xl flowglad-font-semibold flowglad-text-foreground">
         {children}
       </h3>
       {button}

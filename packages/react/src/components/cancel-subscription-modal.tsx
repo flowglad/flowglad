@@ -36,32 +36,38 @@ export const CancelSubscriptionModal = ({
               size: 'sm',
             })
           )}
+          onClick={() => setOpen(true)}
         >
           Cancel
         </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="sm:!flowglad-max-w-[32rem]">
+          <DialogHeader className="flowglad-flex flowglad-flex-col flowglad-gap-4">
+            <DialogTitle>Cancel your subscription?</DialogTitle>
+            <DialogDescription className="flowglad-text-sm flowglad-text-left">
               {`Your subscription will terminate on ${formatDate(subscription.currentBillingPeriodEnd)}, the end of the current
             billing period`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={cancelLoading}
-              onClick={async () => {
-                setCancelLoading(true)
-                await cancelSubscription(subscription)
-                setCancelLoading(false)
-                setOpen(false)
-              }}
-            >
-              Confirm
-            </Button>
+            <div className="flowglad-flex flowglad-gap-2 flowglad-flex-row flowglad-w-full flowglad-justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={cancelLoading}
+                onClick={async () => {
+                  setCancelLoading(true)
+                  await cancelSubscription(subscription)
+                  setCancelLoading(false)
+                  setOpen(false)
+                }}
+              >
+                Confirm
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
