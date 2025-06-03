@@ -1,5 +1,15 @@
 # @flowglad/nextjs
 
+## 0.10.14
+
+### Patch Changes
+
+- Fix cancel subscription modal, greatly improve light mode / dark mode styles
+- Updated dependencies
+  - @flowglad/react@0.10.14
+  - @flowglad/server@0.10.14
+  - @flowglad/shared@0.10.14
+
 ## 0.10.13
 
 ### Patch Changes

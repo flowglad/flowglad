@@ -55,15 +55,18 @@ function DialogOverlay({
   className,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  const { themedCn } = useFlowgladTheme()
   return (
-    <DialogPrimitive.Overlay
-      data-slot="dialog-overlay"
-      className={cn(
-        'data-[state=open]:flowglad-animate-in data-[state=closed]:flowglad-animate-out data-[state=closed]:flowglad-fade-out-0 data-[state=open]:flowglad-fade-in-0 flowglad-fixed flowglad-inset-0 flowglad-z-50 flowglad-bg-black/50',
-        className
-      )}
-      {...props}
-    />
+    <div className={themedCn()} id="fg-theme-dialog-overlay-inner">
+      <DialogPrimitive.Overlay
+        data-slot="dialog-overlay"
+        className={cn(
+          'data-[state=open]:flowglad-animate-in data-[state=closed]:flowglad-animate-out data-[state=closed]:flowglad-fade-out-0 data-[state=open]:flowglad-fade-in-0 flowglad-fixed flowglad-inset-0 flowglad-z-40 flowglad-bg-black/50 flowglad-top-0 flowglad-left-0 flowglad-right-0 flowglad-bottom-0',
+          className
+        )}
+        {...props}
+      />
+    </div>
   )
 }
 
@@ -75,21 +78,30 @@ function DialogContent({
   const { themedCn } = useFlowgladTheme()
   return (
     <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
-      <DialogPrimitive.Content
-        data-slot="dialog-content"
-        className={themedCn(
-          'flowglad-bg-background data-[state=open]:flowglad-animate-in data-[state=closed]:flowglad-animate-out data-[state=closed]:flowglad-fade-out-0 data-[state=open]:flowglad-fade-in-0 data-[state=closed]:flowglad-zoom-out-95 data-[state=open]:flowglad-zoom-in-95 data-[state=closed]:flowglad-slide-out-to-left-1/2 data-[state=closed]:flowglad-slide-out-to-top-[48%] data-[state=open]:flowglad-slide-in-from-left-1/2 data-[state=open]:flowglad-slide-in-from-top-[48%] flowglad-fixed flowglad-top-[50%] flowglad-left-[50%] flowglad-z-50 flowglad-grid flowglad-w-full flowglad-max-w-[calc(100%-2rem)] flowglad-translate-x-[-50%] flowglad-translate-y-[-50%] flowglad-gap-4 flowglad-rounded-lg flowglad-border flowglad-p-6 flowglad-shadow-lg flowglad-duration-200 sm:flowglad-max-w-lg !flowglad-outline-none !flowglad-ring-0 !flowglad-ring-offset-0 [&_button]:!flowglad-outline-none [&_button]:!flowglad-ring-0 [&_button]:!flowglad-ring-offset-0',
-          className
-        )}
-        {...props}
-      >
-        {children}
-        <DialogPrimitive.Close className="flowglad-ring-offset-background data-[state=open]:flowglad-bg-accent data-[state=open]:flowglad-text-muted-foreground flowglad-absolute flowglad-top-4 flowglad-right-4 flowglad-rounded-xs flowglad-opacity-70 flowglad-transition-opacity flowglad-hover:opacity-100 !flowglad-outline-none !flowglad-ring-0 !flowglad-ring-offset-0 flowglad-disabled:pointer-events-none [&_svg]:flowglad-pointer-events-none [&_svg]:flowglad-shrink-0 [&_svg:not([class*='size-'])]:flowglad-size-4">
-          <XIcon />
-          <span className="flowglad-sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </DialogPrimitive.Content>
+      <div className={themedCn()} id="fg-theme-dialog-overlay">
+        <DialogOverlay />
+      </div>
+      <div className={themedCn()} id="fg-theme-dialog-content">
+        <div
+          className={themedCn()}
+          id="fg-theme-dialog-content-inner"
+        >
+          <DialogPrimitive.Content
+            data-slot="dialog-content"
+            className={themedCn(
+              'flowglad-bg-background flowglad-text-foreground data-[state=open]:flowglad-animate-in data-[state=closed]:flowglad-animate-out data-[state=closed]:flowglad-fade-out-0 data-[state=open]:flowglad-fade-in-0 data-[state=closed]:flowglad-zoom-out-95 data-[state=open]:flowglad-zoom-in-95 data-[state=closed]:flowglad-slide-out-to-left-1/2 data-[state=closed]:flowglad-slide-out-to-top-[48%] data-[state=open]:flowglad-slide-in-from-left-1/2 data-[state=open]:flowglad-slide-in-from-top-[48%] flowglad-top-[50%] flowglad-left-[50%] flowglad-z-100 flowglad-grid flowglad-max-w-[calc(100%-2rem)] flowglad-translate-x-[-50%] flowglad-translate-y-[-50%] flowglad-gap-4 flowglad-rounded-lg flowglad-border flowglad-p-6 flowglad-shadow-lg flowglad-duration-200 sm:flowglad-max-w-lg !flowglad-outline-none !flowglad-ring-0 !flowglad-ring-offset-0 [&_button]:!flowglad-outline-none [&_button]:!flowglad-ring-0 [&_button]:!flowglad-ring-offset-0 flowglad-fixed flowglad-z-50',
+              className
+            )}
+            {...props}
+          >
+            {children}
+            <DialogPrimitive.Close className="flowglad-ring-offset-background data-[state=open]:flowglad-bg-accent data-[state=open]:flowglad-text-muted-foreground flowglad-absolute flowglad-top-4 flowglad-right-4 flowglad-rounded-xs flowglad-opacity-70 flowglad-transition-opacity flowglad-hover:opacity-100 !flowglad-outline-none !flowglad-ring-0 !flowglad-ring-offset-0 flowglad-disabled:pointer-events-none [&_svg]:flowglad-pointer-events-none [&_svg]:flowglad-shrink-0 [&_svg:not([class*='size-'])]:flowglad-size-4">
+              <XIcon />
+              <span className="flowglad-sr-only">Close</span>
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </div>
+      </div>
     </DialogPortal>
   )
 }

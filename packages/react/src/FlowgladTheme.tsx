@@ -71,48 +71,30 @@ export function FlowgladThemeProvider({
   const mode = theme?.mode ?? 'system'
   const isDarkTheme = useIsDarkTheme(mode)
   const [cssString, setCssString] = useState<string>('')
+
   useEffect(() => {
-    // // Apply the class to the html element
-    // document.documentElement.classList.add('flowglad-root')
-    // // Apply the base theme class to the html element
-    // document.documentElement.classList.add('flowglad-base-theme')
-
-    // // Handle dark mode based on mode prop and system preference
-    // if (mode === 'dark') {
-    //   document.documentElement.classList.add('flowglad-dark')
-    // } else if (mode === 'light') {
-    //   document.documentElement.classList.remove('flowglad-dark')
-    // } else if (mode === 'system') {
-    //   document.documentElement.classList.add(
-    //     isDarkTheme ? 'flowglad-dark' : 'flowglad-root'
-    //   )
-    // }
-
     // Generate CSS string
     themeToCss(theme).then((css) => {
       setCssString(css)
     })
+  }, [theme]) // Removed mode and isDarkTheme from deps as they don't affect cssString generation directly from theme
 
-    // // Cleanup function to remove the classes
-    // return () => {
-    //   document.documentElement.classList.remove(
-    //     'flowglad-root',
-    //     'flowglad-dark',
-    //     'flowglad-base-theme'
-    //   )
-    // }
-  }, [theme, mode, isDarkTheme])
-  const baseClassname =
-    'flowglad-root' + (isDarkTheme ? ' flowglad-dark' : '')
+  const themeWrapperClassName = cn(
+    'flowglad-root',
+    'flowglad-base-theme',
+    isDarkTheme ? 'flowglad-dark' : ''
+  )
+
+  const contextValue = {
+    theme,
+    darkMode: isDarkTheme,
+    nonce,
+    themedCn: (inputs: any) =>
+      cn('flowglad-root', isDarkTheme ? 'flowglad-dark' : '', inputs),
+  }
+
   return (
-    <FlowgladThemeContext.Provider
-      value={{
-        theme,
-        darkMode: isDarkTheme,
-        nonce,
-        themedCn: (inputs) => cn(baseClassname, inputs),
-      }}
-    >
+    <FlowgladThemeContext.Provider value={contextValue}>
       <style
         suppressHydrationWarning
         dangerouslySetInnerHTML={{
@@ -121,7 +103,7 @@ export function FlowgladThemeProvider({
         nonce={nonce}
         data-flowglad-theme
       />
-      {children}
+      <div className={themeWrapperClassName}>{children}</div>
     </FlowgladThemeContext.Provider>
   )
 }
