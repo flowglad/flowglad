@@ -1,4 +1,7 @@
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
@@ -42,7 +45,9 @@ import {
   CurrencyCode,
   InvoiceStatus,
   InvoiceType,
+  LedgerTransactionType,
   PaymentStatus,
+  FeatureType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -61,11 +66,16 @@ import {
 } from '@/db/tableMethods/discountRedemptionMethods'
 import { Discount } from '@/db/schema/discounts'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { Subscription } from '@/db/schema/subscriptions'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
   paymentMethod: PaymentMethod.Record
   scheduledFor: Date
+  payments: Payment.Record[]
 }
 
 export const createBillingRunInsert = (
@@ -271,7 +281,7 @@ export const processNoMoreDueForBillingPeriod = async (
 export const executeBillingRunCalculationAndBookkeepingSteps = async (
   billingRun: BillingRun.Record,
   transaction: DbTransaction
-) => {
+): Promise<ExecuteBillingRunStepsResult> => {
   const {
     billingPeriodItems,
     organization,
@@ -489,6 +499,22 @@ export const calculateTotalAmountToCharge = (params: {
   const { totalDueAmount, totalAmountPaid } = params
   return Math.max(0, totalDueAmount - totalAmountPaid)
 }
+
+// Define return type for executeBillingRunCalculationAndBookkeepingSteps
+type ExecuteBillingRunStepsResult = {
+  invoice: Invoice.Record
+  payment?: Payment.Record
+  feeCalculation: FeeCalculation.Record
+  customer: Customer.Record
+  organization: Organization.Record
+  billingPeriod: BillingPeriod.Record
+  subscription: Subscription.Record
+  paymentMethod: PaymentMethod.Record
+  totalDueAmount: number
+  totalAmountPaid: number
+  payments: Payment.Record[]
+}
+
 /**
  * TODO : support discount redemptions
  * @param billingRun
@@ -503,6 +529,7 @@ export const executeBillingRun = async (billingRunId: string) => {
   }
   try {
     const {
+      // Adjusted destructuring
       invoice,
       payment,
       feeCalculation,
@@ -513,16 +540,66 @@ export const executeBillingRun = async (billingRunId: string) => {
       totalAmountPaid,
       organization,
       payments,
-    } = await adminTransaction(
-      ({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
-        ),
-      {
-        livemode: billingRun.livemode,
-      }
-    )
+    } =
+      await comprehensiveAdminTransaction<ExecuteBillingRunStepsResult>(
+        async ({ transaction }) => {
+          const resultFromSteps =
+            await executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          const subscriptionItems =
+            await selectCurrentlyActiveSubscriptionItems(
+              {
+                subscriptionId: resultFromSteps.subscription.id,
+              },
+              new Date(),
+              transaction
+            )
+          const subscriptionItemFeatures: SubscriptionItemFeature.Record[] =
+            await selectSubscriptionItemFeatures(
+              {
+                subscriptionItemId: subscriptionItems.map(
+                  (item) => item.id
+                ),
+                type: FeatureType.UsageCreditGrant,
+              },
+              transaction
+            )
+          /**
+           * For typesafety
+           */
+          const usageCreditGrantFeatures =
+            subscriptionItemFeatures.filter(
+              (feature) =>
+                feature.type === FeatureType.UsageCreditGrant
+            )
+          const currentBillingPeriodObject =
+            resultFromSteps.billingPeriod
+
+          return {
+            result: resultFromSteps,
+            eventsToLog: [],
+            ledgerCommand: {
+              type: LedgerTransactionType.BillingPeriodTransition,
+              livemode: billingRun.livemode,
+              organizationId: resultFromSteps.organization.id,
+              subscriptionId: billingRun.subscriptionId,
+              payload: {
+                billingRunId: billingRun.id,
+                subscription: resultFromSteps.subscription,
+                previousBillingPeriod: currentBillingPeriodObject,
+                newBillingPeriod: currentBillingPeriodObject,
+                subscriptionFeatureItems: usageCreditGrantFeatures,
+                payment: resultFromSteps.payment,
+              },
+            },
+          }
+        },
+        {
+          livemode: billingRun.livemode,
+        }
+      )
     if (!customer.stripeCustomerId) {
       throw new Error(
         `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
