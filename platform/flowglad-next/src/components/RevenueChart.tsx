@@ -207,7 +207,7 @@ export function RevenueChart({
       <div className="mt-2">
         <FallbackSkeleton
           showSkeleton={isLoading}
-          className="w-24 h-6"
+          className="w-36 h-12"
         >
           <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
             {formattedRevenueValue}
@@ -220,8 +220,8 @@ export function RevenueChart({
         </FallbackSkeleton>
       </div>
       {isLoading ? (
-        <div className="h-48 pt-4 -mb-2 mt-8 w-full flex items-center justify-center">
-          <Skeleton className="h-full w-full" />
+        <div className="-mb-2 mt-8 flex items-center">
+          <Skeleton className="h-80 w-full" />
         </div>
       ) : (
         <LineChart
