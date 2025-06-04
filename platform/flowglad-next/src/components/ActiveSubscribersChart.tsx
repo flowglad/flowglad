@@ -6,9 +6,15 @@ import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
 import { FallbackSkeleton, Skeleton } from './ion/Skeleton'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
 import core from '@/utils/core'
+import { twMerge } from 'tailwind-merge'
+import clsx from 'clsx'
+import ErrorBoundary from './ErrorBoundary'
+import {
+  AvailableChartColorsKeys,
+  getColorClassName,
+} from '@/utils/chartStyles'
 
 /**
  * Two dots make a graph principle: this is the minimum range duration required
@@ -21,6 +27,65 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
   [RevenueChartIntervalUnit.Day]: 24 * 2,
   [RevenueChartIntervalUnit.Hour]: 1 * 2,
 } as const
+
+// Define a new TooltipDateLabel component for the new tooltip
+function TooltipDateLabel({ label }: { label: string }) {
+  try {
+    const date = new Date(label)
+    const formattedDate = core.formatDate(date)
+    return <div>{formattedDate}</div>
+  } catch (error) {
+    // Fallback if label is not a valid date string
+    return <div>{label}</div>
+  }
+}
+
+// Define the new SubscriberCountTooltip component
+const SubscriberCountTooltip = ({
+  active,
+  payload,
+  label,
+}: TooltipCallbackProps) => {
+  if (!active || !payload?.[0] || !label) {
+    return null
+  }
+  const value = payload[0].value as number
+  const color = payload[0].color
+
+  return (
+    <ErrorBoundary fallback={<div>Error</div>}>
+      <div
+        className={twMerge(
+          clsx(
+            'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-stroke-subtle shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
+          )
+        )}
+      >
+        <div className="flex justify-between items-center gap-2 text-xs font-medium text-on-primary-hover">
+          {color && (
+            <div className="text-left">
+              <div
+                className={core.cn(
+                  // Use getColorClassName to derive the correct background class
+                  color
+                    ? getColorClassName(
+                        color as AvailableChartColorsKeys,
+                        'bg'
+                      )
+                    : 'bg-gray-500',
+                  'w-2 h-2 rounded-full'
+                )}
+                style={{ width: '10px', height: '10px' }}
+              />
+            </div>
+          )}
+          <TooltipDateLabel label={label as string} />
+          <div className="text-right">{value.toString()}</div>
+        </div>
+      </div>
+    </ErrorBoundary>
+  )
+}
 
 /**
  * Component for displaying Active Subscribers data in a chart
@@ -104,7 +169,7 @@ export const ActiveSubscribersChart = ({
       <div className="mt-2">
         <FallbackSkeleton
           showSkeleton={isLoading}
-          className="w-24 h-6"
+          className="w-36 h-12"
         >
           <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
             {formattedSubscriberValue}
@@ -117,8 +182,8 @@ export const ActiveSubscribersChart = ({
         </FallbackSkeleton>
       </div>
       {isLoading ? (
-        <div className="h-48 pt-4 -mb-2 mt-8 w-full flex items-center justify-center">
-          <Skeleton className="h-full w-full" />
+        <div className="-mb-2 mt-8 w-full flex items-center justify-center">
+          <Skeleton className="h-80 w-full" />
         </div>
       ) : (
         <LineChart
@@ -127,7 +192,7 @@ export const ActiveSubscribersChart = ({
           categories={['subscribers']}
           className="-mb-2 mt-8"
           colors={['amber']}
-          customTooltip={RevenueTooltip}
+          customTooltip={SubscriberCountTooltip}
           maxValue={maxValue}
           autoMinValue={false}
           minValue={0}
