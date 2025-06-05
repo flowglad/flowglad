@@ -14,6 +14,7 @@ import {
   IntervalUnit,
   PriceType,
   SubscriptionStatus,
+  SubscriptionItemType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
@@ -163,6 +164,9 @@ export const insertSubscriptionAndItems = async (
     metadata: null,
     externalId: null,
     expiredAt: null,
+    type: SubscriptionItemType.Static,
+    usageMeterId: null,
+    usageEventsPerUnit: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(

@@ -53,6 +53,7 @@ export const expireCreditsAtEndOfBillingPeriod = async (
       const creditExpirationLedgerEntry: LedgerEntry.CreditGrantExpiredInsert =
         {
           ...ledgerEntryNulledSourceIdColumns,
+          claimedByBillingRunId: null,
           ledgerTransactionId: ledgerTransaction.id,
           ledgerAccountId: balance.ledgerAccountId,
           subscriptionId: command.subscriptionId!,

@@ -9,7 +9,11 @@ import {
 } from '@/db/schema/invoiceLineItems'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { Customer } from '@/db/schema/customers'
-import { InvoiceStatus, InvoiceType } from '@/types'
+import {
+  InvoiceStatus,
+  InvoiceType,
+  SubscriptionItemType,
+} from '@/types'
 
 function CreateInvoiceModal({
   isOpen,
@@ -46,7 +50,7 @@ function CreateInvoiceModal({
         quantity: 1,
         price: 0,
         priceId: null,
-        invoiceId: '',
+        type: SubscriptionItemType.Static,
       },
     ],
   }

@@ -54,6 +54,7 @@ import {
   UsageCreditSourceReferenceType,
   RefundStatus,
   UsageCreditApplicationStatus,
+  SubscriptionItemType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -117,6 +118,8 @@ import { insertRefund } from '@/db/tableMethods/refundMethods'
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
+import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -434,13 +437,17 @@ export const setupBillingRun = async ({
   })
 }
 
-export const setupBillingPeriodItems = async ({
+export const setupBillingPeriodItem = async ({
   billingPeriodId,
   quantity,
   unitPrice,
   name = 'Test Item',
   description = 'Test Description',
+  type = SubscriptionItemType.Static,
   livemode = true,
+  usageMeterId,
+  discountRedemptionId,
+  usageEventsPerUnit,
 }: {
   billingPeriodId: string
   quantity: number
@@ -448,20 +455,69 @@ export const setupBillingPeriodItems = async ({
   name?: string
   description?: string
   livemode?: boolean
+  type?: SubscriptionItemType
+  usageMeterId?: string
+  discountRedemptionId?: string
+  usageEventsPerUnit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const item = await insertBillingPeriodItem(
-      {
+    if (type === SubscriptionItemType.Usage) {
+      if (!usageMeterId) {
+        throw new Error('Usage meter ID is required for usage items')
+      }
+      if (usageEventsPerUnit === undefined) {
+        throw new Error(
+          'Usage events per unit is required for usage items'
+        )
+      }
+      if (discountRedemptionId) {
+        throw new Error(
+          'Discount redemption ID is not allowed for usage items'
+        )
+      }
+      const insert: BillingPeriodItem.Insert = {
         billingPeriodId,
         quantity,
         unitPrice,
         name,
         description,
+        type,
+        usageMeterId,
+        usageEventsPerUnit,
+        discountRedemptionId: null,
         livemode,
-      },
-      transaction
-    )
-    return [item]
+      }
+      return insertBillingPeriodItem(insert, transaction)
+    } else {
+      if (usageMeterId) {
+        throw new Error(
+          'Usage meter ID is not allowed for static items'
+        )
+      }
+      if (usageEventsPerUnit) {
+        throw new Error(
+          'Usage events per unit is not allowed for static items'
+        )
+      }
+      if (discountRedemptionId) {
+        throw new Error(
+          'Discount redemption ID is not allowed for static items'
+        )
+      }
+      const insert: BillingPeriodItem.Insert = {
+        billingPeriodId,
+        quantity,
+        unitPrice,
+        name,
+        description,
+        type,
+        livemode,
+        usageMeterId: null,
+        discountRedemptionId: null,
+        usageEventsPerUnit: null,
+      }
+      return insertBillingPeriodItem(insert, transaction)
+    }
   })
 }
 
@@ -571,6 +627,11 @@ export const setupInvoice = async ({
         price: 1000,
         quantity: 1,
         livemode: invoice.livemode,
+        type: SubscriptionItemType.Static,
+        priceId,
+        billingRunId: null,
+        ledgerAccountId: null,
+        ledgerAccountCredit: null,
       },
       transaction
     )
@@ -751,6 +812,9 @@ export const setupSubscriptionItem = async ({
   priceId,
   addedDate,
   metadata,
+  type = SubscriptionItemType.Static,
+  usageMeterId,
+  usageEventsPerUnit,
 }: {
   subscriptionId: string
   name: string
@@ -760,6 +824,9 @@ export const setupSubscriptionItem = async ({
   addedDate?: Date
   removedDate?: Date
   metadata?: Record<string, any>
+  type?: SubscriptionItemType
+  usageMeterId?: string
+  usageEventsPerUnit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const subscription = await selectSubscriptionById(
@@ -769,8 +836,19 @@ export const setupSubscriptionItem = async ({
     if (!subscription) {
       throw new Error('Subscription not found')
     }
-    return insertSubscriptionItem(
-      {
+    if (type === SubscriptionItemType.Usage) {
+      if (!usageMeterId) {
+        throw new Error('Usage meter ID is required for usage items')
+      }
+      if (usageEventsPerUnit === undefined) {
+        throw new Error(
+          'Usage events per unit is required for usage items'
+        )
+      }
+      if (priceId) {
+        throw new Error('Price ID is not allowed for usage items')
+      }
+      const insert: SubscriptionItem.UsageInsert = {
         subscriptionId: subscription.id,
         name,
         quantity,
@@ -781,9 +859,39 @@ export const setupSubscriptionItem = async ({
         expiredAt: null,
         metadata: metadata ?? {},
         externalId: null,
-      },
-      transaction
-    )
+        type,
+        usageMeterId,
+        usageEventsPerUnit,
+      }
+      return insertSubscriptionItem(insert, transaction)
+    } else {
+      if (usageMeterId) {
+        throw new Error(
+          'Usage meter ID is not allowed for static items'
+        )
+      }
+      if (usageEventsPerUnit) {
+        throw new Error(
+          'Usage events per unit is not allowed for static items'
+        )
+      }
+      const insert: SubscriptionItem.StaticInsert = {
+        subscriptionId: subscription.id,
+        name,
+        quantity,
+        unitPrice,
+        livemode: subscription.livemode,
+        priceId: priceId ?? subscription.priceId!,
+        addedDate: addedDate ?? new Date(),
+        expiredAt: null,
+        metadata: metadata ?? {},
+        externalId: null,
+        type,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+      }
+      return insertSubscriptionItem(insert, transaction)
+    }
   })
 }
 
@@ -964,14 +1072,44 @@ export const setupInvoiceLineItem = async ({
   quantity = 1,
   price = 1000,
   livemode = true,
+  type = SubscriptionItemType.Static,
+  billingRunId,
+  ledgerAccountId,
+  ledgerAccountCredit,
 }: {
   invoiceId: string
   priceId: string
   quantity?: number
   price?: number
   livemode?: boolean
+  type?: SubscriptionItemType
+  billingRunId?: string
+  ledgerAccountId?: string
+  ledgerAccountCredit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
+    if (type === SubscriptionItemType.Usage) {
+      if (!billingRunId || !ledgerAccountId || !ledgerAccountCredit) {
+        throw new Error(
+          'Usage invoice line items must have a billing run id, ledger account id, and ledger account credit'
+        )
+      }
+      return insertInvoiceLineItem(
+        {
+          invoiceId,
+          priceId,
+          quantity,
+          price,
+          livemode,
+          description: 'Test Description',
+          type,
+          billingRunId,
+          ledgerAccountId,
+          ledgerAccountCredit,
+        },
+        transaction
+      )
+    }
     return insertInvoiceLineItem(
       {
         invoiceId,
@@ -980,6 +1118,10 @@ export const setupInvoiceLineItem = async ({
         price,
         livemode,
         description: 'Test Description',
+        type,
+        billingRunId: null,
+        ledgerAccountId: null,
+        ledgerAccountCredit: null,
       },
       transaction
     )
@@ -1304,8 +1446,8 @@ interface CoreLedgerEntryUserParams {
   expiredAt?: Date | null
   billingPeriodId?: string | null
   usageMeterId?: string | null
-  calculationRunId?: string | null
   appliedToLedgerItemId?: string | null
+  claimedByBillingRunId?: string | null
 }
 
 // --- Debit Ledger Entry Setup ---
@@ -1382,6 +1524,7 @@ const debitEntryInsertFromDebigLedgerParams = (
   params: DebitLedgerEntrySetupParams & CoreLedgerEntryUserParams
 ) => {
   const baseProps = {
+    claimedByBillingRunId: null,
     ...baseLedgerEntryInsertFieldsFromParams(params),
     direction: LedgerEntryDirection.Debit,
   } as const
@@ -1402,6 +1545,7 @@ const debitEntryInsertFromDebigLedgerParams = (
         ...baseProps,
         entryType: params.entryType,
         sourceUsageCreditId: params.sourceUsageCreditId,
+        claimedByBillingRunId: null,
       } satisfies LedgerEntry.CreditGrantExpiredInsert
       break
 
@@ -1410,6 +1554,7 @@ const debitEntryInsertFromDebigLedgerParams = (
         ...baseProps,
         entryType: params.entryType,
         sourceRefundId: params.sourceRefundId,
+        claimedByBillingRunId: null,
       } satisfies LedgerEntry.PaymentRefundedInsert
       break
 
@@ -1497,6 +1642,7 @@ const creditLedgerEntryInsertFromCreditLedgerParams = (
 
   const baseProps = {
     ...baseLedgerEntryInsertFieldsFromParams(params),
+    claimedByBillingRunId: null,
     direction: LedgerEntryDirection.Credit,
   } as const
 

@@ -322,18 +322,23 @@ CREATE TABLE subscription_meter_period_calculations (
 
 *   **Core Principle:** All financial operations now revolve around creating immutable `LedgerEntries` which belong to a `LedgerTransaction`. `UsageCredits` records grants. `UsageCreditApplications` details the use of those grants. `UsageCreditBalanceAdjustments` records admin changes to grant effectiveness. `SubscriptionMeterPeriodCalculations` snapshots period outcomes based on *posted* (or to-be-posted) ledger activity.
 
-*   **`billingRunHelpers.ts`:**
-    1.  **Generate `calculation_run_id`**. This ID is crucial as it will serve as the `initiating_source_id` for the `LedgerTransaction` representing this billing period's processing for a subscription.
-    2.  **Start a `LedgerTransaction`** of type `'BillingPeriodTransition'` for the subscription's period change. Its `initiating_source_id` will be the `calculation_run_id`. This single transaction bundles all ledger activities for this specific subscription's period turnover. As per its definition, this transaction typically includes:
-        *   Ledger entries for credit grants for the new period (`LedgerEntryType.CreditGrantRecognized` for the `UsageCredits` record of the new grant).
-        *   Ledger entries for expirations of unused credits from the previous period (`LedgerEntryType.CreditGrantExpired` for each relevant `UsageCredits` record).
-        *   Ledger entries for charges to settle any outstanding usage costs from the previous period. This involves:
-            *   Creating `LedgerEntryType.UsageCost` items for all relevant `UsageEvents`.
-            *   Applying available credits by creating `LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance` (debiting the ECCA/grant) and `LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost` (crediting against the usage cost) entries.
-    3.  All these `LedgerEntry` items are linked to this single `BillingPeriodTransition` `LedgerTransaction`.
-    4.  **Finalize Ledger Items for the Run:** At the end of processing for the `calculation_run_id` (and associated `LedgerTransaction`), all non-discarded `LedgerEntries` created with `status: 'pending'` during this run are transitioned to `status: 'posted'`.
-    5.  **Generate `SubscriptionMeterPeriodCalculations` records:** Summarize the now `posted` ledger items (or those confirmed to be posted) for each meter for this `calculation_run_id` to populate these snapshot records. Manage `active`/`superseded` status.
-    6.  Generate Invoices/Credit Notes based on the totals from these calculation snapshots.
+*   **`billingRunHelpers.ts` (as implemented):**
+    The billing run process is orchestrated by `executeBillingRun`, which wraps the core logic in `executeBillingRunCalculationAndBookkeepingSteps` within a `comprehensiveAdminTransaction`. This ensures that the creation of financial records (like Payments) and the dispatching of ledger commands happen atomically.
+
+    1.  **Initiation:** The process starts for a `BillingRun` record that is in `Scheduled` status.
+    2.  **Tabulate Usage Costs:** It calls `tabulateOutstandingUsageCosts`, which queries the ledger using `aggregateOutstandingBalanceForUsageCosts` to sum up all pre-existing, unbilled `usage_cost` ledger entries for the subscription. This produces a list of `usageOverages`.
+    3.  **Calculate Total Amount Due:** The `usageOverages` are passed to `calculateFeeAndTotalAmountDueForBillingPeriod`, which combines them with static costs from `BillingPeriodItems` to determine the final `totalDueAmount` for the period.
+    4.  **Invoice Management:**
+        *   It looks for an existing invoice for the billing period. If none is found, a new one is created.
+        *   If an invoice exists but is in a terminal state (e.g., `Paid`, `Void`), the run is considered successful, and the process stops.
+        *   Crucially, it "evicts" any existing invoice line items by deleting them. This ensures the invoice always reflects the latest calculation.
+        *   `billingPeriodItemsToInvoiceLineItemInserts` is called. It generates new line items for both static items and usage-based items. For usage items, the `quantity` is calculated based on the `usageOverages` balance, correctly reflecting the metered usage to be billed.
+    5.  **Payment and State Handling:**
+        *   If the `totalDueAmount` is zero or less, `processNoMoreDueForBillingPeriod` is called. This marks the `BillingRun` as `Succeeded`, the `Invoice` as `Paid`, and the `BillingPeriod` as `Completed` (if applicable).
+        *   If there is an amount due, a `Payment` record is created with `status: 'Processing'`, and the `BillingRun` status is updated to `AwaitingPaymentConfirmation`.
+    6.  **Ledger Transaction Command:** The entire bookkeeping operation is wrapped in a `comprehensiveAdminTransaction`, which generates a `ledgerCommand` of type `LedgerTransactionType.BillingPeriodTransition`. The source of truth for this is the `BillingRun.id`. The payload for this command contains the key objects from the run: the `subscription`, `billingPeriod`, any new `payment` record, and `subscriptionFeatureItems` (for handling new credit grants for the next period). This command is then processed by a centralized ledger manager.
+    7.  **Stripe Payment Intent:** After the bookkeeping steps, if a payment is required, `executeBillingRun` proceeds to call `createAndConfirmPaymentIntentForBillingRun`.
+    8.  **Final Updates:** Upon successful creation of a Payment Intent, the system updates the `Payment`, `Invoice`, and `BillingRun` records with the Payment Intent ID and sets their statuses to `AwaitingPaymentConfirmation`.
 
 *   **Administrative Adjustment Processes (New):**
     1.  Record the intent in `UsageCreditBalanceAdjustments`.
@@ -360,6 +365,9 @@ CREATE TABLE subscription_meter_period_calculations (
             *   `expires_at`: As applicable (NULL for durable top-ups, end-of-period for monthly plan credits).
         4.  Start a `LedgerTransaction` (e.g., `initiating_source_type='payment_confirmation'`, `initiating_source_id` = `Payment.id` or `Invoice.id`).
         5.  Create a `LedgerEntry` (`entry_type: 'payment_recognized'` or `'credit_grant_recognized'`, status: `'posted'`, positive amount, linking to `source_payment_id`, the new `source_usage_credit_id`, and the `LedgerTransaction`). This credits the customer's ECCA.
+        6.  **Settle Usage Overages Post-Payment (New Step):** If the paid invoice contained charges for usage overages (i.e., it was a standard invoice from a billing run), an additional process is triggered immediately after the credit grant is recognized in the ledger:
+            *   The system creates `UsageCreditApplications` records to apply the newly granted `payment_period_settlement` credit against the specific `usage_cost` ledger entries that were included in the just-paid invoice.
+            *   This creates corresponding `credit_applied_to_usage` ledger items, effectively zeroing out the usage debt on the ledger. This ensures the ledger accurately reflects that the usage has been paid for and settled.
 
 ## 3. Event Workflows and Ledger Posting
 
@@ -523,6 +531,7 @@ All workflows operate within database transactions to ensure atomicity. Each dis
                 *   Calculate unused portion.
                 *   Create `LedgerEntry` of `entry_type: 'credit_grant_expired'` (`LedgerEntryType.CreditGrantExpired`), status `'pending'`, for the unused, expired amount (negative value).
         *   (All `'pending'` entries are transitioned to `'posted'` upon successful finalization of this `calculation_run_id` for the subscription).
+        *   **Payment for Usage Overages and Ledger Settlement:** If the sum of usage costs exceeds available credits, the net amount is invoiced to the customer. Upon successful payment of this invoice, a new `UsageCredits` grant is created with `credit_type: 'payment_period_settlement'`. This new grant is then immediately applied to the outstanding `usage_cost` ledger items, thus settling the debt on the ledger as described in Section 2.
 
 5.  **Administrative Adjustment of Credit Balance (e.g., Clawback)**
     *   **TSDoc Context (`LedgerTransactionType.AdminCreditAdjusted`):** "Any admin actions by the organization to adjust their ledger. Should be used sparingly... Use BillingRecalculated whenever possible."

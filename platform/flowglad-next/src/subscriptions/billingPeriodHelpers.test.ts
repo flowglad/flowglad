@@ -9,6 +9,7 @@ import {
   BillingRunStatus,
   InvoiceStatus,
   PaymentStatus,
+  SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
 import {
@@ -24,7 +25,7 @@ import {
   setupInvoice,
   setupOrg,
   setupPayment,
-  setupBillingPeriodItems,
+  setupBillingPeriodItem,
   setupPaymentMethod,
   setupSubscription,
   setupBillingRun,
@@ -78,7 +79,7 @@ describe('Subscription Billing Period Transition', async () => {
       subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,
@@ -457,7 +458,10 @@ describe('Subscription Billing Period Transition', async () => {
         updatedByCommit: 'test',
         expiredAt: null,
         position: 0,
-      } as SubscriptionItem.Record
+        type: SubscriptionItemType.Static,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+      }
     })
 
     it('should generate trial billing period inserts with trialPeriod true and no billing period items', () => {

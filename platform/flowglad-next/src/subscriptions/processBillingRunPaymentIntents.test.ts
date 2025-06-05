@@ -7,7 +7,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { BillingPeriodStatus } from '@/types'
 import {
   setupBillingPeriod,
-  setupBillingPeriodItems,
+  setupBillingPeriodItem,
   setupBillingRun,
   setupCustomer,
   setupPaymentMethod,
@@ -45,7 +45,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
-  let billingPeriodItems: BillingPeriodItem.Record[]
+  let billingPeriodItem: BillingPeriodItem.Record
   let subscription: Subscription.Record
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -75,7 +75,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
-    billingPeriodItems = await setupBillingPeriodItems({
+    billingPeriodItem = await setupBillingPeriodItem({
       billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,

@@ -203,3 +203,10 @@ export interface LedgerCommandResult {
   ledgerTransaction: LedgerTransaction.Record
   ledgerEntries: LedgerEntry.Record[]
 }
+
+export interface OutstandingUsageCostAggregation {
+  ledgerAccountId: string
+  usageMeterId: string
+  subscriptionId: string
+  outstandingBalance: number
+}

@@ -94,6 +94,7 @@ export const grantEntitlementUsageCredits = async (
           ledgerAccountId: ledgerAccountsByUsageMeterId.get(
             usageCredit.usageMeterId
           )!.id,
+          claimedByBillingRunId: null,
           subscriptionId: command.subscriptionId!,
           organizationId: command.organizationId,
           status: LedgerEntryStatus.Posted,

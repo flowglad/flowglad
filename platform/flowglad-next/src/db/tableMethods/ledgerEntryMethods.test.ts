@@ -196,6 +196,7 @@ describe('ledgerEntryMethods', () => {
         })
         const entryData1: LedgerEntry.Insert = {
           ...ledgerEntryNulledSourceIdColumns,
+          claimedByBillingRunId: null,
           metadata: {},
           discardedAt: null,
           organizationId: organization.id,
@@ -220,6 +221,7 @@ describe('ledgerEntryMethods', () => {
         })
         const entryData2: LedgerEntry.Insert = {
           ...ledgerEntryNulledSourceIdColumns,
+          claimedByBillingRunId: null,
           metadata: {},
           discardedAt: null,
           organizationId: organization.id,
@@ -288,6 +290,7 @@ describe('ledgerEntryMethods', () => {
         })
         const entryData2: LedgerEntry.Insert = {
           ...ledgerEntryNulledSourceIdColumns,
+          claimedByBillingRunId: null,
           metadata: {},
           discardedAt: null,
           organizationId: organization.id,

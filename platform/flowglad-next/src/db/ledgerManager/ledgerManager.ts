@@ -96,7 +96,7 @@ const processAdminCreditAdjustedLedgerCommand = async (
     appliedToLedgerItemId: null,
     billingPeriodId: null, // Adjustments are typically not tied to a billing period
     usageMeterId: null, // Assuming adjustment is not meter-specific unless logic above changes
-    calculationRunId: null,
+    claimedByBillingRunId: null,
     metadata: { ledgerCommandType: command.type },
   }
 

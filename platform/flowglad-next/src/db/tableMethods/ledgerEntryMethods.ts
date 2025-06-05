@@ -20,10 +20,20 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
 } from '@/types'
-import { and, asc, eq, gt, inArray, isNull, or } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  or,
+} from 'drizzle-orm'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
 import { selectUsageCredits } from './usageCreditMethods'
 import { selectUsageEvents } from './usageEventMethods'
+import { BillingRun } from '../schema/billingRuns'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -233,6 +243,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     LedgerEntry.Where,
     'ledgerAccountId' | 'sourceUsageEventId'
   >,
+  anchorDate: Date,
   transaction: DbTransaction
 ): Promise<
   {
@@ -255,7 +266,12 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
           ])
         ),
         balanceTypeWhereStatement('posted'),
-        discardedAtFilterOutStatement()
+        discardedAtFilterOutStatement(),
+        or(
+          gt(ledgerEntries.expiredAt, anchorDate),
+          isNull(ledgerEntries.expiredAt)
+        ),
+        lt(ledgerEntries.entryTimestamp, anchorDate)
       )
     )
     .orderBy(asc(ledgerEntries.position))
@@ -294,4 +310,52 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     }
   )
   return balances
+}
+
+export const claimLedgerEntriesWithOutstandingBalances = async (
+  usageEventIds: string[],
+  billingRun: BillingRun.Record,
+  transaction: DbTransaction
+): Promise<LedgerEntry.Record[]> => {
+  if (usageEventIds.length === 0) {
+    return []
+  }
+  const ledgerEntryResults = await selectLedgerEntries(
+    {
+      sourceUsageEventId: usageEventIds,
+      entryType: LedgerEntryType.UsageCost,
+    },
+    transaction
+  )
+  if (ledgerEntryResults.length !== usageEventIds.length) {
+    throw new Error(
+      `Some ledger entries were not found: ${usageEventIds.join(', ')}`
+    )
+  }
+  ledgerEntryResults.forEach((entry) => {
+    if (entry.entryType !== LedgerEntryType.UsageCost) {
+      throw new Error(
+        `Ledger entry ${entry.id} is not a usage cost. Can only claim usage costs`
+      )
+    }
+    if (entry.subscriptionId !== billingRun.subscriptionId) {
+      throw new Error(
+        `Ledger entry ${entry.id} is not associated with the billing run. Can only claim usage costs for the billing run`
+      )
+    }
+  })
+  const updatedLedgerEntries = await transaction
+    .update(ledgerEntries)
+    .set({
+      claimedByBillingRunId: billingRun.id,
+    })
+    .where(
+      and(
+        inArray(ledgerEntries.sourceUsageEventId, usageEventIds),
+        eq(ledgerEntries.entryType, LedgerEntryType.UsageCost)
+      )
+    )
+  return updatedLedgerEntries.map((entry) =>
+    ledgerEntriesSelectSchema.parse(entry)
+  )
 }

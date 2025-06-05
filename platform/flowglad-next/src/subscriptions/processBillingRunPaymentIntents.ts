@@ -250,6 +250,8 @@ export const processPaymentIntentEventForBillingRun = async (
         billingPeriod,
         organization,
         paymentMethod,
+        usageOverages: [],
+        billingRun,
       },
       transaction
     )

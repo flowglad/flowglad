@@ -71,14 +71,16 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import { aggregateOutstandingBalanceForUsageCosts } from '@/db/tableMethods/ledgerEntryMethods'
+import {
+  aggregateOutstandingBalanceForUsageCosts,
+  claimLedgerEntriesWithOutstandingBalances,
+} from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
   paymentMethod: PaymentMethod.Record
   scheduledFor: Date
-  payments: Payment.Record[]
 }
 
 export const createBillingRunInsert = (
@@ -110,12 +112,15 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     organization,
     paymentMethod,
     usageOverages,
+    billingRun,
   }: {
     paymentMethod: PaymentMethod.Record
     billingPeriod: BillingPeriod.Record
     billingPeriodItems: BillingPeriodItem.Record[]
     organization: Organization.Record
+    billingRun: BillingRun.Record
     usageOverages: {
+      usageEventId: string
       usageMeterId: string
       balance: number
     }[]
@@ -136,7 +141,11 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     countryId,
     transaction
   )
-
+  await claimLedgerEntriesWithOutstandingBalances(
+    usageOverages.map((usageOverage) => usageOverage.usageEventId),
+    billingRun,
+    transaction
+  )
   const feeCalculation =
     await createAndFinalizeSubscriptionFeeCalculation(
       {
@@ -204,6 +213,7 @@ export type OutstandingUsageCostAggregation = {
 // Helper function to tabulate outstanding usage costs
 export const tabulateOutstandingUsageCosts = async (
   subscriptionId: string,
+  billingPeriodEndDate: Date,
   transaction: DbTransaction
 ): Promise<{
   outstandingUsageCostsByLedgerAccountId: Map<
@@ -227,6 +237,7 @@ export const tabulateOutstandingUsageCosts = async (
           (ledgerAccount) => ledgerAccount.id
         ),
       },
+      billingPeriodEndDate,
       transaction
     )
 
@@ -262,23 +273,87 @@ export const tabulateOutstandingUsageCosts = async (
 export const billingPeriodItemsToInvoiceLineItemInserts = ({
   invoiceId,
   billingPeriodItems,
+  usageOverages,
+  billingRunId,
 }: {
+  billingRunId: string
   invoiceId: string
   billingPeriodItems: BillingPeriodItem.Record[]
+  usageOverages: {
+    ledgerAccountId: string
+    usageMeterId: string
+    balance: number
+  }[]
 }): InvoiceLineItem.Insert[] => {
-  return billingPeriodItems.map((billingPeriodItem) => {
-    return {
-      BillingPeriodItemId: billingPeriodItem.id,
+  const usageOverageByUsageMeterId = new Map<
+    string,
+    {
+      usageMeterId: string
+      balance: number
+      ledgerAccountId: string
+    }
+  >(
+    usageOverages.map((usageOverage) => [
+      usageOverage.usageMeterId,
+      usageOverage,
+    ])
+  )
+  const invoiceLineItemInserts: (
+    | InvoiceLineItem.Insert
+    | undefined
+  )[] = billingPeriodItems.map((billingPeriodItem) => {
+    if (billingPeriodItem.type === SubscriptionItemType.Usage) {
+      const usageOverage = usageOverageByUsageMeterId.get(
+        billingPeriodItem.usageMeterId
+      )
+      /**
+       * If there is no usage overage for the usage meter, we skip the line item.
+       */
+      if (!usageOverage) {
+        return undefined
+      }
+      const insert: InvoiceLineItem.UsageInsert = {
+        priceId: null,
+        billingRunId,
+        invoiceId,
+        ledgerAccountCredit: usageOverage.balance,
+        quantity:
+          usageOverage.balance && billingPeriodItem.usageEventsPerUnit
+            ? usageOverage.balance /
+              billingPeriodItem.usageEventsPerUnit
+            : 0,
+        type: SubscriptionItemType.Usage,
+        ledgerAccountId: usageOverage!.ledgerAccountId,
+        livemode: billingPeriodItem.livemode,
+        price: billingPeriodItem.unitPrice,
+        description: `${billingPeriodItem.name}${
+          billingPeriodItem.description &&
+          ` - ${billingPeriodItem.description}`
+        }`,
+      }
+      return insert
+    }
+
+    const insert: InvoiceLineItem.StaticInsert = {
       invoiceId,
+      billingRunId,
       quantity: billingPeriodItem.quantity,
       livemode: billingPeriodItem.livemode,
       price: billingPeriodItem.unitPrice,
       description: `${billingPeriodItem.name}${
         billingPeriodItem.description &&
-        `- ${billingPeriodItem.description}`
+        ` - ${billingPeriodItem.description}`
       }`,
+      type: SubscriptionItemType.Static,
+      ledgerAccountId: null,
+      ledgerAccountCredit: null,
+      priceId: null,
     }
+    return insert
   })
+  return invoiceLineItemInserts
+    .filter((item) => item !== undefined)
+    .filter((item) => item.quantity > 0)
 }
 
 export const processOutstandingBalanceForBillingPeriod = async (
@@ -375,6 +450,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   const { rawOutstandingUsageCosts: usageOverages } =
     await tabulateOutstandingUsageCosts(
       billingPeriod.subscriptionId,
+      billingPeriod.endDate,
       transaction
     )
   const { feeCalculation, totalDueAmount } =
@@ -385,6 +461,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
         organization,
         paymentMethod,
         usageOverages,
+        billingRun,
       },
       transaction
     )
@@ -475,8 +552,9 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingPeriodItemsToInvoiceLineItemInserts({
       invoiceId: invoice.id,
       billingPeriodItems,
+      usageOverages,
+      billingRunId: billingRun.id,
     })
-
   await insertInvoiceLineItems(invoiceLineItemInserts, transaction)
   if (totalDueAmount <= 0) {
     const processBillingPeriodResult =

@@ -73,7 +73,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     billingPeriodId:
       command.payload.usageCredit.billingPeriodId ?? null,
     usageMeterId: command.payload.usageCredit.usageMeterId ?? null,
-    calculationRunId: null,
+    claimedByBillingRunId: null,
     metadata: { ledgerCommandType: command.type },
   }
   const [insertedLedgerEntry] = await bulkInsertLedgerEntries(

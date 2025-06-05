@@ -41,6 +41,7 @@ import {
 import { ledgerAccounts } from './ledgerAccounts'
 import { EqualApproximately } from 'lucide-react'
 import { refunds } from './refunds'
+import { billingRuns } from './billingRuns'
 
 const TABLE_NAME = 'ledger_entries'
 
@@ -130,7 +131,10 @@ export const ledgerEntries = pgTable(
       'expired_at_ledger_transaction_id',
       ledgerTransactions
     ),
-    calculationRunId: text('calculation_run_id'),
+    claimedByBillingRunId: nullableStringForeignKey(
+      'claimed_by_billing_run_id',
+      billingRuns
+    ),
     metadata: jsonb('metadata'),
     organizationId: notNullStringForeignKey(
       'organization_id',
@@ -158,6 +162,7 @@ export const ledgerEntries = pgTable(
     constructIndex(TABLE_NAME, [table.appliedToLedgerItemId]),
     constructIndex(TABLE_NAME, [table.billingPeriodId]),
     constructIndex(TABLE_NAME, [table.usageMeterId]),
+    constructIndex(TABLE_NAME, [table.claimedByBillingRunId]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
       to: 'authenticated',
@@ -205,6 +210,7 @@ export const creditGrantRecognizedEntryRefinements = {
   direction: z.literal(LedgerEntryDirection.Credit),
   entryType: z.literal(LedgerEntryType.CreditGrantRecognized),
   sourceUsageCreditId: z.string(),
+  claimedByBillingRunId: z.null(),
 }
 
 export const creditBalanceAdjustedEntryRefinements = {
@@ -212,6 +218,7 @@ export const creditBalanceAdjustedEntryRefinements = {
   entryType: z.literal(LedgerEntryType.CreditBalanceAdjusted),
   sourceCreditBalanceAdjustmentId: z.string(),
   sourceUsageCreditId: z.string(),
+  claimedByBillingRunId: z.null(),
 }
 
 export const creditGrantExpiredEntryRefinements = {
@@ -219,6 +226,7 @@ export const creditGrantExpiredEntryRefinements = {
   direction: z.literal(LedgerEntryDirection.Debit),
   entryType: z.literal(LedgerEntryType.CreditGrantExpired),
   sourceUsageCreditId: z.string(),
+  claimedByBillingRunId: z.null(),
 }
 
 export const paymentRefundedEntryRefinements = {
@@ -226,12 +234,14 @@ export const paymentRefundedEntryRefinements = {
   direction: z.literal(LedgerEntryDirection.Debit),
   entryType: z.literal(LedgerEntryType.PaymentRefunded),
   sourceRefundId: z.string(),
+  claimedByBillingRunId: z.null(),
 }
 
 export const billingAdjustmentEntryRefinements = {
   ...nulledSourceColumnRefinements,
   entryType: z.literal(LedgerEntryType.BillingAdjustment),
   sourceBillingPeriodCalculationId: z.string(),
+  claimedByBillingRunId: z.null(),
 }
 
 export const usageCreditApplicationDebitFromCreditBalanceEntryRefinements =

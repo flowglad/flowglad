@@ -7,7 +7,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
   setupBillingPeriod,
-  setupBillingPeriodItems,
+  setupBillingPeriodItem,
   setupUsageMeter,
   setupPrice,
   setupTestFeaturesAndProductFeatures,
@@ -445,7 +445,7 @@ describe('createSubscription', async () => {
       startDate,
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Example end date
     })
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: firstBillingPeriod.id,
       quantity: 1,
       unitPrice: defaultPrice.unitPrice,
