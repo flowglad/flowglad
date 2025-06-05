@@ -903,3 +903,8 @@ export type LedgerEntryCreditableEntryType = Extract<
   LedgerEntryType,
   CreditableEntryType
 >
+
+export enum SubscriptionItemType {
+  Usage = 'usage',
+  Static = 'static',
+}

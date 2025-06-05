@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupOrg,
@@ -9,7 +9,14 @@ import {
   setupBillingPeriodItems,
   setupInvoice,
   setupSubscription,
-} from '../../seedDatabase'
+  setupLedgerAccount,
+  setupLedgerTransaction,
+  setupDebitLedgerEntry,
+  setupUsageEvent,
+  setupUsageMeter,
+  setupPrice,
+  teardownOrg,
+} from '@/../seedDatabase'
 import {
   calculateFeeAndTotalAmountDueForBillingPeriod,
   processOutstandingBalanceForBillingPeriod,
@@ -41,10 +48,7 @@ import {
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import { Subscription } from '@/db/schema/subscriptions'
-import {
-  selectBillingPeriodById,
-  updateBillingPeriod,
-} from '@/db/tableMethods/billingPeriodMethods'
+import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import { Payment } from '@/db/schema/payments'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import {
@@ -55,6 +59,24 @@ import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from '@/utils/core'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import * as R from 'ramda'
+import {
+  tabulateOutstandingUsageCosts,
+  OutstandingUsageCostAggregation,
+} from '@/db/ledgerManager/billingPeriodTransitionLedgerCommand/processOverageUsageCostCredits'
+import {
+  LedgerEntryStatus,
+  LedgerEntryType,
+  SubscriptionStatus,
+  LedgerTransactionType,
+  PriceType,
+  IntervalUnit,
+} from '@/types'
+import { Organization } from '@/db/schema/organizations'
+import { Product } from '@/db/schema/products'
+import { Price } from '@/db/schema/prices'
+import { UsageMeter } from '@/db/schema/usageMeters'
+import { Catalog } from '@/db/schema/catalogs'
 
 describe('billingRunHelpers', async () => {
   const { organization, price } = await setupOrg()
@@ -1103,6 +1125,406 @@ describe('billingRunHelpers', async () => {
       ).rejects.toThrow(
         'Cannot run billing for a billing period with a payment method that does not have a stripe payment method id'
       )
+    })
+  })
+})
+
+describe('tabulateOutstandingUsageCosts', () => {
+  let organization: Organization.Record
+  let product: Product.Record
+  let catalog: Catalog.Record
+  let price: Price.Record
+  let usageBasedPrice: Price.Record
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let subscription: Subscription.Record
+  let usageMeter: UsageMeter.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    product = orgData.product
+    price = orgData.price
+    catalog = orgData.catalog
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter For Tabulation',
+      catalogId: catalog.id,
+    })
+
+    usageBasedPrice = await setupPrice({
+      productId: product.id,
+      name: 'Metered Price For Tabulation',
+      type: PriceType.Usage,
+      unitPrice: 10,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      setupFeeAmount: 0,
+      currency: organization.defaultCurrency,
+      usageMeterId: usageMeter.id,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+    })
+  })
+
+  afterEach(async () => {
+    if (organization) {
+      await teardownOrg({ organizationId: organization.id })
+    }
+  })
+
+  it('should return empty results when no ledger accounts are provided', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const ledgerAccountIds: string[] = []
+
+      const result = await tabulateOutstandingUsageCosts(
+        ledgerAccountIds,
+        subscription.id,
+        transaction
+      )
+
+      expect(result.outstandingUsageCostsByLedgerAccountId.size).toBe(
+        0
+      )
+      expect(result.rawOutstandingUsageCosts.length).toBe(0)
+    })
+  })
+
+  it('should return empty results when ledger accounts exist but have no outstanding costs', async () => {
+    const ledgerAccount = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+    await adminTransaction(async ({ transaction }) => {
+      const result = await tabulateOutstandingUsageCosts(
+        [ledgerAccount.id],
+        subscription.id,
+        transaction
+      )
+
+      expect(result.outstandingUsageCostsByLedgerAccountId.size).toBe(
+        0
+      )
+      expect(result.rawOutstandingUsageCosts.length).toBe(0)
+    })
+  })
+
+  it('should correctly tabulate a single outstanding usage cost for one ledger account', async () => {
+    const ledgerAccount = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+    await adminTransaction(async ({ transaction }) => {
+      const ledgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.UsageEventProcessed,
+      })
+      const billingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: new Date(Date.now() - 1000),
+        endDate: new Date(Date.now() + 1000),
+        status: BillingPeriodStatus.Active,
+        livemode: true,
+      })
+      const usageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 5,
+        priceId: usageBasedPrice.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_1' + Math.random(),
+        customerId: customer.id,
+        usageDate: new Date(),
+      })
+
+      const costEntry = await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: 100,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+      })
+
+      const result = await tabulateOutstandingUsageCosts(
+        [ledgerAccount.id],
+        subscription.id,
+        transaction
+      )
+      expect(result.rawOutstandingUsageCosts.length).toBe(1)
+      const rawCost = result.rawOutstandingUsageCosts[0]
+      expect(rawCost.ledgerAccountId).toBe(ledgerAccount.id)
+      expect(rawCost.usageMeterId).toBe(usageMeter.id)
+      expect(rawCost.usageEventId).toBe(usageEvent.id)
+      expect(rawCost.balance).toBe(100)
+
+      expect(result.outstandingUsageCostsByLedgerAccountId.size).toBe(
+        1
+      )
+      const aggregatedCost =
+        result.outstandingUsageCostsByLedgerAccountId.get(
+          ledgerAccount.id
+        )
+      expect(aggregatedCost).toBeDefined()
+      expect(aggregatedCost?.ledgerAccountId).toBe(ledgerAccount.id)
+      expect(aggregatedCost?.usageMeterId).toBe(usageMeter.id)
+      expect(aggregatedCost?.subscriptionId).toBe(subscription.id)
+      expect(aggregatedCost?.outstandingBalance).toBe(100)
+    })
+  })
+
+  it('should handle multiple outstanding usage costs for one ledger account (map behavior)', async () => {
+    const ledgerAccount = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+    await adminTransaction(async ({ transaction }) => {
+      const ledgerTransaction = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.UsageEventProcessed,
+      })
+      const billingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: new Date(Date.now() - 1000),
+        endDate: new Date(Date.now() + 1000),
+        status: BillingPeriodStatus.Active,
+        livemode: true,
+      })
+      const usageEvent1 = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 10,
+        priceId: usageBasedPrice.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_1' + Math.random(),
+        customerId: customer.id,
+        usageDate: new Date(Date.now() - 2000),
+      })
+
+      const usageEvent2 = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: 5,
+        priceId: usageBasedPrice.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: 'dummy_txn_2' + Math.random(),
+        customerId: customer.id,
+        usageDate: new Date(Date.now() - 1000),
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: usageEvent1.amount,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent1.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: usageEvent1.usageDate,
+      })
+
+      await setupDebitLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: ledgerTransaction.id,
+        ledgerAccountId: ledgerAccount.id,
+        amount: usageEvent2.amount,
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent2.id,
+        status: LedgerEntryStatus.Posted,
+        usageMeterId: usageMeter.id,
+        entryTimestamp: usageEvent2.usageDate,
+      })
+
+      const result = await tabulateOutstandingUsageCosts(
+        [ledgerAccount.id],
+        subscription.id,
+        transaction
+      )
+
+      expect(result.rawOutstandingUsageCosts.length).toBe(2)
+      const sortedRawCosts = [
+        ...result.rawOutstandingUsageCosts,
+      ].sort((a, b) => a.balance - b.balance)
+      expect(sortedRawCosts[0].balance).toBe(usageEvent2.amount)
+      expect(sortedRawCosts[1].balance).toBe(usageEvent1.amount)
+
+      expect(result.outstandingUsageCostsByLedgerAccountId.size).toBe(
+        1
+      )
+      const aggregatedCost =
+        result.outstandingUsageCostsByLedgerAccountId.get(
+          ledgerAccount.id
+        )
+      expect(aggregatedCost).toBeDefined()
+      expect(aggregatedCost?.outstandingBalance).toBe(
+        usageEvent1.amount + usageEvent2.amount
+      )
+      expect(aggregatedCost?.usageMeterId).toBe(usageMeter.id)
+    })
+  })
+
+  it('should correctly tabulate costs for multiple ledger accounts, some with and some without costs', async () => {
+    const la1 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+    const anotherUsageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Another Meter',
+      catalogId: catalog.id,
+    })
+    const la2 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: anotherUsageMeter.id,
+      livemode: true,
+    })
+    const usageMeter3 = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Another Meter 3',
+      catalogId: catalog.id,
+    })
+    const la3 = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter3.id,
+      livemode: true,
+    })
+
+    const lt = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.UsageEventProcessed,
+    })
+    const billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: new Date(Date.now() - 1000),
+      endDate: new Date(Date.now() + 1000),
+      status: BillingPeriodStatus.Active,
+      livemode: true,
+    })
+    const ue1 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      amount: 10,
+      priceId: usageBasedPrice.id,
+      billingPeriodId: billingPeriod.id,
+      transactionId: 'strp_d3' + Math.random(),
+      customerId: customer.id,
+    })
+    await setupDebitLedgerEntry({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: lt.id,
+      ledgerAccountId: la1.id,
+      amount: 100,
+      entryType: LedgerEntryType.UsageCost,
+      sourceUsageEventId: ue1.id,
+      status: LedgerEntryStatus.Posted,
+      usageMeterId: usageMeter.id,
+    })
+
+    const ue3 = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter3.id,
+      amount: 20,
+      priceId: usageBasedPrice.id,
+      billingPeriodId: billingPeriod.id,
+      transactionId: 'strp_d4' + Math.random(),
+      customerId: customer.id,
+    })
+    await setupDebitLedgerEntry({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: lt.id,
+      ledgerAccountId: la3.id,
+      amount: 200,
+      entryType: LedgerEntryType.UsageCost,
+      sourceUsageEventId: ue3.id,
+      status: LedgerEntryStatus.Posted,
+      usageMeterId: usageMeter.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await tabulateOutstandingUsageCosts(
+        [la1.id, la2.id, la3.id],
+        subscription.id,
+        transaction
+      )
+
+      expect(result.rawOutstandingUsageCosts.length).toBe(2)
+      expect(result.outstandingUsageCostsByLedgerAccountId.size).toBe(
+        2
+      )
+
+      const costLa1Raw = result.rawOutstandingUsageCosts.find(
+        (c) => c.ledgerAccountId === la1.id
+      )
+      const costLa3Raw = result.rawOutstandingUsageCosts.find(
+        (c) => c.ledgerAccountId === la3.id
+      )
+      expect(costLa1Raw?.balance).toBe(100)
+      expect(costLa3Raw?.balance).toBe(200)
+
+      const aggCostLa1 =
+        result.outstandingUsageCostsByLedgerAccountId.get(la1.id)
+      expect(aggCostLa1).toEqual<OutstandingUsageCostAggregation>({
+        ledgerAccountId: la1.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        outstandingBalance: 100,
+      })
+
+      const aggCostLa3 =
+        result.outstandingUsageCostsByLedgerAccountId.get(la3.id)
+      expect(aggCostLa3).toEqual<OutstandingUsageCostAggregation>({
+        ledgerAccountId: la3.id,
+        usageMeterId: usageMeter.id,
+        subscriptionId: subscription.id,
+        outstandingBalance: 200,
+      })
+
+      expect(
+        result.outstandingUsageCostsByLedgerAccountId.has(la2.id)
+      ).toBe(false)
     })
   })
 })

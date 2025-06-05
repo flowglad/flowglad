@@ -10,7 +10,6 @@ import {
   selectLedgerAccounts,
 } from '@/db/tableMethods/ledgerAccountMethods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { processOverageUsageCostCredits } from './processOverageUsageCostCredits'
 import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
 import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
 
@@ -28,11 +27,12 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     initiatingSourceId: command.payload.billingRunId,
     subscriptionId: command.payload.subscription.id,
   }
-  // TODO: Implement LedgerEntry creation for BillingRunUsageProcessed
+
   const ledgerTransaction = await insertLedgerTransaction(
     ledgerTransactionInput,
     transaction
   )
+
   const ledgerAccountsForSubscription = await selectLedgerAccounts(
     {
       organizationId: command.organizationId,
@@ -41,6 +41,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     },
     transaction
   )
+
   /**
    * Expire usage credits at the end of the billing period
    */
@@ -54,15 +55,6 @@ export const processBillingPeriodTransitionLedgerCommand = async (
       transaction
     )
 
-  const overageUsageCostLedgerEntries =
-    await processOverageUsageCostCredits(
-      {
-        ledgerAccountsForSubscription,
-        ledgerTransaction,
-        command,
-      },
-      transaction
-    )
   /**
    * Grant usage credits for the new billing period based on entitlements
    * First: find or create all the ledger accounts needed to grant the entitlements
@@ -101,10 +93,10 @@ export const processBillingPeriodTransitionLedgerCommand = async (
       },
       transaction
     )
+
   return {
     ledgerTransaction,
     ledgerEntries: [
-      ...overageUsageCostLedgerEntries,
       ...entitlementLedgerEntries,
       ...expirationLedgerEntries,
     ],

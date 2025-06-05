@@ -48,6 +48,7 @@ import {
   LedgerTransactionType,
   PaymentStatus,
   FeatureType,
+  SubscriptionItemType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -70,6 +71,8 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import { aggregateOutstandingBalanceForUsageCosts } from '@/db/tableMethods/ledgerEntryMethods'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -106,11 +109,16 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     billingPeriodItems,
     organization,
     paymentMethod,
+    usageOverages,
   }: {
     paymentMethod: PaymentMethod.Record
     billingPeriod: BillingPeriod.Record
     billingPeriodItems: BillingPeriodItem.Record[]
     organization: Organization.Record
+    usageOverages: {
+      usageMeterId: string
+      balance: number
+    }[]
   },
   transaction: DbTransaction
 ): Promise<{
@@ -139,6 +147,7 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
         organizationCountry,
         livemode: billingPeriod.livemode,
         currency: organization.defaultCurrency,
+        usageOverages,
       },
       transaction
     )
@@ -182,6 +191,71 @@ export const createInvoiceInsertForBillingRun = async (
     billingPeriodId: billingPeriod.id,
     purchaseId: null,
     subscriptionId: billingPeriod.subscriptionId,
+  }
+}
+
+export type OutstandingUsageCostAggregation = {
+  ledgerAccountId: string
+  usageMeterId: string
+  subscriptionId: string
+  outstandingBalance: number
+}
+
+// Helper function to tabulate outstanding usage costs
+export const tabulateOutstandingUsageCosts = async (
+  subscriptionId: string,
+  transaction: DbTransaction
+): Promise<{
+  outstandingUsageCostsByLedgerAccountId: Map<
+    string,
+    OutstandingUsageCostAggregation
+  >
+  rawOutstandingUsageCosts: Awaited<
+    ReturnType<typeof aggregateOutstandingBalanceForUsageCosts>
+  >
+}> => {
+  const ledgerAccountsForSubscription = await selectLedgerAccounts(
+    {
+      subscriptionId,
+    },
+    transaction
+  )
+  const rawOutstandingUsageCosts =
+    await aggregateOutstandingBalanceForUsageCosts(
+      {
+        ledgerAccountId: ledgerAccountsForSubscription.map(
+          (ledgerAccount) => ledgerAccount.id
+        ),
+      },
+      transaction
+    )
+
+  const outstandingUsageCostsByLedgerAccountId = new Map()
+  rawOutstandingUsageCosts.forEach((usageCost) => {
+    if (
+      !outstandingUsageCostsByLedgerAccountId.has(
+        usageCost.ledgerAccountId
+      )
+    ) {
+      outstandingUsageCostsByLedgerAccountId.set(
+        usageCost.ledgerAccountId,
+        {
+          ledgerAccountId: usageCost.ledgerAccountId,
+          usageMeterId: usageCost.usageMeterId,
+          subscriptionId: subscriptionId,
+          outstandingBalance: usageCost.balance,
+        }
+      )
+    } else {
+      outstandingUsageCostsByLedgerAccountId.get(
+        usageCost.ledgerAccountId
+      )!.outstandingBalance += usageCost.balance
+    }
+  })
+
+  return {
+    outstandingUsageCostsByLedgerAccountId,
+    rawOutstandingUsageCosts,
   }
 }
 
@@ -298,7 +372,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingRun.paymentMethodId,
     transaction
   )
-
+  const { rawOutstandingUsageCosts: usageOverages } =
+    await tabulateOutstandingUsageCosts(
+      billingPeriod.subscriptionId,
+      transaction
+    )
   const { feeCalculation, totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
       {
@@ -306,6 +384,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
         billingPeriod,
         organization,
         paymentMethod,
+        usageOverages,
       },
       transaction
     )

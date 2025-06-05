@@ -80,6 +80,41 @@ export const billingPeriodTransitionLedgerCommandSchema = z.object({
         .describe(
           'The subscription feature items that were active during this billing run for the given subscription.'
         ),
+    usageData: z
+      .object({
+        usageCosts: z
+          .array(
+            z.object({
+              usageMeterId: z.string(),
+              usageEventId: z.string(),
+              grossCost: z.number(),
+              creditsApplied: z.number(),
+              netCost: z.number(),
+            })
+          )
+          .optional(),
+        creditApplications: z
+          .array(
+            z.object({
+              applicationId: z.string(),
+              usageMeterId: z.string(),
+              usageEventId: z.string(),
+              usageCreditId: z.string(),
+              amountApplied: z.number(),
+            })
+          )
+          .optional(),
+        paymentAllocation: z
+          .object({
+            totalAllocatedToCurrentPeriod: z.number(),
+            allocationDetails: z.record(z.number()).optional(),
+          })
+          .optional(),
+      })
+      .optional()
+      .describe(
+        'Pre-calculated usage costs and credit applications from executeBillingRunCalculationAndBookkeepingSteps'
+      ),
   }),
 })
 
