@@ -1514,7 +1514,10 @@ const baseLedgerEntryInsertFieldsFromParams = (
     expiredAt: params.expiredAt ?? null,
     billingPeriodId: params.billingPeriodId ?? null,
     usageMeterId: params.usageMeterId ?? null,
-    calculationRunId: params.calculationRunId ?? null,
+    claimedByBillingRunId:
+      params.entryType === LedgerEntryType.UsageCost
+        ? (params.claimedByBillingRunId ?? null)
+        : null,
     appliedToLedgerItemId: params.appliedToLedgerItemId ?? null,
     amount: dbAmount,
   }
@@ -1524,8 +1527,8 @@ const debitEntryInsertFromDebigLedgerParams = (
   params: DebitLedgerEntrySetupParams & CoreLedgerEntryUserParams
 ) => {
   const baseProps = {
-    claimedByBillingRunId: null,
     ...baseLedgerEntryInsertFieldsFromParams(params),
+    claimedByBillingRunId: null,
     direction: LedgerEntryDirection.Debit,
   } as const
 
@@ -1535,6 +1538,7 @@ const debitEntryInsertFromDebigLedgerParams = (
     case LedgerEntryType.UsageCost:
       insertData = {
         ...baseProps,
+        claimedByBillingRunId: params.claimedByBillingRunId ?? null,
         entryType: params.entryType,
         sourceUsageEventId: params.sourceUsageEventId,
       } satisfies LedgerEntry.UsageCostInsert
