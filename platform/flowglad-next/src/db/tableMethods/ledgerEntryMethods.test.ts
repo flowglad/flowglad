@@ -2838,5 +2838,273 @@ describe('ledgerEntryMethods', () => {
         ).toBeUndefined()
       })
     })
+
+    describe('expiresAt field population', () => {
+      it('should correctly populate expiresAt when a UsageCredit has a non-null expiresAt date', async () => {
+        // setup:
+        const specificExpiryDate = new Date('2024-12-31T23:59:59Z')
+        const creditBalance = 1000
+
+        const usageCreditWithExpiry = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: creditBalance, // Initial issued amount
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          expiresAt: specificExpiryDate,
+        })
+
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: testLedgerTransaction.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: creditBalance,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCreditWithExpiry.id,
+        })
+
+        // execution:
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return aggregateAvailableBalanceForUsageCredit(
+              {
+                ledgerAccountId: ledgerAccount.id,
+                sourceUsageCreditId: usageCreditWithExpiry.id,
+              },
+              transaction
+            )
+          }
+        )
+
+        // expects:
+        expect(result).toHaveLength(1)
+        const balanceInfo = result[0]
+        expect(balanceInfo.usageCreditId).toBe(
+          usageCreditWithExpiry.id
+        )
+        expect(balanceInfo.balance).toBe(creditBalance)
+        expect(balanceInfo.ledgerAccountId).toBe(ledgerAccount.id)
+        expect(balanceInfo.expiresAt).toEqual(specificExpiryDate) // Critical check
+      })
+
+      it('should correctly populate expiresAt as null when a UsageCredit has a null expiresAt date', async () => {
+        // setup:
+        const creditBalance = 500
+
+        const usageCreditNullExpiry = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: creditBalance,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          expiresAt: null, // Explicitly null
+        })
+
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: testLedgerTransaction.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: creditBalance,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCreditNullExpiry.id,
+        })
+
+        // execution:
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return aggregateAvailableBalanceForUsageCredit(
+              {
+                ledgerAccountId: ledgerAccount.id,
+                sourceUsageCreditId: usageCreditNullExpiry.id,
+              },
+              transaction
+            )
+          }
+        )
+
+        // expects:
+        expect(result).toHaveLength(1)
+        const balanceInfo = result[0]
+        expect(balanceInfo.usageCreditId).toBe(
+          usageCreditNullExpiry.id
+        )
+        expect(balanceInfo.balance).toBe(creditBalance)
+        expect(balanceInfo.ledgerAccountId).toBe(ledgerAccount.id)
+        expect(balanceInfo.expiresAt).toBeNull() // Critical check
+      })
+
+      it('should handle multiple usage credits with different expiresAt dates (null and non-null) when querying for the ledger account', async () => {
+        // setup:
+        const dateA = new Date('2025-01-15T00:00:00Z')
+        const balanceA = 200
+        const usageCreditA = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: balanceA,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          expiresAt: dateA,
+        })
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: testLedgerTransaction.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: balanceA,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCreditA.id,
+        })
+
+        const balanceB = 300
+        const usageCreditB = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: balanceB,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          expiresAt: null,
+        })
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: testLedgerTransaction.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: balanceB,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCreditB.id,
+        })
+
+        const dateC = new Date('2025-06-30T12:00:00Z')
+        const balanceC = 400
+        const usageCreditC = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: balanceC,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          expiresAt: dateC,
+        })
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: testLedgerTransaction.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: balanceC,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCreditC.id,
+        })
+
+        // execution:
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return aggregateAvailableBalanceForUsageCredit(
+              {
+                ledgerAccountId: ledgerAccount.id, // Query for all in the account
+              },
+              transaction
+            )
+          }
+        )
+
+        // expects:
+        expect(result).toHaveLength(3)
+
+        const sortedResult = result.sort((x, y) =>
+          x.usageCreditId.localeCompare(y.usageCreditId)
+        )
+        const sortedExpectedIds = [
+          usageCreditA.id,
+          usageCreditB.id,
+          usageCreditC.id,
+        ].sort()
+
+        const itemA = sortedResult.find(
+          (item) => item.usageCreditId === usageCreditA.id
+        )
+        const itemB = sortedResult.find(
+          (item) => item.usageCreditId === usageCreditB.id
+        )
+        const itemC = sortedResult.find(
+          (item) => item.usageCreditId === usageCreditC.id
+        )
+
+        expect(itemA).toBeDefined()
+        expect(itemA?.balance).toBe(balanceA)
+        expect(itemA?.expiresAt).toEqual(dateA)
+        expect(itemA?.ledgerAccountId).toBe(ledgerAccount.id)
+
+        expect(itemB).toBeDefined()
+        expect(itemB?.balance).toBe(balanceB)
+        expect(itemB?.expiresAt).toBeNull()
+        expect(itemB?.ledgerAccountId).toBe(ledgerAccount.id)
+
+        expect(itemC).toBeDefined()
+        expect(itemC?.balance).toBe(balanceC)
+        expect(itemC?.expiresAt).toEqual(dateC)
+        expect(itemC?.ledgerAccountId).toBe(ledgerAccount.id)
+      })
+
+      it('should still return balance information even if the expiresAt date is in the past', async () => {
+        // setup:
+        const pastExpiryDate = new Date('2020-01-01T00:00:00Z')
+        const creditBalance = 150
+
+        const usageCreditPastExpiry = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          creditType: UsageCreditType.Grant,
+          issuedAmount: creditBalance,
+          usageMeterId: usageMeter.id,
+          livemode: true,
+          expiresAt: pastExpiryDate,
+        })
+
+        await setupCreditLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: testLedgerTransaction.id,
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: creditBalance,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCreditPastExpiry.id,
+        })
+
+        // execution:
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return aggregateAvailableBalanceForUsageCredit(
+              {
+                ledgerAccountId: ledgerAccount.id,
+                sourceUsageCreditId: usageCreditPastExpiry.id,
+              },
+              transaction
+            )
+          }
+        )
+
+        // expects:
+        expect(result).toHaveLength(1)
+        const balanceInfo = result[0]
+        expect(balanceInfo.usageCreditId).toBe(
+          usageCreditPastExpiry.id
+        )
+        expect(balanceInfo.balance).toBe(creditBalance)
+        expect(balanceInfo.ledgerAccountId).toBe(ledgerAccount.id)
+        expect(balanceInfo.expiresAt).toEqual(pastExpiryDate) // Critical check
+      })
+    })
   })
 })

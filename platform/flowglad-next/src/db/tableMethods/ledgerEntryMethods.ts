@@ -135,36 +135,6 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
   )
 }
 
-const usageCreditsFromLedgerEntryWhere = (
-  scopedWhere: Pick<LedgerEntry.Where, 'sourceUsageCreditId'>,
-  transaction: DbTransaction
-) => {
-  if (!scopedWhere.sourceUsageCreditId) {
-    return []
-  }
-  if (typeof scopedWhere.sourceUsageCreditId === 'string') {
-    return selectUsageCredits(
-      {
-        id: scopedWhere.sourceUsageCreditId,
-      },
-      transaction
-    )
-  }
-  const definedUsageCreditIds =
-    scopedWhere.sourceUsageCreditId.filter(
-      (id): id is string => id !== null
-    )
-  if (definedUsageCreditIds.length === 0) {
-    return []
-  }
-  return selectUsageCredits(
-    {
-      id: definedUsageCreditIds,
-    },
-    transaction
-  )
-}
-
 export const aggregateAvailableBalanceForUsageCredit = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
@@ -179,11 +149,9 @@ export const aggregateAvailableBalanceForUsageCredit = async (
     expiresAt: Date | null
   }[]
 > => {
-  const usageCredits = await usageCreditsFromLedgerEntryWhere(
-    scopedWhere,
-    transaction
-  )
-  const result = await transaction
+  // First, fetch all ledger entries that match the scopedWhere criteria (e.g., ledgerAccountId)
+  // and are relevant for an "available" balance calculation (posted, or pending debits, and not discarded).
+  const ledgerEntryRecords = await transaction
     .select()
     .from(ledgerEntries)
     .where(
@@ -194,43 +162,64 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       )
     )
     .orderBy(asc(ledgerEntries.position))
+
+  // Group the fetched ledger entries by their sourceUsageCreditId.
+  // Ledger entries without a sourceUsageCreditId are ignored.
   const entriesByUsageCreditId = new Map<
     string,
     LedgerEntry.Record[]
   >()
-  result.forEach((item) => {
-    const usageCreditId = item.sourceUsageCreditId
+  ledgerEntryRecords.forEach((rawEntry) => {
+    // Ensure raw database records are parsed into the correct TypeScript type.
+    const entry = ledgerEntriesSelectSchema.parse(rawEntry)
+    const usageCreditId = entry.sourceUsageCreditId
     if (!usageCreditId) {
       return
     }
     if (!entriesByUsageCreditId.has(usageCreditId)) {
       entriesByUsageCreditId.set(usageCreditId, [])
     }
-    entriesByUsageCreditId
-      .get(usageCreditId)
-      ?.push(ledgerEntriesSelectSchema.parse(item))
+    entriesByUsageCreditId.get(usageCreditId)?.push(entry)
   })
-  const expiresAtByUsageCreditId = new Map<string, Date>()
-  usageCredits.forEach((usageCredit) => {
-    if (usageCredit.expiresAt) {
-      expiresAtByUsageCreditId.set(
-        usageCredit.id,
-        usageCredit.expiresAt
-      )
-    }
+
+  // If no ledger entries were found that are associated with any usage credit, return an empty array.
+  if (entriesByUsageCreditId.size === 0) {
+    return []
+  }
+
+  // Collect all unique sourceUsageCreditIds from the ledger entries found.
+  // This is necessary to fetch the corresponding UsageCredit records, including their expiresAt dates.
+  const allFoundSourceUsageCreditIds = Array.from(
+    entriesByUsageCreditId.keys()
+  )
+
+  // Fetch the UsageCredit records for all the unique sourceUsageCreditIds identified from the ledger entries.
+  const relevantUsageCredits = await selectUsageCredits(
+    {
+      id: allFoundSourceUsageCreditIds,
+    },
+    transaction
+  )
+
+  // Create a map from usageCreditId to its expiresAt date (which can be null).
+  // This allows efficient lookup of expiry dates when calculating the final balances.
+  const expiresAtByUsageCreditId = new Map<string, Date | null>()
+  relevantUsageCredits.forEach((usageCredit) => {
+    expiresAtByUsageCreditId.set(
+      usageCredit.id,
+      usageCredit.expiresAt
+    )
   })
-  /**
-   * Assumptions to test:
-   * 1. Each usageCreditId will be unique
-   * 2. Expires at will match the usageCreditId
-   * 3. LedgerAccountId will match the ledger account implied by the usage credit id
-   */
+
+  // Calculate the balance for each usageCreditId and combine it with its expiry date.
   const balances = Array.from(entriesByUsageCreditId.entries()).map(
-    ([usageCreditId, entries]) => {
+    ([usageCreditId, entriesForThisCredit]) => {
       return {
         usageCreditId,
-        balance: balanceFromEntries(entries),
-        ledgerAccountId: entries[0].ledgerAccountId,
+        balance: balanceFromEntries(entriesForThisCredit),
+        // All entries for a given usage credit should belong to the same ledger account.
+        ledgerAccountId: entriesForThisCredit[0].ledgerAccountId,
+        // Retrieve the expiresAt date from the map, defaulting to null if not found (though it should always be found here).
         expiresAt:
           expiresAtByUsageCreditId.get(usageCreditId) ?? null,
       }
