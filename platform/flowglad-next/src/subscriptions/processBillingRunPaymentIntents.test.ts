@@ -198,6 +198,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       organizationId: organization.id,
       status: InvoiceStatus.Open,
       priceId: price.id,
+      billingRunId: billingRun.id,
     })
     await setupPayment({
       stripeChargeId,
