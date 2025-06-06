@@ -186,7 +186,7 @@ export type BillingRecalculatedLedgerCommand = z.infer<
   typeof billingRecalculatedLedgerCommandSchema
 >
 
-const settleInvoiceUsageCostsLedgerCommandSchema = z.object({
+export const settleInvoiceUsageCostsLedgerCommandSchema = z.object({
   ...baseLedgerCommandFields,
   type: z.literal(LedgerTransactionType.SettleInvoiceUsageCosts),
   payload: invoiceWithLineItemsSchema,
@@ -198,7 +198,7 @@ export type SettleInvoiceUsageCostsLedgerCommand = z.infer<
 
 // --- Discriminated Union of all Ledger Commands ---
 
-export const LedgerCommandSchema = z.discriminatedUnion('type', [
+export const ledgerCommandSchema = z.discriminatedUnion('type', [
   usageEventProcessedLedgerCommandSchema,
   creditGrantRecognizedLedgerCommandSchema,
   billingPeriodTransitionLedgerCommandSchema,
@@ -209,7 +209,7 @@ export const LedgerCommandSchema = z.discriminatedUnion('type', [
   settleInvoiceUsageCostsLedgerCommandSchema,
 ])
 
-export type LedgerCommand = z.infer<typeof LedgerCommandSchema>
+export type LedgerCommand = z.infer<typeof ledgerCommandSchema>
 
 export interface LedgerCommandResult {
   ledgerTransaction: LedgerTransaction.Record

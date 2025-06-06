@@ -6,6 +6,7 @@ import {
   PaymentRefundedLedgerCommand,
   BillingRecalculatedLedgerCommand,
   LedgerCommandResult,
+  ledgerCommandSchema,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   LedgerTransactionType,
@@ -192,9 +193,10 @@ const processBillingRecalculatedLedgerCommand = async (
 }
 
 export const processLedgerCommand = async (
-  command: LedgerCommand,
+  rawCommand: LedgerCommand,
   transaction: DbTransaction
 ): Promise<LedgerCommandResult> => {
+  const command = ledgerCommandSchema.parse(rawCommand)
   switch (command.type) {
     case LedgerTransactionType.UsageEventProcessed:
       return processUsageEventProcessedLedgerCommand(

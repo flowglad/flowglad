@@ -5,18 +5,21 @@ import {
 } from '@/db/tableMethods/billingRunMethods'
 import {
   safelyUpdateInvoiceStatus,
+  selectInvoiceById,
   selectInvoices,
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import {
   BillingRunStatus,
   InvoiceStatus,
+  LedgerTransactionType,
   SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   billingRunIntentMetadataSchema,
   dateFromStripeTimestamp,
+  stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import Stripe from 'stripe'
 import {
@@ -37,7 +40,10 @@ import {
 import { Payment } from '@/db/schema/payments'
 import { UserRecord } from '@/db/schema/users'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  selectInvoiceLineItems,
+  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
+} from '@/db/tableMethods/invoiceLineItemMethods'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import {
   safelyUpdateSubscriptionStatus,
@@ -51,6 +57,10 @@ import {
   aggregateOutstandingBalanceForUsageCosts,
   selectLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { BillingRun } from '@/db/schema/billingRuns'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -157,7 +167,14 @@ const processAwaitingPaymentConfirmationNotifications = async (
 export const processPaymentIntentEventForBillingRun = async (
   event: PaymentIntentEvent,
   transaction: DbTransaction
-) => {
+): Promise<
+  TransactionOutput<{
+    invoice: Invoice.Record
+    invoiceLineItems: InvoiceLineItem.Record[]
+    billingRun: BillingRun.Record
+    payment: Payment.Record
+  }>
+> => {
   const metadata = billingRunIntentMetadataSchema.parse(
     event.data.object.metadata
   )
@@ -183,7 +200,31 @@ export const processPaymentIntentEventForBillingRun = async (
    * And it is a workaround to avoid the need to implement a queue, for now.
    */
   if (eventPrecedesLastPaymentIntentEvent) {
-    return
+    const [result] =
+      await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+        {
+          billingRunId: billingRun.id,
+        },
+        transaction
+      )
+    const [payment] = await selectPayments(
+      {
+        stripePaymentIntentId: event.data.object.id,
+        stripeChargeId: stripeIdFromObjectOrId(
+          event.data.object.latest_charge!
+        ),
+      },
+      transaction
+    )
+    return {
+      result: {
+        invoice: result.invoice,
+        invoiceLineItems: result.invoiceLineItems,
+        billingRun,
+        payment,
+      },
+      ledgerCommand: undefined,
+    }
   }
 
   const paymentMethod = await selectPaymentMethodById(
@@ -367,10 +408,30 @@ export const processPaymentIntentEventForBillingRun = async (
     )
   }
 
+  const invoiceLedgerCommand:
+    | SettleInvoiceUsageCostsLedgerCommand
+    | undefined =
+    invoice.status === InvoiceStatus.Paid
+      ? {
+          type: LedgerTransactionType.SettleInvoiceUsageCosts,
+          payload: {
+            invoice,
+            invoiceLineItems,
+          },
+          livemode: invoice.livemode,
+          organizationId: invoice.organizationId,
+          subscriptionId: invoice.subscriptionId!,
+        }
+      : undefined
+
   return {
-    invoice,
-    billingRun,
-    payment,
+    result: {
+      invoice,
+      invoiceLineItems,
+      billingRun,
+      payment,
+    },
+    ledgerCommand: invoiceLedgerCommand,
   }
 }
 

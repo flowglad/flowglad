@@ -205,3 +205,61 @@ This is the main orchestrator. Tests should cover the end-to-end impact of `usag
 *   For tests involving `createAndFinalizeSubscriptionFeeCalculation`, the primary goal for these unit tests is to ensure it's *called* with the correct `usageOverages`. The detailed internal logic of fee calculation with overages would be tested in `createAndFinalizeSubscriptionFeeCalculation`'s own unit tests.
 *   Remember to set up necessary related data like `UsageMeter` records if `billingPeriodItems` of type `Usage` are used, or if `usageOverages` refer to specific `usageMeterId`s.
 
+# Test Case Plan for `processPaymentIntentEventForBillingRun` and Ledger Commands
+
+This plan outlines test cases for `processPaymentIntentEventForBillingRun`, with a focus on when the `SettleInvoiceUsageCostsLedgerCommand` should be issued.
+
+## 1. Mapping Payment Status to Ledger Command Issuance
+
+The core logic dictates that a ledger command is issued only when an invoice is moved to a `Paid` status, which should happen upon a successful payment.
+
+### Scenario 1.1: `PaymentIntentSucceededEvent` (Happy Path)
+*   **Setup:** A standard billing run with an `Invoice` containing both usage-based and static line items. The associated `Payment` is in a `Processing` state.
+*   **Trigger:** A `Stripe.PaymentIntentSucceededEvent`.
+*   **Expectations:**
+    *   The `BillingRun` status becomes `Succeeded`.
+    *   The `Invoice` status becomes `Paid`.
+    *   A `SettleInvoiceUsageCostsLedgerCommand` is returned in the function's output.
+    *   The command's payload correctly references the paid `invoice` and its `invoiceLineItems`.
+
+### Scenario 1.2: `PaymentIntentSucceededEvent` with no usage costs
+*   **Setup:** An invoice that only contains static, non-usage-based line items.
+*   **Trigger:** A `Stripe.PaymentIntentSucceededEvent`.
+*   **Expectations:**
+    *   The `BillingRun` and `Invoice` are marked as `Succeeded` and `Paid`, respectively.
+    *   A `SettleInvoiceUsageCostsLedgerCommand` is **still returned**. The command itself is responsible for gracefully handling the absence of usage items, so the producer (`processPaymentIntentEventForBillingRun`) should issue it regardless.
+
+### Scenario 1.3: Non-Succeeded PaymentIntents (`PaymentFailed`, `Canceled`, `Processing`, `RequiresAction`)
+*   **Setup:** A standard billing run.
+*   **Trigger:** Process each of the following events in separate tests:
+    *   `Stripe.PaymentIntentPaymentFailedEvent`
+    *   `Stripe.PaymentIntentCanceledEvent`
+    *   `Stripe.PaymentIntentProcessingEvent`
+    *   `Stripe.PaymentIntentRequiresActionEvent`
+*   **Expectations:**
+    *   The `BillingRun` and `Invoice` are updated to their corresponding non-paid statuses (`Failed`, `Aborted`, `AwaitingPaymentConfirmation`, etc.).
+    *   Crucially, the `ledgerCommand` property in the returned result must be `undefined` for all these cases.
+
+## 2. Idempotency
+
+Idempotency is critical. While the `settleInvoiceUsageCostsLedgerCommand` should be idempotent, the event processor should also avoid issuing duplicate commands.
+
+### Scenario 2.1: Processing the same `PaymentIntentSucceededEvent` twice
+*   **Setup:** A standard billing run setup.
+*   **Trigger:**
+    1.  Process a `PaymentIntentSucceededEvent`.
+    2.  Process the *exact same event* a second time.
+*   **Expectations:**
+    *   The first call processes the event, updates the database state, and returns a `SettleInvoiceUsageCostsLedgerCommand`.
+    *   The `lastPaymentIntentEventTimestamp` on the `BillingRun` record is updated.
+    *   The second call, seeing an event timestamp that is not newer than the one recorded, should be a no-op in terms of state changes.
+    *   The second call must return a result where the `ledgerCommand` is `undefined`.
+
+### Scenario 2.2: Processing an older, out-of-order event
+*   **Setup:** Manually set the `lastPaymentIntentEventTimestamp` on a `BillingRun` to a known future time.
+*   **Trigger:** Process a `PaymentIntentSucceededEvent` with a `created` timestamp *before* the `lastPaymentIntentEventTimestamp`.
+*   **Expectations:**
+    *   The function should immediately exit without processing.
+    *   No database state should change.
+    *   The function must return a result where the `ledgerCommand` is `undefined`. (This confirms existing tests in the context of the new functionality).
+
