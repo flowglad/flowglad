@@ -6,11 +6,15 @@ import {
   usageSubscriptionItemClientSelectSchema,
   staticSubscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
-import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import {
+  standardSubscriptionClientSelectSchema,
+  creditTrialSubscriptionClientSelectSchema,
+} from '@/db/schema/subscriptions'
 import { subscribablePriceClientSelectSchema } from '@/db/schema/prices'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,
+  SubscriptionStatus,
 } from '@/types'
 import { z } from 'zod'
 
@@ -61,9 +65,18 @@ export const richSubscriptionItemClientSelectSchema =
   ])
 
 export const richSubscriptionClientSelectSchema =
-  subscriptionClientSelectSchema.extend({
-    subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
-  })
+  z.discriminatedUnion('status', [
+    standardSubscriptionClientSelectSchema.extend({
+      subscriptionItems:
+        richSubscriptionItemClientSelectSchema.array(),
+      current: z.boolean(),
+    }),
+    creditTrialSubscriptionClientSelectSchema.extend({
+      subscriptionItems:
+        richSubscriptionItemClientSelectSchema.array(),
+      current: z.boolean(),
+    }),
+  ])
 
 export type RichSubscriptionItem = z.infer<
   typeof richSubscriptionItemClientSelectSchema

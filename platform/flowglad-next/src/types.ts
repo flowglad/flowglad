@@ -486,6 +486,13 @@ export enum PaymentMethodType {
 }
 
 export enum SubscriptionStatus {
+  /**
+   * For subscriptions where the trial is not time based, but usage based
+   */
+  CreditTrial = 'credit_trial',
+  /**
+   *
+   */
   Trialing = 'trialing',
   Active = 'active',
   PastDue = 'past_due',

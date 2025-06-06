@@ -73,7 +73,10 @@ const deriveSubscriptionStatus = ({
   autoStart: boolean
   trialEnd?: Date
   defaultPaymentMethodId?: string
-}): SubscriptionStatus => {
+}):
+  | SubscriptionStatus.Trialing
+  | SubscriptionStatus.Active
+  | SubscriptionStatus.Incomplete => {
   if (trialEnd) {
     return SubscriptionStatus.Trialing
   }
@@ -114,7 +117,7 @@ export const insertSubscriptionAndItems = async (
   if (!isPriceTypeSubscription(price.type)) {
     throw new Error('Price is not a subscription')
   }
-  const subscriptionInsert: Subscription.Insert = {
+  const subscriptionInsert: Subscription.StandardInsert = {
     organizationId: organization.id,
     customerId: customer.id,
     priceId: price.id,
@@ -212,7 +215,7 @@ const safelyProcessCreationForExistingSubscription = async (
 
   const billingRun: BillingRun.Record | undefined =
     existingBillingRun ??
-    (params.defaultPaymentMethod
+    (params.defaultPaymentMethod && scheduledFor
       ? await createBillingRun(
           {
             billingPeriod,
@@ -324,7 +327,7 @@ const maybeDefaultPaymentMethodForSubscription = async (
 interface CreateSubscriptionResult {
   subscription: Subscription.Record
   subscriptionItems: SubscriptionItem.Record[]
-  billingPeriod: BillingPeriod.Record
+  billingPeriod: BillingPeriod.Record | null
   billingPeriodItems: BillingPeriodItem.Record[]
   billingRun: BillingRun.Record | null
 }
@@ -405,9 +408,22 @@ export const createSubscriptionWorkflow = async (
   }
 
   await createSubscriptionFeatureItems(subscriptionItems, transaction)
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    return {
+      result: {
+        subscription,
+        subscriptionItems,
+        billingPeriod: null,
+        billingPeriodItems: [],
+        billingRun: null as BillingRun.Record | null,
+      },
+      eventsToLog: [],
+    }
+  }
   const scheduledFor = subscription.runBillingAtPeriodStart
     ? subscription.currentBillingPeriodStart
     : subscription.currentBillingPeriodEnd
+
   const { billingPeriod, billingPeriodItems } =
     await createBillingPeriodAndItems(
       {

@@ -2,7 +2,11 @@ import { DbTransaction } from '@/db/types'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { Subscription } from '@/db/schema/subscriptions'
-import { IntervalUnit, RevenueChartIntervalUnit } from '@/types'
+import {
+  IntervalUnit,
+  RevenueChartIntervalUnit,
+  SubscriptionStatus,
+} from '@/types'
 import {
   selectBillingPeriods,
   selectBillingPeriodsDueForTransition,
@@ -216,6 +220,9 @@ export async function calculateMRRByMonth(
     // For each billing period, calculate its contribution to this month's MRR
     billingPeriods.forEach(
       ({ billingPeriod, billingPeriodItems, subscription }) => {
+        if (subscription.status === SubscriptionStatus.CreditTrial) {
+          return
+        }
         const bpStart = startOfDay(billingPeriod.startDate)
         const bpEnd = endOfDay(billingPeriod.endDate)
 
@@ -444,6 +451,9 @@ export async function calculateMRRBreakdown(
       billingPeriodItems,
       subscription,
     } of subscriptionBPs) {
+      if (subscription.status === SubscriptionStatus.CreditTrial) {
+        continue
+      }
       const bpStart = startOfDay(billingPeriod.startDate)
       const bpEnd = endOfDay(billingPeriod.endDate)
 

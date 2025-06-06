@@ -120,6 +120,7 @@ import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionIte
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import { Subscription } from '@/db/schema/subscriptions'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -344,7 +345,7 @@ export const setupSubscription = async (params: {
   status?: SubscriptionStatus
   trialEnd?: Date
   startDate?: Date
-}) => {
+}): Promise<Subscription.StandardRecord> => {
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(params.priceId, transaction)
     return insertSubscription(
@@ -374,9 +375,9 @@ export const setupSubscription = async (params: {
           price.type === PriceType.Subscription ? true : false,
         externalId: null,
         startDate: params.startDate ?? new Date(),
-      },
+      } as Subscription.StandardInsert,
       transaction
-    )
+    ) as Promise<Subscription.StandardRecord>
   })
 }
 

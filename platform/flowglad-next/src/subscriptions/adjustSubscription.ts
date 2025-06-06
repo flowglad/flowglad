@@ -78,7 +78,10 @@ export const adjustSubscription = async (
 }> => {
   const { adjustment, id } = params
   const { newSubscriptionItems, timing } = adjustment
-  const subscription = await selectSubscriptionById(id, transaction)
+  const subscription = (await selectSubscriptionById(
+    id,
+    transaction
+  )) as Subscription.StandardRecord
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
   }

@@ -17,6 +17,7 @@ const subscriptionStatusColors: Record<
   [SubscriptionStatus.Paused]: 'yellow',
   [SubscriptionStatus.Trialing]: 'yellow',
   [SubscriptionStatus.Unpaid]: 'yellow',
+  [SubscriptionStatus.CreditTrial]: 'yellow',
 }
 
 const SubscriptionStatusBadge = ({

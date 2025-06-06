@@ -8,6 +8,7 @@ import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import runScript from './scriptRunner'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { attemptToCreateFutureBillingPeriodForSubscription } from '@/subscriptions/billingPeriodHelpers'
+import { SubscriptionStatus } from '@/types'
 
 async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
@@ -40,6 +41,11 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
       billingPeriod.subscriptionId,
       transaction
     )
+    if (subscription.status === SubscriptionStatus.CreditTrial) {
+      throw new Error(
+        'Attempting to rehydrate billing period items for credit trial subscription'
+      )
+    }
     const result =
       await attemptToCreateFutureBillingPeriodForSubscription(
         subscription,

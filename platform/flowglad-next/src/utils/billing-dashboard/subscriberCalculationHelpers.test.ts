@@ -80,8 +80,8 @@ const coreSubscriptionValues = {
 
 // Helper function to create subscription objects with all required properties
 const createSubscription = (
-  values: Partial<Subscription.Record>
-): Subscription.Record => ({
+  values: Partial<Subscription.StandardRecord>
+): Subscription.StandardRecord => ({
   ...coreSubscriptionValues,
   ...values,
   position: 0,
@@ -928,64 +928,68 @@ describe('calculateSubscriberBreakdown', () => {
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
     // Create two subscriptions that started in February
-    const newSubscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-10T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-20T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const newSubscriptions: Subscription.StandardRecord[] = (
+      [
+        {
+          id: 'sub-1',
+          organizationId: organization.id,
+          customerId: 'cust-1',
+          defaultPaymentMethodId: 'pm-1',
+          priceId: 'price-1',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-02-10T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-2',
+          organizationId: organization.id,
+          customerId: 'cust-2',
+          defaultPaymentMethodId: 'pm-2',
+          priceId: 'price-2',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-02-20T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Create two subscriptions that were active in January but canceled in February
-    const churnedSubscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-3',
-        organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-10T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-4',
-        organizationId: organization.id,
-        customerId: 'cust-4',
-        defaultPaymentMethodId: 'pm-4',
-        priceId: 'price-4',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-15T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-20T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const churnedSubscriptions: Subscription.StandardRecord[] = (
+      [
+        {
+          id: 'sub-3',
+          organizationId: organization.id,
+          customerId: 'cust-3',
+          defaultPaymentMethodId: 'pm-3',
+          priceId: 'price-3',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2022-12-01T05:00:00.000Z'),
+          canceledAt: new Date('2023-02-10T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-4',
+          organizationId: organization.id,
+          customerId: 'cust-4',
+          defaultPaymentMethodId: 'pm-4',
+          priceId: 'price-4',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2022-12-15T05:00:00.000Z'),
+          canceledAt: new Date('2023-02-20T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
@@ -1016,47 +1020,49 @@ describe('calculateSubscriberBreakdown', () => {
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
     // Create three subscriptions that started in February
-    const newSubscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-10T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-20T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-3',
-        organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-25T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const newSubscriptions: Subscription.Record[] = (
+      [
+        {
+          id: 'sub-1',
+          organizationId: organization.id,
+          customerId: 'cust-1',
+          defaultPaymentMethodId: 'pm-1',
+          priceId: 'price-1',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-02-10T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-2',
+          organizationId: organization.id,
+          customerId: 'cust-2',
+          defaultPaymentMethodId: 'pm-2',
+          priceId: 'price-2',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-02-20T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-3',
+          organizationId: organization.id,
+          customerId: 'cust-3',
+          defaultPaymentMethodId: 'pm-3',
+          priceId: 'price-3',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-02-25T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Create one subscription that was active in January but canceled in February
     const churnedSubscription: Subscription.Record =
@@ -1118,47 +1124,49 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     // Create three subscriptions that were active in January but canceled in February
-    const churnedSubscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-10T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-3',
-        organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-15T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-20T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-4',
-        organizationId: organization.id,
-        customerId: 'cust-4',
-        defaultPaymentMethodId: 'pm-4',
-        priceId: 'price-4',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-20T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-25T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const churnedSubscriptions: Subscription.Record[] = (
+      [
+        {
+          id: 'sub-2',
+          organizationId: organization.id,
+          customerId: 'cust-2',
+          defaultPaymentMethodId: 'pm-2',
+          priceId: 'price-2',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2022-12-01T05:00:00.000Z'),
+          canceledAt: new Date('2023-02-10T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-3',
+          organizationId: organization.id,
+          customerId: 'cust-3',
+          defaultPaymentMethodId: 'pm-3',
+          priceId: 'price-3',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2022-12-15T05:00:00.000Z'),
+          canceledAt: new Date('2023-02-20T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-4',
+          organizationId: organization.id,
+          customerId: 'cust-4',
+          defaultPaymentMethodId: 'pm-4',
+          priceId: 'price-4',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2022-12-20T05:00:00.000Z'),
+          canceledAt: new Date('2023-02-25T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
@@ -1472,47 +1480,49 @@ describe('getCurrentActiveSubscribers', () => {
     const testDate = new Date('2023-03-15T05:00:00.000Z')
 
     // Create multiple active subscriptions
-    const subscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-01-01T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-01T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-3',
-        organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-03-01T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const subscriptions: Subscription.StandardRecord[] = (
+      [
+        {
+          id: 'sub-1',
+          organizationId: organization.id,
+          customerId: 'cust-1',
+          defaultPaymentMethodId: 'pm-1',
+          priceId: 'price-1',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-01-01T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-2',
+          organizationId: organization.id,
+          customerId: 'cust-2',
+          defaultPaymentMethodId: 'pm-2',
+          priceId: 'price-2',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-02-01T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-3',
+          organizationId: organization.id,
+          customerId: 'cust-3',
+          defaultPaymentMethodId: 'pm-3',
+          priceId: 'price-3',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-03-01T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(
@@ -1534,34 +1544,36 @@ describe('getCurrentActiveSubscribers', () => {
     const testDate = new Date('2023-03-15T05:00:00.000Z')
 
     // Create subscriptions that are all canceled
-    const subscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-01-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-01T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-02-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-03-01T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const subscriptions: Subscription.Record[] = (
+      [
+        {
+          id: 'sub-1',
+          organizationId: organization.id,
+          customerId: 'cust-1',
+          defaultPaymentMethodId: 'pm-1',
+          priceId: 'price-1',
+          status: SubscriptionStatus.Canceled,
+          startDate: new Date('2023-01-01T05:00:00.000Z'),
+          canceledAt: new Date('2023-02-01T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-2',
+          organizationId: organization.id,
+          customerId: 'cust-2',
+          defaultPaymentMethodId: 'pm-2',
+          priceId: 'price-2',
+          status: SubscriptionStatus.Canceled,
+          startDate: new Date('2023-02-01T05:00:00.000Z'),
+          canceledAt: new Date('2023-03-01T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(
@@ -1583,47 +1595,49 @@ describe('getCurrentActiveSubscribers', () => {
     const testDate = new Date('2023-03-15T05:00:00.000Z')
 
     // Create a mix of active and canceled subscriptions
-    const subscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-01-01T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-02-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-03-01T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-3',
-        organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-03-01T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const subscriptions: Subscription.Record[] = (
+      [
+        {
+          id: 'sub-1',
+          organizationId: organization.id,
+          customerId: 'cust-1',
+          defaultPaymentMethodId: 'pm-1',
+          priceId: 'price-1',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-01-01T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-2',
+          organizationId: organization.id,
+          customerId: 'cust-2',
+          defaultPaymentMethodId: 'pm-2',
+          priceId: 'price-2',
+          status: SubscriptionStatus.Canceled,
+          startDate: new Date('2023-02-01T05:00:00.000Z'),
+          canceledAt: new Date('2023-03-01T05:00:00.000Z'),
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'sub-3',
+          organizationId: organization.id,
+          customerId: 'cust-3',
+          defaultPaymentMethodId: 'pm-3',
+          priceId: 'price-3',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-03-01T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(
@@ -1647,21 +1661,23 @@ describe('getCurrentActiveSubscribers', () => {
     const firstDayOfMonth = new Date('2023-03-01T05:00:00.000Z')
 
     // Create active subscriptions
-    const subscriptions: Subscription.Record[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-01-01T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ].map(createSubscription)
+    const subscriptions: Subscription.Record[] = (
+      [
+        {
+          id: 'sub-1',
+          organizationId: organization.id,
+          customerId: 'cust-1',
+          defaultPaymentMethodId: 'pm-1',
+          priceId: 'price-1',
+          status: SubscriptionStatus.Active,
+          startDate: new Date('2023-01-01T05:00:00.000Z'),
+          canceledAt: null,
+          livemode: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ] as Subscription.StandardRecord[]
+    ).map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(

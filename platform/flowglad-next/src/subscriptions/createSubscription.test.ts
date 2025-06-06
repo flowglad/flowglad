@@ -87,6 +87,9 @@ describe('createSubscription', async () => {
     )
     subscription = workflowResult.subscription
     subscriptionItems = workflowResult.subscriptionItems
+    if (!workflowResult.billingPeriod) {
+      throw new Error('Billing period is null')
+    }
     billingPeriod = workflowResult.billingPeriod
     billingRun = workflowResult.billingRun
   })
@@ -251,7 +254,9 @@ describe('createSubscription', async () => {
         transaction
       )
     })
-
+    if (!trialBillingPeriod) {
+      throw new Error('Trial billing period is null')
+    }
     expect(trialSubscription.trialEnd?.getTime()).toBe(
       trialEnd.getTime()
     )

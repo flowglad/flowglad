@@ -54,7 +54,12 @@ export const cancelSubscriptionImmediately = async (
   const cancelScheduledAt = null
 
   let updatedSubscription = await updateSubscription(
-    { id: subscription.id, canceledAt, cancelScheduledAt },
+    {
+      id: subscription.id,
+      canceledAt,
+      cancelScheduledAt,
+      status: SubscriptionStatus.Canceled,
+    },
     transaction
   )
 
@@ -170,7 +175,12 @@ export const scheduleSubscriptionCancellation = async (
       : null
 
   let updatedSubscription = await updateSubscription(
-    { id: subscription.id, canceledAt, cancelScheduledAt },
+    {
+      id: subscription.id,
+      canceledAt,
+      cancelScheduledAt,
+      status: SubscriptionStatus.CancellationScheduled,
+    },
     transaction
   )
 

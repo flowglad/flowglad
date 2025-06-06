@@ -31,7 +31,7 @@ import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { core } from '@/utils/core'
 
 interface CreateBillingPeriodParams {
-  subscription: Subscription.Record
+  subscription: Subscription.StandardRecord
   subscriptionItems: SubscriptionItem.Record[]
   trialPeriod: boolean
   isInitialBillingPeriod: boolean
@@ -210,6 +210,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     currentBillingPeriod.subscriptionId,
     transaction
   )
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      `Cannot create a billing period for a credit trial subscription`
+    )
+  }
   let billingRun: BillingRun.Record | null = null
   if (isSubscriptionInTerminalState(subscription.status)) {
     return { subscription, billingRun }
@@ -227,6 +232,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       {
         id: subscription.id,
         canceledAt: new Date(),
+        status: SubscriptionStatus.Canceled,
       },
       transaction
     )
@@ -284,6 +290,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         id: subscription.id,
         currentBillingPeriodEnd: newBillingPeriod.endDate,
         currentBillingPeriodStart: newBillingPeriod.startDate,
+        status: subscription.status,
       },
       transaction
     )
@@ -301,12 +308,21 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
 export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
   async (
     params: {
-      subscription: Subscription.Record
+      subscription: Subscription.StandardRecord
       billingPeriod: BillingPeriod.Record
     },
     transaction: DbTransaction
   ) => {
     const { subscription, billingPeriod } = params
+    if (
+      (subscription.status as SubscriptionStatus) ===
+      SubscriptionStatus.CreditTrial
+    ) {
+      throw new Error(
+        `Cannot create a billing period for a credit trial subscription`
+      )
+    }
+
     const { startDate, endDate } = generateNextBillingPeriod({
       interval: subscription.interval,
       intervalCount: subscription.intervalCount,
@@ -359,7 +375,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
 
 export const attemptToCreateFutureBillingPeriodForSubscription =
   async (
-    subscription: Subscription.Record,
+    subscription: Subscription.StandardRecord,
     transaction: DbTransaction
   ) => {
     if (

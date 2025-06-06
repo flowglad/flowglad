@@ -47,7 +47,7 @@ describe('Subscription Billing Period Transition', async () => {
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
-  let subscription: Subscription.Record
+  let subscription: Subscription.StandardRecord
   beforeEach(async () => {
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -200,7 +200,11 @@ describe('Subscription Billing Period Transition', async () => {
       const pastDate = new Date(Date.now() - 1000)
       subscription.cancelScheduledAt = pastDate
       await updateSubscription(
-        { id: subscription.id, cancelScheduledAt: pastDate },
+        {
+          id: subscription.id,
+          cancelScheduledAt: pastDate,
+          status: subscription.status,
+        },
         transaction
       )
       const updatedBillingPeriod = await updateBillingPeriod(
@@ -247,7 +251,11 @@ describe('Subscription Billing Period Transition', async () => {
       // And a billing run was created with scheduledFor equal to the new period’s start date
       expect(newBillingRun).toBeDefined()
       expect(newBillingRun?.scheduledFor.getTime()).toEqual(
-        new Date(updatedSub.currentBillingPeriodStart).getTime()
+        new Date(
+          (
+            updatedSub as Subscription.StandardRecord
+          ).currentBillingPeriodStart
+        ).getTime()
       )
     })
   })
@@ -263,6 +271,7 @@ describe('Subscription Billing Period Transition', async () => {
           id: subscription.id,
           defaultPaymentMethodId: null,
           backupPaymentMethodId: null,
+          status: subscription.status,
         },
         transaction
       )
@@ -299,7 +308,11 @@ describe('Subscription Billing Period Transition', async () => {
       )
       subscription.cancelScheduledAt = futureEnd
       await updateSubscription(
-        { id: subscription.id, cancelScheduledAt: futureEnd },
+        {
+          id: subscription.id,
+          cancelScheduledAt: futureEnd,
+          status: subscription.status,
+        },
         transaction
       )
 
@@ -322,6 +335,11 @@ describe('Subscription Billing Period Transition', async () => {
       expect(newBillingRun).toBeNull()
       expect(updatedSub.status).toBe(SubscriptionStatus.PastDue)
       // The subscription’s current billing period dates should remain unchanged.
+      if (updatedSub.status === SubscriptionStatus.CreditTrial) {
+        throw new Error(
+          'Credit trial subscription should not have a billing period'
+        )
+      }
       expect(updatedSub.currentBillingPeriodStart.getTime()).toEqual(
         subscription.currentBillingPeriodStart.getTime()
       )

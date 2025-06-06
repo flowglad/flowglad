@@ -104,7 +104,7 @@ describe('billingRunHelpers', async () => {
   let staticPrice: Price.Record
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
-  let subscription: Subscription.Record
+  let subscription: Subscription.StandardRecord
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
   let staticBillingPeriodItem: BillingPeriodItem.Record

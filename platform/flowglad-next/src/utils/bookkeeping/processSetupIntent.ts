@@ -6,6 +6,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PurchaseStatus,
+  SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -295,6 +296,7 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
       {
         id: checkoutSession.targetSubscriptionId,
         defaultPaymentMethodId: paymentMethod.id,
+        status: SubscriptionStatus.Active,
       },
       transaction
     )
