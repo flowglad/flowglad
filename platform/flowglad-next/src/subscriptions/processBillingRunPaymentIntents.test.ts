@@ -181,8 +181,10 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('processes a PaymentIntentSucceeded event correctly', async () => {
-    const stripePaymentIntentId = `pi_succeeded_${new Date().getTime()}`
-    const stripeChargeId = `ch_${new Date().getTime()}__succeeded`
+    const stripePaymentIntentId =
+      `pi_succeeded_${new Date().getTime()}` + core.nanoid()
+    const stripeChargeId =
+      `ch_${new Date().getTime()}__succeeded` + core.nanoid()
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(0),
@@ -268,8 +270,10 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('processes the same PaymentIntentSucceededEvent twice and issues command only once', async () => {
-    const stripePaymentIntentId = `pi_succeeded_idem_${new Date().getTime()}`
-    const stripeChargeId = `ch_idem_${new Date().getTime()}__succeeded`
+    const stripePaymentIntentId =
+      `pi_succeeded_idem_${new Date().getTime()}` + core.nanoid()
+    const stripeChargeId =
+      `ch_idem_${new Date().getTime()}__succeeded` + core.nanoid()
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(0),
@@ -333,8 +337,10 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('processes a PaymentIntentPaymentFailed event correctly', async () => {
-    const stripePaymentIntentId = `pi_${new Date().getTime()}___canceled`
-    const stripeChargeId = `ch_${new Date().getTime()}___failed`
+    const stripePaymentIntentId =
+      `pi_${new Date().getTime()}___canceled` + core.nanoid()
+    const stripeChargeId =
+      `ch_${new Date().getTime()}___failed` + core.nanoid()
     const failedBillingRun = await setupBillingRun({
       stripePaymentIntentId,
       lastPaymentIntentEventTimestamp: new Date(),

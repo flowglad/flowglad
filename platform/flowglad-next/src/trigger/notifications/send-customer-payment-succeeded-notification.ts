@@ -8,6 +8,7 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
+import core from '@/utils/core'
 
 export const sendCustomerPaymentSucceededNotificationTask = task({
   id: 'send-customer-payment-succeeded-notification',
@@ -84,6 +85,11 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
 
 export const sendCustomerPaymentSucceededNotificationIdempotently =
   async (paymentId: string) => {
+    if (core.IS_TEST) {
+      return {
+        message: 'Email sent successfully',
+      }
+    }
     return await sendCustomerPaymentSucceededNotificationTask.trigger(
       { paymentId },
       {
