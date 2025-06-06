@@ -173,6 +173,7 @@ export const processPaymentIntentEventForBillingRun = async (
     invoiceLineItems: InvoiceLineItem.Record[]
     billingRun: BillingRun.Record
     payment: Payment.Record
+    processingSkipped?: boolean
   }>
 > => {
   const metadata = billingRunIntentMetadataSchema.parse(
@@ -203,7 +204,7 @@ export const processPaymentIntentEventForBillingRun = async (
     const [result] =
       await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
         {
-          billingRunId: billingRun.id,
+          billingPeriodId: billingRun.billingPeriodId,
         },
         transaction
       )
@@ -222,6 +223,7 @@ export const processPaymentIntentEventForBillingRun = async (
         invoiceLineItems: result.invoiceLineItems,
         billingRun,
         payment,
+        processingSkipped: true,
       },
       ledgerCommand: undefined,
     }
@@ -400,6 +402,7 @@ export const processPaymentIntentEventForBillingRun = async (
         billingPeriodId: invoice.billingPeriodId,
         subscriptionId: invoice.subscriptionId,
         type: invoice.type,
+        billingRunId: invoice.billingRunId,
       } as Invoice.Update,
       transaction
     )

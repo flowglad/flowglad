@@ -565,6 +565,7 @@ export const setupInvoice = async ({
   livemode = true,
   priceId,
   purchaseId: existingPurchaseId,
+  billingRunId,
 }: {
   billingPeriodId?: string
   customerId: string
@@ -574,6 +575,7 @@ export const setupInvoice = async ({
   type?: InvoiceType
   priceId: string
   purchaseId?: string
+  billingRunId?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let billingPeriod: BillingPeriod.Record | null = null
@@ -618,6 +620,7 @@ export const setupInvoice = async ({
         currency: CurrencyCode.USD,
         taxCountry: CountryCode.US,
         subscriptionId: billingPeriod?.subscriptionId ?? null,
+        billingRunId,
       } as z.infer<typeof invoicesInsertSchema>,
       transaction
     )

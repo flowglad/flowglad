@@ -848,6 +848,11 @@ export const executeBillingRun = async (billingRunId: string) => {
             billingPeriodId: invoice.billingPeriodId,
             type: invoice.type,
             subscriptionId: invoice.subscriptionId,
+            /**
+             * We need to update the billing run id to the new billing run id.
+             * So that future ledger commands will map to the correct billing run.
+             */
+            billingRunId: billingRun.id,
           } as Invoice.Update,
           transaction
         )
