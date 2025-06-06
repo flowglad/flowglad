@@ -43,20 +43,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
   )
 
   /**
-   * Expire usage credits at the end of the billing period
-   */
-  const { ledgerEntries: expirationLedgerEntries } =
-    await expireCreditsAtEndOfBillingPeriod(
-      {
-        ledgerAccountsForSubscription,
-        ledgerTransaction,
-        command,
-      },
-      transaction
-    )
-
-  /**
-   * Grant usage credits for the new billing period based on entitlements
+   * 2. Grant usage credits for the new billing period based on entitlements
    * First: find or create all the ledger accounts needed to grant the entitlements
    * Second: ...grant the entitlements!
    */
@@ -70,21 +57,37 @@ export const processBillingPeriodTransitionLedgerCommand = async (
       },
       transaction
     )
-  const ledgerAccountsWithUsageMeterId =
-    entitlementLedgerAccounts.filter(
-      (ledgerAccount) => ledgerAccount.usageMeterId !== null
-    )
+
   const ledgerAccountsByUsageMeterId = new Map<
     string,
     LedgerAccount.Record
   >(
-    ledgerAccountsWithUsageMeterId.map((ledgerAccount) => [
+    entitlementLedgerAccounts.map((ledgerAccount) => [
       ledgerAccount.usageMeterId!,
       ledgerAccount,
     ])
   )
 
-  const { ledgerEntries: entitlementLedgerEntries } =
+  const allMetersHaveAccount =
+    command.payload.subscriptionFeatureItems.every((featureItem) =>
+      ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId)
+    )
+
+  if (!allMetersHaveAccount) {
+    const missingMeters = command.payload.subscriptionFeatureItems
+      .filter(
+        (featureItem) =>
+          !ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId)
+      )
+      .map((featureItem) => featureItem.usageMeterId)
+    throw new Error(
+      `Could not find or create a ledger account for all entitled usage meters. Missing: ${missingMeters.join(
+        ', '
+      )}`
+    )
+  }
+
+  const { ledgerEntries: entitlementLedgerEntryRecords } =
     await grantEntitlementUsageCredits(
       {
         ledgerAccountsByUsageMeterId,
@@ -94,11 +97,25 @@ export const processBillingPeriodTransitionLedgerCommand = async (
       transaction
     )
 
+  /**
+   * 3. Expire usage credits at the end of the billing period. This runs *after*
+   * usage has been processed to ensure credits are applied before expiring.
+   */
+  const { ledgerEntries: expirationLedgerEntryRecords } =
+    await expireCreditsAtEndOfBillingPeriod(
+      {
+        ledgerAccountsForSubscription,
+        ledgerTransaction,
+        command,
+      },
+      transaction
+    )
+
   return {
     ledgerTransaction,
     ledgerEntries: [
-      ...entitlementLedgerEntries,
-      ...expirationLedgerEntries,
+      ...entitlementLedgerEntryRecords,
+      ...expirationLedgerEntryRecords,
     ],
   }
 }

@@ -6,6 +6,8 @@ This document outlines the plan to implement a robust system for tracking aggreg
 
 Our billing system must be designed around the principle that all financial states and outcomes (like invoices, credit applications, and billed amounts) are deterministic functions of lower-level, **immutable ground-truth events**. Every financial event or adjustment must be recorded as a new, immutable entry, and every ledger item must trace back to a backing parent record that originated it.
 
+**Firm Assumption: Real-Time Usage Costing.** To the greatest extent possible, `UsageEvents` will be costed and posted to the ledger as `usage_cost` debit entries in near real-time upon ingestion. This means that at any given moment, the ledger reflects the most up-to-date outstanding usage balance. The end-of-period "billing run" is therefore not a large calculation job, but rather a process of finalizing the period, sweeping up any usage that wasn't processed in real-time, and associating all relevant `usage_cost` entries with an invoice.
+
 These ground truths include:
 1.  `UsageEvents`: Immutable records of what the customer consumed.
 2.  `UsageCredits`: Immutable records of credits *granted* to the customer (e.g., from payments, promotions).
@@ -478,7 +480,7 @@ All workflows operate within database transactions to ensure atomicity. Each dis
 
 2.  **Invoice Settlement via Payment Confirmation**
     *   **TSDoc Context (`LedgerTransactionType.SettleInvoiceUsageCosts`):** "Transaction that settles usage costs on an invoice following a successful payment. This involves creating a credit grant from the payment and immediately applying it to the usage cost debit entries associated with the invoice's billing run."
-    *   **Event:** A `Payment` is confirmed as successful (e.g., via webhook), settling a specific `Invoice`.
+    *   **Event:** A `Payment` is confirmed as successful (e.g., via webhook), settling a specific `Invoice`. This action is distinct from the `BillingPeriodTransition` and happens asynchronously after a payment is made.
     *   **Upstream Business Logic (e.g., in `processPaymentIntentEventForBillingRun`):**
         *   Simply dispatch a `SettleInvoiceUsageCostsLedgerCommand` with the paid `Invoice` in the payload.
     *   **Transaction & Ledger Posting (The Command Handler's Responsibility):**
@@ -486,12 +488,12 @@ All workflows operate within database transactions to ensure atomicity. Each dis
             *   `initiating_source_type`: `'InvoiceSettlement'`
             *   `initiating_source_id`: The `id` of the paid `Invoice`.
         *   **Ledger Manager Action:** The command handler will execute the full, self-contained settlement procedure:
-            *   **1. Create Credit Grant:** From the `Invoice`, create a new `UsageCredits` record (`credit_type: 'payment_period_settlement'`, linked to the `Invoice.id`).
-            *   **2. Identify Debts:** Find all `usage_cost` `LedgerEntries` linked to the `BillingRun` that generated the `Invoice`.
+            *   **1. Create Credit Grant:** From the `Invoice`, create a new `UsageCredits` record (`credit_type: 'payment_period_settlement'`, linked to the `Invoice.id`). This grant represents the value paid by the customer.
+            *   **2. Identify Debts:** Find all `usage_cost` `LedgerEntries` linked to the `BillingRun` that generated the `Invoice`. These are the specific debits this payment is intended to settle.
             *   **3. Create Credit Applications:** For each `usage_cost` entry, create a corresponding `UsageCreditApplications` record, linking the grant from step 1 to the debit.
             *   **4. Create Ledger Entries:** Generate all `LedgerEntries` atomically:
-                *   One `credit_grant_recognized` entry for the `UsageCredits` grant.
-                *   A pair of `credit_applied_to_usage` entries for each `UsageCreditApplications` record.
+                *   One `credit_grant_recognized` entry for the `UsageCredits` grant (posting the credit value to the ledger).
+                *   A pair of `credit_applied_to_usage` entries for each `UsageCreditApplications` record (debiting the credit balance and crediting the usage cost, effectively zeroing it out).
 
 3.  **Granting Promotional, Initial Trial, or Goodwill Credits (Non-BillingPeriodTransition Admin Grants)**
     *   **TSDoc Context (`LedgerTransactionType.CreditGrantRecognized`):** "Two sources of credit grants: 1. Promotional grants, or initial trial grants - essentially "admin" grants..."
@@ -500,14 +502,21 @@ All workflows operate within database transactions to ensure atomicity. Each dis
         *   Create one `UsageCredits` record (as before, `credit_type`: e.g., `'granted_promo'`, `source_reference_id`: e.g., `promo_code_id` or `admin_user_id`).
     *   **Transaction & Ledger Posting:**
         *   Create one `LedgerTransaction`:
-            *   `initiating_source_type`: `'CreditGrantRecognized'`
-            *   `initiating_source_id`: e.g., `promo_code_id`, `admin_user_id`, or the `UsageCredits.id` itself.
-        *   Create one `LedgerEntry` (linked to the LedgerTransaction):
-            *   `entry_type`: `'credit_grant_recognized'` (`LedgerEntryType.CreditGrantRecognized`)
-            *   `status`: `'posted'`
-            *   `amount`: Positive value of the granted credit.
-            *   `description`: e.g., "Promotional credit APPSUMO2024 applied".
-            *   `source_usage_credit_id`: The `id` of the newly created `UsageCredits` record.
+            *   `initiating_source_type`: `'BillingPeriodTransition'`
+            *   `initiating_source_id`: The `calculation_run_id` for this subscription's processing in this billing run.
+        *   **Process Outstanding Usage:**
+            *   **Identify Usage Costs for Invoicing:** Query the ledger for all `usage_cost` entries for the subscription within the closing billing period that have not yet been associated with a billing run.
+            *   **Associate with Billing Run:** Update these ledger entries to link them to the current `billing_run_id`. This "claims" them for the invoice that will be generated, preventing them from being billed again. No new cost entries are created here, as they are assumed to have been posted in real-time. (A sweep for any missed `UsageEvents` can also occur here as a fallback).
+            *   **Credit Application (Pre-payment):** The system *may* apply any available non-expiring/evergreen credits at this stage if the business logic dictates it (e.g., applying a standing account balance before invoicing). However, credits tied to the period itself are generally preserved to be applied before expiration. The primary settlement of invoiced usage costs happens *after* payment via the `SettleInvoiceUsageCosts` command.
+        *   **Grant New Period Credits:**
+            *   If the plan includes new credits for the upcoming period: Create `UsageCredits` record.
+            *   Create `LedgerEntry` of `entry_type: 'credit_grant_recognized'` (`LedgerEntryType.CreditGrantRecognized`), status `'pending'`, for the new grant.
+        *   **Process Expiring Credits:**
+            *   For `UsageCredits` grants expiring at this transition:
+                *   Calculate unused portion.
+                *   Create `LedgerEntry` of `entry_type: 'credit_grant_expired'` (`LedgerEntryType.CreditGrantExpired`), status `'pending'`, for the unused, expired amount (negative value).
+        *   (All `'pending'` entries are transitioned to `'posted'` upon successful finalization of this `calculation_run_id` for the subscription).
+        *   **Payment for Usage Overages and Ledger Settlement:** If the sum of usage costs exceeds available credits, the net amount is invoiced to the customer. Upon successful payment of this invoice, the `SettleInvoiceUsageCosts` command is triggered, which creates a new `UsageCredits` grant (`credit_type: 'payment_period_settlement'`) and immediately applies it to the outstanding `usage_cost` ledger items, thus settling the debt on the ledger as described in Section 3.2.2.
 
 4.  **Billing Period Transition (Comprehensive Processing during Billing Run)**
     *   **TSDoc Context (`LedgerTransactionType.BillingPeriodTransition`):** "Transactions that reflect a change of billing periods for a subscription. Typically, these will include: - credit grants for the new period - expirations of unused credits from the previous period - charges to settle any outstanding usage costs from the previous period"
@@ -517,13 +526,9 @@ All workflows operate within database transactions to ensure atomicity. Each dis
             *   `initiating_source_type`: `'BillingPeriodTransition'`
             *   `initiating_source_id`: The `calculation_run_id` for this subscription's processing in this billing run.
         *   **Process Outstanding Usage:**
-            *   For each relevant `UsageEvent` from the concluding period not yet costed:
-                *   Create `LedgerEntry` of `entry_type: 'usage_cost'` (`LedgerEntryType.UsageCost`), status `'pending'` (to be `'posted'` at run finalization).
-            *   **Apply Credits to Usage:**
-                *   Identify applicable `UsageCredits` grants.
-                *   For each grant portion applied: Create `UsageCreditApplications` record.
-                *   Create `LedgerEntry` of `entry_type: 'usage_credit_application_debit_from_credit_balance'` (`LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance`), status `'pending'`.
-                *   Create `LedgerEntry` of `entry_type: 'usage_credit_application_credit_towards_usage_cost'` (`LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost`), status `'pending'`.
+            *   **Identify Usage Costs for Invoicing:** Query the ledger for all `usage_cost` entries for the subscription within the closing billing period that have not yet been associated with a billing run.
+            *   **Associate with Billing Run:** Update these ledger entries to link them to the current `billing_run_id`. This "claims" them for the invoice that will be generated, preventing them from being billed again. No new cost entries are created here, as they are assumed to have been posted in real-time. (A sweep for any missed `UsageEvents` can also occur here as a fallback).
+            *   **Credit Application (Pre-payment):** The system *may* apply any available non-expiring/evergreen credits at this stage if the business logic dictates it (e.g., applying a standing account balance before invoicing). However, credits tied to the period itself are generally preserved to be applied before expiration. The primary settlement of invoiced usage costs happens *after* payment via the `SettleInvoiceUsageCosts` command.
         *   **Grant New Period Credits:**
             *   If the plan includes new credits for the upcoming period: Create `UsageCredits` record.
             *   Create `LedgerEntry` of `entry_type: 'credit_grant_recognized'` (`LedgerEntryType.CreditGrantRecognized`), status `'pending'`, for the new grant.
@@ -532,7 +537,7 @@ All workflows operate within database transactions to ensure atomicity. Each dis
                 *   Calculate unused portion.
                 *   Create `LedgerEntry` of `entry_type: 'credit_grant_expired'` (`LedgerEntryType.CreditGrantExpired`), status `'pending'`, for the unused, expired amount (negative value).
         *   (All `'pending'` entries are transitioned to `'posted'` upon successful finalization of this `calculation_run_id` for the subscription).
-        *   **Payment for Usage Overages and Ledger Settlement:** If the sum of usage costs exceeds available credits, the net amount is invoiced to the customer. Upon successful payment of this invoice, a new `UsageCredits` grant is created with `credit_type: 'payment_period_settlement'`. This new grant is then immediately applied to the outstanding `usage_cost` ledger items, thus settling the debt on the ledger as described in Section 2.
+        *   **Payment for Usage Overages and Ledger Settlement:** If the sum of usage costs exceeds available credits, the net amount is invoiced to the customer. Upon successful payment of this invoice, the `SettleInvoiceUsageCosts` command is triggered, which creates a new `UsageCredits` grant (`credit_type: 'payment_period_settlement'`) and immediately applies it to the outstanding `usage_cost` ledger items, thus settling the debt on the ledger as described in Section 3.2.2.
 
 5.  **Administrative Adjustment of Credit Balance (e.g., Clawback)**
     *   **TSDoc Context (`LedgerTransactionType.AdminCreditAdjusted`):** "Any admin actions by the organization to adjust their ledger. Should be used sparingly... Use BillingRecalculated whenever possible."
@@ -643,6 +648,7 @@ All workflows operate within database transactions to ensure atomicity. Each dis
 
 7.  **Q: Should `UsageCredits` be granted at the `Payment` level or the `Invoice` level to best model the billing transition lifecycle?**
     *   **A (Revised):** `UsageCredits` that arise from a customer's monetary transaction should be linked to the **`Invoice`** that was settled by that payment. A `Payment` confirms that an `Invoice` (either for services rendered/billed or for a proactive credit purchase like a top-up) is `paid`. This "paid Invoice" event is then the trigger for creating/activating the associated `UsageCredits` grant.
+        *   **Separation of Concerns:** The `BillingPeriodTransition` ledger command is responsible for identifying all outstanding `usage_cost` debits for a period and associating them with a billing run (and subsequently an invoice). The `SettleInvoiceUsageCosts` ledger command is responsible for taking the value from a confirmed payment and creating the necessary credit grants and applications to clear those specific usage debits. This cleanly separates the act of *invoicing* from the act of *settlement*.
         *   **Unified Sourcing for Payment-Derived Credits:** The `Invoice.id` becomes the consistent `source_reference_id` for `UsageCredits` grants originating from customer payments. This applies whether the invoice was for a standard billing cycle or proactively created for a PAYG/top-up scenario (as per the "Proactive PAYG Invoice" model).
         *   **`Payment` as the Catalyst:** The `Payment` is the crucial catalyst that moves an `Invoice` to a `paid` status.
         *   **Clarity of Grant Origin:** This model ensures that every payment-backed credit grant has a clear, itemized bill (the `Invoice`) associated with it, detailing what the payment was for (e.g., "January Subscription Services," "Account Top-Up").

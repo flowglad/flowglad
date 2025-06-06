@@ -2343,6 +2343,90 @@ describe('ledgerEntryMethods', () => {
       })
     })
 
+    it('should correctly calculate balance for a partially used credit', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const issuedAmount = 1000
+        const usedAmount = 400
+        const remainingAmount = issuedAmount - usedAmount
+
+        const usageCredit = await setupUsageCredit({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          issuedAmount,
+          creditType: UsageCreditType.Grant,
+          livemode: true,
+        })
+
+        const usageEvent = await setupUsageEvent({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          usageMeterId: usageMeter.id,
+          amount: usedAmount,
+          livemode: true,
+          priceId: price.id,
+          billingPeriodId: billingPeriod.id,
+          transactionId: testLedgerTransaction.id,
+          customerId: customer.id,
+        })
+
+        const usageCreditApplication =
+          await setupUsageCreditApplication({
+            organizationId: organization.id,
+            usageCreditId: usageCredit.id,
+            usageEventId: usageEvent.id,
+            amountApplied: usedAmount,
+            livemode: true,
+          })
+
+        await setupLedgerEntries({
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          ledgerAccountId: ledgerAccount.id,
+          ledgerTransactionId: testLedgerTransaction.id,
+          entries: [
+            {
+              entryType: LedgerEntryType.CreditGrantRecognized,
+              amount: issuedAmount,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageCreditId: usageCredit.id,
+            },
+            {
+              entryType:
+                LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance,
+              amount: usedAmount,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageCreditId: usageCredit.id,
+              sourceCreditApplicationId: usageCreditApplication.id,
+              sourceUsageEventId: usageEvent.id,
+            },
+            // This entry should be ignored by the balance calculation.
+            {
+              entryType:
+                LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost,
+              amount: usedAmount,
+              status: LedgerEntryStatus.Posted,
+              sourceUsageCreditId: usageCredit.id,
+              sourceCreditApplicationId: usageCreditApplication.id,
+              sourceUsageEventId: usageEvent.id,
+            },
+          ],
+        })
+
+        const result = await aggregateAvailableBalanceForUsageCredit(
+          {
+            ledgerAccountId: ledgerAccount.id,
+            sourceUsageCreditId: usageCredit.id,
+          },
+          transaction
+        )
+
+        expect(result).toHaveLength(1)
+        expect(result[0].balance).toBe(remainingAmount)
+        expect(result[0].usageCreditId).toBe(usageCredit.id)
+      })
+    })
+
     // // III. Scenarios Testing discardedAt Filter
 
     // IV. Edge Cases and Empty Results

@@ -34,6 +34,9 @@ import {
   setupBillingRun,
   setupUsageCredit,
   setupCreditLedgerEntry,
+  setupUsageEvent,
+  setupUsageCreditApplication,
+  setupLedgerEntries,
 } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -319,6 +322,99 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     expect(expiredEntry.expiredAt).toBeNull()
     expect(expiredEntry.discardedAt).toBeNull()
     expect(expiredEntry.sourceUsageCreditId).toBe(expiringCredit.id)
+  })
+
+  it('should correctly calculate the expired amount for a partially used credit', async () => {
+    const issuedAmount = 1000
+    const usedAmount = 400
+    const remainingAmount = issuedAmount - usedAmount
+    const expiryDate = new Date(
+      testCommand.payload.previousBillingPeriod.endDate
+    )
+    expiryDate.setDate(expiryDate.getDate() - 1)
+
+    const usageCredit = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter1.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount,
+      expiresAt: expiryDate,
+      livemode: subscription.livemode,
+    })
+
+    const usageEvent = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter1.id,
+      amount: usedAmount,
+      priceId: price.id,
+      billingPeriodId: previousBillingPeriod.id,
+      transactionId: baseLedgerTransaction.id,
+      customerId: customer.id,
+      livemode: subscription.livemode,
+    })
+
+    const usageCreditApplication = await setupUsageCreditApplication({
+      organizationId: organization.id,
+      usageCreditId: usageCredit.id,
+      usageEventId: usageEvent.id,
+      amountApplied: usedAmount,
+      livemode: subscription.livemode,
+    })
+
+    await setupLedgerEntries({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerAccountId: ledgerAccount1.id,
+      ledgerTransactionId: baseLedgerTransaction.id,
+      entries: [
+        {
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          amount: issuedAmount,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCredit.id,
+        },
+        {
+          entryType:
+            LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance,
+          amount: usedAmount,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCredit.id,
+          sourceCreditApplicationId: usageCreditApplication.id,
+          sourceUsageEventId: usageEvent.id,
+        },
+        // This entry should be ignored by balance calculation for the credit
+        {
+          entryType:
+            LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost,
+          amount: usedAmount,
+          status: LedgerEntryStatus.Posted,
+          sourceUsageCreditId: usageCredit.id,
+          sourceCreditApplicationId: usageCreditApplication.id,
+          sourceUsageEventId: usageEvent.id,
+        },
+      ],
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return expireCreditsAtEndOfBillingPeriod(
+        {
+          ledgerAccountsForSubscription: [ledgerAccount1],
+          ledgerTransaction: baseLedgerTransaction,
+          command: testCommand,
+        },
+        transaction
+      )
+    })
+
+    expect(result.ledgerEntries).toHaveLength(1)
+    const expiredEntry = result.ledgerEntries[0]
+    expect(expiredEntry.entryType).toBe(
+      LedgerEntryType.CreditGrantExpired
+    )
+    expect(expiredEntry.amount).toBe(remainingAmount)
+    expect(expiredEntry.sourceUsageCreditId).toBe(usageCredit.id)
   })
 
   it('should correctly expire credits that expire before the previous billing period end date', async () => {

@@ -28,6 +28,7 @@ import {
   inArray,
   isNull,
   lt,
+  not,
   or,
 } from 'drizzle-orm'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
@@ -168,7 +169,16 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        discardedAtFilterOutStatement()
+        discardedAtFilterOutStatement(),
+        // This entry type is a credit, but it doesn't credit the *usage credit balance*.
+        // It credits the usage cost that is being offset by the credit application.
+        // Therefore, we must exclude it from the balance calculation for the usage credit itself.
+        not(
+          eq(
+            ledgerEntries.entryType,
+            LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+          )
+        )
       )
     )
     .orderBy(asc(ledgerEntries.position))

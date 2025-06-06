@@ -1486,12 +1486,21 @@ interface SetupDebitBillingAdjustmentParams
   sourceBillingPeriodCalculationId: string
 }
 
+interface SetupDebitUsageCreditApplicationDebitFromCreditBalanceParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+  sourceCreditApplicationId: string
+  sourceUsageEventId: string
+  sourceUsageCreditId: string
+}
+
 export type DebitLedgerEntrySetupParams =
   | SetupDebitUsageCostParams
   | SetupDebitCreditGrantExpiredParams
   | SetupDebitPaymentRefundedParams
   | SetupDebitCreditBalanceAdjustedParams
   | SetupDebitBillingAdjustmentParams
+  | SetupDebitUsageCreditApplicationDebitFromCreditBalanceParams
 
 const baseLedgerEntryInsertFieldsFromParams = (
   params: CoreLedgerEntryUserParams & {
@@ -1585,6 +1594,16 @@ const debitEntryInsertFromDebigLedgerParams = (
       } satisfies LedgerEntry.BillingAdjustmentInsert
       break
 
+    case LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditApplicationId: params.sourceCreditApplicationId,
+        sourceUsageEventId: params.sourceUsageEventId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.UsageCreditApplicationDebitFromCreditBalanceInsert
+      break
+
     default:
       throw new Error(`Unsupported entryType for debit ledger entry.`)
   }
@@ -1634,10 +1653,19 @@ interface SetupCreditBillingAdjustmentParams
   sourceBillingPeriodCalculationId: string
 }
 
+interface SetupCreditUsageCreditApplicationCreditTowardsUsageCostParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+  sourceCreditApplicationId: string
+  sourceUsageEventId: string
+  sourceUsageCreditId: string
+}
+
 export type CreditLedgerEntrySetupParams =
   | SetupCreditCreditGrantRecognizedParams
   | SetupCreditCreditBalanceAdjustedParams
   | SetupCreditBillingAdjustmentParams
+  | SetupCreditUsageCreditApplicationCreditTowardsUsageCostParams
 
 const creditLedgerEntryInsertFromCreditLedgerParams = (
   params: CreditLedgerEntrySetupParams & CoreLedgerEntryUserParams
@@ -1682,6 +1710,16 @@ const creditLedgerEntryInsertFromCreditLedgerParams = (
         sourceBillingPeriodCalculationId:
           params.sourceBillingPeriodCalculationId,
       } satisfies LedgerEntry.BillingAdjustmentInsert
+      break
+
+    case LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditApplicationId: params.sourceCreditApplicationId,
+        sourceUsageEventId: params.sourceUsageEventId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.UsageCreditApplicationCreditTowardsUsageCostInsert
       break
 
     default:
@@ -1864,6 +1902,7 @@ type CreditLedgerEntryType =
   | LedgerEntryType.CreditGrantRecognized
   | LedgerEntryType.CreditBalanceAdjusted
   | LedgerEntryType.BillingAdjustment
+  | LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
 
 type DebitLedgerEntryType =
   | LedgerEntryType.UsageCost
@@ -1871,6 +1910,7 @@ type DebitLedgerEntryType =
   | LedgerEntryType.PaymentRefunded
   | LedgerEntryType.CreditBalanceAdjusted
   | LedgerEntryType.BillingAdjustment
+  | LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
 
 const debitableEntryTypes = [
   LedgerEntryType.UsageCost,
@@ -1878,12 +1918,14 @@ const debitableEntryTypes = [
   LedgerEntryType.PaymentRefunded,
   LedgerEntryType.CreditBalanceAdjusted,
   LedgerEntryType.BillingAdjustment,
+  LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance,
 ] as const
 
 const creditableEntryTypes = [
   LedgerEntryType.CreditGrantRecognized,
   LedgerEntryType.CreditBalanceAdjusted,
   LedgerEntryType.BillingAdjustment,
+  LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost,
 ] as const
 
 export const setupLedgerEntries = async (params: {
