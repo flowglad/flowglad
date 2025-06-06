@@ -5,7 +5,6 @@ import {
 } from '@/db/tableMethods/billingRunMethods'
 import {
   safelyUpdateInvoiceStatus,
-  selectInvoiceById,
   selectInvoices,
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
@@ -261,6 +260,7 @@ export const processPaymentIntentEventForBillingRun = async (
   let [invoice] = await selectInvoices(
     {
       billingPeriodId: billingRun.billingPeriodId,
+      billingRunId: billingRun.id,
     },
     transaction
   )
