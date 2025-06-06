@@ -122,7 +122,7 @@ CREATE TABLE usage_transactions (
     id TEXT PRIMARY KEY DEFAULT Nanoid('utxn'),
     organization_id TEXT NOT NULL REFERENCES organizations(id),
     livemode BOOLEAN NOT NULL,
-    initiating_source_type TEXT NOT NULL,                        -- Describes what triggered this bundle (e.g., 'PaymentConfirmation', 'CreditGrantRecognized', 'BillingPeriodTransition', 'AdminCreditAdjusted')
+    initiating_source_type TEXT NOT NULL,                        -- Describes what triggered this bundle (e.g., 'PaymentConfirmation', 'CreditGrantRecognized', 'BillingPeriodTransition', 'AdminCreditAdjusted', 'InvoiceSettlement')
     initiating_source_id TEXT NOT NULL,                          -- The ID of the specific record that was the primary trigger (e.g., Payment.id, calculation_run_id for BillingPeriodTransition, admin_user_id)
     description TEXT,                                   -- Optional: A human-readable description for the transaction bundle.
     metadata JSONB,                                     -- Optional: For any other contextual data related to the transaction bundle itself.
@@ -429,8 +429,11 @@ Before detailing specific event flows, the following principles guide ledger ope
 *   **Comprehensive Transaction Management for Ledger and Event Atomicity:**
     *   **Unified Operations:** To ensure that primary business operations, the creation of their associated immutable `LedgerEntries`, and the logging of idempotent `Events` occur atomically, we utilize comprehensive transaction wrappers (e.g., `comprehensiveAdminTransaction`, `comprehensiveAuthenticatedTransaction`).
     *   **Side Effects within Transactions:** These wrappers allow a primary function (e.g., creating a `UsageCredits` grant, processing a payment) to return not only its core result but also a `ledgerCommand` and/or `eventsToLog`. The transaction wrapper then ensures these side effects are processed within the same database transaction as the main operation.
-    *   **Deriving Ledger Entries from Backing Records:** The `ledgerCommand` contains "backing records" (e.g., the `UsageCredits` record that was just created, a `Payment` record, etc.). These backing records are the ground-truth source for generating the corresponding `LedgerEntries`.
-    *   **Centralized Mapping Logic (`ledgerManager.ts`):** The `ledgerManager.ts` module is responsible for interpreting these backing records and applying the defined business logic to map them to one or more `LedgerEntry.Insert` objects. This centralizes the rules for how different financial events translate into specific ledger postings (e.g., what `entry_type`, `direction`, `amount`, and source links are appropriate for a `UsageCredits` grant of type `'payment_top_up'`).
+    *   **Explicit Principle: The Ledger is an Accountant, Not a Decision-Maker:** A crucial design principle is the separation of business logic from accounting logic.
+        *   **Business Logic (Upstream):** The primary application logic is responsible for making *business decisions* (e.g., "should this customer receive a promotional credit?"). It creates the ground-truth backing records that result from these decisions.
+        *   **Ledger Manager (Accounting Engine):** The `LedgerManager` executes *accounting procedures*. It receives business facts (like a paid invoice or a promo credit grant) and translates them into bookkeeping entries. For complex, deterministic accounting procedures like settling an invoice (which involves creating a settlement credit, applying it, and generating all ledger entries), the entire procedure should be encapsulated within a single ledger command handler to ensure it is atomic and self-contained. This is not a "business decision" but a mechanical accounting act.
+        *   **Deriving Ledger Entries from Backing Records:** The `ledgerCommand` contains "backing records" (e.g., the `UsageCredits` record that was just created, a `Payment` record, etc.). These backing records are the ground-truth source for generating the corresponding `LedgerEntries`.
+        *   **Centralized Mapping Logic (`ledgerManager.ts`):** The `ledgerManager.ts` module is responsible for interpreting these backing records and applying the defined business logic to map them to one or more `LedgerEntry.Insert` objects. This centralizes the rules for how different financial events translate into specific ledger postings (e.g., what `entry_type`, `direction`, `amount`, and source links are appropriate for a `UsageCredits` grant of type `'payment_top_up'`).
     *   **Auditability and Traceability:** This approach maintains full auditability. The `LedgerTransaction` groups all ledger items stemming from a single operation, and each `LedgerEntry` can be traced back to its `LedgerTransaction` and, through the logic in `ledgerManager.ts` and source linkage fields, to its originating backing record(s). The idempotent events logged provide an additional layer of auditable system activity.
 
 ### 3.1. Backing Parent Records: Immutability
@@ -473,24 +476,22 @@ All workflows operate within database transactions to ensure atomicity. Each dis
                     *   One `LedgerEntry` of `entry_type`: `'usage_credit_application_debit_from_credit_balance'` (`LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance`), `direction: 'debit'`, `amount`: positive `amount_applied`, linking to `source_usage_credit_id` and `source_credit_application_id`.
                     *   One `LedgerEntry` of `entry_type`: `'usage_credit_application_credit_towards_usage_cost'` (`LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost`), `direction: 'credit'`, `amount`: positive `amount_applied`, linking to `source_credit_application_id` and the `applied_to_ledger_item_id` (the `usage_cost` entry).
 
-2.  **Payment Confirmation & Associated Credit Grant (e.g., PAYG Top-up or Invoice Settlement Funding Credits)**
-    *   **TSDoc Context (`LedgerTransactionType.CreditGrantRecognized` for PAYG):** "Two sources of credit grants: 1. Promotional grants, or initial trial grants - essentially "admin" grants. 2. Grants given as a result of a pay-as-you-go payment."
-    *   **Event:** A `Payment` is confirmed as successful (e.g., webhook from gateway). This payment settles an `Invoice` which, in turn, funds a `UsageCredits` grant.
-    *   **Parent Record Creation (`UsageCredits`):**
-        *   Create one `UsageCredits` record (as detailed in spec, linked to `Invoice.id` as `source_reference_id`).
-            *   `credit_type`: e.g., `'payment_top_up'` or `'payment_period_settlement'`.
-            *   `initial_status`: `'granted_active'`. 
-    *   **Transaction & Ledger Posting:**
+2.  **Invoice Settlement via Payment Confirmation**
+    *   **TSDoc Context (`LedgerTransactionType.SettleInvoiceUsageCosts`):** "Transaction that settles usage costs on an invoice following a successful payment. This involves creating a credit grant from the payment and immediately applying it to the usage cost debit entries associated with the invoice's billing run."
+    *   **Event:** A `Payment` is confirmed as successful (e.g., via webhook), settling a specific `Invoice`.
+    *   **Upstream Business Logic (e.g., in `processPaymentIntentEventForBillingRun`):**
+        *   Simply dispatch a `SettleInvoiceUsageCostsLedgerCommand` with the paid `Invoice` in the payload.
+    *   **Transaction & Ledger Posting (The Command Handler's Responsibility):**
         *   Create one `LedgerTransaction`:
-            *   `initiating_source_type`: `'CreditGrantRecognized'` (if it's a direct PAYG top-up leading to a grant) or a more general type like `'PaymentSettlementProcessed'` if the grant is a side-effect of settling a broader invoice. For simplicity with current TSDocs, let's assume `'CreditGrantRecognized'` covers payment-funded grants not part of `BillingPeriodTransition`.
-            *   `initiating_source_id`: The `Payment.id` or the `Invoice.id` that was settled.
-        *   Create one `LedgerEntry` (linked to the LedgerTransaction):
-            *   `entry_type`: `'credit_grant_recognized'` (`LedgerEntryType.CreditGrantRecognized`)
-            *   `status`: `'posted'`
-            *   `amount`: Positive value of the credit granted (payment amount).
-            *   `description`: e.g., "Credit grant from payment of invoice [Invoice.id]".
-            *   `source_payment_id`: The `id` of the `Payment` record.
-            *   `source_usage_credit_id`: The `id` of the newly created `UsageCredits` record.
+            *   `initiating_source_type`: `'InvoiceSettlement'`
+            *   `initiating_source_id`: The `id` of the paid `Invoice`.
+        *   **Ledger Manager Action:** The command handler will execute the full, self-contained settlement procedure:
+            *   **1. Create Credit Grant:** From the `Invoice`, create a new `UsageCredits` record (`credit_type: 'payment_period_settlement'`, linked to the `Invoice.id`).
+            *   **2. Identify Debts:** Find all `usage_cost` `LedgerEntries` linked to the `BillingRun` that generated the `Invoice`.
+            *   **3. Create Credit Applications:** For each `usage_cost` entry, create a corresponding `UsageCreditApplications` record, linking the grant from step 1 to the debit.
+            *   **4. Create Ledger Entries:** Generate all `LedgerEntries` atomically:
+                *   One `credit_grant_recognized` entry for the `UsageCredits` grant.
+                *   A pair of `credit_applied_to_usage` entries for each `UsageCreditApplications` record.
 
 3.  **Granting Promotional, Initial Trial, or Goodwill Credits (Non-BillingPeriodTransition Admin Grants)**
     *   **TSDoc Context (`LedgerTransactionType.CreditGrantRecognized`):** "Two sources of credit grants: 1. Promotional grants, or initial trial grants - essentially "admin" grants..."
@@ -618,7 +619,9 @@ All workflows operate within database transactions to ensure atomicity. Each dis
         *   "Settlement" of a debit (like a `'usage_cost'`) is still a derived concept: it's effectively settled when offset by corresponding `posted` positive-amount ledger items (like `'credit_applied_to_usage'` or `'payment_recognized'`). The `status` field helps manage the lifecycle leading up to an item being considered for such settlement.
 
 5.  **Q: How do we ensure atomicity when, for example, an adjustment involves creating a `UsageCreditBalanceAdjustments` record AND a `LedgerEntries` record, or when a billing run inserts multiple ledger items and updates `SubscriptionMeterPeriodCalculations`?**
-    *   **A:** All related database operations for a single logical event (like an adjustment or a billing run's processing for one period) must occur within a single database transaction. Furthermore, each distinct business operation that creates ledger items will first create a `LedgerTransaction` record, to which all resulting `LedgerEntries` will be linked. This combination ensures both atomicity at the database level and logical grouping for auditability and traceability. The specific transaction boundaries for different processes (billing run, PAYG real-time application, administrative adjustments) will be carefully defined and implemented in the application logic.
+    *   **A (Revised):** All related database operations for a single logical event must occur within a single database transaction, typically managed by a comprehensive wrapper like `comprehensiveAdminTransaction`. The correct pattern depends on the nature of the operation:
+        *   **For Business Decisions (e.g., Granting a Promo Credit):** The upstream logic creates the primary backing record (e.g., `UsageCredits`), then dispatches a command with that record in the payload. The transaction wrapper ensures the creation of the backing record and the subsequent accounting entries are atomic.
+        *   **For Deterministic Accounting Procedures (e.g., Settling an Invoice):** The upstream logic dispatches a command with just the source document (e.g., the paid `Invoice`). The command handler itself is responsible for creating all derived records (`UsageCredits`, `UsageCreditApplications`) and the `LedgerEntries` within the single transaction. This encapsulates the entire accounting procedure cleanly.
 
 6.  **Q: Why do we still need `UsageCredits` and `UsageCreditApplications` if we have `LedgerAccounts` to track balances and `LedgerTransactions` to trace provenance?**
     *   **A:** This is a crucial design point. While `LedgerAccounts` (like an End Customer Credit Account - ECCA) provide the current spendable balance and `LedgerTransactions` bundle the operational ledger entries, `UsageCredits` and `UsageCreditApplications` serve distinct, vital roles:

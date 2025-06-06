@@ -12,6 +12,7 @@ import { subscriptionsSelectSchema } from '@/db/schema/subscriptions'
 import { billingPeriodsSelectSchema } from '@/db/schema/billingPeriods'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
+import { invoiceWithLineItemsSchema } from '../schema/invoiceLineItems'
 
 // Base fields for all ledger commands, primarily for the LedgerTransaction record
 const baseLedgerCommandFields = {
@@ -185,6 +186,16 @@ export type BillingRecalculatedLedgerCommand = z.infer<
   typeof billingRecalculatedLedgerCommandSchema
 >
 
+const settleInvoiceUsageCostsLedgerCommandSchema = z.object({
+  ...baseLedgerCommandFields,
+  type: z.literal(LedgerTransactionType.SettleInvoiceUsageCosts),
+  payload: invoiceWithLineItemsSchema,
+})
+
+export type SettleInvoiceUsageCostsLedgerCommand = z.infer<
+  typeof settleInvoiceUsageCostsLedgerCommandSchema
+>
+
 // --- Discriminated Union of all Ledger Commands ---
 
 export const LedgerCommandSchema = z.discriminatedUnion('type', [
@@ -195,6 +206,7 @@ export const LedgerCommandSchema = z.discriminatedUnion('type', [
   creditGrantExpiredLedgerCommandSchema,
   paymentRefundedLedgerCommandSchema,
   billingRecalculatedLedgerCommandSchema,
+  settleInvoiceUsageCostsLedgerCommandSchema,
 ])
 
 export type LedgerCommand = z.infer<typeof LedgerCommandSchema>

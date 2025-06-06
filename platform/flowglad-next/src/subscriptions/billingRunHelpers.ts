@@ -799,9 +799,16 @@ export const executeBillingRun = async (billingRunId: string) => {
       await adminTransaction(async ({ transaction }) => {
         await updateInvoice(
           {
-            id: invoice.id,
+            ...invoice,
             status: InvoiceStatus.Paid,
           } as Invoice.Update,
+          transaction
+        )
+        await updateBillingRun(
+          {
+            id: billingRun.id,
+            status: BillingRunStatus.Succeeded,
+          },
           transaction
         )
       })

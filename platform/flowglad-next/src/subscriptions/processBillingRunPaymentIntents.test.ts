@@ -33,6 +33,7 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { IntentMetadataType } from '@/utils/stripe'
+import core from '@/utils/core'
 
 /**
  * In our tests we assume that getStripeCharge (used inside processPaymentIntentEventForBillingRun)
@@ -117,8 +118,10 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('skips processing for out-of-order event', async () => {
-    const stripePaymentIntentId = `pi_outoforder_${new Date().getTime()}`
-    const stripeChargeId = `ch_outoforder_${new Date().getTime()}`
+    const stripePaymentIntentId =
+      `pi_outoforder_${new Date().getTime()}` + core.nanoid()
+    const stripeChargeId =
+      `ch_outoforder_${new Date().getTime()}` + core.nanoid()
     const invoice = await setupInvoice({
       billingPeriodId: billingPeriod.id,
       customerId: customer.id,

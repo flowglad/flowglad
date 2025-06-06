@@ -1,4 +1,10 @@
 DO $$ BEGIN
+    ALTER TYPE "LedgerTransactionType" ADD VALUE IF NOT EXISTS 'settle_invoice_usage_costs';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
     CREATE TYPE "SubscriptionItemType" AS ENUM ('usage', 'static');
 EXCEPTION
     WHEN duplicate_object THEN null;

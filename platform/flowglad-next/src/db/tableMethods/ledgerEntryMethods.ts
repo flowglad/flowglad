@@ -241,7 +241,7 @@ export const aggregateAvailableBalanceForUsageCredit = async (
 export const aggregateOutstandingBalanceForUsageCosts = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
-    'ledgerAccountId' | 'sourceUsageEventId'
+    'ledgerAccountId' | 'sourceUsageEventId' | 'claimedByBillingRunId'
   >,
   anchorDate: Date,
   transaction: DbTransaction

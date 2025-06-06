@@ -244,6 +244,7 @@ export const setupProduct = async ({
     )
   })
 }
+
 export const setupPaymentMethod = async (params: {
   organizationId: string
   customerId: string
@@ -1852,7 +1853,7 @@ export const setupSubscriptionMeterPeriodCalculation = async (
   })
 }
 
-type QuickEntries =
+type QuickLedgerEntry =
   | CreditLedgerEntrySetupParams
   | DebitLedgerEntrySetupParams
 
@@ -1887,9 +1888,9 @@ export const setupLedgerEntries = async (params: {
   subscriptionId: string
   ledgerTransactionId: string
   ledgerAccountId: string
-  entries: QuickEntries[]
+  entries: QuickLedgerEntry[]
 }) => {
-  await adminTransaction(async ({ transaction }) => {
+  return await adminTransaction(async ({ transaction }) => {
     return bulkInsertLedgerEntries(
       params.entries.map((entry) => {
         if (
@@ -2038,4 +2039,169 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
       transaction
     )
   }) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
+}
+
+/**
+ * @description A comprehensive test setup utility for creating a complete usage-based
+ * billing and ledger scenario. It programmatically creates and links all necessary
+ * database records: an organization, customer, product, price, subscription, usage
+ * meter, and an active billing period.
+ *
+ * Based on the input parameters, it can then:
+ * 1. Generate a series of `UsageEvent` records and their corresponding `UsageCost` ledger entries.
+ * 2. Populate the ledger with arbitrary initial entries (`quickEntries`) to simulate
+ *    pre-existing balances or administrative adjustments.
+ *
+ * @param params An object containing optional arrays for `usageEventAmounts` and `quickEntries`.
+ * @returns A promise that resolves to an object containing all the created entities,
+ * providing a fully hydrated test environment.
+ */
+export const setupUsageLedgerScenario = async (params: {
+  usageEventAmounts?: number[]
+  quickEntries?: QuickLedgerEntry[]
+  customerArgs?: Record<string, any>
+  paymentMethodArgs?: Record<string, any>
+  subscriptionArgs?: Record<string, any>
+  priceArgs?: Record<string, any>
+  subscriptionItemArgs?: Record<string, any>
+  livemode?: boolean
+}) => {
+  const livemode = params.livemode ?? true
+  const { organization, product, catalog } = await setupOrg()
+  const customer = await setupCustomer({
+    organizationId: organization.id,
+    email: 'test@test.com',
+    livemode,
+    ...(params.customerArgs ?? {}),
+  })
+  const paymentMethod = await setupPaymentMethod({
+    organizationId: organization.id,
+    customerId: customer.id,
+    livemode,
+    ...(params.paymentMethodArgs ?? {}),
+  })
+  const usageMeter = await setupUsageMeter({
+    organizationId: organization.id,
+    name: 'Test Usage Meter',
+    livemode,
+    catalogId: catalog.id,
+  })
+  const price = await setupPrice({
+    productId: product.id,
+    name: 'Test Price',
+    type: PriceType.Usage,
+    unitPrice: 1000,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    livemode,
+    isDefault: false,
+    setupFeeAmount: 0,
+    usageMeterId: usageMeter.id,
+    ...(params.priceArgs ?? {}),
+  })
+  const subscription = await setupSubscription({
+    organizationId: organization.id,
+    customerId: customer.id,
+    paymentMethodId: paymentMethod.id,
+    priceId: price.id,
+    interval: IntervalUnit.Month,
+    intervalCount: 1,
+    ...(params.subscriptionArgs ?? {}),
+  })
+
+  const subscriptionItem = await setupSubscriptionItem({
+    subscriptionId: subscription.id,
+    name: 'Test Subscription Item',
+    quantity: 1,
+    unitPrice: price.unitPrice,
+    type: SubscriptionItemType.Usage,
+    usageMeterId: usageMeter.id,
+    usageEventsPerUnit: 1,
+    ...(params.subscriptionItemArgs ?? {}),
+  })
+  const billingPeriod = await setupBillingPeriod({
+    subscriptionId: subscription.id,
+    startDate: subscription.currentBillingPeriodStart || new Date(),
+    endDate:
+      subscription.currentBillingPeriodEnd ||
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    status: BillingPeriodStatus.Active,
+    livemode,
+  })
+  const usageEvents: UsageEvent.Record[] = []
+  for (const amount of params.usageEventAmounts ?? []) {
+    const usageEvent = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      amount,
+      priceId: price.id,
+      billingPeriodId: billingPeriod.id,
+      transactionId: 'test-transaction-id',
+      customerId: customer.id,
+      livemode,
+    })
+    usageEvents.push(usageEvent)
+  }
+
+  const ledgerAccount = await setupLedgerAccount({
+    organizationId: organization.id,
+    subscriptionId: subscription.id,
+    usageMeterId: usageMeter.id,
+    livemode,
+  })
+  const ledgerTransactions: LedgerTransaction.Record[] = []
+  const ledgerEntries: LedgerEntry.Record[] = []
+  if (params.quickEntries && params.quickEntries.length > 0) {
+    const ledgerTransaction = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.AdminCreditAdjusted,
+    })
+    const ledgerEntriesCreated = await setupLedgerEntries({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: ledgerTransaction.id,
+      ledgerAccountId: ledgerAccount.id,
+      entries: params.quickEntries,
+    })
+    ledgerEntries.push(...ledgerEntriesCreated)
+    ledgerTransactions.push(ledgerTransaction)
+  }
+  if (usageEvents.length > 0) {
+    const ledgerTransaction = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.UsageEventProcessed,
+    })
+    const ledgerEntriesCreated = await setupLedgerEntries({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: ledgerTransaction.id,
+      ledgerAccountId: ledgerAccount.id,
+      entries: usageEvents.map((usageEvent) => ({
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent.id,
+        amount: usageEvent.amount,
+        status: LedgerEntryStatus.Posted,
+      })),
+    })
+    ledgerEntries.push(...ledgerEntriesCreated)
+    ledgerTransactions.push(ledgerTransaction)
+  }
+  return {
+    organization,
+    product,
+    catalog,
+    customer,
+    paymentMethod,
+    price,
+    subscription,
+    usageMeter,
+    billingPeriod,
+    subscriptionItem,
+    ledgerAccount,
+    ledgerEntries,
+    ledgerTransactions,
+  }
 }

@@ -24,6 +24,7 @@ import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
 import { processBillingPeriodTransitionLedgerCommand } from './billingPeriodTransitionLedgerCommand'
 import { processUsageEventProcessedLedgerCommand } from './usageEventProcessedLedgerCommand'
 import { processCreditGrantRecognizedLedgerCommand } from './creditGrantRecognizedLedgerCommand'
+import { processSettleInvoiceUsageCostsLedgerCommand } from './settleInvoiceUsageCostsLedgerCommand'
 
 const processAdminCreditAdjustedLedgerCommand = async (
   command: AdminCreditAdjustedLedgerCommand,
@@ -224,6 +225,11 @@ export const processLedgerCommand = async (
       return processPaymentRefundedLedgerCommand(command, transaction)
     case LedgerTransactionType.BillingRecalculated:
       return processBillingRecalculatedLedgerCommand(
+        command,
+        transaction
+      )
+    case LedgerTransactionType.SettleInvoiceUsageCosts:
+      return processSettleInvoiceUsageCostsLedgerCommand(
         command,
         transaction
       )

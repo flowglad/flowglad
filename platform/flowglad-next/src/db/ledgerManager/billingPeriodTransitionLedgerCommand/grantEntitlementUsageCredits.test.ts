@@ -47,6 +47,7 @@ import {
   setupSubscriptionItemFeature,
   setupProductFeature,
   setupSubscriptionItemFeatureUsageCreditGrant,
+  setupUsageLedgerScenario,
 } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'

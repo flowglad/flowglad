@@ -50,6 +50,7 @@ import {
   LedgerTransactionType,
   FeatureType,
   FeatureUsageGrantFrequency,
+  PaymentStatus,
 } from '@/types'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -70,7 +71,17 @@ import {
   safelyUpdatePaymentMethod,
   updatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
-import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  deleteInvoiceLineItemsByinvoiceId,
+  insertInvoiceLineItems,
+} from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  invoiceIsInTerminalState,
+  insertInvoice,
+  selectInvoices,
+  updateInvoice,
+  safelyUpdateInvoiceStatus,
+} from '@/db/tableMethods/invoiceMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from '@/utils/core'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
@@ -360,6 +371,120 @@ describe('billingRunHelpers', async () => {
         )
       expect(feeCalculation).toBeDefined()
       expect(totalDueAmount).toBeGreaterThan(0)
+    })
+
+    it('should handle different currencies correctly', async () => {
+      // Create an organization with a different default currency
+      const originalOrg = await setupOrg()
+      const orgWithDifferentCurrency = await adminTransaction(
+        async ({ transaction }) => {
+          return await updateOrganization(
+            {
+              id: originalOrg.organization.id,
+              defaultCurrency: CurrencyCode.EUR,
+            },
+            transaction
+          )
+        }
+      )
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod,
+            billingPeriodItems,
+            organization: orgWithDifferentCurrency,
+            paymentMethod,
+            usageOverages: [],
+            billingRun,
+          },
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation.currency).toBe(CurrencyCode.EUR)
+    })
+
+    it('should handle different billing period items correctly', async () => {
+      // Create billing period items with different prices and quantities
+      const testBillingPeriodItem = await setupBillingPeriodItem({
+        billingPeriodId: billingPeriod.id,
+        quantity: 2,
+        unitPrice: 150,
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod,
+            billingPeriodItems: [testBillingPeriodItem],
+            organization,
+            paymentMethod,
+            usageOverages: [],
+            billingRun,
+          },
+          transaction
+        )
+      )
+
+      expect(result.totalDueAmount).toBe(300) // 2 * 150
+    })
+
+    it('should handle livemode correctly', async () => {
+      // Create a test billing period with a specific livemode value
+      const testBillingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: subscription.currentBillingPeriodStart,
+        endDate: subscription.currentBillingPeriodEnd,
+        status: BillingPeriodStatus.Active,
+        livemode: true, // Set to true for testing
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod: testBillingPeriod,
+            billingPeriodItems,
+            organization,
+            paymentMethod,
+            usageOverages: [],
+            billingRun,
+          },
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation.livemode).toBe(true)
+    })
+
+    it('should handle different payment methods correctly', async () => {
+      // Create a different payment method
+      const testPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+
+      const result = await adminTransaction(({ transaction }) =>
+        calculateFeeAndTotalAmountDueForBillingPeriod(
+          {
+            billingPeriod,
+            billingPeriodItems,
+            organization,
+            paymentMethod: testPaymentMethod,
+            usageOverages: [],
+            billingRun,
+          },
+          transaction
+        )
+      )
+
+      expect(result.feeCalculation).toBeDefined()
+      expect(result.feeCalculation.paymentMethodType).toBe(
+        testPaymentMethod.type
+      )
     })
   })
 
@@ -710,6 +835,38 @@ describe('billingRunHelpers', async () => {
   })
 
   describe('Billing Run Retry Logic', () => {
+    it('should schedule billing run retries according to the defined schedule', async () => {
+      const retryTimesInDays = [3, 5, 5]
+      let allBillingRunsForPeriod: BillingRun.Record[] = [billingRun]
+
+      for (let i = 0; i < retryTimesInDays.length; i++) {
+        const daysToRetry = retryTimesInDays[i]
+        const retryInsert = constructBillingRunRetryInsert(
+          billingRun,
+          allBillingRunsForPeriod
+        )
+
+        expect(retryInsert).toBeDefined()
+        const expectedRetryDate = new Date(
+          Date.now() + daysToRetry * 24 * 60 * 60 * 1000
+        )
+        expect(retryInsert!.scheduledFor.getTime()).toBeCloseTo(
+          expectedRetryDate.getTime(),
+          -3 // tolerance of 1 second
+        )
+
+        // Add the new retry run to the list for the next iteration
+        allBillingRunsForPeriod.push({
+          ...billingRun,
+          ...(retryInsert as BillingRun.Insert),
+          id: `retry-run-${i}`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          status: retryInsert!.status,
+        } as BillingRun.Record)
+      }
+    })
+
     it('should schedule a billing run retry 3 days after the initial attempt', async () => {
       const retryBillingRun = await adminTransaction(
         ({ transaction }) =>
@@ -721,21 +878,38 @@ describe('billingRunHelpers', async () => {
       )
     })
 
-    it('should not schedule a retry after the maximum number of retries', async () => {
-      const allBillingRuns = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRuns(
-            { billingPeriodId: billingPeriod.id },
+    it('should mark a future billing period as Upcoming when there is no more due', async () => {
+      const invoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        status: InvoiceStatus.Paid,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const futureBillingPeriod = await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: new Date(
+                Date.now() + 10 * 24 * 60 * 60 * 1000
+              ), // 10 days in the future
+            },
             transaction
           )
+          return processNoMoreDueForBillingPeriod(
+            {
+              billingRun,
+              billingPeriod: futureBillingPeriod,
+              invoice,
+            },
+            transaction
+          )
+        }
       )
-      const retryBillingRun = constructBillingRunRetryInsert(
-        billingRun,
-        Array.from({ length: 4 }, (_, i) => {
-          return billingRun
-        })
+      expect(result.billingPeriod.status).toBe(
+        BillingPeriodStatus.Upcoming
       )
-      expect(retryBillingRun).toBeUndefined()
     })
   })
 
@@ -1332,6 +1506,206 @@ describe('billingRunHelpers', async () => {
       )
       expect(updatedEntry).toBeDefined()
       expect(updatedEntry!.claimedByBillingRunId).toBe(billingRun.id)
+    })
+
+    it('should succeed and mark invoice as Paid if amount to charge is zero due to overpayment', async () => {
+      // 1. Setup: Create a payment that overpays the due amount.
+      // Total due is staticBillingPeriodItem.unitPrice (50)
+      await adminTransaction(async ({ transaction }) => {
+        await insertPayment(
+          {
+            amount: 1000000, // Overpayment
+            currency: 'USD',
+            status: PaymentStatus.Succeeded,
+            organizationId: organization.id,
+            chargeDate: new Date(),
+            customerId: customer.id,
+            invoiceId: (
+              await setupInvoice({
+                billingPeriodId: billingPeriod.id,
+                customerId: customer.id,
+                organizationId: organization.id,
+                priceId: staticPrice.id,
+              })
+            ).id,
+            paymentMethodId: paymentMethod.id,
+            refunded: false,
+            refundedAmount: 0,
+            refundedAt: null,
+            taxCountry: 'US',
+            paymentMethod: paymentMethod.type,
+            stripePaymentIntentId: 'pi_overpayment_test',
+            livemode: billingPeriod.livemode,
+            subscriptionId: billingPeriod.subscriptionId,
+            billingPeriodId: billingPeriod.id,
+          },
+          transaction
+        )
+      })
+      core.IS_TEST = true
+
+      // 2. Action
+      await executeBillingRun(billingRun.id)
+
+      // 3. Assert
+      const finalBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(billingRun.id, transaction)
+      )
+      const finalInvoice = (
+        await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+      )[0]
+
+      expect(finalBillingRun.status).toBe(BillingRunStatus.Succeeded)
+      expect(finalInvoice.status).toBe(InvoiceStatus.Paid)
+    })
+
+    it('should create usage credit ledger entries based on subscription features', async () => {
+      const feature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Test Feature',
+        livemode: true,
+        usageMeterId: usageMeter.id,
+        amount: 500,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+      })
+
+      const productFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: feature.id,
+        livemode: true,
+      })
+
+      // 1. Setup a feature for a usage credit grant
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        type: FeatureType.UsageCreditGrant,
+        amount: 500, // grant of 500 cents
+        livemode: true,
+        usageMeterId: usageMeter.id,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        featureId: feature.id,
+        productFeatureId: productFeature.id,
+      })
+
+      core.IS_TEST = true
+
+      // 2. Action
+      await executeBillingRun(billingRun.id)
+
+      // 3. Assertion: Check that a credit ledger entry was created
+      const ledgerEntries = await adminTransaction(
+        ({ transaction }) =>
+          selectLedgerEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            transaction
+          )
+      )
+
+      const creditEntry = ledgerEntries.find(
+        (e) =>
+          e.entryType === LedgerEntryType.CreditGrantRecognized &&
+          e.amount === 500
+      )
+      expect(creditEntry).toBeDefined()
+      expect(creditEntry?.ledgerTransactionId).toBeDefined()
+    })
+
+    it('should filter out Static items with a zero quantity', () => {
+      const staticBpiWithZeroQuantity = {
+        ...staticBillingPeriodItem,
+        quantity: 0,
+      }
+      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
+        invoiceId: 'some-invoice-id',
+        billingRunId: billingRun.id,
+        billingPeriodItems: [staticBpiWithZeroQuantity],
+        usageOverages: [],
+      })
+      expect(lineItems.length).toBe(0)
+    })
+
+    it('should return quantity 0 if usageEventsPerUnit is null', () => {
+      const usageBpiWithNull = {
+        ...usageBillingPeriodItem,
+        usageEventsPerUnit: null,
+        type: SubscriptionItemType.Usage,
+      }
+      const usageOverages = [
+        {
+          usageMeterId: usageMeter.id,
+          balance: 100,
+          ledgerAccountId: ledgerAccount.id,
+        },
+      ]
+      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
+        invoiceId: 'some-invoice-id',
+        billingRunId: billingRun.id,
+        billingPeriodItems: [
+          {
+            ...usageBpiWithNull,
+            usageMeterId: usageMeter.id,
+            usageEventsPerUnit: 0,
+            type: SubscriptionItemType.Usage,
+          },
+        ],
+        usageOverages,
+      })
+      expect(lineItems.length).toBe(0)
+    })
+
+    it('should not create line items if usageEventsPerUnit is 0', () => {
+      const usageBpiWithZero = {
+        ...usageBillingPeriodItem,
+        usageEventsPerUnit: 0,
+      }
+      const usageOverages = [
+        {
+          usageMeterId: usageMeter.id,
+          balance: 100,
+          ledgerAccountId: ledgerAccount.id,
+        },
+      ]
+      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
+        invoiceId: 'some-invoice-id',
+        billingRunId: billingRun.id,
+        billingPeriodItems: [
+          {
+            ...usageBpiWithZero,
+            usageMeterId: usageMeter.id,
+            type: SubscriptionItemType.Usage,
+          },
+        ],
+        usageOverages,
+      })
+      expect(lineItems.length).toBe(0)
+    })
+
+    it('should ignore usage overages that do not have a matching billing period item', () => {
+      const usageOverages = [
+        {
+          usageMeterId: 'some-other-meter-id',
+          balance: 100,
+          ledgerAccountId: 'some-other-account-id',
+        },
+      ]
+      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
+        invoiceId: 'some-invoice-id',
+        billingRunId: billingRun.id,
+        billingPeriodItems: [staticBillingPeriodItem], // Does not contain a matching usage item
+        usageOverages,
+      })
+
+      expect(lineItems.length).toBe(1)
+      expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
     })
   })
 

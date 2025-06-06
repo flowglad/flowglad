@@ -47,6 +47,10 @@ import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBilli
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
+import {
+  aggregateOutstandingBalanceForUsageCosts,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -242,6 +246,22 @@ export const processPaymentIntentEventForBillingRun = async (
     },
     transaction
   )
+  const claimedLedgerEntries = await selectLedgerEntries(
+    {
+      claimedByBillingRunId: billingRun.id,
+    },
+    transaction
+  )
+
+  const overages = await aggregateOutstandingBalanceForUsageCosts(
+    {
+      ledgerAccountId: claimedLedgerEntries.map(
+        (entry) => entry.ledgerAccountId!
+      ),
+    },
+    billingPeriod.endDate,
+    transaction
+  )
 
   const { totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
@@ -250,7 +270,7 @@ export const processPaymentIntentEventForBillingRun = async (
         billingPeriod,
         organization,
         paymentMethod,
-        usageOverages: [],
+        usageOverages: overages,
         billingRun,
       },
       transaction

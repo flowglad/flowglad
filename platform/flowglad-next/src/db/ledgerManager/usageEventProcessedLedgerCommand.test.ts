@@ -47,14 +47,12 @@ import {
   setupCreditLedgerEntry,
   setupUsageCredit,
   setupUsageCreditApplication,
+  setupUsageLedgerScenario,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
-import { LedgerEntry } from '@/db/schema/ledgerEntries'
-import { UsageCredit } from '@/db/schema/usageCredits'
 import { eq, and } from 'drizzle-orm'
 import { selectLedgerTransactions } from '../tableMethods/ledgerTransactionMethods'
-import { updateUsageEvent } from '../tableMethods/usageEventMethods'
 import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
 
 const TEST_LIVEMODE = true
@@ -80,55 +78,18 @@ let defaultLedgerTransaction: LedgerTransaction.Record
 
 // Moved beforeEach to the top level for file-wide setup
 beforeEach(async () => {
-  const orgData = await setupOrg()
-  organization = orgData.organization
-  catalog = orgData.catalog
-  product = orgData.product
-  price = orgData.price
+  const scenarioData = await setupUsageLedgerScenario({})
 
-  customer = await setupCustomer({
-    organizationId: organization.id,
-    livemode: TEST_LIVEMODE,
-  })
-
-  paymentMethod = await setupPaymentMethod({
-    organizationId: organization.id,
-    customerId: customer.id,
-    livemode: TEST_LIVEMODE,
-  })
-
-  usageMeter = await setupUsageMeter({
-    organizationId: organization.id,
-    catalogId: catalog.id,
-    name: 'Test Usage Meter',
-    livemode: TEST_LIVEMODE,
-  })
-
-  subscription = await setupSubscription({
-    organizationId: organization.id,
-    customerId: customer.id,
-    paymentMethodId: paymentMethod.id,
-    priceId: price.id,
-    status: SubscriptionStatus.Active,
-    livemode: TEST_LIVEMODE,
-  })
-
-  billingPeriod = await setupBillingPeriod({
-    subscriptionId: subscription.id,
-    startDate: subscription.currentBillingPeriodStart || new Date(),
-    endDate:
-      subscription.currentBillingPeriodEnd ||
-      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    status: BillingPeriodStatus.Active,
-    livemode: TEST_LIVEMODE,
-  })
-
-  ledgerAccount = await setupLedgerAccount({
-    organizationId: organization.id,
-    subscriptionId: subscription.id,
-    usageMeterId: usageMeter.id,
-    livemode: TEST_LIVEMODE,
-  })
+  organization = scenarioData.organization
+  catalog = scenarioData.catalog
+  product = scenarioData.product
+  price = scenarioData.price
+  customer = scenarioData.customer
+  paymentMethod = scenarioData.paymentMethod
+  subscription = scenarioData.subscription
+  usageMeter = scenarioData.usageMeter
+  billingPeriod = scenarioData.billingPeriod
+  ledgerAccount = scenarioData.ledgerAccount
 
   defaultLedgerTransaction = await setupLedgerTransaction({
     organizationId: organization.id,

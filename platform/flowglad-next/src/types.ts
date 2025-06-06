@@ -805,6 +805,7 @@ export enum LedgerTransactionInitiatingSourceType {
   Admin = 'admin',
   CreditGrant = 'credit_grant',
   Refund = 'refund',
+  InvoiceSettlement = 'invoice_settlement',
 }
 
 export enum FeatureType {
@@ -875,6 +876,12 @@ export enum LedgerTransactionType {
    * etc.
    */
   BillingRecalculated = 'billing_recalculated',
+  /**
+   * A transaction to settle the usage costs for an invoice.
+   * Includes a credit grant, and a pair of credit applications
+   * to offset the usage costs.
+   */
+  SettleInvoiceUsageCosts = 'settle_invoice_usage_costs',
 }
 
 export enum LedgerEntryType {

@@ -18,6 +18,7 @@ import {
   setupUsageCreditApplication,
   setupRefund,
   setupLedgerEntries,
+  setupUsageLedgerScenario,
 } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
@@ -65,60 +66,34 @@ describe('ledgerEntryMethods', () => {
   let ledgerAccount: LedgerAccount.Record
 
   beforeEach(async () => {
-    const orgData = await setupOrg()
-    organization = orgData.organization
-    price = orgData.price
-    catalog = orgData.catalog
-    product = orgData.product
-
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${core.nanoid()}@test.com`,
-      livemode: true,
+    const scenarioData = await setupUsageLedgerScenario({
+      customerArgs: {
+        email: `customer+${core.nanoid()}@test.com`,
+      },
+      paymentMethodArgs: {
+        type: PaymentMethodType.Card,
+      },
+      subscriptionArgs: {
+        status: SubscriptionStatus.Active,
+        currentBillingPeriodStart: new Date(
+          Date.now() - 30 * 24 * 60 * 60 * 1000
+        ),
+        currentBillingPeriodEnd: new Date(
+          Date.now() + 1 * 24 * 60 * 60 * 1000
+        ),
+        livemode: true,
+      },
     })
-
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
-
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Test Usage Meter',
-      catalogId: catalog.id,
-      livemode: true,
-    })
-
-    subscription = await setupSubscription({
-      organizationId: organization.id,
-      customerId: customer.id,
-      paymentMethodId: paymentMethod.id,
-      priceId: price.id,
-      status: SubscriptionStatus.Active,
-      currentBillingPeriodStart: new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000
-      ),
-      currentBillingPeriodEnd: new Date(
-        Date.now() + 1 * 24 * 60 * 60 * 1000
-      ),
-      livemode: true,
-    })
-
-    billingPeriod = await setupBillingPeriod({
-      subscriptionId: subscription.id,
-      startDate: subscription.currentBillingPeriodStart!,
-      endDate: subscription.currentBillingPeriodEnd!,
-      livemode: subscription.livemode,
-    })
-
-    ledgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter.id,
-      livemode: subscription.livemode,
-    })
+    organization = scenarioData.organization
+    price = scenarioData.price
+    catalog = scenarioData.catalog
+    product = scenarioData.product
+    customer = scenarioData.customer
+    paymentMethod = scenarioData.paymentMethod
+    subscription = scenarioData.subscription
+    usageMeter = scenarioData.usageMeter
+    billingPeriod = scenarioData.billingPeriod
+    ledgerAccount = scenarioData.ledgerAccount
   })
 
   describe('bulkInsertLedgerEntries', () => {
