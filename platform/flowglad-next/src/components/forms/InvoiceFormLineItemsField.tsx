@@ -25,7 +25,15 @@ import {
   InvoiceLineItem,
 } from '@/db/schema/invoiceLineItems'
 import { useAuthContext } from '@/contexts/authContext'
+import { SubscriptionItemType } from '@/types'
 
+export const newInvoiceLineItem: InvoiceLineItem.ClientInsert = {
+  type: SubscriptionItemType.Static,
+  description: '',
+  quantity: 1,
+  price: 0,
+  priceId: null,
+}
 export const InvoiceFormLineItemsField = () => {
   const { livemode } = useAuthContext()
   const { control, setValue, watch } =
@@ -61,14 +69,7 @@ export const InvoiceFormLineItemsField = () => {
   }
 
   const addAnItemClickHandler = () => {
-    const newItem: InvoiceLineItem.ClientInsert = {
-      invoiceId: '1',
-      description: '',
-      quantity: 1,
-      price: 0,
-      priceId: null,
-    }
-    append(newItem)
+    append(newInvoiceLineItem)
   }
 
   return (

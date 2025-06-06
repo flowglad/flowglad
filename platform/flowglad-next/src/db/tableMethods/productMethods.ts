@@ -37,6 +37,7 @@ import {
 } from './priceMethods'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import { selectCatalogs } from './catalogMethods'
+import { groupBy } from '@/utils/core'
 
 const config: ORMMethodCreatorConfig<
   typeof products,
@@ -222,18 +223,16 @@ export const selectProductsCursorPaginated =
         },
         transaction
       )
-      const pricesByProductId = new Map<string, Price.ClientRecord[]>(
-        pricesForProducts.map((p) => [p.productId, [p]])
-      )
-      const catalogsById = new Map<string, Catalog.ClientRecord>(
-        catalogsForProducts.map((c) => [c.id, c])
-      )
+      const pricesByProductId: Record<string, Price.ClientRecord[]> =
+        groupBy((p) => p.productId, pricesForProducts)
+      const catalogsById: Record<string, Catalog.ClientRecord[]> =
+        groupBy((c) => c.id, catalogsForProducts)
 
       // Format products with prices and catalogs
       return data.map((product) => ({
         product,
-        prices: pricesByProductId.get(product.id) ?? [],
-        catalog: catalogsById.get(product.catalogId)!,
+        prices: pricesByProductId[product.id] ?? [],
+        catalog: catalogsById[product.catalogId]?.[0],
       }))
     }
   )

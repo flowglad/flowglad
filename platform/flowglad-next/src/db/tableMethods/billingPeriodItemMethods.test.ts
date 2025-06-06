@@ -8,7 +8,7 @@ import {
   setupPaymentMethod,
   setupSubscription,
   setupBillingPeriod,
-  setupBillingPeriodItems,
+  setupBillingPeriodItem,
 } from '../../../seedDatabase'
 import {
   IntervalUnit,
@@ -75,14 +75,14 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 2,
         unitPrice: 100,
         name: 'Test Item 1',
       })
 
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 50,
@@ -157,7 +157,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 100,
@@ -220,7 +220,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 100,
@@ -286,7 +286,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 100,
@@ -363,14 +363,14 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod1.id,
         quantity: 1,
         unitPrice: 100,
         name: 'Test Item 1',
       })
 
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod2.id,
         quantity: 2,
         unitPrice: 50,
@@ -444,21 +444,21 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create multiple billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 100,
         name: 'Test Item 1',
       })
 
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 2,
         unitPrice: 50,
         name: 'Test Item 2',
       })
 
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 3,
         unitPrice: 25,
@@ -563,14 +563,14 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: monthlyBillingPeriod.id,
         quantity: 1,
         unitPrice: 100,
         name: 'Monthly Item',
       })
 
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: yearlyBillingPeriod.id,
         quantity: 1,
         unitPrice: 1200,
@@ -656,14 +656,14 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: activeBillingPeriod.id,
         quantity: 1,
         unitPrice: 100,
         name: 'Active Item',
       })
 
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: canceledBillingPeriod.id,
         quantity: 1,
         unitPrice: 100,

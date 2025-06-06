@@ -4,6 +4,7 @@ import {
   createUpdateFunction,
   createSelectFunction,
   ORMMethodCreatorConfig,
+  createBulkInsertFunction,
 } from '@/db/tableUtils'
 import {
   usageCredits,
@@ -46,6 +47,11 @@ export const updateUsageCredit = createUpdateFunction(
 )
 
 export const selectUsageCredits = createSelectFunction(
+  usageCredits,
+  config
+)
+
+export const bulkInsertUsageCredits = createBulkInsertFunction(
   usageCredits,
   config
 )

@@ -9,22 +9,17 @@ import {
 } from '@/db/schema/invoiceLineItems'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { Customer } from '@/db/schema/customers'
-import { InvoiceStatus, InvoiceType } from '@/types'
+import {
+  InvoiceStatus,
+  InvoiceType,
+  SubscriptionItemType,
+} from '@/types'
+import { Organization } from '@/db/schema/organizations'
 
-function CreateInvoiceModal({
-  isOpen,
-  setIsOpen,
-  customer,
-}: {
-  isOpen: boolean
-  setIsOpen: (isOpen: boolean) => void
+export const constructInvoiceDefaultValues = (
+  organization: Organization.ClientRecord,
   customer?: Customer.ClientRecord
-}) {
-  const { organization } = useAuthenticatedContext()
-  const createInvoice = trpc.invoices.create.useMutation()
-  if (!organization) {
-    return null
-  }
+) => {
   const defaultValues: CreateInvoiceInput = {
     invoice: {
       invoiceDate: new Date(),
@@ -46,11 +41,31 @@ function CreateInvoiceModal({
         quantity: 1,
         price: 0,
         priceId: null,
-        invoiceId: '',
+        type: SubscriptionItemType.Static,
       },
     ],
   }
+  return defaultValues
+}
 
+function CreateInvoiceModal({
+  isOpen,
+  setIsOpen,
+  customer,
+}: {
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
+  customer?: Customer.ClientRecord
+}) {
+  const { organization } = useAuthenticatedContext()
+  const createInvoice = trpc.invoices.create.useMutation()
+  if (!organization) {
+    return null
+  }
+  const defaultValues = constructInvoiceDefaultValues(
+    organization,
+    customer
+  )
   return (
     <FormModal<CreateInvoiceInput>
       isOpen={isOpen}

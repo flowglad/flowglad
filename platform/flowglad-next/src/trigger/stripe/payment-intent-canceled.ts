@@ -1,6 +1,6 @@
-import { adminTransaction } from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
-import { task } from '@trigger.dev/sdk'
+import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 
 export const stripePaymentIntentCanceledTask = task({
@@ -9,14 +9,21 @@ export const stripePaymentIntentCanceledTask = task({
     payload: Stripe.PaymentIntentCanceledEvent,
     { ctx }
   ) => {
-    await adminTransaction(async ({ transaction }) => {
-      const metadata = payload.data.object.metadata
-      if ('billingRunId' in metadata) {
-        await processPaymentIntentEventForBillingRun(
-          payload,
-          transaction
-        )
-      }
-    })
+    const metadata = payload.data.object.metadata
+    if ('billingRunId' in metadata) {
+      return comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentEventForBillingRun(
+            payload,
+            transaction
+          )
+        }
+      )
+    } else {
+      logger.log(
+        'Payment intent canceled, no action taken (not a billing run)',
+        { payload, ctx }
+      )
+    }
   },
 })

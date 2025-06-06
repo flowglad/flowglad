@@ -7,6 +7,7 @@ import {
   BillingPeriodStatus,
   BillingRunStatus,
   SubscriptionAdjustmentTiming,
+  SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -20,7 +21,7 @@ import {
   setupOrg,
   setupCustomer,
   setupBillingRun,
-  setupBillingPeriodItems,
+  setupBillingPeriodItem,
   setupPaymentMethod,
 } from '../../seedDatabase'
 
@@ -58,6 +59,9 @@ describe('adjustSubscription Integration Tests', async () => {
     | 'metadata'
     | 'addedDate'
     | 'externalId'
+    | 'type'
+    | 'usageMeterId'
+    | 'usageEventsPerUnit'
   >
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -90,7 +94,7 @@ describe('adjustSubscription Integration Tests', async () => {
       subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,
@@ -107,6 +111,9 @@ describe('adjustSubscription Integration Tests', async () => {
       metadata: null,
       addedDate: new Date(),
       externalId: null,
+      type: SubscriptionItemType.Static,
+      usageMeterId: null,
+      usageEventsPerUnit: null,
     }
   })
 
@@ -229,6 +236,9 @@ describe('adjustSubscription Integration Tests', async () => {
               livemode: subscription.livemode,
               externalId: null,
               expiredAt: null,
+              type: SubscriptionItemType.Static,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
             },
           ]
 
@@ -313,13 +323,16 @@ describe('adjustSubscription Integration Tests', async () => {
               transaction
             )
 
-          const newItems = [
+          const newItems: SubscriptionItem.Upsert[] = [
             {
               ...item1,
               name: 'Item 1',
               quantity: 1,
               unitPrice: 100,
               expiredAt: null,
+              type: SubscriptionItemType.Static,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
             },
             {
               ...subscriptionItemCore,
@@ -327,6 +340,9 @@ describe('adjustSubscription Integration Tests', async () => {
               quantity: 3,
               unitPrice: 300,
               expiredAt: null,
+              type: SubscriptionItemType.Static,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
             },
           ]
 
@@ -420,7 +436,7 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
       await adminTransaction(async ({ transaction }) => {
-        const newItems = [
+        const newItems: SubscriptionItem.Upsert[] = [
           {
             ...item1,
             id: item1.id,
@@ -442,6 +458,9 @@ describe('adjustSubscription Integration Tests', async () => {
             priceId: price.id,
             externalId: null,
             expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
           },
         ]
 
@@ -550,7 +569,7 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 100,
       })
       await adminTransaction(async ({ transaction }) => {
-        const newItems = [
+        const newItems: SubscriptionItem.Upsert[] = [
           {
             id: item.id,
             name: 'Item Zero',
@@ -565,6 +584,9 @@ describe('adjustSubscription Integration Tests', async () => {
             priceId: price.id,
             externalId: null,
             expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
           },
         ]
 
@@ -597,13 +619,16 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // No subscription items are set up.
-        const newItems = [
+        const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
             name: 'New Item 1',
             quantity: 2,
             unitPrice: 150,
             expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
           },
         ]
 
@@ -641,7 +666,7 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const newItems = [
+        const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
             name: 'Zero Quantity Item',
@@ -649,6 +674,9 @@ describe('adjustSubscription Integration Tests', async () => {
             unitPrice: 100,
             livemode: false,
             expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
           },
         ]
 
@@ -676,7 +704,7 @@ describe('adjustSubscription Integration Tests', async () => {
         status: BillingPeriodStatus.Active,
       })
       await adminTransaction(async ({ transaction }) => {
-        const newItems = [
+        const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
             name: 'Free Item',
@@ -684,6 +712,9 @@ describe('adjustSubscription Integration Tests', async () => {
             unitPrice: 0,
             livemode: false,
             expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
           },
         ]
 
@@ -822,7 +853,7 @@ describe('adjustSubscription Integration Tests', async () => {
           },
           transaction
         )
-        const newItems = [
+        const newItems: SubscriptionItem.Upsert[] = [
           {
             ...item1,
             name: 'Item 1',
@@ -836,6 +867,9 @@ describe('adjustSubscription Integration Tests', async () => {
             quantity: 2,
             unitPrice: 200,
             expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
           },
         ]
         await adjustSubscription(
@@ -886,7 +920,7 @@ describe('adjustSubscription Integration Tests', async () => {
         await expect(
           adminTransaction(async ({ transaction }) => {
             // Pass invalid data (e.g. unitPrice is null) to simulate an error.
-            const invalidItems = [
+            const invalidItems: SubscriptionItem.Upsert[] = [
               {
                 ...subscriptionItemCore,
                 id: item.id,
@@ -895,6 +929,9 @@ describe('adjustSubscription Integration Tests', async () => {
                 unitPrice: 100,
                 priceId: 'invalid_price_id',
                 expiredAt: null,
+                type: SubscriptionItemType.Static,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
               },
             ]
             await adjustSubscription(

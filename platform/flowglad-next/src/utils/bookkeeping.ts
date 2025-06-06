@@ -28,6 +28,7 @@ import {
   PaymentStatus,
   PriceType,
   PurchaseStatus,
+  SubscriptionItemType,
 } from '@/types'
 import {
   createPaymentIntentForInvoice,
@@ -185,6 +186,10 @@ export const createInitialInvoiceForPurchase = async (
     quantity: 1,
     price: purchase.firstInvoiceValue!,
     livemode: purchase.livemode,
+    ledgerAccountId: null,
+    ledgerAccountCredit: null,
+    billingRunId: null,
+    type: SubscriptionItemType.Static,
   }
   if ([PriceType.SinglePayment].includes(price.type)) {
     invoiceLineItemInput.quantity = 1

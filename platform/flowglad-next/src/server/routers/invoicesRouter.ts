@@ -47,7 +47,7 @@ import {
 } from '@/utils/email'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
-import { InvoiceStatus } from '@/types'
+import { InvoiceStatus, SubscriptionItemType } from '@/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',
@@ -123,12 +123,25 @@ const createInvoiceProcedure = protectedProcedure
           },
           transaction
         )
-
+        if (
+          invoiceLineItemInserts.some(
+            (invoiceLineItem) =>
+              invoiceLineItem.type === SubscriptionItemType.Usage
+          )
+        ) {
+          throw new Error(
+            `Cannot provide usage line items in an invoice. Invoice: ${invoice.id}`
+          )
+        }
         const invoiceLineItems = await insertInvoiceLineItems(
           invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
             ...invoiceLineItemInsert,
             invoiceId: invoice.id,
             livemode: ctx.livemode,
+            billingRunId: null,
+            ledgerAccountId: null,
+            ledgerAccountCredit: null,
+            type: SubscriptionItemType.Static,
           })),
           transaction
         )

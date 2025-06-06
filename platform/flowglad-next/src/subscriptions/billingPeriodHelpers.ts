@@ -104,6 +104,9 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
           discountRedemptionId: null, // This would need to be handled separately
           description: '',
           livemode: params.subscription.livemode,
+          type: item.type,
+          usageMeterId: item.usageMeterId,
+          usageEventsPerUnit: item.usageEventsPerUnit,
         }
         return billingPeriodItemInsert
       })
@@ -132,7 +135,7 @@ export const createBillingPeriodAndItems = async (
       billingPeriodItemInserts.map((item) => ({
         ...item,
         billingPeriodId: billingPeriod.id,
-      })),
+      })) as BillingPeriodItem.Insert[],
       transaction
     )
   }

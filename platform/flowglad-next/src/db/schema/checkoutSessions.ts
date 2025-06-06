@@ -217,6 +217,7 @@ export const checkoutSessionsSelectSchema = z
 
 export const coreCheckoutSessionsInsertSchema =
   enhancedCreateInsertSchema(checkoutSessions, refinement)
+
 export const purchaseCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     purchaseCheckoutSessionRefinement

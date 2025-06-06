@@ -14,6 +14,7 @@ import {
   IntervalUnit,
   PriceType,
   SubscriptionStatus,
+  SubscriptionItemType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
@@ -40,6 +41,7 @@ import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId } from '@/db/tableMethods/ledgerAccountMethods'
 import { createSubscriptionFeatureItems } from './subscriptionItemFeatureHelpers'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -163,6 +165,9 @@ export const insertSubscriptionAndItems = async (
     metadata: null,
     externalId: null,
     expiredAt: null,
+    type: SubscriptionItemType.Static,
+    usageMeterId: null,
+    usageEventsPerUnit: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(
@@ -178,7 +183,7 @@ const safelyProcessCreationForExistingSubscription = async (
   subscription: Subscription.Record,
   subscriptionItems: SubscriptionItem.Record[],
   transaction: DbTransaction
-): Promise<Event.EventfulResult<CreateSubscriptionResult>> => {
+): Promise<TransactionOutput<CreateSubscriptionResult>> => {
   const billingPeriodAndItems =
     await selectBillingPeriodAndItemsByBillingPeriodWhere(
       {
@@ -227,16 +232,16 @@ const safelyProcessCreationForExistingSubscription = async (
       billingRun,
     })
   }
-  return [
-    {
+  return {
+    result: {
       subscription,
       subscriptionItems,
       billingPeriod: billingPeriodAndItems.billingPeriod,
       billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
       billingRun,
     },
-    [],
-  ]
+    eventsToLog: [],
+  }
 }
 
 const verifyCanCreateSubscription = async (
@@ -357,7 +362,7 @@ const setupLedgerAccounts = async (
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
-): Promise<Event.EventfulResult<CreateSubscriptionResult>> => {
+): Promise<TransactionOutput<CreateSubscriptionResult>> => {
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(
       {
@@ -367,7 +372,7 @@ export const createSubscriptionWorkflow = async (
     )
 
     if (existingSubscription) {
-      return safelyProcessCreationForExistingSubscription(
+      return await safelyProcessCreationForExistingSubscription(
         params,
         existingSubscription.subscription,
         existingSubscription.subscriptionItems,
@@ -452,14 +457,15 @@ export const createSubscriptionWorkflow = async (
       processedAt: null,
     },
   ]
-  return [
-    {
+
+  return {
+    result: {
       subscription,
       subscriptionItems,
       billingPeriod,
       billingPeriodItems,
       billingRun,
     },
-    eventInserts,
-  ]
+    eventsToLog: eventInserts,
+  }
 }

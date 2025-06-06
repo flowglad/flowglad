@@ -11,6 +11,7 @@ import {
   IntervalUnit,
   PaymentMethodType,
   PriceType,
+  SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
 import {
@@ -361,6 +362,11 @@ export const stripeSubscriptionItemToSubscriptionItemInsert = (
   price: Price.Record,
   params: CoreMigrationParams
 ): SubscriptionItem.Insert => {
+  if (stripeSubscriptionItem.plan.usage_type === 'metered') {
+    throw new Error(
+      `Received a subscription item with usage type "metered". id: ${stripeSubscriptionItem.id}`
+    )
+  }
   return {
     livemode: params.livemode,
     subscriptionId: subscription.id,
@@ -372,5 +378,8 @@ export const stripeSubscriptionItemToSubscriptionItemInsert = (
     addedDate: new Date(),
     externalId: stripeSubscriptionItem.id,
     expiredAt: null,
+    type: SubscriptionItemType.Static,
+    usageMeterId: null,
+    usageEventsPerUnit: null,
   }
 }

@@ -15,6 +15,7 @@ import {
   ledgerAccountsUpdateSchema,
 } from '@/db/schema/ledgerAccounts'
 import { DbTransaction } from '../types'
+import { selectSubscriptionById } from './subscriptionMethods'
 
 const TABLE_NAME = 'ledger_accounts'
 
@@ -75,4 +76,50 @@ export const bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId =
       [ledgerAccounts.subscriptionId, ledgerAccounts.usageMeterId],
       transaction
     )
+  }
+
+export const findOrCreateLedgerAccountsForSubscriptionAndUsageMeters =
+  async (
+    params: {
+      subscriptionId: string
+      usageMeterIds: string[]
+    },
+    transaction: DbTransaction
+  ) => {
+    const { subscriptionId, usageMeterIds } = params
+    const ledgerAccounts = await selectLedgerAccounts(
+      {
+        subscriptionId,
+        usageMeterId: usageMeterIds,
+      },
+      transaction
+    )
+    const unAccountedForUsageMeterIds: string[] =
+      usageMeterIds.filter(
+        (usageMeterId) =>
+          !ledgerAccounts.some(
+            (ledgerAccount) =>
+              ledgerAccount.usageMeterId === usageMeterId
+          )
+      )
+    if (unAccountedForUsageMeterIds.length === 0) {
+      return ledgerAccounts
+    }
+    const subscription = await selectSubscriptionById(
+      subscriptionId,
+      transaction
+    )
+    const ledgerAccountInserts: LedgerAccount.Insert[] =
+      unAccountedForUsageMeterIds.map((usageMeterId) => ({
+        subscriptionId,
+        usageMeterId,
+        organizationId: subscription.organizationId,
+        livemode: subscription.livemode,
+      }))
+    const createdLedgerAccounts =
+      await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(
+        ledgerAccountInserts,
+        transaction
+      )
+    return [...ledgerAccounts, ...createdLedgerAccounts]
   }

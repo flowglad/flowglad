@@ -37,6 +37,7 @@ import { organizations } from './organizations'
 import { billingPeriods } from './billingPeriods'
 import { memberships } from './memberships'
 import { subscriptions } from './subscriptions'
+import { billingRuns } from './billingRuns'
 
 export const TABLE_NAME = 'invoices'
 
@@ -88,6 +89,10 @@ export const invoices = pgTable(
       'subscription_id',
       subscriptions
     ),
+    billingRunId: nullableStringForeignKey(
+      'billing_run_id',
+      billingRuns
+    ),
     billingPeriodStartDate: timestamp('billing_period_start_date'),
     billingPeriodEndDate: timestamp('billing_period_end_date'),
     ownerMembershipId: nullableStringForeignKey(
@@ -118,6 +123,7 @@ export const invoices = pgTable(
       constructIndex(TABLE_NAME, [table.customerId]),
       constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
+      constructIndex(TABLE_NAME, [table.billingRunId]),
       livemodePolicy(),
     ]
   }

@@ -15,7 +15,7 @@ import {
   setupSubscription,
   setupBillingRun,
   setupBillingPeriod,
-  setupBillingPeriodItems,
+  setupBillingPeriodItem,
   setupCustomer,
   setupPaymentMethod,
   setupOrg,
@@ -35,7 +35,7 @@ describe('Subscription Cancellation Test Suite', async () => {
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
   let billingRun: BillingRun.Record
-  let billingPeriodItems: BillingPeriodItem.Record[]
+  let billingPeriodItem: BillingPeriodItem.Record
   let subscription: Subscription.Record
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -65,7 +65,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       subscriptionId: subscription.id,
       status: BillingRunStatus.Scheduled,
     })
-    billingPeriodItems = await setupBillingPeriodItems({
+    billingPeriodItem = await setupBillingPeriodItem({
       billingPeriodId: billingPeriod.id,
       quantity: 1,
       unitPrice: 100,

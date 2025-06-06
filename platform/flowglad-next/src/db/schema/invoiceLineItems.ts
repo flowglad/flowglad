@@ -14,6 +14,8 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  pgEnumColumn,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import {
   Invoice,
@@ -26,8 +28,22 @@ import {
 import { prices } from './prices'
 import core from '@/utils/core'
 import { customerClientSelectSchema } from './customers'
+import { billingRuns } from './billingRuns'
+import { ledgerAccounts } from './ledgerAccounts'
+import { SubscriptionItemType } from '@/types'
 
 export const TABLE_NAME = 'invoice_line_items'
+
+const STATIC_INVOICE_LINE_ITEM_DESCRIPTION =
+  'A static invoice line item, representing a fixed fee component of an invoice.'
+const USAGE_INVOICE_LINE_ITEM_DESCRIPTION =
+  'A usage-based invoice line item, where charges are based on recorded usage events.'
+const INVOICE_LINE_ITEM_SELECT_SCHEMA_DESCRIPTION =
+  'An invoice line item record, part of an invoice, detailing a specific product or service and its pricing terms. Can be static or usage-based.'
+const INVOICE_LINE_ITEM_INSERT_SCHEMA_DESCRIPTION =
+  'A new invoice line item.'
+const INVOICE_LINE_ITEM_UPDATE_SCHEMA_DESCRIPTION =
+  'Schema for updating an existing invoice line item.'
 
 export const invoiceLineItems = pgTable(
   TABLE_NAME,
@@ -38,60 +54,188 @@ export const invoiceLineItems = pgTable(
     priceId: nullableStringForeignKey('price_id', prices),
     description: text('description'),
     price: integer('price').notNull(),
+    billingRunId: nullableStringForeignKey(
+      'billing_run_id',
+      billingRuns
+    ),
+    ledgerAccountId: nullableStringForeignKey(
+      'ledger_account_id',
+      ledgerAccounts
+    ),
+    ledgerAccountCredit: integer('ledger_account_credit'),
+    type: pgEnumColumn({
+      enumName: 'SubscriptionItemType',
+      columnName: 'type',
+      enumBase: SubscriptionItemType,
+    }).notNull(),
   },
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.invoiceId]),
       constructIndex(TABLE_NAME, [table.priceId]),
+      constructIndex(TABLE_NAME, [table.billingRunId]),
+      constructIndex(TABLE_NAME, [table.ledgerAccountId]),
       livemodePolicy(),
     ]
   }
 ).enableRLS()
 
-const columnEnhancements = {
+const baseColumnRefinements = {
   quantity: core.safeZodPositiveInteger,
+  type: core.createSafeZodEnum(SubscriptionItemType),
 }
 
-export const invoiceLineItemsInsertSchema =
-  enhancedCreateInsertSchema(invoiceLineItems, columnEnhancements)
+const staticInvoiceLineItemColumnRefinements = {
+  ledgerAccountId: z.null(),
+  ledgerAccountCredit: z.null(),
+}
 
-export const invoiceLineItemsSelectSchema = createSelectSchema(
+/**
+ * Usage invoice line item column refinements
+ * must have a billing run id,
+ * and target ledger account + credit ids
+ * otherwise we have no way to determine how to map
+ * the invoice line item to the correct ledger account
+ * and credit amount
+ */
+const usageInvoiceLineItemColumnRefinements = {
+  billingRunId: z.string(),
+  ledgerAccountId: z.string(),
+  ledgerAccountCredit: z.number(),
+}
+
+const baseInvoiceLineItemSelectSchema = createSelectSchema(
   invoiceLineItems,
-  columnEnhancements
+  baseColumnRefinements
 )
 
-export const invoiceLineItemsUpdateSchema = createUpdateSchema(
-  invoiceLineItems,
-  columnEnhancements
-)
+// Static Invoice Line Item Schemas
+export const staticInvoiceLineItemSelectSchema =
+  baseInvoiceLineItemSelectSchema
+    .extend({
+      type: z.literal(SubscriptionItemType.Static),
+      ...staticInvoiceLineItemColumnRefinements,
+    })
+    .describe(STATIC_INVOICE_LINE_ITEM_DESCRIPTION)
+
+export const staticInvoiceLineItemInsertSchema =
+  staticInvoiceLineItemSelectSchema
+    .omit(ommittedColumnsForInsertSchema)
+    .describe(STATIC_INVOICE_LINE_ITEM_DESCRIPTION)
+
+export const staticInvoiceLineItemUpdateSchema =
+  staticInvoiceLineItemInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+      type: z.literal(SubscriptionItemType.Static), // Type cannot be changed
+      ledgerAccountId: z.null(),
+      ledgerAccountCredit: z.null(),
+    })
+    .describe(STATIC_INVOICE_LINE_ITEM_DESCRIPTION)
+
+// Usage Invoice Line Item Schemas
+export const usageInvoiceLineItemSelectSchema =
+  baseInvoiceLineItemSelectSchema
+    .extend({
+      type: z.literal(SubscriptionItemType.Usage),
+      ...usageInvoiceLineItemColumnRefinements,
+    })
+    .describe(USAGE_INVOICE_LINE_ITEM_DESCRIPTION)
+
+export const usageInvoiceLineItemInsertSchema =
+  usageInvoiceLineItemSelectSchema
+    .omit(ommittedColumnsForInsertSchema)
+    .describe(USAGE_INVOICE_LINE_ITEM_DESCRIPTION)
+
+export const usageInvoiceLineItemUpdateSchema =
+  usageInvoiceLineItemInsertSchema
+    .partial()
+    .extend({
+      id: z.string(),
+      type: z.literal(SubscriptionItemType.Usage), // Type cannot be changed
+      ...usageInvoiceLineItemColumnRefinements,
+    })
+    .describe(USAGE_INVOICE_LINE_ITEM_DESCRIPTION)
+
+export const invoiceLineItemsInsertSchema = z
+  .discriminatedUnion('type', [
+    staticInvoiceLineItemInsertSchema,
+    usageInvoiceLineItemInsertSchema,
+  ])
+  .describe(INVOICE_LINE_ITEM_INSERT_SCHEMA_DESCRIPTION)
+
+export const invoiceLineItemsSelectSchema = z
+  .discriminatedUnion('type', [
+    staticInvoiceLineItemSelectSchema,
+    usageInvoiceLineItemSelectSchema,
+  ])
+  .describe(INVOICE_LINE_ITEM_SELECT_SCHEMA_DESCRIPTION)
+
+export const invoiceLineItemsUpdateSchema = z
+  .discriminatedUnion('type', [
+    staticInvoiceLineItemUpdateSchema,
+    usageInvoiceLineItemUpdateSchema,
+  ])
+  .describe(INVOICE_LINE_ITEM_UPDATE_SCHEMA_DESCRIPTION)
 
 const createOnlyColumns = {
-  id: true,
   invoiceId: true,
-  priceId: true,
 } as const
 
 const readOnlyColumns = {
   livemode: true,
+  ledgerAccountId: true,
+  billingRunId: true,
 } as const
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
+  ledgerAccountCredit: true,
+  ledgerAccountId: true,
+  billingRunId: true,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientNonEditableColumns = R.omit(['position'], {
   ...hiddenColumns,
   ...readOnlyColumns,
+  ...createOnlyColumns,
 })
 
+// Static Invoice Line Item Client Schemas
+export const staticInvoiceLineItemClientInsertSchema =
+  staticInvoiceLineItemInsertSchema.omit(clientNonEditableColumns)
+export const staticInvoiceLineItemClientUpdateSchema =
+  staticInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns)
+export const staticInvoiceLineItemClientSelectSchema =
+  staticInvoiceLineItemSelectSchema.omit(hiddenColumns)
+
+// Usage Invoice Line Item Client Schemas
+export const usageInvoiceLineItemClientInsertSchema =
+  usageInvoiceLineItemInsertSchema.omit(clientNonEditableColumns)
+export const usageInvoiceLineItemClientUpdateSchema =
+  usageInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns)
+export const usageInvoiceLineItemClientSelectSchema =
+  usageInvoiceLineItemSelectSchema.omit(hiddenColumns)
+
+// Client Discriminated Union Schemas
 export const invoiceLineItemsClientInsertSchema =
-  invoiceLineItemsInsertSchema.omit(clientWriteOmits)
+  z.discriminatedUnion('type', [
+    staticInvoiceLineItemClientInsertSchema,
+    usageInvoiceLineItemClientInsertSchema,
+  ])
 
 export const invoiceLineItemsClientUpdateSchema =
-  invoiceLineItemsUpdateSchema.omit(clientWriteOmits)
+  z.discriminatedUnion('type', [
+    staticInvoiceLineItemClientUpdateSchema,
+    usageInvoiceLineItemClientUpdateSchema,
+  ])
 
 export const invoiceLineItemsClientSelectSchema =
-  invoiceLineItemsSelectSchema.omit(hiddenColumns)
+  z.discriminatedUnion('type', [
+    staticInvoiceLineItemClientSelectSchema,
+    usageInvoiceLineItemClientSelectSchema,
+  ])
 
 export const invoiceLineItemsPaginatedSelectSchema =
   createPaginatedSelectSchema(invoiceLineItemsClientSelectSchema)
@@ -115,6 +259,48 @@ export namespace InvoiceLineItem {
   export type PaginatedList = z.infer<
     typeof invoiceLineItemsPaginatedListSchema
   >
+
+  export type StaticInsert = z.infer<
+    typeof staticInvoiceLineItemInsertSchema
+  >
+  export type StaticUpdate = z.infer<
+    typeof staticInvoiceLineItemUpdateSchema
+  >
+  export type StaticRecord = z.infer<
+    typeof staticInvoiceLineItemSelectSchema
+  >
+
+  export type UsageInsert = z.infer<
+    typeof usageInvoiceLineItemInsertSchema
+  >
+  export type UsageUpdate = z.infer<
+    typeof usageInvoiceLineItemUpdateSchema
+  >
+  export type UsageRecord = z.infer<
+    typeof usageInvoiceLineItemSelectSchema
+  >
+
+  export type ClientStaticInsert = z.infer<
+    typeof staticInvoiceLineItemClientInsertSchema
+  >
+  export type ClientStaticUpdate = z.infer<
+    typeof staticInvoiceLineItemClientUpdateSchema
+  >
+  export type ClientStaticRecord = z.infer<
+    typeof staticInvoiceLineItemClientSelectSchema
+  >
+
+  export type ClientUsageInsert = z.infer<
+    typeof usageInvoiceLineItemClientInsertSchema
+  >
+  export type ClientUsageUpdate = z.infer<
+    typeof usageInvoiceLineItemClientUpdateSchema
+  >
+  export type ClientUsageRecord = z.infer<
+    typeof usageInvoiceLineItemClientSelectSchema
+  >
+
+  export type Where = SelectConditions<typeof invoiceLineItems>
 }
 
 // Add this new schema at the end of the file

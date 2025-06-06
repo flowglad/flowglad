@@ -236,6 +236,9 @@ export namespace Feature {
   export type Where = SelectConditions<typeof features>
 
   // Toggle subtypes
+  export type ToggleInsert = z.infer<typeof toggleFeatureInsertSchema>
+  export type ToggleUpdate = z.infer<typeof toggleFeatureUpdateSchema>
+  export type ToggleRecord = z.infer<typeof toggleFeatureSelectSchema>
   export type ToggleClientInsert = z.infer<
     typeof toggleFeatureClientInsertSchema
   >
@@ -247,6 +250,15 @@ export namespace Feature {
   >
 
   // UsageCreditGrant subtypes
+  export type UsageCreditGrantInsert = z.infer<
+    typeof usageCreditGrantFeatureInsertSchema
+  >
+  export type UsageCreditGrantUpdate = z.infer<
+    typeof usageCreditGrantFeatureUpdateSchema
+  >
+  export type UsageCreditGrantRecord = z.infer<
+    typeof usageCreditGrantFeatureSelectSchema
+  >
   export type UsageCreditGrantClientInsert = z.infer<
     typeof usageCreditGrantFeatureClientInsertSchema
   >

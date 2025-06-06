@@ -13,6 +13,7 @@ import {
   PaymentMethodType,
   PriceType,
   StripeConnectContractType,
+  SubscriptionItemType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import Stripe from 'stripe'
@@ -398,17 +399,63 @@ interface SubscriptionFeeCalculationParams {
   organizationCountry: Country.Record
   livemode: boolean
   currency: CurrencyCode
+  usageOverages: {
+    usageMeterId: string
+    balance: number
+  }[]
 }
 
-const calculateBillingItemBaseAmount = (
-  billingPeriodItems: BillingPeriodItem.Record[]
+export const calculateBillingItemBaseAmount = (
+  billingPeriodItems: BillingPeriodItem.Record[],
+  usageOverages: {
+    usageMeterId: string
+    balance: number
+  }[]
 ) => {
-  return billingPeriodItems.reduce((acc, item) => {
-    return acc + item.unitPrice * item.quantity
+  const staticBaseAmount = billingPeriodItems
+    .filter((item) => item.type === SubscriptionItemType.Static)
+    .reduce((acc, item) => {
+      return acc + item.unitPrice * item.quantity
+    }, 0)
+
+  const usageBillingPeriodItemsByUsageMeterId = new Map<
+    string,
+    BillingPeriodItem.UsageRecord
+  >(
+    billingPeriodItems
+      .filter((item) => item.type === SubscriptionItemType.Usage)
+      .map((item) => [item.usageMeterId, item])
+  )
+
+  const usageOverageCosts = usageOverages.map(
+    (outstandingBalance) => {
+      const usageMeterId = outstandingBalance.usageMeterId
+      const usageBillingPeriodItem =
+        usageBillingPeriodItemsByUsageMeterId.get(usageMeterId)
+      if (!usageBillingPeriodItem) {
+        throw new Error(
+          `Usage billing period item not found for usage meter id: ${usageMeterId}`
+        )
+      }
+      return {
+        usageMeterId,
+        usageBillingPeriodItem,
+        cost:
+          (outstandingBalance.balance /
+            usageBillingPeriodItem.usageEventsPerUnit) *
+          usageBillingPeriodItem.unitPrice,
+      }
+    }
+  )
+
+  const usageBaseAmount = usageOverageCosts.reduce((acc, cost) => {
+    return acc + cost.cost
   }, 0)
+
+  return staticBaseAmount + usageBaseAmount
 }
 
-const createSubscriptionFeeCalculationInsert = (
+export const createSubscriptionFeeCalculationInsert = (
   params: SubscriptionFeeCalculationParams
 ) => {
   const {
@@ -420,9 +467,11 @@ const createSubscriptionFeeCalculationInsert = (
     livemode,
     currency,
     discountRedemption,
+    usageOverages,
   } = params
   const baseAmount = calculateBillingItemBaseAmount(
-    billingPeriodItems
+    billingPeriodItems,
+    usageOverages
   )
   const discountAmount = calculateDiscountAmountFromRedemption(
     baseAmount,

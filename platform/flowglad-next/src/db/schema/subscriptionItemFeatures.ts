@@ -293,6 +293,16 @@ export namespace SubscriptionItemFeature {
     typeof toggleSubscriptionItemFeatureClientSelectSchema
   >
 
+  export type ToggleRecord = z.infer<
+    typeof toggleSubscriptionItemFeatureSelectSchema
+  >
+  export type ToggleInsert = z.infer<
+    typeof toggleSubscriptionItemFeatureInsertSchema
+  >
+  export type ToggleUpdate = z.infer<
+    typeof toggleSubscriptionItemFeatureUpdateSchema
+  >
+
   // UsageCreditGrant subtypes
   export type UsageCreditGrantClientInsert = z.infer<
     typeof usageCreditGrantSubscriptionItemFeatureClientInsertSchema
@@ -302,6 +312,15 @@ export namespace SubscriptionItemFeature {
   >
   export type UsageCreditGrantClientRecord = z.infer<
     typeof usageCreditGrantSubscriptionItemFeatureClientSelectSchema
+  >
+  export type UsageCreditGrantRecord = z.infer<
+    typeof usageCreditGrantSubscriptionItemFeatureSelectSchema
+  >
+  export type UsageCreditGrantInsert = z.infer<
+    typeof usageCreditGrantSubscriptionItemFeatureInsertSchema
+  >
+  export type UsageCreditGrantUpdate = z.infer<
+    typeof usageCreditGrantSubscriptionItemFeatureUpdateSchema
   >
 }
 
