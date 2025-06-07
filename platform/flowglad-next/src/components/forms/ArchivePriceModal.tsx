@@ -4,16 +4,33 @@ import Modal from '@/components/ion/Modal'
 import Button from '@/components/ion/Button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
-import { editPriceSchema } from '@/db/schema/prices'
+import {
+  EditPriceInput,
+  editPriceSchema,
+  Price,
+} from '@/db/schema/prices'
 
 interface ArchivePriceModalProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  price: {
-    id: string
-    productId: string
-    active: boolean
+  price: Price.ClientRecord
+}
+
+export const priceToArchivePriceInput = (
+  price: Pick<
+    Price.ClientRecord,
+    'id' | 'productId' | 'active' | 'type'
+  >
+): EditPriceInput => {
+  return {
+    id: price.id,
+    price: {
+      id: price.id,
+      productId: price.productId,
+      active: !price.active,
+      type: price.type,
+    },
   }
 }
 
@@ -27,14 +44,7 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   const editPrice = trpc.prices.edit.useMutation()
 
   const handleArchive = async () => {
-    const data = {
-      price: {
-        id: price.id,
-        productId: price.productId,
-        active: !price.active,
-      },
-    }
-
+    const data = priceToArchivePriceInput(price)
     const parsed = editPriceSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
