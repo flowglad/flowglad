@@ -1,7 +1,7 @@
 import { expect, it, describe } from 'vitest'
 import { editPriceSchema, Price } from '@/db/schema/prices'
 import { PriceType, CurrencyCode, IntervalUnit } from '@/types'
-import { priceToArchivePriceInput } from './ArchivePriceModal'
+import { priceToSetPriceAsDefaultInput } from './SetPriceAsDefaultModal'
 
 const coreParams = {
   id: 'price_1',
@@ -13,15 +13,15 @@ const coreParams = {
   updatedByCommit: '1',
 } as const
 
-describe('priceToEditPriceInput', () => {
-  it('should correctly format an active subscription price for archival', () => {
+describe('priceToSetPriceAsDefaultInput', () => {
+  it('should correctly format a subscription price to be set as default', () => {
     const price: Price.ClientSubscriptionRecord = {
       ...coreParams,
       active: true,
       type: PriceType.Subscription,
       name: 'Monthly Subscription',
       unitPrice: 1000,
-      isDefault: true,
+      isDefault: false,
       currency: CurrencyCode.USD,
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
@@ -29,49 +29,20 @@ describe('priceToEditPriceInput', () => {
       setupFeeAmount: null,
       usageMeterId: null,
     }
-    const result = priceToArchivePriceInput(price)
+    const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
       id: 'price_1',
       price: {
         id: 'price_1',
         productId: 'prod_1',
-        active: false,
+        isDefault: true,
         type: PriceType.Subscription,
       },
     })
     expect(editPriceSchema.safeParse(result).success).toBe(true)
   })
 
-  it('should correctly format an inactive subscription price for unarchival', () => {
-    const price: Price.ClientSubscriptionRecord = {
-      ...coreParams,
-      active: false,
-      type: PriceType.Subscription,
-      name: 'Monthly Subscription',
-      unitPrice: 1000,
-      isDefault: true,
-      currency: CurrencyCode.USD,
-      intervalUnit: IntervalUnit.Month,
-      usageMeterId: null,
-      intervalCount: 1,
-      trialPeriodDays: null,
-      setupFeeAmount: null,
-      livemode: false,
-    }
-    const result = priceToArchivePriceInput(price)
-    expect(result).toEqual({
-      id: 'price_1',
-      price: {
-        id: 'price_1',
-        productId: 'prod_1',
-        active: true,
-        type: PriceType.Subscription,
-      },
-    })
-    expect(editPriceSchema.safeParse(result).success).toBe(true)
-  })
-
-  it('should correctly format a single payment price for archival', () => {
+  it('should correctly format a single payment price to be set as default', () => {
     const price: Price.ClientSinglePaymentRecord = {
       ...coreParams,
       active: true,
@@ -86,20 +57,20 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
     }
-    const result = priceToArchivePriceInput(price)
+    const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
       id: 'price_1',
       price: {
         id: 'price_1',
         productId: 'prod_1',
-        active: false,
+        isDefault: true,
         type: PriceType.SinglePayment,
       },
     })
     expect(editPriceSchema.safeParse(result).success).toBe(true)
   })
 
-  it('should correctly format a usage-based price for archival', () => {
+  it('should correctly format a usage-based price to be set as default', () => {
     const price: Price.ClientUsageRecord = {
       ...coreParams,
       active: true,
@@ -114,13 +85,13 @@ describe('priceToEditPriceInput', () => {
       setupFeeAmount: null,
       usageMeterId: 'um_1',
     }
-    const result = priceToArchivePriceInput(price)
+    const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
       id: 'price_1',
       price: {
         id: 'price_1',
         productId: 'prod_1',
-        active: false,
+        isDefault: true,
         type: PriceType.Usage,
       },
     })

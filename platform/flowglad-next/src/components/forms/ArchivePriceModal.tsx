@@ -17,7 +17,7 @@ interface ArchivePriceModalProps {
   price: Price.ClientRecord
 }
 
-export const priceToEditPriceInput = (
+export const priceToArchivePriceInput = (
   price: Pick<
     Price.ClientRecord,
     'id' | 'productId' | 'active' | 'type'
@@ -44,7 +44,7 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   const editPrice = trpc.prices.edit.useMutation()
 
   const handleArchive = async () => {
-    const data = priceToEditPriceInput(price)
+    const data = priceToArchivePriceInput(price)
     const parsed = editPriceSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
