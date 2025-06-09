@@ -227,7 +227,3 @@ CREATE UNIQUE INDEX IF NOT EXISTS "ledger_transactions_idempotency_key_usage_met
 ALTER TABLE "ledger_entries" ADD CONSTRAINT "ledger_entries_id_unique" UNIQUE("id");--> statement-breakpoint
 CREATE POLICY "Enable read for own organizations" ON "ledger_accounts" AS PERMISSIVE FOR ALL TO "authenticated" USING ("organization_id" in (select "organization_id" from "memberships"));--> statement-breakpoint
 CREATE POLICY "Check mode" ON "ledger_accounts" AS RESTRICTIVE FOR ALL TO "authenticated" USING (current_setting('app.livemode')::boolean = livemode);
-
-ALTER TABLE "ledger_transactions" ALTER COLUMN "usage_meter_id" DROP NOT NULL;
---> statement-breakpoint
-ALTER TABLE "ledger_transactions" DROP COLUMN "usage_meter_id";
