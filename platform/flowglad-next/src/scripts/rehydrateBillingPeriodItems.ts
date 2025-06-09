@@ -12,6 +12,7 @@ import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
 } from '@/db/tableMethods/billingPeriodItemMethods'
+import { SubscriptionItemType } from '@/types'
 
 async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
@@ -61,15 +62,35 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
       if (item.createdAt > billingPeriod.startDate) {
         return
       }
-      const insert: BillingPeriodItem.Insert = {
-        billingPeriodId: billingPeriod.id,
-        name: item.name ?? '',
-        description: item.name ?? '',
-        livemode: item.livemode,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
+      if (item.type === SubscriptionItemType.Usage) {
+        const insert: BillingPeriodItem.UsageInsert = {
+          billingPeriodId: billingPeriod.id,
+          name: item.name ?? '',
+          description: item.name ?? '',
+          livemode: item.livemode,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          type: item.type,
+          usageMeterId: item.usageMeterId,
+          usageEventsPerUnit: item.usageEventsPerUnit,
+          discountRedemptionId: null,
+        }
+        billingPeriodItemInserts.push(insert)
+      } else {
+        const insert: BillingPeriodItem.StaticInsert = {
+          billingPeriodId: billingPeriod.id,
+          name: item.name ?? '',
+          description: item.name ?? '',
+          livemode: item.livemode,
+          type: item.type,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          usageMeterId: item.usageMeterId,
+          usageEventsPerUnit: item.usageEventsPerUnit,
+          discountRedemptionId: null,
+        }
+        billingPeriodItemInserts.push(insert)
       }
-      billingPeriodItemInserts.push(insert)
     })
     await bulkInsertBillingPeriodItems(
       billingPeriodItemInserts,

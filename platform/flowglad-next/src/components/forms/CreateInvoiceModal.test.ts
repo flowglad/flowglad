@@ -36,6 +36,7 @@ describe('constructInvoiceDefaultValues', () => {
       },
       contactEmail: 'test@test.com',
       allowMultipleSubscriptionsPerCustomer: false,
+      monthlyBillingVolumeFreeTier: 100000,
     })
     expect(defaultValues).toBeDefined()
     expect(createInvoiceSchema.safeParse(defaultValues).success).toBe(
