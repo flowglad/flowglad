@@ -1,5 +1,5 @@
 {
-  "id": "f85f1f22-781f-4c25-8b07-0397a4429439",
+  "id": "7577db6d-251c-4cdf-a13e-910be841b8b8",
   "prevId": "23e1c5be-215d-4067-b167-4b8ccd493b73",
   "version": "7",
   "dialect": "postgresql",
@@ -2171,8 +2171,8 @@
           "method": "btree",
           "with": {}
         },
-        "discounts_code_organization_id_livemode_unique_idx": {
-          "name": "discounts_code_organization_id_livemode_unique_idx",
+        "discounts_code_organization_id_unique_idx": {
+          "name": "discounts_code_organization_id_unique_idx",
           "columns": [
             {
               "expression": "code",
@@ -2182,12 +2182,6 @@
             },
             {
               "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "livemode",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4183,8 +4177,7 @@
         },
         "entry_type": {
           "name": "entry_type",
-          "type": "LedgerEntryType",
-          "typeSchema": "public",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -4218,6 +4211,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "source_payment_id": {
+          "name": "source_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "source_credit_application_id": {
           "name": "source_credit_application_id",
           "type": "text",
@@ -4232,12 +4231,6 @@
         },
         "source_billing_period_calculation_id": {
           "name": "source_billing_period_calculation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_refund_id": {
-          "name": "source_refund_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4409,6 +4402,21 @@
           "method": "btree",
           "with": {}
         },
+        "ledger_entries_source_payment_id_idx": {
+          "name": "ledger_entries_source_payment_id_idx",
+          "columns": [
+            {
+              "expression": "source_payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "ledger_entries_source_credit_application_id_idx": {
           "name": "ledger_entries_source_credit_application_id_idx",
           "columns": [
@@ -4566,6 +4574,19 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+        "ledger_entries_source_payment_id_payments_id_fk": {
+          "name": "ledger_entries_source_payment_id_payments_id_fk",
+          "tableFrom": "ledger_entries",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "source_payment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk": {
           "name": "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk",
           "tableFrom": "ledger_entries",
@@ -4585,19 +4606,6 @@
           "tableTo": "usage_credit_balance_adjustments",
           "columnsFrom": [
             "source_credit_balance_adjustment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "ledger_entries_source_refund_id_refunds_id_fk": {
-          "name": "ledger_entries_source_refund_id_refunds_id_fk",
-          "tableFrom": "ledger_entries",
-          "tableTo": "refunds",
-          "columnsFrom": [
-            "source_refund_id"
           ],
           "columnsTo": [
             "id"
@@ -4745,13 +4753,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "LedgerTransactionType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
         "initiating_source_type": {
           "name": "initiating_source_type",
           "type": "text",
@@ -4782,6 +4783,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "usage_meter_id": {
+          "name": "usage_meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "idempotency_key": {
           "name": "idempotency_key",
           "type": "text",
@@ -4801,6 +4808,21 @@
             },
             {
               "expression": "initiating_source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ledger_transactions_usage_meter_id_idx": {
+          "name": "ledger_transactions_usage_meter_id_idx",
+          "columns": [
+            {
+              "expression": "usage_meter_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4841,8 +4863,8 @@
           "method": "btree",
           "with": {}
         },
-        "ledger_transactions_idempotency_key_subscription_id_unique_idx": {
-          "name": "ledger_transactions_idempotency_key_subscription_id_unique_idx",
+        "ledger_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx": {
+          "name": "ledger_transactions_idempotency_key_usage_meter_id_subscription_id_unique_idx",
           "columns": [
             {
               "expression": "idempotency_key",
@@ -4851,46 +4873,13 @@
               "nulls": "last"
             },
             {
+              "expression": "usage_meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
               "expression": "subscription_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "ledger_transactions_type_initiating_source_type_initiating_source_id_livemode_organization_id_unique_idx": {
-          "name": "ledger_transactions_type_initiating_source_type_initiating_source_id_livemode_organization_id_unique_idx",
-          "columns": [
-            {
-              "expression": "type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "initiating_source_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "initiating_source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "livemode",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4922,6 +4911,19 @@
           "tableTo": "subscriptions",
           "columnsFrom": [
             "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ledger_transactions_usage_meter_id_usage_meters_id_fk": {
+          "name": "ledger_transactions_usage_meter_id_usage_meters_id_fk",
+          "tableFrom": "ledger_transactions",
+          "tableTo": "usage_meters",
+          "columnsFrom": [
+            "usage_meter_id"
           ],
           "columnsTo": [
             "id"
@@ -5674,6 +5676,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "monthly_billing_volume_free_tier": {
+          "name": "monthly_billing_volume_free_tier",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100000
         }
       },
       "indexes": {
@@ -9481,21 +9490,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "status": {
-          "name": "status",
-          "type": "UsageCreditApplicationStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
         "usage_credit_id": {
           "name": "usage_credit_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "usage_event_id": {
-          "name": "usage_event_id",
+        "calculation_run_id": {
+          "name": "calculation_run_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -9541,6 +9543,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "usage_credit_applications_calculation_run_id_idx": {
+          "name": "usage_credit_applications_calculation_run_id_idx",
+          "columns": [
+            {
+              "expression": "calculation_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -9550,19 +9567,6 @@
           "tableTo": "usage_credits",
           "columnsFrom": [
             "usage_credit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_credit_applications_usage_event_id_usage_events_id_fk": {
-          "name": "usage_credit_applications_usage_event_id_usage_events_id_fk",
-          "tableFrom": "usage_credit_applications",
-          "tableTo": "usage_events",
-          "columnsFrom": [
-            "usage_event_id"
           ],
           "columnsTo": [
             "id"
@@ -9939,12 +9943,6 @@
           "name": "usage_meter_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
-        },
-        "payment_id": {
-          "name": "payment_id",
-          "type": "text",
-          "primaryKey": false,
           "notNull": false
         },
         "issued_amount": {
@@ -10091,21 +10089,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "usage_credits_payment_id_idx": {
-          "name": "usage_credits_payment_id_idx",
-          "columns": [
-            {
-              "expression": "payment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -10154,19 +10137,6 @@
           "tableTo": "usage_meters",
           "columnsFrom": [
             "usage_meter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "usage_credits_payment_id_payments_id_fk": {
-          "name": "usage_credits_payment_id_payments_id_fk",
-          "tableFrom": "usage_credits",
-          "tableTo": "payments",
-          "columnsFrom": [
-            "payment_id"
           ],
           "columnsTo": [
             "id"

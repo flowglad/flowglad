@@ -1,6 +1,6 @@
 {
-  "id": "9c53def7-4e6d-4e39-8096-64a1dce6d0cc",
-  "prevId": "f85f1f22-781f-4c25-8b07-0397a4429439",
+  "id": "9ae104f1-7c31-474d-a45f-cde500a4295f",
+  "prevId": "9c53def7-4e6d-4e39-8096-64a1dce6d0cc",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5864,6 +5864,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "monthly_billing_volume_free_tier": {
+          "name": "monthly_billing_volume_free_tier",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100000
         }
       },
       "indexes": {

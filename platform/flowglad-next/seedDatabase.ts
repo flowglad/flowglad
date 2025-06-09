@@ -150,7 +150,10 @@ export const dropDatabase = async () => {
   await db.delete(countries)
 }
 
-export const setupOrg = async () => {
+export const setupOrg = async (params?: {
+  monthlyBillingVolumeFreeTier?: number
+  feePercentage?: string
+}) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
     const [country] = await selectCountries({}, transaction)
@@ -159,6 +162,9 @@ export const setupOrg = async () => {
         name: `Flowglad Test ${core.nanoid()}`,
         countryId: country.id,
         defaultCurrency: CurrencyCode.USD,
+        monthlyBillingVolumeFreeTier:
+          params?.monthlyBillingVolumeFreeTier ?? undefined,
+        feePercentage: params?.feePercentage ?? undefined,
       },
       transaction
     )

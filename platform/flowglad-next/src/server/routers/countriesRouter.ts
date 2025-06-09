@@ -16,7 +16,6 @@ const listCountries = protectedProcedure
         return selectCountries({}, transaction)
       }
     )
-    console.log('====countries', countries)
     return {
       countries,
     }
