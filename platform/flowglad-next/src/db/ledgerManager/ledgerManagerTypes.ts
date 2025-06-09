@@ -58,6 +58,7 @@ export const creditGrantRecognizedLedgerCommandSchema = z.object({
     usageCredit: usageCreditsSelectSchema, // Its id is initiatingSourceId
   }),
 })
+
 export type CreditGrantRecognizedLedgerCommand = z.infer<
   typeof creditGrantRecognizedLedgerCommandSchema
 >
