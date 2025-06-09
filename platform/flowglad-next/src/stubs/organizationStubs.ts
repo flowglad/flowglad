@@ -27,4 +27,5 @@ export const dummyOrganization: Organization.Record = {
   updatedByCommit: 'test',
   position: 0,
   securitySalt: 'lol',
+  monthlyBillingVolumeFreeTier: 100000,
 }

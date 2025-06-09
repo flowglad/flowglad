@@ -120,6 +120,7 @@ const columnRefinements = {
   contactEmail: z.string().email().nullable(),
   featureFlags: z.record(z.string(), z.boolean()),
   stripeConnectContractType: z.nativeEnum(StripeConnectContractType),
+  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger,
 }
 
 export const organizationsSelectSchema = createSelectSchema(
