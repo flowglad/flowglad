@@ -52,7 +52,7 @@ export const OrganizationPaymentNotificationEmail = ({
       />
       <Header title="Congratulations!" variant="organization" />
       <Paragraph variant="organization">
-        You've just received a payment of {humanReadableAmount} from{' '}
+        You just received a payment of {humanReadableAmount} from{' '}
         {customerName}!
       </Paragraph>
       <DetailSection>
