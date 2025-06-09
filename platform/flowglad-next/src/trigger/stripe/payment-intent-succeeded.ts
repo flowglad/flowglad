@@ -109,14 +109,15 @@ export const stripePaymentIntentSucceededTask = task({
      * Send the organization payment notification email
      */
     logger.info('Sending organization payment notification email')
-
+    const customer = customerAndCustomer.customer
     await sendOrganizationPaymentNotificationEmail({
       to: membersForOrganization.map(({ user }) => user.email ?? ''),
       amount: payload.data.object.amount,
       invoiceNumber: invoice.invoiceNumber,
-      customerId: customerAndCustomer.customer.id!,
-      organizationName: organization.name!,
+      customerId: customer.id,
+      organizationName: organization.name,
       currency: invoice.currency,
+      customerName: customer.name,
     })
 
     return {
