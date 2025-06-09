@@ -57,7 +57,7 @@ END $$;
 
 ALTER TABLE "ledger_entries" DROP CONSTRAINT "ledger_entries_source_payment_id_payments_id_fk";
 --> statement-breakpoint
-ALTER TABLE "ledger_transactions" DROP CONSTRAINT "ledger_transactions_usage_meter_id_usage_meters_id_fk";
+ALTER TABLE IF EXISTS "ledger_transactions" DROP CONSTRAINT IF EXISTS "ledger_transactions_usage_meter_id_usage_meters_id_fk";
 --> statement-breakpoint
 DROP INDEX IF EXISTS "discounts_code_organization_id_unique_idx";--> statement-breakpoint
 DROP INDEX IF EXISTS "ledger_entries_source_payment_id_idx";--> statement-breakpoint
@@ -84,7 +84,9 @@ ALTER TABLE "ledger_entries" ADD COLUMN "claimed_by_billing_run_id" text;--> sta
 ALTER TABLE "ledger_transactions" ADD COLUMN "type" "LedgerTransactionType" NOT NULL;--> statement-breakpoint
 ALTER TABLE "subscription_items" ADD COLUMN "usage_events_per_unit" integer;--> statement-breakpoint
 ALTER TABLE "subscription_items" ADD COLUMN "usage_meter_id" text;--> statement-breakpoint
-ALTER TABLE "subscription_items" ADD COLUMN "type" "SubscriptionItemType" NOT NULL;--> statement-breakpoint
+ALTER TABLE "subscription_items" ADD COLUMN "type" "SubscriptionItemType";--> statement-breakpoint
+UPDATE "subscription_items" SET "type" = 'static';--> statement-breakpoint
+ALTER TABLE "subscription_items" ALTER COLUMN "type" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "usage_credit_applications" ADD COLUMN "status" "UsageCreditApplicationStatus";--> statement-breakpoint
 UPDATE "usage_credit_applications" SET "status" = 'posted';--> statement-breakpoint
 ALTER TABLE "usage_credit_applications" ALTER COLUMN "status" SET NOT NULL;--> statement-breakpoint
