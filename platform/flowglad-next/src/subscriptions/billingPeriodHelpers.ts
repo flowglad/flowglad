@@ -393,11 +393,21 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
       return null
     }
 
-    return createNextBillingPeriodBasedOnPreviousBillingPeriod(
+    const result =
+      await createNextBillingPeriodBasedOnPreviousBillingPeriod(
+        {
+          subscription,
+          billingPeriod: mostRecentBillingPeriod,
+        },
+        transaction
+      )
+    await updateSubscription(
       {
-        subscription,
-        billingPeriod: mostRecentBillingPeriod,
+        id: subscription.id,
+        currentBillingPeriodEnd: result.billingPeriod.endDate,
+        currentBillingPeriodStart: result.billingPeriod.startDate,
       },
       transaction
     )
+    return result
   }
