@@ -1,25 +1,17 @@
-import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import {
-  Body,
-  Button,
-  Container,
-  Column,
-  Head,
-  Heading,
-  Hr,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Row,
-  Section,
-  Text,
-} from '@react-email/components'
 import * as React from 'react'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { EmailButton } from './components/EmailButton'
+import {
+  EmailLayout,
+  Header,
+  DetailSection,
+  DetailItem,
+  TotalSection,
+  Paragraph,
+  Signature,
+} from './components/themed'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -46,126 +38,43 @@ export const InvoiceReminderEmail = ({
     )
 
   return (
-    <Html>
-      <Head />
-      <Preview>Invoice Reminder</Preview>
-      <Body style={main}>
-        <Container style={container}>
-          {organizationLogoUrl && (
-            <Section style={logoContainer}>
-              <Img
-                src={organizationLogoUrl}
-                width="50"
-                height="50"
-                alt="Logo"
-              />
-            </Section>
-          )}
+    <EmailLayout previewText="Invoice Reminder">
+      <Header
+        title="Invoice Reminder"
+        organizationLogoUrl={organizationLogoUrl}
+      />
 
-          <Heading style={h1}>Invoice Reminder</Heading>
+      <DetailSection>
+        <DetailItem>Invoice #: {invoice.invoiceNumber}</DetailItem>
+        <DetailItem>
+          Date: {new Date(invoice.invoiceDate).toLocaleDateString()}
+        </DetailItem>
+        <DetailItem>
+          Due Date:{' '}
+          {invoice.dueDate
+            ? new Date(invoice.dueDate).toLocaleDateString()
+            : 'Upon Receipt'}
+        </DetailItem>
+        <DetailItem>Amount Due: {totalAmount}</DetailItem>
+      </DetailSection>
 
-          <Section style={orderDetails}>
-            <Text style={orderItem}>
-              Invoice #: {invoice.invoiceNumber}
-            </Text>
-            <Text style={orderItem}>
-              Date:{' '}
-              {new Date(invoice.invoiceDate).toLocaleDateString()}
-            </Text>
-            <Text style={orderItem}>
-              Due Date:{' '}
-              {invoice.dueDate
-                ? new Date(invoice.dueDate).toLocaleDateString()
-                : 'Upon Receipt'}
-            </Text>
-            <Text style={orderItem}>Amount Due: {totalAmount}</Text>
-          </Section>
+      <TotalSection
+        subtotal={totalAmount}
+        total={totalAmount}
+        showSubtotal={false}
+        totalLabelText="Total Amount Due"
+      />
 
-          <Hr style={hr} />
+      <Paragraph style={{ margin: '30px 0 10px' }}>
+        Please process payment at your earliest convenience.
+      </Paragraph>
+      <EmailButton href={`${baseUrl}/invoices/${invoice.id}`}>
+        View Invoice →
+      </EmailButton>
 
-          <Section style={totalSection}>
-            <Text style={totalLabel}>Total Amount Due</Text>
-            <Text style={totalAmountStyle}>{totalAmount}</Text>
-          </Section>
-
-          <Text style={thankYouText}>
-            Please process payment at your earliest convenience.
-          </Text>
-          <EmailButton href={`${baseUrl}/invoices/${invoice.id}`}>
-            View Invoice →
-          </EmailButton>
-
-          <Text style={signature}>Best regards,</Text>
-          <Text style={signature}>{organizationName}</Text>
-        </Container>
-      </Body>
-    </Html>
+      <Signature greeting="Best regards," name={organizationName} />
+    </EmailLayout>
   )
 }
 
 export default InvoiceReminderEmail
-
-const main = {
-  backgroundColor: '#ffffff',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
-}
-
-const container = {
-  margin: '0 auto',
-  padding: '20px 0 48px',
-  width: '580px',
-}
-
-const logoContainer = {
-  marginBottom: '24px',
-}
-
-const h1 = {
-  color: '#333',
-  fontSize: '24px',
-  fontWeight: 'bold',
-  margin: '30px 0',
-  padding: '0',
-  lineHeight: '42px',
-}
-
-const orderDetails = {
-  margin: '30px 0',
-}
-
-const orderItem = {
-  margin: '8px 0',
-  color: '#333',
-  fontSize: '14px',
-}
-
-const hr = {
-  borderColor: '#cccccc',
-  margin: '20px 0',
-}
-
-const totalSection = {
-  margin: '20px 0',
-}
-
-const totalLabel = {
-  fontSize: '14px',
-  fontWeight: 'bold',
-  margin: '8px 0',
-}
-
-const totalAmountStyle = {
-  fontSize: '14px',
-  margin: '8px 0',
-}
-
-const thankYouText = {
-  fontSize: '14px',
-  margin: '30px 0 10px',
-}
-
-const signature = {
-  fontSize: '14px',
-  margin: '0 0 4px',
-}

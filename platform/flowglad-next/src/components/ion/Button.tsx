@@ -42,12 +42,12 @@ export type ButtonProps =
 
 export const buttonVariants = cva(
   [
-    'flex border-primary',
+    'flex',
     'items-center',
     'justify-center',
     'disabled:pointer-events-none',
     'whitespace-nowrap',
-    'border border-primary',
+    'border',
     'h-fit',
     'w-fit',
     'disabled:text-on-disabled',
@@ -57,7 +57,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         filled: 'disabled:bg-disabled border-transparent',
-        outline: 'disabled:border-stroke-disabled border-primary',
+        outline: 'disabled:border-stroke-disabled',
         soft: 'disabled:bg-transparent disabled:border-stroke-disabled border-transparent',
         gradient: 'disabled:bg-disabled border-none',
         ghost: 'focus:bg-opacity-0 border-transparent',
@@ -121,8 +121,8 @@ export const buttonVariants = cva(
               className: [
                 `text-${color}`,
                 color === 'neutral'
-                  ? `border-primary`
-                  : `border-${color}`,
+                  ? `border-stroke`
+                  : `border-stroke-${color}`,
                 `hover:bg-${color}-accent`,
                 `active:bg-${color}-container  `,
                 `active:text-on-${color}-container`,
