@@ -1,6 +1,6 @@
 import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { Img, Section, Text } from '@react-email/components'
+import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from '../components/EmailButton'
 import {
@@ -9,6 +9,7 @@ import {
   Paragraph,
   DetailSection,
   DetailItem,
+  DetailValue,
 } from '../components/themed'
 
 const baseUrl = process.env.VERCEL_URL
@@ -22,13 +23,6 @@ export interface OrganizationPaymentFailedNotificationEmailProps {
   currency: CurrencyCode
   customerId: string
   customerName: string
-}
-
-const detailsValue = {
-  color: '#32325d',
-  fontSize: '16px',
-  fontWeight: 'bold' as const,
-  marginBottom: '16px',
 }
 
 export const OrganizationPaymentFailedNotificationEmail = ({
@@ -56,42 +50,23 @@ export const OrganizationPaymentFailedNotificationEmail = ({
         alt="Flowglad Logo"
         style={{ margin: '0 auto', marginBottom: '32px' }}
       />
-      <Header
-        title="Payment Failed"
-        style={{ textAlign: 'center', fontWeight: 'normal' }}
-      />
-      <Paragraph
-        style={{
-          color: '#525f7f',
-          textAlign: 'center',
-          margin: 0,
-        }}
-      >
+      <Header title="Payment Failed" variant="organization" />
+      <Paragraph variant="organization">
         A payment of {humanReadableAmount} from {customerName} has
         failed to process. Please review your payment details and try
         again.
       </Paragraph>
       <DetailSection>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
-          Customer
-        </DetailItem>
-        <Text style={detailsValue}>{customerName}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
-          Payment
-        </DetailItem>
-        <Text style={detailsValue}>{humanReadableAmount}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
-          Status
-        </DetailItem>
-        <Text style={detailsValue}>Failed</Text>
+        <DetailItem variant="organization">Customer</DetailItem>
+        <DetailValue>{customerName}</DetailValue>
+        <DetailItem variant="organization">Payment</DetailItem>
+        <DetailValue>{humanReadableAmount}</DetailValue>
+        <DetailItem variant="organization">Status</DetailItem>
+        <DetailValue>Failed</DetailValue>
         {invoiceNumber && (
           <>
-            <DetailItem
-              style={{ color: '#525f7f', marginBottom: '4px' }}
-            >
-              Invoice #
-            </DetailItem>
-            <Text style={detailsValue}>{invoiceNumber}</Text>
+            <DetailItem variant="organization">Invoice #</DetailItem>
+            <DetailValue>{invoiceNumber}</DetailValue>
           </>
         )}
       </DetailSection>
@@ -104,14 +79,7 @@ export const OrganizationPaymentFailedNotificationEmail = ({
           View in Dashboard
         </EmailButton>
       </Section>
-      <Paragraph
-        style={{
-          color: '#525f7f',
-          lineHeight: '20px',
-          textAlign: 'center',
-          marginTop: '24px',
-        }}
-      >
+      <Paragraph variant="organization" style={{ marginTop: '24px' }}>
         This payment was attempted to be processed by Flowglad on
         behalf of {organizationName}. Please update your payment
         information to ensure future transactions are successful.

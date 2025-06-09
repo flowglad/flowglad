@@ -1,31 +1,16 @@
 import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Section,
-  Text,
-} from '@react-email/components'
+import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from '../components/EmailButton'
 import {
-  main,
-  container,
-  logo,
-  h1,
-  text,
-  details,
-  detailsText,
-  detailsValue,
-  buttonContainer,
-  footerText,
-} from '@/email-templates/styles/coreEmailStyles'
+  EmailLayout,
+  Header,
+  Paragraph,
+  DetailSection,
+  DetailItem,
+  DetailValue,
+} from '../components/themed'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -37,6 +22,7 @@ export interface OrganizationPaymentNotificationEmailProps {
   invoiceNumber?: string
   currency: CurrencyCode
   customerId: string
+  customerName: string
 }
 
 export const OrganizationPaymentNotificationEmail = ({
@@ -45,6 +31,7 @@ export const OrganizationPaymentNotificationEmail = ({
   invoiceNumber,
   currency,
   customerId,
+  customerName,
 }: OrganizationPaymentNotificationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -52,48 +39,49 @@ export const OrganizationPaymentNotificationEmail = ({
       amount
     )
   return (
-    <Html>
-      <Head />
-      <Preview>Congratulations, {organizationName}!</Preview>
-      <Body style={main}>
-        <Container style={container}>
-          <Img
-            src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-            width="543"
-            height="200"
-            alt="Flowglad Logo"
-            style={logo}
-          />
-          <Heading style={h1}>Congratulations!</Heading>
-          <Text style={text}>
-            You&apos;ve just received a payment for
-            {humanReadableAmount}!
-          </Text>
-          <Section style={details}>
-            <Text style={detailsText}>Payment</Text>
-            <Text style={detailsValue}>{humanReadableAmount}</Text>
-            <Text style={detailsText}>Status</Text>
-            <Text style={detailsValue}>Paid</Text>
-            {invoiceNumber && (
-              <>
-                <Text style={detailsText}>Invoice #</Text>
-                <Text style={detailsValue}>{invoiceNumber}</Text>
-              </>
-            )}
-          </Section>
-          <Section style={buttonContainer}>
-            <EmailButton
-              href={`https://app.flowglad.com/customers/${customerId}`}
-            >
-              View in Dashboard
-            </EmailButton>
-          </Section>
-          <Text style={footerText}>
-            This payment was processed by Flowglad on behalf of{' '}
-            {organizationName}.
-          </Text>
-        </Container>
-      </Body>
-    </Html>
+    <EmailLayout
+      previewText={`Congratulations, ${organizationName}!`}
+      variant="organization"
+    >
+      <Img
+        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
+        width="540"
+        height="199"
+        alt="Flowglad Logo"
+        style={{ margin: '0 auto', marginBottom: '32px' }}
+      />
+      <Header title="Congratulations!" variant="organization" />
+      <Paragraph variant="organization">
+        You've just received a payment of {humanReadableAmount} from{' '}
+        {customerName}!
+      </Paragraph>
+      <DetailSection>
+        <DetailItem variant="organization">Customer</DetailItem>
+        <DetailValue>{customerName}</DetailValue>
+        <DetailItem variant="organization">Payment</DetailItem>
+        <DetailValue>{humanReadableAmount}</DetailValue>
+        <DetailItem variant="organization">Status</DetailItem>
+        <DetailValue>Paid</DetailValue>
+        {invoiceNumber && (
+          <>
+            <DetailItem variant="organization">Invoice #</DetailItem>
+            <DetailValue>{invoiceNumber}</DetailValue>
+          </>
+        )}
+      </DetailSection>
+      <Section
+        style={{ textAlign: 'center' as const, marginTop: '32px' }}
+      >
+        <EmailButton
+          href={`https://app.flowglad.com/customers/${customerId}`}
+        >
+          View in Dashboard
+        </EmailButton>
+      </Section>
+      <Paragraph variant="organization" style={{ marginTop: '24px' }}>
+        This payment was processed by Flowglad on behalf of{' '}
+        {organizationName}.
+      </Paragraph>
+    </EmailLayout>
   )
 }

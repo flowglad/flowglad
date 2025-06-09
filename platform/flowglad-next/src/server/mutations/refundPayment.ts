@@ -5,11 +5,10 @@ import {
   refundPaymentInputSchema,
 } from '@/db/schema/payments'
 import { refundPaymentTransaction } from '@/utils/paymentHelpers'
-import {
-  createPostOpenApiMeta,
-  createPostOpenApiMetaWithIdParam,
-} from '@/utils/openapi'
+import { createPostOpenApiMetaWithIdParam } from '@/utils/openapi'
 import { z } from 'zod'
+import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
+import { adminTransaction } from '@/db/adminTransaction'
 
 export const refundPayment = protectedProcedure
   .meta(
@@ -25,16 +24,22 @@ export const refundPayment = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const payment = await authenticatedTransaction(
       async ({ transaction, livemode }) => {
-        return refundPaymentTransaction(
+        return selectPaymentById(input.id, transaction)
+      }
+    )
+    if (!payment) {
+      throw new Error('Payment not found')
+    }
+    const updatedPayment = await adminTransaction(
+      async ({ transaction }) => {
+        return await refundPaymentTransaction(
           {
             id: input.id,
             partialAmount: input.partialAmount ?? null,
-            livemode,
           },
           transaction
         )
       }
     )
-
-    return { payment }
+    return { payment: updatedPayment }
   })

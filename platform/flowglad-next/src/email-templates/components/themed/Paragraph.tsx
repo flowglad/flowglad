@@ -10,9 +10,19 @@ const paragraph = {
 export const Paragraph = ({
   children,
   style,
+  variant,
 }: {
   children: React.ReactNode
   style?: React.CSSProperties
+  variant?: 'customer' | 'organization'
 }) => {
-  return <Text style={{ ...paragraph, ...style }}>{children}</Text>
+  const variantStyle: React.CSSProperties =
+    variant === 'organization'
+      ? { color: '#525f7f', textAlign: 'center', margin: 0 }
+      : {}
+  return (
+    <Text style={{ ...paragraph, ...variantStyle, ...style }}>
+      {children}
+    </Text>
+  )
 }

@@ -18,11 +18,18 @@ export const Header = ({
   title,
   organizationLogoUrl,
   style,
+  variant,
 }: {
   title: string
   organizationLogoUrl?: string
   style?: React.CSSProperties
+  variant?: 'customer' | 'organization'
 }) => {
+  const variantStyle: React.CSSProperties =
+    variant === 'organization'
+      ? { textAlign: 'center', fontWeight: 'normal' }
+      : {}
+
   return (
     <>
       {organizationLogoUrl && (
@@ -35,7 +42,10 @@ export const Header = ({
           />
         </Section>
       )}
-      <Heading style={{ ...h1, ...style }} data-testid="email-title">
+      <Heading
+        style={{ ...h1, ...variantStyle, ...style }}
+        data-testid="email-title"
+      >
         {title}
       </Heading>
     </>

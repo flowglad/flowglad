@@ -11,12 +11,24 @@ export const DetailItem = ({
   children,
   style,
   dataTestId,
+  variant,
 }: {
   children: React.ReactNode
   style?: React.CSSProperties
   dataTestId?: string
-}) => (
-  <Text style={{ ...itemStyle, ...style }} data-testid={dataTestId}>
-    {children}
-  </Text>
-)
+  variant?: 'customer' | 'organization'
+}) => {
+  const variantStyle: React.CSSProperties =
+    variant === 'organization'
+      ? { color: '#525f7f', marginBottom: '4px' }
+      : {}
+
+  return (
+    <Text
+      style={{ ...itemStyle, ...variantStyle, ...style }}
+      data-testid={dataTestId}
+    >
+      {children}
+    </Text>
+  )
+}
