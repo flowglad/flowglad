@@ -97,7 +97,6 @@ export default function DiscountFormFields({
                   className="flex-1"
                   showControls={false}
                   onValueChange={(value) => {
-                    console.log('value', value)
                     field.onChange(value.floatValue)
                   }}
                   error={parseError ?? logicError}

@@ -482,13 +482,13 @@ describe('fees.ts', () => {
         }
       )
 
-      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0.00')
+      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
       expect(updatedFeeCalculation.internalNotes).toContain(
-        'Total processed month to date: 0'
+        'No fee applied. Processed this month after transaction: 1000. Free tier: 100000.'
       )
     })
 
-    it('sets flowgladFeePercentage to 0 when total resolved payments are under $1000', async () => {
+    it('sets flowgladFeePercentage to 0 when total resolved payments are under the organization free tier', async () => {
       const stripePaymentIntentId1 = `pi_${core.nanoid()}`
       const stripePaymentIntentId2 = `pi_${core.nanoid()}`
       const stripeChargeId1 = `ch_${core.nanoid()}`
@@ -554,13 +554,13 @@ describe('fees.ts', () => {
         }
       )
 
-      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0.00')
+      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
       expect(updatedFeeCalculation.internalNotes).toContain(
-        'Total processed month to date: 50000'
+        'No fee applied. Processed this month after transaction: 51000. Free tier: 100000.'
       )
     })
 
-    it('keeps original flowgladFeePercentage when resolved payments exceed $1000', async () => {
+    it('keeps original flowgladFeePercentage when resolved payments exceed the organization free tier', async () => {
       const stripePaymentIntentId = `pi_${core.nanoid()}`
       const stripeChargeId = `ch_${core.nanoid()}`
       const { organization, price } = await setupOrg()
@@ -590,7 +590,7 @@ describe('fees.ts', () => {
               organizationId: organization.id,
               priceId: price.id,
               type: FeeCalculationType.CheckoutSessionPayment,
-              flowgladFeePercentage: '10.00',
+              flowgladFeePercentage: organization.feePercentage,
               baseAmount: 1000,
               discountAmountFixed: 0,
               taxAmountFixed: 0,
@@ -615,10 +615,201 @@ describe('fees.ts', () => {
       )
 
       expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
-        '10.00'
+        organization.feePercentage
       )
       expect(updatedFeeCalculation.internalNotes).toContain(
-        'Total processed month to date: 150000'
+        'Full fee applied. Processed this month before transaction: 150000. Free tier: 100000.'
+      )
+    })
+
+    it('sets flowgladFeePercentage to 0 when total resolved payments are under the free tier', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const invoice = await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      // Create some payments that total over $1000 but only $500 is resolved
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Processing,
+        amount: 100000, // $1000
+        customerId: customer.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
+      })
+
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 50000, // $500
+        customerId: customer.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
+      })
+
+      const feeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              billingPeriodId: null,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              livemode: true,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
+        }
+      )
+
+      const updatedFeeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return finalizeFeeCalculation(feeCalculation, transaction)
+        }
+      )
+
+      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
+      expect(updatedFeeCalculation.internalNotes).toContain(
+        'No fee applied. Processed this month after transaction: 51000. Free tier: 100000.'
+      )
+    })
+
+    it('applies full org fee when resolved payments exceed the free tier', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const invoice = await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 150000, // $1500
+        customerId: customer.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
+      })
+
+      const feeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00', // This should be ignored
+              baseAmount: 1000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 1000,
+            },
+            transaction
+          )
+        }
+      )
+
+      const updatedFeeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return finalizeFeeCalculation(feeCalculation, transaction)
+        }
+      )
+
+      expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
+        organization.feePercentage
+      )
+      expect(updatedFeeCalculation.internalNotes).toContain(
+        `Full fee applied. Processed this month before transaction: 150000. Free tier: 100000.`
+      )
+    })
+
+    it('calculates partial fee when transaction crosses the free tier', async () => {
+      const { organization, price } = await setupOrg({
+        feePercentage: '5.0',
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const invoice = await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 90000, // $900
+        customerId: customer.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
+      })
+
+      const feeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeeCalculation(
+            {
+              organizationId: organization.id,
+              priceId: price.id,
+              type: FeeCalculationType.CheckoutSessionPayment,
+              flowgladFeePercentage: '10.00',
+              baseAmount: 20000,
+              discountAmountFixed: 0,
+              taxAmountFixed: 0,
+              internationalFeePercentage: '0',
+              paymentMethodFeeFixed: 59,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              billingAddress,
+              billingPeriodId: null,
+              paymentMethodType: PaymentMethodType.Card,
+              pretaxTotal: 20000, // $200
+            },
+            transaction
+          )
+        }
+      )
+
+      const updatedFeeCalculation = await adminTransaction(
+        async ({ transaction }) => {
+          return finalizeFeeCalculation(feeCalculation, transaction)
+        }
+      )
+
+      // Overage: (90000 + 20000) - 100000 = 10000
+      // Fee on overage: 10000 * 5% = 500
+      // Effective percentage: (500 / 20000) * 100 = 2.5%
+      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('2.5')
+      expect(updatedFeeCalculation.internalNotes).toContain(
+        `Partial fee applied. Overage: 10000. Processed this month before transaction: 90000. Free tier: 100000. Effective percentage: 2.50000%.`
       )
     })
 
@@ -643,7 +834,7 @@ describe('fees.ts', () => {
         organizationId: organization.id,
         invoiceId: invoice.id,
       })
-      const baseFeePercentage = '10.00'
+      const baseFeePercentage = organization.feePercentage
       const feeCalculation = await adminTransaction(
         async ({ transaction }) => {
           return insertFeeCalculation(
@@ -679,7 +870,7 @@ describe('fees.ts', () => {
         baseFeePercentage
       )
       expect(updatedFeeCalculation.internalNotes).toContain(
-        'Total processed month to date: 150000'
+        `Full fee applied. Processed this month before transaction: 150000. Free tier: 100000.`
       )
     })
 
@@ -755,9 +946,9 @@ describe('fees.ts', () => {
         }
       )
 
-      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0.00')
+      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
       expect(updatedFeeCalculation.internalNotes).toContain(
-        'Total processed month to date: 0'
+        'No fee applied. Processed this month after transaction: 1000. Free tier: 100000.'
       )
     })
 
@@ -838,9 +1029,9 @@ describe('fees.ts', () => {
         }
       )
 
-      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0.00')
+      expect(updatedFeeCalculation.flowgladFeePercentage).toBe('0')
       expect(updatedFeeCalculation.internalNotes).toContain(
-        'Total processed month to date: 50000'
+        'No fee applied. Processed this month after transaction: 51000. Free tier: 100000.'
       )
     })
   })
