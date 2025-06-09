@@ -1,6 +1,12 @@
 import * as R from 'ramda'
 import { z } from 'zod'
-import { pgTable, text, boolean, jsonb } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  text,
+  boolean,
+  jsonb,
+  integer,
+} from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
   enhancedCreateInsertSchema,
@@ -67,6 +73,11 @@ export const organizations = pgTable(
     securitySalt: text('security_salt')
       .$defaultFn(() => nanoid(128))
       .notNull(),
+    monthlyBillingVolumeFreeTier: integer(
+      'monthly_billing_volume_free_tier'
+    )
+      .notNull()
+      .default(100000),
   },
   (table) => {
     return [

@@ -1534,6 +1534,13 @@
       "when": 1748631240675,
       "tag": "0219_tearful_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 220,
+      "version": "7",
+      "when": 1749501589727,
+      "tag": "0220_bumpy_squadron_sinister",
+      "breakpoints": true
     }
   ]
 }
