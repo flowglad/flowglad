@@ -6,12 +6,11 @@ const buttonStyle = {
   borderRadius: '3px',
   color: '#fff',
   fontSize: '16px',
-  padding: '8px 24px',
+  padding: '12px 24px',
   fontWeight: 'bold',
   textDecoration: 'none',
   textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
+  display: 'inline-block',
   margin: '30px 0',
 }
 

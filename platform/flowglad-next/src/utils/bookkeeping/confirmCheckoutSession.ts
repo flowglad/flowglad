@@ -1,4 +1,7 @@
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  selectCheckoutSessionById,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
 import {
   insertCustomer,
   updateCustomer,
@@ -97,6 +100,19 @@ export const confirmCheckoutSessionTransaction = async (
         billingAddress: checkoutSession.billingAddress,
         externalId: core.nanoid(),
         livemode: checkoutSession.livemode,
+      },
+      transaction
+    )
+  }
+  /**
+   * Set the customer id if the checkout session doesn't have one,
+   * (or, defensively, if the checkoutsession's customer id doesn't match the customer id)
+   */
+  if (customer.id !== checkoutSession.customerId) {
+    await updateCheckoutSession(
+      {
+        ...checkoutSession,
+        customerId: customer.id,
       },
       transaction
     )

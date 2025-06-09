@@ -119,6 +119,7 @@ const processSucceededNotifications = async (
       .filter((user) => user.email)
       .map((user) => user.email!),
     currency: params.invoice.currency,
+    customerName: params.customer.name,
   })
 }
 
@@ -160,6 +161,7 @@ const processAwaitingPaymentConfirmationNotifications = async (
     orderDate: params.invoice.invoiceDate,
     invoiceNumber: params.invoice.invoiceNumber,
     currency: params.invoice.currency,
+    customerName: params.customer.name,
   })
 }
 

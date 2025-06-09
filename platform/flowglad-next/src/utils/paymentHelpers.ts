@@ -22,13 +22,9 @@ import { Payment } from '@/db/schema/payments'
 import { chargeStatusToPaymentStatus } from './bookkeeping/processPaymentIntentStatusUpdated'
 
 export const refundPaymentTransaction = async (
-  {
-    id,
-    partialAmount,
-    livemode,
-  }: { id: string; partialAmount: number | null; livemode: boolean },
+  { id, partialAmount }: { id: string; partialAmount: number | null },
   transaction: DbTransaction
-) => {
+): Promise<Payment.Record> => {
   const payment = await selectPaymentById(id, transaction)
 
   if (!payment) {
@@ -54,7 +50,7 @@ export const refundPaymentTransaction = async (
     refund = await refundPayment(
       payment.stripePaymentIntentId,
       partialAmount,
-      livemode
+      payment.livemode
     )
   } catch (error) {
     const alreadyRefundedError =
@@ -81,7 +77,10 @@ export const refundPaymentTransaction = async (
         `Payment ${payment.id} has a charge ${charge.id} that has not been refunded`
       )
     }
-    const refunds = await listRefundsForCharge(charge.id, livemode)
+    const refunds = await listRefundsForCharge(
+      charge.id,
+      payment.livemode
+    )
     refund = refunds.data[0]
   }
 

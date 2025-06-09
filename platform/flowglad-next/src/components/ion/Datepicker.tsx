@@ -298,7 +298,6 @@ export const DateRangePicker = ({
             variant="outline"
             color="primary"
             size="sm"
-            // onClick={jan2024Dec2024ClickHandler}
           >
             {core.formatDate(fromDate)} -{' '}
             {toDate ? core.formatDate(toDate) : 'Present'}

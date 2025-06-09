@@ -46,6 +46,7 @@ const TableTitleButtonStrip = ({
         variant="outline"
         color="primary"
         size="sm"
+        className="border-primary"
         onClick={buttonOnClick}
         disabled={buttonDisabled}
         disabledTooltip={buttonDisabledTooltip}

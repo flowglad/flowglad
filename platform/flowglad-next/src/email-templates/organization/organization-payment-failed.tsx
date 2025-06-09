@@ -1,31 +1,16 @@
 import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Section,
-  Text,
-} from '@react-email/components'
+import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from '../components/EmailButton'
 import {
-  main,
-  container,
-  logo,
-  h1,
-  text,
-  details,
-  detailsText,
-  detailsValue,
-  buttonContainer,
-  footerText,
-} from '@/email-templates/styles/coreEmailStyles'
+  EmailLayout,
+  Header,
+  Paragraph,
+  DetailSection,
+  DetailItem,
+  DetailValue,
+} from '../components/themed'
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -37,6 +22,7 @@ export interface OrganizationPaymentFailedNotificationEmailProps {
   invoiceNumber?: string
   currency: CurrencyCode
   customerId: string
+  customerName: string
 }
 
 export const OrganizationPaymentFailedNotificationEmail = ({
@@ -45,6 +31,7 @@ export const OrganizationPaymentFailedNotificationEmail = ({
   invoiceNumber,
   currency,
   customerId,
+  customerName,
 }: OrganizationPaymentFailedNotificationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -52,49 +39,51 @@ export const OrganizationPaymentFailedNotificationEmail = ({
       amount
     )
   return (
-    <Html>
-      <Head />
-      <Preview>Payment Failed - Action Required</Preview>
-      <Body style={main}>
-        <Container style={container}>
-          <Img
-            src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-            width="543"
-            height="200"
-            alt="Flowglad Logo"
-            style={logo}
-          />
-          <Heading style={h1}>Payment Failed</Heading>
-          <Text style={text}>
-            A payment of ${humanReadableAmount} has failed to process.
-            Please review your payment details and try again.
-          </Text>
-          <Section style={details}>
-            <Text style={detailsText}>Payment</Text>
-            <Text style={detailsValue}>{humanReadableAmount}</Text>
-            <Text style={detailsText}>Status</Text>
-            <Text style={detailsValue}>Failed</Text>
-            {invoiceNumber && (
-              <>
-                <Text style={detailsText}>Invoice #</Text>
-                <Text style={detailsValue}>{invoiceNumber}</Text>
-              </>
-            )}
-          </Section>
-          <Section style={buttonContainer}>
-            <EmailButton
-              href={`https://app.flowglad.com/customers/${customerId}`}
-            >
-              View in Dashboard
-            </EmailButton>
-          </Section>
-          <Text style={footerText}>
-            This payment was attempted to be processed by Flowglad on
-            behalf of {organizationName}. Please update your payment
-            information to ensure future transactions are successful.
-          </Text>
-        </Container>
-      </Body>
-    </Html>
+    <EmailLayout
+      previewText="Payment Failed - Action Required"
+      variant="organization"
+    >
+      <Img
+        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
+        width="540"
+        height="199"
+        alt="Flowglad Logo"
+        style={{ margin: '0 auto', marginBottom: '32px' }}
+      />
+      <Header title="Payment Failed" variant="organization" />
+      <Paragraph variant="organization">
+        A payment of {humanReadableAmount} from {customerName} has
+        failed to process. Please review your payment details and try
+        again.
+      </Paragraph>
+      <DetailSection>
+        <DetailItem variant="organization">Customer</DetailItem>
+        <DetailValue>{customerName}</DetailValue>
+        <DetailItem variant="organization">Payment</DetailItem>
+        <DetailValue>{humanReadableAmount}</DetailValue>
+        <DetailItem variant="organization">Status</DetailItem>
+        <DetailValue>Failed</DetailValue>
+        {invoiceNumber && (
+          <>
+            <DetailItem variant="organization">Invoice #</DetailItem>
+            <DetailValue>{invoiceNumber}</DetailValue>
+          </>
+        )}
+      </DetailSection>
+      <Section
+        style={{ textAlign: 'center' as const, marginTop: '32px' }}
+      >
+        <EmailButton
+          href={`https://app.flowglad.com/customers/${customerId}`}
+        >
+          View in Dashboard
+        </EmailButton>
+      </Section>
+      <Paragraph variant="organization" style={{ marginTop: '24px' }}>
+        This payment was attempted to be processed by Flowglad on
+        behalf of {organizationName}. Please update your payment
+        information to ensure future transactions are successful.
+      </Paragraph>
+    </EmailLayout>
   )
 }
