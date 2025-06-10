@@ -8,7 +8,10 @@ import {
   Mock,
 } from 'vitest'
 import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  BillingPeriodTransitionLedgerCommand,
+  StandardBillingPeriodTransitionPayload,
+} from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   ledgerAccounts,
   LedgerAccount as LedgerAccountSchema,
@@ -213,6 +216,7 @@ describe('grantEntitlementUsageCredits', () => {
       livemode: true,
       subscriptionId: subscription.id,
       payload: {
+        type: 'standard',
         subscription,
         previousBillingPeriod,
         newBillingPeriod,
@@ -875,7 +879,9 @@ describe('grantEntitlementUsageCredits', () => {
   describe('Grant Frequency Logic', () => {
     it('should grant both "Once" and "EveryBillingPeriod" credits on initial grant (previousBillingPeriod is null)', async () => {
       // Setup
-      command.payload.previousBillingPeriod = null // Simulate initial grant
+      const standardPayload =
+        command.payload as StandardBillingPeriodTransitionPayload
+      standardPayload.previousBillingPeriod = null // Simulate initial grant
 
       const usageMeter2 = await setupUsageMeter({
         organizationId: organization.id,
@@ -965,7 +971,7 @@ describe('grantEntitlementUsageCredits', () => {
       expect(everyCredit).toBeDefined()
       expect(everyCredit?.issuedAmount).toBe(featureEvery.amount)
       expect(everyCredit?.expiresAt).toEqual(
-        command.payload.newBillingPeriod.endDate
+        standardPayload.newBillingPeriod.endDate
       ) // Recurring grants should expire
 
       // Verify balances
@@ -1077,10 +1083,12 @@ describe('grantEntitlementUsageCredits', () => {
       expect(usageCredits.length).toBe(1)
       expect(ledgerEntries.length).toBe(1)
       const grantedCredit = usageCredits[0]
+      const standardPayload =
+        command.payload as StandardBillingPeriodTransitionPayload
       expect(grantedCredit.usageMeterId).toBe(usageMeter2.id)
       expect(grantedCredit.issuedAmount).toBe(featureEvery.amount)
       expect(grantedCredit.expiresAt).toEqual(
-        command.payload.newBillingPeriod.endDate
+        standardPayload.newBillingPeriod.endDate
       ) // Recurring grants should expire
 
       // Verify balances

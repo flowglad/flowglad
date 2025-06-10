@@ -120,6 +120,7 @@ import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionIte
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import { Subscription } from '@/db/schema/subscriptions'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -211,6 +212,7 @@ export const setupOrg = async (params?: {
         currency: CurrencyCode.USD,
         externalId: null,
         usageMeterId: null,
+        usageEventsPerUnit: null,
       },
       transaction
     )
@@ -350,15 +352,21 @@ export const setupSubscription = async (params: {
   status?: SubscriptionStatus
   trialEnd?: Date
   startDate?: Date
-}) => {
+}): Promise<Subscription.StandardRecord> => {
+  const status = params.status ?? SubscriptionStatus.Active
+  if (status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      'Credit trial subscriptions are not supported in seedDatabase'
+    )
+  }
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(params.priceId, transaction)
-    return insertSubscription(
+    const subscription = await insertSubscription(
       {
         organizationId: params.organizationId,
         customerId: params.customerId,
         defaultPaymentMethodId: params.paymentMethodId,
-        status: params.status ?? SubscriptionStatus.Active,
+        status: status ?? SubscriptionStatus.Active,
         livemode: params.livemode ?? true,
         billingCycleAnchorDate: new Date(),
         currentBillingPeriodEnd:
@@ -383,6 +391,7 @@ export const setupSubscription = async (params: {
       },
       transaction
     )
+    return subscription as Subscription.StandardRecord
   })
 }
 
@@ -681,43 +690,51 @@ export const setupPrice = async ({
   active?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    if (type === PriceType.SinglePayment) {
-      return insertPrice(
-        {
-          productId,
-          name: `${name} (Single Payment)`,
-          type,
-          unitPrice,
-          currency: CurrencyCode.USD,
-          externalId: externalId ?? core.nanoid(),
-          active,
-          usageMeterId: null,
-          intervalUnit: null,
-          intervalCount: null,
-          livemode,
-          isDefault,
-          setupFeeAmount: null,
-          trialPeriodDays: null,
-        },
-        transaction
-      )
+    const basePrice = {
+      productId,
+      type,
+      unitPrice,
+      livemode,
+      isDefault,
+      active,
+      currency: currency ?? CurrencyCode.USD,
+      externalId: externalId ?? core.nanoid(),
     }
-    return insertPrice(
-      {
-        productId,
+
+    const priceConfig = {
+      [PriceType.SinglePayment]: {
+        name: `${name} (Single Payment)`,
+        intervalUnit: null,
+        intervalCount: null,
+        setupFeeAmount: null,
+        trialPeriodDays: null,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+      },
+      [PriceType.Usage]: {
         name,
-        type,
-        unitPrice,
         intervalUnit,
         intervalCount,
-        livemode,
-        isDefault,
+        setupFeeAmount,
+        trialPeriodDays: null,
+        usageMeterId: usageMeterId ?? null,
+        usageEventsPerUnit: 1,
+      },
+      [PriceType.Subscription]: {
+        name,
+        intervalUnit,
+        intervalCount,
         setupFeeAmount,
         trialPeriodDays,
-        currency: currency ?? CurrencyCode.USD,
-        externalId: externalId ?? core.nanoid(),
         usageMeterId: usageMeterId ?? null,
-        active,
+        usageEventsPerUnit: null,
+      },
+    }
+
+    return insertPrice(
+      {
+        ...basePrice,
+        ...priceConfig[type],
       } as Price.Insert,
       transaction
     )

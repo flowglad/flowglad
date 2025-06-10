@@ -465,6 +465,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
           isDefault: false,
           trialPeriodDays: null,
           setupFeeAmount: null,
+          usageEventsPerUnit: null,
         }
 
         const createdPrice = await insertPrice(

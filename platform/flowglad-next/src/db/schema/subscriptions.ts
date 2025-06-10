@@ -68,10 +68,8 @@ const columns = {
   trialEnd: timestamp('trial_end'),
   currentBillingPeriodStart: timestamp(
     'current_billing_period_start'
-  ).notNull(),
-  currentBillingPeriodEnd: timestamp(
-    'current_billing_period_end'
-  ).notNull(),
+  ),
+  currentBillingPeriodEnd: timestamp('current_billing_period_end'),
   metadata: jsonb('metadata'),
   canceledAt: timestamp('canceled_at'),
   cancelScheduledAt: timestamp('cancel_scheduled_at'),
@@ -83,11 +81,9 @@ const columns = {
     enumName: 'IntervalUnit',
     columnName: 'interval',
     enumBase: IntervalUnit,
-  }).notNull(),
-  intervalCount: integer('interval_count').notNull(),
-  billingCycleAnchorDate: timestamp(
-    'billing_cycle_anchor_date'
-  ).notNull(),
+  }),
+  intervalCount: integer('interval_count'),
+  billingCycleAnchorDate: timestamp('billing_cycle_anchor_date'),
   name: text('name'),
   /**
    * A hidden column, used primarily for managing migrations from
@@ -122,8 +118,15 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
   ]
 }).enableRLS()
 
-const columnRefinements = {
-  status: z.nativeEnum(SubscriptionStatus),
+const standardSubscriptionStatuses = Object.values(
+  SubscriptionStatus
+).filter((status) => status !== SubscriptionStatus.CreditTrial) as [
+  Exclude<SubscriptionStatus, SubscriptionStatus.CreditTrial>,
+  ...Exclude<SubscriptionStatus, SubscriptionStatus.CreditTrial>[],
+]
+
+const standardColumnRefinements = {
+  status: z.enum(standardSubscriptionStatuses),
   currentBillingPeriodStart: z.date(),
   currentBillingPeriodEnd: z.date(),
   trialEnd: z.date().nullable(),
@@ -132,27 +135,73 @@ const columnRefinements = {
   metadata: metadataSchema.nullable(),
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
+  billingCycleAnchorDate: z.date(),
+}
+
+export const creditTrialColumnRefinements = {
+  status: z.literal(SubscriptionStatus.CreditTrial),
+  metadata: metadataSchema.nullable(),
+  currentBillingPeriodStart: z.null(),
+  currentBillingPeriodEnd: z.null(),
+  trialEnd: z.null(),
+  canceledAt: z.null(),
+  cancelScheduledAt: z.null(),
+  interval: z.null(),
+  intervalCount: z.null(),
+  billingCycleAnchorDate: z.null(),
+  defaultPaymentMethodId: z.null(),
+  backupPaymentMethodId: z.null(),
 }
 
 /*
  * database schema
  */
-export const subscriptionsInsertSchema = createSelectSchema(
-  subscriptions,
-  columnRefinements
-).omit(ommittedColumnsForInsertSchema)
+const baseSelectSchema = createSelectSchema(subscriptions)
 
-export const subscriptionsSelectSchema =
-  createSelectSchema(subscriptions).extend(columnRefinements)
+export const standardSubscriptionSelectSchema =
+  baseSelectSchema.extend(standardColumnRefinements)
 
-export const subscriptionsUpdateSchema = createSelectSchema(
-  subscriptions,
-  columnRefinements
+export const creditTrialSubscriptionSelectSchema =
+  baseSelectSchema.extend(creditTrialColumnRefinements)
+export const subscriptionsSelectSchema = z.discriminatedUnion(
+  'status',
+  [
+    standardSubscriptionSelectSchema,
+    creditTrialSubscriptionSelectSchema,
+  ]
 )
-  .partial()
-  .extend({
+
+const standardSubscriptionInsertSchema =
+  standardSubscriptionSelectSchema.omit(
+    ommittedColumnsForInsertSchema
+  )
+const creditTrialSubscriptionInsertSchema =
+  creditTrialSubscriptionSelectSchema.omit(
+    ommittedColumnsForInsertSchema
+  )
+export const subscriptionsInsertSchema = z.discriminatedUnion(
+  'status',
+  [
+    standardSubscriptionInsertSchema,
+    creditTrialSubscriptionInsertSchema,
+  ]
+)
+
+const standardSubscriptionUpdateSchema =
+  standardSubscriptionInsertSchema.partial().extend({
     id: z.string(),
   })
+const creditTrialSubscriptionUpdateSchema =
+  creditTrialSubscriptionInsertSchema.partial().extend({
+    id: z.string(),
+  })
+export const subscriptionsUpdateSchema = z.discriminatedUnion(
+  'status',
+  [
+    standardSubscriptionUpdateSchema,
+    creditTrialSubscriptionUpdateSchema,
+  ]
+)
 
 const createOnlyColumns = {
   customerId: true,
@@ -183,20 +232,56 @@ const nonClientEditableColumns = {
 /*
  * client schemas
  */
-export const subscriptionClientInsertSchema =
-  subscriptionsInsertSchema.omit(clientWriteOmits)
 
-export const subscriptionClientUpdateSchema =
-  subscriptionsUpdateSchema.omit(clientWriteOmits)
-
-export const subscriptionClientSelectSchema =
-  subscriptionsSelectSchema.omit(hiddenColumns).extend({
+export const standardSubscriptionClientSelectSchema =
+  standardSubscriptionSelectSchema.omit(hiddenColumns).extend({
     current: z
       .boolean()
       .describe(
         'Whether the subscription is current (statuses "active", "trialing", "past_due", or "cancellation_scheduled")'
       ),
   })
+
+export const creditTrialSubscriptionClientSelectSchema =
+  creditTrialSubscriptionSelectSchema.omit(hiddenColumns).extend({
+    current: z
+      .boolean()
+      .describe(
+        'Whether the subscription is current (statuses "active", "trialing", "past_due", "cancellation_scheduled", or "credit_trial")'
+      ),
+  })
+
+export const subscriptionClientSelectSchema = z.discriminatedUnion(
+  'status',
+  [
+    standardSubscriptionClientSelectSchema,
+    creditTrialSubscriptionClientSelectSchema,
+  ]
+)
+
+const standardSubscriptionClientInsertSchema =
+  standardSubscriptionInsertSchema.omit(clientWriteOmits)
+const creditTrialSubscriptionClientInsertSchema =
+  creditTrialSubscriptionInsertSchema.omit(clientWriteOmits)
+export const subscriptionClientInsertSchema = z.discriminatedUnion(
+  'status',
+  [
+    standardSubscriptionClientInsertSchema,
+    creditTrialSubscriptionClientInsertSchema,
+  ]
+)
+
+const standardSubscriptionClientUpdateSchema =
+  standardSubscriptionUpdateSchema.omit(clientWriteOmits)
+const creditTrialSubscriptionClientUpdateSchema =
+  creditTrialSubscriptionUpdateSchema.omit(clientWriteOmits)
+export const subscriptionClientUpdateSchema = z.discriminatedUnion(
+  'status',
+  [
+    standardSubscriptionClientUpdateSchema,
+    creditTrialSubscriptionClientUpdateSchema,
+  ]
+)
 
 export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,
@@ -207,11 +292,11 @@ export const subscriptionsTableRowDataSchema = z.object({
 
 export const subscriptionsPaginatedSelectSchema =
   createPaginatedSelectSchema(
-    subscriptionClientSelectSchema.pick({
-      status: true,
-      priceId: true,
-      customerId: true,
-      organizationId: true,
+    z.object({
+      status: z.nativeEnum(SubscriptionStatus).optional(),
+      priceId: z.string().optional(),
+      customerId: z.string().optional(),
+      organizationId: z.string().optional(),
     })
   )
 
@@ -238,6 +323,44 @@ export namespace Subscription {
     typeof subscriptionsPaginatedListSchema
   >
   export type Where = SelectConditions<typeof subscriptions>
+
+  export type StandardRecord = z.infer<
+    typeof standardSubscriptionSelectSchema
+  >
+  export type CreditTrialRecord = z.infer<
+    typeof creditTrialSubscriptionSelectSchema
+  >
+  export type StandardInsert = z.infer<
+    typeof standardSubscriptionInsertSchema
+  >
+  export type CreditTrialInsert = z.infer<
+    typeof creditTrialSubscriptionInsertSchema
+  >
+  export type StandardUpdate = z.infer<
+    typeof standardSubscriptionUpdateSchema
+  >
+  export type CreditTrialUpdate = z.infer<
+    typeof creditTrialSubscriptionUpdateSchema
+  >
+
+  export type ClientStandardRecord = z.infer<
+    typeof standardSubscriptionClientSelectSchema
+  >
+  export type ClientCreditTrialRecord = z.infer<
+    typeof creditTrialSubscriptionClientSelectSchema
+  >
+  export type ClientStandardInsert = z.infer<
+    typeof standardSubscriptionClientInsertSchema
+  >
+  export type ClientCreditTrialInsert = z.infer<
+    typeof creditTrialSubscriptionClientInsertSchema
+  >
+  export type ClientStandardUpdate = z.infer<
+    typeof standardSubscriptionClientUpdateSchema
+  >
+  export type ClientCreditTrialUpdate = z.infer<
+    typeof creditTrialSubscriptionClientUpdateSchema
+  >
 }
 
 export const createSubscriptionSchema = z.object({

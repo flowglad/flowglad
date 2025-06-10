@@ -125,6 +125,7 @@ export const stripePriceToPriceInsert = (
       setupFeeAmount: null,
       isDefault: stripeProduct.default_price === stripePrice.id,
       usageMeterId: null,
+      usageEventsPerUnit: null,
     }
     return singlePaymentPrice
   }
@@ -144,6 +145,7 @@ export const stripePriceToPriceInsert = (
       setupFeeAmount: null,
       isDefault: stripeProduct.default_price === stripePrice.id,
       usageMeterId: null,
+      usageEventsPerUnit: null,
     }
     return subscriptionPrice
   }
@@ -152,7 +154,7 @@ export const stripePriceToPriceInsert = (
 
 const stripeSubscriptionToSubscriptionStatus = (
   stripeSubscription: Stripe.Subscription
-): SubscriptionStatus => {
+): Exclude<SubscriptionStatus, SubscriptionStatus.CreditTrial> => {
   switch (stripeSubscription.status) {
     case 'active':
       return SubscriptionStatus.Active
@@ -308,7 +310,7 @@ export const stripeSubscriptionToSubscriptionInsert = async (
   price: Price.Record,
   params: CoreMigrationParams,
   stripe: Stripe
-): Promise<Subscription.Insert> => {
+): Promise<Subscription.StandardInsert> => {
   const defaultPaymentMethod =
     await paymentMethodRecordForStripeSubscription(
       stripe,

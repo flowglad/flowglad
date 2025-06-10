@@ -1,5 +1,8 @@
 import { DbTransaction } from '@/db/types'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  BillingPeriodTransitionLedgerCommand,
+  StandardBillingPeriodTransitionPayload,
+} from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   LedgerEntryStatus,
   LedgerEntryDirection,
@@ -37,9 +40,10 @@ export const grantEntitlementUsageCredits = async (
     command.payload.subscriptionFeatureItems.filter(
       (featureItem) => featureItem.usageMeterId
     )
-
+  const standardPayload =
+    command.payload as StandardBillingPeriodTransitionPayload
   const isInitialGrant =
-    command.payload.previousBillingPeriod === null
+    standardPayload.previousBillingPeriod === null
 
   const featureItemsToGrant = isInitialGrant
     ? subscriptionFeatureItemsWithUsageMeters
@@ -71,7 +75,6 @@ export const grantEntitlementUsageCredits = async (
       )
     })
   }
-
   const usageCreditInserts: UsageCredit.Insert[] =
     featureItemsToGrant.map((featureItem) => {
       return {
@@ -81,7 +84,7 @@ export const grantEntitlementUsageCredits = async (
         status: UsageCreditStatus.Posted,
         usageMeterId: featureItem.usageMeterId!,
         subscriptionId: command.subscriptionId!,
-        billingPeriodId: command.payload.newBillingPeriod.id,
+        billingPeriodId: standardPayload.newBillingPeriod.id,
         notes: null,
         metadata: null,
         // Credits from recurring grants expire at the end of the billing period.
@@ -89,7 +92,7 @@ export const grantEntitlementUsageCredits = async (
         expiresAt:
           featureItem.renewalFrequency ===
           FeatureUsageGrantFrequency.EveryBillingPeriod
-            ? command.payload.newBillingPeriod.endDate
+            ? standardPayload.newBillingPeriod.endDate
             : null,
         issuedAmount: featureItem.amount,
         issuedAt: new Date(),
@@ -132,7 +135,10 @@ export const grantEntitlementUsageCredits = async (
           entryType: LedgerEntryType.CreditGrantRecognized,
           discardedAt: null,
           sourceUsageCreditId: usageCredit.id,
-          billingPeriodId: command.payload.newBillingPeriod.id,
+          billingPeriodId:
+            command.payload.type === 'standard'
+              ? standardPayload.newBillingPeriod.id
+              : null,
         }
       return entitlementCreditLedgerEntry
     })

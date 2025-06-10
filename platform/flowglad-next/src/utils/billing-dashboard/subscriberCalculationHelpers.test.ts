@@ -76,12 +76,40 @@ const coreSubscriptionValues = {
   trialEnd: null,
   createdByCommit: 'test',
   updatedByCommit: 'test',
-} as const
+} satisfies Pick<
+  Subscription.StandardRecord,
+  | 'id'
+  | 'organizationId'
+  | 'customerId'
+  | 'defaultPaymentMethodId'
+  | 'priceId'
+  | 'status'
+  | 'startDate'
+  | 'canceledAt'
+  | 'livemode'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'name'
+  | 'interval'
+  | 'intervalCount'
+  | 'externalId'
+  | 'billingCycleAnchorDate'
+  | 'metadata'
+  | 'backupPaymentMethodId'
+  | 'currentBillingPeriodEnd'
+  | 'currentBillingPeriodStart'
+  | 'cancelScheduledAt'
+  | 'runBillingAtPeriodStart'
+  | 'stripeSetupIntentId'
+  | 'trialEnd'
+  | 'createdByCommit'
+  | 'updatedByCommit'
+>
 
 // Helper function to create subscription objects with all required properties
 const createSubscription = (
-  values: Partial<Subscription.Record>
-): Subscription.Record => ({
+  values: Partial<Subscription.StandardRecord>
+): Subscription.StandardRecord => ({
   ...coreSubscriptionValues,
   ...values,
   position: 0,
@@ -926,9 +954,7 @@ describe('calculateSubscriberBreakdown', () => {
     const { organization } = await setupOrg()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
-
-    // Create two subscriptions that started in February
-    const newSubscriptions: Subscription.Record[] = [
+    const newSubInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-1',
         organizationId: organization.id,
@@ -955,10 +981,12 @@ describe('calculateSubscriberBreakdown', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create two subscriptions that started in February
+    const newSubscriptions: Subscription.StandardRecord[] =
+      newSubInputs.map(createSubscription)
 
-    // Create two subscriptions that were active in January but canceled in February
-    const churnedSubscriptions: Subscription.Record[] = [
+    const churnedSubInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-3',
         organizationId: organization.id,
@@ -985,7 +1013,10 @@ describe('calculateSubscriberBreakdown', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create two subscriptions that were active in January but canceled in February
+    const churnedSubscriptions: Subscription.StandardRecord[] =
+      churnedSubInputs.map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
@@ -1014,9 +1045,7 @@ describe('calculateSubscriberBreakdown', () => {
     const { organization } = await setupOrg()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
-
-    // Create three subscriptions that started in February
-    const newSubscriptions: Subscription.Record[] = [
+    const newSubInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-1',
         organizationId: organization.id,
@@ -1056,7 +1085,11 @@ describe('calculateSubscriberBreakdown', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create three subscriptions that started in February
+    const newSubscriptions: Subscription.Record[] = newSubInputs.map(
+      createSubscription
+    )
 
     // Create one subscription that was active in January but canceled in February
     const churnedSubscription: Subscription.Record =
@@ -1116,9 +1149,7 @@ describe('calculateSubscriberBreakdown', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-
-    // Create three subscriptions that were active in January but canceled in February
-    const churnedSubscriptions: Subscription.Record[] = [
+    const churnedSubInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-2',
         organizationId: organization.id,
@@ -1158,7 +1189,10 @@ describe('calculateSubscriberBreakdown', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create three subscriptions that were active in January but canceled in February
+    const churnedSubscriptions: Subscription.StandardRecord[] =
+      churnedSubInputs.map(createSubscription)
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
@@ -1470,9 +1504,7 @@ describe('getCurrentActiveSubscribers', () => {
   it('should correctly count multiple active subscribers', async () => {
     const { organization } = await setupOrg()
     const testDate = new Date('2023-03-15T05:00:00.000Z')
-
-    // Create multiple active subscriptions
-    const subscriptions: Subscription.Record[] = [
+    const subInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-1',
         organizationId: organization.id,
@@ -1512,7 +1544,11 @@ describe('getCurrentActiveSubscribers', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create multiple active subscriptions
+    const subscriptions: Subscription.Record[] = subInputs.map(
+      createSubscription
+    )
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(
@@ -1532,9 +1568,7 @@ describe('getCurrentActiveSubscribers', () => {
   it('should return zero when there are only canceled subscriptions', async () => {
     const { organization } = await setupOrg()
     const testDate = new Date('2023-03-15T05:00:00.000Z')
-
-    // Create subscriptions that are all canceled
-    const subscriptions: Subscription.Record[] = [
+    const subInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-1',
         organizationId: organization.id,
@@ -1561,7 +1595,11 @@ describe('getCurrentActiveSubscribers', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create subscriptions that are all canceled
+    const subscriptions: Subscription.Record[] = subInputs.map(
+      createSubscription
+    )
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(
@@ -1581,9 +1619,7 @@ describe('getCurrentActiveSubscribers', () => {
   it('should correctly count a mix of active and canceled subscriptions', async () => {
     const { organization } = await setupOrg()
     const testDate = new Date('2023-03-15T05:00:00.000Z')
-
-    // Create a mix of active and canceled subscriptions
-    const subscriptions: Subscription.Record[] = [
+    const subInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-1',
         organizationId: organization.id,
@@ -1623,7 +1659,11 @@ describe('getCurrentActiveSubscribers', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create a mix of active and canceled subscriptions
+    const subscriptions: Subscription.Record[] = subInputs.map(
+      createSubscription
+    )
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(
@@ -1645,9 +1685,7 @@ describe('getCurrentActiveSubscribers', () => {
 
     // Test with the first day of the month
     const firstDayOfMonth = new Date('2023-03-01T05:00:00.000Z')
-
-    // Create active subscriptions
-    const subscriptions: Subscription.Record[] = [
+    const subInputs: Partial<Subscription.StandardRecord>[] = [
       {
         id: 'sub-1',
         organizationId: organization.id,
@@ -1661,7 +1699,11 @@ describe('getCurrentActiveSubscribers', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ].map(createSubscription)
+    ]
+    // Create active subscriptions
+    const subscriptions: Subscription.Record[] = subInputs.map(
+      createSubscription
+    )
 
     // Mock subscription data
     vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValue(

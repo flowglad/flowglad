@@ -13,6 +13,7 @@ import {
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
+  SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -73,7 +74,7 @@ export const adjustSubscription = async (
   params: AdjustSubscriptionParams,
   transaction: DbTransaction
 ): Promise<{
-  subscription: Subscription.Record
+  subscription: Subscription.StandardRecord
   subscriptionItems: SubscriptionItem.Record[]
 }> => {
   const { adjustment, id } = params
@@ -81,6 +82,9 @@ export const adjustSubscription = async (
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
+  }
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    throw new Error('Credit trial subscriptions cannot be adjusted.')
   }
   let adjustmentDate: Date
   if (timing === SubscriptionAdjustmentTiming.Immediately) {

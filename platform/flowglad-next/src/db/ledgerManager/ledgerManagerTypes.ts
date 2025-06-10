@@ -63,29 +63,61 @@ export type CreditGrantRecognizedLedgerCommand = z.infer<
   typeof creditGrantRecognizedLedgerCommandSchema
 >
 
+const standardBillingPeriodTransitionPayloadSchema = z.object({
+  // billingRunId: z
+  //   .string()
+  //   .describe(
+  //     'The billing_run_id for this billing run phase. This is the initiatingSourceId.'
+  //   ),
+  subscription: subscriptionsSelectSchema,
+  previousBillingPeriod: billingPeriodsSelectSchema
+    .nullable()
+    .describe(
+      'The previous billing period for the subscription. If this is the first billing period, e.g. a new subscription, provide null.'
+    ),
+  newBillingPeriod: billingPeriodsSelectSchema,
+  subscriptionFeatureItems:
+    usageCreditGrantSubscriptionItemFeatureClientSelectSchema
+      .array()
+      .describe(
+        'The subscription feature items that were active during this billing run for the given subscription.'
+      ),
+  type: z.literal('standard'),
+})
+
+const creditTrialBillingPeriodTransitionPayloadSchema =
+  standardBillingPeriodTransitionPayloadSchema
+    .extend({
+      type: z.literal('credit_trial'),
+    })
+    .omit({
+      previousBillingPeriod: true,
+      newBillingPeriod: true,
+    })
+
+export type StandardBillingPeriodTransitionPayload = z.infer<
+  typeof standardBillingPeriodTransitionPayloadSchema
+>
+
+export type CreditTrialBillingPeriodTransitionPayload = z.infer<
+  typeof creditTrialBillingPeriodTransitionPayloadSchema
+>
+
+const billingPeriodTransitionPayloadSchema = z.discriminatedUnion(
+  'type',
+  [
+    standardBillingPeriodTransitionPayloadSchema,
+    creditTrialBillingPeriodTransitionPayloadSchema,
+  ]
+)
+export type BillingPeriodTransitionPayload = z.infer<
+  typeof billingPeriodTransitionPayloadSchema
+>
+
 export const billingPeriodTransitionLedgerCommandSchema = z.object({
   ...baseLedgerCommandFields,
   type: z.literal(LedgerTransactionType.BillingPeriodTransition),
-  payload: z.object({
-    // billingRunId: z
-    //   .string()
-    //   .describe(
-    //     'The billing_run_id for this billing run phase. This is the initiatingSourceId.'
-    //   ),
-    subscription: subscriptionsSelectSchema,
-    previousBillingPeriod: billingPeriodsSelectSchema
-      .nullable()
-      .describe(
-        'The previous billing period for the subscription. If this is the first billing period, e.g. a new subscription, provide null.'
-      ),
-    newBillingPeriod: billingPeriodsSelectSchema,
-    subscriptionFeatureItems:
-      usageCreditGrantSubscriptionItemFeatureClientSelectSchema
-        .array()
-        .describe(
-          'The subscription feature items that were active during this billing run for the given subscription.'
-        ),
-  }),
+  payload: billingPeriodTransitionPayloadSchema,
 })
 
 export type BillingPeriodTransitionLedgerCommand = z.infer<

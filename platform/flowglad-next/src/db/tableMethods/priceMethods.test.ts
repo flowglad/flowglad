@@ -69,6 +69,7 @@ describe('priceMethods.ts', () => {
             externalId: null,
             active: true,
             usageMeterId: null,
+            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -113,6 +114,7 @@ describe('priceMethods.ts', () => {
             externalId: null,
             active: true,
             usageMeterId: null,
+            usageEventsPerUnit: null,
           },
           transaction
         )

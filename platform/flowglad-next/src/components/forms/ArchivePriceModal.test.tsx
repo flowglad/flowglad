@@ -28,6 +28,7 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageMeterId: null,
+      usageEventsPerUnit: null,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -57,6 +58,7 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       livemode: false,
+      usageEventsPerUnit: null,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -66,6 +68,7 @@ describe('priceToEditPriceInput', () => {
         productId: 'prod_1',
         active: true,
         type: PriceType.Subscription,
+        usageEventsPerUnit: null,
       },
     })
     expect(editPriceSchema.safeParse(result).success).toBe(true)
@@ -85,6 +88,7 @@ describe('priceToEditPriceInput', () => {
       intervalCount: null,
       trialPeriodDays: null,
       setupFeeAmount: null,
+      usageEventsPerUnit: null,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -94,6 +98,7 @@ describe('priceToEditPriceInput', () => {
         productId: 'prod_1',
         active: false,
         type: PriceType.SinglePayment,
+        usageEventsPerUnit: null,
       },
     })
     expect(editPriceSchema.safeParse(result).success).toBe(true)
@@ -113,6 +118,7 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageMeterId: 'um_1',
+      usageEventsPerUnit: 1,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -122,6 +128,7 @@ describe('priceToEditPriceInput', () => {
         productId: 'prod_1',
         active: false,
         type: PriceType.Usage,
+        usageEventsPerUnit: 1,
       },
     })
     const parseResult = editPriceSchema.safeParse(result)

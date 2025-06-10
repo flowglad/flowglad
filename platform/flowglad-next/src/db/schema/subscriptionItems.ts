@@ -233,7 +233,9 @@ export const staticSubscriptionItemClientSelectSchema =
 
 // Usage Subscription Item Client Schemas
 export const usageSubscriptionItemClientInsertSchema =
-  usageSubscriptionItemInsertSchema.omit(clientNonEditableColumns)
+  usageSubscriptionItemInsertSchema.omit(
+    R.omit(['position'], hiddenColumns)
+  )
 export const usageSubscriptionItemClientUpdateSchema =
   usageSubscriptionItemUpdateSchema.omit(clientNonEditableColumns)
 

@@ -28,6 +28,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageMeterId: null,
+      usageEventsPerUnit: null,
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
@@ -56,6 +57,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       intervalCount: null,
       trialPeriodDays: null,
       setupFeeAmount: null,
+      usageEventsPerUnit: null,
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
@@ -84,6 +86,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageMeterId: 'um_1',
+      usageEventsPerUnit: 1,
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
@@ -93,6 +96,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
         productId: 'prod_1',
         isDefault: true,
         type: PriceType.Usage,
+        usageEventsPerUnit: 1,
       },
     })
     const parseResult = editPriceSchema.safeParse(result)

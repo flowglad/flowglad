@@ -76,7 +76,7 @@ describe('createSubscription', async () => {
     })
 
     const stripeSetupIntentId = `setupintent_before_each_${core.nanoid()}`
-    const { result: workflowResult } = await adminTransaction(
+    const workflowResult = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         return createSubscriptionWorkflow(
           {
@@ -99,7 +99,13 @@ describe('createSubscription', async () => {
     )
     subscription = workflowResult.subscription
     subscriptionItems = workflowResult.subscriptionItems
+    if (!workflowResult.billingPeriod) {
+      throw new Error('billingPeriod not found')
+    }
     billingPeriod = workflowResult.billingPeriod
+    if (!('billingRun' in workflowResult)) {
+      throw new Error('billingRun not found')
+    }
     billingRun = workflowResult.billingRun
   })
 
@@ -268,17 +274,17 @@ describe('createSubscription', async () => {
       trialEnd.getTime()
     )
     expect(trialBillingPeriod).toBeDefined()
-    expect(trialBillingPeriod.startDate.getTime()).toBe(
+    expect(trialBillingPeriod!.startDate.getTime()).toBe(
       startDate.getTime()
     )
-    expect(trialBillingPeriod.endDate.getTime()).toBe(
+    expect(trialBillingPeriod!.endDate.getTime()).toBe(
       trialEnd.getTime()
     )
 
     await adminTransaction(async ({ transaction }) => {
       const billingPeriodItems = await selectBillingPeriodItems(
         {
-          billingPeriodId: trialBillingPeriod.id,
+          billingPeriodId: trialBillingPeriod!.id,
         },
         transaction
       )
@@ -739,7 +745,8 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           catalogId: product.catalogId,
           name: 'Temp Usage Meter',
         })
-      ).id, // Requires a usage meter
+      ).id, // Requires a usage meter,
+      usageEventsPerUnit: 1,
       // Reset fields that might conflict with usage type if they were for subscription
       intervalUnit: undefined,
       intervalCount: undefined,
@@ -1129,6 +1136,7 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
         setupFeeAmount: null,
         intervalUnit: undefined,
         intervalCount: undefined,
+        usageEventsPerUnit: 1,
       }
 
       const usagePrice = await updatePrice(

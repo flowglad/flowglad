@@ -75,6 +75,7 @@ const columns = {
   setupFeeAmount: integer('setup_fee_amount'),
   isDefault: boolean('is_default').notNull(),
   unitPrice: integer('unit_price').notNull(),
+  usageEventsPerUnit: integer('usage_events_per_unit'),
   /**
    * Omitting this for now to reduce MVP complexity,
    * will re-introduce later
@@ -141,6 +142,7 @@ const basePriceColumns = {
   isDefault: z.boolean(),
   unitPrice: core.safeZodNonNegativeInteger,
   currency: core.createSafeZodEnum(CurrencyCode),
+  usageEventsPerUnit: z.null(),
 }
 
 export const basePriceSelectSchema = createSelectSchema(
@@ -176,6 +178,7 @@ const usagePriceColumns = {
     .describe(
       'The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.'
     ),
+  usageEventsPerUnit: core.safeZodPositiveInteger,
   type: z.literal(PriceType.Usage),
 }
 
@@ -539,6 +542,7 @@ export const usagePriceDefaultColumns: Pick<
   trialPeriodDays: null,
   type: PriceType.Usage,
   usageMeterId: '',
+  usageEventsPerUnit: 1,
 }
 
 export const singlePaymentPriceDefaultColumns: Pick<

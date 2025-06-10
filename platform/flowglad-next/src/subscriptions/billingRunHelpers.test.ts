@@ -227,11 +227,11 @@ describe('billingRunHelpers', async () => {
       const billingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
         startDate: new Date(
-          subscription.currentBillingPeriodStart.getTime() -
+          subscription.currentBillingPeriodStart!.getTime() -
             30 * 24 * 60 * 60 * 1000
         ),
         endDate: new Date(
-          subscription.currentBillingPeriodEnd.getTime() -
+          subscription.currentBillingPeriodEnd!.getTime() -
             30 * 24 * 60 * 60 * 1000
         ),
         status: BillingPeriodStatus.Active,
@@ -435,8 +435,8 @@ describe('billingRunHelpers', async () => {
       // Create a test billing period with a specific livemode value
       const testBillingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: subscription.currentBillingPeriodStart,
-        endDate: subscription.currentBillingPeriodEnd,
+        startDate: subscription.currentBillingPeriodStart!,
+        endDate: subscription.currentBillingPeriodEnd!,
         status: BillingPeriodStatus.Active,
         livemode: true, // Set to true for testing
       })
@@ -622,8 +622,8 @@ describe('billingRunHelpers', async () => {
       // Create a test billing period with a specific livemode value
       const testBillingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: subscription.currentBillingPeriodStart,
-        endDate: subscription.currentBillingPeriodEnd,
+        startDate: subscription.currentBillingPeriodStart!,
+        endDate: subscription.currentBillingPeriodEnd!,
         status: BillingPeriodStatus.Active,
         livemode: true, // Set to true for testing
       })
@@ -781,8 +781,8 @@ describe('billingRunHelpers', async () => {
       // Create a test billing period with a specific livemode value
       const testBillingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: subscription.currentBillingPeriodStart,
-        endDate: subscription.currentBillingPeriodEnd,
+        startDate: subscription.currentBillingPeriodStart!,
+        endDate: subscription.currentBillingPeriodEnd!,
         status: BillingPeriodStatus.Active,
         livemode: true, // Set to true for testing
       })

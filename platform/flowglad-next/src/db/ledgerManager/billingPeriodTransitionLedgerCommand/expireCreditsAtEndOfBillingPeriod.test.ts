@@ -49,8 +49,7 @@ import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { Catalog } from '@/db/schema/catalogs'
 import { core } from '@/utils/core'
 import { adminTransaction } from '@/db/adminTransaction'
-import { LedgerEntry } from '@/db/schema/ledgerEntries'
-import { UsageCredit } from '@/db/schema/usageCredits'
+import { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 
 let organization: Organization.Record
 let catalog: Catalog.Record
@@ -149,6 +148,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       livemode: subscription.livemode,
       type: LedgerTransactionType.BillingPeriodTransition,
       payload: {
+        type: 'standard',
         previousBillingPeriod,
         billingRunId: billingRun.id,
         subscription,
@@ -220,7 +220,9 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const futureExpiryDate = new Date(
-      testCommand.payload.previousBillingPeriod!.endDate
+      (
+        testCommand.payload as StandardBillingPeriodTransitionPayload
+      ).previousBillingPeriod!.endDate
     )
     futureExpiryDate.setDate(futureExpiryDate.getDate() + 5)
     const nonExpiringCredit2 = await setupUsageCredit({
@@ -262,7 +264,9 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   it('should correctly expire credits that expire exactly at the previous billing period end date', async () => {
     const expiringCreditAmount = 75
     const exactExpiryDate = new Date(
-      testCommand.payload.previousBillingPeriod!.endDate
+      (
+        testCommand.payload as StandardBillingPeriodTransitionPayload
+      ).previousBillingPeriod!.endDate
     )
 
     const expiringCredit = await setupUsageCredit({
@@ -329,7 +333,9 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     const usedAmount = 400
     const remainingAmount = issuedAmount - usedAmount
     const expiryDate = new Date(
-      testCommand.payload.previousBillingPeriod!.endDate
+      (
+        testCommand.payload as StandardBillingPeriodTransitionPayload
+      ).previousBillingPeriod!.endDate
     )
     expiryDate.setDate(expiryDate.getDate() - 1)
 
@@ -420,7 +426,9 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   it('should correctly expire credits that expire before the previous billing period end date', async () => {
     const earlyExpiryAmount = 120
     const earlyExpiryDate = new Date(
-      testCommand.payload.previousBillingPeriod!.endDate
+      (
+        testCommand.payload as StandardBillingPeriodTransitionPayload
+      ).previousBillingPeriod!.endDate
     )
     earlyExpiryDate.setDate(earlyExpiryDate.getDate() - 1)
 
@@ -475,8 +483,9 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   })
 
   it('should handle a mix of expiring and non-expiring credits correctly', async () => {
-    const prevPeriodEndDate =
-      testCommand.payload.previousBillingPeriod!.endDate
+    const prevPeriodEndDate = (
+      testCommand.payload as StandardBillingPeriodTransitionPayload
+    ).previousBillingPeriod!.endDate
 
     const expiringBeforeAmount = 10
     const expiringBeforeDate = new Date(prevPeriodEndDate)
@@ -609,7 +618,9 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const detailCheckAmount = 99
     const detailCheckExpiryDate = new Date(
-      testCommand.payload.previousBillingPeriod!.endDate
+      (
+        testCommand.payload as StandardBillingPeriodTransitionPayload
+      ).previousBillingPeriod!.endDate
     )
     detailCheckExpiryDate.setDate(detailCheckExpiryDate.getDate() - 1)
 

@@ -91,7 +91,7 @@ let customer: Customer.Record
 let paymentMethod: PaymentMethod.Record
 let billingPeriod: BillingPeriod.Record
 let billingRun: BillingRun.Record
-let subscription: Subscription.Record
+let subscription: Subscription.StandardRecord
 let usageMeter: UsageMeter.Record
 let otherUsageMeter: UsageMeter.Record
 let ledgerAccount: LedgerAccount.Record
@@ -318,7 +318,6 @@ describe('Subscription Billing Period Transition', async () => {
         updatedBillingPeriod.startDate
       )
       expect(updatedSub.currentBillingPeriodEnd).toBeDefined()
-
       // And a billing run was created with scheduledFor equal to the new period's start date
       expect(newBillingRun).toBeDefined()
       expect(newBillingRun?.scheduledFor.getTime()).toEqual(

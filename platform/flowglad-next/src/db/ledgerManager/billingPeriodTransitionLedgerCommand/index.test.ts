@@ -191,6 +191,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       livemode: subscription.livemode,
       type: LedgerTransactionType.BillingPeriodTransition,
       payload: {
+        type: 'standard',
         previousBillingPeriod,
         subscription,
         newBillingPeriod,

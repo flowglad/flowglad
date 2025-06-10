@@ -8,6 +8,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { attemptToCreateFutureBillingPeriodForSubscription } from '@/subscriptions/billingPeriodHelpers'
+import { SubscriptionStatus } from '@/types'
 
 async function createNextBillingPeriodForSubscription(
   db: PostgresJsDatabase
@@ -38,6 +39,11 @@ async function createNextBillingPeriodForSubscription(
       subscriptionId,
       transaction
     )
+    if (subscription.status === SubscriptionStatus.CreditTrial) {
+      throw new Error(
+        `Subscription ${subscriptionId} is a credit trial subscription. Credit trial subscriptions cannot have billing periods.`
+      )
+    }
     const result =
       await attemptToCreateFutureBillingPeriodForSubscription(
         subscription,

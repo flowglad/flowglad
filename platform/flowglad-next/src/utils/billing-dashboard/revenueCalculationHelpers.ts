@@ -39,7 +39,10 @@ export interface RevenueCalculationOptions {
 export interface BillingPeriodWithItems {
   billingPeriod: BillingPeriod.Record
   billingPeriodItems: BillingPeriodItem.Record[]
-  subscription: Subscription.Record
+  /**
+   * Only standard subscriptions have billing periods
+   */
+  subscription: Subscription.StandardRecord
 }
 
 /**
@@ -239,7 +242,7 @@ export async function calculateMRRByMonth(
           // Normalize to monthly value based on the subscription interval
           const monthlyValue = normalizeToMonthlyValue(
             totalValue,
-            subscription.interval,
+            (subscription as Subscription.StandardRecord).interval,
             subscription.intervalCount
           )
 

@@ -44,7 +44,12 @@ import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId } from '@/db/tableMethods/ledgerAccountMethods'
 import { createSubscriptionFeatureItems } from './subscriptionItemFeatureHelpers'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  BillingPeriodTransitionLedgerCommand,
+  BillingPeriodTransitionPayload,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
+import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -76,7 +81,10 @@ const deriveSubscriptionStatus = ({
   autoStart: boolean
   trialEnd?: Date
   defaultPaymentMethodId?: string
-}): SubscriptionStatus => {
+}):
+  | SubscriptionStatus.Trialing
+  | SubscriptionStatus.Active
+  | SubscriptionStatus.Incomplete => {
   if (trialEnd) {
     return SubscriptionStatus.Trialing
   }
@@ -86,8 +94,15 @@ const deriveSubscriptionStatus = ({
   return SubscriptionStatus.Incomplete
 }
 
-export const insertSubscriptionAndItems = async (
-  {
+const createStandardSubscriptionAndItems = async (
+  params: CreateSubscriptionParams,
+  currentBillingPeriod: {
+    startDate: Date
+    endDate: Date
+  },
+  transaction: DbTransaction
+) => {
+  const {
     organization,
     customer,
     price,
@@ -104,20 +119,8 @@ export const insertSubscriptionAndItems = async (
     stripeSetupIntentId,
     metadata,
     autoStart = false,
-  }: CreateSubscriptionParams,
-  transaction: DbTransaction
-) => {
-  const currentBillingPeriod = generateNextBillingPeriod({
-    billingCycleAnchorDate: startDate,
-    interval,
-    intervalCount,
-    lastBillingPeriodEndDate: null,
-    trialEnd,
-  })
-  if (!isPriceTypeSubscription(price.type)) {
-    throw new Error('Price is not a subscription')
-  }
-  const subscriptionInsert: Subscription.Insert = {
+  } = params
+  const subscriptionInsert: Subscription.StandardInsert = {
     organizationId: organization.id,
     customerId: customer.id,
     priceId: price.id,
@@ -156,7 +159,6 @@ export const insertSubscriptionAndItems = async (
     subscriptionInsert,
     transaction
   )
-
   const subscriptionItemInsert: SubscriptionItem.Insert = {
     name: `${price.name}${quantity > 1 ? ` x ${quantity}` : ''}`,
     subscriptionId: subscription.id,
@@ -181,12 +183,162 @@ export const insertSubscriptionAndItems = async (
   return { subscription, subscriptionItems }
 }
 
+const createCreditTrialSubscriptionAndItems = async (
+  params: CreateSubscriptionParams,
+  transaction: DbTransaction
+) => {
+  const {
+    organization,
+    customer,
+    price,
+    product,
+    quantity,
+    livemode,
+    startDate,
+    interval,
+    intervalCount,
+    defaultPaymentMethod,
+    backupPaymentMethod,
+    trialEnd,
+    name: subscriptionName,
+    stripeSetupIntentId,
+    metadata,
+    autoStart = false,
+  } = params
+  const subscriptionInsert: Subscription.CreditTrialInsert = {
+    organizationId: organization.id,
+    customerId: customer.id,
+    priceId: price.id,
+    livemode,
+    status: SubscriptionStatus.CreditTrial,
+    defaultPaymentMethodId: null,
+    backupPaymentMethodId: null,
+    cancelScheduledAt: null,
+    canceledAt: null,
+    metadata: metadata ?? null,
+    trialEnd: null,
+    /**
+     * For subscription prices, billing runs at the start of each period
+     * For usage-based prices, billing runs at the end of each period after usage is collected
+     */
+    runBillingAtPeriodStart:
+      price.type === PriceType.Subscription ? true : false,
+    name:
+      subscriptionName ??
+      `${product.name}${price.name ? ` - ${price.name}` : ''}`,
+    currentBillingPeriodStart: null,
+    currentBillingPeriodEnd: null,
+    billingCycleAnchorDate: null,
+    interval: null,
+    intervalCount: null,
+    stripeSetupIntentId: stripeSetupIntentId ?? null,
+    externalId: null,
+    startDate,
+  }
+
+  const subscription = await insertSubscription(
+    subscriptionInsert,
+    transaction
+  )
+  const subscriptionItemInsert: SubscriptionItem.UsageInsert = {
+    name: `${price.name}${quantity > 1 ? ` x ${quantity}` : ''}`,
+    subscriptionId: subscription.id,
+    priceId: price.id,
+    addedDate: startDate,
+    quantity,
+    livemode,
+    unitPrice: price.unitPrice,
+    metadata: null,
+    externalId: null,
+    expiredAt: null,
+    type: SubscriptionItemType.Usage,
+    usageMeterId: price.usageMeterId!,
+    usageEventsPerUnit: 1,
+  }
+
+  const subscriptionItems = await bulkInsertSubscriptionItems(
+    [subscriptionItemInsert],
+    transaction
+  )
+
+  return { subscription, subscriptionItems }
+}
+
+export const insertSubscriptionAndItems = async (
+  params: CreateSubscriptionParams,
+  transaction: DbTransaction
+) => {
+  const {
+    organization,
+    customer,
+    price,
+    product,
+    quantity,
+    livemode,
+    startDate,
+    interval,
+    intervalCount,
+    trialEnd,
+  } = params
+
+  const currentBillingPeriod = generateNextBillingPeriod({
+    billingCycleAnchorDate: startDate,
+    interval,
+    intervalCount,
+    lastBillingPeriodEndDate: null,
+    trialEnd,
+  })
+
+  if (!isPriceTypeSubscription(price.type)) {
+    throw new Error('Price is not a subscription')
+  }
+  const featuresForProduct =
+    await selectFeaturesByProductFeatureWhere(
+      {
+        productId: product.id,
+      },
+      transaction
+    )
+
+  const featuresForProductIncludeOneTimeCreditGrant =
+    featuresForProduct.some(
+      (feature) =>
+        feature.feature.type === FeatureType.UsageCreditGrant
+    )
+
+  return await (featuresForProductIncludeOneTimeCreditGrant
+    ? createCreditTrialSubscriptionAndItems(params, transaction)
+    : createStandardSubscriptionAndItems(
+        params,
+        currentBillingPeriod,
+        transaction
+      ))
+}
+
 const safelyProcessCreationForExistingSubscription = async (
   params: CreateSubscriptionParams,
   subscription: Subscription.Record,
   subscriptionItems: SubscriptionItem.Record[],
   transaction: DbTransaction
-): Promise<TransactionOutput<CreateSubscriptionResult>> => {
+): Promise<
+  TransactionOutput<
+    | StandardCreateSubscriptionResult
+    | CreditTrialCreateSubscriptionResult
+  >
+> => {
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    return {
+      result: {
+        type: 'credit_trial',
+        subscription,
+        subscriptionItems,
+        billingPeriod: null,
+        billingPeriodItems: null,
+        billingRun: null,
+      },
+    }
+  }
+
   const billingPeriodAndItems =
     await selectBillingPeriodAndItemsByBillingPeriodWhere(
       {
@@ -237,6 +389,7 @@ const safelyProcessCreationForExistingSubscription = async (
   }
   return {
     result: {
+      type: 'standard',
       subscription,
       subscriptionItems,
       billingPeriod: billingPeriodAndItems.billingPeriod,
@@ -324,12 +477,22 @@ const maybeDefaultPaymentMethodForSubscription = async (
     : paymentMethods[0]
 }
 
-interface CreateSubscriptionResult {
+interface StandardCreateSubscriptionResult {
+  type: 'standard'
   subscription: Subscription.Record
   subscriptionItems: SubscriptionItem.Record[]
-  billingPeriod: BillingPeriod.Record
-  billingPeriodItems: BillingPeriodItem.Record[]
+  billingPeriod: BillingPeriod.Record | null
+  billingPeriodItems: BillingPeriodItem.Record[] | null
   billingRun: BillingRun.Record | null
+}
+
+interface CreditTrialCreateSubscriptionResult {
+  type: 'credit_trial'
+  subscription: Subscription.Record
+  subscriptionItems: SubscriptionItem.Record[]
+  billingPeriod: null
+  billingPeriodItems: null
+  billingRun: null
 }
 
 const setupLedgerAccounts = async (
@@ -354,6 +517,99 @@ const setupLedgerAccounts = async (
   )
 }
 
+const maybeCreateBillingPeriodAndRun = async (
+  params: {
+    subscription: Subscription.Record
+    subscriptionItems: SubscriptionItem.Record[]
+    defaultPaymentMethod: PaymentMethod.Record | null
+    autoStart: boolean
+  },
+  transaction: DbTransaction
+) => {
+  const {
+    subscription,
+    subscriptionItems,
+    defaultPaymentMethod,
+    autoStart,
+  } = params
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    return {
+      billingPeriod: null,
+      billingPeriodItems: null,
+      billingRun: null,
+    }
+  }
+  const scheduledFor = subscription.runBillingAtPeriodStart
+    ? subscription.currentBillingPeriodStart
+    : subscription.currentBillingPeriodEnd
+  const { billingPeriod, billingPeriodItems } =
+    await createBillingPeriodAndItems(
+      {
+        subscription,
+        subscriptionItems,
+        trialPeriod: !!subscription.trialEnd,
+        isInitialBillingPeriod: true,
+      },
+      transaction
+    )
+  const shouldCreateBillingRun =
+    defaultPaymentMethod &&
+    subscription.runBillingAtPeriodStart &&
+    params.autoStart &&
+    scheduledFor
+
+  /**
+   * create a billing run, set to to execute
+   */
+  const billingRun = shouldCreateBillingRun
+    ? await createBillingRun(
+        {
+          billingPeriod,
+          paymentMethod: defaultPaymentMethod,
+          scheduledFor,
+        },
+        transaction
+      )
+    : null
+  return { billingPeriod, billingPeriodItems, billingRun }
+}
+
+const ledgerCommandPayload = (params: {
+  subscription: Subscription.Record
+  subscriptionItemFeatures: SubscriptionItemFeature.Record[]
+  billingPeriod: BillingPeriod.Record | null
+  billingPeriodItems: BillingPeriodItem.Record[] | null
+  billingRun: BillingRun.Record | null
+}): BillingPeriodTransitionPayload => {
+  const {
+    subscription,
+    subscriptionItemFeatures,
+    billingPeriod,
+    billingPeriodItems,
+    billingRun,
+  } = params
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    return {
+      type: 'credit_trial',
+      subscription,
+      subscriptionFeatureItems: subscriptionItemFeatures.filter(
+        (item) => item.type === FeatureType.UsageCreditGrant
+      ),
+    }
+  }
+  if (!billingPeriod) {
+    throw new Error('Billing period not found')
+  }
+  return {
+    type: 'standard',
+    subscription,
+    previousBillingPeriod: null,
+    newBillingPeriod: billingPeriod,
+    subscriptionFeatureItems: subscriptionItemFeatures.filter(
+      (item) => item.type === FeatureType.UsageCreditGrant
+    ),
+  } as const
+}
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
  * This is because the subscription will not be active until the organization has started it,
@@ -365,7 +621,12 @@ const setupLedgerAccounts = async (
 export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
-): Promise<TransactionOutput<CreateSubscriptionResult>> => {
+): Promise<
+  TransactionOutput<
+    | StandardCreateSubscriptionResult
+    | CreditTrialCreateSubscriptionResult
+  >
+> => {
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(
       {
@@ -407,43 +668,22 @@ export const createSubscriptionWorkflow = async (
     )
   }
 
-  const subscriptionFeatureItems =
+  const subscriptionItemFeatures =
     await createSubscriptionFeatureItems(
       subscriptionItems,
       transaction
     )
-  const scheduledFor = subscription.runBillingAtPeriodStart
-    ? subscription.currentBillingPeriodStart
-    : subscription.currentBillingPeriodEnd
-  const { billingPeriod, billingPeriodItems } =
-    await createBillingPeriodAndItems(
+
+  const { billingPeriod, billingPeriodItems, billingRun } =
+    await maybeCreateBillingPeriodAndRun(
       {
         subscription,
         subscriptionItems,
-        trialPeriod: !!subscription.trialEnd,
-        isInitialBillingPeriod: true,
+        defaultPaymentMethod,
+        autoStart: params.autoStart ?? false,
       },
       transaction
     )
-  const shouldCreateBillingRun =
-    defaultPaymentMethod &&
-    subscription.runBillingAtPeriodStart &&
-    params.autoStart
-
-  /**
-   * create a billing run, set to to execute
-   */
-  const billingRun = shouldCreateBillingRun
-    ? await createBillingRun(
-        {
-          billingPeriod,
-          paymentMethod: defaultPaymentMethod,
-          scheduledFor,
-        },
-        transaction
-      )
-    : null
-
   await idempotentSendOrganizationSubscriptionCreatedNotification(
     subscription
   )
@@ -470,17 +710,18 @@ export const createSubscriptionWorkflow = async (
     subscriptionId: subscription.id,
     livemode: subscription.livemode,
     type: LedgerTransactionType.BillingPeriodTransition,
-    payload: {
+    payload: ledgerCommandPayload({
       subscription,
-      previousBillingPeriod: null,
-      newBillingPeriod: billingPeriod,
-      subscriptionFeatureItems: subscriptionFeatureItems.filter(
-        (item) => item.type === FeatureType.UsageCreditGrant
-      ),
-    },
+      subscriptionItemFeatures,
+      billingPeriod,
+      billingPeriodItems,
+      billingRun,
+    }),
   }
+
   return {
     result: {
+      type: 'standard',
       subscription,
       subscriptionItems,
       billingPeriod,
