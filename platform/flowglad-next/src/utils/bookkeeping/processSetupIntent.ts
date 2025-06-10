@@ -39,6 +39,7 @@ import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { BillingRun } from '@/db/schema/billingRuns'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -62,10 +63,18 @@ export type CoreSripeSetupIntent = Pick<
   'id' | 'metadata' | 'status' | 'customer' | 'payment_method'
 >
 
+interface ProcessTerminalCheckoutSessionSetupIntentResult {
+  checkoutSession: CheckoutSession.Record
+  organization: Organization.Record
+  customer: Customer.Record
+  billingRun: null
+  purchase: null
+  price: null
+}
 export const processTerminalCheckoutSessionSetupIntent = async (
   checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
-) => {
+): Promise<ProcessTerminalCheckoutSessionSetupIntentResult> => {
   const organization = await selectOrganizationById(
     checkoutSession.organizationId,
     transaction
@@ -356,7 +365,9 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       setupIntent: CoreSripeSetupIntent
     },
     transaction: DbTransaction
-  ): Promise<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult> => {
+  ): Promise<
+    TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
+  > => {
     if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
       throw new Error(
         `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
@@ -403,9 +414,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       (subscription) => subscription.trialEnd
     )
 
-    const {
-      result: { billingRun },
-    } = await createSubscriptionWorkflow(
+    const output = await createSubscriptionWorkflow(
       {
         stripeSetupIntentId: setupIntent.id,
         defaultPaymentMethod: paymentMethod,
@@ -444,50 +453,67 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     )
 
     return {
-      purchase: updatedPurchase,
-      checkoutSession,
-      billingRun,
-      price,
-      product,
-      organization,
-      customer,
-      type: checkoutSession.type,
+      ...output,
+      result: {
+        purchase: updatedPurchase,
+        checkoutSession,
+        billingRun: output.result.billingRun,
+        price,
+        product,
+        organization,
+        customer,
+        type: checkoutSession.type,
+      },
     }
   }
 
 export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
   transaction: DbTransaction
-) => {
+): Promise<
+  TransactionOutput<
+    | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
+    | ProcessAddPaymentMethodSetupIntentSucceededResult
+    | ProcessTerminalCheckoutSessionSetupIntentResult
+  >
+> => {
   const initialCheckoutSession = await checkoutSessionFromSetupIntent(
     setupIntent,
     transaction
   )
 
   if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
-    return await processTerminalCheckoutSessionSetupIntent(
+    const result = await processTerminalCheckoutSessionSetupIntent(
       initialCheckoutSession,
       transaction
     )
+    return {
+      result,
+      eventsToLog: [],
+    }
   }
 
   if (
     initialCheckoutSession.type ===
     CheckoutSessionType.AddPaymentMethod
   ) {
-    return await processAddPaymentMethodSetupIntentSucceeded(
+    const result = await processAddPaymentMethodSetupIntentSucceeded(
       setupIntent,
       transaction
     )
+    return {
+      result,
+      eventsToLog: [],
+    }
   }
 
-  const result =
+  const successProcessedResult =
     await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
       setupIntent,
       transaction
     )
 
-  const withSetupIntent = Object.assign(result, {
+  const withSetupIntent = Object.assign(successProcessedResult, {
     setupIntent,
   })
 

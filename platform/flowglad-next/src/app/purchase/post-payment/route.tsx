@@ -1,4 +1,7 @@
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { PurchaseAccessSessionSource } from '@/types'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import {
@@ -183,7 +186,7 @@ const processSetupIntent = async ({
   checkoutSession: CheckoutSession.Record
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
-  const setupSuceededResult = await adminTransaction(
+  const setupSuceededResult = await comprehensiveAdminTransaction(
     async ({ transaction }) => {
       return processSetupIntentSucceeded(setupIntent, transaction)
     }
