@@ -86,9 +86,9 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
         billingPeriodItem: billingPeriodItems,
         customer: customers,
       })
-      .from(billingPeriodItems)
-      .innerJoin(
-        billingPeriods,
+      .from(billingPeriods)
+      .leftJoin(
+        billingPeriodItems,
         eq(billingPeriodItems.billingPeriodId, billingPeriods.id)
       )
       .innerJoin(
@@ -103,7 +103,13 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
         customers,
         eq(subscriptions.customerId, customers.id)
       )
-      .where(eq(billingPeriodItems.billingPeriodId, billingPeriodId))
+      .where(eq(billingPeriods.id, billingPeriodId))
+
+    if (result.length === 0) {
+      throw new Error(
+        `Billing period with id ${billingPeriodId} not found`
+      )
+    }
 
     const { organization, subscription, billingPeriod, customer } =
       result[0]
@@ -111,9 +117,10 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
       organization: organizationsSelectSchema.parse(organization),
       subscription: subscriptionsSelectSchema.parse(subscription),
       billingPeriod: billingPeriodsSelectSchema.parse(billingPeriod),
-      billingPeriodItems: result.map((item) =>
-        billingPeriodItemsSelectSchema.parse(item.billingPeriodItem)
-      ),
+      billingPeriodItems: result
+        .map((item) => item.billingPeriodItem)
+        .filter((item) => item !== null)
+        .map((item) => billingPeriodItemsSelectSchema.parse(item)),
       customer: customersSelectSchema.parse(customer),
     }
   }

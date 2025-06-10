@@ -737,20 +737,6 @@ export const executeBillingRun = async (billingRunId: string) => {
           return {
             result: resultFromSteps,
             eventsToLog: [],
-            ledgerCommand: {
-              type: LedgerTransactionType.BillingPeriodTransition,
-              livemode: billingRun.livemode,
-              organizationId: resultFromSteps.organization.id,
-              subscriptionId: billingRun.subscriptionId,
-              payload: {
-                billingRunId: billingRun.id,
-                subscription: resultFromSteps.subscription,
-                previousBillingPeriod: currentBillingPeriodObject,
-                newBillingPeriod: currentBillingPeriodObject,
-                subscriptionFeatureItems: usageCreditGrantFeatures,
-                payment: resultFromSteps.payment,
-              },
-            },
           }
         },
         {

@@ -100,10 +100,12 @@ const balanceTypeWhereStatement = (
   }
 }
 
-const discardedAtFilterOutStatement = () => {
+const discardedAtFilterOutStatement = (
+  calculationDate: Date = new Date()
+) => {
   return or(
     isNull(ledgerEntries.discardedAt),
-    gt(ledgerEntries.discardedAt, new Date())
+    gt(ledgerEntries.discardedAt, calculationDate)
   )
 }
 
@@ -151,7 +153,8 @@ export const aggregateAvailableBalanceForUsageCredit = async (
     LedgerEntry.Where,
     'ledgerAccountId' | 'sourceUsageCreditId'
   >,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  calculationDate: Date = new Date()
 ): Promise<
   {
     usageCreditId: string
@@ -169,7 +172,7 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        discardedAtFilterOutStatement(),
+        discardedAtFilterOutStatement(calculationDate),
         // This entry type is a credit, but it doesn't credit the *usage credit balance*.
         // It credits the usage cost that is being offset by the credit application.
         // Therefore, we must exclude it from the balance calculation for the usage credit itself.

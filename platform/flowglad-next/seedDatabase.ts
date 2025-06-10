@@ -1644,6 +1644,7 @@ interface SetupCreditCreditGrantRecognizedParams
   extends SetupLedgerEntryCoreParams {
   entryType: LedgerEntryType.CreditGrantRecognized
   sourceUsageCreditId: string
+  expiresAt?: Date | null
 }
 
 interface SetupCreditCreditBalanceAdjustedParams

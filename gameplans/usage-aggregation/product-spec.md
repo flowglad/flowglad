@@ -509,7 +509,7 @@ All workflows operate within database transactions to ensure atomicity. Each dis
             *   **Associate with Billing Run:** Update these ledger entries to link them to the current `billing_run_id`. This "claims" them for the invoice that will be generated, preventing them from being billed again. No new cost entries are created here, as they are assumed to have been posted in real-time. (A sweep for any missed `UsageEvents` can also occur here as a fallback).
             *   **Credit Application (Pre-payment):** The system *may* apply any available non-expiring/evergreen credits at this stage if the business logic dictates it (e.g., applying a standing account balance before invoicing). However, credits tied to the period itself are generally preserved to be applied before expiration. The primary settlement of invoiced usage costs happens *after* payment via the `SettleInvoiceUsageCosts` command.
         *   **Grant New Period Credits:**
-            *   If the plan includes new credits for the upcoming period: Create `UsageCredits` record.
+            *   If the plan includes new credits for the upcoming period: Create `UsageCredits` record. The `UsageCredits` grant will have an `expires_at` date set to the end of the new billing period if the grant is for a recurring feature (`EveryBillingPeriod`). For one-time grants (`Once`), the credit is evergreen and `expires_at` is `NULL`.
             *   Create `LedgerEntry` of `entry_type: 'credit_grant_recognized'` (`LedgerEntryType.CreditGrantRecognized`), status `'pending'`, for the new grant.
         *   **Process Expiring Credits:**
             *   For `UsageCredits` grants expiring at this transition:

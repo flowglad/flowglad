@@ -192,7 +192,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       type: LedgerTransactionType.BillingPeriodTransition,
       payload: {
         previousBillingPeriod,
-        billingRunId: billingRun.id,
         subscription,
         newBillingPeriod,
         subscriptionFeatureItems: [], // Default to empty, tests will populate as needed

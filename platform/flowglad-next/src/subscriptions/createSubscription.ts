@@ -15,6 +15,8 @@ import {
   PriceType,
   SubscriptionStatus,
   SubscriptionItemType,
+  LedgerTransactionType,
+  FeatureType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
@@ -42,6 +44,7 @@ import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId } from '@/db/tableMethods/ledgerAccountMethods'
 import { createSubscriptionFeatureItems } from './subscriptionItemFeatureHelpers'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -404,7 +407,11 @@ export const createSubscriptionWorkflow = async (
     )
   }
 
-  await createSubscriptionFeatureItems(subscriptionItems, transaction)
+  const subscriptionFeatureItems =
+    await createSubscriptionFeatureItems(
+      subscriptionItems,
+      transaction
+    )
   const scheduledFor = subscription.runBillingAtPeriodStart
     ? subscription.currentBillingPeriodStart
     : subscription.currentBillingPeriodEnd
@@ -458,6 +465,20 @@ export const createSubscriptionWorkflow = async (
     },
   ]
 
+  const ledgerCommand: BillingPeriodTransitionLedgerCommand = {
+    organizationId: subscription.organizationId,
+    subscriptionId: subscription.id,
+    livemode: subscription.livemode,
+    type: LedgerTransactionType.BillingPeriodTransition,
+    payload: {
+      subscription,
+      previousBillingPeriod: null,
+      newBillingPeriod: billingPeriod,
+      subscriptionFeatureItems: subscriptionFeatureItems.filter(
+        (item) => item.type === FeatureType.UsageCreditGrant
+      ),
+    },
+  }
   return {
     result: {
       subscription,
@@ -466,6 +487,7 @@ export const createSubscriptionWorkflow = async (
       billingPeriodItems,
       billingRun,
     },
+    ledgerCommand,
     eventsToLog: eventInserts,
   }
 }

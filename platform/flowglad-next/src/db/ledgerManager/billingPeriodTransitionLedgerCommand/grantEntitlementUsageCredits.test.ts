@@ -213,7 +213,6 @@ describe('grantEntitlementUsageCredits', () => {
       livemode: true,
       subscriptionId: subscription.id,
       payload: {
-        billingRunId: billingRun.id,
         subscription,
         previousBillingPeriod,
         newBillingPeriod,
@@ -291,6 +290,16 @@ describe('grantEntitlementUsageCredits', () => {
     )
     expect(ledgerEntry.sourceUsageCreditId).toBe(usageCredit.id)
     expect(ledgerEntry.billingPeriodId).toBe(newBillingPeriod.id)
+
+    await adminTransaction(async ({ transaction }) => {
+      const balance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount1.id },
+          'available',
+          transaction
+        )
+      expect(balance).toBe(baseSubscriptionItemFeature.amount)
+    })
   })
 
   it('should grant multiple entitlement usage credits and create corresponding ledger entries', async () => {
@@ -453,6 +462,23 @@ describe('grantEntitlementUsageCredits', () => {
     )
     expect(ledgerEntry2!.sourceUsageCreditId).toBe(usageCredit2!.id)
     expect(ledgerEntry2!.billingPeriodId).toBe(newBillingPeriod.id)
+
+    await adminTransaction(async ({ transaction }) => {
+      const balance1 =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount1.id },
+          'available',
+          transaction
+        )
+      expect(balance1).toBe(amount1)
+      const balance2 =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount2.id },
+          'available',
+          transaction
+        )
+      expect(balance2).toBe(amount2)
+    })
   })
 
   it('should only process feature items with usageMeterIds', async () => {
@@ -538,6 +564,16 @@ describe('grantEntitlementUsageCredits', () => {
     )
     expect(ledgerEntry.sourceUsageCreditId).toBe(usageCredit.id)
     expect(ledgerEntry.billingPeriodId).toBe(newBillingPeriod.id)
+
+    await adminTransaction(async ({ transaction }) => {
+      const balance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount1.id },
+          'available',
+          transaction
+        )
+      expect(balance).toBe(amountWithMeter)
+    })
   })
 
   it('should handle cases with no feature items having usageMeterIds', async () => {
@@ -579,6 +615,16 @@ describe('grantEntitlementUsageCredits', () => {
     // - Query the `ledgerEntries` table (filtered by testLedgerTransaction.id):
     //   - Expect 0 LedgerEntry records of type CreditGrantRecognized.
     expect(createdLedgerEntries.length).toBe(0)
+
+    await adminTransaction(async ({ transaction }) => {
+      const balance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount1.id },
+          'available',
+          transaction
+        )
+      expect(balance).toBe(0)
+    })
   })
 
   it('should correctly propagate livemode: false to usage credits and ledger entries', async () => {
@@ -643,6 +689,16 @@ describe('grantEntitlementUsageCredits', () => {
     )
     expect(ledgerEntry.sourceUsageCreditId).toBe(usageCredit.id)
     expect(ledgerEntry.billingPeriodId).toBe(newBillingPeriod.id)
+
+    await adminTransaction(async ({ transaction }) => {
+      const balance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount1.id },
+          'available',
+          transaction
+        )
+      expect(balance).toBe(testAmount)
+    })
   })
 
   it('should create ledger accounts for usage meters that do not yet have accounts in this subscription', async () => {
@@ -796,5 +852,327 @@ describe('grantEntitlementUsageCredits', () => {
     expect(le2?.ledgerAccountId).toBe(newLedgerAccount?.id)
     expect(le2?.amount).toBe(amountForNewSif)
     expect(le2?.entryType).toBe(LedgerEntryType.CreditGrantRecognized)
+
+    await adminTransaction(async ({ transaction }) => {
+      const originalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: originalLedgerAccount!.id },
+          'available',
+          transaction
+        )
+      expect(originalBalance).toBe(amountForBaseSif)
+
+      const newBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: newLedgerAccount!.id },
+          'available',
+          transaction
+        )
+      expect(newBalance).toBe(amountForNewSif)
+    })
+  })
+
+  describe('Grant Frequency Logic', () => {
+    it('should grant both "Once" and "EveryBillingPeriod" credits on initial grant (previousBillingPeriod is null)', async () => {
+      // Setup
+      command.payload.previousBillingPeriod = null // Simulate initial grant
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 2 for Initial Grant',
+        catalogId: catalog.id,
+        livemode: true,
+      })
+      const featureOnce = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'One-Time Grant Feature',
+        usageMeterId: usageMeter1.id, // Use existing meter
+        amount: 1000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+      })
+      const productFeatureOnce = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: featureOnce.id,
+      })
+      const sifOnce =
+        await setupSubscriptionItemFeatureUsageCreditGrant({
+          subscriptionItemId: baseSubscriptionItem.id,
+          featureId: featureOnce.id,
+          productFeatureId: productFeatureOnce.id,
+          usageMeterId: usageMeter1.id,
+          amount: featureOnce.amount,
+          renewalFrequency: featureOnce.renewalFrequency,
+        })
+
+      const featureEvery = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Recurring Grant Feature',
+        usageMeterId: usageMeter2.id,
+        amount: 500,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        livemode: true,
+      })
+      const productFeatureEvery = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: featureEvery.id,
+      })
+      const sifEvery =
+        await setupSubscriptionItemFeatureUsageCreditGrant({
+          subscriptionItemId: baseSubscriptionItem.id,
+          featureId: featureEvery.id,
+          productFeatureId: productFeatureEvery.id,
+          usageMeterId: usageMeter2.id,
+          amount: featureEvery.amount,
+          renewalFrequency: featureEvery.renewalFrequency,
+        })
+
+      command.payload.subscriptionFeatureItems = [sifOnce, sifEvery]
+      // Ledger account for usageMeter2 will be auto-created
+
+      // Action
+      const { usageCredits, ledgerEntries } = await adminTransaction(
+        async ({ transaction }) => {
+          return await grantEntitlementUsageCredits(
+            {
+              ledgerAccountsByUsageMeterId,
+              ledgerTransaction: testLedgerTransaction,
+              command,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Assert
+      expect(usageCredits.length).toBe(2)
+      expect(ledgerEntries.length).toBe(2)
+
+      const onceCredit = usageCredits.find(
+        (uc) => uc.usageMeterId === usageMeter1.id
+      )
+      const everyCredit = usageCredits.find(
+        (uc) => uc.usageMeterId === usageMeter2.id
+      )
+
+      expect(onceCredit).toBeDefined()
+      expect(onceCredit?.issuedAmount).toBe(featureOnce.amount)
+      expect(onceCredit?.expiresAt).toBeNull() // One-time grants should not expire
+
+      expect(everyCredit).toBeDefined()
+      expect(everyCredit?.issuedAmount).toBe(featureEvery.amount)
+      expect(everyCredit?.expiresAt).toEqual(
+        command.payload.newBillingPeriod.endDate
+      ) // Recurring grants should expire
+
+      // Verify balances
+      await adminTransaction(async ({ transaction }) => {
+        const balance1 =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount1.id },
+            'available',
+            transaction
+          )
+        expect(balance1).toBe(featureOnce.amount)
+
+        const ledgerAccount2 = (
+          await transaction
+            .select()
+            .from(ledgerAccounts)
+            .where(
+              and(
+                eq(ledgerAccounts.subscriptionId, subscription.id),
+                eq(ledgerAccounts.usageMeterId, usageMeter2.id)
+              )
+            )
+        )[0]
+
+        const balance2 =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount2.id },
+            'available',
+            transaction
+          )
+        expect(balance2).toBe(featureEvery.amount)
+      })
+    })
+
+    it('should only grant "EveryBillingPeriod" credits on subsequent grants (previousBillingPeriod exists)', async () => {
+      // Setup
+      // command.payload.previousBillingPeriod is already set in beforeEach, so this is a subsequent grant.
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter 2 for Subsequent Grant',
+        catalogId: catalog.id,
+        livemode: true,
+      })
+      const featureOnce = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'One-Time Grant Feature To Be Ignored',
+        usageMeterId: usageMeter1.id, // Use existing meter
+        amount: 1000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+      })
+      const productFeatureOnce = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: featureOnce.id,
+      })
+      const sifOnce =
+        await setupSubscriptionItemFeatureUsageCreditGrant({
+          subscriptionItemId: baseSubscriptionItem.id,
+          featureId: featureOnce.id,
+          productFeatureId: productFeatureOnce.id,
+          usageMeterId: usageMeter1.id,
+          amount: featureOnce.amount,
+          renewalFrequency: featureOnce.renewalFrequency,
+        })
+
+      const featureEvery = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Recurring Grant Feature To Be Granted',
+        usageMeterId: usageMeter2.id,
+        amount: 500,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        livemode: true,
+      })
+      const productFeatureEvery = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: featureEvery.id,
+      })
+      const sifEvery =
+        await setupSubscriptionItemFeatureUsageCreditGrant({
+          subscriptionItemId: baseSubscriptionItem.id,
+          featureId: featureEvery.id,
+          productFeatureId: productFeatureEvery.id,
+          usageMeterId: usageMeter2.id,
+          amount: featureEvery.amount,
+          renewalFrequency: featureEvery.renewalFrequency,
+        })
+
+      command.payload.subscriptionFeatureItems = [sifOnce, sifEvery]
+
+      // Action
+      const { usageCredits, ledgerEntries } = await adminTransaction(
+        async ({ transaction }) => {
+          return await grantEntitlementUsageCredits(
+            {
+              ledgerAccountsByUsageMeterId,
+              ledgerTransaction: testLedgerTransaction,
+              command,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Assert
+      expect(usageCredits.length).toBe(1)
+      expect(ledgerEntries.length).toBe(1)
+      const grantedCredit = usageCredits[0]
+      expect(grantedCredit.usageMeterId).toBe(usageMeter2.id)
+      expect(grantedCredit.issuedAmount).toBe(featureEvery.amount)
+      expect(grantedCredit.expiresAt).toEqual(
+        command.payload.newBillingPeriod.endDate
+      ) // Recurring grants should expire
+
+      // Verify balances
+      await adminTransaction(async ({ transaction }) => {
+        const balance1 =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount1.id },
+            'available',
+            transaction
+          )
+        expect(balance1).toBe(0) // No "Once" grant was issued
+
+        const ledgerAccount2 = (
+          await transaction
+            .select()
+            .from(ledgerAccounts)
+            .where(
+              and(
+                eq(ledgerAccounts.subscriptionId, subscription.id),
+                eq(ledgerAccounts.usageMeterId, usageMeter2.id)
+              )
+            )
+        )[0]
+
+        const balance2 =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount2.id },
+            'available',
+            transaction
+          )
+        expect(balance2).toBe(featureEvery.amount)
+      })
+    })
+
+    it('should grant no credits on a subsequent grant if only "Once" entitlements exist', async () => {
+      // Setup
+      // command.payload.previousBillingPeriod is already set, so this is a subsequent grant.
+      const featureOnce = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'One-Time Grant Feature To Be Ignored',
+        usageMeterId: usageMeter1.id,
+        amount: 1000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+      })
+      const productFeatureOnce = await setupProductFeature({
+        organizationId: organization.id,
+        productId: product.id,
+        featureId: featureOnce.id,
+      })
+      const sifOnce =
+        await setupSubscriptionItemFeatureUsageCreditGrant({
+          subscriptionItemId: baseSubscriptionItem.id,
+          featureId: featureOnce.id,
+          productFeatureId: productFeatureOnce.id,
+          usageMeterId: usageMeter1.id,
+          amount: featureOnce.amount,
+          renewalFrequency: featureOnce.renewalFrequency,
+        })
+
+      command.payload.subscriptionFeatureItems = [sifOnce]
+
+      // Action
+      const { usageCredits, ledgerEntries } = await adminTransaction(
+        async ({ transaction }) => {
+          return await grantEntitlementUsageCredits(
+            {
+              ledgerAccountsByUsageMeterId,
+              ledgerTransaction: testLedgerTransaction,
+              command,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Assert
+      expect(usageCredits.length).toBe(0)
+      expect(ledgerEntries.length).toBe(0)
+
+      // Verify balance
+      await adminTransaction(async ({ transaction }) => {
+        const balance =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            {
+              ledgerAccountId: ledgerAccount1.id,
+            },
+            'available',
+            transaction
+          )
+        expect(balance).toBe(0)
+      })
+    })
   })
 })

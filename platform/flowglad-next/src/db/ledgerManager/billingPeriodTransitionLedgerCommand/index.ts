@@ -24,7 +24,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     description: command.transactionDescription ?? null,
     metadata: command.transactionMetadata ?? null,
     initiatingSourceType: command.type,
-    initiatingSourceId: command.payload.billingRunId,
+    initiatingSourceId: 'billing_period_transition',
     subscriptionId: command.payload.subscription.id,
   }
 

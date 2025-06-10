@@ -1565,60 +1565,6 @@ describe('billingRunHelpers', async () => {
       expect(finalInvoice.status).toBe(InvoiceStatus.Paid)
     })
 
-    it('should create usage credit ledger entries based on subscription features', async () => {
-      const feature = await setupUsageCreditGrantFeature({
-        organizationId: organization.id,
-        name: 'Test Feature',
-        livemode: true,
-        usageMeterId: usageMeter.id,
-        amount: 500,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-      })
-
-      const productFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: feature.id,
-        livemode: true,
-      })
-
-      // 1. Setup a feature for a usage credit grant
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        type: FeatureType.UsageCreditGrant,
-        amount: 500, // grant of 500 cents
-        livemode: true,
-        usageMeterId: usageMeter.id,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-        featureId: feature.id,
-        productFeatureId: productFeature.id,
-      })
-
-      core.IS_TEST = true
-
-      // 2. Action
-      await executeBillingRun(billingRun.id)
-
-      // 3. Assertion: Check that a credit ledger entry was created
-      const ledgerEntries = await adminTransaction(
-        ({ transaction }) =>
-          selectLedgerEntries(
-            { ledgerAccountId: ledgerAccount.id },
-            transaction
-          )
-      )
-
-      const creditEntry = ledgerEntries.find(
-        (e) =>
-          e.entryType === LedgerEntryType.CreditGrantRecognized &&
-          e.amount === 500
-      )
-      expect(creditEntry).toBeDefined()
-      expect(creditEntry?.ledgerTransactionId).toBeDefined()
-    })
-
     it('should filter out Static items with a zero quantity', () => {
       const staticBpiWithZeroQuantity = {
         ...staticBillingPeriodItem,
@@ -1706,62 +1652,6 @@ describe('billingRunHelpers', async () => {
 
       expect(lineItems.length).toBe(1)
       expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
-    })
-  })
-
-  describe('executeBillingRun', () => {
-    it('should create usage credit ledger entries based on subscription features', async () => {
-      const feature = await setupUsageCreditGrantFeature({
-        organizationId: organization.id,
-        name: 'Test Feature',
-        livemode: true,
-        usageMeterId: usageMeter.id,
-        amount: 500,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-      })
-
-      const productFeature = await setupProductFeature({
-        organizationId: organization.id,
-        productId: product.id,
-        featureId: feature.id,
-        livemode: true,
-      })
-
-      // 1. Setup a feature for a usage credit grant
-      await setupSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        type: FeatureType.UsageCreditGrant,
-        amount: 500, // grant of 500 cents
-        livemode: true,
-        usageMeterId: usageMeter.id,
-        renewalFrequency:
-          FeatureUsageGrantFrequency.EveryBillingPeriod,
-        featureId: feature.id,
-        productFeatureId: productFeature.id,
-      })
-
-      core.IS_TEST = true
-
-      // 2. Action
-      await executeBillingRun(billingRun.id)
-
-      // 3. Assertion: Check that a credit ledger entry was created
-      const ledgerEntries = await adminTransaction(
-        ({ transaction }) =>
-          selectLedgerEntries(
-            { ledgerAccountId: ledgerAccount.id },
-            transaction
-          )
-      )
-
-      const creditEntry = ledgerEntries.find(
-        (e) =>
-          e.entryType === LedgerEntryType.CreditGrantRecognized &&
-          e.amount === 500
-      )
-      expect(creditEntry).toBeDefined()
-      expect(creditEntry?.ledgerTransactionId).toBeDefined()
     })
   })
 

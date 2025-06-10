@@ -54,6 +54,8 @@ import { selectUsageCreditApplications } from '@/db/tableMethods/usageCreditAppl
 import { eq, and } from 'drizzle-orm'
 import { selectLedgerTransactions } from '../tableMethods/ledgerTransactionMethods'
 import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
+import { aggregateBalanceForLedgerAccountFromEntries } from '../tableMethods/ledgerEntryMethods'
+import core from '@/utils/core'
 
 const TEST_LIVEMODE = true
 
@@ -105,7 +107,7 @@ beforeEach(async () => {
     amount: 100,
     priceId: price.id,
     billingPeriodId: billingPeriod.id,
-    transactionId: defaultLedgerTransaction.id,
+    transactionId: core.nanoid(),
     customerId: customer.id,
     livemode: TEST_LIVEMODE,
     usageDate: new Date(),
@@ -642,6 +644,14 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       )
 
       expect(creditApplications.length).toBe(0)
+
+      const finalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      expect(finalBalance).toBe(-sampleUsageEvent.amount)
     })
   })
 
@@ -802,6 +812,19 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         organization.id
       )
       expect(creditTowardsUsageCostEntry.livemode).toBe(TEST_LIVEMODE)
+
+      // Verify: Final balance
+      const finalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      // Initial credit: +30. Usage cost: -100. Net effect of application entries on balance: 0.
+      // Final balance: 30 - 100 = -70.
+      expect(finalBalance).toBe(
+        creditAmount - sampleUsageEvent.amount
+      )
     })
   })
 
@@ -968,6 +991,19 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         organization.id
       )
       expect(creditTowardsUsageCostEntry.livemode).toBe(TEST_LIVEMODE)
+
+      // Verify: Final balance
+      const finalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      // Initial credit: +120. Usage event cost: -100.
+      // Final balance: 120 - 100 = 20.
+      expect(finalBalance).toBe(
+        creditIssuedAmount - sampleUsageEvent.amount
+      )
     })
   })
 
@@ -1027,7 +1063,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         amount: 75,
         priceId: price.id, // price.id is from the global setup, tied to global usageMeter. This is fine.
         billingPeriodId: billingPeriod.id,
-        transactionId: defaultLedgerTransaction.id, // Re-use existing or create new
+        transactionId: core.nanoid(), // Re-use existing or create new
         customerId: customer.id,
         livemode: TEST_LIVEMODE,
         usageDate: new Date(),
@@ -1126,6 +1162,277 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           newUsageEvent.usageMeterId
         )
       }
+
+      // Verify: Final balance
+      const finalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: createdLedgerAccount.id },
+          'available',
+          transaction
+        )
+      expect(finalBalance).toBe(-newUsageEvent.amount)
+    })
+  })
+
+  it('should process a usage event with no credits available/applied, with prior usage cost', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Setup: Create a prior unsettled usage cost
+      const priorUsageAmount = 50
+      const priorUsageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: priorUsageAmount,
+        priceId: price.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: core.nanoid(),
+        customerId: customer.id,
+        livemode: TEST_LIVEMODE,
+      })
+      await processUsageEventProcessedLedgerCommand(
+        {
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          payload: {
+            usageEvent: priorUsageEvent,
+          },
+          type: LedgerTransactionType.UsageEventProcessed,
+          transactionDescription: 'Prior usage event',
+          livemode: TEST_LIVEMODE,
+        },
+        transaction
+      )
+
+      // Setup: command
+      const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} without credits`
+      const command: UsageEventProcessedLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        payload: {
+          usageEvent: sampleUsageEvent,
+        },
+        type: LedgerTransactionType.UsageEventProcessed,
+        transactionDescription: commandDescription,
+        transactionMetadata: { scenario: 'no_credits_applied' },
+        livemode: TEST_LIVEMODE,
+      }
+
+      // Execute
+      const { ledgerTransaction, ledgerEntries } =
+        await processUsageEventProcessedLedgerCommand(
+          command,
+          transaction
+        )
+
+      // Verify: LedgerTransaction created
+
+      expect(ledgerTransaction).toBeDefined()
+      expect(ledgerTransaction.description).toBe(commandDescription)
+      expect(ledgerTransaction.metadata).toEqual({
+        scenario: 'no_credits_applied',
+      })
+      expect(ledgerTransaction.initiatingSourceType).toBe(
+        LedgerTransactionInitiatingSourceType.UsageEvent
+      )
+
+      // Verify: LedgerEntries created (only UsageCost)
+      const createdLedgerEntries = ledgerEntries
+      expect(createdLedgerEntries.length).toBe(1)
+      const usageCostEntry = createdLedgerEntries.find(
+        (le) => le.entryType === LedgerEntryType.UsageCost
+      )
+
+      expect(usageCostEntry).toBeDefined()
+      if (usageCostEntry) {
+        expect(usageCostEntry.ledgerAccountId).toBe(ledgerAccount.id)
+        expect(usageCostEntry.direction).toBe(
+          LedgerEntryDirection.Debit
+        )
+        expect(usageCostEntry.amount).toBe(sampleUsageEvent.amount)
+        expect(usageCostEntry.status).toBe(LedgerEntryStatus.Posted)
+        expect(usageCostEntry.sourceUsageEventId).toBe(
+          sampleUsageEvent.id
+        )
+        expect(usageCostEntry.organizationId).toBe(organization.id)
+        expect(usageCostEntry.livemode).toBe(TEST_LIVEMODE)
+        expect(usageCostEntry.description).toBe(
+          `Usage event ${sampleUsageEvent.id} processed.`
+        )
+        expect(usageCostEntry.billingPeriodId).toBe(
+          sampleUsageEvent.billingPeriodId
+        )
+        expect(usageCostEntry.usageMeterId).toBe(
+          sampleUsageEvent.usageMeterId
+        )
+      }
+
+      // Verify: No UsageCreditApplication records created for this usage event
+      const creditApplications = await selectUsageCreditApplications(
+        {
+          organizationId: organization.id,
+          usageEventId: sampleUsageEvent.id,
+        },
+        transaction
+      )
+
+      expect(creditApplications.length).toBe(0)
+
+      const finalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      expect(finalBalance).toBe(
+        -priorUsageAmount - sampleUsageEvent.amount
+      )
+    })
+  })
+
+  it('should process a usage event and apply credits partially, with prior usage cost', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Setup: Create a prior unsettled usage cost
+      const priorUsageAmount = 50
+      const priorUsageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: priorUsageAmount,
+        priceId: price.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: core.nanoid(),
+        customerId: customer.id,
+        livemode: TEST_LIVEMODE,
+      })
+      await processUsageEventProcessedLedgerCommand(
+        {
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          payload: {
+            usageEvent: priorUsageEvent,
+          },
+          type: LedgerTransactionType.UsageEventProcessed,
+          livemode: TEST_LIVEMODE,
+        },
+        transaction
+      )
+
+      // Verify: Final balance
+      const finalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      const creditAmount = 100
+      const newUsageAmount = 100
+      // Initial balance: 150. New usage: 100.
+      // Final balance should be 150 - 100 = 50.
+      expect(finalBalance).toBe(
+        creditAmount - priorUsageAmount - newUsageAmount
+      )
+    })
+  })
+
+  it('should not apply credits if available balance is zero due to prior usage', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Setup: Grant and fully consume a credit
+      const creditAmount = 100
+      const priorUsageAmount = 100
+
+      const usageCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: creditAmount,
+        usageMeterId: usageMeter.id,
+      })
+      const grantTx = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+      await setupCreditLedgerEntry({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerAccountId: ledgerAccount.id,
+        ledgerTransactionId: grantTx.id,
+        sourceUsageCreditId: usageCredit.id,
+        entryType: LedgerEntryType.CreditGrantRecognized,
+        amount: creditAmount,
+      })
+      const priorUsageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: priorUsageAmount,
+        priceId: price.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: core.nanoid(),
+        customerId: customer.id,
+        livemode: TEST_LIVEMODE,
+      })
+      await processUsageEventProcessedLedgerCommand(
+        {
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          payload: {
+            usageEvent: priorUsageEvent,
+          },
+          type: LedgerTransactionType.UsageEventProcessed,
+          livemode: TEST_LIVEMODE,
+        },
+        transaction
+      )
+
+      const initialBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      expect(initialBalance).toBe(0) // credit grant (100) - usage (100) = 0
+
+      // Execute: Process a new usage event, no credits should be applied
+      const newUsageAmount = 50
+      const newUsageEvent = await setupUsageEvent({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        amount: newUsageAmount,
+        priceId: price.id,
+        billingPeriodId: billingPeriod.id,
+        transactionId: core.nanoid(),
+        customerId: customer.id,
+        livemode: TEST_LIVEMODE,
+      })
+      const { ledgerEntries } =
+        await processUsageEventProcessedLedgerCommand(
+          {
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            payload: {
+              usageEvent: newUsageEvent,
+            },
+            type: LedgerTransactionType.UsageEventProcessed,
+            livemode: TEST_LIVEMODE,
+          },
+          transaction
+        )
+
+      // Verify: Only a UsageCost entry was created
+      expect(ledgerEntries.length).toBe(1)
+      expect(ledgerEntries[0].entryType).toBe(
+        LedgerEntryType.UsageCost
+      )
+
+      const finalBalance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      expect(finalBalance).toBe(-newUsageAmount)
     })
   })
 })

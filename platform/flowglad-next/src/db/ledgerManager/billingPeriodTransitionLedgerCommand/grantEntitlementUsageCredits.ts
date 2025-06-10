@@ -7,6 +7,7 @@ import {
   UsageCreditStatus,
   UsageCreditType,
   UsageCreditSourceReferenceType,
+  FeatureUsageGrantFrequency,
 } from '@/types'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
@@ -36,11 +37,22 @@ export const grantEntitlementUsageCredits = async (
     command.payload.subscriptionFeatureItems.filter(
       (featureItem) => featureItem.usageMeterId
     )
-  const usageMetersWithoutLedgerAccounts =
-    subscriptionFeatureItemsWithUsageMeters.filter(
-      (featureItem) =>
-        !ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId!)
-    )
+
+  const isInitialGrant =
+    command.payload.previousBillingPeriod === null
+
+  const featureItemsToGrant = isInitialGrant
+    ? subscriptionFeatureItemsWithUsageMeters
+    : subscriptionFeatureItemsWithUsageMeters.filter(
+        (featureItem) =>
+          featureItem.renewalFrequency ===
+          FeatureUsageGrantFrequency.EveryBillingPeriod
+      )
+
+  const usageMetersWithoutLedgerAccounts = featureItemsToGrant.filter(
+    (featureItem) =>
+      !ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId!)
+  )
   if (usageMetersWithoutLedgerAccounts.length > 0) {
     const newlyCreatedLedgerAccounts =
       await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
@@ -61,7 +73,7 @@ export const grantEntitlementUsageCredits = async (
   }
 
   const usageCreditInserts: UsageCredit.Insert[] =
-    subscriptionFeatureItemsWithUsageMeters.map((featureItem) => {
+    featureItemsToGrant.map((featureItem) => {
       return {
         organizationId: command.organizationId,
         livemode: command.livemode,
@@ -69,9 +81,16 @@ export const grantEntitlementUsageCredits = async (
         status: UsageCreditStatus.Posted,
         usageMeterId: featureItem.usageMeterId!,
         subscriptionId: command.subscriptionId!,
+        billingPeriodId: command.payload.newBillingPeriod.id,
         notes: null,
         metadata: null,
-        expiresAt: command.payload.newBillingPeriod.endDate,
+        // Credits from recurring grants expire at the end of the billing period.
+        // Credits from one-time grants are evergreen and do not expire.
+        expiresAt:
+          featureItem.renewalFrequency ===
+          FeatureUsageGrantFrequency.EveryBillingPeriod
+            ? command.payload.newBillingPeriod.endDate
+            : null,
         issuedAmount: featureItem.amount,
         issuedAt: new Date(),
         creditType: UsageCreditType.Grant,
@@ -80,6 +99,13 @@ export const grantEntitlementUsageCredits = async (
         paymentId: null,
       }
     })
+
+  if (usageCreditInserts.length === 0) {
+    return {
+      usageCredits: [],
+      ledgerEntries: [],
+    }
+  }
 
   const usageCredits = await bulkInsertUsageCredits(
     usageCreditInserts,

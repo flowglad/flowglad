@@ -67,15 +67,18 @@ export const billingPeriodTransitionLedgerCommandSchema = z.object({
   ...baseLedgerCommandFields,
   type: z.literal(LedgerTransactionType.BillingPeriodTransition),
   payload: z.object({
-    billingRunId: z
-      .string()
-      .describe(
-        'The billing_run_id for this billing run phase. This is the initiatingSourceId.'
-      ),
+    // billingRunId: z
+    //   .string()
+    //   .describe(
+    //     'The billing_run_id for this billing run phase. This is the initiatingSourceId.'
+    //   ),
     subscription: subscriptionsSelectSchema,
-    previousBillingPeriod: billingPeriodsSelectSchema,
+    previousBillingPeriod: billingPeriodsSelectSchema
+      .nullable()
+      .describe(
+        'The previous billing period for the subscription. If this is the first billing period, e.g. a new subscription, provide null.'
+      ),
     newBillingPeriod: billingPeriodsSelectSchema,
-    payment: paymentsSelectSchema.optional(),
     subscriptionFeatureItems:
       usageCreditGrantSubscriptionItemFeatureClientSelectSchema
         .array()

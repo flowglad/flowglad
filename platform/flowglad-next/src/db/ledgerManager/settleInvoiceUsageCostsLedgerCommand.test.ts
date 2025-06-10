@@ -10,7 +10,6 @@ import {
   UsageCreditSourceReferenceType,
   LedgerTransactionType,
   LedgerEntryType,
-  LedgerEntryDirection,
   InvoiceStatus,
 } from '@/types'
 import {
@@ -23,6 +22,7 @@ import {
   setupLedgerEntries,
   setupUsageEvent,
   setupLedgerTransaction,
+  setupUsageCredit,
 } from '@/../seedDatabase'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -39,6 +39,7 @@ import { BillingRun } from '@/db/schema/billingRuns'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { updateInvoice } from '../tableMethods/invoiceMethods'
 import { Catalog } from '../schema/catalogs'
+import { aggregateBalanceForLedgerAccountFromEntries } from '../tableMethods/ledgerEntryMethods'
 
 describe('settleInvoiceUsageCostsLedgerCommand', () => {
   let organization: Organization.Record
@@ -278,6 +279,18 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(creditAppEntry.sourceCreditApplicationId).toBe(
         debitAppEntry.sourceCreditApplicationId
       )
+
+      // 6. The ledger balance for this usage meter should be zeroed out.
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      expect(finalBalance).toBe(0)
     })
 
     it('should successfully settle an invoice with multiple usage meters', async () => {
@@ -391,6 +404,27 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(creditGrantEntries).toHaveLength(2)
       expect(debitAppEntries).toHaveLength(2)
       expect(creditAppEntries).toHaveLength(2)
+
+      const finalBalance1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      const finalBalance2 = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount2.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      expect(finalBalance1).toBe(0)
+      expect(finalBalance2).toBe(0)
     })
 
     it('should correctly process an invoice with mixed (usage and static) line items', async () => {
@@ -435,6 +469,17 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       // The command should ignore the static line item and only process the usage one.
       expect(ledgerTransaction).toBeDefined()
       expect(createdLedgerEntries).toHaveLength(3) // Only the 3 entries for the single usage item
+
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      expect(finalBalance).toBe(0)
     })
 
     it('should be idempotent and not create duplicate records on re-execution', async () => {
@@ -510,6 +555,18 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       ).rejects.toThrowError(
         'Expected 1 ledger accounts for usage line items, but got 0'
       )
+
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      // The original usage cost is unsettled.
+      expect(finalBalance).toBe(-usageCostLedgerEntry.amount)
     })
 
     it('should handle an invoice with no usage line items gracefully', async () => {
@@ -549,6 +606,18 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       // expects:
       expect(ledgerTransaction).toBeDefined()
       expect(createdLedgerEntries).toHaveLength(0)
+
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      // The original usage cost is unsettled.
+      expect(finalBalance).toBe(-usageCostLedgerEntry.amount)
     })
 
     it('should correctly propagate livemode from the command to all created records', async () => {
@@ -617,6 +686,236 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(
         createdLedgerEntries.every((le) => le.livemode === false)
       ).toBe(true)
+
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: scenario.ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      expect(finalBalance).toBe(0)
+    })
+  })
+
+  describe('Settlement with prior credit balance', () => {
+    it('should settle usage costs correctly when a non-expiring credit exists', async () => {
+      // setup:
+      const priorCreditAmount = 5000
+      const priorCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: priorCreditAmount,
+        usageMeterId: usageMeter.id,
+        expiresAt: null, // non-expiring
+      })
+      const grantTx = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+      await setupLedgerEntries({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: grantTx.id,
+        ledgerAccountId: ledgerAccount.id,
+        entries: [
+          {
+            entryType: LedgerEntryType.CreditGrantRecognized,
+            sourceUsageCreditId: priorCredit.id,
+            amount: priorCreditAmount,
+          },
+        ],
+      })
+
+      const initialBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      expect(initialBalance).toBe(
+        priorCreditAmount - usageCostLedgerEntry.amount
+      )
+
+      const command: SettleInvoiceUsageCostsLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        livemode: subscription.livemode,
+        type: LedgerTransactionType.SettleInvoiceUsageCosts,
+        payload: {
+          invoice,
+          invoiceLineItems: [usageInvoiceLineItem],
+        },
+      }
+
+      // execute:
+      await adminTransaction(async ({ transaction }) => {
+        await processSettleInvoiceUsageCostsLedgerCommand(
+          command,
+          transaction
+        )
+      })
+
+      // expects:
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      // The settlement zeroes out the usage cost, leaving the prior credit intact.
+      expect(finalBalance).toBe(priorCreditAmount)
+    })
+
+    it('should settle usage costs correctly when an expiring credit exists', async () => {
+      // setup:
+      const priorCreditAmount = 3000
+      const priorCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: priorCreditAmount,
+        usageMeterId: usageMeter.id,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // expires in 30 days
+      })
+      const grantTx = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+      await setupLedgerEntries({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: grantTx.id,
+        ledgerAccountId: ledgerAccount.id,
+        entries: [
+          {
+            entryType: LedgerEntryType.CreditGrantRecognized,
+            sourceUsageCreditId: priorCredit.id,
+            amount: priorCreditAmount,
+          },
+        ],
+      })
+
+      const command: SettleInvoiceUsageCostsLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        livemode: subscription.livemode,
+        type: LedgerTransactionType.SettleInvoiceUsageCosts,
+        payload: {
+          invoice,
+          invoiceLineItems: [usageInvoiceLineItem],
+        },
+      }
+
+      // execute:
+      await adminTransaction(async ({ transaction }) => {
+        await processSettleInvoiceUsageCostsLedgerCommand(
+          command,
+          transaction
+        )
+      })
+
+      // expects:
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      expect(finalBalance).toBe(priorCreditAmount)
+    })
+
+    it('should settle usage costs correctly with both expiring and non-expiring credits', async () => {
+      // setup:
+      const nonExpiringAmount = 2000
+      const expiringAmount = 2500
+      const totalPriorCredit = nonExpiringAmount + expiringAmount
+
+      const nonExpiringCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: nonExpiringAmount,
+        usageMeterId: usageMeter.id,
+        expiresAt: null,
+      })
+      const expiringCredit = await setupUsageCredit({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        creditType: UsageCreditType.Grant,
+        issuedAmount: expiringAmount,
+        usageMeterId: usageMeter.id,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      })
+
+      const grantTx = await setupLedgerTransaction({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        type: LedgerTransactionType.AdminCreditAdjusted,
+      })
+      await setupLedgerEntries({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        ledgerTransactionId: grantTx.id,
+        ledgerAccountId: ledgerAccount.id,
+        entries: [
+          {
+            entryType: LedgerEntryType.CreditGrantRecognized,
+            sourceUsageCreditId: nonExpiringCredit.id,
+            amount: nonExpiringAmount,
+          },
+          {
+            entryType: LedgerEntryType.CreditGrantRecognized,
+            sourceUsageCreditId: expiringCredit.id,
+            amount: expiringAmount,
+          },
+        ],
+      })
+
+      const command: SettleInvoiceUsageCostsLedgerCommand = {
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        livemode: subscription.livemode,
+        type: LedgerTransactionType.SettleInvoiceUsageCosts,
+        payload: {
+          invoice,
+          invoiceLineItems: [usageInvoiceLineItem],
+        },
+      }
+
+      // execute:
+      await adminTransaction(async ({ transaction }) => {
+        await processSettleInvoiceUsageCostsLedgerCommand(
+          command,
+          transaction
+        )
+      })
+
+      // expects:
+      const finalBalance = await adminTransaction(
+        async ({ transaction }) => {
+          return await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount.id },
+            'available',
+            transaction
+          )
+        }
+      )
+      expect(finalBalance).toBe(totalPriorCredit)
     })
   })
 })
