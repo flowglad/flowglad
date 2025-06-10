@@ -1,4 +1,7 @@
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
@@ -42,7 +45,10 @@ import {
   CurrencyCode,
   InvoiceStatus,
   InvoiceType,
+  LedgerTransactionType,
   PaymentStatus,
+  FeatureType,
+  SubscriptionItemType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -61,6 +67,15 @@ import {
 } from '@/db/tableMethods/discountRedemptionMethods'
 import { Discount } from '@/db/schema/discounts'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { Subscription } from '@/db/schema/subscriptions'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import {
+  aggregateOutstandingBalanceForUsageCosts,
+  claimLedgerEntriesWithOutstandingBalances,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -96,11 +111,19 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     billingPeriodItems,
     organization,
     paymentMethod,
+    usageOverages,
+    billingRun,
   }: {
     paymentMethod: PaymentMethod.Record
     billingPeriod: BillingPeriod.Record
     billingPeriodItems: BillingPeriodItem.Record[]
     organization: Organization.Record
+    billingRun: BillingRun.Record
+    usageOverages: {
+      usageEventId: string
+      usageMeterId: string
+      balance: number
+    }[]
   },
   transaction: DbTransaction
 ): Promise<{
@@ -118,7 +141,11 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     countryId,
     transaction
   )
-
+  await claimLedgerEntriesWithOutstandingBalances(
+    usageOverages.map((usageOverage) => usageOverage.usageEventId),
+    billingRun,
+    transaction
+  )
   const feeCalculation =
     await createAndFinalizeSubscriptionFeeCalculation(
       {
@@ -129,6 +156,7 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
         organizationCountry,
         livemode: billingPeriod.livemode,
         currency: organization.defaultCurrency,
+        usageOverages,
       },
       transaction
     )
@@ -175,26 +203,157 @@ export const createInvoiceInsertForBillingRun = async (
   }
 }
 
+export type OutstandingUsageCostAggregation = {
+  ledgerAccountId: string
+  usageMeterId: string
+  subscriptionId: string
+  outstandingBalance: number
+}
+
+// Helper function to tabulate outstanding usage costs
+export const tabulateOutstandingUsageCosts = async (
+  subscriptionId: string,
+  billingPeriodEndDate: Date,
+  transaction: DbTransaction
+): Promise<{
+  outstandingUsageCostsByLedgerAccountId: Map<
+    string,
+    OutstandingUsageCostAggregation
+  >
+  rawOutstandingUsageCosts: Awaited<
+    ReturnType<typeof aggregateOutstandingBalanceForUsageCosts>
+  >
+}> => {
+  const ledgerAccountsForSubscription = await selectLedgerAccounts(
+    {
+      subscriptionId,
+    },
+    transaction
+  )
+  const rawOutstandingUsageCosts =
+    await aggregateOutstandingBalanceForUsageCosts(
+      {
+        ledgerAccountId: ledgerAccountsForSubscription.map(
+          (ledgerAccount) => ledgerAccount.id
+        ),
+      },
+      billingPeriodEndDate,
+      transaction
+    )
+
+  const outstandingUsageCostsByLedgerAccountId = new Map()
+  rawOutstandingUsageCosts.forEach((usageCost) => {
+    if (
+      !outstandingUsageCostsByLedgerAccountId.has(
+        usageCost.ledgerAccountId
+      )
+    ) {
+      outstandingUsageCostsByLedgerAccountId.set(
+        usageCost.ledgerAccountId,
+        {
+          ledgerAccountId: usageCost.ledgerAccountId,
+          usageMeterId: usageCost.usageMeterId,
+          subscriptionId: subscriptionId,
+          outstandingBalance: usageCost.balance,
+        }
+      )
+    } else {
+      outstandingUsageCostsByLedgerAccountId.get(
+        usageCost.ledgerAccountId
+      )!.outstandingBalance += usageCost.balance
+    }
+  })
+
+  return {
+    outstandingUsageCostsByLedgerAccountId,
+    rawOutstandingUsageCosts,
+  }
+}
+
 export const billingPeriodItemsToInvoiceLineItemInserts = ({
   invoiceId,
   billingPeriodItems,
+  usageOverages,
+  billingRunId,
 }: {
+  billingRunId: string
   invoiceId: string
   billingPeriodItems: BillingPeriodItem.Record[]
+  usageOverages: {
+    ledgerAccountId: string
+    usageMeterId: string
+    balance: number
+  }[]
 }): InvoiceLineItem.Insert[] => {
-  return billingPeriodItems.map((billingPeriodItem) => {
-    return {
-      BillingPeriodItemId: billingPeriodItem.id,
+  const usageOverageByUsageMeterId = new Map<
+    string,
+    {
+      usageMeterId: string
+      balance: number
+      ledgerAccountId: string
+    }
+  >(
+    usageOverages.map((usageOverage) => [
+      usageOverage.usageMeterId,
+      usageOverage,
+    ])
+  )
+  const invoiceLineItemInserts: (
+    | InvoiceLineItem.Insert
+    | undefined
+  )[] = billingPeriodItems.map((billingPeriodItem) => {
+    if (billingPeriodItem.type === SubscriptionItemType.Usage) {
+      const usageOverage = usageOverageByUsageMeterId.get(
+        billingPeriodItem.usageMeterId
+      )
+      /**
+       * If there is no usage overage for the usage meter, we skip the line item.
+       */
+      if (!usageOverage) {
+        return undefined
+      }
+      const insert: InvoiceLineItem.UsageInsert = {
+        priceId: null,
+        billingRunId,
+        invoiceId,
+        ledgerAccountCredit: usageOverage.balance,
+        quantity:
+          usageOverage.balance && billingPeriodItem.usageEventsPerUnit
+            ? usageOverage.balance /
+              billingPeriodItem.usageEventsPerUnit
+            : 0,
+        type: SubscriptionItemType.Usage,
+        ledgerAccountId: usageOverage!.ledgerAccountId,
+        livemode: billingPeriodItem.livemode,
+        price: billingPeriodItem.unitPrice,
+        description: `${billingPeriodItem.name}${
+          billingPeriodItem.description &&
+          ` - ${billingPeriodItem.description}`
+        }`,
+      }
+      return insert
+    }
+
+    const insert: InvoiceLineItem.StaticInsert = {
       invoiceId,
+      billingRunId,
       quantity: billingPeriodItem.quantity,
       livemode: billingPeriodItem.livemode,
       price: billingPeriodItem.unitPrice,
       description: `${billingPeriodItem.name}${
         billingPeriodItem.description &&
-        `- ${billingPeriodItem.description}`
+        ` - ${billingPeriodItem.description}`
       }`,
+      type: SubscriptionItemType.Static,
+      ledgerAccountId: null,
+      ledgerAccountCredit: null,
+      priceId: null,
     }
+    return insert
   })
+  return invoiceLineItemInserts
+    .filter((item) => item !== undefined)
+    .filter((item) => item.quantity > 0)
 }
 
 export const processOutstandingBalanceForBillingPeriod = async (
@@ -271,7 +430,7 @@ export const processNoMoreDueForBillingPeriod = async (
 export const executeBillingRunCalculationAndBookkeepingSteps = async (
   billingRun: BillingRun.Record,
   transaction: DbTransaction
-) => {
+): Promise<ExecuteBillingRunStepsResult> => {
   const {
     billingPeriodItems,
     organization,
@@ -288,7 +447,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingRun.paymentMethodId,
     transaction
   )
-
+  const { rawOutstandingUsageCosts: usageOverages } =
+    await tabulateOutstandingUsageCosts(
+      billingPeriod.subscriptionId,
+      billingPeriod.endDate,
+      transaction
+    )
   const { feeCalculation, totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
       {
@@ -296,6 +460,8 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
         billingPeriod,
         organization,
         paymentMethod,
+        usageOverages,
+        billingRun,
       },
       transaction
     )
@@ -386,8 +552,9 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingPeriodItemsToInvoiceLineItemInserts({
       invoiceId: invoice.id,
       billingPeriodItems,
+      usageOverages,
+      billingRunId: billingRun.id,
     })
-
   await insertInvoiceLineItems(invoiceLineItemInserts, transaction)
   if (totalDueAmount <= 0) {
     const processBillingPeriodResult =
@@ -489,6 +656,22 @@ export const calculateTotalAmountToCharge = (params: {
   const { totalDueAmount, totalAmountPaid } = params
   return Math.max(0, totalDueAmount - totalAmountPaid)
 }
+
+// Define return type for executeBillingRunCalculationAndBookkeepingSteps
+type ExecuteBillingRunStepsResult = {
+  invoice: Invoice.Record
+  payment?: Payment.Record
+  feeCalculation: FeeCalculation.Record
+  customer: Customer.Record
+  organization: Organization.Record
+  billingPeriod: BillingPeriod.Record
+  subscription: Subscription.Record
+  paymentMethod: PaymentMethod.Record
+  totalDueAmount: number
+  totalAmountPaid: number
+  payments: Payment.Record[]
+}
+
 /**
  * TODO : support discount redemptions
  * @param billingRun
@@ -503,6 +686,7 @@ export const executeBillingRun = async (billingRunId: string) => {
   }
   try {
     const {
+      // Adjusted destructuring
       invoice,
       payment,
       feeCalculation,
@@ -513,16 +697,52 @@ export const executeBillingRun = async (billingRunId: string) => {
       totalAmountPaid,
       organization,
       payments,
-    } = await adminTransaction(
-      ({ transaction }) =>
-        executeBillingRunCalculationAndBookkeepingSteps(
-          billingRun,
-          transaction
-        ),
-      {
-        livemode: billingRun.livemode,
-      }
-    )
+    } =
+      await comprehensiveAdminTransaction<ExecuteBillingRunStepsResult>(
+        async ({ transaction }) => {
+          const resultFromSteps =
+            await executeBillingRunCalculationAndBookkeepingSteps(
+              billingRun,
+              transaction
+            )
+          const subscriptionItems =
+            await selectCurrentlyActiveSubscriptionItems(
+              {
+                subscriptionId: resultFromSteps.subscription.id,
+              },
+              new Date(),
+              transaction
+            )
+          const subscriptionItemFeatures: SubscriptionItemFeature.Record[] =
+            await selectSubscriptionItemFeatures(
+              {
+                subscriptionItemId: subscriptionItems.map(
+                  (item) => item.id
+                ),
+                type: FeatureType.UsageCreditGrant,
+              },
+              transaction
+            )
+          /**
+           * For typesafety
+           */
+          const usageCreditGrantFeatures =
+            subscriptionItemFeatures.filter(
+              (feature) =>
+                feature.type === FeatureType.UsageCreditGrant
+            )
+          const currentBillingPeriodObject =
+            resultFromSteps.billingPeriod
+
+          return {
+            result: resultFromSteps,
+            eventsToLog: [],
+          }
+        },
+        {
+          livemode: billingRun.livemode,
+        }
+      )
     if (!customer.stripeCustomerId) {
       throw new Error(
         `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
@@ -565,9 +785,16 @@ export const executeBillingRun = async (billingRunId: string) => {
       await adminTransaction(async ({ transaction }) => {
         await updateInvoice(
           {
-            id: invoice.id,
+            ...invoice,
             status: InvoiceStatus.Paid,
           } as Invoice.Update,
+          transaction
+        )
+        await updateBillingRun(
+          {
+            id: billingRun.id,
+            status: BillingRunStatus.Succeeded,
+          },
           transaction
         )
       })
@@ -607,6 +834,11 @@ export const executeBillingRun = async (billingRunId: string) => {
             billingPeriodId: invoice.billingPeriodId,
             type: invoice.type,
             subscriptionId: invoice.subscriptionId,
+            /**
+             * We need to update the billing run id to the new billing run id.
+             * So that future ledger commands will map to the correct billing run.
+             */
+            billingRunId: billingRun.id,
           } as Invoice.Update,
           transaction
         )

@@ -24,6 +24,7 @@ import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
+import { payments } from '@/db/schema/payments'
 import { createSelectSchema } from 'drizzle-zod'
 import {
   UsageCreditType,
@@ -62,10 +63,11 @@ export const usageCredits = pgTable(
       'billing_period_id',
       billingPeriods
     ),
-    usageMeterId: nullableStringForeignKey(
+    usageMeterId: notNullStringForeignKey(
       'usage_meter_id',
       usageMeters
     ),
+    paymentId: nullableStringForeignKey('payment_id', payments),
     issuedAmount: integer('issued_amount').notNull(),
     issuedAt: timestamp('issued_at', {
       withTimezone: true,
@@ -92,6 +94,7 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.expiresAt]),
       constructIndex(TABLE_NAME, [table.creditType]),
       constructIndex(TABLE_NAME, [table.status]),
+      constructIndex(TABLE_NAME, [table.paymentId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
@@ -106,10 +109,14 @@ export const usageCredits = pgTable(
 const columnRefinements = {
   creditType: core.createSafeZodEnum(UsageCreditType),
   status: core.createSafeZodEnum(UsageCreditStatus),
+  sourceReferenceType: core.createSafeZodEnum(
+    UsageCreditSourceReferenceType
+  ),
   issuedAmount: core.safeZodPositiveInteger,
-  issuedAt: core.safeZodDate,
-  expiresAt: core.safeZodDate.nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  issuedAt: z.date(),
+  expiresAt: z.date().nullable(),
+  metadata: z.record(z.string(), z.string()).nullable(),
+  paymentId: z.string().nullable(),
 }
 
 /*
@@ -118,10 +125,12 @@ const columnRefinements = {
 export const usageCreditsInsertSchema = enhancedCreateInsertSchema(
   usageCredits,
   columnRefinements
-)
+).extend(columnRefinements)
 
-export const usageCreditsSelectSchema =
-  createSelectSchema(usageCredits).extend(columnRefinements)
+export const usageCreditsSelectSchema = createSelectSchema(
+  usageCredits,
+  columnRefinements
+).extend(columnRefinements)
 
 export const usageCreditsUpdateSchema = createUpdateSchema(
   usageCredits,
@@ -143,11 +152,6 @@ const readOnlyColumns = {
 const hiddenColumns = {
   createdByCommit: true,
   updatedByCommit: true,
-} as const
-
-const clientProhibitedColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
 } as const
 
 const clientWriteOmits = {

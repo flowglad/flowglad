@@ -1,5 +1,8 @@
 import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
-import { EditInvoiceInput } from '@/db/schema/invoiceLineItems'
+import {
+  EditInvoiceInput,
+  InvoiceLineItem,
+} from '@/db/schema/invoiceLineItems'
 import {
   deleteInvoiceLineItems,
   updateInvoiceLineItem,
@@ -12,6 +15,7 @@ import {
 } from '@/db/tableMethods/invoiceMethods'
 import { DbTransaction } from '@/db/types'
 import { deleteIncompleteCheckoutSessionsForInvoice } from '@/db/tableMethods/checkoutSessionMethods'
+import { SubscriptionItemType } from '@/types'
 
 /**
  * This function updates an invoice and its line items.
@@ -74,13 +78,35 @@ export const updateInvoiceTransaction = async (
   await Promise.all(
     invoiceLineItems.map(async (invoiceLineItem) => {
       if ('id' in invoiceLineItem) {
-        return updateInvoiceLineItem(invoiceLineItem, transaction)
+        if (invoiceLineItem.type === SubscriptionItemType.Usage) {
+          throw new Error(
+            'Usage invoice line items are not supported'
+          )
+        }
+        return updateInvoiceLineItem(
+          {
+            ...invoiceLineItem,
+            ledgerAccountCredit: null,
+            ledgerAccountId: null,
+            billingRunId: null,
+          },
+          transaction
+        )
       } else {
+        if (invoiceLineItem.type === SubscriptionItemType.Usage) {
+          throw new Error(
+            'Usage invoice line items are not supported'
+          )
+        }
         return insertInvoiceLineItem(
           {
             ...invoiceLineItem,
             livemode,
-          },
+            invoiceId: updatedInvoice.id,
+            ledgerAccountCredit: null,
+            ledgerAccountId: null,
+            billingRunId: null,
+          } as InvoiceLineItem.Insert,
           transaction
         )
       }

@@ -1,6 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { adminTransaction } from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
@@ -11,7 +11,7 @@ export const attemptBillingPeriodTransitionTask = task({
     payload: { billingPeriod: BillingPeriod.Record },
     { ctx }
   ) => {
-    const { billingRun } = await adminTransaction(
+    const { billingRun } = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         /**
          * Get the most up to date billing period from the database

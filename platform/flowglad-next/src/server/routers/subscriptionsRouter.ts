@@ -8,6 +8,7 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
   eventfulAuthenticatedProcedureTransaction,
@@ -281,7 +282,7 @@ const createSubscriptionProcedure = protectedProcedure
   .input(createSubscriptionInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .mutation(
-    eventfulAuthenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction, ctx }) => {
         const customer = await selectCustomerById(
           input.customerId,
@@ -327,38 +328,42 @@ const createSubscriptionProcedure = protectedProcedure
             )
           : undefined
         const trialEnd = input.trialEnd ?? defaultTrialEnd
-        const [result, eventInserts] =
-          await createSubscriptionWorkflow(
-            {
-              customer,
-              organization,
-              product,
-              price,
-              quantity: input.quantity ?? 1,
-              interval: input.interval ?? price.intervalUnit,
-              intervalCount:
-                input.intervalCount ?? price.intervalCount,
-              trialEnd: trialEnd ? new Date(trialEnd) : undefined,
-              metadata: input.metadata,
-              name: input.name,
-              startDate,
-              defaultPaymentMethod,
-              backupPaymentMethod,
-              livemode: ctx.livemode,
-              autoStart: true,
-            },
-            transaction
-          )
+        const output = await createSubscriptionWorkflow(
+          {
+            customer,
+            organization,
+            product,
+            price,
+            quantity: input.quantity ?? 1,
+            interval: input.interval ?? price.intervalUnit,
+            intervalCount: input.intervalCount ?? price.intervalCount,
+            trialEnd: trialEnd ? new Date(trialEnd) : undefined,
+            metadata: input.metadata,
+            name: input.name,
+            startDate,
+            defaultPaymentMethod,
+            backupPaymentMethod,
+            livemode: ctx.livemode,
+            autoStart: true,
+          },
+          transaction
+        )
         const finalResult = {
           subscription: {
-            ...result.subscription,
+            ...output.result.subscription,
             current: isSubscriptionCurrent(
-              result.subscription.status
+              output.result.subscription.status
             ),
           },
         }
 
-        return [finalResult, eventInserts]
+        return {
+          ...output,
+          result: {
+            ...output.result,
+            ...finalResult,
+          },
+        }
       }
     )
   )

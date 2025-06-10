@@ -38,7 +38,10 @@ import {
 } from '../../../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import {
   safelyUpdateCheckoutSessionStatus,
@@ -797,7 +800,7 @@ describe('Process setup intent', async () => {
           stripeCustomerId: freshCustomer.stripeCustomerId!,
         })
 
-        const result = await adminTransaction(
+        const result = await comprehensiveAdminTransaction(
           async ({ transaction }) => {
             await createFeeCalculationForCheckoutSession(
               freshCheckoutSession as CheckoutSession.FeeReadyRecord,
@@ -887,7 +890,7 @@ describe('Process setup intent', async () => {
               localFirstCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            const result = await processSetupIntentSucceeded(
+            const { result } = await processSetupIntentSucceeded(
               localFirstSetupIntent,
               transaction
             )
@@ -948,7 +951,7 @@ describe('Process setup intent', async () => {
                 localSecondSetupIntent,
                 transaction
               )
-            const result =
+            const { result } =
               await createSubscriptionFromSetupIntentableCheckoutSession(
                 {
                   ...initialResult,
@@ -998,7 +1001,7 @@ describe('Process setup intent', async () => {
               newCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            const result = await processSetupIntentSucceeded(
+            const { result } = await processSetupIntentSucceeded(
               newSetupIntent,
               transaction
             )

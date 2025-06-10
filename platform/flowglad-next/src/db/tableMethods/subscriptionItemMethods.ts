@@ -31,7 +31,7 @@ import {
 import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
-import { SubscriptionStatus } from '@/types'
+import { SubscriptionItemType, SubscriptionStatus } from '@/types'
 import { expireSubscriptionItemFeaturesForSubscriptionItem } from './subscriptionItemFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -152,10 +152,20 @@ export const expireSubscriptionItem = async (
   expiredAt: Date,
   transaction: DbTransaction
 ) => {
+  const subscriptionItem = await selectSubscriptionItemById(
+    subscriptionItemId,
+    transaction
+  )
+  if (subscriptionItem.type === SubscriptionItemType.Usage) {
+    throw new Error('Usage items cannot be expired')
+  }
   await updateSubscriptionItem(
     {
       id: subscriptionItemId,
       expiredAt,
+      type: subscriptionItem.type,
+      usageMeterId: subscriptionItem.usageMeterId,
+      usageEventsPerUnit: subscriptionItem.usageEventsPerUnit,
     },
     transaction
   )

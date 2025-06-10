@@ -46,6 +46,15 @@ import {
   FeeCalculationType,
   FeatureUsageGrantFrequency,
   FeatureType,
+  LedgerEntryStatus,
+  LedgerEntryDirection,
+  LedgerEntryType,
+  LedgerTransactionType,
+  UsageCreditStatus,
+  UsageCreditSourceReferenceType,
+  RefundStatus,
+  UsageCreditApplicationStatus,
+  SubscriptionItemType,
 } from '@/types'
 import { core } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -74,12 +83,44 @@ import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
-import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 import { memberships } from '@/db/schema/memberships'
 import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
 import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
+import { UsageEvent, usageEvents } from '@/db/schema/usageEvents'
+import {
+  LedgerTransaction,
+  ledgerTransactions,
+} from '@/db/schema/ledgerTransactions'
+import {
+  ledgerEntries,
+  LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
+} from '@/db/schema/ledgerEntries'
+import { UsageCredit, usageCredits } from '@/db/schema/usageCredits'
+import {
+  UsageCreditApplication,
+  usageCreditApplications,
+} from '@/db/schema/usageCreditApplications'
+import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
+import { Refund, refunds } from '@/db/schema/refunds'
+import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
+import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
+import {
+  bulkInsertLedgerEntries,
+  insertLedgerEntry,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
+import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
+import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
+import { insertRefund } from '@/db/tableMethods/refundMethods'
+import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { insertFeature } from '@/db/tableMethods/featureMethods'
+import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
     'attempted to access seedDatabase.ts in production. This should never happen.'
@@ -209,6 +250,7 @@ export const setupProduct = async ({
     )
   })
 }
+
 export const setupPaymentMethod = async (params: {
   organizationId: string
   customerId: string
@@ -402,13 +444,17 @@ export const setupBillingRun = async ({
   })
 }
 
-export const setupBillingPeriodItems = async ({
+export const setupBillingPeriodItem = async ({
   billingPeriodId,
   quantity,
   unitPrice,
   name = 'Test Item',
   description = 'Test Description',
+  type = SubscriptionItemType.Static,
   livemode = true,
+  usageMeterId,
+  discountRedemptionId,
+  usageEventsPerUnit,
 }: {
   billingPeriodId: string
   quantity: number
@@ -416,20 +462,69 @@ export const setupBillingPeriodItems = async ({
   name?: string
   description?: string
   livemode?: boolean
+  type?: SubscriptionItemType
+  usageMeterId?: string
+  discountRedemptionId?: string
+  usageEventsPerUnit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const item = await insertBillingPeriodItem(
-      {
+    if (type === SubscriptionItemType.Usage) {
+      if (!usageMeterId) {
+        throw new Error('Usage meter ID is required for usage items')
+      }
+      if (usageEventsPerUnit === undefined) {
+        throw new Error(
+          'Usage events per unit is required for usage items'
+        )
+      }
+      if (discountRedemptionId) {
+        throw new Error(
+          'Discount redemption ID is not allowed for usage items'
+        )
+      }
+      const insert: BillingPeriodItem.Insert = {
         billingPeriodId,
         quantity,
         unitPrice,
         name,
         description,
+        type,
+        usageMeterId,
+        usageEventsPerUnit,
+        discountRedemptionId: null,
         livemode,
-      },
-      transaction
-    )
-    return [item]
+      }
+      return insertBillingPeriodItem(insert, transaction)
+    } else {
+      if (usageMeterId) {
+        throw new Error(
+          'Usage meter ID is not allowed for static items'
+        )
+      }
+      if (usageEventsPerUnit) {
+        throw new Error(
+          'Usage events per unit is not allowed for static items'
+        )
+      }
+      if (discountRedemptionId) {
+        throw new Error(
+          'Discount redemption ID is not allowed for static items'
+        )
+      }
+      const insert: BillingPeriodItem.Insert = {
+        billingPeriodId,
+        quantity,
+        unitPrice,
+        name,
+        description,
+        type,
+        livemode,
+        usageMeterId: null,
+        discountRedemptionId: null,
+        usageEventsPerUnit: null,
+      }
+      return insertBillingPeriodItem(insert, transaction)
+    }
   })
 }
 
@@ -476,6 +571,7 @@ export const setupInvoice = async ({
   livemode = true,
   priceId,
   purchaseId: existingPurchaseId,
+  billingRunId,
 }: {
   billingPeriodId?: string
   customerId: string
@@ -485,6 +581,7 @@ export const setupInvoice = async ({
   type?: InvoiceType
   priceId: string
   purchaseId?: string
+  billingRunId?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let billingPeriod: BillingPeriod.Record | null = null
@@ -529,6 +626,7 @@ export const setupInvoice = async ({
         currency: CurrencyCode.USD,
         taxCountry: CountryCode.US,
         subscriptionId: billingPeriod?.subscriptionId ?? null,
+        billingRunId,
       } as z.infer<typeof invoicesInsertSchema>,
       transaction
     )
@@ -539,6 +637,11 @@ export const setupInvoice = async ({
         price: 1000,
         quantity: 1,
         livemode: invoice.livemode,
+        type: SubscriptionItemType.Static,
+        priceId,
+        billingRunId: null,
+        ledgerAccountId: null,
+        ledgerAccountCredit: null,
       },
       transaction
     )
@@ -611,7 +714,7 @@ export const setupPrice = async ({
         isDefault,
         setupFeeAmount,
         trialPeriodDays,
-        currency,
+        currency: currency ?? CurrencyCode.USD,
         externalId: externalId ?? core.nanoid(),
         usageMeterId: usageMeterId ?? null,
         active,
@@ -719,6 +822,9 @@ export const setupSubscriptionItem = async ({
   priceId,
   addedDate,
   metadata,
+  type = SubscriptionItemType.Static,
+  usageMeterId,
+  usageEventsPerUnit,
 }: {
   subscriptionId: string
   name: string
@@ -728,6 +834,9 @@ export const setupSubscriptionItem = async ({
   addedDate?: Date
   removedDate?: Date
   metadata?: Record<string, any>
+  type?: SubscriptionItemType
+  usageMeterId?: string
+  usageEventsPerUnit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const subscription = await selectSubscriptionById(
@@ -737,8 +846,19 @@ export const setupSubscriptionItem = async ({
     if (!subscription) {
       throw new Error('Subscription not found')
     }
-    return insertSubscriptionItem(
-      {
+    if (type === SubscriptionItemType.Usage) {
+      if (!usageMeterId) {
+        throw new Error('Usage meter ID is required for usage items')
+      }
+      if (usageEventsPerUnit === undefined) {
+        throw new Error(
+          'Usage events per unit is required for usage items'
+        )
+      }
+      if (priceId) {
+        throw new Error('Price ID is not allowed for usage items')
+      }
+      const insert: SubscriptionItem.UsageInsert = {
         subscriptionId: subscription.id,
         name,
         quantity,
@@ -749,9 +869,39 @@ export const setupSubscriptionItem = async ({
         expiredAt: null,
         metadata: metadata ?? {},
         externalId: null,
-      },
-      transaction
-    )
+        type,
+        usageMeterId,
+        usageEventsPerUnit,
+      }
+      return insertSubscriptionItem(insert, transaction)
+    } else {
+      if (usageMeterId) {
+        throw new Error(
+          'Usage meter ID is not allowed for static items'
+        )
+      }
+      if (usageEventsPerUnit) {
+        throw new Error(
+          'Usage events per unit is not allowed for static items'
+        )
+      }
+      const insert: SubscriptionItem.StaticInsert = {
+        subscriptionId: subscription.id,
+        name,
+        quantity,
+        unitPrice,
+        livemode: subscription.livemode,
+        priceId: priceId ?? subscription.priceId!,
+        addedDate: addedDate ?? new Date(),
+        expiredAt: null,
+        metadata: metadata ?? {},
+        externalId: null,
+        type,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+      }
+      return insertSubscriptionItem(insert, transaction)
+    }
   })
 }
 
@@ -932,14 +1082,44 @@ export const setupInvoiceLineItem = async ({
   quantity = 1,
   price = 1000,
   livemode = true,
+  type = SubscriptionItemType.Static,
+  billingRunId,
+  ledgerAccountId,
+  ledgerAccountCredit,
 }: {
   invoiceId: string
   priceId: string
   quantity?: number
   price?: number
   livemode?: boolean
+  type?: SubscriptionItemType
+  billingRunId?: string
+  ledgerAccountId?: string
+  ledgerAccountCredit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
+    if (type === SubscriptionItemType.Usage) {
+      if (!billingRunId || !ledgerAccountId || !ledgerAccountCredit) {
+        throw new Error(
+          'Usage invoice line items must have a billing run id, ledger account id, and ledger account credit'
+        )
+      }
+      return insertInvoiceLineItem(
+        {
+          invoiceId,
+          priceId,
+          quantity,
+          price,
+          livemode,
+          description: 'Test Description',
+          type,
+          billingRunId,
+          ledgerAccountId,
+          ledgerAccountCredit,
+        },
+        transaction
+      )
+    }
     return insertInvoiceLineItem(
       {
         invoiceId,
@@ -948,6 +1128,10 @@ export const setupInvoiceLineItem = async ({
         price,
         livemode,
         description: 'Test Description',
+        type,
+        billingRunId: null,
+        ledgerAccountId: null,
+        ledgerAccountCredit: null,
       },
       transaction
     )
@@ -1206,4 +1390,870 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
     }
     return createdData
   })
+}
+
+export const setupUsageEvent = async (
+  params: Partial<UsageEvent.Insert> & {
+    organizationId: string
+    subscriptionId: string
+    usageMeterId: string
+    amount: number
+    priceId: string
+    billingPeriodId: string
+    transactionId: string
+    customerId: string
+  }
+): Promise<UsageEvent.Record> => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertUsageEvent(
+      {
+        livemode: true,
+        usageDate: params.usageDate,
+        properties: params.properties ?? {},
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupLedgerTransaction = async (
+  params: Partial<LedgerTransaction.Insert> & {
+    organizationId: string
+    subscriptionId: string
+    type: LedgerTransactionType
+  }
+): Promise<LedgerTransaction.Record> => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerTransaction(
+      {
+        livemode: true,
+        initiatingSourceType: 'test_setup',
+        initiatingSourceId: `src_${core.nanoid()}`,
+        description: 'Test Ledger Transaction',
+        metadata:
+          params.metadata === undefined ? null : params.metadata,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+interface CoreLedgerEntryUserParams {
+  organizationId: string
+  subscriptionId: string
+  ledgerTransactionId: string
+  ledgerAccountId: string
+  amount: number // User provides positive amount; sign/direction handled by logic
+
+  description?: string
+  entryTimestamp?: Date
+  status?: LedgerEntryStatus
+  livemode?: boolean
+  metadata?: Record<string, any> | null
+  discardedAt?: Date | null
+  expiredAt?: Date | null
+  billingPeriodId?: string | null
+  usageMeterId?: string | null
+  appliedToLedgerItemId?: string | null
+  claimedByBillingRunId?: string | null
+}
+
+// --- Debit Ledger Entry Setup ---
+interface SetupDebitUsageCostParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.UsageCost
+  sourceUsageEventId: string
+}
+
+interface SetupDebitCreditGrantExpiredParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.CreditGrantExpired
+  sourceUsageCreditId: string
+}
+
+interface SetupDebitPaymentRefundedParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.PaymentRefunded
+  sourceRefundId: string
+}
+
+interface SetupDebitCreditBalanceAdjustedParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.CreditBalanceAdjusted
+  sourceCreditBalanceAdjustmentId: string
+  sourceUsageCreditId: string
+}
+
+interface SetupDebitBillingAdjustmentParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.BillingAdjustment
+  sourceBillingPeriodCalculationId: string
+}
+
+interface SetupDebitUsageCreditApplicationDebitFromCreditBalanceParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+  sourceCreditApplicationId: string
+  sourceUsageEventId: string
+  sourceUsageCreditId: string
+}
+
+export type DebitLedgerEntrySetupParams =
+  | SetupDebitUsageCostParams
+  | SetupDebitCreditGrantExpiredParams
+  | SetupDebitPaymentRefundedParams
+  | SetupDebitCreditBalanceAdjustedParams
+  | SetupDebitBillingAdjustmentParams
+  | SetupDebitUsageCreditApplicationDebitFromCreditBalanceParams
+
+const baseLedgerEntryInsertFieldsFromParams = (
+  params: CoreLedgerEntryUserParams & {
+    entryType: LedgerEntryType
+    amount: number
+    status?: LedgerEntryStatus
+  }
+) => {
+  const now = new Date()
+  const dbAmount = Math.abs(params.amount)
+  return {
+    ...ledgerEntryNulledSourceIdColumns,
+    organizationId: params.organizationId,
+    subscriptionId: params.subscriptionId,
+    ledgerTransactionId: params.ledgerTransactionId,
+    ledgerAccountId: params.ledgerAccountId,
+    livemode: params.livemode ?? true,
+    status: params.status ?? LedgerEntryStatus.Posted,
+    description:
+      params.description ?? `Test Ledger Entry - ${params.entryType}`,
+    entryTimestamp: params.entryTimestamp ?? now,
+    metadata: params.metadata ?? {},
+    discardedAt: params.discardedAt ?? null,
+    expiredAt: params.expiredAt ?? null,
+    billingPeriodId: params.billingPeriodId ?? null,
+    usageMeterId: params.usageMeterId ?? null,
+    claimedByBillingRunId:
+      params.entryType === LedgerEntryType.UsageCost
+        ? (params.claimedByBillingRunId ?? null)
+        : null,
+    appliedToLedgerItemId: params.appliedToLedgerItemId ?? null,
+    amount: dbAmount,
+  }
+}
+
+const debitEntryInsertFromDebigLedgerParams = (
+  params: DebitLedgerEntrySetupParams & CoreLedgerEntryUserParams
+) => {
+  const baseProps = {
+    ...baseLedgerEntryInsertFieldsFromParams(params),
+    claimedByBillingRunId: null,
+    direction: LedgerEntryDirection.Debit,
+  } as const
+
+  let insertData: LedgerEntry.Insert
+
+  switch (params.entryType) {
+    case LedgerEntryType.UsageCost:
+      insertData = {
+        ...baseProps,
+        claimedByBillingRunId: params.claimedByBillingRunId ?? null,
+        entryType: params.entryType,
+        sourceUsageEventId: params.sourceUsageEventId,
+      } satisfies LedgerEntry.UsageCostInsert
+      break
+
+    case LedgerEntryType.CreditGrantExpired:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+        claimedByBillingRunId: null,
+      } satisfies LedgerEntry.CreditGrantExpiredInsert
+      break
+
+    case LedgerEntryType.PaymentRefunded:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceRefundId: params.sourceRefundId,
+        claimedByBillingRunId: null,
+      } satisfies LedgerEntry.PaymentRefundedInsert
+      break
+
+    case LedgerEntryType.CreditBalanceAdjusted:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditBalanceAdjustmentId:
+          params.sourceCreditBalanceAdjustmentId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditBalanceAdjustedInsert
+      break
+
+    case LedgerEntryType.BillingAdjustment:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceBillingPeriodCalculationId:
+          params.sourceBillingPeriodCalculationId,
+      } satisfies LedgerEntry.BillingAdjustmentInsert
+      break
+
+    case LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditApplicationId: params.sourceCreditApplicationId,
+        sourceUsageEventId: params.sourceUsageEventId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.UsageCreditApplicationDebitFromCreditBalanceInsert
+      break
+
+    default:
+      throw new Error(`Unsupported entryType for debit ledger entry.`)
+  }
+
+  return insertData
+}
+
+export const setupDebitLedgerEntry = async (
+  params: DebitLedgerEntrySetupParams & CoreLedgerEntryUserParams
+): Promise<LedgerEntry.Record> => {
+  if (params.amount < 0) {
+    throw new Error(
+      'setupDebitLedgerEntry: input amount must be greater than or equal to 0.'
+    )
+  }
+
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerEntry(
+      debitEntryInsertFromDebigLedgerParams(params),
+      transaction
+    )
+  })
+}
+
+interface SetupLedgerEntryCoreParams {
+  amount: number
+  status?: LedgerEntryStatus
+  discardedAt?: Date | null
+}
+// --- Credit Ledger Entry Setup ---
+interface SetupCreditCreditGrantRecognizedParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.CreditGrantRecognized
+  sourceUsageCreditId: string
+  expiresAt?: Date | null
+}
+
+interface SetupCreditCreditBalanceAdjustedParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.CreditBalanceAdjusted
+  sourceCreditBalanceAdjustmentId: string
+  sourceUsageCreditId: string
+}
+
+interface SetupCreditBillingAdjustmentParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.BillingAdjustment
+  sourceBillingPeriodCalculationId: string
+}
+
+interface SetupCreditUsageCreditApplicationCreditTowardsUsageCostParams
+  extends SetupLedgerEntryCoreParams {
+  entryType: LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+  sourceCreditApplicationId: string
+  sourceUsageEventId: string
+  sourceUsageCreditId: string
+}
+
+export type CreditLedgerEntrySetupParams =
+  | SetupCreditCreditGrantRecognizedParams
+  | SetupCreditCreditBalanceAdjustedParams
+  | SetupCreditBillingAdjustmentParams
+  | SetupCreditUsageCreditApplicationCreditTowardsUsageCostParams
+
+const creditLedgerEntryInsertFromCreditLedgerParams = (
+  params: CreditLedgerEntrySetupParams & CoreLedgerEntryUserParams
+) => {
+  if (params.amount < 0) {
+    throw new Error(
+      'setupCreditLedgerEntry: input amount must be greater than or equal to 0.'
+    )
+  }
+
+  const baseProps = {
+    ...baseLedgerEntryInsertFieldsFromParams(params),
+    claimedByBillingRunId: null,
+    direction: LedgerEntryDirection.Credit,
+  } as const
+
+  let insertData: LedgerEntry.Insert
+
+  switch (params.entryType) {
+    case LedgerEntryType.CreditGrantRecognized:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditGrantRecognizedInsert
+      break
+
+    case LedgerEntryType.CreditBalanceAdjusted:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditBalanceAdjustmentId:
+          params.sourceCreditBalanceAdjustmentId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.CreditBalanceAdjustedInsert
+      break
+
+    case LedgerEntryType.BillingAdjustment:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceBillingPeriodCalculationId:
+          params.sourceBillingPeriodCalculationId,
+      } satisfies LedgerEntry.BillingAdjustmentInsert
+      break
+
+    case LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost:
+      insertData = {
+        ...baseProps,
+        entryType: params.entryType,
+        sourceCreditApplicationId: params.sourceCreditApplicationId,
+        sourceUsageEventId: params.sourceUsageEventId,
+        sourceUsageCreditId: params.sourceUsageCreditId,
+      } satisfies LedgerEntry.UsageCreditApplicationCreditTowardsUsageCostInsert
+      break
+
+    default:
+      throw new Error(
+        `Unsupported entryType for credit ledger entry.`
+      )
+  }
+
+  return insertData
+}
+
+export const setupCreditLedgerEntry = async (
+  params: CreditLedgerEntrySetupParams & CoreLedgerEntryUserParams
+): Promise<LedgerEntry.Record> => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertLedgerEntry(
+      creditLedgerEntryInsertFromCreditLedgerParams(params),
+      transaction
+    )
+  })
+}
+
+export const setupUsageCredit = async (
+  params: Partial<UsageCredit.Insert> & {
+    organizationId: string
+    subscriptionId: string
+    creditType: string
+    issuedAmount: number
+    usageMeterId: string
+  }
+): Promise<UsageCredit.Record> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    return insertUsageCredit(
+      {
+        livemode: params.livemode ?? true,
+        issuedAt: params.issuedAt ?? now,
+        sourceReferenceId:
+          params.sourceReferenceId ?? `src_ref_${core.nanoid()}`,
+        metadata: params.metadata ?? {},
+        notes: params.notes ?? 'Test Usage Credit',
+        status: params.status ?? UsageCreditStatus.Posted,
+        sourceReferenceType:
+          UsageCreditSourceReferenceType.InvoiceSettlement,
+        paymentId: params.paymentId ?? null,
+        expiresAt: params.expiresAt ?? null,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupUsageCreditApplication = async (
+  params: Partial<UsageCreditApplication.Insert> & {
+    organizationId: string
+    usageCreditId: string
+    amountApplied: number
+    usageEventId: string
+    status?: UsageCreditApplicationStatus
+  }
+): Promise<UsageCreditApplication.Record> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    return insertUsageCreditApplication(
+      {
+        livemode: true,
+        appliedAt: now,
+        status: params.status ?? UsageCreditApplicationStatus.Posted,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupUsageCreditBalanceAdjustment = async (
+  params: Partial<
+    typeof usageCreditBalanceAdjustments.$inferInsert
+  > & {
+    organizationId: string
+    adjustedUsageCreditId: string
+    adjustmentType: string
+    amountAdjusted: number
+    currency: CurrencyCode
+    reason: string
+  }
+): Promise<typeof usageCreditBalanceAdjustments.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertUsageCreditBalanceAdjustment is defined and imported
+    return insertUsageCreditBalanceAdjustment(
+      {
+        livemode: true,
+        adjustmentInitiatedAt: now,
+        adjustedByUserId: `user_${core.nanoid()}`,
+        metadata: {},
+        notes: 'Test Usage Credit Balance Adjustment',
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupRefund = async (
+  params: Partial<Refund.Insert> & {
+    organizationId: string
+    paymentId: string
+    subscriptionId: string
+    amount: number
+    currency: CurrencyCode
+  }
+): Promise<typeof refunds.$inferSelect> => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertRefund(
+      {
+        livemode: true,
+        status: RefundStatus.Succeeded,
+        reason: 'Test Refund',
+        gatewayRefundId: `ref_gw_${core.nanoid()}`,
+        refundProcessedAt: new Date(),
+        notes: 'Test Refund Notes',
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export type SMPCalculationStatus =
+  | 'active'
+  | 'superseded'
+  | 'pending_confirmation'
+export type SMPCalculationType =
+  | 'billing_run'
+  | 'interim_estimate'
+  | 'adjustment_recalculation'
+
+export const setupSubscriptionMeterPeriodCalculation = async (
+  params: Partial<
+    typeof subscriptionMeterPeriodCalculations.$inferInsert
+  > & {
+    organizationId: string
+    subscriptionId: string
+    usageMeterId: string
+    billingPeriodId: string
+    calculationRunId: string
+    totalRawUsageAmount: number
+    creditsAppliedAmount: number
+    netBilledAmount: number
+    currency: CurrencyCode
+  }
+): Promise<
+  typeof subscriptionMeterPeriodCalculations.$inferSelect
+> => {
+  return adminTransaction(async ({ transaction }) => {
+    const now = new Date()
+    // @ts-expect-error Assume insertSubscriptionMeterPeriodCalculation is defined and imported
+    return insertSubscriptionMeterPeriodCalculation(
+      {
+        livemode: true,
+        calculatedAt: now,
+        calculationType: 'billing_run' as SMPCalculationType,
+        status: 'active' as SMPCalculationStatus,
+        metadata: {},
+        notes: 'Test SMPC',
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+type QuickLedgerEntry =
+  | CreditLedgerEntrySetupParams
+  | DebitLedgerEntrySetupParams
+
+type CreditLedgerEntryType =
+  | LedgerEntryType.CreditGrantRecognized
+  | LedgerEntryType.CreditBalanceAdjusted
+  | LedgerEntryType.BillingAdjustment
+  | LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost
+
+type DebitLedgerEntryType =
+  | LedgerEntryType.UsageCost
+  | LedgerEntryType.CreditGrantExpired
+  | LedgerEntryType.PaymentRefunded
+  | LedgerEntryType.CreditBalanceAdjusted
+  | LedgerEntryType.BillingAdjustment
+  | LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance
+
+const debitableEntryTypes = [
+  LedgerEntryType.UsageCost,
+  LedgerEntryType.CreditGrantExpired,
+  LedgerEntryType.PaymentRefunded,
+  LedgerEntryType.CreditBalanceAdjusted,
+  LedgerEntryType.BillingAdjustment,
+  LedgerEntryType.UsageCreditApplicationDebitFromCreditBalance,
+] as const
+
+const creditableEntryTypes = [
+  LedgerEntryType.CreditGrantRecognized,
+  LedgerEntryType.CreditBalanceAdjusted,
+  LedgerEntryType.BillingAdjustment,
+  LedgerEntryType.UsageCreditApplicationCreditTowardsUsageCost,
+] as const
+
+export const setupLedgerEntries = async (params: {
+  organizationId: string
+  subscriptionId: string
+  ledgerTransactionId: string
+  ledgerAccountId: string
+  entries: QuickLedgerEntry[]
+}) => {
+  return await adminTransaction(async ({ transaction }) => {
+    return bulkInsertLedgerEntries(
+      params.entries.map((entry) => {
+        if (
+          debitableEntryTypes.includes(
+            entry.entryType as DebitLedgerEntryType
+          )
+        ) {
+          return debitEntryInsertFromDebigLedgerParams({
+            ...entry,
+            organizationId: params.organizationId,
+            subscriptionId: params.subscriptionId,
+            ledgerTransactionId: params.ledgerTransactionId,
+            ledgerAccountId: params.ledgerAccountId,
+          } as DebitLedgerEntrySetupParams &
+            CoreLedgerEntryUserParams)
+        } else if (
+          creditableEntryTypes.includes(
+            entry.entryType as CreditLedgerEntryType
+          )
+        ) {
+          return creditLedgerEntryInsertFromCreditLedgerParams({
+            ...entry,
+            organizationId: params.organizationId,
+            subscriptionId: params.subscriptionId,
+            ledgerTransactionId: params.ledgerTransactionId,
+            ledgerAccountId: params.ledgerAccountId,
+          } as CreditLedgerEntrySetupParams &
+            CoreLedgerEntryUserParams)
+        } else {
+          throw new Error(
+            `Unsupported entry type: ${entry.entryType}`
+          )
+        }
+      }),
+      transaction
+    )
+  })
+}
+
+export const setupToggleFeature = async (
+  params: Partial<Omit<Feature.ToggleInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    livemode: boolean
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    const insert: Feature.ToggleInsert = {
+      type: FeatureType.Toggle,
+      description: params.description ?? '',
+      slug: params.slug ?? `test-feature-${core.nanoid()}`,
+      amount: null,
+      usageMeterId: null,
+      renewalFrequency: null,
+      ...params,
+    }
+    return insertFeature(insert, transaction)
+  })
+}
+
+export const setupUsageCreditGrantFeature = async (
+  params: Partial<Omit<Feature.UsageCreditGrantInsert, 'type'>> & {
+    organizationId: string
+    name: string
+    usageMeterId: string
+    renewalFrequency: FeatureUsageGrantFrequency
+    livemode: boolean
+  }
+): Promise<Feature.UsageCreditGrantRecord> => {
+  return adminTransaction(async ({ transaction }) => {
+    const insert: Feature.UsageCreditGrantInsert = {
+      type: FeatureType.UsageCreditGrant,
+      description: params.description ?? '',
+      slug: params.slug ?? `test-feature-${core.nanoid()}`,
+      amount: params.amount ?? 1,
+      ...params,
+    }
+    return insertFeature(
+      insert,
+      transaction
+    ) as Promise<Feature.UsageCreditGrantRecord>
+  })
+}
+
+export const setupProductFeature = async (
+  params: Partial<ProductFeature.Insert> & {
+    productId: string
+    featureId: string
+    expiredAt?: Date | null
+    organizationId: string
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertProductFeature(
+      {
+        livemode: true,
+        expiredAt: params.expiredAt ?? null,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupSubscriptionItemFeature = async (
+  params: Partial<SubscriptionItemFeature.Insert> & {
+    subscriptionItemId: string
+    usageMeterId: string
+    featureId: string
+    productFeatureId: string
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertSubscriptionItemFeature(
+      {
+        livemode: true,
+        type: FeatureType.UsageCreditGrant,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        amount: params.amount ?? 1,
+        ...params,
+      },
+      transaction
+    )
+  })
+}
+
+export const setupSubscriptionItemFeatureUsageCreditGrant = async (
+  params: Partial<SubscriptionItemFeature.Insert> & {
+    subscriptionItemId: string
+    usageMeterId: string
+    featureId: string
+    productFeatureId: string
+  }
+) => {
+  return adminTransaction(async ({ transaction }) => {
+    return insertSubscriptionItemFeature(
+      {
+        livemode: true,
+        type: FeatureType.UsageCreditGrant,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        amount: params.amount ?? 1,
+        ...params,
+      },
+      transaction
+    )
+  }) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
+}
+
+/**
+ * @description A comprehensive test setup utility for creating a complete usage-based
+ * billing and ledger scenario. It programmatically creates and links all necessary
+ * database records: an organization, customer, product, price, subscription, usage
+ * meter, and an active billing period.
+ *
+ * Based on the input parameters, it can then:
+ * 1. Generate a series of `UsageEvent` records and their corresponding `UsageCost` ledger entries.
+ * 2. Populate the ledger with arbitrary initial entries (`quickEntries`) to simulate
+ *    pre-existing balances or administrative adjustments.
+ *
+ * @param params An object containing optional arrays for `usageEventAmounts` and `quickEntries`.
+ * @returns A promise that resolves to an object containing all the created entities,
+ * providing a fully hydrated test environment.
+ */
+export const setupUsageLedgerScenario = async (params: {
+  usageEventAmounts?: number[]
+  quickEntries?: QuickLedgerEntry[]
+  customerArgs?: Record<string, any>
+  paymentMethodArgs?: Record<string, any>
+  subscriptionArgs?: Record<string, any>
+  priceArgs?: Record<string, any>
+  subscriptionItemArgs?: Record<string, any>
+  livemode?: boolean
+}) => {
+  const livemode = params.livemode ?? true
+  const { organization, product, catalog } = await setupOrg()
+  const customer = await setupCustomer({
+    organizationId: organization.id,
+    email: 'test@test.com',
+    livemode,
+    ...(params.customerArgs ?? {}),
+  })
+  const paymentMethod = await setupPaymentMethod({
+    organizationId: organization.id,
+    customerId: customer.id,
+    livemode,
+    ...(params.paymentMethodArgs ?? {}),
+  })
+  const usageMeter = await setupUsageMeter({
+    organizationId: organization.id,
+    name: 'Test Usage Meter',
+    livemode,
+    catalogId: catalog.id,
+  })
+  const price = await setupPrice({
+    productId: product.id,
+    name: 'Test Price',
+    type: PriceType.Usage,
+    unitPrice: 1000,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    livemode,
+    isDefault: false,
+    setupFeeAmount: 0,
+    usageMeterId: usageMeter.id,
+    ...(params.priceArgs ?? {}),
+  })
+  const subscription = await setupSubscription({
+    organizationId: organization.id,
+    customerId: customer.id,
+    paymentMethodId: paymentMethod.id,
+    priceId: price.id,
+    interval: IntervalUnit.Month,
+    intervalCount: 1,
+    ...(params.subscriptionArgs ?? {}),
+  })
+
+  const subscriptionItem = await setupSubscriptionItem({
+    subscriptionId: subscription.id,
+    name: 'Test Subscription Item',
+    quantity: 1,
+    unitPrice: price.unitPrice,
+    type: SubscriptionItemType.Usage,
+    usageMeterId: usageMeter.id,
+    usageEventsPerUnit: 1,
+    ...(params.subscriptionItemArgs ?? {}),
+  })
+  const billingPeriod = await setupBillingPeriod({
+    subscriptionId: subscription.id,
+    startDate: subscription.currentBillingPeriodStart || new Date(),
+    endDate:
+      subscription.currentBillingPeriodEnd ||
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    status: BillingPeriodStatus.Active,
+    livemode,
+  })
+  const usageEvents: UsageEvent.Record[] = []
+  for (const amount of params.usageEventAmounts ?? []) {
+    const usageEvent = await setupUsageEvent({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      usageMeterId: usageMeter.id,
+      amount,
+      priceId: price.id,
+      billingPeriodId: billingPeriod.id,
+      transactionId: 'test-transaction-id',
+      customerId: customer.id,
+      livemode,
+    })
+    usageEvents.push(usageEvent)
+  }
+
+  const ledgerAccount = await setupLedgerAccount({
+    organizationId: organization.id,
+    subscriptionId: subscription.id,
+    usageMeterId: usageMeter.id,
+    livemode,
+  })
+  const ledgerTransactions: LedgerTransaction.Record[] = []
+  const ledgerEntries: LedgerEntry.Record[] = []
+  if (params.quickEntries && params.quickEntries.length > 0) {
+    const ledgerTransaction = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.AdminCreditAdjusted,
+    })
+    const ledgerEntriesCreated = await setupLedgerEntries({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: ledgerTransaction.id,
+      ledgerAccountId: ledgerAccount.id,
+      entries: params.quickEntries,
+    })
+    ledgerEntries.push(...ledgerEntriesCreated)
+    ledgerTransactions.push(ledgerTransaction)
+  }
+  if (usageEvents.length > 0) {
+    const ledgerTransaction = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      type: LedgerTransactionType.UsageEventProcessed,
+    })
+    const ledgerEntriesCreated = await setupLedgerEntries({
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      ledgerTransactionId: ledgerTransaction.id,
+      ledgerAccountId: ledgerAccount.id,
+      entries: usageEvents.map((usageEvent) => ({
+        entryType: LedgerEntryType.UsageCost,
+        sourceUsageEventId: usageEvent.id,
+        amount: usageEvent.amount,
+        status: LedgerEntryStatus.Posted,
+      })),
+    })
+    ledgerEntries.push(...ledgerEntriesCreated)
+    ledgerTransactions.push(ledgerTransaction)
+  }
+  return {
+    organization,
+    product,
+    catalog,
+    customer,
+    paymentMethod,
+    price,
+    subscription,
+    usageMeter,
+    billingPeriod,
+    subscriptionItem,
+    ledgerAccount,
+    ledgerEntries,
+    ledgerTransactions,
+  }
 }

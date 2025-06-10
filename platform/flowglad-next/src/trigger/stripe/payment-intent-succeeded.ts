@@ -1,4 +1,7 @@
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectCustomerAndCustomerFromCustomerWhere } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
@@ -11,9 +14,10 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
-import { InvoiceStatus } from '@/types'
+import { InvoiceStatus, LedgerTransactionType } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
+import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -28,13 +32,14 @@ export const stripePaymentIntentSucceededTask = task({
      * process it on own track, and then terminate
      */
     if ('billingRunId' in metadata) {
-      return adminTransaction(async ({ transaction }) => {
-        await processPaymentIntentEventForBillingRun(
-          payload,
-          transaction
-        )
-        return
-      })
+      return comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentEventForBillingRun(
+            payload,
+            transaction
+          )
+        }
+      )
     }
 
     const {

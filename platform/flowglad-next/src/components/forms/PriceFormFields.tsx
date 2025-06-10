@@ -251,6 +251,11 @@ const PriceFormFields = ({
               value={field.value}
               orientation="horizontal"
               onValueChange={(value) => {
+                /**
+                 * When price type changes,
+                 * set default values for the new price type to ensure
+                 * that the price will parse correctly.
+                 */
                 if (value === PriceType.Usage) {
                   Object.entries(usagePriceDefaultColumns).forEach(
                     assignPriceValueFromTuple

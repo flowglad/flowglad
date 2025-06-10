@@ -16,12 +16,15 @@ import {
   enhancedCreateInsertSchema,
   livemodePolicy,
   createUpdateSchema,
+  pgEnumColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
+import { usageEvents } from './usageEvents'
+import { UsageCreditApplicationStatus } from '@/types'
 
 const TABLE_NAME = 'usage_credit_applications'
 
@@ -29,11 +32,19 @@ export const usageCreditApplications = pgTable(
   TABLE_NAME,
   {
     ...tableBase('usage_credit_app'),
+    status: pgEnumColumn({
+      enumName: 'UsageCreditApplicationStatus',
+      columnName: 'status',
+      enumBase: UsageCreditApplicationStatus,
+    }).notNull(),
     usageCreditId: notNullStringForeignKey(
       'usage_credit_id',
       usageCredits
     ),
-    calculationRunId: text('calculation_run_id').notNull(),
+    usageEventId: notNullStringForeignKey(
+      'usage_event_id',
+      usageEvents
+    ),
     amountApplied: integer('amount_applied').notNull(),
     appliedAt: timestamp('applied_at', {
       withTimezone: true,
@@ -53,7 +64,6 @@ export const usageCreditApplications = pgTable(
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
-    constructIndex(TABLE_NAME, [table.calculationRunId]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
       to: 'authenticated',
@@ -67,6 +77,7 @@ export const usageCreditApplications = pgTable(
 const columnRefinements = {
   amountApplied: core.safeZodPositiveInteger,
   appliedAt: core.safeZodDate,
+  status: z.nativeEnum(UsageCreditApplicationStatus),
   targetUsageMeterId: z.string().nullable(),
 }
 
