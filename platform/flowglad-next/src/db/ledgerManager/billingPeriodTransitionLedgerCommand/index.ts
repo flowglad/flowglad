@@ -47,16 +47,24 @@ export const processBillingPeriodTransitionLedgerCommand = async (
    * First: find or create all the ledger accounts needed to grant the entitlements
    * Second: ...grant the entitlements!
    */
+  const entitlementUsageMeterIds = [
+    ...new Set(
+      command.payload.subscriptionFeatureItems
+        .map((featureItem) => featureItem.usageMeterId)
+        .filter((id): id is string => !!id)
+    ),
+  ]
+
   const entitlementLedgerAccounts =
-    await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
-      {
-        subscriptionId: command.payload.subscription.id,
-        usageMeterIds: command.payload.subscriptionFeatureItems.map(
-          (featureItem) => featureItem.usageMeterId
-        ),
-      },
-      transaction
-    )
+    entitlementUsageMeterIds.length > 0
+      ? await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
+          {
+            subscriptionId: command.payload.subscription.id,
+            usageMeterIds: entitlementUsageMeterIds,
+          },
+          transaction
+        )
+      : []
 
   const ledgerAccountsByUsageMeterId = new Map<
     string,
@@ -67,25 +75,6 @@ export const processBillingPeriodTransitionLedgerCommand = async (
       ledgerAccount,
     ])
   )
-
-  const allMetersHaveAccount =
-    command.payload.subscriptionFeatureItems.every((featureItem) =>
-      ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId)
-    )
-
-  if (!allMetersHaveAccount) {
-    const missingMeters = command.payload.subscriptionFeatureItems
-      .filter(
-        (featureItem) =>
-          !ledgerAccountsByUsageMeterId.has(featureItem.usageMeterId)
-      )
-      .map((featureItem) => featureItem.usageMeterId)
-    throw new Error(
-      `Could not find or create a ledger account for all entitled usage meters. Missing: ${missingMeters.join(
-        ', '
-      )}`
-    )
-  }
 
   const { ledgerEntries: entitlementLedgerEntryRecords } =
     await grantEntitlementUsageCredits(
