@@ -68,7 +68,6 @@ describe('priceToEditPriceInput', () => {
         productId: 'prod_1',
         active: true,
         type: PriceType.Subscription,
-        usageEventsPerUnit: null,
       },
     })
     expect(editPriceSchema.safeParse(result).success).toBe(true)
@@ -98,7 +97,6 @@ describe('priceToEditPriceInput', () => {
         productId: 'prod_1',
         active: false,
         type: PriceType.SinglePayment,
-        usageEventsPerUnit: null,
       },
     })
     expect(editPriceSchema.safeParse(result).success).toBe(true)
@@ -128,7 +126,6 @@ describe('priceToEditPriceInput', () => {
         productId: 'prod_1',
         active: false,
         type: PriceType.Usage,
-        usageEventsPerUnit: 1,
       },
     })
     const parseResult = editPriceSchema.safeParse(result)

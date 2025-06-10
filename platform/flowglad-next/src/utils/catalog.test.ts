@@ -542,6 +542,7 @@ describe('createProductTransaction', () => {
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
+                usageEventsPerUnit: null,
                 // @ts-expect-error - enforcing isDefault
                 isDefault: undefined,
               },

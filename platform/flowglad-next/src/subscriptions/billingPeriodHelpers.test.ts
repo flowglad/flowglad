@@ -267,7 +267,11 @@ describe('Subscription Billing Period Transition', async () => {
       const pastDate = new Date(Date.now() - 1000)
       subscription.cancelScheduledAt = pastDate
       await updateSubscription(
-        { id: subscription.id, cancelScheduledAt: pastDate },
+        {
+          id: subscription.id,
+          cancelScheduledAt: pastDate,
+          status: SubscriptionStatus.Active,
+        },
         transaction
       )
       const updatedBillingPeriod = await updateBillingPeriod(
@@ -337,6 +341,7 @@ describe('Subscription Billing Period Transition', async () => {
           id: subscription.id,
           defaultPaymentMethodId: null,
           backupPaymentMethodId: null,
+          status: SubscriptionStatus.Active,
         },
         transaction
       )
@@ -377,7 +382,11 @@ describe('Subscription Billing Period Transition', async () => {
       )
       subscription.cancelScheduledAt = futureEnd
       await updateSubscription(
-        { id: subscription.id, cancelScheduledAt: futureEnd },
+        {
+          id: subscription.id,
+          cancelScheduledAt: futureEnd,
+          status: SubscriptionStatus.Active,
+        },
         transaction
       )
 
@@ -810,6 +819,7 @@ describe('Ledger Interactions', () => {
           {
             id: subscription.id,
             cancelScheduledAt: new Date(Date.now() - 1000),
+            status: SubscriptionStatus.Active,
           },
           transaction
         )
@@ -910,6 +920,7 @@ describe('Ledger Interactions', () => {
             id: subscription.id,
             defaultPaymentMethodId: null,
             backupPaymentMethodId: null,
+            status: SubscriptionStatus.Active,
           },
           transaction
         )

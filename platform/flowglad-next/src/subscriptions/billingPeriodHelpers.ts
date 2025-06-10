@@ -247,6 +247,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       {
         id: subscription.id,
         canceledAt: new Date(),
+        status: SubscriptionStatus.Canceled,
       },
       transaction
     )
@@ -494,6 +495,7 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
         id: subscription.id,
         currentBillingPeriodEnd: result.billingPeriod.endDate,
         currentBillingPeriodStart: result.billingPeriod.startDate,
+        status: subscription.status,
       },
       transaction
     )

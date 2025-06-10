@@ -96,7 +96,6 @@ describe('priceToSetPriceAsDefaultInput', () => {
         productId: 'prod_1',
         isDefault: true,
         type: PriceType.Usage,
-        usageEventsPerUnit: 1,
       },
     })
     const parseResult = editPriceSchema.safeParse(result)

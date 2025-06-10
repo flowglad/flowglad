@@ -205,6 +205,11 @@ const createCreditTrialSubscriptionAndItems = async (
     metadata,
     autoStart = false,
   } = params
+  if (price.type !== PriceType.Usage) {
+    throw new Error(
+      `Price ${price.id} is not a usage price. Credit trial subscriptions must have a usage price. Received: ${JSON.stringify(price)}`
+    )
+  }
   const subscriptionInsert: Subscription.CreditTrialInsert = {
     organizationId: organization.id,
     customerId: customer.id,
@@ -218,11 +223,9 @@ const createCreditTrialSubscriptionAndItems = async (
     metadata: metadata ?? null,
     trialEnd: null,
     /**
-     * For subscription prices, billing runs at the start of each period
-     * For usage-based prices, billing runs at the end of each period after usage is collected
+     * Credit trial subscriptions do not "run billing"
      */
-    runBillingAtPeriodStart:
-      price.type === PriceType.Subscription ? true : false,
+    runBillingAtPeriodStart: false,
     name:
       subscriptionName ??
       `${product.name}${price.name ? ` - ${price.name}` : ''}`,
@@ -299,20 +302,18 @@ export const insertSubscriptionAndItems = async (
       },
       transaction
     )
+  // TODO: add back in when we have a way to create credit trial subscriptions
+  // const featuresForProductIncludeOneTimeCreditGrant =
+  //   featuresForProduct.some(
+  //     (feature) =>
+  //       feature.feature.type === FeatureType.UsageCreditGrant
+  //   )
 
-  const featuresForProductIncludeOneTimeCreditGrant =
-    featuresForProduct.some(
-      (feature) =>
-        feature.feature.type === FeatureType.UsageCreditGrant
-    )
-
-  return await (featuresForProductIncludeOneTimeCreditGrant
-    ? createCreditTrialSubscriptionAndItems(params, transaction)
-    : createStandardSubscriptionAndItems(
-        params,
-        currentBillingPeriod,
-        transaction
-      ))
+  return await createStandardSubscriptionAndItems(
+    params,
+    currentBillingPeriod,
+    transaction
+  )
 }
 
 const safelyProcessCreationForExistingSubscription = async (

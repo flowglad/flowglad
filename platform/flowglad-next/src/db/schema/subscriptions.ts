@@ -190,10 +190,13 @@ export const subscriptionsInsertSchema = z.discriminatedUnion(
 const standardSubscriptionUpdateSchema =
   standardSubscriptionInsertSchema.partial().extend({
     id: z.string(),
+    status: z.enum(standardSubscriptionStatuses),
   })
+
 const creditTrialSubscriptionUpdateSchema =
   creditTrialSubscriptionInsertSchema.partial().extend({
     id: z.string(),
+    status: z.literal(SubscriptionStatus.CreditTrial),
   })
 export const subscriptionsUpdateSchema = z.discriminatedUnion(
   'status',
