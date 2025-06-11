@@ -592,6 +592,38 @@ describe('Subscription Billing Period Transition', async () => {
       })
     })
   })
+
+  it('should not transition a subscription with CreditTrial status', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Set subscription status to CreditTrial
+      const creditTrialUpdate: Subscription.CreditTrialUpdate = {
+        id: subscription.id,
+        currentBillingPeriodEnd: null,
+        currentBillingPeriodStart: null,
+        interval: null,
+        intervalCount: null,
+        billingCycleAnchorDate: null,
+        defaultPaymentMethodId: null,
+        status: SubscriptionStatus.CreditTrial,
+      }
+      await updateSubscription(
+        {
+          ...creditTrialUpdate,
+          status: SubscriptionStatus.CreditTrial,
+        },
+        transaction
+      )
+
+      await expect(
+        attemptToTransitionSubscriptionBillingPeriod(
+          billingPeriod,
+          transaction
+        )
+      ).rejects.toThrow(
+        `Cannot transition subscription ${subscription.id} in credit trial status`
+      )
+    })
+  })
 })
 
 describe('Ledger Interactions', () => {

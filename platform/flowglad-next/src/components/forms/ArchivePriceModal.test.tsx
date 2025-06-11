@@ -1,5 +1,9 @@
 import { expect, it, describe } from 'vitest'
-import { editPriceSchema, Price } from '@/db/schema/prices'
+import {
+  editPriceSchema,
+  nulledPriceColumns,
+  Price,
+} from '@/db/schema/prices'
 import { PriceType, CurrencyCode, IntervalUnit } from '@/types'
 import { priceToArchivePriceInput } from './ArchivePriceModal'
 
@@ -11,6 +15,7 @@ const coreParams = {
   updatedAt: new Date(),
   createdByCommit: '1',
   updatedByCommit: '1',
+  ...nulledPriceColumns,
 } as const
 
 describe('priceToEditPriceInput', () => {

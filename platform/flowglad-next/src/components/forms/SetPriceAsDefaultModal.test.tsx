@@ -1,5 +1,9 @@
 import { expect, it, describe } from 'vitest'
-import { editPriceSchema, Price } from '@/db/schema/prices'
+import {
+  editPriceSchema,
+  nulledPriceColumns,
+  Price,
+} from '@/db/schema/prices'
 import { PriceType, CurrencyCode, IntervalUnit } from '@/types'
 import { priceToSetPriceAsDefaultInput } from './SetPriceAsDefaultModal'
 
@@ -11,12 +15,14 @@ const coreParams = {
   updatedAt: new Date(),
   createdByCommit: '1',
   updatedByCommit: '1',
+  ...nulledPriceColumns,
 } as const
 
 describe('priceToSetPriceAsDefaultInput', () => {
   it('should correctly format a subscription price to be set as default', () => {
     const price: Price.ClientSubscriptionRecord = {
       ...coreParams,
+      ...nulledPriceColumns,
       active: true,
       type: PriceType.Subscription,
       name: 'Monthly Subscription',
@@ -25,11 +31,6 @@ describe('priceToSetPriceAsDefaultInput', () => {
       currency: CurrencyCode.USD,
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
-      trialPeriodDays: null,
-      setupFeeAmount: null,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
-      overagePriceId: null,
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
@@ -53,13 +54,6 @@ describe('priceToSetPriceAsDefaultInput', () => {
       unitPrice: 5000,
       isDefault: false,
       currency: CurrencyCode.USD,
-      usageMeterId: null,
-      intervalUnit: null,
-      intervalCount: null,
-      trialPeriodDays: null,
-      setupFeeAmount: null,
-      usageEventsPerUnit: null,
-      overagePriceId: null,
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({

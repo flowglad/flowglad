@@ -101,6 +101,7 @@ export const prices = pgTable(
       columnName: 'currency',
       enumBase: CurrencyCode,
     }).notNull(),
+    startsWithCreditTrial: boolean('starts_with_credit_trial'),
     /**
      * A hidden column, used primarily for managing migrations from
      * from external processors onto Flowglad
@@ -146,6 +147,16 @@ export const prices = pgTable(
   }
 ).enableRLS()
 
+export const nulledPriceColumns = {
+  overagePriceId: null,
+  usageEventsPerUnit: null,
+  startsWithCreditTrial: null,
+  usageMeterId: null,
+  trialPeriodDays: null,
+  setupFeeAmount: null,
+  intervalUnit: null,
+  intervalCount: null,
+}
 const intervalZodSchema = core.createSafeZodEnum(IntervalUnit)
 
 const basePriceColumns = {
@@ -154,6 +165,7 @@ const basePriceColumns = {
   unitPrice: core.safeZodNonNegativeInteger,
   currency: core.createSafeZodEnum(CurrencyCode),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
+  startsWithCreditTrial: core.safeZodNullOrUndefined,
 }
 
 export const basePriceSelectSchema = createSelectSchema(

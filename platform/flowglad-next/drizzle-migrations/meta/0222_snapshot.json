@@ -1,5 +1,5 @@
 {
-  "id": "85e330ea-3730-4c83-94e2-ecec99242d55",
+  "id": "460f9bd6-6d2c-4358-ad7a-554b9f5dca90",
   "prevId": "205e4d39-1041-4664-a5eb-3b486892b0bd",
   "version": "7",
   "dialect": "postgresql",
@@ -6843,6 +6843,12 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "starts_with_credit_trial": {
+          "name": "starts_with_credit_trial",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
         },
         "external_id": {
           "name": "external_id",

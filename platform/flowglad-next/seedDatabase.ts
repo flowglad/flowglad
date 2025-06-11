@@ -66,7 +66,7 @@ import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
-import { Price } from '@/db/schema/prices'
+import { nulledPriceColumns, Price } from '@/db/schema/prices'
 import { Purchase } from '@/db/schema/purchases'
 import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
 import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
@@ -198,6 +198,7 @@ export const setupOrg = async (params?: {
 
     const price = (await insertPrice(
       {
+        ...nulledPriceColumns,
         productId: product.id,
         name: 'Flowglad Test Product Price',
         type: PriceType.Subscription,
@@ -211,9 +212,6 @@ export const setupOrg = async (params?: {
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
         externalId: null,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
-        overagePriceId: null,
       },
       transaction
     )) as Price.SubscriptionRecord
