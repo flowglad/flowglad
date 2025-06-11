@@ -33,6 +33,8 @@ import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
+import Switch from './ion/Switch'
+
 export const PaymentLoadingForm = ({
   disableAnimation,
 }: {
@@ -210,6 +212,7 @@ const PaymentForm = () => {
     editCheckoutSessionCustomerEmail,
     editCheckoutSessionPaymentMethodType,
     editCheckoutSessionBillingAddress,
+    editCheckoutSessionAutomaticallyUpdateSubscriptions,
     checkoutBlocked,
     feeCalculation,
     readonlyCustomerEmail,
@@ -246,7 +249,11 @@ const PaymentForm = () => {
     totalDueAmount,
     currency,
   })
-
+  const showDiscountCodeInput =
+    flowType !== CheckoutFlowType.Invoice &&
+    flowType !== CheckoutFlowType.AddPaymentMethod
+  const showAutomaticallyUpdateCurrentSubscriptions =
+    flowType === CheckoutFlowType.AddPaymentMethod
   return (
     <form
       className="w-[380px] relative"
@@ -451,10 +458,27 @@ const PaymentForm = () => {
       </div>
       {embedsReady && (
         <>
-          {flowType !== CheckoutFlowType.Invoice && (
-            <DiscountCodeInput />
-          )}
+          {showDiscountCodeInput && <DiscountCodeInput />}
           <TotalBillingDetails />
+          {showAutomaticallyUpdateCurrentSubscriptions && (
+            <div className="py-4">
+              <Switch
+                label="Automatically update current subscriptions"
+                checked={
+                  checkoutSession.automaticallyUpdateSubscriptions ??
+                  false
+                }
+                onCheckedChange={async (checked) => {
+                  await editCheckoutSessionAutomaticallyUpdateSubscriptions(
+                    {
+                      id: checkoutSession.id,
+                      automaticallyUpdateSubscriptions: checked,
+                    }
+                  )
+                }}
+              />
+            </div>
+          )}
           <div className="py-8">
             <Button
               className="justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 w-full h-[45px]"
