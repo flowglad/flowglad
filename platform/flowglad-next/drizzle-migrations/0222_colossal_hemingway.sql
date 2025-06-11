@@ -13,3 +13,6 @@ DO $$ BEGIN
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
+
+UPDATE "prices" SET "usage_events_per_unit" = 1 WHERE "type" = 'usage';
+UPDATE "prices" SET "setup_fee_amount" = null WHERE "type" = 'usage';
