@@ -53,7 +53,6 @@ describe('Price Defaults', () => {
     const transformedToSubscriptionPrice = {
       ...usageDummyPrice,
       ...subscriptionPriceDefaultColumns,
-      usageEventsPerUnit: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToSubscriptionPrice,

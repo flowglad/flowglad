@@ -5,6 +5,7 @@ import {
   text,
   boolean,
   pgPolicy,
+  PgColumn,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -33,7 +34,7 @@ import {
 import core from '@/utils/core'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { z } from 'zod'
-import { sql } from 'drizzle-orm'
+import { ColumnBaseConfig, ColumnDataType, sql } from 'drizzle-orm'
 import { catalogsClientSelectSchema } from './catalogs'
 import {
   usageMeters,
@@ -57,50 +58,6 @@ const nonClientEditableColumns = {
 
 const PRICES_TABLE_NAME = 'prices'
 
-const columns = {
-  ...tableBase('price'),
-  intervalUnit: pgEnumColumn({
-    enumName: 'IntervalUnit',
-    columnName: 'interval_unit',
-    enumBase: IntervalUnit,
-  }),
-  name: text('name'),
-  intervalCount: integer('intervalCount'),
-  type: pgEnumColumn({
-    enumName: 'PriceType',
-    columnName: 'type',
-    enumBase: PriceType,
-  }).notNull(),
-  trialPeriodDays: integer('trial_period_days'),
-  setupFeeAmount: integer('setup_fee_amount'),
-  isDefault: boolean('is_default').notNull(),
-  unitPrice: integer('unit_price').notNull(),
-  usageEventsPerUnit: integer('usage_events_per_unit'),
-  /**
-   * Omitting this for now to reduce MVP complexity,
-   * will re-introduce later
-   */
-  // includeTaxInPrice: boolean('includeTaxInPrice')
-  //   .notNull()
-  //   .default(false),
-  productId: notNullStringForeignKey('product_id', products),
-  active: boolean('active').notNull().default(true),
-  currency: pgEnumColumn({
-    enumName: 'CurrencyCode',
-    columnName: 'currency',
-    enumBase: CurrencyCode,
-  }).notNull(),
-  /**
-   * A hidden column, used primarily for managing migrations from
-   * from external processors onto Flowglad
-   */
-  externalId: text('external_id'),
-  usageMeterId: nullableStringForeignKey(
-    'usage_meter_id',
-    usageMeters
-  ),
-}
-
 const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL OR "usage_meter_id" IN (
   SELECT "id" FROM "usage_meters"
   WHERE "usage_meters"."organization_id" = (
@@ -108,32 +65,86 @@ const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL OR "usa
     WHERE "products"."id" = "prices"."product_id"
   )
 )`
-export const prices = pgTable(PRICES_TABLE_NAME, columns, (table) => {
-  return [
-    constructIndex(PRICES_TABLE_NAME, [table.type]),
-    constructIndex(PRICES_TABLE_NAME, [table.productId]),
-    constructUniqueIndex(PRICES_TABLE_NAME, [
-      table.externalId,
-      table.productId,
-    ]),
-    constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
-    pgPolicy(
-      'On update, ensure usage meter belongs to same organization as product',
-      {
-        as: 'permissive',
-        to: 'authenticated',
-        for: 'update',
-        withCheck: usageMeterBelongsToSameOrganization,
-      }
-    ),
-    parentForeignKeyIntegrityCheckPolicy({
-      parentTableName: 'products',
-      parentIdColumnInCurrentTable: 'product_id',
-      currentTableName: PRICES_TABLE_NAME,
+
+export const prices = pgTable(
+  PRICES_TABLE_NAME,
+  {
+    ...tableBase('price'),
+    intervalUnit: pgEnumColumn({
+      enumName: 'IntervalUnit',
+      columnName: 'interval_unit',
+      enumBase: IntervalUnit,
     }),
-    livemodePolicy(),
-  ]
-}).enableRLS()
+    name: text('name'),
+    intervalCount: integer('intervalCount'),
+    type: pgEnumColumn({
+      enumName: 'PriceType',
+      columnName: 'type',
+      enumBase: PriceType,
+    }).notNull(),
+    trialPeriodDays: integer('trial_period_days'),
+    setupFeeAmount: integer('setup_fee_amount'),
+    isDefault: boolean('is_default').notNull(),
+    unitPrice: integer('unit_price').notNull(),
+    usageEventsPerUnit: integer('usage_events_per_unit'),
+    /**
+     * Omitting this for now to reduce MVP complexity,
+     * will re-introduce later
+     */
+    // includeTaxInPrice: boolean('includeTaxInPrice')
+    //   .notNull()
+    //   .default(false),
+    productId: notNullStringForeignKey('product_id', products),
+    active: boolean('active').notNull().default(true),
+    currency: pgEnumColumn({
+      enumName: 'CurrencyCode',
+      columnName: 'currency',
+      enumBase: CurrencyCode,
+    }).notNull(),
+    /**
+     * A hidden column, used primarily for managing migrations from
+     * from external processors onto Flowglad
+     */
+    externalId: text('external_id'),
+    overagePriceId: text('overage_price_id').references(
+      (): PgColumn<
+        ColumnBaseConfig<ColumnDataType, string>,
+        {},
+        {}
+      > => prices.id
+    ),
+    usageMeterId: nullableStringForeignKey(
+      'usage_meter_id',
+      usageMeters
+    ),
+  },
+  (table) => {
+    return [
+      constructIndex(PRICES_TABLE_NAME, [table.type]),
+      constructIndex(PRICES_TABLE_NAME, [table.productId]),
+      constructUniqueIndex(PRICES_TABLE_NAME, [
+        table.externalId,
+        table.productId,
+      ]),
+      constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
+      pgPolicy(
+        'On update, ensure usage meter belongs to same organization as product',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'update',
+          withCheck: usageMeterBelongsToSameOrganization,
+        }
+      ),
+      parentForeignKeyIntegrityCheckPolicy({
+        parentTableName: 'products',
+        parentIdColumnInCurrentTable: 'product_id',
+        currentTableName: PRICES_TABLE_NAME,
+      }),
+      livemodePolicy(),
+    ]
+  }
+).enableRLS()
 
 const intervalZodSchema = core.createSafeZodEnum(IntervalUnit)
 
@@ -142,7 +153,7 @@ const basePriceColumns = {
   isDefault: z.boolean(),
   unitPrice: core.safeZodNonNegativeInteger,
   currency: core.createSafeZodEnum(CurrencyCode),
-  usageEventsPerUnit: z.null(),
+  usageEventsPerUnit: core.safeZodNullOrUndefined,
 }
 
 export const basePriceSelectSchema = createSelectSchema(
@@ -168,6 +179,9 @@ const subscriptionPriceColumns = {
   intervalUnit: intervalZodSchema,
   setupFeeAmount: core.safeZodPositiveIntegerOrZero.nullable(),
   trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
+  usageEventsPerUnit: core.safeZodNullOrUndefined,
+  overagePriceId: core.safeZodNullOrUndefined,
+  usageMeterId: core.safeZodNullOrUndefined,
 }
 
 const usagePriceColumns = {
@@ -213,6 +227,8 @@ const singlePaymentPriceColumns = {
   setupFeeAmount: core.safeZodNullOrUndefined,
   trialPeriodDays: core.safeZodNullOrUndefined,
   usageMeterId: core.safeZodNullOrUndefined,
+  usageEventsPerUnit: core.safeZodNullOrUndefined,
+  overagePriceId: core.safeZodNullOrUndefined,
 }
 
 const SINGLE_PAYMENT_PRICE_DESCRIPTION =
@@ -532,6 +548,9 @@ export const subscriptionPriceDefaultColumns: Pick<
   setupFeeAmount: 0,
   trialPeriodDays: 0,
   type: PriceType.Subscription,
+  usageEventsPerUnit: null,
+  usageMeterId: null,
+  overagePriceId: null,
 }
 
 export const usagePriceDefaultColumns: Pick<
@@ -554,5 +573,7 @@ export const singlePaymentPriceDefaultColumns: Pick<
   setupFeeAmount: null,
   trialPeriodDays: null,
   usageMeterId: null,
+  usageEventsPerUnit: null,
+  overagePriceId: null,
   type: PriceType.SinglePayment,
 }
