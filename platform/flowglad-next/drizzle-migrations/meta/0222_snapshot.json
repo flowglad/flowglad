@@ -1,5 +1,5 @@
 {
-  "id": "4a378cdc-3f68-465f-b00c-4879b7341310",
+  "id": "85e330ea-3730-4c83-94e2-ecec99242d55",
   "prevId": "205e4d39-1041-4664-a5eb-3b486892b0bd",
   "version": "7",
   "dialect": "postgresql",
@@ -6850,6 +6850,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "overage_price_id": {
+          "name": "overage_price_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "usage_meter_id": {
           "name": "usage_meter_id",
           "type": "text",
@@ -6932,6 +6938,19 @@
           "tableTo": "products",
           "columnsFrom": [
             "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "prices_overage_price_id_prices_id_fk": {
+          "name": "prices_overage_price_id_prices_id_fk",
+          "tableFrom": "prices",
+          "tableTo": "prices",
+          "columnsFrom": [
+            "overage_price_id"
           ],
           "columnsTo": [
             "id"
