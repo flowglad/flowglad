@@ -29,7 +29,6 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
 
 export const singlePaymentDummyPrice: Price.SinglePaymentRecord = {
   ...subscriptionDummyPrice,
-  startsWithCreditTrial: null,
   ...singlePaymentPriceDefaultColumns,
 }
 
