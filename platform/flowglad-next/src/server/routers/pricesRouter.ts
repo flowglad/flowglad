@@ -9,6 +9,7 @@ import {
   pricesClientSelectSchema,
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
+  usagePriceClientSelectSchema,
 } from '@/db/schema/prices'
 import { createPriceSchema } from '@/db/schema/prices'
 import {
@@ -150,9 +151,31 @@ export const getTableRows = protectedProcedure
   )
   .query(authenticatedProcedureTransaction(selectPricesTableRowData))
 
+export const listUsagePricesForProduct = protectedProcedure
+  .input(z.object({ productId: z.string() }))
+  .output(z.array(usagePriceClientSelectSchema))
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ transaction, input }) => {
+        const prices = await selectPrices(
+          {
+            type: PriceType.Usage,
+            productId: input.productId,
+            active: true,
+          },
+          transaction
+        )
+        return prices.filter(
+          (price) => price.type === PriceType.Usage
+        )
+      }
+    )
+  )
+
 export const pricesRouter = router({
   list: listPrices,
   create: createPrice,
   edit: editPrice,
   getTableRows,
+  listUsagePricesForProduct,
 })
