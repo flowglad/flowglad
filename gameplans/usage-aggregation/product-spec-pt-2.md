@@ -31,12 +31,11 @@ We will introduce a new `startsWithCreditTrial` boolean flag to the `prices` tab
 
 The goal is to represent a complete "Plan" or "Package" within a single, unambiguous `Price` record. This includes the base recurring fee, included allowances, and specific overage rates.
 
-The chosen design introduces a self-referencing foreign key on the `prices` table: `overagePriceId`.
+The chosen design introduces a self-referencing foreign key on the `prices` table: `overagePriceId`. This creates an explicit, machine-readable link that eliminates ambiguity and is superior to relying on conventions or multiple, disconnected prices on a product because the relationship is part of the data model itself.
 
-*   **A `Price` of `type: 'Subscription'`** defines the recurring, flat-rate component. Its `overagePriceId` can point to another `Price` record.
-*   **A `Price` of `type: 'Usage'`** defines a per-unit cost. It is linked via `overagePriceId` and contains the `usageMeterId` it applies to.
-
-This creates an explicit, machine-readable link that eliminates ambiguity. It's superior to relying on conventions or multiple, disconnected prices on a product because the relationship is part of the data model itself.
+*   **Strict Separation of Concerns:** To avoid semantic ambiguity, we will enforce a strict separation between price types:
+    *   A `Price` of `type: 'Subscription'` defines the recurring fee. It **must not** have a `usageMeterId`. Its connection to usage is only established via the optional `overagePriceId`.
+    *   A `Price` of `type: 'Usage'` defines the per-unit cost for a specific meter. It **must** have a `usageMeterId`.
 
 ### 1.3. Practical Examples of New Pricing Models
 
@@ -183,3 +182,14 @@ This design makes the system's behavior deterministic and auditable. The outcome
 This approach introduces a "co-interaction" problem: the `oneTimeBehavior` column is conditionally meaningful. This is a pragmatic trade-off for the simplicity of keeping all price configuration on a single table. It is consistent with our existing use of the `recurring` and `overagePriceId` fields, which are only meaningful for subscription prices.
 
 This conditional relationship would be strictly enforced at the application level using discriminated unions in our Zod schemas, ensuring type safety and preventing logic errors.
+
+### 3. Defining Plans and Pricing
+
+*   **The "Plan" Concept:** We established that a "Plan" consists of a base recurring fee, an included allowance of usage, and a specific rate for overages. These components are tightly coupled.
+*   **`overagePriceId` on `prices`:** To model this, we decided to add a self-referencing foreign key, `overagePriceId`, to the `prices` table. A `Price` of `type: 'Subscription'` can now point directly to a `Price` of `type: 'Usage'`, which defines the rate for consumption beyond the allowance. This creates an explicit, unambiguous link.
+*   **Strict Separation of Concerns:** To avoid semantic ambiguity, we will enforce a strict separation between price types:
+    *   A `Price` of `type: 'Subscription'` defines the recurring fee. It **must not** have a `usageMeterId`. Its connection to usage is only established via the optional `overagePriceId`.
+    *   A `Price` of `type: 'Usage'` defines the per-unit cost for a specific meter. It **must** have a `usageMeterId`.
+*   **Allowances as `Feature` Grants:** The included allowance (e.g., "5000 messages") is modeled as a `Feature` of `type: 'usage_credit_grant'`. This feature is associated with the `Product` via the `productFeatures` table.
+
+### 4. Trial Initiation and Activation

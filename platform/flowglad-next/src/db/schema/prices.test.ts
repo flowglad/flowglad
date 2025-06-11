@@ -94,4 +94,17 @@ describe('Price Defaults', () => {
       pricesSelectSchema
     )
   })
+  it('allow subscriptions to have no overage / usage fields', () => {
+    const transformedToUsagePrice = {
+      ...subscriptionDummyPrice,
+      overagePriceId: undefined,
+      usageEventsPerUnit: undefined,
+    }
+    testStartingPriceToDestinationPrice(
+      // @ts-expect-error - we want to test the case where the fields are undefined
+      transformedToUsagePrice,
+      usagePriceDefaultColumns,
+      pricesSelectSchema
+    )
+  })
 })

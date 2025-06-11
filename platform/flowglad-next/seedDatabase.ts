@@ -196,7 +196,7 @@ export const setupOrg = async (params?: {
       transaction
     )
 
-    const price = await insertPrice(
+    const price = (await insertPrice(
       {
         productId: product.id,
         name: 'Flowglad Test Product Price',
@@ -213,9 +213,10 @@ export const setupOrg = async (params?: {
         externalId: null,
         usageMeterId: null,
         usageEventsPerUnit: null,
+        overagePriceId: null,
       },
       transaction
-    )
+    )) as Price.SubscriptionRecord
     return { organization, product, price, catalog }
   })
 }
@@ -688,7 +689,7 @@ export const setupPrice = async ({
   externalId?: string
   trialPeriodDays?: number
   active?: boolean
-}) => {
+}): Promise<Price.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
       productId,

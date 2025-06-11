@@ -85,6 +85,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       intervalCount: 1,
       trialPeriodDays: null,
       setupFeeAmount: null,
+      overagePriceId: null,
       usageMeterId: 'um_1',
       usageEventsPerUnit: 1,
     }

@@ -180,12 +180,13 @@ const subscriptionPriceColumns = {
   setupFeeAmount: core.safeZodPositiveIntegerOrZero.nullable(),
   trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
-  overagePriceId: core.safeZodNullOrUndefined,
+  overagePriceId: core.safeZodNullishString,
   usageMeterId: core.safeZodNullOrUndefined,
 }
 
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
+  overagePriceId: core.safeZodNullOrUndefined,
   trialPeriodDays: core.safeZodNullOrUndefined,
   usageMeterId: z
     .string()
@@ -562,6 +563,7 @@ export const usagePriceDefaultColumns: Pick<
   type: PriceType.Usage,
   usageMeterId: '',
   usageEventsPerUnit: 1,
+  overagePriceId: null,
 }
 
 export const singlePaymentPriceDefaultColumns: Pick<

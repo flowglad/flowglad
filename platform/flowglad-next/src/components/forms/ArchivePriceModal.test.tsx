@@ -88,6 +88,7 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -115,6 +116,7 @@ describe('priceToEditPriceInput', () => {
       intervalCount: 1,
       trialPeriodDays: null,
       setupFeeAmount: null,
+      overagePriceId: null,
       usageMeterId: 'um_1',
       usageEventsPerUnit: 1,
     }
