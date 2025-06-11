@@ -11,10 +11,7 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import {
-  selectCurrentlyActiveSubscriptionItems,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { createBillingPeriodAndItems } from '@/subscriptions/billingPeriodHelpers'
 import type { DbTransaction } from '@/db/types'

@@ -1,99 +1,39 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Label from '@/components/ion/Label'
-import {
-  RadioGroup,
-  RadioGroupItem as Radio,
-} from '@/components/ion/Radio'
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
 import Switch from '@/components/ion/Switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import Select from '@/components/ion/Select'
-import NumberInput from '@/components/ion/NumberInput'
 import {
-  CreateProductSchema,
   singlePaymentPriceDefaultColumns,
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
-import {
-  Controller,
-  FieldError,
-  useFormContext,
-} from 'react-hook-form'
+import { Controller, FieldError } from 'react-hook-form'
 import Input from '@/components/ion/Input'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
-import Hint from '../ion/Hint'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthContext } from '@/contexts/authContext'
-import { isPriceTypeSubscription } from '@/db/tableMethods/priceMethods'
 import UsageMetersSelect from './UsageMetersSelect'
 import { core } from '@/utils/core'
-
-const usePriceFormContext = () => {
-  return useFormContext<Pick<CreateProductSchema, 'price'>>()
-}
-
-const TrialPeriodFields = () => {
-  const {
-    formState: { errors },
-    control,
-    watch,
-    setValue,
-  } = usePriceFormContext()
-  const trialPeriodDays = watch('price.trialPeriodDays')
-  const [offerTrial, setOfferTrial] = useState(
-    Boolean(trialPeriodDays && trialPeriodDays > 0)
-  )
-  useEffect(() => {
-    setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
-  }, [trialPeriodDays])
-  return (
-    <>
-      <Switch
-        label="Trial period"
-        checked={offerTrial}
-        onCheckedChange={(checked) => {
-          setOfferTrial(checked)
-          if (!checked) {
-            setValue('price.trialPeriodDays', 0)
-          }
-        }}
-      />
-      {offerTrial && (
-        <Controller
-          name="price.trialPeriodDays"
-          control={control}
-          render={({ field }) => (
-            <NumberInput
-              {...field}
-              onChange={(e) => {
-                field.onChange(Number(e.target.value))
-              }}
-              label="Trial Period Days"
-              min={1}
-              max={365}
-              step={1}
-              error={
-                (errors.price?.trialPeriodDays as FieldError)?.message
-              }
-            />
-          )}
-        />
-      )}
-    </>
-  )
-}
+import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
+import TrialFields from './PriceFormTrialFields'
 
 const SubscriptionFields = ({
-  omitTrialPeriodFields = false,
+  omitTrialFields = false,
+  productId,
 }: {
-  omitTrialPeriodFields?: boolean
+  omitTrialFields?: boolean
+  productId?: string
 }) => {
   const {
     formState: { errors },
     control,
+    watch,
   } = usePriceFormContext()
+
   return (
     <>
       <div className="flex items-end gap-2.5">
@@ -126,7 +66,12 @@ const SubscriptionFields = ({
           )}
         />
       </div>
-      {!omitTrialPeriodFields && <TrialPeriodFields />}
+      {productId && (
+        <RecurringUsageCreditsOveragePriceSelect
+          productId={productId}
+        />
+      )}
+      {!omitTrialFields && <TrialFields />}
     </>
   )
 }
@@ -185,9 +130,11 @@ const SinglePaymentFields = () => {
 const PriceFormFields = ({
   priceOnly,
   edit,
+  productId,
 }: {
   priceOnly?: boolean
   edit?: boolean
+  productId?: string
 }) => {
   const {
     control,
@@ -207,7 +154,7 @@ const PriceFormFields = ({
 
   switch (type) {
     case PriceType.Subscription:
-      typeFields = <SubscriptionFields />
+      typeFields = <SubscriptionFields productId={productId} />
       break
     case PriceType.SinglePayment:
       typeFields = <SinglePaymentFields />
@@ -215,7 +162,7 @@ const PriceFormFields = ({
     case PriceType.Usage:
       typeFields = (
         <div className="flex flex-col gap-2.5">
-          <SubscriptionFields omitTrialPeriodFields />
+          <SubscriptionFields omitTrialFields />
           <UsageMetersSelect
             name="price.usageMeterId"
             control={control}
@@ -247,9 +194,8 @@ const PriceFormFields = ({
           name="price.type"
           control={control}
           render={({ field }) => (
-            <RadioGroup
+            <Select
               value={field.value}
-              orientation="horizontal"
               onValueChange={(value) => {
                 /**
                  * When price type changes,
@@ -274,28 +220,28 @@ const PriceFormFields = ({
                 field.onChange(value)
               }}
               disabled={edit}
-              disabledTooltip="You can't change price type after creating a price"
-            >
-              <div className="w-full relative flex items-start gap-5">
-                <Radio
-                  label="Single Payment"
-                  value={PriceType.SinglePayment}
-                />
-                <Radio
-                  label="Subscription"
-                  value={PriceType.Subscription}
-                />
-                {hasUsage && (
-                  <Radio label="Usage" value={PriceType.Usage} />
-                )}
-              </div>
-            </RadioGroup>
+              hint="What type of payment the user will make. Cannot be edited after creation."
+              options={[
+                {
+                  label: 'Single Payment',
+                  value: PriceType.SinglePayment,
+                },
+                {
+                  label: 'Subscription',
+                  value: PriceType.Subscription,
+                },
+                ...(hasUsage
+                  ? [
+                      {
+                        label: 'Usage',
+                        value: PriceType.Usage,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           )}
         />
-        <Hint>
-          What type of payment the user will make. Cannot be edited
-          after creation.
-        </Hint>
       </div>
       {typeFields}
       {priceOnly && (

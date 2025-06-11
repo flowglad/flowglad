@@ -36,7 +36,7 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
       }}
       onSubmit={createPrice.mutateAsync}
     >
-      <PriceFormFields priceOnly />
+      <PriceFormFields priceOnly productId={productId} />
     </FormModal>
   )
 }

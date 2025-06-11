@@ -35,7 +35,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       defaultValues={defaultValues}
       onSubmit={editPrice.mutateAsync}
     >
-      <PriceFormFields priceOnly edit />
+      <PriceFormFields priceOnly edit productId={price.productId} />
     </FormModal>
   )
 }
