@@ -126,7 +126,19 @@ export const createInsertManyFunction = <
       .insert(table)
       .values(parsedInsert)
       .returning()
-    return result.map((item) => selectSchema.parse(item))
+    return result.map((item) => {
+      const parsed = selectSchema.safeParse(item)
+      if (!parsed.success) {
+        console.error(parsed.error.issues)
+        console.error(item)
+        throw Error(
+          `createInsertManyFunction: Error parsing result: ${JSON.stringify(
+            item
+          )}`
+        )
+      }
+      return parsed.data
+    })
   }
 }
 

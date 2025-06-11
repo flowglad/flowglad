@@ -194,12 +194,17 @@ const subscriptionPriceColumns = {
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   overagePriceId: core.safeZodNullishString,
   usageMeterId: core.safeZodNullOrUndefined,
+  startsWithCreditTrial: z
+    .boolean()
+    .nullish()
+    .transform((val) => val ?? null),
 }
 
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
   overagePriceId: core.safeZodNullOrUndefined,
   trialPeriodDays: core.safeZodNullOrUndefined,
+  setupFeeAmount: core.safeZodNullOrUndefined,
   usageMeterId: z
     .string()
     .describe(
@@ -242,6 +247,7 @@ const singlePaymentPriceColumns = {
   usageMeterId: core.safeZodNullOrUndefined,
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   overagePriceId: core.safeZodNullOrUndefined,
+  startsWithCreditTrial: core.safeZodNullOrUndefined,
 }
 
 const SINGLE_PAYMENT_PRICE_DESCRIPTION =
@@ -556,14 +562,12 @@ export const subscriptionPriceDefaultColumns: Pick<
   Price.SubscriptionInsert,
   keyof typeof subscriptionPriceColumns
 > = {
+  ...nulledPriceColumns,
   intervalCount: 1,
   intervalUnit: IntervalUnit.Month,
   setupFeeAmount: 0,
   trialPeriodDays: 0,
   type: PriceType.Subscription,
-  usageEventsPerUnit: null,
-  usageMeterId: null,
-  overagePriceId: null,
 }
 
 export const usagePriceDefaultColumns: Pick<
@@ -571,6 +575,7 @@ export const usagePriceDefaultColumns: Pick<
   keyof typeof usagePriceColumns
 > = {
   ...subscriptionPriceDefaultColumns,
+  setupFeeAmount: null,
   trialPeriodDays: null,
   type: PriceType.Usage,
   usageMeterId: '',
@@ -582,12 +587,7 @@ export const singlePaymentPriceDefaultColumns: Pick<
   Price.SinglePaymentInsert,
   keyof typeof singlePaymentPriceColumns
 > = {
-  intervalCount: null,
-  intervalUnit: null,
-  setupFeeAmount: null,
-  trialPeriodDays: null,
-  usageMeterId: null,
-  usageEventsPerUnit: null,
-  overagePriceId: null,
+  ...nulledPriceColumns,
+  startsWithCreditTrial: null,
   type: PriceType.SinglePayment,
 }

@@ -27,7 +27,7 @@ import {
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { Price } from '@/db/schema/prices'
-import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'

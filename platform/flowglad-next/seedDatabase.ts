@@ -672,6 +672,7 @@ export const setupPrice = async ({
   externalId,
   active = true,
   usageMeterId,
+  startsWithCreditTrial,
 }: {
   productId: string
   name: string
@@ -681,15 +682,17 @@ export const setupPrice = async ({
   intervalCount: number
   livemode: boolean
   isDefault: boolean
-  setupFeeAmount: number
+  setupFeeAmount?: number
   usageMeterId?: string
   currency?: CurrencyCode
   externalId?: string
   trialPeriodDays?: number
   active?: boolean
+  startsWithCreditTrial?: boolean
 }): Promise<Price.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
+      ...nulledPriceColumns,
       productId,
       type,
       unitPrice,
@@ -703,40 +706,62 @@ export const setupPrice = async ({
     const priceConfig = {
       [PriceType.SinglePayment]: {
         name: `${name} (Single Payment)`,
-        intervalUnit: null,
-        intervalCount: null,
-        setupFeeAmount: null,
-        trialPeriodDays: null,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
+        ...nulledPriceColumns,
       },
       [PriceType.Usage]: {
         name,
         intervalUnit,
         intervalCount,
-        setupFeeAmount,
+        setupFeeAmount: null,
         trialPeriodDays: null,
-        usageMeterId: usageMeterId ?? null,
+        usageMeterId,
         usageEventsPerUnit: 1,
       },
       [PriceType.Subscription]: {
         name,
         intervalUnit,
         intervalCount,
-        setupFeeAmount,
-        trialPeriodDays,
-        usageMeterId: usageMeterId ?? null,
+        setupFeeAmount: setupFeeAmount ?? 0,
+        trialPeriodDays: trialPeriodDays ?? null,
         usageEventsPerUnit: null,
+        startsWithCreditTrial: startsWithCreditTrial ?? false,
       },
     }
-
-    return insertPrice(
-      {
-        ...basePrice,
-        ...priceConfig[type],
-      } as Price.Insert,
-      transaction
-    )
+    if (type === PriceType.Usage && !usageMeterId) {
+      throw new Error('Usage price must have a usage meter')
+    }
+    switch (type) {
+      case PriceType.SinglePayment:
+        return insertPrice(
+          {
+            ...basePrice,
+            ...priceConfig[PriceType.SinglePayment],
+            type: PriceType.SinglePayment,
+          },
+          transaction
+        )
+      case PriceType.Subscription:
+        return insertPrice(
+          {
+            ...basePrice,
+            ...priceConfig[PriceType.Subscription],
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+      case PriceType.Usage:
+        return insertPrice(
+          {
+            ...basePrice,
+            ...priceConfig[PriceType.Usage],
+            usageMeterId: usageMeterId!,
+            type: PriceType.Usage,
+          },
+          transaction
+        )
+      default:
+        throw new Error(`Invalid price type: ${type}`)
+    }
   })
 }
 

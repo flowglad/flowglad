@@ -7,6 +7,7 @@ interface GenerateNextBillingPeriodParams {
   intervalCount: number
   lastBillingPeriodEndDate?: Date | null
   trialEnd?: Date | null
+  subscriptionStartDate?: Date
 }
 
 interface BillingPeriodRange {
@@ -32,7 +33,22 @@ export function generateNextBillingPeriod({
   interval,
   intervalCount,
   lastBillingPeriodEndDate,
+  trialEnd,
+  subscriptionStartDate,
 }: GenerateNextBillingPeriodParams): BillingPeriodRange {
+  const effectiveStartDate =
+    subscriptionStartDate || billingCycleAnchorDate
+  if (trialEnd) {
+    if (trialEnd.getTime() <= effectiveStartDate.getTime()) {
+      throw new Error(
+        'Trial end date must be after the billing cycle anchor date.'
+      )
+    }
+    return {
+      startDate: effectiveStartDate,
+      endDate: trialEnd,
+    }
+  }
   // 1) Disallow zero or negative intervals
   if (intervalCount <= 0) {
     throw new Error(
@@ -45,7 +61,7 @@ export function generateNextBillingPeriod({
   //    - Else use the anchor date
   const startDate = lastBillingPeriodEndDate
     ? new Date(lastBillingPeriodEndDate.getTime())
-    : billingCycleAnchorDate
+    : effectiveStartDate
 
   let endDate: Date
   if (interval === IntervalUnit.Month) {
