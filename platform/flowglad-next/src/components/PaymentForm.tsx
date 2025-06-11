@@ -463,7 +463,7 @@ const PaymentForm = () => {
           {showAutomaticallyUpdateCurrentSubscriptions && (
             <div className="py-4">
               <Switch
-                label="Automatically update current subscriptions"
+                label="Set as default for current subscriptions"
                 checked={
                   checkoutSession.automaticallyUpdateSubscriptions ??
                   false

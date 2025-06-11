@@ -979,6 +979,7 @@ export const setupCheckoutSession = async ({
   quantity,
   livemode,
   targetSubscriptionId,
+  automaticallyUpdateSubscriptions,
 }: {
   organizationId: string
   customerId: string
@@ -988,6 +989,7 @@ export const setupCheckoutSession = async ({
   quantity: number
   livemode: boolean
   targetSubscriptionId?: string
+  automaticallyUpdateSubscriptions?: boolean
 }) => {
   const billingAddress: BillingAddress = {
     address: {
@@ -1006,6 +1008,7 @@ export const setupCheckoutSession = async ({
     customerName: 'Test Customer',
     billingAddress,
     paymentMethodType: PaymentMethodType.Card,
+    automaticallyUpdateSubscriptions: null,
   }
   const addPaymentMethodCheckoutSessionInsert: CheckoutSession.AddPaymentMethodInsert =
     {
@@ -1018,6 +1021,8 @@ export const setupCheckoutSession = async ({
       targetSubscriptionId: targetSubscriptionId ?? null,
       outputName: null,
       outputMetadata: {},
+      automaticallyUpdateSubscriptions:
+        automaticallyUpdateSubscriptions ?? false,
     }
   const productCheckoutSessionInsert: CheckoutSession.ProductInsert =
     {
@@ -1031,6 +1036,7 @@ export const setupCheckoutSession = async ({
       outputName: null,
       invoiceId: null,
       outputMetadata: {},
+      automaticallyUpdateSubscriptions: null,
     }
   const purchaseCheckoutSessionInsert: CheckoutSession.PurchaseInsert =
     {
@@ -1044,6 +1050,7 @@ export const setupCheckoutSession = async ({
       outputName: null,
       outputMetadata: {},
       purchaseId: 'test',
+      automaticallyUpdateSubscriptions: null,
     }
 
   let insert: CheckoutSession.Insert

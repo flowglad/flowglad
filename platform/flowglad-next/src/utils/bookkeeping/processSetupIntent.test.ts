@@ -557,6 +557,138 @@ describe('Process setup intent', async () => {
         originalSubscription.defaultPaymentMethodId
       )
     })
+
+    it('updates all customer subscriptions when automaticallyUpdateSubscriptions is true', async () => {
+      // Setup: Create another subscription for the same customer with the original payment method
+      const secondSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      // Create a checkout session with automaticallyUpdateSubscriptions: true
+      const addPaymentMethodCheckoutSession =
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.AddPaymentMethod,
+          automaticallyUpdateSubscriptions: true,
+          livemode: true,
+          priceId: price.id,
+          quantity: 1,
+        })
+
+      const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
+        checkoutSessionId: addPaymentMethodCheckoutSession.id,
+        stripeCustomerId: customer.stripeCustomerId!,
+      })
+
+      // Execute the function
+      await adminTransaction(async ({ transaction }) => {
+        await processAddPaymentMethodSetupIntentSucceeded(
+          addPaymentMethodSetupIntent,
+          transaction
+        )
+      })
+
+      // Verify subscriptions are updated
+      const [updatedFirstSubscription, updatedSecondSubscription] =
+        await adminTransaction(async ({ transaction }) => {
+          const s1 = await selectSubscriptionById(
+            subscription.id,
+            transaction
+          )
+          const s2 = await selectSubscriptionById(
+            secondSubscription.id,
+            transaction
+          )
+          return [s1, s2]
+        })
+
+      // Get the new payment method from the setup intent
+      const [newPaymentMethod] = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentMethods(
+            {
+              stripePaymentMethodId: stripeIdFromObjectOrId(
+                addPaymentMethodSetupIntent.payment_method!
+              ),
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(updatedFirstSubscription.defaultPaymentMethodId).toEqual(
+        newPaymentMethod.id
+      )
+      expect(
+        updatedSecondSubscription.defaultPaymentMethodId
+      ).toEqual(newPaymentMethod.id)
+      expect(
+        updatedFirstSubscription.defaultPaymentMethodId
+      ).not.toEqual(paymentMethod.id)
+      expect(
+        updatedSecondSubscription.defaultPaymentMethodId
+      ).not.toEqual(paymentMethod.id)
+    })
+
+    it('does not update customer subscriptions when automaticallyUpdateSubscriptions is false', async () => {
+      const secondSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      const addPaymentMethodCheckoutSession =
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.AddPaymentMethod,
+          automaticallyUpdateSubscriptions: false,
+          livemode: true,
+          priceId: price.id,
+          quantity: 1,
+        })
+
+      const addPaymentMethodSetupIntent = mockSucceededSetupIntent({
+        checkoutSessionId: addPaymentMethodCheckoutSession.id,
+        stripeCustomerId: customer.stripeCustomerId!,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await processAddPaymentMethodSetupIntentSucceeded(
+          addPaymentMethodSetupIntent,
+          transaction
+        )
+      })
+
+      const [updatedFirstSubscription, updatedSecondSubscription] =
+        await adminTransaction(async ({ transaction }) => {
+          const s1 = await selectSubscriptionById(
+            subscription.id,
+            transaction
+          )
+          const s2 = await selectSubscriptionById(
+            secondSubscription.id,
+            transaction
+          )
+          return [s1, s2]
+        })
+
+      expect(updatedFirstSubscription.defaultPaymentMethodId).toEqual(
+        paymentMethod.id
+      )
+      expect(
+        updatedSecondSubscription.defaultPaymentMethodId
+      ).toEqual(paymentMethod.id)
+    })
   })
 
   describe('calculateTrialEnd', () => {
