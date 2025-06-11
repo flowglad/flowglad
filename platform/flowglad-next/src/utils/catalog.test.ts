@@ -17,7 +17,7 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
+import { nulledPriceColumns, Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
 import { Catalog } from '@/db/schema/catalogs'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -171,6 +171,7 @@ describe('cloneCatalogTransaction', () => {
       await adminTransaction(async ({ transaction }) => {
         return insertPrice(
           {
+            ...nulledPriceColumns,
             productId: product2.id,
             name: 'Second Product Price',
             type: PriceType.Subscription,
@@ -184,7 +185,6 @@ describe('cloneCatalogTransaction', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             externalId: null,
-            usageMeterId: null,
           },
           transaction
         )
@@ -541,6 +541,7 @@ describe('createProductTransaction', () => {
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
+                usageEventsPerUnit: null,
                 // @ts-expect-error - enforcing isDefault
                 isDefault: undefined,
               },

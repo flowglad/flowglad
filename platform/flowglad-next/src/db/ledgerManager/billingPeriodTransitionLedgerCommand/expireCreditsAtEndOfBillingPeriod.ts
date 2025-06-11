@@ -1,5 +1,8 @@
 import { DbTransaction } from '@/db/types'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  BillingPeriodTransitionLedgerCommand,
+  StandardBillingPeriodTransitionPayload,
+} from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   LedgerEntryStatus,
   LedgerEntryDirection,
@@ -29,7 +32,8 @@ export const expireCreditsAtEndOfBillingPeriod = async (
     ledgerTransaction,
     command,
   } = params
-
+  const standardPayload =
+    command.payload as StandardBillingPeriodTransitionPayload
   /**
    * Expire outstanding usage credits for the previous billing period.
    */
@@ -41,7 +45,7 @@ export const expireCreditsAtEndOfBillingPeriod = async (
         ),
       },
       transaction,
-      command.payload.previousBillingPeriod?.endDate
+      standardPayload.previousBillingPeriod?.endDate
     )
   const expiringCreditBalances =
     availableCreditBalancesForLedgerAccounts.filter(
@@ -49,7 +53,7 @@ export const expireCreditsAtEndOfBillingPeriod = async (
         balance.balance > 0 &&
         balance.expiresAt !== null &&
         new Date(balance.expiresAt) <=
-          new Date(command.payload.newBillingPeriod.startDate)
+          new Date(standardPayload.newBillingPeriod.startDate)
     )
   const creditExpirationLedgerInserts: LedgerEntry.CreditGrantExpiredInsert[] =
     expiringCreditBalances.map((balance) => {

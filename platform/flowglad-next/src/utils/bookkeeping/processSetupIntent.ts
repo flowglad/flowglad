@@ -6,6 +6,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PurchaseStatus,
+  SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -26,11 +27,12 @@ import {
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { Price } from '@/db/schema/prices'
-import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
+  selectSubscriptionById,
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -300,10 +302,20 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
       transaction
     )
   if (checkoutSession.targetSubscriptionId) {
+    const subscription = await selectSubscriptionById(
+      checkoutSession.targetSubscriptionId,
+      transaction
+    )
+    if (subscription.status === SubscriptionStatus.CreditTrial) {
+      throw new Error(
+        `Subscription ${subscription.id} is a credit trial subscription. To add a payment method to it, you must first upgrade to a paid plan.`
+      )
+    }
     await updateSubscription(
       {
         id: checkoutSession.targetSubscriptionId,
         defaultPaymentMethodId: paymentMethod.id,
+        status: subscription.status,
       },
       transaction
     )

@@ -9,6 +9,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
+  BillingPeriodItem,
   billingPeriodItems,
   billingPeriodItemsInsertSchema,
   billingPeriodItemsSelectSchema,
@@ -30,12 +31,15 @@ import {
   organizationsSelectSchema,
 } from '../schema/organizations'
 import {
+  BillingPeriod,
   billingPeriods,
   billingPeriodsSelectSchema,
 } from '../schema/billingPeriods'
 import {
   subscriptions,
   subscriptionsSelectSchema,
+  standardSubscriptionSelectSchema,
+  Subscription,
 } from '../schema/subscriptions'
 import { customers, customersSelectSchema } from '../schema/customers'
 
@@ -206,7 +210,13 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
     startDate: Date,
     endDate: Date,
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    {
+      billingPeriod: BillingPeriod.Record
+      subscription: Subscription.StandardRecord
+      billingPeriodItems: BillingPeriodItem.Record[]
+    }[]
+  > => {
     // Create the condition to find billing periods that overlap with the date range
     const dateRangeCondition = or(
       // Billing period starts within the date range
@@ -258,7 +268,7 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
             billingPeriod: billingPeriodsSelectSchema.parse(
               row.billingPeriod
             ),
-            subscription: subscriptionsSelectSchema.parse(
+            subscription: standardSubscriptionSelectSchema.parse(
               row.subscription
             ),
             billingPeriodItems: [],
@@ -274,15 +284,9 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
       {} as Record<
         string,
         {
-          billingPeriod: ReturnType<
-            typeof billingPeriodsSelectSchema.parse
-          >
-          subscription: ReturnType<
-            typeof subscriptionsSelectSchema.parse
-          >
-          billingPeriodItems: ReturnType<
-            typeof billingPeriodItemsSelectSchema.parse
-          >[]
+          billingPeriod: BillingPeriod.Record
+          subscription: Subscription.StandardRecord
+          billingPeriodItems: BillingPeriodItem.Record[]
         }
       >
     )

@@ -1,5 +1,6 @@
 import { Catalog } from '@/db/schema/catalogs'
 import { Customer } from '@/db/schema/customers'
+import { nulledPriceColumns } from '@/db/schema/prices'
 import { BillingAddress } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Price } from '@/db/schema/prices'
@@ -105,6 +106,7 @@ export const stripePriceToPriceInsert = (
 ): Price.Insert => {
   const type = stripePriceToFlowgladPriceType(stripePrice)
   const coreParams = {
+    ...nulledPriceColumns,
     productId: product.id,
     externalId: stripePrice.id,
     livemode: stripePrice.livemode,
@@ -116,15 +118,10 @@ export const stripePriceToPriceInsert = (
   if (type === PriceType.SinglePayment) {
     const singlePaymentPrice: Price.SinglePaymentInsert = {
       ...coreParams,
-      intervalUnit: null,
-      intervalCount: null,
       active: stripePrice.active,
       name: stripePrice.nickname ?? '',
       type,
-      trialPeriodDays: null,
-      setupFeeAmount: null,
       isDefault: stripeProduct.default_price === stripePrice.id,
-      usageMeterId: null,
     }
     return singlePaymentPrice
   }
@@ -141,9 +138,7 @@ export const stripePriceToPriceInsert = (
       type,
       trialPeriodDays:
         stripePrice.recurring?.trial_period_days ?? null,
-      setupFeeAmount: null,
       isDefault: stripeProduct.default_price === stripePrice.id,
-      usageMeterId: null,
     }
     return subscriptionPrice
   }
@@ -152,7 +147,7 @@ export const stripePriceToPriceInsert = (
 
 const stripeSubscriptionToSubscriptionStatus = (
   stripeSubscription: Stripe.Subscription
-): SubscriptionStatus => {
+): Exclude<SubscriptionStatus, SubscriptionStatus.CreditTrial> => {
   switch (stripeSubscription.status) {
     case 'active':
       return SubscriptionStatus.Active
@@ -308,7 +303,7 @@ export const stripeSubscriptionToSubscriptionInsert = async (
   price: Price.Record,
   params: CoreMigrationParams,
   stripe: Stripe
-): Promise<Subscription.Insert> => {
+): Promise<Subscription.StandardInsert> => {
   const defaultPaymentMethod =
     await paymentMethodRecordForStripeSubscription(
       stripe,

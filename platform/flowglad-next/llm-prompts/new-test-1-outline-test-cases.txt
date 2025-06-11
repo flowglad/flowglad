@@ -263,3 +263,118 @@ Idempotency is critical. While the `settleInvoiceUsageCostsLedgerCommand` should
     *   No database state should change.
     *   The function must return a result where the `ledgerCommand` is `undefined`. (This confirms existing tests in the context of the new functionality).
 
+
+# Test Case Plan for `createSubscription.ts`
+
+This document outlines the test cases for functions within `createSubscription.ts`, primarily focusing on `insertSubscriptionAndItems` and its direct helper functions.
+
+## 1. `insertSubscriptionAndItems`
+
+This function is the main entry point for creating a subscription record and its associated items. It acts as a router to different creation functions based on the price configuration.
+
+### Scenario 1.1: Price is not a valid subscription type
+*   **Setup:**
+    *   Provide `params` with a `price` object where `price.type` is an invalid type (i.e., one for which `isPriceTypeSubscription` returns `false`).
+*   **Expectations:**
+    *   The function should throw an `Error` with the message "Price is not a subscription".
+
+### Scenario 1.2: Price starts with a credit trial
+*   **Setup:**
+    *   Provide `params` where `price.startsWithCreditTrial` is `true`.
+    *   The `price.type` must be `Usage` to be valid for a credit trial.
+*   **Expectations:**
+    *   The function should call `createCreditTrialSubscriptionAndItems` with the provided `params`.
+    *   The function should **not** call `createStandardSubscriptionAndItems`.
+    *   The return value should be the result from `createCreditTrialSubscriptionAndItems`.
+
+### Scenario 1.3: Price is for a standard subscription (no trial)
+*   **Setup:**
+    *   Provide `params` where `price.startsWithCreditTrial` is `false` or not defined.
+    *   The `price.type` is `Subscription`.
+    *   No `trialEnd` date is provided.
+*   **Expectations:**
+    *   `generateNextBillingPeriod` is called to determine the billing cycle.
+    *   The function should call `createStandardSubscriptionAndItems` with the provided `params` and the calculated `currentBillingPeriod`.
+    *   The function should **not** call `createCreditTrialSubscriptionAndItems`.
+    *   The return value should be the result from `createStandardSubscriptionAndItems`.
+
+### Scenario 1.4: Price is for a standard subscription with a trial period
+*   **Setup:**
+    *   Provide `params` where `price.startsWithCreditTrial` is `false`.
+    *   The `price.type` is `Subscription`.
+    *   A future date is provided for `trialEnd`.
+*   **Expectations:**
+    *   `generateNextBillingPeriod` is called with the `trialEnd` date, which will affect the resulting billing period dates.
+    *   The function should call `createStandardSubscriptionAndItems` with the provided `params` and the calculated `currentBillingPeriod`.
+    *   The subscription created should have a `status` of `trialing`.
+
+## 2. `createStandardSubscriptionAndItems`
+
+This function handles the creation of regular subscriptions (which can be active, trialing, or incomplete).
+
+### Scenario 2.1: Creates an `active` subscription
+*   **Setup:**
+    *   `params` contains `autoStart: true` and a valid `defaultPaymentMethod`.
+    *   `params` does not contain a `trialEnd` date.
+    *   `price.type` is `Subscription`.
+*   **Expectations:**
+    *   `deriveSubscriptionStatus` is called and returns `SubscriptionStatus.Active`.
+    *   An `insertSubscription` call is made with `status: 'active'`, `runBillingAtPeriodStart: true`, and the `defaultPaymentMethodId`.
+    *   An `bulkInsertSubscriptionItems` call is made with a `SubscriptionItem` of `type: 'static'`.
+
+### Scenario 2.2: Creates a `trialing` subscription
+*   **Setup:**
+    *   `params` contains a `trialEnd` date in the future.
+*   **Expectations:**
+    *   `deriveSubscriptionStatus` is called and returns `SubscriptionStatus.Trialing`.
+    *   An `insertSubscription` call is made with `status: 'trialing'` and the `trialEnd` date set.
+
+### Scenario 2.3: Creates an `incomplete` subscription
+*   **Setup:**
+    *   `params` has `autoStart: false` (or undefined).
+    *   `params` has no `defaultPaymentMethod`.
+    *   `params` has no `trialEnd` date.
+*   **Expectations:**
+    *   `deriveSubscriptionStatus` is called and returns `SubscriptionStatus.Incomplete`.
+    *   An `insertSubscription` call is made with `status: 'incomplete'` and `defaultPaymentMethodId: null`.
+
+### Scenario 2.4: Subscription with a usage-based price
+*   **Setup:**
+    *   `params` for a standard subscription.
+    *   `price.type` is `Usage`.
+*   **Expectations:**
+    *   An `insertSubscription` call is made with `runBillingAtPeriodStart: false`.
+    *   An `bulkInsertSubscriptionItems` call is made with a `SubscriptionItem` that has `type: 'static'`, `usageMeterId: null`, and `usageEventsPerUnit: null`, confirming the current implementation.
+
+### Scenario 2.5: Uses a provided name for the subscription
+*   **Setup:**
+    *   `params` includes a `name` string.
+*   **Expectations:**
+    *   An `insertSubscription` call is made with the `name` from `params`.
+
+### Scenario 2.6: Constructs a default name for the subscription
+*   **Setup:**
+    *   `params` does not include a `name`.
+    *   `product.name` and `price.name` are provided.
+*   **Expectations:**
+    *   An `insertSubscription` call is made with a constructed name (e.g., `PRODUCT_NAME - PRICE_NAME`).
+
+## 3. `createCreditTrialSubscriptionAndItems`
+
+This function handles the specific case of creating a subscription that starts with a credit trial.
+
+### Scenario 3.1: Happy path credit trial creation
+*   **Setup:**
+    *   `params` where `price.type` is `Usage` and `price.usageMeterId` is not null.
+*   **Expectations:**
+    *   The function completes successfully.
+    *   An `insertSubscription` call is made with `status: 'credit_trial'`, `runBillingAtPeriodStart: false`, and `null` for billing period dates.
+    *   An `bulkInsertSubscriptionItems` call is made with a `SubscriptionItem` of `type: 'usage'` and the correct `usageMeterId` from the price.
+    *   The function returns the newly created subscription and subscription item records.
+
+### Scenario 3.2: Price is not a usage price
+*   **Setup:**
+    *   `params` where `price.type` is `Subscription` or another non-`Usage` type.
+*   **Expectations:**
+    *   The function throws an `Error` with the message "Price ... is not a usage price. Credit trial subscriptions must have a usage price...".
+

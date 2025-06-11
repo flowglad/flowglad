@@ -43,7 +43,7 @@ import {
 } from '@/subscriptions/cancelSubscription'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
-import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'

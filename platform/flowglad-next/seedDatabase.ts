@@ -66,7 +66,7 @@ import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
-import { Price } from '@/db/schema/prices'
+import { nulledPriceColumns, Price } from '@/db/schema/prices'
 import { Purchase } from '@/db/schema/purchases'
 import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
 import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
@@ -120,6 +120,7 @@ import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionIte
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import { Subscription } from '@/db/schema/subscriptions'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -195,8 +196,9 @@ export const setupOrg = async (params?: {
       transaction
     )
 
-    const price = await insertPrice(
+    const price = (await insertPrice(
       {
+        ...nulledPriceColumns,
         productId: product.id,
         name: 'Flowglad Test Product Price',
         type: PriceType.Subscription,
@@ -210,10 +212,9 @@ export const setupOrg = async (params?: {
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
         externalId: null,
-        usageMeterId: null,
       },
       transaction
-    )
+    )) as Price.SubscriptionRecord
     return { organization, product, price, catalog }
   })
 }
@@ -350,15 +351,21 @@ export const setupSubscription = async (params: {
   status?: SubscriptionStatus
   trialEnd?: Date
   startDate?: Date
-}) => {
+}): Promise<Subscription.StandardRecord> => {
+  const status = params.status ?? SubscriptionStatus.Active
+  if (status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      'Credit trial subscriptions are not supported in seedDatabase'
+    )
+  }
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(params.priceId, transaction)
-    return insertSubscription(
+    const subscription = await insertSubscription(
       {
         organizationId: params.organizationId,
         customerId: params.customerId,
         defaultPaymentMethodId: params.paymentMethodId,
-        status: params.status ?? SubscriptionStatus.Active,
+        status: status ?? SubscriptionStatus.Active,
         livemode: params.livemode ?? true,
         billingCycleAnchorDate: new Date(),
         currentBillingPeriodEnd:
@@ -383,6 +390,7 @@ export const setupSubscription = async (params: {
       },
       transaction
     )
+    return subscription as Subscription.StandardRecord
   })
 }
 
@@ -664,6 +672,7 @@ export const setupPrice = async ({
   externalId,
   active = true,
   usageMeterId,
+  startsWithCreditTrial,
 }: {
   productId: string
   name: string
@@ -673,54 +682,86 @@ export const setupPrice = async ({
   intervalCount: number
   livemode: boolean
   isDefault: boolean
-  setupFeeAmount: number
+  setupFeeAmount?: number
   usageMeterId?: string
   currency?: CurrencyCode
   externalId?: string
   trialPeriodDays?: number
   active?: boolean
-}) => {
+  startsWithCreditTrial?: boolean
+}): Promise<Price.Record> => {
   return adminTransaction(async ({ transaction }) => {
-    if (type === PriceType.SinglePayment) {
-      return insertPrice(
-        {
-          productId,
-          name: `${name} (Single Payment)`,
-          type,
-          unitPrice,
-          currency: CurrencyCode.USD,
-          externalId: externalId ?? core.nanoid(),
-          active,
-          usageMeterId: null,
-          intervalUnit: null,
-          intervalCount: null,
-          livemode,
-          isDefault,
-          setupFeeAmount: null,
-          trialPeriodDays: null,
-        },
-        transaction
-      )
+    const basePrice = {
+      ...nulledPriceColumns,
+      productId,
+      type,
+      unitPrice,
+      livemode,
+      isDefault,
+      active,
+      currency: currency ?? CurrencyCode.USD,
+      externalId: externalId ?? core.nanoid(),
     }
-    return insertPrice(
-      {
-        productId,
+
+    const priceConfig = {
+      [PriceType.SinglePayment]: {
+        name: `${name} (Single Payment)`,
+        ...nulledPriceColumns,
+      },
+      [PriceType.Usage]: {
         name,
-        type,
-        unitPrice,
         intervalUnit,
         intervalCount,
-        livemode,
-        isDefault,
-        setupFeeAmount,
-        trialPeriodDays,
-        currency: currency ?? CurrencyCode.USD,
-        externalId: externalId ?? core.nanoid(),
-        usageMeterId: usageMeterId ?? null,
-        active,
-      } as Price.Insert,
-      transaction
-    )
+        setupFeeAmount: null,
+        trialPeriodDays: null,
+        usageMeterId,
+        usageEventsPerUnit: 1,
+      },
+      [PriceType.Subscription]: {
+        name,
+        intervalUnit,
+        intervalCount,
+        setupFeeAmount: setupFeeAmount ?? 0,
+        trialPeriodDays: trialPeriodDays ?? null,
+        usageEventsPerUnit: null,
+        startsWithCreditTrial: startsWithCreditTrial ?? false,
+      },
+    }
+    if (type === PriceType.Usage && !usageMeterId) {
+      throw new Error('Usage price must have a usage meter')
+    }
+    switch (type) {
+      case PriceType.SinglePayment:
+        return insertPrice(
+          {
+            ...basePrice,
+            ...priceConfig[PriceType.SinglePayment],
+            type: PriceType.SinglePayment,
+          },
+          transaction
+        )
+      case PriceType.Subscription:
+        return insertPrice(
+          {
+            ...basePrice,
+            ...priceConfig[PriceType.Subscription],
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+      case PriceType.Usage:
+        return insertPrice(
+          {
+            ...basePrice,
+            ...priceConfig[PriceType.Usage],
+            usageMeterId: usageMeterId!,
+            type: PriceType.Usage,
+          },
+          transaction
+        )
+      default:
+        throw new Error(`Invalid price type: ${type}`)
+    }
   })
 }
 

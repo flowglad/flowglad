@@ -486,7 +486,14 @@ export enum PaymentMethodType {
 }
 
 export enum SubscriptionStatus {
+  /**
+   * Used for time based subscriptions
+   */
   Trialing = 'trialing',
+  /**
+   * Used for usage based subscriptions
+   */
+  CreditTrial = 'credit_trial',
   Active = 'active',
   PastDue = 'past_due',
   Unpaid = 'unpaid',
@@ -736,6 +743,7 @@ export enum CheckoutSessionType {
   Product = 'product',
   Purchase = 'purchase',
   AddPaymentMethod = 'add_payment_method',
+  ActivateSubscription = 'activate_subscription',
   Invoice = 'invoice',
 }
 

@@ -9,7 +9,7 @@ import {
 } from '../../seedDatabase'
 import { core } from '@/utils/core'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { Price, prices } from '@/db/schema/prices'
+import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'
 import { PriceType, CurrencyCode, FlowgladApiKeyType } from '@/types'
 import { eq, and as drizzleAnd } from 'drizzle-orm'
 import { apiKeys } from '@/db/schema/apiKeys'
@@ -451,20 +451,16 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
 
         // Create a price to test RLS
         const priceInput: Price.Insert = {
+          ...nulledPriceColumns,
           name: 'Test Price',
           livemode: false,
           productId: createdProduct.id,
           unitPrice: 1000,
           currency: CurrencyCode.USD,
           type: PriceType.SinglePayment,
-          intervalUnit: null,
-          intervalCount: null,
           active: true,
           externalId: null,
-          usageMeterId: null,
           isDefault: false,
-          trialPeriodDays: null,
-          setupFeeAmount: null,
         }
 
         const createdPrice = await insertPrice(

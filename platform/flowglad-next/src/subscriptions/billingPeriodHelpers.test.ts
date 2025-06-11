@@ -91,7 +91,7 @@ let customer: Customer.Record
 let paymentMethod: PaymentMethod.Record
 let billingPeriod: BillingPeriod.Record
 let billingRun: BillingRun.Record
-let subscription: Subscription.Record
+let subscription: Subscription.StandardRecord
 let usageMeter: UsageMeter.Record
 let otherUsageMeter: UsageMeter.Record
 let ledgerAccount: LedgerAccount.Record
@@ -267,7 +267,11 @@ describe('Subscription Billing Period Transition', async () => {
       const pastDate = new Date(Date.now() - 1000)
       subscription.cancelScheduledAt = pastDate
       await updateSubscription(
-        { id: subscription.id, cancelScheduledAt: pastDate },
+        {
+          id: subscription.id,
+          cancelScheduledAt: pastDate,
+          status: SubscriptionStatus.Active,
+        },
         transaction
       )
       const updatedBillingPeriod = await updateBillingPeriod(
@@ -318,7 +322,6 @@ describe('Subscription Billing Period Transition', async () => {
         updatedBillingPeriod.startDate
       )
       expect(updatedSub.currentBillingPeriodEnd).toBeDefined()
-
       // And a billing run was created with scheduledFor equal to the new period's start date
       expect(newBillingRun).toBeDefined()
       expect(newBillingRun?.scheduledFor.getTime()).toEqual(
@@ -338,6 +341,7 @@ describe('Subscription Billing Period Transition', async () => {
           id: subscription.id,
           defaultPaymentMethodId: null,
           backupPaymentMethodId: null,
+          status: SubscriptionStatus.Active,
         },
         transaction
       )
@@ -378,7 +382,11 @@ describe('Subscription Billing Period Transition', async () => {
       )
       subscription.cancelScheduledAt = futureEnd
       await updateSubscription(
-        { id: subscription.id, cancelScheduledAt: futureEnd },
+        {
+          id: subscription.id,
+          cancelScheduledAt: futureEnd,
+          status: SubscriptionStatus.Active,
+        },
         transaction
       )
 
@@ -582,6 +590,38 @@ describe('Subscription Billing Period Transition', async () => {
         expect(billingPeriod.trialPeriod).toBe(true)
         expect(billingPeriodItems).toHaveLength(0)
       })
+    })
+  })
+
+  it('should not transition a subscription with CreditTrial status', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Set subscription status to CreditTrial
+      const creditTrialUpdate: Subscription.CreditTrialUpdate = {
+        id: subscription.id,
+        currentBillingPeriodEnd: null,
+        currentBillingPeriodStart: null,
+        interval: null,
+        intervalCount: null,
+        billingCycleAnchorDate: null,
+        defaultPaymentMethodId: null,
+        status: SubscriptionStatus.CreditTrial,
+      }
+      await updateSubscription(
+        {
+          ...creditTrialUpdate,
+          status: SubscriptionStatus.CreditTrial,
+        },
+        transaction
+      )
+
+      await expect(
+        attemptToTransitionSubscriptionBillingPeriod(
+          billingPeriod,
+          transaction
+        )
+      ).rejects.toThrow(
+        `Cannot transition subscription ${subscription.id} in credit trial status`
+      )
     })
   })
 })
@@ -811,6 +851,7 @@ describe('Ledger Interactions', () => {
           {
             id: subscription.id,
             cancelScheduledAt: new Date(Date.now() - 1000),
+            status: SubscriptionStatus.Active,
           },
           transaction
         )
@@ -911,6 +952,7 @@ describe('Ledger Interactions', () => {
             id: subscription.id,
             defaultPaymentMethodId: null,
             backupPaymentMethodId: null,
+            status: SubscriptionStatus.Active,
           },
           transaction
         )

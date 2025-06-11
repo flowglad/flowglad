@@ -10,6 +10,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
+  standardSubscriptionSelectSchema,
   Subscription,
   subscriptions,
   subscriptionsInsertSchema,
@@ -82,7 +83,12 @@ export const safelyUpdateSubscriptionStatus = async (
   subscription: Subscription.Record,
   status: SubscriptionStatus,
   transaction: DbTransaction
-) => {
+): Promise<Subscription.StandardRecord> => {
+  if (status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      `Cannot update subscription ${subscription.id} to credit trial status`
+    )
+  }
   if (subscription.status === status) {
     return subscription
   }
@@ -91,10 +97,16 @@ export const safelyUpdateSubscriptionStatus = async (
       `Subscription ${subscription.id} is in terminal state ${subscription.status} and cannot be updated to ${status}`
     )
   }
-  return updateSubscription(
+  const updatedSubscription = await updateSubscription(
     { id: subscription.id, status },
     transaction
   )
+  if (updatedSubscription.status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      `Subscription ${subscription.id} was updated to credit trial status. Credit_trial status is a status that can only be created, not updated to.`
+    )
+  }
+  return standardSubscriptionSelectSchema.parse(updatedSubscription)
 }
 
 export const selectSubscriptionsToBeCancelled = async (

@@ -1,5 +1,9 @@
 import { expect, it, describe } from 'vitest'
-import { editPriceSchema, Price } from '@/db/schema/prices'
+import {
+  editPriceSchema,
+  nulledPriceColumns,
+  Price,
+} from '@/db/schema/prices'
 import { PriceType, CurrencyCode, IntervalUnit } from '@/types'
 import { priceToArchivePriceInput } from './ArchivePriceModal'
 
@@ -11,6 +15,7 @@ const coreParams = {
   updatedAt: new Date(),
   createdByCommit: '1',
   updatedByCommit: '1',
+  ...nulledPriceColumns,
 } as const
 
 describe('priceToEditPriceInput', () => {
@@ -28,6 +33,8 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageMeterId: null,
+      usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -57,6 +64,8 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       livemode: false,
+      usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -85,6 +94,8 @@ describe('priceToEditPriceInput', () => {
       intervalCount: null,
       trialPeriodDays: null,
       setupFeeAmount: null,
+      usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -112,7 +123,9 @@ describe('priceToEditPriceInput', () => {
       intervalCount: 1,
       trialPeriodDays: null,
       setupFeeAmount: null,
+      overagePriceId: null,
       usageMeterId: 'um_1',
+      usageEventsPerUnit: 1,
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({

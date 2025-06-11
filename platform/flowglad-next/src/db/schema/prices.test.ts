@@ -64,6 +64,7 @@ describe('Price Defaults', () => {
     const transformedToSinglePaymentPrice = {
       ...usageDummyPrice,
       ...singlePaymentPriceDefaultColumns,
+      usageEventsPerUnit: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToSinglePaymentPrice,
@@ -88,6 +89,19 @@ describe('Price Defaults', () => {
       ...usagePriceDefaultColumns,
     }
     testStartingPriceToDestinationPrice(
+      transformedToUsagePrice,
+      usagePriceDefaultColumns,
+      pricesSelectSchema
+    )
+  })
+  it('allow subscriptions to have no overage / usage fields', () => {
+    const transformedToUsagePrice = {
+      ...subscriptionDummyPrice,
+      overagePriceId: undefined,
+      usageEventsPerUnit: undefined,
+    }
+    testStartingPriceToDestinationPrice(
+      // @ts-expect-error - we want to test the case where the fields are undefined
       transformedToUsagePrice,
       usagePriceDefaultColumns,
       pricesSelectSchema

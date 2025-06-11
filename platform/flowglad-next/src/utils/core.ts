@@ -346,6 +346,12 @@ export const safeZodNullOrUndefined = z
   })
   .describe('safeZodNullOrUndefined')
 
+export const safeZodNullishString = z
+  .string()
+  .nullish()
+  .transform((val) => val ?? null)
+  .describe('safeZodNullishString')
+
 export const safeZodDate = z
   .date()
   .or(z.string())
@@ -568,6 +574,7 @@ export const core = {
   formatDateRange,
   gitCommitId,
   safeZodNullOrUndefined,
+  safeZodNullishString,
   safeZodPositiveInteger,
   safeZodDate,
   safeZodAlwaysNull,
