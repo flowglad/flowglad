@@ -29,6 +29,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       setupFeeAmount: null,
       usageMeterId: null,
       usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
@@ -58,6 +59,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({

@@ -752,6 +752,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       intervalCount: undefined,
       trialPeriodDays: null,
       setupFeeAmount: null,
+      overagePriceId: null,
     }
     const usagePrice = await adminTransaction(
       async ({ transaction }) =>
@@ -1137,6 +1138,7 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
         intervalUnit: undefined,
         intervalCount: undefined,
         usageEventsPerUnit: 1,
+        overagePriceId: null,
       }
 
       const usagePrice = await updatePrice(

@@ -70,6 +70,7 @@ describe('priceMethods.ts', () => {
             active: true,
             usageMeterId: null,
             usageEventsPerUnit: null,
+            overagePriceId: null,
           },
           transaction
         )
@@ -115,6 +116,7 @@ describe('priceMethods.ts', () => {
             active: true,
             usageMeterId: null,
             usageEventsPerUnit: null,
+            overagePriceId: null,
           },
           transaction
         )

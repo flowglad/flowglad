@@ -126,6 +126,7 @@ export const stripePriceToPriceInsert = (
       isDefault: stripeProduct.default_price === stripePrice.id,
       usageMeterId: null,
       usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     return singlePaymentPrice
   }
@@ -146,6 +147,7 @@ export const stripePriceToPriceInsert = (
       isDefault: stripeProduct.default_price === stripePrice.id,
       usageMeterId: null,
       usageEventsPerUnit: null,
+      overagePriceId: null,
     }
     return subscriptionPrice
   }

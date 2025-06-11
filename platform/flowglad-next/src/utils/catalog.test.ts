@@ -186,6 +186,7 @@ describe('cloneCatalogTransaction', () => {
             externalId: null,
             usageMeterId: null,
             usageEventsPerUnit: null,
+            overagePriceId: null,
           },
           transaction
         )

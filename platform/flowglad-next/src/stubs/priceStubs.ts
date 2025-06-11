@@ -27,6 +27,7 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   updatedByCommit: 'test',
   position: 0,
   usageEventsPerUnit: null,
+  overagePriceId: null,
 }
 
 export const singlePaymentDummyPrice: Price.SinglePaymentRecord = {
