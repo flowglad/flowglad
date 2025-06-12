@@ -1406,6 +1406,8 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           usageMeterId:
             usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
+          catalogId: product.catalogId,
+          active: true,
         }
       } else if (spec.type === FeatureType.Toggle) {
         featureInsertData = {
@@ -1414,6 +1416,8 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
           amount: null,
           renewalFrequency: null,
           usageMeterId: null,
+          catalogId: product.catalogId,
+          active: true,
         }
       } else {
         throw new Error(
@@ -2038,6 +2042,17 @@ export const setupToggleFeature = async (
   }
 ) => {
   return adminTransaction(async ({ transaction }) => {
+    const catalogId =
+      params.catalogId ??
+      (
+        await selectDefaultCatalog(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
     const insert: Feature.ToggleInsert = {
       type: FeatureType.Toggle,
       description: params.description ?? '',
@@ -2045,6 +2060,7 @@ export const setupToggleFeature = async (
       amount: null,
       usageMeterId: null,
       renewalFrequency: null,
+      catalogId: catalogId ?? '',
       ...params,
     }
     return insertFeature(insert, transaction)
@@ -2066,6 +2082,7 @@ export const setupUsageCreditGrantFeature = async (
       description: params.description ?? '',
       slug: params.slug ?? `test-feature-${core.nanoid()}`,
       amount: params.amount ?? 1,
+      catalogId: params.catalogId ?? '',
       ...params,
     }
     return insertFeature(

@@ -4,7 +4,6 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import Button from '@/components/ion/Button'
-import { PageHeader } from '@/components/ion/PageHeader'
 import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import { ProductWithPrices } from '@/db/schema/prices'
 import { ProductsTable, ProductsTableFilters } from './ProductsTable'
