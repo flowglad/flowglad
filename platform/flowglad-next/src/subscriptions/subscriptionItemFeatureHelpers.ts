@@ -10,7 +10,6 @@ import {
   subscriptionItemFeaturesInsertSchema,
 } from '@/db/schema/subscriptionItemFeatures'
 import { bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { inArray } from 'drizzle-orm'
 import * as R from 'ramda'
 import { FeatureType } from '@/types'
 

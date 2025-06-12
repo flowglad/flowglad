@@ -6,6 +6,7 @@ import {
   createUpsertFunction,
   ORMMethodCreatorConfig,
   createBulkUpsertFunction,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   subscriptionItemFeatures,
@@ -15,7 +16,10 @@ import {
   SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
 import { DbTransaction } from '@/db/types'
-import { SubscriptionItem } from '../schema/subscriptionItems'
+import {
+  SubscriptionItem,
+  subscriptionItems,
+} from '../schema/subscriptionItems'
 import { eq } from 'drizzle-orm'
 
 const config: ORMMethodCreatorConfig<

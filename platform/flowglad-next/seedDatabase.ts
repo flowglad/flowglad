@@ -121,6 +121,7 @@ import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { Subscription } from '@/db/schema/subscriptions'
+import { snakeCase } from 'change-case'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -1266,7 +1267,13 @@ export const setupUsageMeter = async ({
       throw new Error('setupUsageMeter: Catalog not found')
     }
     return insertUsageMeter(
-      { organizationId, name, livemode, catalogId: catalogToUseId },
+      {
+        organizationId,
+        name,
+        livemode,
+        catalogId: catalogToUseId,
+        slug: snakeCase(name),
+      },
       transaction
     )
   })
@@ -2077,12 +2084,23 @@ export const setupUsageCreditGrantFeature = async (
   }
 ): Promise<Feature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
+    const catalogId =
+      params.catalogId ??
+      (
+        await selectDefaultCatalog(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
     const insert: Feature.UsageCreditGrantInsert = {
       type: FeatureType.UsageCreditGrant,
       description: params.description ?? '',
       slug: params.slug ?? `test-feature-${core.nanoid()}`,
       amount: params.amount ?? 1,
-      catalogId: params.catalogId ?? '',
+      catalogId: catalogId ?? '',
       ...params,
     }
     return insertFeature(

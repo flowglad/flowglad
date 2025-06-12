@@ -32,7 +32,10 @@ import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionItemType, SubscriptionStatus } from '@/types'
-import { expireSubscriptionItemFeaturesForSubscriptionItem } from './subscriptionItemFeatureMethods'
+import {
+  expireSubscriptionItemFeaturesForSubscriptionItem,
+  selectSubscriptionItemFeatures,
+} from './subscriptionItemFeatureMethods'
 import { aggregateBalancesForSubscriptions } from './ledgerEntryMethods'
 import core from '@/utils/core'
 
@@ -230,6 +233,37 @@ export const selectRichSubscriptionsAndActiveItems = async (
   const subscriptionIds = Array.from(
     subscriptionItemsBySubscriptionId.keys()
   )
+  const subscriptionItemRecords = result.map(
+    (row) => row.subscriptionItems
+  )
+  const subscriptionItemFeatures =
+    await selectSubscriptionItemFeatures(
+      {
+        subscriptionItemId: subscriptionItemRecords.map(
+          (item) => item.id
+        ),
+      },
+      transaction
+    )
+  const subscriptionItemFeaturesBySubscriptionItemId = core.groupBy(
+    (item) => item.subscriptionItemId,
+    subscriptionItemFeatures
+  )
+  const subscriptionItemsById = core.groupBy(
+    (item) => item.id,
+    subscriptionItemRecords
+  )
+  const subscriptionItemFeaturesBySubscriptionId = core.groupBy(
+    (item) => {
+      const subscriptionItem =
+        subscriptionItemsById[item.subscriptionItemId][0]
+      if (!subscriptionItem) {
+        throw new Error('Subscription item not found')
+      }
+      return subscriptionItem.subscriptionId
+    },
+    subscriptionItemFeatures
+  )
   const balances = await aggregateBalancesForSubscriptions(
     { subscriptionId: subscriptionIds },
     transaction
@@ -245,7 +279,11 @@ export const selectRichSubscriptionsAndActiveItems = async (
     subscriptionItemsBySubscriptionId.values().map((item) => {
       return {
         ...item,
-        meterBalances: balancesBySubscriptionId[item.id] ?? [],
+        experimental: {
+          meterBalances: balancesBySubscriptionId[item.id] ?? [],
+          featureItems:
+            subscriptionItemFeaturesBySubscriptionId[item.id] ?? [],
+        },
       }
     })
   )

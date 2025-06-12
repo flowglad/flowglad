@@ -13,6 +13,7 @@ import {
   pgEnumColumn,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  constructUniqueIndex,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
@@ -31,6 +32,7 @@ export const usageMeters = pgTable(
     ),
     name: text('name').notNull(),
     catalogId: notNullStringForeignKey('catalog_id', catalogs),
+    slug: text('slug').notNull(),
     aggregationType: pgEnumColumn({
       enumName: 'UsageMeterAggregationType',
       columnName: 'aggregation_type',
@@ -43,6 +45,11 @@ export const usageMeters = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.catalogId]),
+      constructUniqueIndex(TABLE_NAME, [
+        table.organizationId,
+        table.slug,
+        table.catalogId,
+      ]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',

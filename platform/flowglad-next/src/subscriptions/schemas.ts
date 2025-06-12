@@ -66,10 +66,12 @@ export const richSubscriptionItemClientSelectSchema =
     }),
   ])
 
-const richSubscriptionExperimentalSchema = z.object({
-  featureItems: subscriptionItemFeaturesClientSelectSchema.array(),
-  meterBalances: z.array(usageMeterBalanceClientSelectSchema),
-})
+const richSubscriptionExperimentalSchema = z
+  .object({
+    featureItems: subscriptionItemFeaturesClientSelectSchema.array(),
+    meterBalances: z.array(usageMeterBalanceClientSelectSchema),
+  })
+  .optional()
 
 const richCreditTrialSubscriptionClientSelectSchema =
   creditTrialSubscriptionClientSelectSchema.extend({
