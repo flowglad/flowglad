@@ -167,3 +167,7 @@ export const usageMeterBalanceClientSelectSchema =
   usageMetersClientSelectSchema.extend({
     availableBalance: z.number(),
   })
+
+export type UsageMeterBalance = z.infer<
+  typeof usageMeterBalanceClientSelectSchema
+>

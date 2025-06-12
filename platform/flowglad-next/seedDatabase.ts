@@ -1239,11 +1239,13 @@ export const setupUsageMeter = async ({
   name,
   livemode = true,
   catalogId,
+  slug,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
   catalogId?: string
+  slug?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let catalogToUseId: string | null = null
@@ -1272,7 +1274,7 @@ export const setupUsageMeter = async ({
         name,
         livemode,
         catalogId: catalogToUseId,
-        slug: snakeCase(name),
+        slug: slug ?? snakeCase(name),
       },
       transaction
     )

@@ -28,7 +28,10 @@ import {
   richSubscriptionClientSelectSchema,
   RichSubscriptionItem,
 } from '@/subscriptions/schemas'
-import { pricesClientSelectSchema } from '../schema/prices'
+import {
+  pricesClientSelectSchema,
+  subscribablePriceClientSelectSchema,
+} from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionItemType, SubscriptionStatus } from '@/types'
@@ -36,7 +39,7 @@ import {
   expireSubscriptionItemFeaturesForSubscriptionItem,
   selectSubscriptionItemFeatures,
 } from './subscriptionItemFeatureMethods'
-import { aggregateBalancesForSubscriptions } from './ledgerEntryMethods'
+import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
 import core from '@/utils/core'
 
 const config: ORMMethodCreatorConfig<
@@ -207,7 +210,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
       )
     )
 
-  const subscriptionItemsBySubscriptionId = result.reduce(
+  const richRubscriptionsBySubscriptionId = result.reduce(
     (acc, row) => {
       const subscriptionId = row.subscription?.id
       if (!subscriptionId) {
@@ -224,14 +227,14 @@ export const selectRichSubscriptionsAndActiveItems = async (
       }
       acc.get(subscriptionId)?.subscriptionItems.push({
         ...subscriptionItemsSelectSchema.parse(row.subscriptionItems),
-        price: pricesClientSelectSchema.parse(row.price),
+        price: subscribablePriceClientSelectSchema.parse(row.price),
       })
       return acc
     },
-    new Map()
+    new Map<string, RichSubscription>()
   )
   const subscriptionIds = Array.from(
-    subscriptionItemsBySubscriptionId.keys()
+    richRubscriptionsBySubscriptionId.keys()
   )
   const subscriptionItemRecords = result.map(
     (row) => row.subscriptionItems
@@ -245,10 +248,6 @@ export const selectRichSubscriptionsAndActiveItems = async (
       },
       transaction
     )
-  const subscriptionItemFeaturesBySubscriptionItemId = core.groupBy(
-    (item) => item.subscriptionItemId,
-    subscriptionItemFeatures
-  )
   const subscriptionItemsById = core.groupBy(
     (item) => item.id,
     subscriptionItemRecords
@@ -264,31 +263,39 @@ export const selectRichSubscriptionsAndActiveItems = async (
     },
     subscriptionItemFeatures
   )
-  const balances = await aggregateBalancesForSubscriptions(
-    { subscriptionId: subscriptionIds },
-    transaction
-  )
-  const balancesBySubscriptionId = core.groupBy(
+  const usageMeterBalancesAndSubscriptionIds =
+    await selectUsageMeterBalancesForSubscriptions(
+      { subscriptionId: subscriptionIds },
+      transaction
+    )
+  const usageMeterBalancesBySubscriptionId = core.groupBy(
     (item) => item.subscriptionId,
-    balances
+    usageMeterBalancesAndSubscriptionIds
+  )
+  const richSubscriptionArray = Array.from(
+    richRubscriptionsBySubscriptionId.values()
   )
   /**
    * Typecheck before parsing so we can catch type errors before runtime ones
    */
-  const richSubscriptions: RichSubscription[] = Array.from(
-    subscriptionItemsBySubscriptionId.values().map((item) => {
+  const richSubscriptionsWithBalances: RichSubscription[] =
+    richSubscriptionArray.map((item: RichSubscription) => {
+      const usageMeterBalances =
+        usageMeterBalancesBySubscriptionId[item.id]?.map(
+          (item) => item.usageMeterBalance
+        ) ?? []
+
       return {
         ...item,
         experimental: {
-          meterBalances: balancesBySubscriptionId[item.id] ?? [],
+          usageMeterBalances,
           featureItems:
             subscriptionItemFeaturesBySubscriptionId[item.id] ?? [],
         },
       }
     })
-  )
 
-  return richSubscriptions.map((item) =>
+  return richSubscriptionsWithBalances.map((item) =>
     richSubscriptionClientSelectSchema.parse(item)
   )
 }
