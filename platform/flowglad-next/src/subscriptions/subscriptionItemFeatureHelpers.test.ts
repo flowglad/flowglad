@@ -92,6 +92,7 @@ const setupTestFeaturesAndProductFeatures = async (
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           usageMeterId:
             usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
+          catalogId,
         }
       } else if (spec.type === FeatureType.Toggle) {
         featureInsertData = {
@@ -100,6 +101,7 @@ const setupTestFeaturesAndProductFeatures = async (
           amount: null,
           renewalFrequency: null,
           usageMeterId: null,
+          catalogId,
         }
       } else {
         throw new Error(

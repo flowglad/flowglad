@@ -1562,6 +1562,13 @@
       "when": 1749672192999,
       "tag": "0223_shiny_terror",
       "breakpoints": true
+    },
+    {
+      "idx": 224,
+      "version": "7",
+      "when": 1749753144064,
+      "tag": "0224_clever_microchip",
+      "breakpoints": true
     }
   ]
 }

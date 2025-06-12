@@ -725,6 +725,7 @@ describe('grantEntitlementUsageCredits', () => {
       amount: amountForNewSif, // Default amount for this feature
       renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
       livemode: true,
+      catalogId: catalog.id,
     })
 
     // 3. Create a product feature for feature2

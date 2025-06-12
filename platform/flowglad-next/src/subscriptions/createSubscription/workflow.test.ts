@@ -1349,6 +1349,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
       renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
       amount: grantAmount,
       livemode: true,
+      catalogId: catalog.id,
     })
     await setupProductFeature({
       organizationId: organization.id,

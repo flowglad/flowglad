@@ -157,6 +157,7 @@ export const nulledPriceColumns = {
   intervalUnit: null,
   intervalCount: null,
 }
+
 const intervalZodSchema = core.createSafeZodEnum(IntervalUnit)
 
 const basePriceColumns = {

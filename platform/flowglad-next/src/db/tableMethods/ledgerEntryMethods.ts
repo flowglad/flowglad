@@ -35,6 +35,14 @@ import { LedgerTransaction } from '../schema/ledgerTransactions'
 import { selectUsageCredits } from './usageCreditMethods'
 import { selectUsageEvents } from './usageEventMethods'
 import { BillingRun } from '../schema/billingRuns'
+import core from '@/utils/core'
+import {
+  UsageMeter,
+  UsageMeterBalance,
+  usageMeters,
+  usageMetersClientSelectSchema,
+  usageMetersSelectSchema,
+} from '../schema/usageMeters'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -146,6 +154,82 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
   return balanceFromEntries(
     result.map((item) => ledgerEntriesSelectSchema.parse(item))
   )
+}
+
+/**
+ * Note: the return is unique by subscriptionId x usageMeter
+ * A customer may very well have multiple subscriptions, each with their own accounts tracking the same usage meter
+ * @param scopedWhere
+ * @param transaction
+ * @param calculationDate
+ * @returns
+ */
+export const selectUsageMeterBalancesForSubscriptions = async (
+  scopedWhere: Pick<
+    LedgerEntry.Where,
+    'subscriptionId' | 'ledgerAccountId'
+  >,
+  transaction: DbTransaction,
+  calculationDate: Date = new Date()
+): Promise<
+  { usageMeterBalance: UsageMeterBalance; subscriptionId: string }[]
+> => {
+  // First, fetch all ledger entries that match the scopedWhere criteria (e.g., ledgerAccountId)
+  // and are relevant for an "available" balance calculation (posted, or pending debits, and not discarded).
+  const result = await transaction
+    .select({
+      ledgerEntry: ledgerEntries,
+      usageMeter: usageMeters,
+    })
+    .from(ledgerEntries)
+    .innerJoin(
+      usageMeters,
+      eq(ledgerEntries.usageMeterId, usageMeters.id)
+    )
+    .where(
+      and(
+        whereClauseFromObject(ledgerEntries, scopedWhere),
+        balanceTypeWhereStatement('available'),
+        discardedAtFilterOutStatement(calculationDate)
+      )
+    )
+  const resultsByLedgerAccountId: Record<
+    string,
+    {
+      usageMeter: UsageMeter.Record
+      ledgerEntry: LedgerEntry.Record
+    }[]
+  > = core.groupBy(
+    (item) => item.ledgerEntry.ledgerAccountId,
+    result.map((item) => ({
+      usageMeter: usageMetersSelectSchema.parse(item.usageMeter),
+      ledgerEntry: ledgerEntriesSelectSchema.parse(item.ledgerEntry),
+    }))
+  )
+
+  const usageMeterBalanceAndSubscriptionIds = Object.values(
+    resultsByLedgerAccountId
+  ).map((items) => {
+    const balance = balanceFromEntries(
+      items.map((item) =>
+        ledgerEntriesSelectSchema.parse(item.ledgerEntry)
+      )
+    )
+    const usageMeterBalance: UsageMeterBalance = {
+      ...usageMetersClientSelectSchema.parse(items[0].usageMeter),
+      subscriptionId: items[0].ledgerEntry.subscriptionId!,
+      availableBalance: balance,
+    }
+    const normalizedObject: {
+      usageMeterBalance: UsageMeterBalance
+      subscriptionId: string
+    } = {
+      usageMeterBalance,
+      subscriptionId: items[0].ledgerEntry.subscriptionId!,
+    }
+    return normalizedObject
+  })
+  return usageMeterBalanceAndSubscriptionIds
 }
 
 export const aggregateAvailableBalanceForUsageCredit = async (

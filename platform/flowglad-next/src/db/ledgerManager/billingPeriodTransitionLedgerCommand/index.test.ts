@@ -143,6 +143,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       amount: 1000,
       renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
       livemode: true,
+      catalogId: catalog.id,
     })
 
     productFeature = await setupProductFeature({

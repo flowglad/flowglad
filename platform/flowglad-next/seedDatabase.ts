@@ -121,6 +121,7 @@ import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { Subscription } from '@/db/schema/subscriptions'
+import { snakeCase } from 'change-case'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -1238,11 +1239,13 @@ export const setupUsageMeter = async ({
   name,
   livemode = true,
   catalogId,
+  slug,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
   catalogId?: string
+  slug?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let catalogToUseId: string | null = null
@@ -1266,7 +1269,13 @@ export const setupUsageMeter = async ({
       throw new Error('setupUsageMeter: Catalog not found')
     }
     return insertUsageMeter(
-      { organizationId, name, livemode, catalogId: catalogToUseId },
+      {
+        organizationId,
+        name,
+        livemode,
+        catalogId: catalogToUseId,
+        slug: slug ?? snakeCase(name),
+      },
       transaction
     )
   })
@@ -1406,6 +1415,8 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           usageMeterId:
             usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
+          catalogId: product.catalogId,
+          active: true,
         }
       } else if (spec.type === FeatureType.Toggle) {
         featureInsertData = {
@@ -1414,6 +1425,8 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
           amount: null,
           renewalFrequency: null,
           usageMeterId: null,
+          catalogId: product.catalogId,
+          active: true,
         }
       } else {
         throw new Error(
@@ -2038,6 +2051,17 @@ export const setupToggleFeature = async (
   }
 ) => {
   return adminTransaction(async ({ transaction }) => {
+    const catalogId =
+      params.catalogId ??
+      (
+        await selectDefaultCatalog(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
     const insert: Feature.ToggleInsert = {
       type: FeatureType.Toggle,
       description: params.description ?? '',
@@ -2045,6 +2069,7 @@ export const setupToggleFeature = async (
       amount: null,
       usageMeterId: null,
       renewalFrequency: null,
+      catalogId: catalogId ?? '',
       ...params,
     }
     return insertFeature(insert, transaction)
@@ -2061,11 +2086,23 @@ export const setupUsageCreditGrantFeature = async (
   }
 ): Promise<Feature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
+    const catalogId =
+      params.catalogId ??
+      (
+        await selectDefaultCatalog(
+          {
+            organizationId: params.organizationId,
+            livemode: params.livemode,
+          },
+          transaction
+        )
+      )?.id
     const insert: Feature.UsageCreditGrantInsert = {
       type: FeatureType.UsageCreditGrant,
       description: params.description ?? '',
       slug: params.slug ?? `test-feature-${core.nanoid()}`,
       amount: params.amount ?? 1,
+      catalogId: catalogId ?? '',
       ...params,
     }
     return insertFeature(

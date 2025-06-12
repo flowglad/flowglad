@@ -9,6 +9,8 @@ import {
   updateFeature,
   insertFeature,
   selectFeaturesPaginated,
+  selectFeaturesTableRowData,
+  featuresTableRowOutputSchema,
 } from '@/db/tableMethods/featureMethods'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { protectedProcedure } from '@/server/trpc'
@@ -20,6 +22,8 @@ import {
   idInputSchema,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
+  createPaginatedTableRowOutputSchema,
+  createPaginatedTableRowInputSchema,
 } from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
@@ -113,9 +117,25 @@ export const getFeature = protectedProcedure
     )
   )
 
+export const getTableRows = protectedProcedure
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        catalogId: z.string().optional(),
+      })
+    )
+  )
+  .output(
+    createPaginatedTableRowOutputSchema(featuresTableRowOutputSchema)
+  )
+  .query(
+    authenticatedProcedureTransaction(selectFeaturesTableRowData)
+  )
+
 export const featuresRouter = router({
   get: getFeature,
   create: createFeature,
   update: editFeature,
   list: listFeaturesProcedure,
+  getTableRows,
 })

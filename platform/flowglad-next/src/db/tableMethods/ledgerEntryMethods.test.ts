@@ -111,7 +111,7 @@ describe('ledgerEntryMethods', () => {
       })
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
-        name: 'Test Usage Meter',
+        name: 'Test Usage Meter 2',
         catalogId: catalog.id,
         livemode: true,
       })

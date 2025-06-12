@@ -248,6 +248,7 @@ export const customersPaginatedTableRowInputSchema =
     z.object({
       archived: z.boolean().optional(),
       organizationId: z.string().optional(),
+      catalogId: z.string().optional(),
     })
   )
 

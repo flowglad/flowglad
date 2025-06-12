@@ -259,6 +259,7 @@ export const getCustomerBilling = protectedProcedure
       purchases,
       subscriptions,
       catalog,
+      experimental: {},
     }
   })
 

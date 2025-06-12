@@ -9,6 +9,7 @@ import {
   cloneCatalogInputSchema,
 } from '@/db/schema/catalogs'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -19,6 +20,7 @@ import {
   makeCatalogDefault,
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectCatalogsTableRows,
+  safelyUpdateCatalog,
 } from '@/db/tableMethods/catalogMethods'
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
@@ -124,29 +126,20 @@ const editCatalogProcedure = protectedProcedure
       catalog: catalogsClientSelectSchema,
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    const catalog = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const catalog = await updateCatalog(
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, transaction }) => {
+        const catalog = await safelyUpdateCatalog(
           {
             ...input.catalog,
             id: input.id,
           },
           transaction
         )
-        if (catalog.isDefault) {
-          return makeCatalogDefault(catalog, transaction)
-        }
-        return catalog
-      },
-      {
-        apiKey: ctx.apiKey,
+        return { result: { catalog } }
       }
     )
-    return {
-      catalog,
-    }
-  })
+  )
 
 const getDefaultCatalogProcedure = protectedProcedure
   .meta({
