@@ -17,6 +17,7 @@ import {
   SubscriptionCancellationArrangement,
 } from '@/types'
 import { z } from 'zod'
+import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 
 export const adjustSubscriptionImmediatelySchema = z.object({
   timing: z.literal(SubscriptionAdjustmentTiming.Immediately),
@@ -64,15 +65,22 @@ export const richSubscriptionItemClientSelectSchema =
     }),
   ])
 
+const richSubscriptionExperimentalSchema = z.object({
+  featureItems: subscriptionItemFeaturesClientSelectSchema.array(),
+})
+
 const richCreditTrialSubscriptionClientSelectSchema =
   creditTrialSubscriptionClientSelectSchema.extend({
     subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
     current: z.boolean(),
+    experimental: richSubscriptionExperimentalSchema,
   })
 
 const richStandardSubscriptionClientSelectSchema =
   standardSubscriptionClientSelectSchema.extend({
     subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
+    current: z.boolean(),
+    experimental: richSubscriptionExperimentalSchema,
   })
 
 export const richSubscriptionClientSelectSchema =
