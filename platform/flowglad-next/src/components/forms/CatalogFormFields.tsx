@@ -1,9 +1,9 @@
 'use client'
 
-import { useFormContext } from 'react-hook-form'
+import { useFormContext, Controller } from 'react-hook-form'
 import { CreateCatalogInput } from '@/db/schema/catalogs'
 import Input from '@/components/ion/Input'
-import Label from '@/components/ion/Label'
+import Switch from '@/components/ion/Switch'
 
 export default function CatalogFormFields() {
   const form = useFormContext<CreateCatalogInput>()
@@ -17,6 +17,18 @@ export default function CatalogFormFields() {
           label="Name"
         />
       </div>
+      <Controller
+        name="catalog.isDefault"
+        control={form.control}
+        render={({ field }) => (
+          <Switch
+            checked={field.value}
+            onCheckedChange={field.onChange}
+            label="Default catalog"
+            description="This become the catalog that automatically attaches to new customers."
+          />
+        )}
+      />
     </div>
   )
 }

@@ -14,6 +14,7 @@ import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import UsageMetersSelect from './UsageMetersSelect'
 import Textarea from '@/components/ion/Textarea'
 import { titleCase } from '@/utils/core'
+import Switch from '@/components/ion/Switch'
 
 const FeatureFormFields = () => {
   const {
@@ -133,6 +134,17 @@ const FeatureFormFields = () => {
           />
         </>
       )}
+      <Controller
+        control={control}
+        name="feature.active"
+        render={({ field }) => (
+          <Switch
+            label="Active"
+            checked={field.value}
+            onCheckedChange={field.onChange}
+          />
+        )}
+      />
     </div>
   )
 }

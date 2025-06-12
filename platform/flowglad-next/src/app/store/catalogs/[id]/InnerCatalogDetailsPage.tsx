@@ -2,64 +2,112 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import Button from '@/components/ion/Button'
-import { PageHeader } from '@/components/ion/PageHeader'
-import { Clipboard, Eye } from 'lucide-react'
 import { ProductsTable } from '@/app/store/products/ProductsTable'
-import { ProductWithPrices } from '@/db/schema/prices'
 import { Catalog } from '@/db/schema/catalogs'
+import { useState } from 'react'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
+import PageTitle from '@/components/ion/PageTitle'
+import { Ellipsis, Pencil } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ion/Popover'
+import PopoverMenu, {
+  PopoverMenuItem,
+} from '@/components/PopoverMenu'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import core from '@/utils/core'
+import EditCatalogModal from '@/components/forms/EditCatalogModal'
+import CustomersTable from '@/app/customers/CustomersTable'
+import TableTitle from '@/components/ion/TableTitle'
 
 export type InnerCatalogDetailsPageProps = {
-  products: ProductWithPrices[]
   catalog: Catalog.ClientRecord
 }
 
 function InnerCatalogDetailsPage({
-  products,
   catalog,
 }: InnerCatalogDetailsPageProps) {
+  const [isEditOpen, setIsEditOpen] = useState(false)
+
+  const catalogURL =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/catalog/${catalog.id}`
+      : ''
+  const copyLinkHandler = useCopyTextHandler({
+    text: catalogURL,
+  })
+  const previewHandler = () => {
+    // TODO: Implement preview functionality
+    core.noOp()
+  }
+
+  const moreMenuItems: PopoverMenuItem[] = [
+    {
+      label: 'Copy Link',
+      handler: copyLinkHandler,
+    },
+    {
+      label: 'Preview',
+      handler: previewHandler,
+    },
+  ]
   return (
-    <div className="bg-container h-full flex justify-between items-center">
-      <div className="bg-internal flex-1 h-full w-full flex gap-6 p-6">
-        <div className="flex-1 h-full w-full flex flex-col">
-          <div className="w-full relative flex flex-col justify-center gap-8">
-            <PageHeader
-              hideTabs
-              title={catalog.name}
-              primaryButton={
-                <div className="flex flex-row gap-2">
+    <InternalPageContainer>
+      <div className="w-full flex flex-col gap-6">
+        <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
+          <Breadcrumb />
+          <div className="flex flex-row items-center justify-between">
+            <div className="min-w-0 overflow-hidden mr-4">
+              <PageTitle className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                {catalog.name}
+              </PageTitle>
+            </div>
+            <div className="flex flex-row gap-4 justify-end flex-shrink-0">
+              <Button
+                iconLeading={<Pencil size={16} />}
+                onClick={() => setIsEditOpen(true)}
+              >
+                Edit
+              </Button>
+              <Popover>
+                <PopoverTrigger className="flex">
                   <Button
-                    iconLeading={<Clipboard size={16} />}
-                    onClick={core.noOp}
+                    className="flex justify-center items-center border-primary"
+                    variant="outline"
                   >
-                    Copy Link
+                    <Ellipsis className="rotate-90 w-4 h-6" />
                   </Button>
-                  <Button
-                    iconLeading={<Eye size={16} />}
-                    onClick={core.noOp}
-                  >
-                    Preview
-                  </Button>
-                </div>
-              }
-              tabs={[
-                {
-                  label: 'Products',
-                  subPath: 'products',
-                  Component: () => (
-                    <ProductsTable
-                      filters={{
-                        catalogId: catalog.id,
-                      }}
-                    />
-                  ),
-                },
-              ]}
-            />
+                </PopoverTrigger>
+                <PopoverContent className="w-fit" align="end">
+                  <PopoverMenu items={moreMenuItems} />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
+
+        <div className="flex flex-col gap-5">
+          <TableTitle title="Products" noButtons />
+          <ProductsTable filters={{ catalogId: catalog.id }} />
+        </div>
+        <div className="flex flex-col gap-5">
+          <TableTitle title="Customers" noButtons />
+          <CustomersTable filters={{ catalogId: catalog.id }} />
+        </div>
+        <div className="flex flex-col gap-5">
+          <TableTitle title="Features" noButtons />
+          <div>Features Table</div>
+        </div>
       </div>
-    </div>
+      <EditCatalogModal
+        isOpen={isEditOpen}
+        setIsOpen={setIsEditOpen}
+        catalog={catalog}
+      />
+    </InternalPageContainer>
   )
 }
 

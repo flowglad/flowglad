@@ -500,7 +500,7 @@ const PaymentForm = () => {
               {buttonLabel}
             </Button>
             {errorMessage && <ErrorLabel error={errorMessage} />}
-            {!product?.livemode && (
+            {!checkoutSession.livemode && (
               <div className="p-2 bg-orange-600 justify-center items-center text-center w-full flex mt-4 rounded-md">
                 <div className="text-white text-sm">
                   <p>This is a test mode checkout.</p>

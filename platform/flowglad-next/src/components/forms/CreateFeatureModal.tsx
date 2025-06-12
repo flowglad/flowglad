@@ -35,6 +35,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           amount: null,
           usageMeterId: null,
           renewalFrequency: null,
+          active: true,
         },
       }}
       onSubmit={async (data) => {
