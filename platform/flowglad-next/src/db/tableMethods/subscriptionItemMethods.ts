@@ -33,6 +33,8 @@ import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionItemType, SubscriptionStatus } from '@/types'
 import { expireSubscriptionItemFeaturesForSubscriptionItem } from './subscriptionItemFeatureMethods'
+import { aggregateBalancesForSubscriptions } from './ledgerEntryMethods'
+import core from '@/utils/core'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItems,
@@ -225,11 +227,27 @@ export const selectRichSubscriptionsAndActiveItems = async (
     },
     new Map()
   )
+  const subscriptionIds = Array.from(
+    subscriptionItemsBySubscriptionId.keys()
+  )
+  const balances = await aggregateBalancesForSubscriptions(
+    { subscriptionId: subscriptionIds },
+    transaction
+  )
+  const balancesBySubscriptionId = core.groupBy(
+    (item) => item.subscriptionId,
+    balances
+  )
   /**
    * Typecheck before parsing so we can catch type errors before runtime ones
    */
   const richSubscriptions: RichSubscription[] = Array.from(
-    subscriptionItemsBySubscriptionId.values()
+    subscriptionItemsBySubscriptionId.values().map((item) => {
+      return {
+        ...item,
+        meterBalances: balancesBySubscriptionId[item.id] ?? [],
+      }
+    })
   )
 
   return richSubscriptions.map((item) =>

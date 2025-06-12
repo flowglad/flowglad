@@ -35,6 +35,7 @@ import { LedgerTransaction } from '../schema/ledgerTransactions'
 import { selectUsageCredits } from './usageCreditMethods'
 import { selectUsageEvents } from './usageEventMethods'
 import { BillingRun } from '../schema/billingRuns'
+import core from '@/utils/core'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -145,6 +146,60 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
     .orderBy(asc(ledgerEntries.position))
   return balanceFromEntries(
     result.map((item) => ledgerEntriesSelectSchema.parse(item))
+  )
+}
+
+/**
+ * Note: the return is unique by subscriptionId x usageMeter
+ * A customer may very well have multiple subscriptions, each with their own accounts tracking the same usage meter
+ * @param scopedWhere
+ * @param transaction
+ * @param calculationDate
+ * @returns
+ */
+export const aggregateBalancesForSubscriptions = async (
+  scopedWhere: Pick<
+    LedgerEntry.Where,
+    'subscriptionId' | 'ledgerAccountId'
+  >,
+  transaction: DbTransaction,
+  calculationDate: Date = new Date()
+): Promise<
+  {
+    subscriptionId: string
+    ledgerAccountId: string
+    usageMeterId: string
+    balance: number
+  }[]
+> => {
+  // First, fetch all ledger entries that match the scopedWhere criteria (e.g., ledgerAccountId)
+  // and are relevant for an "available" balance calculation (posted, or pending debits, and not discarded).
+  const result = await transaction
+    .select()
+    .from(ledgerEntries)
+    .where(
+      and(
+        whereClauseFromObject(ledgerEntries, scopedWhere),
+        balanceTypeWhereStatement('available'),
+        discardedAtFilterOutStatement(calculationDate)
+      )
+    )
+  const resultsByLedgerAccountId: Record<
+    string,
+    LedgerEntry.Record[]
+  > = core.groupBy(
+    (item) => item.usageMeterId!,
+    result.map((item) => ledgerEntriesSelectSchema.parse(item))
+  )
+  return Object.entries(resultsByLedgerAccountId).map(
+    ([usageMeterId, entries]) => {
+      return {
+        subscriptionId: entries[0].subscriptionId!,
+        ledgerAccountId: entries[0].ledgerAccountId,
+        usageMeterId,
+        balance: balanceFromEntries(entries),
+      }
+    }
   )
 }
 

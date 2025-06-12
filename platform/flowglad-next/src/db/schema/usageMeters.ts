@@ -155,3 +155,8 @@ export const editUsageMeterSchema = z.object({
 })
 
 export type EditUsageMeterInput = z.infer<typeof editUsageMeterSchema>
+
+export const usageMeterBalanceClientSelectSchema =
+  usageMetersClientSelectSchema.extend({
+    availableBalance: z.number(),
+  })
