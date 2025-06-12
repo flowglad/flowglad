@@ -8,7 +8,7 @@ import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import { Ellipsis, Pencil } from 'lucide-react'
+import { Ellipsis, Pencil, Plus } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -33,28 +33,6 @@ function InnerCatalogDetailsPage({
 }: InnerCatalogDetailsPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
 
-  const catalogURL =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/catalog/${catalog.id}`
-      : ''
-  const copyLinkHandler = useCopyTextHandler({
-    text: catalogURL,
-  })
-  const previewHandler = () => {
-    // TODO: Implement preview functionality
-    core.noOp()
-  }
-
-  const moreMenuItems: PopoverMenuItem[] = [
-    {
-      label: 'Copy Link',
-      handler: copyLinkHandler,
-    },
-    {
-      label: 'Preview',
-      handler: previewHandler,
-    },
-  ]
   return (
     <InternalPageContainer>
       <div className="w-full flex flex-col gap-6">
@@ -73,25 +51,19 @@ function InnerCatalogDetailsPage({
               >
                 Edit
               </Button>
-              <Popover>
-                <PopoverTrigger className="flex">
-                  <Button
-                    className="flex justify-center items-center border-primary"
-                    variant="outline"
-                  >
-                    <Ellipsis className="rotate-90 w-4 h-6" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-fit" align="end">
-                  <PopoverMenu items={moreMenuItems} />
-                </PopoverContent>
-              </Popover>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-5">
-          <TableTitle title="Products" noButtons />
+          <TableTitle
+            title="Products"
+            buttonLabel="Create Product"
+            buttonIcon={<Plus size={16} />}
+            buttonOnClick={() => {
+              // TODO: Implement create product functionality
+            }}
+          />
           <ProductsTable filters={{ catalogId: catalog.id }} />
         </div>
         <div className="flex flex-col gap-5">
@@ -99,7 +71,14 @@ function InnerCatalogDetailsPage({
           <CustomersTable filters={{ catalogId: catalog.id }} />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle title="Features" noButtons />
+          <TableTitle
+            title="Features"
+            buttonLabel="Create Feature"
+            buttonIcon={<Plus size={16} />}
+            buttonOnClick={() => {
+              // TODO: Implement create feature functionality
+            }}
+          />
           <FeaturesTable filters={{ catalogId: catalog.id }} />
         </div>
       </div>
