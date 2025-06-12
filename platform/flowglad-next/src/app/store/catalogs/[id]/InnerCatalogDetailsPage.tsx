@@ -8,21 +8,14 @@ import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import { Ellipsis, Pencil, Plus } from 'lucide-react'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ion/Popover'
-import PopoverMenu, {
-  PopoverMenuItem,
-} from '@/components/PopoverMenu'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import core from '@/utils/core'
+import { Pencil, Plus } from 'lucide-react'
 import EditCatalogModal from '@/components/forms/EditCatalogModal'
 import CustomersTable from '@/app/customers/CustomersTable'
 import TableTitle from '@/components/ion/TableTitle'
 import FeaturesTable from '@/app/features/FeaturesTable'
+import CreateProductModal from '@/components/forms/CreateProductModal'
+import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
+import DefaultBadge from '@/components/DefaultBadge'
 
 export type InnerCatalogDetailsPageProps = {
   catalog: Catalog.ClientRecord
@@ -32,6 +25,10 @@ function InnerCatalogDetailsPage({
   catalog,
 }: InnerCatalogDetailsPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
+    useState(false)
+  const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
+    useState(false)
 
   return (
     <InternalPageContainer>
@@ -39,10 +36,11 @@ function InnerCatalogDetailsPage({
         <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
           <Breadcrumb />
           <div className="flex flex-row items-center justify-between">
-            <div className="min-w-0 overflow-hidden mr-4">
+            <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden mr-4">
               <PageTitle className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
                 {catalog.name}
               </PageTitle>
+              {catalog.isDefault && <DefaultBadge />}
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
               <Button
@@ -61,7 +59,7 @@ function InnerCatalogDetailsPage({
             buttonLabel="Create Product"
             buttonIcon={<Plus size={16} />}
             buttonOnClick={() => {
-              // TODO: Implement create product functionality
+              setIsCreateProductModalOpen(true)
             }}
           />
           <ProductsTable filters={{ catalogId: catalog.id }} />
@@ -76,7 +74,7 @@ function InnerCatalogDetailsPage({
             buttonLabel="Create Feature"
             buttonIcon={<Plus size={16} />}
             buttonOnClick={() => {
-              // TODO: Implement create feature functionality
+              setIsCreateFeatureModalOpen(true)
             }}
           />
           <FeaturesTable filters={{ catalogId: catalog.id }} />
@@ -86,6 +84,16 @@ function InnerCatalogDetailsPage({
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
         catalog={catalog}
+      />
+      <CreateProductModal
+        isOpen={isCreateProductModalOpen}
+        setIsOpen={setIsCreateProductModalOpen}
+        defaultCatalogId={catalog.id}
+      />
+      <CreateFeatureModal
+        isOpen={isCreateFeatureModalOpen}
+        setIsOpen={setIsCreateFeatureModalOpen}
+        defaultCatalogId={catalog.id}
       />
     </InternalPageContainer>
   )

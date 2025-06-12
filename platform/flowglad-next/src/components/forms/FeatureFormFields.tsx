@@ -1,12 +1,11 @@
 'use client'
 
+import { useFormContext, Controller } from 'react-hook-form'
 import {
-  useFormContext,
-  Controller,
-  FieldError,
-} from 'react-hook-form'
-import { CreateFeatureInput } from '@/db/schema/features'
-import { RadioGroup, RadioGroupItem } from '@/components/ion/Radio'
+  CreateFeatureInput,
+  toggleFeatureDefaultColumns,
+  usageCreditGrantFeatureDefaultColumns,
+} from '@/db/schema/features'
 import Input from '@/components/ion/Input'
 import NumberInput from '@/components/ion/NumberInput'
 import Select from '@/components/ion/Select'
@@ -27,6 +26,12 @@ const FeatureFormFields = () => {
 
   const featureType = watch('feature.type')
 
+  const assignFeatureValueFromTuple = (tuple: [string, any]) => {
+    const [key, value] = tuple
+    // @ts-expect-error - key is a valid key of usagePriceDefaultColumns
+    setValue(`feature.${key}`, value)
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Input
@@ -39,55 +44,58 @@ const FeatureFormFields = () => {
         {...register('feature.slug')}
         label="Slug"
         placeholder="e.g. my-awesome-feature"
+        hint="Used to check access on the SDK. Must be unique within each catalog."
         error={errors.feature?.slug?.message}
       />
-      <Controller
-        control={control}
-        name="feature.description"
-        render={({ field }) => (
-          <Textarea
-            {...field}
-            label="Description"
-            placeholder="Describe the feature"
-            error={errors.feature?.description?.message}
-          />
-        )}
+      <Input
+        {...register('feature.description')}
+        label="Description"
+        placeholder="Describe the feature"
+        error={errors.feature?.description?.message}
       />
       <Controller
         control={control}
         name="feature.type"
         render={({ field }) => (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-foreground">Type</p>
-            <RadioGroup
-              value={field.value}
-              onValueChange={(value) => {
-                field.onChange(value)
-                // Reset fields when type changes
-                if (value === FeatureType.Toggle) {
-                  setValue('feature.amount', null)
-                  setValue('feature.usageMeterId', null)
-                  setValue('feature.renewalFrequency', null)
-                }
-              }}
-              className="flex flex-col gap-2"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem
-                  value={FeatureType.Toggle}
-                  label="Toggle"
-                  id={FeatureType.Toggle}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem
-                  value={FeatureType.UsageCreditGrant}
-                  label="Usage Credit Grant"
-                  id={FeatureType.UsageCreditGrant}
-                />
-              </div>
-            </RadioGroup>
-          </div>
+          <Select
+            label="Type"
+            value={field.value}
+            onValueChange={(value) => {
+              field.onChange(value)
+              // Reset fields when type changes
+              if (value === FeatureType.Toggle) {
+                Object.entries(toggleFeatureDefaultColumns).forEach(
+                  (tuple) => {
+                    const [key] = tuple
+                    // @ts-expect-error - key is a valid key of usagePriceDefaultColumns
+                    setValue(`feature.${key}`, null)
+                  }
+                )
+              }
+              if (value === FeatureType.UsageCreditGrant) {
+                Object.entries(
+                  usageCreditGrantFeatureDefaultColumns
+                ).forEach((tuple) => {
+                  const [key] = tuple
+                  // @ts-expect-error - key is a valid key of usagePriceDefaultColumns
+                  setValue(`feature.${key}`, null)
+                })
+              }
+            }}
+            options={[
+              {
+                label: 'Toggle',
+                value: FeatureType.Toggle,
+                description: 'Boolean access to a feature.',
+              },
+              {
+                label: 'Usage Credit Grant',
+                value: FeatureType.UsageCreditGrant,
+                description:
+                  'Credits towards a specific usage meter.',
+              },
+            ]}
+          />
         )}
       />
 

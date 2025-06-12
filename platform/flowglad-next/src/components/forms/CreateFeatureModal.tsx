@@ -12,11 +12,13 @@ import { FeatureType } from '@/types'
 interface CreateFeatureModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
+  defaultCatalogId: string
 }
 
 const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
   isOpen,
   setIsOpen,
+  defaultCatalogId,
 }) => {
   const createFeatureMutation = trpc.features.create.useMutation() // Adjusted endpoint
 
@@ -32,6 +34,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           name: '',
           slug: '',
           description: '',
+          catalogId: defaultCatalogId,
           amount: null,
           usageMeterId: null,
           renewalFrequency: null,

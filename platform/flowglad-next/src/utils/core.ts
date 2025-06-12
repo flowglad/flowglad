@@ -12,7 +12,7 @@ import {
 } from 'date-fns'
 import { customAlphabet } from 'nanoid'
 import * as Sentry from '@sentry/nextjs'
-import { camelCase } from 'change-case'
+import { camelCase, sentenceCase } from 'change-case'
 import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
@@ -478,7 +478,7 @@ export const titleCase = (str: string) => {
   if (!str) {
     return str
   }
-  return str
+  return sentenceCase(str)
     .split(' ')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')

@@ -293,3 +293,23 @@ export const editFeatureSchema = z.object({
 })
 
 export type EditFeatureInput = z.infer<typeof editFeatureSchema>
+
+export const toggleFeatureDefaultColumns: Pick<
+  Feature.ToggleInsert,
+  keyof typeof toggleFeatureSharedColumns
+> = {
+  type: FeatureType.Toggle,
+  amount: null,
+  usageMeterId: null,
+  renewalFrequency: null,
+}
+
+export const usageCreditGrantFeatureDefaultColumns: Pick<
+  Feature.UsageCreditGrantInsert,
+  keyof typeof usageCreditGrantFeatureSharedColumns
+> = {
+  type: FeatureType.UsageCreditGrant,
+  amount: 0,
+  usageMeterId: '',
+  renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
+}
