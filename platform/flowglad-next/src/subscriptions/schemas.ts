@@ -72,6 +72,7 @@ const richSubscriptionExperimentalSchema = z
     usageMeterBalances: z.array(usageMeterBalanceClientSelectSchema),
   })
   .optional()
+  .describe('Experimental fields. May change without notice.')
 
 const richCreditTrialSubscriptionClientSelectSchema =
   creditTrialSubscriptionClientSelectSchema.extend({

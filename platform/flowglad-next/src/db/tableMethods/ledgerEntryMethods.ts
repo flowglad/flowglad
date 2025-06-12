@@ -39,8 +39,8 @@ import core from '@/utils/core'
 import {
   UsageMeter,
   UsageMeterBalance,
-  usageMeterBalanceClientSelectSchema,
   usageMeters,
+  usageMetersClientSelectSchema,
   usageMetersSelectSchema,
 } from '../schema/usageMeters'
 
@@ -216,9 +216,8 @@ export const selectUsageMeterBalancesForSubscriptions = async (
       )
     )
     const usageMeterBalance: UsageMeterBalance = {
-      ...usageMeterBalanceClientSelectSchema.parse(
-        items[0].usageMeter
-      ),
+      ...usageMetersClientSelectSchema.parse(items[0].usageMeter),
+      subscriptionId: items[0].ledgerEntry.subscriptionId!,
       availableBalance: balance,
     }
     const normalizedObject: {

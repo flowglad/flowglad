@@ -164,9 +164,14 @@ export const editUsageMeterSchema = z.object({
 export type EditUsageMeterInput = z.infer<typeof editUsageMeterSchema>
 
 export const usageMeterBalanceClientSelectSchema =
-  usageMetersClientSelectSchema.extend({
-    availableBalance: z.number(),
-  })
+  usageMetersClientSelectSchema
+    .extend({
+      availableBalance: z.number(),
+      subscriptionId: z.string(),
+    })
+    .describe(
+      'A usage meter and the available balance for that meter, scoped to a given subscription.'
+    )
 
 export type UsageMeterBalance = z.infer<
   typeof usageMeterBalanceClientSelectSchema
