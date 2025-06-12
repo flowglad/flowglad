@@ -22,6 +22,7 @@ import core from '@/utils/core'
 import EditCatalogModal from '@/components/forms/EditCatalogModal'
 import CustomersTable from '@/app/customers/CustomersTable'
 import TableTitle from '@/components/ion/TableTitle'
+import FeaturesTable from '@/app/features/FeaturesTable'
 
 export type InnerCatalogDetailsPageProps = {
   catalog: Catalog.ClientRecord
@@ -99,7 +100,7 @@ function InnerCatalogDetailsPage({
         </div>
         <div className="flex flex-col gap-5">
           <TableTitle title="Features" noButtons />
-          <div>Features Table</div>
+          <FeaturesTable filters={{ catalogId: catalog.id }} />
         </div>
       </div>
       <EditCatalogModal
