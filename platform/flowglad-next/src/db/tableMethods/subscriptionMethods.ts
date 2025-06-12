@@ -37,6 +37,7 @@ import { customers, customersSelectSchema } from '../schema/customers'
 import { prices, pricesSelectSchema } from '../schema/prices'
 import { products, productsSelectSchema } from '../schema/products'
 import { z } from 'zod'
+import { PaymentMethod } from '../schema/paymentMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptions,
@@ -228,6 +229,7 @@ export const currentSubscriptionStatuses = [
   SubscriptionStatus.Trialing,
   SubscriptionStatus.CancellationScheduled,
   SubscriptionStatus.Unpaid,
+  SubscriptionStatus.CreditTrial,
 ]
 
 export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
@@ -309,3 +311,31 @@ export const selectSubscriptionCountsByStatus = async (
     count: item.count,
   }))
 }
+
+export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =
+  async (
+    paymentMethod: PaymentMethod.Record,
+    transaction: DbTransaction
+  ) => {
+    const subscriptionRecords = await selectSubscriptions(
+      {
+        customerId: paymentMethod.customerId,
+        livemode: paymentMethod.livemode,
+        status: currentSubscriptionStatuses,
+      },
+      transaction
+    )
+    const updatedSubscriptions = await transaction
+      .update(subscriptions)
+      .set({
+        defaultPaymentMethodId: paymentMethod.id,
+      })
+      .where(
+        inArray(
+          subscriptions.id,
+          subscriptionRecords.map((subscription) => subscription.id)
+        )
+      )
+      .returning()
+    return updatedSubscriptions
+  }

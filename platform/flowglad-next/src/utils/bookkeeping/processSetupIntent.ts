@@ -32,6 +32,7 @@ import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
+  safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
   selectSubscriptionById,
   selectSubscriptions,
   updateSubscription,
@@ -317,6 +318,13 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
         defaultPaymentMethodId: paymentMethod.id,
         status: subscription.status,
       },
+      transaction
+    )
+  }
+
+  if (checkoutSession.automaticallyUpdateSubscriptions) {
+    await safelyUpdateSubscriptionsForCustomerToNewPaymentMethod(
+      paymentMethod,
       transaction
     )
   }

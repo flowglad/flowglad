@@ -264,6 +264,33 @@ Idempotency is critical. While the `settleInvoiceUsageCostsLedgerCommand` should
     *   The function must return a result where the `ledgerCommand` is `undefined`. (This confirms existing tests in the context of the new functionality).
 
 
+# Test Case Plan for `processSetupIntent.ts`
+
+This document outlines additional test cases for `processSetupIntent.ts`.
+
+## 1. `processAddPaymentMethodSetupIntentSucceeded`
+
+This function handles the bookkeeping for a successful `setupIntent` when the checkout session is for adding a new payment method.
+
+### Scenario: Automatically updating subscriptions
+*   **Setup:**
+    *   A `customer` with multiple `subscriptions`, each with an existing `paymentMethod`.
+    *   A `checkoutSession` of type `AddPaymentMethod` with `automaticallyUpdateSubscriptions: true`.
+    *   A successful `setupIntent` for this checkout session, containing a new Stripe payment method ID.
+*   **Expectations:**
+    *   `safelyUpdateSubscriptionsForCustomerToNewPaymentMethod` is called.
+    *   All of the customer's subscriptions are updated to use the new payment method created from the `setupIntent`.
+    *   The old payment method is no longer the default for any of the updated subscriptions.
+
+### Scenario: NOT automatically updating subscriptions
+*   **Setup:**
+    *   A `customer` with multiple `subscriptions`, each with an existing `paymentMethod`.
+    *   A `checkoutSession` of type `AddPaymentMethod` with `automaticallyUpdateSubscriptions: false` (or undefined).
+    *   A successful `setupIntent` for this checkout session.
+*   **Expectations:**
+    *   `safelyUpdateSubscriptionsForCustomerToNewPaymentMethod` is **not** called.
+    *   The customer's subscriptions retain their original payment methods.
+
 # Test Case Plan for `createSubscription.ts`
 
 This document outlines the test cases for functions within `createSubscription.ts`, primarily focusing on `insertSubscriptionAndItems` and its direct helper functions.

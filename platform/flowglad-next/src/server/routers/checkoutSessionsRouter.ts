@@ -11,6 +11,7 @@ import {
   selectCheckoutSessions,
   selectCheckoutSessionsPaginated,
   updateCheckoutSession,
+  updateCheckoutSessionAutomaticallyUpdateSubscriptions,
   updateCheckoutSessionBillingAddress,
   updateCheckoutSessionCustomerEmail,
   updateCheckoutSessionPaymentMethodType,
@@ -110,6 +111,12 @@ const addPaymentMethodCheckoutSessionSchema =
       .describe(
         'The id of the subscription that the payment method will be added to as the default payment method.'
       ),
+    automaticallyUpdateSubscriptions: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
+      ),
   })
 
 const createCheckoutSessionObject = z.discriminatedUnion('type', [
@@ -156,6 +163,7 @@ const checkoutSessionInsertFromInput = ({
     cancelUrl: checkoutSessionInput.cancelUrl,
     outputMetadata: checkoutSessionInput.outputMetadata,
     outputName: checkoutSessionInput.outputName,
+    automaticallyUpdateSubscriptions: null,
   }
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
     return {
@@ -170,6 +178,7 @@ const checkoutSessionInsertFromInput = ({
   ) {
     return {
       ...coreFields,
+      automaticallyUpdateSubscriptions: false,
       type: CheckoutSessionType.AddPaymentMethod,
       targetSubscriptionId:
         checkoutSessionInput.targetSubscriptionId ?? null,
@@ -446,6 +455,25 @@ export const setBillingAddressProcedure = publicProcedure
     })
   })
 
+export const setAutomaticallyUpdateSubscriptionsProcedure =
+  publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        automaticallyUpdateSubscriptions: z.boolean(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      return adminTransaction(async ({ transaction }) => {
+        const checkoutSession =
+          await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
+            input,
+            transaction
+          )
+        return { checkoutSession }
+      })
+    })
+
 export const checkoutSessionsRouter = router({
   create: createCheckoutSession,
   edit: editCheckoutSession,
@@ -455,4 +483,6 @@ export const checkoutSessionsRouter = router({
   setPaymentMethodType: setPaymentMethodTypeProcedure,
   setCustomerEmail: setCustomerEmailProcedure,
   setBillingAddress: setBillingAddressProcedure,
+  setAutomaticallyUpdateSubscriptions:
+    setAutomaticallyUpdateSubscriptionsProcedure,
 })
