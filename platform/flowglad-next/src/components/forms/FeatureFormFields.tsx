@@ -12,7 +12,7 @@ import Select from '@/components/ion/Select'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import UsageMetersSelect from './UsageMetersSelect'
 import Textarea from '@/components/ion/Textarea'
-import { titleCase } from '@/utils/core'
+import core, { titleCase } from '@/utils/core'
 import Switch from '@/components/ion/Switch'
 
 const FeatureFormFields = () => {
@@ -25,7 +25,9 @@ const FeatureFormFields = () => {
   } = useFormContext<CreateFeatureInput>()
 
   const featureType = watch('feature.type')
-
+  if (!core.IS_PROD) {
+    console.log('errors', errors)
+  }
   const assignFeatureValueFromTuple = (tuple: [string, any]) => {
     const [key, value] = tuple
     // @ts-expect-error - key is a valid key of usagePriceDefaultColumns

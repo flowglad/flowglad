@@ -8,6 +8,7 @@ import {
 import FeatureFormFields from './FeatureFormFields' // Adjusted import
 import { trpc } from '@/app/_trpc/client'
 import { FeatureType } from '@/types'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 interface CreateFeatureModalProps {
   isOpen: boolean
@@ -21,7 +22,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
   defaultCatalogId,
 }) => {
   const createFeatureMutation = trpc.features.create.useMutation() // Adjusted endpoint
-
+  const { livemode } = useAuthenticatedContext()
   return (
     <FormModal<CreateFeatureInput>
       isOpen={isOpen}
@@ -39,6 +40,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           usageMeterId: null,
           renewalFrequency: null,
           active: true,
+          livemode,
         },
       }}
       onSubmit={async (data) => {
