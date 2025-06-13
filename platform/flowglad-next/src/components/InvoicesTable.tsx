@@ -127,9 +127,10 @@ const InvoicesTable = ({
   customer?: Customer.ClientRecord
 }) => {
   const {
-    pageIndex,
+    currentCursor,
+    navigationDirection,
     pageSize,
-    handlePaginationChange,
+    handleNavigation,
     data,
     isLoading,
     isFetching,
@@ -260,12 +261,15 @@ const InvoicesTable = ({
         className="w-full rounded-radius"
         bordered
         pagination={{
-          pageIndex,
           pageSize,
           total,
-          onPageChange: handlePaginationChange,
           isLoading,
           isFetching,
+          onNavigate: handleNavigation,
+          hasNextPage: data?.hasNextPage,
+          hasPreviousPage: data?.hasPreviousPage,
+          currentCursor,
+          navigationDirection,
         }}
       />
     </div>

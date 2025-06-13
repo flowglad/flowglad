@@ -245,7 +245,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
     ```
 
 Important note: if you have a jsonb column, you will need to apply .extend(columnRefinements) on the InsertSchema and SelectSchema to get the types for the column to flow through properly:
-```
+```ts
 const columnRefinements = {
   // Add any jsonb column refinements here, for example:
   someJsonbColumn: z.object({
@@ -472,7 +472,6 @@ We use "edit" instead of "update" to make it clear that this update may have sid
 ```tsx
 'use client'
 
-'use client'
 
 import { useFormContext, Controller } from 'react-hook-form'
 import { CreateUnicornRiderInput } from '@/db/schema/unicornRiders'

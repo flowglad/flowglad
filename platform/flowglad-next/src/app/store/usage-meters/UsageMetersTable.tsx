@@ -23,9 +23,10 @@ const UsageMetersTable = ({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   const {
-    pageIndex,
+    currentCursor,
+    navigationDirection,
     pageSize,
-    handlePaginationChange,
+    handleNavigation,
     data,
     isLoading,
     isFetching,
@@ -124,12 +125,15 @@ const UsageMetersTable = ({
               className="bg-nav"
               bordered
               pagination={{
-                pageIndex,
                 pageSize,
                 total,
-                onPageChange: handlePaginationChange,
                 isLoading,
                 isFetching,
+                onNavigate: handleNavigation,
+                hasNextPage: data?.hasNextPage,
+                hasPreviousPage: data?.hasPreviousPage,
+                currentCursor,
+                navigationDirection,
               }}
             />
           </div>

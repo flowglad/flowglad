@@ -183,15 +183,14 @@ interface PaginationRowProps {
 }
 
 const PaginationRow = ({
-  table,
   isLoading,
   isFetching,
   total,
   hasNextPage,
   hasPreviousPage,
   onNavigate,
-}: PaginationRowProps) => {
-  const safeTotal = total ?? table.getRowCount()
+}: Omit<PaginationRowProps, 'table'>) => {
+  const safeTotal = total ?? 0
 
   // Show skeleton when total isn't ready yet (initial load)
   if (isLoading && total === 0) {
@@ -273,12 +272,15 @@ export type ColumnDefWithWidth<TData, TValue> = ColumnDef<
 }
 
 export interface PaginationProps {
-  pageIndex: number
   pageSize: number
   total: number
-  onPageChange: (pageIndex: number) => void
   isLoading?: boolean
   isFetching?: boolean
+  onNavigate: (navigation: NavigationCommand) => void
+  hasNextPage?: boolean
+  hasPreviousPage?: boolean
+  currentCursor?: string
+  navigationDirection?: 'forward' | 'backward'
 }
 
 export interface TableProps<TData, TValue> {
@@ -347,32 +349,9 @@ function Table<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     state: {
       rowSelection,
-      ...(pagination
-        ? {
-            pagination: {
-              pageIndex: pagination.pageIndex,
-              pageSize: pagination.pageSize,
-            },
-          }
-        : {}),
     },
-    manualPagination: !!pagination,
-    pageCount: pagination
-      ? Math.ceil(pagination.total / pagination.pageSize)
-      : undefined,
-    onPaginationChange: pagination
-      ? (updater) => {
-          if (typeof updater === 'function') {
-            const newState = updater({
-              pageIndex: pagination.pageIndex,
-              pageSize: pagination.pageSize,
-            })
-            pagination.onPageChange(newState.pageIndex)
-          } else {
-            pagination.onPageChange(updater.pageIndex)
-          }
-        }
-      : undefined,
+    manualPagination: false,
+    pageCount: undefined,
     meta: pagination ? { total: pagination.total } : undefined,
   })
   const rowLength = data.length
@@ -549,26 +528,15 @@ function Table<TData, TValue>({
           </TableRoot>
         </div>
       </div>
-      {(rowLength > 10 || pagination) && (
+      {pagination && pagination.total > pagination.pageSize && (
         <div className="w-full px-4 pt-4">
           <PaginationRow
-            table={table}
-            isLoading={pagination?.isLoading}
-            isFetching={pagination?.isFetching}
-            total={pagination?.total}
-            hasNextPage={table.getCanNextPage()}
-            hasPreviousPage={table.getCanPreviousPage()}
-            onNavigate={(navigation) => {
-              if (navigation.type === 'toStart') {
-                table.setPageIndex(0)
-              } else if (navigation.type === 'backward') {
-                table.previousPage()
-              } else if (navigation.type === 'forward') {
-                table.nextPage()
-              } else if (navigation.type === 'toEnd') {
-                table.setPageIndex(table.getPageCount() - 1)
-              }
-            }}
+            isLoading={pagination.isLoading}
+            isFetching={pagination.isFetching}
+            total={pagination.total}
+            hasNextPage={pagination.hasNextPage}
+            hasPreviousPage={pagination.hasPreviousPage}
+            onNavigate={pagination.onNavigate}
           />
         </div>
       )}

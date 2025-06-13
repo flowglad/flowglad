@@ -117,9 +117,10 @@ const CustomersTable = ({
   }, [innerSearch, debouncedSetSearch])
 
   const {
-    pageIndex,
+    currentCursor,
+    navigationDirection,
     pageSize,
-    handlePaginationChange,
+    handleNavigation,
     data,
     isLoading,
     isFetching,
@@ -228,12 +229,15 @@ const CustomersTable = ({
         className="bg-nav"
         bordered
         pagination={{
-          pageIndex,
           pageSize,
           total,
-          onPageChange: handlePaginationChange,
           isLoading,
           isFetching,
+          onNavigate: handleNavigation,
+          hasNextPage: data?.hasNextPage,
+          hasPreviousPage: data?.hasPreviousPage,
+          currentCursor,
+          navigationDirection,
         }}
         onClickRow={(row) => {
           router.push(`/customers/${row.customer.id}`)

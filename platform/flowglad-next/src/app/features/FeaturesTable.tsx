@@ -58,9 +58,10 @@ const FeaturesTable = ({
   filters?: FeaturesTableFilters
 }) => {
   const {
-    pageIndex,
+    currentCursor,
+    navigationDirection,
     pageSize,
-    handlePaginationChange,
+    handleNavigation,
     data,
     isLoading,
     isFetching,
@@ -170,12 +171,15 @@ const FeaturesTable = ({
       className="bg-nav"
       bordered
       pagination={{
-        pageIndex,
         pageSize,
         total,
-        onPageChange: handlePaginationChange,
         isLoading,
         isFetching,
+        onNavigate: handleNavigation,
+        hasNextPage: data?.hasNextPage,
+        hasPreviousPage: data?.hasPreviousPage,
+        currentCursor,
+        navigationDirection,
       }}
     />
   )

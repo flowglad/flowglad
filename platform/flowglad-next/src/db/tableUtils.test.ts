@@ -53,6 +53,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
+          navigation: { type: 'toStart' },
           pageSize: 5,
         },
         transaction,
@@ -68,6 +69,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
+          navigation: { type: 'toStart' },
           pageSize: 20,
           filters: {
             organizationId,
@@ -86,6 +88,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
+          navigation: { type: 'toStart' },
           pageSize: 3,
         },
         transaction,
@@ -100,8 +103,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
+          navigation: { type: 'forward', pageAfter: '0' },
           pageSize: 10,
-          pageAfter: '0',
           filters: {
             logoURL: 'not-a-url',
           },
@@ -118,6 +121,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
+          navigation: { type: 'toStart' },
           pageSize: 15,
           filters: {
             organizationId,
@@ -143,6 +147,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: { type: 'toStart' },
             pageSize: 5,
           },
           transaction,
@@ -155,8 +160,11 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: {
+              type: 'forward',
+              pageAfter: firstPage.endCursor!,
+            },
             pageSize: 5,
-            pageAfter: firstPage.endCursor!,
           },
           transaction,
         })
@@ -182,6 +190,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: { type: 'toStart' },
             pageSize: 5,
           },
           transaction,
@@ -194,8 +203,11 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: {
+              type: 'forward',
+              pageAfter: firstPage.endCursor!,
+            },
             pageSize: 5,
-            pageAfter: firstPage.endCursor!,
           },
           transaction,
         })
@@ -207,8 +219,11 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: {
+              type: 'backward',
+              pageBefore: secondPage.startCursor!,
+            },
             pageSize: 5,
-            pageBefore: secondPage.startCursor!,
           },
           transaction,
         })
@@ -225,6 +240,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: { type: 'toStart' },
             pageSize: 5,
             filters: {
               organizationId,
@@ -241,6 +257,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: { type: 'toStart' },
             pageSize: 5,
             filters: {
               livemode: true,
@@ -258,6 +275,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: { type: 'toStart' },
             pageSize: 5,
             filters: {
               email: 'nonexistent@example.com',
@@ -276,6 +294,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: { type: 'toStart' },
             pageSize: 5,
           },
           transaction,
@@ -288,8 +307,11 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: {
+              type: 'forward',
+              pageAfter: firstPage.endCursor!,
+            },
             pageSize: 5,
-            pageAfter: firstPage.endCursor!,
           },
           transaction,
         })
@@ -317,6 +339,7 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: { type: 'toStart' },
             pageSize: 5,
           },
           transaction,
@@ -329,8 +352,11 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: {
+              type: 'forward',
+              pageAfter: firstPage.endCursor!,
+            },
             pageSize: 5,
-            pageAfter: firstPage.endCursor!,
           },
           transaction,
         })
@@ -342,8 +368,11 @@ describe('createCursorPaginatedSelectFunction', () => {
       async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
+            navigation: {
+              type: 'backward',
+              pageBefore: secondPage.startCursor!,
+            },
             pageSize: 5,
-            pageBefore: secondPage.startCursor!,
           },
           transaction,
         })
