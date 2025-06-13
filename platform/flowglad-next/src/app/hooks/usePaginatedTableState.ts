@@ -9,54 +9,33 @@ import {
 import { DefaultErrorShape } from '@trpc/server/unstable-core-do-not-import'
 import * as React from 'react'
 import { useState } from 'react'
+import { type NavigationCommand } from '@/db/tableUtils'
 
-export interface PaginatedTableStateParams<
+interface PaginatedTableStateParams<
   TData extends {},
   TFilters extends {},
 > {
   initialCurrentCursor?: string
   pageSize?: number
-  initialNextCursor?: string
-  initialPreviousCursor?: string
-  filters: TFilters
-  searchQuery?: string
-  useQuery: (
-    params: {
-      pageAfter?: string
-      pageBefore?: string
-      pageSize?: number
-      filters: TFilters
-    },
-    options?:
-      | UseTRPCQueryOptions<
-          {},
-          {
-            data: TData[]
-            nextCursor: string | undefined
-            hasMore: boolean
-            total: number
-          },
-          TRPCClientErrorLike<{
-            errorShape: DefaultErrorShape
-            transformer: true
-          }>
-        >
-      | undefined
-      | any
-  ) => UseTRPCQueryResult<
-    {
+  filters?: TFilters
+  useQuery: (params: {
+    navigation: NavigationCommand
+    pageSize: number
+    filters?: TFilters
+    searchQuery?: string
+  }) => {
+    data?: {
       items: TData[]
-      startCursor: string | null
-      endCursor: string | null
       hasNextPage: boolean
       hasPreviousPage: boolean
       total: number
-    },
-    TRPCClientErrorLike<{
-      errorShape: DefaultErrorShape
-      transformer: true
-    }>
-  >
+      startCursor: string | null
+      endCursor: string | null
+    }
+    isLoading: boolean
+    isFetching: boolean
+  }
+  searchQuery?: string
 }
 
 export const usePaginatedTableState = <
@@ -69,45 +48,51 @@ export const usePaginatedTableState = <
   useQuery,
   searchQuery,
 }: PaginatedTableStateParams<TData, TFilters>) => {
-  const [pageIndex, setPageIndex] = useState(0)
-  const [pageAfter, setPageAfter] = useState<string | undefined>(
-    initialCurrentCursor
-  )
-  const [pageBefore, setPageBefore] = useState<string | undefined>()
+  const [currentCursor, setCurrentCursor] = useState<
+    string | undefined
+  >(initialCurrentCursor)
+  const [navigationDirection, setNavigationDirection] = useState<
+    'forward' | 'backward'
+  >('forward')
+
   const params = {
-    pageAfter,
-    pageBefore,
+    navigation: currentCursor
+      ? navigationDirection === 'forward'
+        ? { type: 'forward' as const, pageAfter: currentCursor }
+        : { type: 'backward' as const, pageBefore: currentCursor }
+      : { type: 'toStart' as const },
     pageSize,
     filters,
     searchQuery,
   }
+
   const { data, isLoading, isFetching } = useQuery(params)
 
-  const handlePaginationChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-    if (
-      newPageIndex > pageIndex &&
-      data?.hasNextPage &&
-      data?.endCursor
-    ) {
-      setPageAfter(data.endCursor)
-      setPageBefore(undefined)
-    } else if (
-      newPageIndex < pageIndex &&
-      data?.hasPreviousPage &&
-      data?.startCursor
-    ) {
-      setPageBefore(data.startCursor)
-      setPageAfter(undefined)
+  const handleNavigation = (navigation: NavigationCommand) => {
+    if (navigation.type === 'toStart') {
+      setCurrentCursor(undefined)
+      setNavigationDirection('forward')
+    } else if (navigation.type === 'toEnd') {
+      setCurrentCursor(undefined)
+      setNavigationDirection('backward')
+    } else if (navigation.type === 'forward') {
+      setNavigationDirection('forward')
+      if (data?.endCursor) {
+        setCurrentCursor(data.endCursor)
+      }
+    } else if (navigation.type === 'backward') {
+      setNavigationDirection('backward')
+      if (data?.startCursor) {
+        setCurrentCursor(data.startCursor)
+      }
     }
   }
 
   return {
-    pageIndex,
-    pageAfter,
-    pageBefore,
+    currentCursor,
+    navigationDirection,
     pageSize,
-    handlePaginationChange,
+    handleNavigation,
     data,
     isLoading,
     isFetching,

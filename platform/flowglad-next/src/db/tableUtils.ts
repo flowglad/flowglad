@@ -14,6 +14,8 @@ import {
   SQL,
   ilike,
   or,
+  lte,
+  gte,
 } from 'drizzle-orm'
 import core, { gitCommitId } from '@/utils/core'
 import {
@@ -963,12 +965,17 @@ interface TableSearchParams<T extends PgTableWithId> {
   searchableColumns: T['_']['columns'][string][]
 }
 
+export type NavigationCommand =
+  | { type: 'forward'; pageAfter?: string }
+  | { type: 'backward'; pageBefore?: string }
+  | { type: 'toEnd' }
+  | { type: 'toStart' }
+
 interface CursorPaginatedSelectFunctionParams<
   T extends PgTableWithPosition,
 > {
   input: {
-    pageAfter?: string
-    pageBefore?: string
+    navigation: NavigationCommand
     pageSize?: number
     filters?: SelectConditions<T>
     sortDirection?: 'asc' | 'desc'
@@ -1056,13 +1063,17 @@ export const createCursorPaginatedSelectFunction = <
     hasPreviousPage: boolean
     total: number
   }> {
-    const { pageAfter, pageBefore, pageSize = 10 } = params.input
+    const { navigation = { type: 'toStart' }, pageSize = 10 } =
+      params.input
     const transaction = params.transaction
-    // Determine pagination direction and cursor
-    const isForward = !!pageAfter || (!pageBefore && !pageAfter)
+
+    // Determine pagination direction and cursor based on navigation command
+    const isForward =
+      navigation.type === 'forward' || navigation.type === 'toStart'
     const orderBy = isForward
       ? asc(table.position)
       : desc(table.position)
+
     const filterClause = params.input.filters
       ? whereClauseFromObject(table, params.input.filters)
       : undefined
@@ -1075,19 +1086,59 @@ export const createCursorPaginatedSelectFunction = <
             searchableColumns
           )
         : undefined
-    const whereClauses = and(
-      await cursorComparison(
-        table,
-        {
-          isForward,
-          pageAfter,
-          pageBefore,
-        },
-        transaction
-      ),
-      filterClause,
-      searchQueryClause
-    )
+
+    let whereClauses = and(filterClause, searchQueryClause)
+
+    // Handle special navigation cases
+    if (navigation.type === 'toEnd') {
+      // For "toEnd", we need to get the last pageSize items
+      const lastPosition = await transaction
+        .select({ max: sql<number>`max(${table.position})` })
+        .from(table)
+        .where(filterClause)
+        .then((result) => result[0].max)
+
+      if (lastPosition) {
+        whereClauses = and(
+          whereClauses,
+          lte(table.position, lastPosition)
+        )
+      }
+    } else if (navigation.type === 'toStart') {
+      // For "toStart", we need to get the first pageSize items
+      const firstPosition = await transaction
+        .select({ min: sql<number>`min(${table.position})` })
+        .from(table)
+        .where(filterClause)
+        .then((result) => result[0].min)
+
+      if (firstPosition) {
+        whereClauses = and(
+          whereClauses,
+          gte(table.position, firstPosition)
+        )
+      }
+    } else {
+      // Handle regular forward/backward pagination
+      whereClauses = and(
+        whereClauses,
+        await cursorComparison(
+          table,
+          {
+            isForward,
+            pageAfter:
+              navigation.type === 'forward'
+                ? navigation.pageAfter
+                : undefined,
+            pageBefore:
+              navigation.type === 'backward'
+                ? navigation.pageBefore
+                : undefined,
+          },
+          transaction
+        )
+      )
+    }
 
     // Query for items
     let queryResult = await transaction
@@ -1096,6 +1147,7 @@ export const createCursorPaginatedSelectFunction = <
       .where(whereClauses)
       .orderBy(orderBy)
       .limit(pageSize + 1)
+
     if (!isForward) {
       queryResult = queryResult.reverse()
     }

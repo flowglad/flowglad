@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react'
+import { type NavigationCommand } from '@/db/tableUtils'
 
 /* ---------------------------------- Component --------------------------------- */
 
@@ -171,25 +172,27 @@ const TableCaption = React.forwardRef<
 ))
 TableCaption.displayName = 'TableCaption'
 
+interface PaginationRowProps {
+  table: TableType<any>
+  isLoading?: boolean
+  isFetching?: boolean
+  total?: number
+  hasNextPage?: boolean
+  hasPreviousPage?: boolean
+  onNavigate: (navigation: NavigationCommand) => void
+}
+
 const PaginationRow = ({
   table,
   isLoading,
   isFetching,
   total,
-}: {
-  table: TableType<any>
-  isLoading?: boolean
-  isFetching?: boolean
-  total?: number
-}) => {
-  const pagination = table.getState().pagination
-  const showingStart =
-    total === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1
-  const showingEnd = Math.min(
-    showingStart + pagination.pageSize - 1,
-    total ?? table.getRowCount()
-  )
+  hasNextPage,
+  hasPreviousPage,
+  onNavigate,
+}: PaginationRowProps) => {
   const safeTotal = total ?? table.getRowCount()
+
   // Show skeleton when total isn't ready yet (initial load)
   if (isLoading && total === 0) {
     return (
@@ -216,10 +219,8 @@ const PaginationRow = ({
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
-            onClick={() => table.setPageIndex(0)}
-            disabled={
-              !table.getCanPreviousPage() || isLoading || isFetching
-            }
+            onClick={() => onNavigate({ type: 'toStart' })}
+            disabled={!hasPreviousPage || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >
@@ -228,10 +229,8 @@ const PaginationRow = ({
           </Button>
           <Button
             variant="ghost"
-            onClick={() => table.previousPage()}
-            disabled={
-              !table.getCanPreviousPage() || isLoading || isFetching
-            }
+            onClick={() => onNavigate({ type: 'backward' })}
+            disabled={!hasPreviousPage || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >
@@ -239,10 +238,8 @@ const PaginationRow = ({
           </Button>
           <Button
             variant="ghost"
-            onClick={() => table.nextPage()}
-            disabled={
-              !table.getCanNextPage() || isLoading || isFetching
-            }
+            onClick={() => onNavigate({ type: 'forward' })}
+            disabled={!hasNextPage || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >
@@ -250,12 +247,8 @@ const PaginationRow = ({
           </Button>
           <Button
             variant="ghost"
-            onClick={() =>
-              table.setPageIndex(table.getPageCount() - 1)
-            }
-            disabled={
-              !table.getCanNextPage() || isLoading || isFetching
-            }
+            onClick={() => onNavigate({ type: 'toEnd' })}
+            disabled={!hasNextPage || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >
@@ -563,6 +556,19 @@ function Table<TData, TValue>({
             isLoading={pagination?.isLoading}
             isFetching={pagination?.isFetching}
             total={pagination?.total}
+            hasNextPage={table.getCanNextPage()}
+            hasPreviousPage={table.getCanPreviousPage()}
+            onNavigate={(navigation) => {
+              if (navigation.type === 'toStart') {
+                table.setPageIndex(0)
+              } else if (navigation.type === 'backward') {
+                table.previousPage()
+              } else if (navigation.type === 'forward') {
+                table.nextPage()
+              } else if (navigation.type === 'toEnd') {
+                table.setPageIndex(table.getPageCount() - 1)
+              }
+            }}
           />
         </div>
       )}
