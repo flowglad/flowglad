@@ -2196,11 +2196,15 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
 export const setupUsageLedgerScenario = async (params: {
   usageEventAmounts?: number[]
   quickEntries?: QuickLedgerEntry[]
-  customerArgs?: Record<string, any>
-  paymentMethodArgs?: Record<string, any>
-  subscriptionArgs?: Record<string, any>
-  priceArgs?: Record<string, any>
-  subscriptionItemArgs?: Record<string, any>
+  customerArgs?: Partial<Parameters<typeof setupCustomer>[0]>
+  paymentMethodArgs?: Partial<
+    Parameters<typeof setupPaymentMethod>[0]
+  >
+  subscriptionArgs?: Partial<Parameters<typeof setupSubscription>[0]>
+  priceArgs?: Partial<Parameters<typeof setupPrice>[0]>
+  subscriptionItemArgs?: Partial<
+    Parameters<typeof setupSubscriptionItem>[0]
+  >
   livemode?: boolean
 }) => {
   const livemode = params.livemode ?? true
@@ -2274,7 +2278,7 @@ export const setupUsageLedgerScenario = async (params: {
       amount,
       priceId: price.id,
       billingPeriodId: billingPeriod.id,
-      transactionId: 'test-transaction-id',
+      transactionId: core.nanoid(),
       customerId: customer.id,
       livemode,
     })
