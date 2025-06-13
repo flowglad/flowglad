@@ -9,13 +9,20 @@ import { stripe, stripeIdFromObjectOrId } from '@/utils/stripe'
 import {
   isSubscriptionInTerminalState,
   selectSubscriptions,
+  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { createBillingPeriodAndItems } from '@/subscriptions/billingPeriodHelpers'
+import { stripeSubscriptionToSubscriptionInsert } from '@/migration-helpers/stripeMigrations'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import type { DbTransaction } from '@/db/types'
 import Stripe from 'stripe'
+import { Customer } from '@/db/schema/customers'
+import { PaymentMethod } from '@/db/schema/paymentMethods'
 
 /**
  * Migrates a single subscription's billing period from Stripe to Flowglad
@@ -58,7 +65,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
 
   // Process the subscription in a transaction
   // Find the corresponding Flowglad subscription
-  const [subscription] = await selectSubscriptions(
+  let [subscription] = await selectSubscriptions(
     {
       externalId: stripeIdFromObjectOrId(stripeSubscriptionId),
       organizationId: flowgladOrganizationId,
@@ -75,6 +82,72 @@ export const migrateSingleSubscriptionBillingPeriod = async (
 
   console.log(
     `Found Flowglad subscription ${subscription.id} for Stripe subscription ${stripeSubscriptionId}`
+  )
+
+  console.log(
+    `Merging latest Stripe subscription state into Flowglad subscription ${subscription.id}`
+  )
+
+  const stripeSubscriptionForUpdate =
+    await stripe.subscriptions.retrieve(
+      stripeSubscriptionId,
+      {
+        expand: ['default_payment_method', 'items'],
+      },
+      {
+        stripeAccount: stripeAccountId,
+      }
+    )
+
+  const customer = await selectCustomerById(
+    subscription.customerId,
+    transaction
+  )
+  if (!customer) {
+    throw new Error(
+      `Customer with id ${subscription.customerId} not found`
+    )
+  }
+
+  const paymentMethods = await selectPaymentMethods(
+    { customerId: customer.id },
+    transaction
+  )
+
+  const stripePriceId =
+    stripeSubscriptionForUpdate.items.data[0].price.id
+  const [price] = await selectPrices(
+    { externalId: stripePriceId },
+    transaction
+  )
+  if (!price) {
+    throw new Error(
+      `Could not find a Flowglad price for Stripe price ${stripePriceId}`
+    )
+  }
+
+  const subscriptionUpdatePayload =
+    await stripeSubscriptionToSubscriptionInsert(
+      stripeSubscriptionForUpdate,
+      customer,
+      paymentMethods,
+      price,
+      {
+        organizationId: flowgladOrganizationId,
+        livemode: true,
+      },
+      stripe
+    )
+
+  const updatedSubscription = await updateSubscription(
+    { id: subscription.id, ...subscriptionUpdatePayload },
+    transaction
+  )
+
+  subscription = updatedSubscription
+
+  console.log(
+    `Successfully merged Stripe state into Flowglad subscription ${subscription.id}`
   )
 
   // Skip subscriptions that are already in a terminal state
@@ -151,19 +224,38 @@ export const migrateSingleSubscriptionBillingPeriod = async (
   }
 
   // Create the initial billing period
-  const { billingPeriod } = await createBillingPeriodAndItems(
-    {
-      subscription,
-      subscriptionItems,
-      trialPeriod: false,
-      isInitialBillingPeriod: true,
-    },
-    transaction
-  )
+  const { billingPeriod, billingPeriodItems } =
+    await createBillingPeriodAndItems(
+      {
+        subscription,
+        subscriptionItems,
+        trialPeriod: false,
+        isInitialBillingPeriod: true,
+      },
+      transaction
+    )
 
   console.log(
     `Created billing period ${billingPeriod.id} for subscription ${subscription.id}`
   )
+
+  // Calculate total charge from billing period items
+  const totalCharge = billingPeriodItems.reduce((total, item) => {
+    return total + item.unitPrice * item.quantity
+  }, 0)
+
+  console.log(`Billing period details:
+    Start date: ${billingPeriod.startDate.toISOString()}
+    End date: ${billingPeriod.endDate.toISOString()}
+    Total charge: ${totalCharge / 100} (in cents: ${totalCharge})
+    Items: ${billingPeriodItems
+      .map(
+        (item) =>
+          `\n      - ${item.name}: ${item.quantity} x ${item.unitPrice / 100} = ${(item.quantity * item.unitPrice) / 100}`
+      )
+      .join('')}
+  `)
+
   const stripeSubscription = await stripe.subscriptions.retrieve(
     stripeSubscriptionId,
     {
