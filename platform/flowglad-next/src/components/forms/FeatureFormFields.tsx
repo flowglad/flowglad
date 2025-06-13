@@ -65,21 +65,13 @@ const FeatureFormFields = () => {
               // Reset fields when type changes
               if (value === FeatureType.Toggle) {
                 Object.entries(toggleFeatureDefaultColumns).forEach(
-                  (tuple) => {
-                    const [key] = tuple
-                    // @ts-expect-error - key is a valid key of usagePriceDefaultColumns
-                    setValue(`feature.${key}`, null)
-                  }
+                  assignFeatureValueFromTuple
                 )
               }
               if (value === FeatureType.UsageCreditGrant) {
                 Object.entries(
                   usageCreditGrantFeatureDefaultColumns
-                ).forEach((tuple) => {
-                  const [key] = tuple
-                  // @ts-expect-error - key is a valid key of usagePriceDefaultColumns
-                  setValue(`feature.${key}`, null)
-                })
+                ).forEach(assignFeatureValueFromTuple)
               }
             }}
             options={[
