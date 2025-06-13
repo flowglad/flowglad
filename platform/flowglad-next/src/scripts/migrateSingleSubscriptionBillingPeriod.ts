@@ -283,17 +283,6 @@ export const migrateSingleSubscriptionBillingPeriod = async (
 
   console.log(`Paused Stripe subscription ${stripeSubscriptionId}`)
 
-  const billingDetails = {
-    address: {
-      line1: '',
-      line2: '',
-      city: '',
-      state: '',
-      postal_code: '',
-      country: '',
-    },
-  }
-
   return {
     success: true,
     subscriptionId: subscription.id,
