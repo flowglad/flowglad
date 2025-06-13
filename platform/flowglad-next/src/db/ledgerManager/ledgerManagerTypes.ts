@@ -110,6 +110,7 @@ const billingPeriodTransitionPayloadSchema = z.discriminatedUnion(
     creditTrialBillingPeriodTransitionPayloadSchema,
   ]
 )
+
 export type BillingPeriodTransitionPayload = z.infer<
   typeof billingPeriodTransitionPayloadSchema
 >

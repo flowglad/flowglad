@@ -17,6 +17,11 @@ export const processBillingPeriodTransitionLedgerCommand = async (
   command: BillingPeriodTransitionLedgerCommand,
   transaction: DbTransaction
 ): Promise<LedgerCommandResult> => {
+  const initiatingSourceId =
+    command.payload.type === 'standard'
+      ? command.payload.newBillingPeriod.id
+      : command.payload.subscription.id
+
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -24,7 +29,7 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     description: command.transactionDescription ?? null,
     metadata: command.transactionMetadata ?? null,
     initiatingSourceType: command.type,
-    initiatingSourceId: 'billing_period_transition',
+    initiatingSourceId,
     subscriptionId: command.payload.subscription.id,
   }
 
