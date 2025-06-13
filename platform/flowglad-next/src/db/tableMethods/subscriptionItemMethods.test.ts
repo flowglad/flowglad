@@ -20,6 +20,12 @@ import {
   setupSubscription,
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
+  setupUsageMeter,
+  setupCreditLedgerEntry,
+  setupUsageEvent,
+  setupDebitLedgerEntry,
+  setupLedgerTransaction,
+  setupLedgerAccount,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -34,6 +40,8 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { core } from '@/utils/core'
 import {
   FeatureType,
+  LedgerEntryType,
+  LedgerTransactionType,
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
@@ -43,8 +51,11 @@ import {
   subscriptionItemFeatures,
 } from '@/db/schema/subscriptionItemFeatures'
 import { insertSubscriptionItemFeature } from './subscriptionItemFeatureMethods'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
+import { setupUsageLedgerScenario } from '@/../seedDatabase'
+import { ledgerEntries } from '@/db/schema/ledgerEntries'
+import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
 
 describe('subscriptionItemMethods', async () => {
   let organization: Organization.Record
@@ -580,6 +591,250 @@ describe('subscriptionItemMethods', async () => {
           )
         expect(richSubscriptions.length).toBe(1)
         expect(richSubscriptions[0].current).toBe(false)
+      })
+    })
+
+    it('should only include feature items for active subscription items', async () => {
+      const now = new Date()
+      const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000) // yesterday
+
+      await adminTransaction(async ({ transaction }) => {
+        // First expire the original subscription item from beforeEach
+        await updateSubscriptionItem(
+          {
+            id: subscriptionItem.id,
+            expiredAt: pastDate,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+          transaction
+        )
+
+        // Create a feature setup
+        const featureSetup =
+          await setupTestFeaturesAndProductFeatures({
+            organizationId: organization.id,
+            productId: price.productId,
+            livemode: true,
+            featureSpecs: [
+              {
+                name: 'Test Feature',
+                type: FeatureType.Toggle,
+              },
+            ],
+          })
+
+        // Create an active item with a feature
+        const activeItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Active Item with Feature',
+          quantity: 1,
+          unitPrice: 100,
+          priceId: price.id,
+        })
+        const activeFeature = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            activeItem,
+            featureSetup[0].productFeature,
+            featureSetup[0].feature
+          ),
+          transaction
+        )
+
+        // Create an expired item with a feature
+        const expiredItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Expired Item with Feature',
+          quantity: 1,
+          unitPrice: 100,
+          priceId: price.id,
+          addedDate: pastDate,
+        })
+        await updateSubscriptionItem(
+          {
+            id: expiredItem.id,
+            expiredAt: pastDate,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+          transaction
+        )
+        const expiredFeature = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            expiredItem,
+            featureSetup[0].productFeature,
+            featureSetup[0].feature
+          ),
+          transaction
+        )
+
+        const richSubscriptions =
+          await selectRichSubscriptionsAndActiveItems(
+            { organizationId: organization.id },
+            transaction
+          )
+
+        expect(richSubscriptions.length).toBe(1)
+        const subWithItems = richSubscriptions[0]
+
+        // Verify only active item is included
+        expect(subWithItems.subscriptionItems.length).toBe(1)
+        expect(subWithItems.subscriptionItems[0].id).toBe(
+          activeItem.id
+        )
+
+        // Verify only feature for active item is included
+        expect(subWithItems.experimental?.featureItems.length).toBe(1)
+        expect(subWithItems.experimental?.featureItems[0].id).toBe(
+          activeFeature.id
+        )
+        expect(
+          subWithItems.experimental?.featureItems[0]
+            .subscriptionItemId
+        ).toBe(activeItem.id)
+      })
+    })
+
+    it('should include all meter balances for the subscription regardless of subscription item association', async () => {
+      // Setup first usage meter scenario with a subscription item
+      const scenario1 = await setupUsageLedgerScenario({
+        usageEventAmounts: [100, 200],
+        livemode: true,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Update the first meter's ledger entries to include the usageMeterId
+        await transaction
+          .update(ledgerEntries)
+          .set({ usageMeterId: scenario1.usageMeter.id })
+          .where(
+            and(
+              eq(
+                ledgerEntries.ledgerAccountId,
+                scenario1.ledgerAccount.id
+              ),
+              eq(
+                ledgerEntries.subscriptionId,
+                scenario1.subscription.id
+              )
+            )
+          )
+
+        // Create second usage meter and its ledger entries within the transaction
+        const secondUsageMeter = await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Second Usage Meter',
+        })
+
+        const secondUsageEvent = await setupUsageEvent({
+          subscriptionId: scenario1.subscription.id,
+          amount: 100,
+          usageMeterId: secondUsageMeter.id,
+          usageDate: new Date(),
+          organizationId: organization.id,
+          priceId: price.id,
+          billingPeriodId: scenario1.billingPeriod.id,
+          transactionId: core.nanoid(),
+          customerId: customer.id,
+        })
+
+        const ledgerTransaction = await setupLedgerTransaction({
+          organizationId: organization.id,
+          subscriptionId: scenario1.subscription.id,
+          type: LedgerTransactionType.UsageEventProcessed,
+        })
+
+        const secondLedgerAccount = await setupLedgerAccount({
+          organizationId: organization.id,
+          subscriptionId: scenario1.subscription.id,
+          usageMeterId: secondUsageMeter.id,
+          livemode: true,
+        })
+
+        const secondLedgerEntry = await setupDebitLedgerEntry({
+          organizationId: organization.id,
+          subscriptionId: scenario1.subscription.id,
+          usageMeterId: secondUsageMeter.id,
+          amount: 200,
+          entryType: LedgerEntryType.UsageCost,
+          sourceUsageEventId: secondUsageEvent.id,
+          ledgerTransactionId: ledgerTransaction.id,
+          ledgerAccountId: secondLedgerAccount.id,
+        })
+
+        const richSubscriptions =
+          await selectRichSubscriptionsAndActiveItems(
+            { organizationId: scenario1.organization.id },
+            transaction
+          )
+
+        expect(richSubscriptions.length).toBe(1)
+        const subWithItems = richSubscriptions[0]
+        expect(subWithItems.subscriptionItems.length).toBe(1)
+        expect(subWithItems.subscriptionItems[0].id).toBe(
+          scenario1.subscriptionItem.id
+        )
+
+        // Verify meter balances - should include both meters
+        expect(
+          subWithItems.experimental?.usageMeterBalances.length
+        ).toBe(2)
+
+        const meterBalances =
+          subWithItems.experimental?.usageMeterBalances ?? []
+        const associatedMeterBalance = meterBalances.find(
+          (b) => b.id === scenario1.usageMeter.id
+        )
+        const unassociatedMeterBalance = meterBalances.find(
+          (b) => b.id === secondUsageMeter.id
+        )
+
+        expect(associatedMeterBalance).toBeDefined()
+        expect(associatedMeterBalance?.availableBalance).toBe(-300)
+        expect(unassociatedMeterBalance).toBeDefined()
+        expect(unassociatedMeterBalance?.availableBalance).toBe(-200)
+      })
+    })
+
+    it('should handle subscriptions with no items or features', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // First expire the original subscription item from beforeEach
+        await updateSubscriptionItem(
+          {
+            id: subscriptionItem.id,
+            expiredAt: new Date(0), // Set to epoch to ensure it's expired
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+          transaction
+        )
+
+        // Create a new subscription with no items
+        const emptySubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        const richSubscriptions =
+          await selectRichSubscriptionsAndActiveItems(
+            { organizationId: organization.id },
+            transaction
+          )
+
+        expect(richSubscriptions.length).toBe(2) // Original + new empty subscription
+
+        const emptySub = richSubscriptions.find(
+          (s) => s.id === emptySubscription.id
+        )
+        expect(emptySub).toBeDefined()
+        expect(emptySub?.subscriptionItems).toEqual([])
+        expect(emptySub?.experimental?.featureItems).toEqual([])
+        expect(emptySub?.experimental?.usageMeterBalances).toEqual([])
       })
     })
   })

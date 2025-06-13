@@ -157,12 +157,21 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
 }
 
 /**
- * Note: the return is unique by subscriptionId x usageMeter
- * A customer may very well have multiple subscriptions, each with their own accounts tracking the same usage meter
- * @param scopedWhere
- * @param transaction
- * @param calculationDate
- * @returns
+ * Fetches and calculates usage meter balances for subscriptions.
+ * This function:
+ * 1. Retrieves all relevant ledger entries for the given subscriptions
+ * 2. Groups entries by ledger account to calculate balances
+ * 3. Returns the balances along with their associated usage meters
+ *
+ * The function only considers entries that:
+ * - Match the provided subscription/ledger account filters
+ * - Are relevant for "available" balance calculation (posted or pending debits)
+ * - Have not been discarded
+ *
+ * @param scopedWhere - Filter conditions for subscription and ledger account
+ * @param transaction - Database transaction to use
+ * @param calculationDate - Date to use for balance calculations (defaults to current date)
+ * @returns Array of usage meter balances with their subscription IDs
  */
 export const selectUsageMeterBalancesForSubscriptions = async (
   scopedWhere: Pick<
@@ -174,9 +183,9 @@ export const selectUsageMeterBalancesForSubscriptions = async (
 ): Promise<
   { usageMeterBalance: UsageMeterBalance; subscriptionId: string }[]
 > => {
-  // First, fetch all ledger entries that match the scopedWhere criteria (e.g., ledgerAccountId)
-  // and are relevant for an "available" balance calculation (posted, or pending debits, and not discarded).
-  const result = await transaction
+  // Step 1: Fetch ledger entries with their associated usage meters
+  // Uses INNER JOIN to only get entries with valid usage meters
+  const entries = await transaction
     .select({
       ledgerEntry: ledgerEntries,
       usageMeter: usageMeters,
@@ -193,43 +202,34 @@ export const selectUsageMeterBalancesForSubscriptions = async (
         discardedAtFilterOutStatement(calculationDate)
       )
     )
-  const resultsByLedgerAccountId: Record<
-    string,
-    {
-      usageMeter: UsageMeter.Record
-      ledgerEntry: LedgerEntry.Record
-    }[]
-  > = core.groupBy(
+
+  // Step 2: Group entries by ledger account for balance calculation
+  // This allows us to calculate the total balance for each account
+  const entriesByAccount = core.groupBy(
     (item) => item.ledgerEntry.ledgerAccountId,
-    result.map((item) => ({
+    entries.map((item) => ({
       usageMeter: usageMetersSelectSchema.parse(item.usageMeter),
       ledgerEntry: ledgerEntriesSelectSchema.parse(item.ledgerEntry),
     }))
   )
 
-  const usageMeterBalanceAndSubscriptionIds = Object.values(
-    resultsByLedgerAccountId
-  ).map((items) => {
+  // Step 3: Calculate balances for each account
+  // Returns the usage meter balance along with its subscription ID
+  return Object.values(entriesByAccount).map((accountEntries) => {
+    const firstEntry = accountEntries[0]
     const balance = balanceFromEntries(
-      items.map((item) =>
-        ledgerEntriesSelectSchema.parse(item.ledgerEntry)
-      )
+      accountEntries.map((item) => item.ledgerEntry)
     )
-    const usageMeterBalance: UsageMeterBalance = {
-      ...usageMetersClientSelectSchema.parse(items[0].usageMeter),
-      subscriptionId: items[0].ledgerEntry.subscriptionId!,
-      availableBalance: balance,
+
+    return {
+      usageMeterBalance: {
+        ...usageMetersClientSelectSchema.parse(firstEntry.usageMeter),
+        subscriptionId: firstEntry.ledgerEntry.subscriptionId!,
+        availableBalance: balance,
+      },
+      subscriptionId: firstEntry.ledgerEntry.subscriptionId!,
     }
-    const normalizedObject: {
-      usageMeterBalance: UsageMeterBalance
-      subscriptionId: string
-    } = {
-      usageMeterBalance,
-      subscriptionId: items[0].ledgerEntry.subscriptionId!,
-    }
-    return normalizedObject
   })
-  return usageMeterBalanceAndSubscriptionIds
 }
 
 export const aggregateAvailableBalanceForUsageCredit = async (

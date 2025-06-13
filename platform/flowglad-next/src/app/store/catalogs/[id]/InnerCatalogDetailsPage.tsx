@@ -16,6 +16,8 @@ import FeaturesTable from '@/app/features/FeaturesTable'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import DefaultBadge from '@/components/DefaultBadge'
+import UsageMetersTable from '@/app/store/usage-meters/UsageMetersTable'
+import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 
 export type InnerCatalogDetailsPageProps = {
   catalog: Catalog.ClientRecord
@@ -29,6 +31,10 @@ function InnerCatalogDetailsPage({
     useState(false)
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
     useState(false)
+  const [
+    isCreateUsageMeterModalOpen,
+    setIsCreateUsageMeterModalOpen,
+  ] = useState(false)
 
   return (
     <InternalPageContainer>
@@ -79,6 +85,17 @@ function InnerCatalogDetailsPage({
           />
           <FeaturesTable filters={{ catalogId: catalog.id }} />
         </div>
+        <div className="flex flex-col gap-5">
+          <TableTitle
+            title="Usage Meters"
+            buttonLabel="Create Usage Meter"
+            buttonIcon={<Plus size={16} />}
+            buttonOnClick={() => {
+              setIsCreateUsageMeterModalOpen(true)
+            }}
+          />
+          <UsageMetersTable filters={{ catalogId: catalog.id }} />
+        </div>
       </div>
       <EditCatalogModal
         isOpen={isEditOpen}
@@ -94,6 +111,10 @@ function InnerCatalogDetailsPage({
         isOpen={isCreateFeatureModalOpen}
         setIsOpen={setIsCreateFeatureModalOpen}
         defaultCatalogId={catalog.id}
+      />
+      <CreateUsageMeterModal
+        isOpen={isCreateUsageMeterModalOpen}
+        setIsOpen={setIsCreateUsageMeterModalOpen}
       />
     </InternalPageContainer>
   )
