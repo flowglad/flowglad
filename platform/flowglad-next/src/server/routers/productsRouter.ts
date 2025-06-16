@@ -3,7 +3,9 @@ import {
   selectProductsPaginated,
   selectProductById,
   getProductTableRows,
+  selectProductsCursorPaginated,
 } from '@/db/tableMethods/productMethods'
+import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
   createProductTransaction,
   editProduct as editProductCatalog,
@@ -34,11 +36,11 @@ import { selectPricesProductsAndCatalogsForOrganization } from '@/db/tableMethod
 import * as R from 'ramda'
 import { Price } from '@/db/schema/prices'
 import { Catalog } from '@/db/schema/catalogs'
-import { selectProductsCursorPaginated } from '@/db/tableMethods/productMethods'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
+import { core } from '@/utils/core'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Product',
@@ -92,7 +94,7 @@ export const editProduct = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
-        const { product } = input
+        const { product, featureIds } = input
 
         const updatedProduct = await editProductCatalog(
           { product },
@@ -102,6 +104,17 @@ export const editProduct = protectedProcedure
         if (!updatedProduct) {
           throw new Error('Product not found or update failed')
         }
+
+        if (featureIds !== undefined) {
+          await syncProductFeatures(
+            {
+              product: updatedProduct,
+              desiredFeatureIds: featureIds,
+            },
+            transaction
+          )
+        }
+
         if (input.price) {
           await safelyUpdatePrice(input.price, transaction)
         }

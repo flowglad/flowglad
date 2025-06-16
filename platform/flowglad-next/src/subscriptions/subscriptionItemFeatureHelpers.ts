@@ -111,6 +111,8 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           renewalFrequency: feature.renewalFrequency,
           productFeatureId: productFeature.id,
           expiredAt: null,
+          detachedAt: null,
+          detachedReason: null,
         }
       case FeatureType.Toggle:
         return {
@@ -123,6 +125,8 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           renewalFrequency: null,
           productFeatureId: productFeature.id,
           expiredAt: null,
+          detachedAt: null,
+          detachedReason: null,
         }
       default:
         throw new Error(

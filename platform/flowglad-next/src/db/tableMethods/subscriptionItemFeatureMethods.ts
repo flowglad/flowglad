@@ -20,7 +20,7 @@ import {
   SubscriptionItem,
   subscriptionItems,
 } from '../schema/subscriptionItems'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItemFeatures,
@@ -116,6 +116,41 @@ export const expireSubscriptionItemFeaturesForSubscriptionItem =
         )
       )
       .returning()
+    return result.map((row) =>
+      subscriptionItemFeaturesSelectSchema.parse(row)
+    )
+  }
+
+/**
+ * Detaches all subscription item features from a specific product feature.
+ * This is used when a product feature is being expired/deleted to preserve
+ * existing customer subscription item features while breaking the association.
+ */
+export const detachSubscriptionItemFeaturesFromProductFeature =
+  async (
+    params: {
+      productFeatureIds: string[]
+      detachedReason: string
+    },
+    transaction: DbTransaction
+  ): Promise<SubscriptionItemFeature.Record[]> => {
+    const { productFeatureIds, detachedReason } = params
+    const detachedAt = new Date()
+    const result = await transaction
+      .update(subscriptionItemFeatures)
+      .set({
+        productFeatureId: null,
+        detachedAt,
+        detachedReason,
+      })
+      .where(
+        inArray(
+          subscriptionItemFeatures.productFeatureId,
+          productFeatureIds
+        )
+      )
+      .returning()
+
     return result.map((row) =>
       subscriptionItemFeaturesSelectSchema.parse(row)
     )

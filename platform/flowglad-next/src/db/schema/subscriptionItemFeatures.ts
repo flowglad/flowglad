@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import { z } from 'zod'
-import { pgTable, integer } from 'drizzle-orm/pg-core'
+import { pgTable, integer, text } from 'drizzle-orm/pg-core'
 import {
   tableBase,
   notNullStringForeignKey,
@@ -36,7 +36,7 @@ export const subscriptionItemFeatures = pgTable(
       subscriptionItems
     ),
     featureId: notNullStringForeignKey('feature_id', features),
-    productFeatureId: notNullStringForeignKey(
+    productFeatureId: nullableStringForeignKey(
       'product_feature_id',
       productFeatures
     ),
@@ -56,6 +56,8 @@ export const subscriptionItemFeatures = pgTable(
       enumBase: FeatureUsageGrantFrequency,
     }),
     expiredAt: timestampWithTimezoneColumn('expired_at'),
+    detachedAt: timestampWithTimezoneColumn('detached_at'),
+    detachedReason: text('detached_reason'),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionItemId]),
@@ -71,11 +73,8 @@ export const subscriptionItemFeatures = pgTable(
       parentIdColumnInCurrentTable: 'subscription_item_id',
       currentTableName: TABLE_NAME,
     }),
-    parentForeignKeyIntegrityCheckPolicy({
-      parentTableName: 'product_features',
-      parentIdColumnInCurrentTable: 'product_feature_id',
-      currentTableName: TABLE_NAME,
-    }),
+    // Note: product_feature_id is nullable to support detached subscription item features
+    // Foreign key integrity is still enforced at the database level when not null
     parentForeignKeyIntegrityCheckPolicy({
       parentTableName: 'features',
       parentIdColumnInCurrentTable: 'feature_id',
@@ -97,6 +96,9 @@ const columnRefinements = {
     .nullable(),
   amount: z.number().int().nullable(),
   usageMeterId: z.string().nullable(),
+  productFeatureId: z.string().nullable(),
+  detachedAt: z.date().nullable(),
+  detachedReason: z.string().nullable(),
 }
 
 /*
