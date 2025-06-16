@@ -19,7 +19,12 @@ import {
   whereClauseFromObject,
   createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
-import { CheckoutFlowType, PriceType, PurchaseStatus } from '@/types'
+import {
+  CheckoutFlowType,
+  PriceType,
+  PurchaseStatus,
+  PaymentStatus,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq, inArray } from 'drizzle-orm'
 import {
@@ -303,6 +308,7 @@ export const selectPurchasesTableRowData =
       const customerIds = purchases.map(
         (purchase) => purchase.customerId
       )
+      const purchaseIds = purchases.map((purchase) => purchase.id)
 
       const priceProductResults = await transaction
         .select({
@@ -341,15 +347,52 @@ export const selectPurchasesTableRowData =
         ])
       )
 
+      // Fetch succeeded payments for all purchases
+      const succeededPayments = await transaction
+        .select({
+          payment: payments,
+        })
+        .from(payments)
+        .where(
+          and(
+            inArray(payments.purchaseId, purchaseIds),
+            eq(payments.status, PaymentStatus.Succeeded)
+          )
+        )
+
+      // Map purchaseId to array of succeeded payments
+      const paymentsByPurchaseId = new Map<
+        string,
+        { payment: any }[]
+      >()
+      for (const paymentRow of succeededPayments) {
+        const purchaseId = String(paymentRow.payment.purchaseId)
+        if (!paymentsByPurchaseId.has(purchaseId)) {
+          paymentsByPurchaseId.set(purchaseId, [])
+        }
+        paymentsByPurchaseId.get(purchaseId)!.push(paymentRow)
+      }
+
       return purchases.map((purchase) => {
         const price = pricesById.get(purchase.priceId)!
         const product = productsById.get(price.productId)!
         const customer = customersById.get(purchase.customerId)!
+        const customerName = customer.name
+        const customerEmail = customer.email
+        const succeeded =
+          paymentsByPurchaseId.get(String(purchase.id)) || []
+        const revenue = succeeded.reduce(
+          (acc, row) => acc + (row.payment.amount || 0),
+          0
+        )
 
         return {
           purchase,
           product: productsSelectSchema.parse(product),
           customer: customersSelectSchema.parse(customer),
+          revenue,
+          customerName,
+          customerEmail,
         }
       })
     }
