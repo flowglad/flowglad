@@ -35,10 +35,14 @@ import {
 
 // Function to test
 import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 describe('usageEventHelpers', () => {
   let organization: Organization.Record
@@ -123,13 +127,15 @@ describe('usageEventHelpers', () => {
         usageEvent: usageEventDetails,
       }
 
-      const createdUsageEvent: UsageEvent.Record =
-        await adminTransaction(async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            { input, livemode: true },
-            transaction
-          )
-        })
+      const { usageEvent: createdUsageEvent } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              transaction
+            )
+          }
+        )
 
       expect(createdUsageEvent).toBeDefined()
       if (!createdUsageEvent)
@@ -186,17 +192,18 @@ describe('usageEventHelpers', () => {
           transactionId,
           amount: 5,
         }
-      const initialEvent: UsageEvent.Record = await adminTransaction(
-        async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            {
-              input: { usageEvent: initialEventDetails },
-              livemode: true,
-            },
-            transaction
-          )
-        }
-      )
+      const { usageEvent: initialEvent } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: initialEventDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
 
       let initialLedgerTransactions: LedgerTransaction.Record[] = []
       await adminTransaction(async ({ transaction }) => {
@@ -224,17 +231,18 @@ describe('usageEventHelpers', () => {
             ).length
           : 0
 
-      const resultEvent: UsageEvent.Record = await adminTransaction(
-        async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            {
-              input: { usageEvent: initialEventDetails },
-              livemode: true,
-            },
-            transaction
-          )
-        }
-      )
+      const { usageEvent: resultEvent } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: initialEventDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
 
       expect(resultEvent.id).toBe(initialEvent.id)
 
@@ -369,17 +377,21 @@ describe('usageEventHelpers', () => {
           amount: 1,
           properties: { test: 'value' },
         }
-      let resultWithProps: UsageEvent.Record | null = null
-      await adminTransaction(async ({ transaction }) => {
-        resultWithProps = await ingestAndProcessUsageEvent(
-          {
-            input: { usageEvent: propsPresentDetails },
-            livemode: true,
-          },
-          transaction
+      const { usageEvent: resultWithProps } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: propsPresentDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
         )
+      expect(resultWithProps.properties).toEqual({
+        test: 'value',
       })
-      expect(resultWithProps!.properties).toEqual({ test: 'value' })
 
       const propsAbsentDetails: CreateUsageEventInput['usageEvent'] =
         {
@@ -388,16 +400,18 @@ describe('usageEventHelpers', () => {
           transactionId: `txn_no_props_${core.nanoid()}`,
           amount: 1,
         }
-      let resultWithoutProps: UsageEvent.Record | null = null
-      await adminTransaction(async ({ transaction }) => {
-        resultWithoutProps = await ingestAndProcessUsageEvent(
-          {
-            input: { usageEvent: propsAbsentDetails },
-            livemode: true,
-          },
-          transaction
+      const { usageEvent: resultWithoutProps } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: propsAbsentDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
         )
-      })
       expect(resultWithoutProps!.properties).toEqual({})
     })
 
@@ -411,16 +425,18 @@ describe('usageEventHelpers', () => {
           amount: 1,
           usageDate: timestamp,
         }
-      const resultWithDate: UsageEvent.Record =
-        await adminTransaction(async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            {
-              input: { usageEvent: datePresentDetails },
-              livemode: true,
-            },
-            transaction
-          )
-        })
+      const { usageEvent: resultWithDate } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: datePresentDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
       expect(resultWithDate.usageDate!.getTime()).toBe(timestamp)
 
       const dateAbsentDetails: CreateUsageEventInput['usageEvent'] = {
@@ -429,16 +445,18 @@ describe('usageEventHelpers', () => {
         transactionId: `txn_no_date_${core.nanoid()}`,
         amount: 1,
       }
-      const resultWithoutDate: UsageEvent.Record =
-        await adminTransaction(async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            {
-              input: { usageEvent: dateAbsentDetails },
-              livemode: true,
-            },
-            transaction
-          )
-        })
+      const { usageEvent: resultWithoutDate } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: dateAbsentDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
       expect(resultWithoutDate.usageDate).toBeDefined()
     })
 
@@ -449,23 +467,25 @@ describe('usageEventHelpers', () => {
         transactionId: `txn_live_${core.nanoid()}`,
         amount: 1,
       }
-      const resultLiveTrue: UsageEvent.Record =
-        await adminTransaction(async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            {
-              input: { usageEvent: liveTrueDetails },
-              livemode: true,
-            },
-            transaction
-          )
-        })
+      const { usageEvent: resultLiveTrue } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: liveTrueDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
       expect(resultLiveTrue.livemode).toBe(true)
 
       const liveTrueTransactions: LedgerTransaction.Record[] =
         await adminTransaction(async ({ transaction }) => {
           return selectLedgerTransactions(
             {
-              initiatingSourceId: resultLiveTrue!.id,
+              initiatingSourceId: resultLiveTrue.id,
               initiatingSourceType:
                 LedgerTransactionInitiatingSourceType.UsageEvent,
             },
@@ -481,24 +501,45 @@ describe('usageEventHelpers', () => {
           )
         })
       expect(liveTrueLedgerItems[0].livemode).toBe(true)
-
+      const testmodeSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: usagePrice.id,
+      })
+      await setupLedgerAccount({
+        subscriptionId: testmodeSubscription.id,
+        usageMeterId: usagePrice.usageMeterId!,
+        livemode: false,
+        organizationId: organization.id,
+      })
+      await setupBillingPeriod({
+        subscriptionId: testmodeSubscription.id,
+        startDate: new Date(),
+        endDate: new Date(
+          new Date().getTime() + 30 * 24 * 60 * 60 * 1000
+        ),
+        livemode: false,
+      })
       const liveFalseDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
-        subscriptionId: mainSubscription.id,
+        subscriptionId: testmodeSubscription.id,
         transactionId: `txn_test_${core.nanoid()}`,
         amount: 1,
       }
-      let resultLiveFalse: UsageEvent.Record | null = null
-      await adminTransaction(async ({ transaction }) => {
-        resultLiveFalse = await ingestAndProcessUsageEvent(
-          {
-            input: { usageEvent: liveFalseDetails },
-            livemode: false,
-          },
-          transaction
+      const { usageEvent: resultLiveFalse } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: liveFalseDetails },
+                livemode: false,
+              },
+              transaction
+            )
+          }
         )
-      })
-      expect(resultLiveFalse!.livemode).toBe(false)
+      expect(resultLiveFalse.livemode).toBe(false)
 
       const liveFalseTransactions: LedgerTransaction.Record[] =
         await adminTransaction(async ({ transaction }) => {

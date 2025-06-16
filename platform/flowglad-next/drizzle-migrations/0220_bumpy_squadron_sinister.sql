@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "monthly_billing_volume_free_tier" integer DEFAULT 100000 NOT NULL;

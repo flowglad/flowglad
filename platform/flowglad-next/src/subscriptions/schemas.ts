@@ -3,14 +3,22 @@ import {
   subscriptionItemsSelectSchema,
   subscriptionItemClientSelectSchema,
   subscriptionItemClientInsertSchema,
+  usageSubscriptionItemClientSelectSchema,
+  staticSubscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
-import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import {
+  creditTrialSubscriptionClientSelectSchema,
+  standardSubscriptionClientSelectSchema,
+  subscriptionClientSelectSchema,
+} from '@/db/schema/subscriptions'
 import { subscribablePriceClientSelectSchema } from '@/db/schema/prices'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,
 } from '@/types'
 import { z } from 'zod'
+import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
 
 export const adjustSubscriptionImmediatelySchema = z.object({
   timing: z.literal(SubscriptionAdjustmentTiming.Immediately),
@@ -49,14 +57,42 @@ export type AdjustSubscriptionParams = z.infer<
 >
 
 export const richSubscriptionItemClientSelectSchema =
-  subscriptionItemClientSelectSchema.extend({
-    price: subscribablePriceClientSelectSchema,
+  z.discriminatedUnion('type', [
+    usageSubscriptionItemClientSelectSchema.extend({
+      price: subscribablePriceClientSelectSchema,
+    }),
+    staticSubscriptionItemClientSelectSchema.extend({
+      price: subscribablePriceClientSelectSchema,
+    }),
+  ])
+
+const richSubscriptionExperimentalSchema = z
+  .object({
+    featureItems: subscriptionItemFeaturesClientSelectSchema.array(),
+    usageMeterBalances: z.array(usageMeterBalanceClientSelectSchema),
+  })
+  .optional()
+  .describe('Experimental fields. May change without notice.')
+
+const richCreditTrialSubscriptionClientSelectSchema =
+  creditTrialSubscriptionClientSelectSchema.extend({
+    subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
+    current: z.boolean(),
+    experimental: richSubscriptionExperimentalSchema,
+  })
+
+const richStandardSubscriptionClientSelectSchema =
+  standardSubscriptionClientSelectSchema.extend({
+    subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
+    current: z.boolean(),
+    experimental: richSubscriptionExperimentalSchema,
   })
 
 export const richSubscriptionClientSelectSchema =
-  subscriptionClientSelectSchema.extend({
-    subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
-  })
+  z.discriminatedUnion('status', [
+    richCreditTrialSubscriptionClientSelectSchema,
+    richStandardSubscriptionClientSelectSchema,
+  ])
 
 export type RichSubscriptionItem = z.infer<
   typeof richSubscriptionItemClientSelectSchema

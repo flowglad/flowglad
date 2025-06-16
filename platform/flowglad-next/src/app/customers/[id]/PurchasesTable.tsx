@@ -125,6 +125,7 @@ const PurchasesTable = ({
               </span>
             )
           },
+          width: '18%',
         },
         {
           header: 'Status',
@@ -132,27 +133,36 @@ const PurchasesTable = ({
           cell: ({ row: { original: cellData } }) => {
             return <PurchaseStatusCell purchase={cellData.purchase} />
           },
+          width: '10%',
         },
         {
           header: ({ column }) => (
             <ColumnHeaderCell title="Revenue" column={column} />
           ),
-          accessorKey: 'amount',
+          accessorKey: 'revenue',
           cell: ({ row: { original: cellData } }) => (
-            <>
-              <span className="text-sm">
-                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                  CurrencyCode.USD,
-                  paymentsByPurchaseId
-                    .get(cellData.purchase.id)
-                    ?.reduce(
-                      (acc, payment) => acc + payment.amount,
-                      0
-                    ) ?? 0
-                )}
-              </span>
-            </>
+            <span className="text-sm">
+              {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                CurrencyCode.USD,
+                cellData.revenue ?? 0
+              )}
+            </span>
           ),
+          width: '12%',
+        },
+        {
+          header: ({ column }) => (
+            <ColumnHeaderCell title="Customer" column={column} />
+          ),
+          accessorKey: 'customer',
+          cell: ({ row: { original: cellData } }) => (
+            <span className="text-sm">
+              {cellData.customer.name.length == 0
+                ? cellData.customer.email
+                : cellData.customer.name}
+            </span>
+          ),
+          width: '28%',
         },
         {
           header: ({ column }) => (
@@ -166,15 +176,7 @@ const PurchasesTable = ({
                 : '-'}
             </>
           ),
-        },
-        {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
-          accessorKey: 'createdAt',
-          cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.purchase.createdAt)}</>
-          ),
+          width: '14%',
         },
         {
           header: ({ column }) => (
@@ -186,6 +188,7 @@ const PurchasesTable = ({
               {cellData.purchase.id}
             </CopyableTextTableCell>
           ),
+          width: '10%',
         },
         {
           id: '_',

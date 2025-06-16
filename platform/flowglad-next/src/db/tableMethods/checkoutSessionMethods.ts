@@ -227,29 +227,83 @@ export const updateCheckoutSessionCustomerEmail = async (
   update: Pick<CheckoutSession.Record, 'id' | 'customerEmail'>,
   transaction: DbTransaction
 ): Promise<CheckoutSession.Record> => {
-  const [checkoutSession] = await transaction
+  const checkoutSession = await selectCheckoutSessionById(
+    update.id,
+    transaction
+  )
+  if (checkoutSession.status !== CheckoutSessionStatus.Open) {
+    throw new Error(
+      'Cannot update customer email for a non-open checkout session'
+    )
+  }
+  const [result] = await transaction
     .update(checkoutSessions)
     .set({
       customerEmail: update.customerEmail,
     })
     .where(eq(checkoutSessions.id, update.id))
     .returning()
-  return checkoutSessionsSelectSchema.parse(checkoutSession)
+  return checkoutSessionsSelectSchema.parse(result)
 }
 
 export const updateCheckoutSessionBillingAddress = async (
   update: Pick<CheckoutSession.Record, 'id' | 'billingAddress'>,
   transaction: DbTransaction
 ): Promise<CheckoutSession.Record> => {
-  const [checkoutSession] = await transaction
+  const checkoutSession = await selectCheckoutSessionById(
+    update.id,
+    transaction
+  )
+  if (checkoutSession.status !== CheckoutSessionStatus.Open) {
+    throw new Error(
+      'Cannot update billing address for a non-open checkout session'
+    )
+  }
+  const [result] = await transaction
     .update(checkoutSessions)
     .set({
       billingAddress: update.billingAddress,
     })
     .where(eq(checkoutSessions.id, update.id))
     .returning()
-  return checkoutSessionsSelectSchema.parse(checkoutSession)
+  return checkoutSessionsSelectSchema.parse(result)
 }
+
+export const updateCheckoutSessionAutomaticallyUpdateSubscriptions =
+  async (
+    update: Pick<
+      CheckoutSession.Record,
+      'id' | 'automaticallyUpdateSubscriptions'
+    >,
+    transaction: DbTransaction
+  ): Promise<CheckoutSession.Record> => {
+    const checkoutSession = await selectCheckoutSessionById(
+      update.id,
+      transaction
+    )
+    if (
+      checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
+    ) {
+      throw new Error(
+        'Cannot update automaticallyUpdateSubscriptions for a non-add payment method checkout session'
+      )
+    }
+    if (checkoutSession.status !== CheckoutSessionStatus.Open) {
+      throw new Error(
+        'Cannot update automaticallyUpdateSubscriptions for a non-open checkout session'
+      )
+    }
+    const [result] = await transaction
+      .update(checkoutSessions)
+      .set({
+        automaticallyUpdateSubscriptions:
+          update.automaticallyUpdateSubscriptions,
+      })
+      .where(eq(checkoutSessions.id, update.id))
+      .returning()
+
+    return checkoutSessionsSelectSchema.parse(result)
+  }
 
 const subscriptionCreatingCheckoutSessionTypes = [
   CheckoutSessionType.Product,

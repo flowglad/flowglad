@@ -19,6 +19,7 @@ import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
 import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
 import { kebabCase } from 'change-case'
+import { OrganizationInvitationEmail } from '@/email-templates/organization/organization-invitation'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -175,6 +176,7 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   amount,
   customerId,
   currency,
+  customerName,
 }: {
   to: string[]
   organizationName: string
@@ -182,6 +184,7 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   orderDate: Date
   amount: number
   customerId: string
+  customerName: string
   currency: CurrencyCode
 }) => {
   return safeSend({
@@ -201,6 +204,7 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
       invoiceNumber,
       customerId,
       currency,
+      customerName: customerName,
     }),
   })
 }
@@ -273,6 +277,26 @@ export const sendInvoiceNotificationEmail = async ({
       invoiceLineItems,
       organizationName,
       organizationLogoUrl,
+    }),
+  })
+}
+
+export const sendOrganizationInvitationEmail = async ({
+  to,
+  organizationName,
+  inviterName,
+}: {
+  to: string[]
+  organizationName: string
+  inviterName?: string
+}) => {
+  return safeSend({
+    from: 'notifications@flowglad.com',
+    to: to.map(safeTo),
+    subject: `You've been invited to join ${organizationName}`,
+    react: await OrganizationInvitationEmail({
+      organizationName,
+      inviterName,
     }),
   })
 }

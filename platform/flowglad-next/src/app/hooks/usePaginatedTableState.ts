@@ -8,7 +8,7 @@ import {
 } from '@trpc/react-query/shared'
 import { DefaultErrorShape } from '@trpc/server/unstable-core-do-not-import'
 import * as React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export interface PaginatedTableStateParams<
   TData extends {},
@@ -26,6 +26,9 @@ export interface PaginatedTableStateParams<
       pageBefore?: string
       pageSize?: number
       filters: TFilters
+      searchQuery?: string
+      goToFirst?: boolean
+      goToLast?: boolean
     },
     options?:
       | UseTRPCQueryOptions<
@@ -74,17 +77,34 @@ export const usePaginatedTableState = <
     initialCurrentCursor
   )
   const [pageBefore, setPageBefore] = useState<string | undefined>()
+  const [goToFirst, setGoToFirst] = useState(false)
+  const [goToLast, setGoToLast] = useState(false)
+
   const params = {
     pageAfter,
     pageBefore,
     pageSize,
     filters,
     searchQuery,
+    goToFirst,
+    goToLast,
   }
   const { data, isLoading, isFetching } = useQuery(params)
 
+  // Reset navigation flags after successful query
+  useEffect(() => {
+    if (!isLoading && !isFetching && (goToFirst || goToLast)) {
+      setGoToFirst(false)
+      setGoToLast(false)
+    }
+  }, [isLoading, isFetching, goToFirst, goToLast])
+
   const handlePaginationChange = (newPageIndex: number) => {
     setPageIndex(newPageIndex)
+    // Reset navigation flags
+    setGoToFirst(false)
+    setGoToLast(false)
+
     if (
       newPageIndex > pageIndex &&
       data?.hasNextPage &&
@@ -102,12 +122,33 @@ export const usePaginatedTableState = <
     }
   }
 
+  const goToFirstPage = () => {
+    setPageIndex(0)
+    setPageAfter(undefined)
+    setPageBefore(undefined)
+    setGoToFirst(true)
+    setGoToLast(false)
+  }
+
+  const goToLastPage = () => {
+    if (data?.total) {
+      const lastPageIndex = Math.ceil(data.total / pageSize) - 1
+      setPageIndex(lastPageIndex)
+      setPageAfter(undefined)
+      setPageBefore(undefined)
+      setGoToFirst(false)
+      setGoToLast(true)
+    }
+  }
+
   return {
     pageIndex,
     pageAfter,
     pageBefore,
     pageSize,
     handlePaginationChange,
+    goToFirstPage,
+    goToLastPage,
     data,
     isLoading,
     isFetching,

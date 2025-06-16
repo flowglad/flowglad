@@ -126,7 +126,19 @@ export const createInsertManyFunction = <
       .insert(table)
       .values(parsedInsert)
       .returning()
-    return result.map((item) => selectSchema.parse(item))
+    return result.map((item) => {
+      const parsed = selectSchema.safeParse(item)
+      if (!parsed.success) {
+        console.error(parsed.error.issues)
+        console.error(item)
+        throw Error(
+          `createInsertManyFunction: Error parsing result: ${JSON.stringify(
+            item
+          )}`
+        )
+      }
+      return parsed.data
+    })
   }
 }
 
@@ -961,6 +973,8 @@ interface CursorPaginatedSelectFunctionParams<
     filters?: SelectConditions<T>
     sortDirection?: 'asc' | 'desc'
     searchQuery?: string
+    goToFirst?: boolean
+    goToLast?: boolean
   }
   transaction: DbTransaction
 }
@@ -1044,8 +1058,133 @@ export const createCursorPaginatedSelectFunction = <
     hasPreviousPage: boolean
     total: number
   }> {
-    const { pageAfter, pageBefore, pageSize = 10 } = params.input
+    const {
+      pageAfter,
+      pageBefore,
+      pageSize = 10,
+      goToFirst,
+      goToLast,
+    } = params.input
     const transaction = params.transaction
+
+    // Handle special navigation cases
+    if (goToFirst) {
+      // Clear cursors and start from beginning
+      const orderBy = asc(table.position)
+      const filterClause = params.input.filters
+        ? whereClauseFromObject(table, params.input.filters)
+        : undefined
+      const searchQuery = params.input.searchQuery
+      const searchQueryClause =
+        searchQuery && searchableColumns
+          ? constructSearchQueryClause(
+              table,
+              searchQuery,
+              searchableColumns
+            )
+          : undefined
+      const whereClauses = and(filterClause, searchQueryClause)
+
+      const queryResult = await transaction
+        .select()
+        .from(table)
+        .where(whereClauses)
+        .orderBy(orderBy)
+        .limit(pageSize + 1)
+
+      const total = await transaction
+        .select({ count: count() })
+        .from(table)
+        .$dynamic()
+        .where(and(filterClause, searchQueryClause))
+
+      const data: z.infer<S>[] = queryResult
+        .map((item) => selectSchema.parse(item))
+        .slice(0, pageSize)
+      const enrichedData: z.infer<D>[] = await (enrichmentFunction
+        ? enrichmentFunction(data, transaction)
+        : Promise.resolve(data))
+
+      const items: z.infer<D>[] = enrichedData.map((item) =>
+        dataSchema.parse(item)
+      )
+      const startCursor = data.length > 0 ? data[0].id : null
+      const endCursor =
+        data.length > 0 ? data[data.length - 1].id : null
+      const totalCount = total[0].count
+      const hasMore = queryResult.length > pageSize
+
+      return {
+        items,
+        startCursor,
+        endCursor,
+        hasNextPage: hasMore,
+        hasPreviousPage: false,
+        total: totalCount,
+      }
+    }
+
+    if (goToLast) {
+      // Fetch the last page by ordering desc and taking the first pageSize items
+      const orderBy = desc(table.position)
+      const filterClause = params.input.filters
+        ? whereClauseFromObject(table, params.input.filters)
+        : undefined
+      const searchQuery = params.input.searchQuery
+      const searchQueryClause =
+        searchQuery && searchableColumns
+          ? constructSearchQueryClause(
+              table,
+              searchQuery,
+              searchableColumns
+            )
+          : undefined
+      const whereClauses = and(filterClause, searchQueryClause)
+
+      // Get total count first to calculate if we need a partial last page
+      const total = await transaction
+        .select({ count: count() })
+        .from(table)
+        .$dynamic()
+        .where(and(filterClause, searchQueryClause))
+
+      const totalCount = total[0].count
+      const lastPageSize = totalCount % pageSize || pageSize
+
+      const queryResult = await transaction
+        .select()
+        .from(table)
+        .where(whereClauses)
+        .orderBy(orderBy)
+        .limit(lastPageSize + 1)
+
+      // Reverse to get ascending order
+      const reversedResult = queryResult.reverse()
+
+      const data: z.infer<S>[] = reversedResult
+        .map((item) => selectSchema.parse(item))
+        .slice(0, lastPageSize)
+      const enrichedData: z.infer<D>[] = await (enrichmentFunction
+        ? enrichmentFunction(data, transaction)
+        : Promise.resolve(data))
+
+      const items: z.infer<D>[] = enrichedData.map((item) =>
+        dataSchema.parse(item)
+      )
+      const startCursor = data.length > 0 ? data[0].id : null
+      const endCursor =
+        data.length > 0 ? data[data.length - 1].id : null
+
+      return {
+        items,
+        startCursor,
+        endCursor,
+        hasNextPage: false,
+        hasPreviousPage: totalCount > pageSize,
+        total: totalCount,
+      }
+    }
+
     // Determine pagination direction and cursor
     const isForward = !!pageAfter || (!pageBefore && !pageAfter)
     const orderBy = isForward

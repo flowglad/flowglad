@@ -6,7 +6,11 @@ import {
   setupInvoice,
 } from '../../seedDatabase'
 import { updateInvoiceTransaction } from './invoiceHelpers'
-import { InvoiceStatus, InvoiceType } from '@/types'
+import {
+  InvoiceStatus,
+  InvoiceType,
+  SubscriptionItemType,
+} from '@/types'
 import { core } from '@/utils/core'
 
 describe('updateInvoiceTransaction', () => {
@@ -314,12 +318,16 @@ describe('updateInvoiceTransaction', () => {
                   description: 'Item 1',
                   quantity: 1,
                   price: 1000,
+                  type: SubscriptionItemType.Static,
+                  priceId: null,
                 },
                 {
                   invoiceId: invoice.id,
                   description: 'Item 2',
                   quantity: 1,
                   price: 2000,
+                  type: SubscriptionItemType.Static,
+                  priceId: null,
                 },
               ],
             },
@@ -344,12 +352,16 @@ describe('updateInvoiceTransaction', () => {
                 description: 'Modified Item 1',
                 quantity: 2,
                 price: 1500,
+                type: SubscriptionItemType.Static,
+                priceId: null,
               },
               {
                 invoiceId: invoice.id, // Add new
                 description: 'New Item 3',
                 quantity: 1,
                 price: 3000,
+                type: SubscriptionItemType.Static,
+                priceId: null,
               },
             ],
           },

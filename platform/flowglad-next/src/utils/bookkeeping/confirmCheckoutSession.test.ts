@@ -718,6 +718,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               stripePaymentIntentId: `pi_${core.nanoid()}`,
               type: CheckoutSessionType.AddPaymentMethod,
               customerId: customer.id,
+              automaticallyUpdateSubscriptions: false,
             },
             transaction
           )

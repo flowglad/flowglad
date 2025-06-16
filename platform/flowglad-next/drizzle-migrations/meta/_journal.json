@@ -1534,6 +1534,41 @@
       "when": 1748631240675,
       "tag": "0219_tearful_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 220,
+      "version": "7",
+      "when": 1749501589727,
+      "tag": "0220_bumpy_squadron_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 221,
+      "version": "7",
+      "when": 1749503751655,
+      "tag": "0221_brave_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 222,
+      "version": "7",
+      "when": 1749653494002,
+      "tag": "0222_colossal_hemingway",
+      "breakpoints": true
+    },
+    {
+      "idx": 223,
+      "version": "7",
+      "when": 1749672192999,
+      "tag": "0223_shiny_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 224,
+      "version": "7",
+      "when": 1749753144064,
+      "tag": "0224_clever_microchip",
+      "breakpoints": true
     }
   ]
 }

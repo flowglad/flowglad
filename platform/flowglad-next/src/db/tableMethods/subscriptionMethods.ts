@@ -10,6 +10,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
+  standardSubscriptionSelectSchema,
   Subscription,
   subscriptions,
   subscriptionsInsertSchema,
@@ -36,6 +37,7 @@ import { customers, customersSelectSchema } from '../schema/customers'
 import { prices, pricesSelectSchema } from '../schema/prices'
 import { products, productsSelectSchema } from '../schema/products'
 import { z } from 'zod'
+import { PaymentMethod } from '../schema/paymentMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptions,
@@ -82,7 +84,12 @@ export const safelyUpdateSubscriptionStatus = async (
   subscription: Subscription.Record,
   status: SubscriptionStatus,
   transaction: DbTransaction
-) => {
+): Promise<Subscription.StandardRecord> => {
+  if (status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      `Cannot update subscription ${subscription.id} to credit trial status`
+    )
+  }
   if (subscription.status === status) {
     return subscription
   }
@@ -91,10 +98,16 @@ export const safelyUpdateSubscriptionStatus = async (
       `Subscription ${subscription.id} is in terminal state ${subscription.status} and cannot be updated to ${status}`
     )
   }
-  return updateSubscription(
+  const updatedSubscription = await updateSubscription(
     { id: subscription.id, status },
     transaction
   )
+  if (updatedSubscription.status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      `Subscription ${subscription.id} was updated to credit trial status. Credit_trial status is a status that can only be created, not updated to.`
+    )
+  }
+  return standardSubscriptionSelectSchema.parse(updatedSubscription)
 }
 
 export const selectSubscriptionsToBeCancelled = async (
@@ -216,6 +229,7 @@ export const currentSubscriptionStatuses = [
   SubscriptionStatus.Trialing,
   SubscriptionStatus.CancellationScheduled,
   SubscriptionStatus.Unpaid,
+  SubscriptionStatus.CreditTrial,
 ]
 
 export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
@@ -297,3 +311,31 @@ export const selectSubscriptionCountsByStatus = async (
     count: item.count,
   }))
 }
+
+export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =
+  async (
+    paymentMethod: PaymentMethod.Record,
+    transaction: DbTransaction
+  ) => {
+    const subscriptionRecords = await selectSubscriptions(
+      {
+        customerId: paymentMethod.customerId,
+        livemode: paymentMethod.livemode,
+        status: currentSubscriptionStatuses,
+      },
+      transaction
+    )
+    const updatedSubscriptions = await transaction
+      .update(subscriptions)
+      .set({
+        defaultPaymentMethodId: paymentMethod.id,
+      })
+      .where(
+        inArray(
+          subscriptions.id,
+          subscriptionRecords.map((subscription) => subscription.id)
+        )
+      )
+      .returning()
+    return updatedSubscriptions
+  }

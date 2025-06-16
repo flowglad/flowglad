@@ -71,6 +71,7 @@ export const discounts = pgTable(
       constructUniqueIndex(TABLE_NAME, [
         table.code,
         table.organizationId,
+        table.livemode,
       ]),
       livemodePolicy(),
       pgPolicy(

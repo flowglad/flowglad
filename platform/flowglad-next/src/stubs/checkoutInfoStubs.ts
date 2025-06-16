@@ -37,6 +37,7 @@ const checkoutSession: CheckoutSession.Record = {
   cancelUrl: null,
   quantity: 1,
   invoiceId: null,
+  automaticallyUpdateSubscriptions: null,
   type: CheckoutSessionType.Product,
   targetSubscriptionId: null,
   createdByCommit: 'test',

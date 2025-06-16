@@ -1,10 +1,6 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import {
-  selectCatalogById,
-  selectCatalogs,
-} from '@/db/tableMethods/catalogMethods'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { selectCatalogs } from '@/db/tableMethods/catalogMethods'
 import InnerCatalogDetailsPage from './InnerCatalogDetailsPage'
 
 interface CatalogPageProps {
@@ -24,21 +20,7 @@ const CatalogPage = async ({ params }: CatalogPageProps) => {
     notFound()
   }
 
-  const productsWithPrices = await authenticatedTransaction(
-    async ({ transaction }) => {
-      return selectPricesAndProductsByProductWhere(
-        { catalogId: catalog.id },
-        transaction
-      )
-    }
-  )
-
-  return (
-    <InnerCatalogDetailsPage
-      products={productsWithPrices}
-      catalog={catalog}
-    />
-  )
+  return <InnerCatalogDetailsPage catalog={catalog} />
 }
 
 export default CatalogPage

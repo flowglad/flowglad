@@ -6,6 +6,7 @@ import {
   text,
   integer,
   timestamp,
+  boolean,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -98,6 +99,9 @@ const columns = {
   outputMetadata: jsonb('output_metadata'),
   outputName: text('output_name'),
   targetSubscriptionId: text('target_subscription_id'),
+  automaticallyUpdateSubscriptions: boolean(
+    'automatically_update_subscriptions'
+  ),
 }
 
 export const checkoutSessions = pgTable(
@@ -147,7 +151,8 @@ const refinement = {
 const purchaseCheckoutSessionRefinement = {
   purchaseId: z.string(),
   priceId: z.string(),
-  targetSubscriptionId: z.null(),
+  targetSubscriptionId: core.safeZodNullOrUndefined,
+  automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Purchase),
 }
 
@@ -155,6 +160,7 @@ const invoiceCheckoutSessionRefinement = {
   invoiceId: z.string(),
   priceId: z.null(),
   purchaseId: z.null(),
+  automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   targetSubscriptionId: z.null(),
   type: z.literal(CheckoutSessionType.Invoice),
   outputMetadata: z.null(),
@@ -163,7 +169,8 @@ const invoiceCheckoutSessionRefinement = {
 const productCheckoutSessionRefinement = {
   priceId: z.string(),
   invoiceId: z.null(),
-  targetSubscriptionId: z.null(),
+  targetSubscriptionId: core.safeZodNullOrUndefined,
+  automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Product),
 }
 
@@ -180,6 +187,11 @@ const addPaymentMethodCheckoutSessionRefinement = {
       'The customer that the payment method will be added to as the default payment method.'
     ),
   type: z.literal(CheckoutSessionType.AddPaymentMethod),
+  automaticallyUpdateSubscriptions: z
+    .boolean()
+    .describe(
+      'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
+    ),
 }
 
 export const coreCheckoutSessionsSelectSchema = createSelectSchema(
@@ -217,6 +229,7 @@ export const checkoutSessionsSelectSchema = z
 
 export const coreCheckoutSessionsInsertSchema =
   enhancedCreateInsertSchema(checkoutSessions, refinement)
+
 export const purchaseCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     purchaseCheckoutSessionRefinement

@@ -176,11 +176,15 @@ const PaginationRow = ({
   isLoading,
   isFetching,
   total,
+  goToFirstPage,
+  goToLastPage,
 }: {
   table: TableType<any>
   isLoading?: boolean
   isFetching?: boolean
   total?: number
+  goToFirstPage?: () => void
+  goToLastPage?: () => void
 }) => {
   const pagination = table.getState().pagination
   const showingStart =
@@ -216,7 +220,7 @@ const PaginationRow = ({
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
-            onClick={() => table.setPageIndex(0)}
+            onClick={() => goToFirstPage?.() || table.setPageIndex(0)}
             disabled={
               !table.getCanPreviousPage() || isLoading || isFetching
             }
@@ -251,6 +255,7 @@ const PaginationRow = ({
           <Button
             variant="ghost"
             onClick={() =>
+              goToLastPage?.() ||
               table.setPageIndex(table.getPageCount() - 1)
             }
             disabled={
@@ -284,6 +289,8 @@ export interface PaginationProps {
   pageSize: number
   total: number
   onPageChange: (pageIndex: number) => void
+  goToFirstPage?: () => void
+  goToLastPage?: () => void
   isLoading?: boolean
   isFetching?: boolean
 }
@@ -563,6 +570,8 @@ function Table<TData, TValue>({
             isLoading={pagination?.isLoading}
             isFetching={pagination?.isFetching}
             total={pagination?.total}
+            goToFirstPage={pagination?.goToFirstPage}
+            goToLastPage={pagination?.goToLastPage}
           />
         </div>
       )}

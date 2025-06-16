@@ -14,6 +14,8 @@ import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useRouter } from 'next/navigation'
+import SetCatalogAsDefaultModal from '@/components/forms/SetCatalogAsDefaultModal'
 
 const MoreMenuCell = ({
   catalog,
@@ -22,6 +24,7 @@ const MoreMenuCell = ({
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCloneOpen, setIsCloneOpen] = useState(false)
+  const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const menuItems: PopoverMenuItem[] = [
     {
       label: 'Edit Catalog',
@@ -32,6 +35,12 @@ const MoreMenuCell = ({
       handler: () => setIsCloneOpen(true),
     },
   ]
+  if (!catalog.isDefault) {
+    menuItems.push({
+      label: 'Set as Default',
+      handler: () => setIsSetDefaultOpen(true),
+    })
+  }
   return (
     <MoreMenuTableCell items={menuItems}>
       <EditCatalogModal
@@ -42,6 +51,11 @@ const MoreMenuCell = ({
       <CloneCatalogModal
         isOpen={isCloneOpen}
         setIsOpen={setIsCloneOpen}
+        catalog={catalog}
+      />
+      <SetCatalogAsDefaultModal
+        isOpen={isSetDefaultOpen}
+        setIsOpen={setIsSetDefaultOpen}
         catalog={catalog}
       />
     </MoreMenuTableCell>
@@ -58,6 +72,7 @@ const CatalogsTable = ({
 }: {
   filters?: CatalogsTableFilters
 }) => {
+  const router = useRouter()
   const {
     pageIndex,
     pageSize,
@@ -134,6 +149,9 @@ const CatalogsTable = ({
       data={tableData}
       className="bg-nav"
       bordered
+      onClickRow={(row) => {
+        router.push(`/store/catalogs/${row.catalog.id}`)
+      }}
       pagination={{
         pageIndex,
         pageSize,

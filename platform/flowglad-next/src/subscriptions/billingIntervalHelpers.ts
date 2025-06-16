@@ -7,6 +7,7 @@ interface GenerateNextBillingPeriodParams {
   intervalCount: number
   lastBillingPeriodEndDate?: Date | null
   trialEnd?: Date | null
+  subscriptionStartDate?: Date
 }
 
 interface BillingPeriodRange {
@@ -32,7 +33,22 @@ export function generateNextBillingPeriod({
   interval,
   intervalCount,
   lastBillingPeriodEndDate,
+  trialEnd,
+  subscriptionStartDate,
 }: GenerateNextBillingPeriodParams): BillingPeriodRange {
+  const effectiveStartDate =
+    subscriptionStartDate || billingCycleAnchorDate
+  if (trialEnd) {
+    if (trialEnd.getTime() <= effectiveStartDate.getTime()) {
+      throw new Error(
+        'Trial end date must be after the billing cycle anchor date.'
+      )
+    }
+    return {
+      startDate: effectiveStartDate,
+      endDate: trialEnd,
+    }
+  }
   // 1) Disallow zero or negative intervals
   if (intervalCount <= 0) {
     throw new Error(
@@ -45,17 +61,17 @@ export function generateNextBillingPeriod({
   //    - Else use the anchor date
   const startDate = lastBillingPeriodEndDate
     ? new Date(lastBillingPeriodEndDate.getTime())
-    : billingCycleAnchorDate
+    : effectiveStartDate
 
   let endDate: Date
   if (interval === IntervalUnit.Month) {
     // For monthly intervals, figure out how many days we should use based on startDate's day
-    const startDay = startDate.getDate()
+    const startDay = startDate.getUTCDate()
 
     // Add `intervalCount` months to startDate
     const workingDate = addMonths(startDate, intervalCount)
-    const targetYear = workingDate.getFullYear()
-    const targetMonth = workingDate.getMonth()
+    const targetYear = workingDate.getUTCFullYear()
+    const targetMonth = workingDate.getUTCMonth()
     const daysInTargetMonth = getDaysInMonth(targetYear, targetMonth)
 
     // If the original startDay is 31, but new month has only 30 days, clamp to 30, etc.
@@ -80,30 +96,34 @@ export function generateNextBillingPeriod({
     // If the anchor day was Feb 29 but the new year isn't a leap year, clamp to Feb 28
     // However, we preserve the time from startDate
     if (
-      billingCycleAnchorDate.getMonth() === 1 && // 1 => February
-      billingCycleAnchorDate.getDate() === 29 && // was anchored on Feb 29
+      billingCycleAnchorDate.getUTCMonth() === 1 && // 1 => February
+      billingCycleAnchorDate.getUTCDate() === 29 && // was anchored on Feb 29
       !isLeapYear(baseEndDate) // new year isn't leap
     ) {
       endDate = new Date(
-        baseEndDate.getFullYear(),
-        1, // February
-        28,
-        startDate.getHours(),
-        startDate.getMinutes(),
-        startDate.getSeconds(),
-        startDate.getMilliseconds()
+        Date.UTC(
+          baseEndDate.getUTCFullYear(),
+          1, // February
+          28,
+          startDate.getUTCHours(),
+          startDate.getUTCMinutes(),
+          startDate.getUTCSeconds(),
+          startDate.getUTCMilliseconds()
+        )
       )
     } else {
       // Otherwise, just preserve the date portion from adding years,
       // but also preserve the time portion from startDate
       endDate = new Date(
-        baseEndDate.getFullYear(),
-        baseEndDate.getMonth(),
-        baseEndDate.getDate(),
-        startDate.getHours(),
-        startDate.getMinutes(),
-        startDate.getSeconds(),
-        startDate.getMilliseconds()
+        Date.UTC(
+          baseEndDate.getUTCFullYear(),
+          baseEndDate.getUTCMonth(),
+          baseEndDate.getUTCDate(),
+          startDate.getUTCHours(),
+          startDate.getUTCMinutes(),
+          startDate.getUTCSeconds(),
+          startDate.getUTCMilliseconds()
+        )
       )
     }
   } else {

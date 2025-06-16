@@ -59,7 +59,6 @@ export const insertLedgerTransactionOrDoNothingByIdempotencyKey =
       [ledgerTransactionInsert],
       [
         ledgerTransactions.idempotencyKey,
-        ledgerTransactions.usageMeterId,
         ledgerTransactions.subscriptionId,
       ],
       transaction

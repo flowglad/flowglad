@@ -9,7 +9,7 @@ import {
 } from '../../seedDatabase'
 import { core } from '@/utils/core'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { Price, prices } from '@/db/schema/prices'
+import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'
 import { PriceType, CurrencyCode, FlowgladApiKeyType } from '@/types'
 import { eq, and as drizzleAnd } from 'drizzle-orm'
 import { apiKeys } from '@/db/schema/apiKeys'
@@ -119,6 +119,9 @@ describe('createCursorPaginatedSelectFunction', () => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
           pageSize: 15,
+          filters: {
+            organizationId,
+          },
         },
         transaction,
       })
@@ -361,6 +364,397 @@ describe('createCursorPaginatedSelectFunction', () => {
     )
     expect(intersection.size).toBe(0)
   })
+
+  it('should navigate to first page when goToFirst is true', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersCursorPaginatedWithTableRowData({
+        input: {
+          pageSize: 5,
+          goToFirst: true,
+          filters: {
+            organizationId,
+          },
+        },
+        transaction,
+      })
+    })
+
+    expect(result.items.length).toBe(5)
+    expect(result.hasPreviousPage).toBe(false)
+    expect(result.hasNextPage).toBe(true)
+    expect(result.startCursor).toBeDefined()
+    expect(result.endCursor).toBeDefined()
+    expect(result.total).toBe(15)
+  })
+
+  it('should navigate to last page when goToLast is true', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersCursorPaginatedWithTableRowData({
+        input: {
+          pageSize: 5,
+          goToLast: true,
+          filters: {
+            organizationId,
+          },
+        },
+        transaction,
+      })
+    })
+
+    // Last page should have 15 % 5 = 0, so full page of 5
+    expect(result.items.length).toBe(5)
+    expect(result.hasNextPage).toBe(false)
+    expect(result.hasPreviousPage).toBe(true)
+    expect(result.startCursor).toBeDefined()
+    expect(result.endCursor).toBeDefined()
+    expect(result.total).toBe(15)
+  })
+
+  it('should handle goToLast with partial last page correctly', async () => {
+    // Create 2 more customers to make 17 total, so last page has 2 items
+    await setupCustomer({
+      organizationId,
+      email: `extra1-${core.nanoid()}@example.com`,
+    })
+    await setupCustomer({
+      organizationId,
+      email: `extra2-${core.nanoid()}@example.com`,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersCursorPaginatedWithTableRowData({
+        input: {
+          pageSize: 5,
+          goToLast: true,
+          filters: {
+            organizationId,
+          },
+        },
+        transaction,
+      })
+    })
+
+    // Last page should have 17 % 5 = 2 items
+    expect(result.items.length).toBe(2)
+    expect(result.hasNextPage).toBe(false)
+    expect(result.hasPreviousPage).toBe(true)
+    expect(result.total).toBe(17)
+  })
+
+  it('should handle goToFirst from middle page correctly', async () => {
+    // First get to middle page
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Now go to first from second page
+    const backToFirst = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToFirst: true,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Should be same as original first page
+    expect(backToFirst.items).toEqual(firstPage.items)
+    expect(backToFirst.hasPreviousPage).toBe(false)
+    expect(backToFirst.hasNextPage).toBe(true)
+  })
+
+  it('should handle goToLast from first page correctly', async () => {
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    const lastPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToLast: true,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Should be different from first page
+    expect(lastPage.items).not.toEqual(firstPage.items)
+    expect(lastPage.hasNextPage).toBe(false)
+    expect(lastPage.hasPreviousPage).toBe(true)
+  })
+
+  it('should handle goToFirst and goToLast with filtered results', async () => {
+    // Filter to only livemode customers (8 total)
+    const firstPageFiltered = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 3,
+            goToFirst: true,
+            filters: {
+              organizationId,
+              livemode: true,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    expect(firstPageFiltered.items.length).toBe(3)
+    expect(firstPageFiltered.hasPreviousPage).toBe(false)
+    expect(firstPageFiltered.hasNextPage).toBe(true)
+    expect(firstPageFiltered.total).toBe(8)
+
+    const lastPageFiltered = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 3,
+            goToLast: true,
+            filters: {
+              organizationId,
+              livemode: true,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Last page should have 8 % 3 = 2 items
+    expect(lastPageFiltered.items.length).toBe(2)
+    expect(lastPageFiltered.hasNextPage).toBe(false)
+    expect(lastPageFiltered.hasPreviousPage).toBe(true)
+    expect(lastPageFiltered.total).toBe(8)
+  })
+
+  it('should handle goToFirst and goToLast with empty result set', async () => {
+    const firstPageEmpty = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToFirst: true,
+            filters: {
+              email: 'nonexistent@example.com',
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    expect(firstPageEmpty.items.length).toBe(0)
+    expect(firstPageEmpty.hasPreviousPage).toBe(false)
+    expect(firstPageEmpty.hasNextPage).toBe(false)
+    expect(firstPageEmpty.total).toBe(0)
+    expect(firstPageEmpty.startCursor).toBe(null)
+    expect(firstPageEmpty.endCursor).toBe(null)
+
+    const lastPageEmpty = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToLast: true,
+            filters: {
+              email: 'nonexistent@example.com',
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    expect(lastPageEmpty.items.length).toBe(0)
+    expect(lastPageEmpty.hasPreviousPage).toBe(false)
+    expect(lastPageEmpty.hasNextPage).toBe(false)
+    expect(lastPageEmpty.total).toBe(0)
+    expect(lastPageEmpty.startCursor).toBe(null)
+    expect(lastPageEmpty.endCursor).toBe(null)
+  })
+
+  it('should handle goToLast with single page of results', async () => {
+    // Test with page size larger than total results
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersCursorPaginatedWithTableRowData({
+        input: {
+          pageSize: 20,
+          goToLast: true,
+          filters: {
+            organizationId,
+          },
+        },
+        transaction,
+      })
+    })
+
+    expect(result.items.length).toBe(15)
+    expect(result.hasNextPage).toBe(false)
+    expect(result.hasPreviousPage).toBe(false)
+    expect(result.total).toBe(15)
+  })
+
+  it('should maintain correct order when using goToFirst and goToLast', async () => {
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToFirst: true,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    const lastPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToLast: true,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Verify first page is ordered by creation date ascending
+    for (let i = 0; i < firstPage.items.length - 1; i++) {
+      expect(
+        firstPage.items[i].customer.createdAt.getTime()
+      ).toBeLessThanOrEqual(
+        firstPage.items[i + 1].customer.createdAt.getTime()
+      )
+    }
+
+    // Verify last page is ordered by creation date ascending
+    for (let i = 0; i < lastPage.items.length - 1; i++) {
+      expect(
+        lastPage.items[i].customer.createdAt.getTime()
+      ).toBeLessThanOrEqual(
+        lastPage.items[i + 1].customer.createdAt.getTime()
+      )
+    }
+
+    // Verify that last page items come after first page items chronologically
+    const lastItemFromFirstPage =
+      firstPage.items[firstPage.items.length - 1]
+    const firstItemFromLastPage = lastPage.items[0]
+
+    expect(
+      lastItemFromFirstPage.customer.createdAt.getTime()
+    ).toBeLessThanOrEqual(
+      firstItemFromLastPage.customer.createdAt.getTime()
+    )
+  })
+
+  it('should ignore cursor parameters when goToFirst or goToLast are used', async () => {
+    // Get a valid cursor first
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Use goToFirst with cursor parameters - should ignore cursors
+    const goToFirstWithCursor = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            pageAfter: firstPage.endCursor!, // This should be ignored
+            goToFirst: true,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    // Should be same as normal goToFirst
+    const normalGoToFirst = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToFirst: true,
+            filters: {
+              organizationId,
+            },
+          },
+          transaction,
+        })
+      }
+    )
+
+    expect(goToFirstWithCursor.items).toEqual(normalGoToFirst.items)
+  })
 })
 
 // Start of new RLS integration tests
@@ -448,20 +842,16 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
 
         // Create a price to test RLS
         const priceInput: Price.Insert = {
+          ...nulledPriceColumns,
           name: 'Test Price',
           livemode: false,
           productId: createdProduct.id,
           unitPrice: 1000,
           currency: CurrencyCode.USD,
           type: PriceType.SinglePayment,
-          intervalUnit: null,
-          intervalCount: null,
           active: true,
           externalId: null,
-          usageMeterId: null,
           isDefault: false,
-          trialPeriodDays: null,
-          setupFeeAmount: null,
         }
 
         const createdPrice = await insertPrice(

@@ -486,7 +486,14 @@ export enum PaymentMethodType {
 }
 
 export enum SubscriptionStatus {
+  /**
+   * Used for time based subscriptions
+   */
   Trialing = 'trialing',
+  /**
+   * Used for usage based subscriptions
+   */
+  CreditTrial = 'credit_trial',
   Active = 'active',
   PastDue = 'past_due',
   Unpaid = 'unpaid',
@@ -736,6 +743,7 @@ export enum CheckoutSessionType {
   Product = 'product',
   Purchase = 'purchase',
   AddPaymentMethod = 'add_payment_method',
+  ActivateSubscription = 'activate_subscription',
   Invoice = 'invoice',
 }
 
@@ -770,9 +778,15 @@ export enum UsageCreditStatus {
   Posted = 'posted',
 }
 
+export enum UsageCreditApplicationStatus {
+  Pending = 'pending',
+  Posted = 'posted',
+}
+
 export enum UsageCreditSourceReferenceType {
   InvoiceSettlement = 'invoice_settlement',
   ManualAdjustment = 'manual_adjustment',
+  BillingPeriodTransition = 'billing_period_transition',
   // TODO: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
 }
 
@@ -792,23 +806,14 @@ export enum LedgerEntryDirection {
   Credit = 'credit',
 }
 
-export enum LedgerEntryEntryType {
-  UsageCost = 'usage_cost',
-  PaymentSucceeded = 'payment_succeeded',
-  PaymentInitiated = 'payment_initiated',
-  PaymentFailed = 'payment_failed',
-  CreditGrantRecognized = 'credit_grant_recognized',
-  CreditAppliedToUsage = 'credit_applied_to_usage',
-  CreditBalanceAdjusted = 'credit_balance_adjusted',
-  CreditGrantExpired = 'credit_grant_expired',
-  BillingAdjustment = 'billing_adjustment',
-  PaymentRefunded = 'payment_refunded',
-}
-
 export enum LedgerTransactionInitiatingSourceType {
   UsageEvent = 'usage_event',
-  Payment = 'payment',
   ManualAdjustment = 'manual_adjustment',
+  BillingRun = 'billing_run',
+  Admin = 'admin',
+  CreditGrant = 'credit_grant',
+  Refund = 'refund',
+  InvoiceSettlement = 'invoice_settlement',
 }
 
 export enum FeatureType {
@@ -831,4 +836,90 @@ export enum PlanInterval {
 export enum NormalBalanceType {
   DEBIT = 'debit',
   CREDIT = 'credit',
+}
+
+export enum LedgerTransactionType {
+  /**
+   * Transactions that reflect the emission of a usage event.
+   * Includes both the usage event, and if necesssary,
+   * any consumptions of usage credits in the process.
+   */
+  UsageEventProcessed = 'usage_event_processed',
+  /**
+   * Two sources of credit grants:
+   * 1. Promotional grants, or initial trial grants - essentially "admin" grants
+   * 2. Grants given as a result of a pay-as-you-go payment.
+   */
+  CreditGrantRecognized = 'credit_grant_recognized',
+  /**
+   * Transactions that reflect a change of billing periods for a subscription.
+   * Typically, these will include:
+   * - credit grants for the new period
+   * - expirations of unused credits from the previous period
+   * - charges to settle any outstanding usage costs from the previous period
+   */
+  BillingPeriodTransition = 'billing_period_transition',
+  /**
+   * Any admin actions by the organization to adjust their ledger.
+   * Should be used sparingly, and only in cases where there is no more meaningful
+   * narration of the transaction.
+   * Use BillingRecalculated whenever possible.
+   */
+  AdminCreditAdjusted = 'admin_credit_adjusted',
+  /**
+   * Transactions that reflect an out-of-billing period credit grant expiration.
+   * These are currently unused but present for future use.
+   */
+  CreditGrantExpired = 'credit_grant_expired',
+  /**
+   * Transactions that reflect a payment refund. Will include a debit of
+   * outstanding usage credits, based on the refund policy.
+   */
+  PaymentRefunded = 'payment_refunded',
+  /**
+   * A transaction to correct the record for a prior billing event or
+   * calculation. Addresses cases such as:
+   * - incorrect accounting of prior usage
+   * - inferior products driving a customer to refuse to be charged
+   * etc.
+   */
+  BillingRecalculated = 'billing_recalculated',
+  /**
+   * A transaction to settle the usage costs for an invoice.
+   * Includes a credit grant, and a pair of credit applications
+   * to offset the usage costs.
+   */
+  SettleInvoiceUsageCosts = 'settle_invoice_usage_costs',
+}
+
+export enum LedgerEntryType {
+  UsageCost = 'usage_cost',
+  PaymentInitiated = 'payment_initiated',
+  PaymentFailed = 'payment_failed',
+  CreditGrantRecognized = 'credit_grant_recognized',
+  CreditBalanceAdjusted = 'credit_balance_adjusted',
+  CreditGrantExpired = 'credit_grant_expired',
+  PaymentRefunded = 'payment_refunded',
+  BillingAdjustment = 'billing_adjustment',
+  UsageCreditApplicationDebitFromCreditBalance = 'usage_credit_application_debit_from_credit_balance',
+  UsageCreditApplicationCreditTowardsUsageCost = 'usage_credit_application_credit_towards_usage_cost',
+}
+
+type CreditableEntryType =
+  | 'payment_initiated'
+  | 'credit_grant_recognized'
+
+export type LedgerEntryDebitableEntryType = Exclude<
+  LedgerEntryType,
+  CreditableEntryType
+>
+
+export type LedgerEntryCreditableEntryType = Extract<
+  LedgerEntryType,
+  CreditableEntryType
+>
+
+export enum SubscriptionItemType {
+  Usage = 'usage',
+  Static = 'static',
 }

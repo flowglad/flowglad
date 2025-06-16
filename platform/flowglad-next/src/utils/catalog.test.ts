@@ -17,7 +17,7 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
+import { nulledPriceColumns, Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
 import { Catalog } from '@/db/schema/catalogs'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -171,6 +171,7 @@ describe('cloneCatalogTransaction', () => {
       await adminTransaction(async ({ transaction }) => {
         return insertPrice(
           {
+            ...nulledPriceColumns,
             productId: product2.id,
             name: 'Second Product Price',
             type: PriceType.Subscription,
@@ -184,7 +185,6 @@ describe('cloneCatalogTransaction', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             externalId: null,
-            usageMeterId: null,
           },
           transaction
         )
@@ -518,7 +518,6 @@ describe('createProductTransaction', () => {
   it('should create a product with a default price', async () => {
     const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        console.log('======transaction??', transaction)
         return createProductTransaction(
           {
             product: {
@@ -542,6 +541,7 @@ describe('createProductTransaction', () => {
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
+                usageEventsPerUnit: null,
                 // @ts-expect-error - enforcing isDefault
                 isDefault: undefined,
               },
@@ -559,27 +559,29 @@ describe('createProductTransaction', () => {
         apiKey: org1ApiKeyToken,
       }
     )
-    expect(result.product.name).toBe('Test Product')
-    expect(result.product.description).toBe('Test Description')
-    expect(result.product.active).toBe(true)
-    expect(result.product.imageURL).toBe(null)
-    expect(result.product.displayFeatures).toEqual([])
-    expect(result.product.singularQuantityLabel).toBe('singular')
-    expect(result.product.pluralQuantityLabel).toBe('plural')
-    expect(result.product.catalogId).toBe(sourceCatalog.id)
-    expect(result.prices).toHaveLength(1)
-    expect(result.prices[0].name).toBe('Test Price')
-    expect(result.prices[0].type).toBe(PriceType.Subscription)
-    expect(result.prices[0].intervalCount).toBe(1)
-    expect(result.prices[0].intervalUnit).toBe(IntervalUnit.Month)
-    expect(result.prices[0].unitPrice).toBe(1000)
-    expect(result.prices[0].setupFeeAmount).toBe(0)
-    expect(result.prices[0].trialPeriodDays).toBe(0)
-    expect(result.prices[0].currency).toBe(CurrencyCode.USD)
-    expect(result.prices[0].externalId).toBe(null)
-    expect(result.prices[0].usageMeterId).toBe(null)
-    expect(result.prices[0].isDefault).toBe(true)
-    expect(result.prices[0].active).toBe(true)
-    expect(result.prices[0].livemode).toBe(false)
+    const { product, prices } = result
+    const price = prices[0]
+    expect(product.name).toBe('Test Product')
+    expect(product.description).toBe('Test Description')
+    expect(product.active).toBe(true)
+    expect(product.imageURL).toBe(null)
+    expect(product.displayFeatures).toEqual([])
+    expect(product.singularQuantityLabel).toBe('singular')
+    expect(product.pluralQuantityLabel).toBe('plural')
+    expect(product.catalogId).toBe(sourceCatalog.id)
+    expect(prices).toHaveLength(1)
+    expect(price.name).toBe('Test Price')
+    expect(price.type).toBe(PriceType.Subscription)
+    expect(price.intervalCount).toBe(1)
+    expect(price.intervalUnit).toBe(IntervalUnit.Month)
+    expect(price.unitPrice).toBe(1000)
+    expect(price.setupFeeAmount).toBe(0)
+    expect(price.trialPeriodDays).toBe(0)
+    expect(price.currency).toBe(CurrencyCode.USD)
+    expect(price.externalId).toBe(null)
+    expect(price.usageMeterId).toBe(null)
+    expect(price.isDefault).toBe(true)
+    expect(price.active).toBe(true)
+    expect(price.livemode).toBe(false)
   })
 })

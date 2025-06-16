@@ -13,6 +13,7 @@ import {
   PaymentMethodType,
   PriceType,
   StripeConnectContractType,
+  SubscriptionItemType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import Stripe from 'stripe'
@@ -36,6 +37,7 @@ import {
   InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 export const calculateInvoiceBaseAmount = (
   invoice: ClientInvoiceWithLineItems
@@ -398,17 +400,63 @@ interface SubscriptionFeeCalculationParams {
   organizationCountry: Country.Record
   livemode: boolean
   currency: CurrencyCode
+  usageOverages: {
+    usageMeterId: string
+    balance: number
+  }[]
 }
 
-const calculateBillingItemBaseAmount = (
-  billingPeriodItems: BillingPeriodItem.Record[]
+export const calculateBillingItemBaseAmount = (
+  billingPeriodItems: BillingPeriodItem.Record[],
+  usageOverages: {
+    usageMeterId: string
+    balance: number
+  }[]
 ) => {
-  return billingPeriodItems.reduce((acc, item) => {
-    return acc + item.unitPrice * item.quantity
+  const staticBaseAmount = billingPeriodItems
+    .filter((item) => item.type === SubscriptionItemType.Static)
+    .reduce((acc, item) => {
+      return acc + item.unitPrice * item.quantity
+    }, 0)
+
+  const usageBillingPeriodItemsByUsageMeterId = new Map<
+    string,
+    BillingPeriodItem.UsageRecord
+  >(
+    billingPeriodItems
+      .filter((item) => item.type === SubscriptionItemType.Usage)
+      .map((item) => [item.usageMeterId, item])
+  )
+
+  const usageOverageCosts = usageOverages.map(
+    (outstandingBalance) => {
+      const usageMeterId = outstandingBalance.usageMeterId
+      const usageBillingPeriodItem =
+        usageBillingPeriodItemsByUsageMeterId.get(usageMeterId)
+      if (!usageBillingPeriodItem) {
+        throw new Error(
+          `Usage billing period item not found for usage meter id: ${usageMeterId}`
+        )
+      }
+      return {
+        usageMeterId,
+        usageBillingPeriodItem,
+        cost:
+          (outstandingBalance.balance /
+            usageBillingPeriodItem.usageEventsPerUnit) *
+          usageBillingPeriodItem.unitPrice,
+      }
+    }
+  )
+
+  const usageBaseAmount = usageOverageCosts.reduce((acc, cost) => {
+    return acc + cost.cost
   }, 0)
+
+  return staticBaseAmount + usageBaseAmount
 }
 
-const createSubscriptionFeeCalculationInsert = (
+export const createSubscriptionFeeCalculationInsert = (
   params: SubscriptionFeeCalculationParams
 ) => {
   const {
@@ -420,9 +468,11 @@ const createSubscriptionFeeCalculationInsert = (
     livemode,
     currency,
     discountRedemption,
+    usageOverages,
   } = params
   const baseAmount = calculateBillingItemBaseAmount(
-    billingPeriodItems
+    billingPeriodItems,
+    usageOverages
   )
   const discountAmount = calculateDiscountAmountFromRedemption(
     baseAmount,
@@ -559,6 +609,10 @@ export const finalizeFeeCalculation = async (
       },
       transaction
     )
+  const organization = await selectOrganizationById(
+    feeCalculation.organizationId,
+    transaction
+  )
   /**
    * Hard assume that the payments are processed in pennies.
    * We accept imprecision for Euros, and for other currencies.
@@ -568,18 +622,51 @@ export const finalizeFeeCalculation = async (
       (acc, payment) => acc + payment.amount,
       0
     )
-  let flowgladFeePercentage = feeCalculation.flowgladFeePercentage
-  if (totalProcessedMonthToDatePennies < 100000) {
-    flowgladFeePercentage = '0.00'
+
+  const organizationFeePercentage = parseFloat(
+    organization.feePercentage
+  )
+  const monthlyFreeTier = organization.monthlyBillingVolumeFreeTier
+  const currentTransactionAmount = feeCalculation.pretaxTotal ?? 0
+
+  let finalFlowgladFeePercentage: number
+  let internalNotes: string
+  const newTotalVolume =
+    totalProcessedMonthToDatePennies + currentTransactionAmount
+
+  if (monthlyFreeTier <= totalProcessedMonthToDatePennies) {
+    // Already over the free tier, charge full fee on the current transaction.
+    finalFlowgladFeePercentage = organizationFeePercentage
+    internalNotes = `Full fee applied. Processed this month before transaction: ${totalProcessedMonthToDatePennies}. Free tier: ${monthlyFreeTier}.`
+  } else if (newTotalVolume <= monthlyFreeTier) {
+    // Still within the free tier after this transaction, no fee.
+    finalFlowgladFeePercentage = 0
+    internalNotes = `No fee applied. Processed this month after transaction: ${newTotalVolume}. Free tier: ${monthlyFreeTier}.`
+  } else {
+    // Transaction crosses the free tier boundary. Only charge for the overage.
+    const overageAmount = newTotalVolume - monthlyFreeTier
+    const feeAmount =
+      (overageAmount * organizationFeePercentage) / 100
+
+    if (currentTransactionAmount > 0) {
+      finalFlowgladFeePercentage =
+        (feeAmount / currentTransactionAmount) * 100
+    } else {
+      finalFlowgladFeePercentage = 0
+    }
+    internalNotes = `Partial fee applied. Overage: ${overageAmount}. Processed this month before transaction: ${totalProcessedMonthToDatePennies}. Free tier: ${monthlyFreeTier}. Effective percentage: ${finalFlowgladFeePercentage.toPrecision(
+      6
+    )}%.`
   }
+
   const feeCalculationUpdate = {
     id: feeCalculation.id,
-    flowgladFeePercentage,
+    flowgladFeePercentage: finalFlowgladFeePercentage.toString(),
     type: feeCalculation.type,
     priceId: feeCalculation.priceId,
     billingPeriodId: feeCalculation.billingPeriodId,
     checkoutSessionId: feeCalculation.checkoutSessionId,
-    internalNotes: `Total processed month to date: ${totalProcessedMonthToDatePennies}; Calculated time: ${new Date().toISOString()}`,
+    internalNotes: `${internalNotes} Calculated time: ${new Date().toISOString()}`,
   } as FeeCalculation.Update
   return updateFeeCalculation(feeCalculationUpdate, transaction)
 }

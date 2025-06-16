@@ -12,7 +12,7 @@ import {
 } from 'date-fns'
 import { customAlphabet } from 'nanoid'
 import * as Sentry from '@sentry/nextjs'
-import { camelCase } from 'change-case'
+import { camelCase, sentenceCase } from 'change-case'
 import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
@@ -138,7 +138,9 @@ export const IS_PROD = process.env.VERCEL_ENV === 'production'
 export const IS_TEST =
   (process.env.NODE_ENV === 'test' || process.env.FORCE_TEST_MODE) &&
   process.env.VERCEL_ENV !== 'production'
-export const IS_DEV = process.env.VERCEL_ENV === 'development'
+export const IS_DEV =
+  !IS_PROD && process.env.NODE_ENV === 'development'
+
 /**
  * Used to prefix notifications sent in the dev environment,
  * otherwise an empty string
@@ -346,6 +348,12 @@ export const safeZodNullOrUndefined = z
   })
   .describe('safeZodNullOrUndefined')
 
+export const safeZodNullishString = z
+  .string()
+  .nullish()
+  .transform((val) => val ?? null)
+  .describe('safeZodNullishString')
+
 export const safeZodDate = z
   .date()
   .or(z.string())
@@ -472,7 +480,7 @@ export const titleCase = (str: string) => {
   if (!str) {
     return str
   }
-  return str
+  return sentenceCase(str)
     .split(' ')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
@@ -568,6 +576,7 @@ export const core = {
   formatDateRange,
   gitCommitId,
   safeZodNullOrUndefined,
+  safeZodNullishString,
   safeZodPositiveInteger,
   safeZodDate,
   safeZodAlwaysNull,

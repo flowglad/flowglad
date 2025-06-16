@@ -6,7 +6,12 @@ import {
   safelyUpdateBillingPeriodStatus,
   selectBillingPeriods,
 } from '@/db/tableMethods/billingPeriodMethods'
-import { BillingPeriodStatus, SubscriptionStatus } from '@/types'
+import {
+  BillingPeriodStatus,
+  FeatureType,
+  LedgerTransactionType,
+  SubscriptionStatus,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import { generateNextBillingPeriod } from './billingIntervalHelpers'
 import {
@@ -29,9 +34,15 @@ import type { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { core } from '@/utils/core'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import {
+  selectSubscriptionItemFeatureById,
+  selectSubscriptionItemFeatures,
+} from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 
 interface CreateBillingPeriodParams {
-  subscription: Subscription.Record
+  subscription: Subscription.StandardRecord
   subscriptionItems: SubscriptionItem.Record[]
   trialPeriod: boolean
   isInitialBillingPeriod: boolean
@@ -104,6 +115,9 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
           discountRedemptionId: null, // This would need to be handled separately
           description: '',
           livemode: params.subscription.livemode,
+          type: item.type,
+          usageMeterId: item.usageMeterId,
+          usageEventsPerUnit: item.usageEventsPerUnit,
         }
         return billingPeriodItemInsert
       })
@@ -132,7 +146,7 @@ export const createBillingPeriodAndItems = async (
       billingPeriodItemInserts.map((item) => ({
         ...item,
         billingPeriodId: billingPeriod.id,
-      })),
+      })) as BillingPeriodItem.Insert[],
       transaction
     )
   }
@@ -189,7 +203,13 @@ export const attemptBillingPeriodClose = async (
 export const attemptToTransitionSubscriptionBillingPeriod = async (
   currentBillingPeriod: BillingPeriod.Record,
   transaction: DbTransaction
-) => {
+): Promise<
+  TransactionOutput<{
+    subscription: Subscription.StandardRecord
+    billingRun: BillingRun.Record | null
+    updatedBillingPeriod: BillingPeriod.Record
+  }>
+> => {
   if (
     !currentBillingPeriod.endDate ||
     isNaN(currentBillingPeriod.endDate.getTime())
@@ -207,27 +227,43 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     currentBillingPeriod.subscriptionId,
     transaction
   )
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      `Cannot transition subscription ${subscription.id} in credit trial status`
+    )
+  }
   let billingRun: BillingRun.Record | null = null
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return { subscription, billingRun }
+    return {
+      result: { subscription, billingRun, updatedBillingPeriod },
+      eventsToLog: [],
+    }
   }
   if (
     subscription.cancelScheduledAt &&
     subscription.cancelScheduledAt < new Date()
   ) {
+    subscription = await updateSubscription(
+      {
+        id: subscription.id,
+        canceledAt: new Date(),
+        status: SubscriptionStatus.Canceled,
+      },
+      transaction
+    )
     subscription = await safelyUpdateSubscriptionStatus(
       subscription,
       SubscriptionStatus.Canceled,
       transaction
     )
-    subscription = await updateSubscription(
-      {
-        id: subscription.id,
-        canceledAt: new Date(),
+    return {
+      result: {
+        subscription,
+        billingRun,
+        updatedBillingPeriod,
       },
-      transaction
-    )
-    return { subscription, billingRun }
+      eventsToLog: [],
+    }
   }
   const allBillingPeriods = await selectBillingPeriods(
     { subscriptionId: subscription.id },
@@ -237,68 +273,124 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     (bp) => bp.startDate > currentBillingPeriod.startDate
   )
   if (existingFutureBillingPeriod) {
-    return { subscription, billingRun }
+    return {
+      result: { subscription, billingRun, updatedBillingPeriod },
+      eventsToLog: [],
+    }
   }
   const result =
     await attemptToCreateFutureBillingPeriodForSubscription(
       subscription,
       transaction
     )
-  if (result) {
-    const newBillingPeriod = result.billingPeriod
-    const paymentMethodId =
-      subscription.defaultPaymentMethodId ??
-      subscription.backupPaymentMethodId
-    await safelyUpdateBillingPeriodStatus(
-      newBillingPeriod,
-      BillingPeriodStatus.Active,
-      transaction
-    )
-    if (paymentMethodId) {
-      const paymentMethod = await selectPaymentMethodById(
-        paymentMethodId,
-        transaction
-      )
-      const scheduledFor = subscription.runBillingAtPeriodStart
-        ? newBillingPeriod.startDate
-        : newBillingPeriod.endDate
-      billingRun = await createBillingRun(
-        {
-          billingPeriod: newBillingPeriod,
-          paymentMethod,
-          scheduledFor,
-        },
-        transaction
-      )
-      if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
-        await attemptBillingRunTask.trigger({
-          billingRun,
-        })
-      }
-    }
-    subscription = await updateSubscription(
-      {
-        id: subscription.id,
-        currentBillingPeriodEnd: newBillingPeriod.endDate,
-        currentBillingPeriodStart: newBillingPeriod.startDate,
-      },
-      transaction
-    )
-  }
-  if (!billingRun) {
+  if (!result) {
     subscription = await safelyUpdateSubscriptionStatus(
       subscription,
       SubscriptionStatus.PastDue,
       transaction
     )
+    return {
+      result: {
+        subscription: subscription,
+        billingRun,
+        updatedBillingPeriod,
+      },
+      eventsToLog: [],
+    }
   }
-  return { subscription, billingRun, updatedBillingPeriod }
+  const newBillingPeriod = result.billingPeriod
+  const paymentMethodId =
+    subscription.defaultPaymentMethodId ??
+    subscription.backupPaymentMethodId
+  await safelyUpdateBillingPeriodStatus(
+    newBillingPeriod,
+    BillingPeriodStatus.Active,
+    transaction
+  )
+  if (paymentMethodId) {
+    const paymentMethod = await selectPaymentMethodById(
+      paymentMethodId,
+      transaction
+    )
+    const scheduledFor = subscription.runBillingAtPeriodStart
+      ? newBillingPeriod.startDate
+      : newBillingPeriod.endDate
+    billingRun = await createBillingRun(
+      {
+        billingPeriod: newBillingPeriod,
+        paymentMethod,
+        scheduledFor,
+      },
+      transaction
+    )
+    if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
+      await attemptBillingRunTask.trigger({
+        billingRun,
+      })
+    }
+  }
+  subscription = await updateSubscription(
+    {
+      id: subscription.id,
+      currentBillingPeriodEnd: newBillingPeriod.endDate,
+      currentBillingPeriodStart: newBillingPeriod.startDate,
+      status: paymentMethodId
+        ? SubscriptionStatus.Active
+        : SubscriptionStatus.PastDue,
+    },
+    transaction
+  )
+  /**
+   * See above, in practice this should never happen because above code updates status to past due if there is no payment method.
+   */
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    throw new Error(
+      `Subscription ${subscription.id} was updated to credit trial status. Credit_trial status is a status that can only be created, not updated to.`
+    )
+  }
+  const activeSubscriptionFeatureItems =
+    await selectCurrentlyActiveSubscriptionItems(
+      { subscriptionId: subscription.id },
+      newBillingPeriod.startDate,
+      transaction
+    )
+  const usageCreditGrantFeatures =
+    await selectSubscriptionItemFeatures(
+      {
+        subscriptionItemId: activeSubscriptionFeatureItems.map(
+          (item) => item.id
+        ),
+        type: FeatureType.UsageCreditGrant,
+      },
+      transaction
+    )
+  const ledgerCommandPayload: StandardBillingPeriodTransitionPayload =
+    {
+      type: 'standard',
+      subscription: subscription,
+      previousBillingPeriod: updatedBillingPeriod,
+      newBillingPeriod: newBillingPeriod,
+      subscriptionFeatureItems: usageCreditGrantFeatures.filter(
+        (feature) => feature.type === FeatureType.UsageCreditGrant
+      ),
+    }
+  return {
+    result: { subscription, billingRun, updatedBillingPeriod },
+    eventsToLog: [],
+    ledgerCommand: {
+      type: LedgerTransactionType.BillingPeriodTransition,
+      livemode: updatedBillingPeriod.livemode,
+      organizationId: subscription.organizationId,
+      subscriptionId: subscription.id,
+      payload: ledgerCommandPayload,
+    },
+  }
 }
 
 export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
   async (
     params: {
-      subscription: Subscription.Record
+      subscription: Subscription.StandardRecord
       billingPeriod: BillingPeriod.Record
     },
     transaction: DbTransaction
@@ -356,7 +448,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
 
 export const attemptToCreateFutureBillingPeriodForSubscription =
   async (
-    subscription: Subscription.Record,
+    subscription: Subscription.StandardRecord,
     transaction: DbTransaction
   ) => {
     if (
@@ -390,11 +482,22 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
       return null
     }
 
-    return createNextBillingPeriodBasedOnPreviousBillingPeriod(
+    const result =
+      await createNextBillingPeriodBasedOnPreviousBillingPeriod(
+        {
+          subscription,
+          billingPeriod: mostRecentBillingPeriod,
+        },
+        transaction
+      )
+    await updateSubscription(
       {
-        subscription,
-        billingPeriod: mostRecentBillingPeriod,
+        id: subscription.id,
+        currentBillingPeriodEnd: result.billingPeriod.endDate,
+        currentBillingPeriodStart: result.billingPeriod.startDate,
+        status: subscription.status,
       },
       transaction
     )
+    return result
   }

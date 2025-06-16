@@ -6,8 +6,13 @@ NODE_ENV=production pnpm tsx src/scripts/rehydrateBillingPeriodItems.ts billing_
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import runScript from './scriptRunner'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { attemptToCreateFutureBillingPeriodForSubscription } from '@/subscriptions/billingPeriodHelpers'
+import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import {
+  bulkInsertBillingPeriodItems,
+  selectBillingPeriodItems,
+} from '@/db/tableMethods/billingPeriodItemMethods'
+import { SubscriptionItemType } from '@/types'
 
 async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
@@ -36,16 +41,61 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
       billingPeriodId,
       transaction
     )
-    const subscription = await selectSubscriptionById(
-      billingPeriod.subscriptionId,
+    const result = await selectSubscriptionAndItems(
+      { id: billingPeriod.subscriptionId },
       transaction
     )
-    const result =
-      await attemptToCreateFutureBillingPeriodForSubscription(
-        subscription,
-        transaction
+    const existingBillingPeriodItems = await selectBillingPeriodItems(
+      { billingPeriodId: billingPeriod.id },
+      transaction
+    )
+    if (existingBillingPeriodItems.length > 0) {
+      throw new Error(
+        `Billing period items already exist for billing period ${billingPeriod.id}`
       )
-    console.log(`====result`, result)
+    }
+    const billingPeriodItemInserts: BillingPeriodItem.Insert[] = []
+    result?.subscriptionItems.forEach((item) => {
+      if (item.expiredAt && item.expiredAt > billingPeriod.endDate) {
+        return
+      }
+      if (item.createdAt > billingPeriod.startDate) {
+        return
+      }
+      if (item.type === SubscriptionItemType.Usage) {
+        const insert: BillingPeriodItem.UsageInsert = {
+          billingPeriodId: billingPeriod.id,
+          name: item.name ?? '',
+          description: item.name ?? '',
+          livemode: item.livemode,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          type: item.type,
+          usageMeterId: item.usageMeterId,
+          usageEventsPerUnit: item.usageEventsPerUnit,
+          discountRedemptionId: null,
+        }
+        billingPeriodItemInserts.push(insert)
+      } else {
+        const insert: BillingPeriodItem.StaticInsert = {
+          billingPeriodId: billingPeriod.id,
+          name: item.name ?? '',
+          description: item.name ?? '',
+          livemode: item.livemode,
+          type: item.type,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          usageMeterId: item.usageMeterId,
+          usageEventsPerUnit: item.usageEventsPerUnit,
+          discountRedemptionId: null,
+        }
+        billingPeriodItemInserts.push(insert)
+      }
+    })
+    await bulkInsertBillingPeriodItems(
+      billingPeriodItemInserts,
+      transaction
+    )
   })
 }
 

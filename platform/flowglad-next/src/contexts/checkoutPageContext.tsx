@@ -69,6 +69,9 @@ export type CheckoutPageContextValues = {
   clearDiscountCode: ReturnType<
     typeof trpc.discounts.clear.useMutation
   >['mutateAsync']
+  editCheckoutSessionAutomaticallyUpdateSubscriptions: ReturnType<
+    typeof trpc.checkoutSessions.setAutomaticallyUpdateSubscriptions.useMutation
+  >['mutateAsync']
   discountCode?: string
   checkoutBlocked?: boolean
   currency: CurrencyCode
@@ -143,6 +146,8 @@ export const useCheckoutPageContext =
       trpc.checkoutSessions.setCustomerEmail.useMutation()
     const editCheckoutSessionBillingAddress =
       trpc.checkoutSessions.setBillingAddress.useMutation()
+    const editCheckoutSessionAutomaticallyUpdateSubscriptions =
+      trpc.checkoutSessions.setAutomaticallyUpdateSubscriptions.useMutation()
     const attemptDiscountCode = trpc.discounts.attempt.useMutation()
     const clearDiscountCode = trpc.discounts.clear.useMutation()
     const router = useRouter()
@@ -188,6 +193,17 @@ export const useCheckoutPageContext =
         router.refresh()
         return result
       }, 500),
+      editCheckoutSessionAutomaticallyUpdateSubscriptions: debounce(
+        async (input) => {
+          const result =
+            await editCheckoutSessionAutomaticallyUpdateSubscriptions.mutateAsync(
+              input
+            )
+          router.refresh()
+          return result
+        },
+        500
+      ),
       clearDiscountCode: async (input) => {
         const result = await clearDiscountCode.mutateAsync(input)
         router.refresh()

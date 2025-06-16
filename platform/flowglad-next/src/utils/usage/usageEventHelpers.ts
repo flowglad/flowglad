@@ -1,6 +1,6 @@
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
-import { PriceType } from '@/types'
+import { LedgerTransactionType, PriceType } from '@/types'
 import {
   insertUsageEvent,
   selectUsageEvents,
@@ -8,7 +8,8 @@ import {
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { DbTransaction } from '@/db/types'
 import { CreateUsageEventInput } from '@/db/schema/usageEvents'
-import { createUsageEventLedgerTransaction } from './usageLedgerHelpers'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { UsageEvent } from '@/db/schema/usageEvents'
 
 export const ingestAndProcessUsageEvent = async (
   {
@@ -16,7 +17,7 @@ export const ingestAndProcessUsageEvent = async (
     livemode,
   }: { input: CreateUsageEventInput; livemode: boolean },
   transaction: DbTransaction
-) => {
+): Promise<TransactionOutput<{ usageEvent: UsageEvent.Record }>> => {
   const usageEventInput = input.usageEvent
   const billingPeriod =
     await selectCurrentBillingPeriodForSubscription(
@@ -51,7 +52,7 @@ export const ingestAndProcessUsageEvent = async (
         `A usage event already exists for transactionid ${usageEventInput.transactionId}, but does not belong to subscription ${usageEventInput.subscriptionId}. Please provide a unique transactionId to create a new usage event.`
       )
     }
-    return existingUsageEvent
+    return { result: { usageEvent: existingUsageEvent } }
   }
   const subscription = await selectSubscriptionById(
     usageEventInput.subscriptionId,
@@ -72,9 +73,18 @@ export const ingestAndProcessUsageEvent = async (
     },
     transaction
   )
-  await createUsageEventLedgerTransaction(
-    { usageEvent, organizationId: subscription.organizationId },
-    transaction
-  )
-  return usageEvent
+
+  return {
+    result: { usageEvent },
+    eventsToLog: [],
+    ledgerCommand: {
+      type: LedgerTransactionType.UsageEventProcessed,
+      livemode,
+      organizationId: subscription.organizationId,
+      subscriptionId: subscription.id,
+      payload: {
+        usageEvent,
+      },
+    },
+  }
 }

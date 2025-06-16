@@ -11,6 +11,7 @@ Instead it should just have comments describing:
 
 The goal here is to create the pseudo code in comment form that will allow the agent in the third step to easily implement these tests given knowlege of the function and our own internal tooling for setting up test state.
 
+## Example
 Here's an example output. Note that absence of inner test code, but the comment format. This will be much easier for the agent to pick up in step 3.
 
 ```ts
@@ -40,3 +41,30 @@ describe("categorizeUnicornRiders", () => {
    // .... rest of test cases in this manner
 })
 ```
+
+## Notes
+1. Absolutely under no circumstances should you ever stub or hard-code a foreignKey. Check the type definition + schema definition in @/db/schemas for a given type to see what keys are foreign keys. Same with ids. Just assume that we will be reading all records from the database. Don't confuse the next agent with this nonsense. They may set up the tests incorrectly. Instead, just say the records that you need and refer to them by name, rather than saying e.g. "result.usageMeterId should equal um_1" (when we know that ids from the database are randomly generated)
+
+describe('processAddPaymentMethodSetupIntentSucceeded', () => {
+   it('should automatically update all of a customers subscriptions to a new payment method when automaticallyUpdateSubscriptions is true', () => {
+    // setup:
+    // - create a customer with an old payment method
+    // - create two subscriptions for the customer with the old payment method
+    // - create a checkout session for adding a payment method, with automaticallyUpdateSubscriptions set to true
+    // - create a setup intent that succeeded for this checkout session, with a new payment method
+
+    // expects:
+    // - the two subscriptions should have their defaultPaymentMethodId updated to the new payment method's id
+   })
+   it('should NOT automatically update all of a customers subscriptions to a new payment method when automaticallyUpdateSubscriptions is false', () => {
+    // setup:
+    // - create a customer with an old payment method
+    // - create two subscriptions for the customer with the old payment method
+    // - create a checkout session for adding a payment method, with automaticallyUpdateSubscriptions set to false
+    // - create a setup intent that succeeded for this checkout session, with a new payment method
+
+    // expects:
+    // - the two subscriptions should NOT have their defaultPaymentMethodId updated to the new payment method's id
+    // - they should retain their old payment method
+   })
+})

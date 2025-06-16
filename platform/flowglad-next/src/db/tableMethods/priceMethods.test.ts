@@ -13,7 +13,7 @@ import {
   selectPriceById,
   selectPricesAndProductByProductId,
 } from './priceMethods'
-import { Price } from '../schema/prices'
+import { nulledPriceColumns, Price } from '../schema/prices'
 import { Organization } from '../schema/organizations'
 import { Product } from '../schema/products'
 
@@ -55,6 +55,7 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async ({ transaction }) => {
         const newPrice = await safelyInsertPrice(
           {
+            ...nulledPriceColumns,
             productId: product.id,
             name: 'New Price',
             type: PriceType.Subscription,
@@ -68,7 +69,6 @@ describe('priceMethods.ts', () => {
             currency: CurrencyCode.USD,
             externalId: null,
             active: true,
-            usageMeterId: null,
           },
           transaction
         )
@@ -99,6 +99,7 @@ describe('priceMethods.ts', () => {
         // Now insert a new default price
         const newDefaultPrice = await safelyInsertPrice(
           {
+            ...nulledPriceColumns,
             productId: product.id,
             name: 'New Default Price',
             type: PriceType.Subscription,
@@ -112,7 +113,6 @@ describe('priceMethods.ts', () => {
             currency: CurrencyCode.USD,
             externalId: null,
             active: true,
-            usageMeterId: null,
           },
           transaction
         )

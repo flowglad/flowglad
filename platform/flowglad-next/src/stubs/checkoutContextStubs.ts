@@ -54,6 +54,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
+  automaticallyUpdateSubscriptions: null,
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =
@@ -70,6 +71,8 @@ const functionStubs = {
   editCheckoutSessionCustomerEmail: async () =>
     Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
   editCheckoutSessionBillingAddress: async () =>
+    Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
+  editCheckoutSessionAutomaticallyUpdateSubscriptions: async () =>
     Promise.resolve({ checkoutSession: stubbedCheckoutSession }),
 }
 

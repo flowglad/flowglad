@@ -9,6 +9,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
+  BillingPeriodItem,
   billingPeriodItems,
   billingPeriodItemsInsertSchema,
   billingPeriodItemsSelectSchema,
@@ -30,12 +31,15 @@ import {
   organizationsSelectSchema,
 } from '../schema/organizations'
 import {
+  BillingPeriod,
   billingPeriods,
   billingPeriodsSelectSchema,
 } from '../schema/billingPeriods'
 import {
   subscriptions,
   subscriptionsSelectSchema,
+  standardSubscriptionSelectSchema,
+  Subscription,
 } from '../schema/subscriptions'
 import { customers, customersSelectSchema } from '../schema/customers'
 
@@ -86,9 +90,9 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
         billingPeriodItem: billingPeriodItems,
         customer: customers,
       })
-      .from(billingPeriodItems)
-      .innerJoin(
-        billingPeriods,
+      .from(billingPeriods)
+      .leftJoin(
+        billingPeriodItems,
         eq(billingPeriodItems.billingPeriodId, billingPeriods.id)
       )
       .innerJoin(
@@ -103,7 +107,13 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
         customers,
         eq(subscriptions.customerId, customers.id)
       )
-      .where(eq(billingPeriodItems.billingPeriodId, billingPeriodId))
+      .where(eq(billingPeriods.id, billingPeriodId))
+
+    if (result.length === 0) {
+      throw new Error(
+        `Billing period with id ${billingPeriodId} not found`
+      )
+    }
 
     const { organization, subscription, billingPeriod, customer } =
       result[0]
@@ -111,9 +121,10 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
       organization: organizationsSelectSchema.parse(organization),
       subscription: subscriptionsSelectSchema.parse(subscription),
       billingPeriod: billingPeriodsSelectSchema.parse(billingPeriod),
-      billingPeriodItems: result.map((item) =>
-        billingPeriodItemsSelectSchema.parse(item.billingPeriodItem)
-      ),
+      billingPeriodItems: result
+        .map((item) => item.billingPeriodItem)
+        .filter((item) => item !== null)
+        .map((item) => billingPeriodItemsSelectSchema.parse(item)),
       customer: customersSelectSchema.parse(customer),
     }
   }
@@ -199,7 +210,13 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
     startDate: Date,
     endDate: Date,
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    {
+      billingPeriod: BillingPeriod.Record
+      subscription: Subscription.StandardRecord
+      billingPeriodItems: BillingPeriodItem.Record[]
+    }[]
+  > => {
     // Create the condition to find billing periods that overlap with the date range
     const dateRangeCondition = or(
       // Billing period starts within the date range
@@ -251,7 +268,7 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
             billingPeriod: billingPeriodsSelectSchema.parse(
               row.billingPeriod
             ),
-            subscription: subscriptionsSelectSchema.parse(
+            subscription: standardSubscriptionSelectSchema.parse(
               row.subscription
             ),
             billingPeriodItems: [],
@@ -267,15 +284,9 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
       {} as Record<
         string,
         {
-          billingPeriod: ReturnType<
-            typeof billingPeriodsSelectSchema.parse
-          >
-          subscription: ReturnType<
-            typeof subscriptionsSelectSchema.parse
-          >
-          billingPeriodItems: ReturnType<
-            typeof billingPeriodItemsSelectSchema.parse
-          >[]
+          billingPeriod: BillingPeriod.Record
+          subscription: Subscription.StandardRecord
+          billingPeriodItems: BillingPeriodItem.Record[]
         }
       >
     )

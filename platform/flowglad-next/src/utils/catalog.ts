@@ -7,11 +7,7 @@ import {
 import {
   bulkInsertPrices,
   insertPrice,
-  makePriceDefault,
-  safelyUpdatePrice,
-  selectPrices,
   selectPricesAndProductsByProductWhere,
-  updatePrice,
 } from '@/db/tableMethods/priceMethods'
 import {
   AuthenticatedTransactionParams,

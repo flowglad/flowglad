@@ -20,7 +20,10 @@ import {
 import { DbTransaction } from '@/db/types'
 import { count, eq, and } from 'drizzle-orm'
 import { products } from '../schema/products'
-import { selectPricesAndProductsByProductWhere } from './priceMethods'
+import {
+  selectPricesAndProductsByProductWhere,
+  updatePrice,
+} from './priceMethods'
 import { CatalogWithProductsAndUsageMeters } from '../schema/prices'
 import { Customer } from '@/db/schema/customers'
 import {
@@ -99,6 +102,50 @@ export const makeCatalogDefault = async (
     transaction
   )
   return updatedCatalog
+}
+
+const setCatalogsForOrganizationToNonDefault = async (
+  organizationId: string,
+  transaction: DbTransaction
+) => {
+  await transaction
+    .update(catalogs)
+    .set({ isDefault: false })
+    .where(eq(catalogs.organizationId, organizationId))
+  return true
+}
+
+export const safelyUpdateCatalog = async (
+  catalog: Catalog.Update,
+  transaction: DbTransaction
+) => {
+  /**
+   * If price is default
+   */
+  if (catalog.isDefault) {
+    const existingCatalog = await selectCatalogById(
+      catalog.id,
+      transaction
+    )
+    await setCatalogsForOrganizationToNonDefault(
+      existingCatalog.organizationId,
+      transaction
+    )
+  }
+  return updateCatalog(catalog, transaction)
+}
+
+export const safelyInsertCatalog = async (
+  catalog: Catalog.Insert,
+  transaction: DbTransaction
+) => {
+  if (catalog.isDefault) {
+    await setCatalogsForOrganizationToNonDefault(
+      catalog.organizationId,
+      transaction
+    )
+  }
+  return insertCatalog(catalog, transaction)
 }
 
 const catalogTableRowSchema = z.object({

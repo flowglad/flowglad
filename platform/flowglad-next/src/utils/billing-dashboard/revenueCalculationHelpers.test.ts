@@ -11,6 +11,7 @@ import {
   RevenueChartIntervalUnit,
   BillingPeriodStatus,
   SubscriptionStatus,
+  SubscriptionItemType,
 } from '@/types'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
@@ -28,7 +29,7 @@ import {
   setupPaymentMethod,
   setupSubscription,
   setupBillingPeriod,
-  setupBillingPeriodItems,
+  setupBillingPeriodItem,
 } from '../../../seedDatabase'
 import { DbTransaction } from '@/db/types'
 
@@ -365,6 +366,9 @@ describe('calculateBillingPeriodItemsValue', () => {
       updatedAt: new Date(),
       createdByCommit: 'test',
       updatedByCommit: 'test',
+      type: SubscriptionItemType.Static,
+      usageMeterId: null,
+      usageEventsPerUnit: null,
       position: 0,
     }
   }
@@ -482,14 +486,14 @@ describe('getBillingPeriodsForDateRange', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 2,
         unitPrice: 100,
         name: 'Test Item 1',
       })
 
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 50,
@@ -618,7 +622,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 100,
@@ -684,7 +688,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 1200,
@@ -755,7 +759,7 @@ describe('calculateMRRByMonth', () => {
 
     // Create billing period items
     await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItems({
+      await setupBillingPeriodItem({
         billingPeriodId: billingPeriod.id,
         quantity: 1,
         unitPrice: 100,
@@ -823,7 +827,7 @@ describe('calculateMRRByMonth', () => {
     })
 
     // Create billing period items for monthly subscription
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: monthlyBillingPeriod.id,
       quantity: 1,
       unitPrice: 100,
@@ -850,7 +854,7 @@ describe('calculateMRRByMonth', () => {
     })
 
     // Create billing period items for yearly subscription
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: yearlyBillingPeriod.id,
       quantity: 1,
       unitPrice: 1200,
@@ -901,7 +905,7 @@ describe('calculateMRRByMonth', () => {
       status: BillingPeriodStatus.Active,
     })
 
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: monthlyBillingPeriod.id,
       quantity: 1,
       unitPrice: 100,
@@ -926,7 +930,7 @@ describe('calculateMRRByMonth', () => {
       status: BillingPeriodStatus.Active,
     })
 
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: yearlyBillingPeriod.id,
       quantity: 1,
       unitPrice: 1200,
@@ -951,7 +955,7 @@ describe('calculateMRRByMonth', () => {
       status: BillingPeriodStatus.Active,
     })
 
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: weeklyBillingPeriod.id,
       quantity: 1,
       unitPrice: 25,
@@ -976,7 +980,7 @@ describe('calculateMRRByMonth', () => {
       status: BillingPeriodStatus.Active,
     })
 
-    await setupBillingPeriodItems({
+    await setupBillingPeriodItem({
       billingPeriodId: dailyBillingPeriod.id,
       quantity: 1,
       unitPrice: 1,

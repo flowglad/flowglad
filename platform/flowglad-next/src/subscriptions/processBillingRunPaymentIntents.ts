@@ -11,12 +11,14 @@ import {
 import {
   BillingRunStatus,
   InvoiceStatus,
+  LedgerTransactionType,
   SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   billingRunIntentMetadataSchema,
   dateFromStripeTimestamp,
+  stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import Stripe from 'stripe'
 import {
@@ -37,7 +39,10 @@ import {
 import { Payment } from '@/db/schema/payments'
 import { UserRecord } from '@/db/schema/users'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  selectInvoiceLineItems,
+  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
+} from '@/db/tableMethods/invoiceLineItemMethods'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import {
   safelyUpdateSubscriptionStatus,
@@ -47,6 +52,14 @@ import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBilli
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
+import {
+  aggregateOutstandingBalanceForUsageCosts,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { BillingRun } from '@/db/schema/billingRuns'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -106,6 +119,7 @@ const processSucceededNotifications = async (
       .filter((user) => user.email)
       .map((user) => user.email!),
     currency: params.invoice.currency,
+    customerName: params.customer.name,
   })
 }
 
@@ -147,13 +161,22 @@ const processAwaitingPaymentConfirmationNotifications = async (
     orderDate: params.invoice.invoiceDate,
     invoiceNumber: params.invoice.invoiceNumber,
     currency: params.invoice.currency,
+    customerName: params.customer.name,
   })
 }
 
 export const processPaymentIntentEventForBillingRun = async (
   event: PaymentIntentEvent,
   transaction: DbTransaction
-) => {
+): Promise<
+  TransactionOutput<{
+    invoice: Invoice.Record
+    invoiceLineItems: InvoiceLineItem.Record[]
+    billingRun: BillingRun.Record
+    payment: Payment.Record
+    processingSkipped?: boolean
+  }>
+> => {
   const metadata = billingRunIntentMetadataSchema.parse(
     event.data.object.metadata
   )
@@ -179,7 +202,32 @@ export const processPaymentIntentEventForBillingRun = async (
    * And it is a workaround to avoid the need to implement a queue, for now.
    */
   if (eventPrecedesLastPaymentIntentEvent) {
-    return
+    const [result] =
+      await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+        {
+          billingPeriodId: billingRun.billingPeriodId,
+        },
+        transaction
+      )
+    const [payment] = await selectPayments(
+      {
+        stripePaymentIntentId: event.data.object.id,
+        stripeChargeId: stripeIdFromObjectOrId(
+          event.data.object.latest_charge!
+        ),
+      },
+      transaction
+    )
+    return {
+      result: {
+        invoice: result.invoice,
+        invoiceLineItems: result.invoiceLineItems,
+        billingRun,
+        payment,
+        processingSkipped: true,
+      },
+      ledgerCommand: undefined,
+    }
   }
 
   const paymentMethod = await selectPaymentMethodById(
@@ -214,6 +262,7 @@ export const processPaymentIntentEventForBillingRun = async (
   let [invoice] = await selectInvoices(
     {
       billingPeriodId: billingRun.billingPeriodId,
+      billingRunId: billingRun.id,
     },
     transaction
   )
@@ -242,6 +291,22 @@ export const processPaymentIntentEventForBillingRun = async (
     },
     transaction
   )
+  const claimedLedgerEntries = await selectLedgerEntries(
+    {
+      claimedByBillingRunId: billingRun.id,
+    },
+    transaction
+  )
+
+  const overages = await aggregateOutstandingBalanceForUsageCosts(
+    {
+      ledgerAccountId: claimedLedgerEntries.map(
+        (entry) => entry.ledgerAccountId!
+      ),
+    },
+    billingPeriod.endDate,
+    transaction
+  )
 
   const { totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
@@ -250,6 +315,8 @@ export const processPaymentIntentEventForBillingRun = async (
         billingPeriod,
         organization,
         paymentMethod,
+        usageOverages: overages,
+        billingRun,
       },
       transaction
     )
@@ -337,6 +404,7 @@ export const processPaymentIntentEventForBillingRun = async (
         billingPeriodId: invoice.billingPeriodId,
         subscriptionId: invoice.subscriptionId,
         type: invoice.type,
+        billingRunId: invoice.billingRunId,
       } as Invoice.Update,
       transaction
     )
@@ -345,10 +413,30 @@ export const processPaymentIntentEventForBillingRun = async (
     )
   }
 
+  const invoiceLedgerCommand:
+    | SettleInvoiceUsageCostsLedgerCommand
+    | undefined =
+    invoice.status === InvoiceStatus.Paid
+      ? {
+          type: LedgerTransactionType.SettleInvoiceUsageCosts,
+          payload: {
+            invoice,
+            invoiceLineItems,
+          },
+          livemode: invoice.livemode,
+          organizationId: invoice.organizationId,
+          subscriptionId: invoice.subscriptionId!,
+        }
+      : undefined
+
   return {
-    invoice,
-    billingRun,
-    payment,
+    result: {
+      invoice,
+      invoiceLineItems,
+      billingRun,
+      payment,
+    },
+    ledgerCommand: invoiceLedgerCommand,
   }
 }
 

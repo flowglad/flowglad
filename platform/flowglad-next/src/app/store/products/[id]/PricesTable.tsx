@@ -25,6 +25,7 @@ import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { Product } from '@/db/schema/products'
+import StatusBadge from '@/components/StatusBadge'
 
 const MoreMenuCell = ({
   price,
@@ -220,14 +221,7 @@ const PaginatedPricesTable = ({
           ),
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
-            <Badge
-              iconLeading={<Check size={12} strokeWidth={2} />}
-              variant="soft"
-              color="green"
-              size="sm"
-            >
-              Active
-            </Badge>
+            <StatusBadge active={cellData.price.active} />
           ),
         },
         {

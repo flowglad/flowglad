@@ -207,6 +207,7 @@ export const createNonInvoiceCheckoutSession = async (
     invoiceId: null,
     type: CheckoutSessionType.Product,
     targetSubscriptionId: null,
+    automaticallyUpdateSubscriptions: null,
   }
   if (purchase) {
     checkoutSessionInsert = {
@@ -215,6 +216,7 @@ export const createNonInvoiceCheckoutSession = async (
       invoiceId: null,
       type: CheckoutSessionType.Purchase,
       targetSubscriptionId: null,
+      automaticallyUpdateSubscriptions: null,
     }
   } else if (targetSubscriptionId) {
     checkoutSessionInsert = {
@@ -222,6 +224,7 @@ export const createNonInvoiceCheckoutSession = async (
       customerId,
       targetSubscriptionId,
       type: CheckoutSessionType.AddPaymentMethod,
+      automaticallyUpdateSubscriptions: false,
     }
   }
 
@@ -357,6 +360,7 @@ const createInvoiceCheckoutSession = async (
       priceId: null,
       outputMetadata: null,
       targetSubscriptionId: null,
+      automaticallyUpdateSubscriptions: null,
     },
     transaction
   )

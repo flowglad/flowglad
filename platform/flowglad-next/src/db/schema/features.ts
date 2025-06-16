@@ -1,7 +1,13 @@
 import * as R from 'ramda'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
-import { text, pgTable, pgPolicy, integer } from 'drizzle-orm/pg-core'
+import {
+  text,
+  pgTable,
+  pgPolicy,
+  integer,
+  boolean,
+} from 'drizzle-orm/pg-core'
 import {
   tableBase,
   notNullStringForeignKey,
@@ -20,6 +26,7 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import { catalogs } from './catalogs'
 
 const TABLE_NAME = 'features'
 
@@ -49,6 +56,8 @@ export const features = pgTable(
       columnName: 'renewal_frequency',
       enumBase: FeatureUsageGrantFrequency,
     }),
+    catalogId: notNullStringForeignKey('catalog_id', catalogs),
+    active: boolean('active').notNull().default(true),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
@@ -56,7 +65,9 @@ export const features = pgTable(
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,
       table.slug,
+      table.catalogId,
     ]),
+    constructIndex(TABLE_NAME, [table.catalogId]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
       to: 'authenticated',
@@ -236,6 +247,9 @@ export namespace Feature {
   export type Where = SelectConditions<typeof features>
 
   // Toggle subtypes
+  export type ToggleInsert = z.infer<typeof toggleFeatureInsertSchema>
+  export type ToggleUpdate = z.infer<typeof toggleFeatureUpdateSchema>
+  export type ToggleRecord = z.infer<typeof toggleFeatureSelectSchema>
   export type ToggleClientInsert = z.infer<
     typeof toggleFeatureClientInsertSchema
   >
@@ -247,6 +261,15 @@ export namespace Feature {
   >
 
   // UsageCreditGrant subtypes
+  export type UsageCreditGrantInsert = z.infer<
+    typeof usageCreditGrantFeatureInsertSchema
+  >
+  export type UsageCreditGrantUpdate = z.infer<
+    typeof usageCreditGrantFeatureUpdateSchema
+  >
+  export type UsageCreditGrantRecord = z.infer<
+    typeof usageCreditGrantFeatureSelectSchema
+  >
   export type UsageCreditGrantClientInsert = z.infer<
     typeof usageCreditGrantFeatureClientInsertSchema
   >
@@ -270,3 +293,23 @@ export const editFeatureSchema = z.object({
 })
 
 export type EditFeatureInput = z.infer<typeof editFeatureSchema>
+
+export const toggleFeatureDefaultColumns: Pick<
+  Feature.ToggleInsert,
+  keyof typeof toggleFeatureSharedColumns
+> = {
+  type: FeatureType.Toggle,
+  amount: null,
+  usageMeterId: null,
+  renewalFrequency: null,
+}
+
+export const usageCreditGrantFeatureDefaultColumns: Pick<
+  Feature.UsageCreditGrantInsert,
+  keyof typeof usageCreditGrantFeatureSharedColumns
+> = {
+  type: FeatureType.UsageCreditGrant,
+  amount: 0,
+  usageMeterId: '',
+  renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
+}

@@ -10,13 +10,18 @@ import {
   isSubscriptionInTerminalState,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
-import { SubscriptionAdjustmentTiming } from '@/types'
+import {
+  SubscriptionAdjustmentTiming,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { createBillingRun } from './billingRunHelpers'
 import { Subscription } from '@/db/schema/subscriptions'
 import { AdjustSubscriptionParams } from './schemas'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   adjustmentDate: Date,
@@ -69,7 +74,7 @@ export const adjustSubscription = async (
   params: AdjustSubscriptionParams,
   transaction: DbTransaction
 ): Promise<{
-  subscription: Subscription.Record
+  subscription: Subscription.StandardRecord
   subscriptionItems: SubscriptionItem.Record[]
 }> => {
   const { adjustment, id } = params
@@ -77,6 +82,9 @@ export const adjustSubscription = async (
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
+  }
+  if (subscription.status === SubscriptionStatus.CreditTrial) {
+    throw new Error('Credit trial subscriptions cannot be adjusted.')
   }
   let adjustmentDate: Date
   if (timing === SubscriptionAdjustmentTiming.Immediately) {
@@ -146,8 +154,8 @@ export const adjustSubscription = async (
     currentBillingPeriodForSubscription
   )
 
-  const removedAdjustments = existingSubscriptionItemsToRemove.map(
-    (item) => ({
+  const removedAdjustments: BillingPeriodItem.Insert[] =
+    existingSubscriptionItemsToRemove.map((item) => ({
       billingPeriodId: currentBillingPeriodForSubscription.id,
       quantity: item.quantity,
       unitPrice: -Math.round(item.unitPrice * split.afterPercentage),
@@ -157,22 +165,30 @@ export const adjustSubscription = async (
       DiscountRedemptionId: null,
       description: `Prorated removal adjustment for unused period; ${split.afterPercentage}% of billing period remaining (from ${adjustmentDate} - ${currentBillingPeriodForSubscription.endDate})`,
       livemode: item.livemode,
-    })
-  )
-
-  const addedAdjustments = newSubscriptionItems
-    .filter((item) => !('id' in item))
-    .map((item) => ({
-      billingPeriodId: currentBillingPeriodForSubscription.id,
-      quantity: item.quantity,
-      unitPrice: Math.round(item.unitPrice * split.afterPercentage),
-      name: `Proration: Addition of ${item.name} x ${item.quantity}`,
-      DiscountRedemptionId: null,
-      description: `Prorated addition adjustment for remaining period; ${split.afterPercentage}% of billing period remaining (from ${adjustmentDate} - ${currentBillingPeriodForSubscription.endDate})`,
-      livemode: subscription.livemode,
+      type: SubscriptionItemType.Static,
+      usageMeterId: null,
+      usageEventsPerUnit: null,
+      discountRedemptionId: null,
     }))
 
-  const prorationAdjustments = [
+  const addedAdjustments: BillingPeriodItem.Insert[] =
+    newSubscriptionItems
+      .filter((item) => !('id' in item))
+      .map((item) => ({
+        billingPeriodId: currentBillingPeriodForSubscription.id,
+        quantity: item.quantity,
+        unitPrice: Math.round(item.unitPrice * split.afterPercentage),
+        name: `Proration: Addition of ${item.name} x ${item.quantity}`,
+        DiscountRedemptionId: null,
+        description: `Prorated addition adjustment for remaining period; ${split.afterPercentage}% of billing period remaining (from ${adjustmentDate} - ${currentBillingPeriodForSubscription.endDate})`,
+        livemode: subscription.livemode,
+        type: SubscriptionItemType.Static,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        discountRedemptionId: null,
+      }))
+
+  const prorationAdjustments: BillingPeriodItem.Insert[] = [
     ...removedAdjustments,
     ...addedAdjustments,
   ]

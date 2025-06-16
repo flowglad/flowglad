@@ -12,13 +12,10 @@ import {
   selectUsageMetersPaginated,
   selectUsageMetersCursorPaginated,
 } from '@/db/tableMethods/usageMeterMethods'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { usageMetersClientSelectSchema } from '@/db/schema/usageMeters'
 
-import {
-  authenticatedTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import {
   idInputSchema,
