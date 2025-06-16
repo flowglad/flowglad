@@ -310,6 +310,13 @@ export const purchaseClientSelectSchema = z
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
 
+export const purchasesTableRowDataSchema = z.object({
+  purchase: purchaseClientSelectSchema,
+  product: productsClientSelectSchema,
+  customer: customerClientSelectSchema,
+  revenue: z.number().optional(),
+})
+
 export namespace Purchase {
   export type SubscriptionPurchaseInsert = z.infer<
     typeof subscriptionPurchaseInsertSchema
@@ -378,11 +385,9 @@ export namespace Purchase {
 
   export type Where = SelectConditions<typeof purchases>
 
-  export interface PurchaseTableRowData {
-    purchase: Purchase.ClientRecord
-    product: Product.ClientRecord
-    customer: Customer.ClientRecord
-  }
+  export type PurchaseTableRowData = z.infer<
+    typeof purchasesTableRowDataSchema
+  >
 }
 
 // Update form schemas to use client versions
@@ -402,14 +407,4 @@ export const createCustomerOutputSchema = z.object({
 
 export type CreateCustomerOutputSchema = z.infer<
   typeof createCustomerOutputSchema
->
-
-export const purchasesTableRowDataSchema = z.object({
-  purchase: purchaseClientSelectSchema,
-  product: productsClientSelectSchema,
-  customer: customerClientSelectSchema,
-})
-
-export type PurchaseTableRowData = z.infer<
-  typeof purchasesTableRowDataSchema
 >
