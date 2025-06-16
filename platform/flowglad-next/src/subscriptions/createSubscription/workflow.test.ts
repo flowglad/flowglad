@@ -558,7 +558,7 @@ describe('createSubscriptionWorkflow', async () => {
     expect(noPmBillingRun).toBeNull()
   })
 
-  it('should execute with a billingRun if customer has a default payment method but no defaultPaymentMethodId is provided', async () => {
+  it('should execute with a billingRun if price has no trial period, customer has a default payment method, but no defaultPaymentMethodId is provided', async () => {
     // Specific setup: customer with a default payment method in DB
     const customerWithDefaultPM = await setupCustomer({
       organizationId: organization.id,
@@ -569,7 +569,8 @@ describe('createSubscriptionWorkflow', async () => {
       default: true, // Set as default in DB
     })
     const stripeSetupIntentIdCustPM = `setupintent_cust_pm_${core.nanoid()}`
-
+    expect(defaultPrice.trialPeriodDays).toBe(0)
+    expect(defaultPrice.type).toBe(PriceType.Subscription)
     const {
       result: { billingRun: custPmBillingRun },
     } = await adminTransaction(async ({ transaction }) => {

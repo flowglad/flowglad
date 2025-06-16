@@ -43,6 +43,8 @@ import { Product } from '@/db/schema/products'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
+import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -74,6 +76,7 @@ interface ProcessTerminalCheckoutSessionSetupIntentResult {
   purchase: null
   price: null
 }
+
 export const processTerminalCheckoutSessionSetupIntent = async (
   checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
@@ -128,6 +131,14 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
     ) {
       throw new Error(
         `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Add payment method checkout flow not support (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    if (
+      checkoutSession.type ===
+      CheckoutSessionType.ActivateSubscription
+    ) {
+      throw new Error(
+        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Activate subscription checkout flow not supported (checkout session id: ${checkoutSession.id})`
       )
     }
 
@@ -487,6 +498,82 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }
   }
 
+interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
+  checkoutSession: CheckoutSession.Record
+  organization: Organization.Record
+  customer: Customer.Record
+  paymentMethod: PaymentMethod.Record
+}
+
+const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
+  async (
+    setupIntent: CoreSripeSetupIntent,
+    transaction: DbTransaction
+  ) => {
+    const initialCheckoutSession =
+      await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    const checkoutSession = await updateCheckoutSession(
+      {
+        ...initialCheckoutSession,
+        status: setupIntentStatusToCheckoutSessionStatus(
+          setupIntent.status
+        ),
+      },
+      transaction
+    )
+    const result = await selectSubscriptionAndItems(
+      {
+        id: checkoutSession.targetSubscriptionId!,
+      },
+      transaction
+    )
+    if (!result) {
+      throw new Error(
+        `processActivateSubscriptionCheckoutSessionSetupIntentSucceeded: Subscription not found for checkout session ${checkoutSession.id}`
+      )
+    }
+    const customer = await selectCustomerById(
+      result.subscription.customerId,
+      transaction
+    )
+    const { paymentMethod } =
+      await pullStripeSetupIntentDataToDatabase(
+        setupIntent,
+        customer,
+        transaction
+      )
+    await activateSubscription(
+      {
+        subscription: result.subscription,
+        subscriptionItems: result.subscriptionItems,
+        defaultPaymentMethod: paymentMethod,
+        autoStart: true,
+      },
+      transaction
+    )
+    return {
+      checkoutSession,
+      organization: await selectOrganizationById(
+        checkoutSession.organizationId,
+        transaction
+      ),
+      customer: await selectCustomerById(
+        checkoutSession.customerId!,
+        transaction
+      ),
+      paymentMethod: await paymentMethodForStripePaymentMethodId(
+        {
+          stripePaymentMethodId: stripeIdFromObjectOrId(
+            setupIntent.payment_method!
+          ),
+          livemode: checkoutSession.livemode,
+          customerId: checkoutSession.customerId!,
+        },
+        transaction
+      ),
+    }
+  }
+
 export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
   transaction: DbTransaction
@@ -495,6 +582,7 @@ export const processSetupIntentSucceeded = async (
     | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
     | ProcessAddPaymentMethodSetupIntentSucceededResult
     | ProcessTerminalCheckoutSessionSetupIntentResult
+    | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
   >
 > => {
   const initialCheckoutSession = await checkoutSessionFromSetupIntent(
@@ -521,6 +609,20 @@ export const processSetupIntentSucceeded = async (
       setupIntent,
       transaction
     )
+    return {
+      result,
+      eventsToLog: [],
+    }
+  }
+  if (
+    initialCheckoutSession.type ===
+    CheckoutSessionType.ActivateSubscription
+  ) {
+    const result =
+      await processActivateSubscriptionCheckoutSessionSetupIntentSucceeded(
+        setupIntent,
+        transaction
+      )
     return {
       result,
       eventsToLog: [],

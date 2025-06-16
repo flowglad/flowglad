@@ -1,7 +1,10 @@
 import { SubscriptionStatus, PriceType } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import {
+  safelyUpdateSubscriptionStatus,
+  selectSubscriptions,
+} from '@/db/tableMethods/subscriptionMethods'
 import { currentSubscriptionStatuses } from '@/db/tableMethods/subscriptionMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
@@ -233,7 +236,59 @@ export const setupLedgerAccounts = async (
   )
 }
 
-export const maybeCreateBillingPeriodAndRun = async (
+export const activateSubscription = async (
+  params: {
+    subscription: Subscription.Record
+    subscriptionItems: SubscriptionItem.Record[]
+    defaultPaymentMethod: PaymentMethod.Record
+    autoStart: boolean
+  },
+  transaction: DbTransaction
+) => {
+  const { subscription, subscriptionItems, defaultPaymentMethod } =
+    params
+  const scheduledFor = subscription.runBillingAtPeriodStart
+    ? subscription.currentBillingPeriodStart
+    : subscription.currentBillingPeriodEnd
+
+  const activatedSubscription = await safelyUpdateSubscriptionStatus(
+    subscription,
+    SubscriptionStatus.Active,
+    transaction
+  )
+  const { billingPeriod, billingPeriodItems } =
+    await createBillingPeriodAndItems(
+      {
+        subscription: activatedSubscription,
+        subscriptionItems,
+        trialPeriod: !!subscription.trialEnd,
+        isInitialBillingPeriod: true,
+      },
+      transaction
+    )
+  const shouldCreateBillingRun =
+    defaultPaymentMethod &&
+    subscription.runBillingAtPeriodStart &&
+    params.autoStart &&
+    scheduledFor
+
+  /**
+   * create a billing run, set to to execute
+   */
+  const billingRun = shouldCreateBillingRun
+    ? await createBillingRun(
+        {
+          billingPeriod,
+          paymentMethod: defaultPaymentMethod,
+          scheduledFor,
+        },
+        transaction
+      )
+    : null
+  return { billingPeriod, billingPeriodItems, billingRun }
+}
+
+export const initiateSubscriptionTrialPeriod = async (
   params: {
     subscription: Subscription.Record
     subscriptionItems: SubscriptionItem.Record[]
@@ -242,22 +297,18 @@ export const maybeCreateBillingPeriodAndRun = async (
   },
   transaction: DbTransaction
 ) => {
-  const {
-    subscription,
-    subscriptionItems,
-    defaultPaymentMethod,
-    autoStart,
-  } = params
-  if (subscription.status === SubscriptionStatus.CreditTrial) {
-    return {
-      billingPeriod: null,
-      billingPeriodItems: null,
-      billingRun: null,
-    }
-  }
+  const { subscription, subscriptionItems, defaultPaymentMethod } =
+    params
   const scheduledFor = subscription.runBillingAtPeriodStart
     ? subscription.currentBillingPeriodStart
     : subscription.currentBillingPeriodEnd
+
+  if (subscription.status !== SubscriptionStatus.Trialing) {
+    throw new Error(
+      'initiateSubscriptionTrialPeriod: Subscription is not in trialing status, cannot initiate trial period'
+    )
+  }
+
   const { billingPeriod, billingPeriodItems } =
     await createBillingPeriodAndItems(
       {
@@ -288,6 +339,71 @@ export const maybeCreateBillingPeriodAndRun = async (
       )
     : null
   return { billingPeriod, billingPeriodItems, billingRun }
+}
+
+export const maybeCreateInitialBillingPeriodAndRun = async (
+  params: {
+    subscription: Subscription.Record
+    subscriptionItems: SubscriptionItem.Record[]
+    defaultPaymentMethod: PaymentMethod.Record | null
+    autoStart: boolean
+  },
+  transaction: DbTransaction
+) => {
+  const { subscription, defaultPaymentMethod, subscriptionItems } =
+    params
+  /**
+   * If
+   * and no default payment method is provided,
+   * we do not create a billing period or run.
+   *
+   * This is because the subscription is not yet active,
+   * and we do not want to create a billing period or run
+   * for a subscription that is not yet active.
+   */
+  if (
+    subscription.status === SubscriptionStatus.CreditTrial ||
+    (subscription.status === SubscriptionStatus.Incomplete &&
+      !defaultPaymentMethod)
+  ) {
+    return {
+      billingPeriod: null,
+      billingPeriodItems: null,
+      billingRun: null,
+    }
+  }
+  /**
+   * If the subscription is in trialing status and has a trial end date,
+   * we initiate the trial period.
+   */
+  if (
+    subscription.trialEnd &&
+    subscription.status === SubscriptionStatus.Trialing
+  ) {
+    return await initiateSubscriptionTrialPeriod(params, transaction)
+  }
+  /**
+   * If the subscription is in incomplete status and no default payment method is provided,
+   * we throw an error.
+   *
+   * In practice this should never be reached
+   */
+  if (!defaultPaymentMethod) {
+    throw new Error(
+      'Default payment method is required if trial period is not set'
+    )
+  }
+  /**
+   * If we have a defaultPaymentMethod and no trial period,
+   * we activate the subscription
+   */
+  return await activateSubscription(
+    {
+      ...params,
+      defaultPaymentMethod,
+    },
+    transaction
+  )
 }
 
 export const ledgerCommandPayload = (params: {

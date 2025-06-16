@@ -9,13 +9,13 @@ import {
   maybeDefaultPaymentMethodForSubscription,
   safelyProcessCreationForExistingSubscription,
   setupLedgerAccounts,
-  maybeCreateBillingPeriodAndRun,
+  maybeCreateInitialBillingPeriodAndRun,
   ledgerCommandPayload,
 } from './helpers'
 import { insertSubscriptionAndItems } from './initializers'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
-import { PriceType, FeatureType } from '@/types'
+import { PriceType, FeatureType, SubscriptionStatus } from '@/types'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import { Event } from '@/db/schema/events'
 import {
@@ -100,7 +100,7 @@ export const createSubscriptionWorkflow = async (
   }
 
   const { billingPeriod, billingPeriodItems, billingRun } =
-    await maybeCreateBillingPeriodAndRun(
+    await maybeCreateInitialBillingPeriodAndRun(
       {
         subscription,
         subscriptionItems,
@@ -130,19 +130,24 @@ export const createSubscriptionWorkflow = async (
     },
   ]
 
-  const ledgerCommand: BillingPeriodTransitionLedgerCommand = {
-    organizationId: subscription.organizationId,
-    subscriptionId: subscription.id,
-    livemode: subscription.livemode,
-    type: LedgerTransactionType.BillingPeriodTransition,
-    payload: ledgerCommandPayload({
-      subscription,
-      subscriptionItemFeatures,
-      billingPeriod,
-      billingPeriodItems,
-      billingRun,
-    }),
-  }
+  const ledgerCommand:
+    | BillingPeriodTransitionLedgerCommand
+    | undefined =
+    subscription.status === SubscriptionStatus.Incomplete
+      ? undefined
+      : {
+          organizationId: subscription.organizationId,
+          subscriptionId: subscription.id,
+          livemode: subscription.livemode,
+          type: LedgerTransactionType.BillingPeriodTransition,
+          payload: ledgerCommandPayload({
+            subscription,
+            subscriptionItemFeatures,
+            billingPeriod,
+            billingPeriodItems,
+            billingRun,
+          }),
+        }
 
   return {
     result: {
