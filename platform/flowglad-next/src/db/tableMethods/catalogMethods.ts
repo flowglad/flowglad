@@ -252,6 +252,10 @@ export const selectCatalogsWithProductsAndUsageMetersByCatalogWhere =
       ...catalog,
       usageMeters: usageMetersByCatalogId.get(catalog.id) ?? [],
       products: productsByCatalogId.get(catalog.id) ?? [],
+      defaultProduct:
+        productsByCatalogId
+          .get(catalog.id)
+          ?.find((product) => product.default) ?? undefined,
     }))
   }
 

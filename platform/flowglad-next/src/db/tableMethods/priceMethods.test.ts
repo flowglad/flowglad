@@ -1,17 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupOrg,
-  setupProduct,
-  setupPrice,
-} from '../../../seedDatabase'
+import { setupOrg, setupProduct, setupPrice } from '@/../seedDatabase'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
-import { nanoid } from '@/utils/core'
 import {
   safelyInsertPrice,
   safelyUpdatePrice,
   selectPriceById,
   selectPricesAndProductByProductId,
+  insertPrice,
+  updatePrice,
 } from './priceMethods'
 import { nulledPriceColumns, Price } from '../schema/prices'
 import { Organization } from '../schema/organizations'
@@ -277,6 +274,205 @@ describe('priceMethods.ts', () => {
         // Verify the default price is the second price
         expect(productWithPrices.defaultPrice.id).toBe(secondPrice.id)
         expect(productWithPrices.defaultPrice.isDefault).toBe(true)
+      })
+    })
+  })
+
+  describe('Database Constraints', () => {
+    it('throws an error when inserting a second default price for the same product', async () => {
+      // The first default price is created in beforeEach
+      const newPriceInsert: Price.SubscriptionInsert = {
+        productId: product.id,
+        name: 'Another Default Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        setupFeeAmount: 0,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+        externalId: null,
+        active: true,
+        overagePriceId: null,
+        usageEventsPerUnit: null,
+        startsWithCreditTrial: false,
+        usageMeterId: null,
+      }
+
+      // Expect the entire transaction to fail due to the unique constraint violation
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await insertPrice(newPriceInsert, transaction)
+        })
+      ).rejects.toThrow(
+        /duplicate key value violates unique constraint "prices_product_id_is_default_unique_idx"/
+      )
+    })
+
+    it('throws an error when updating a price to be default when another default price exists', async () => {
+      // First, create another non-default price for the same product
+      const secondPrice = await setupPrice({
+        productId: product.id,
+        name: 'Second Price',
+        type: PriceType.Subscription,
+        unitPrice: 1500,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        setupFeeAmount: 0,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+      })
+
+      // Attempt to update the second price to be default
+      // This should fail because 'price' is already the default for this product
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: secondPrice.id,
+              isDefault: true,
+              type: PriceType.Subscription,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        /duplicate key value violates unique constraint "prices_product_id_is_default_unique_idx"/
+      )
+    })
+
+    it('allows inserting a non-default price when a default price already exists', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // A default price for product.id already exists from the beforeEach hook.
+        const nonDefaultPriceInsert: Price.SubscriptionInsert = {
+          productId: product.id,
+          name: 'Non-Default Price',
+          type: PriceType.Subscription,
+          unitPrice: 4000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          setupFeeAmount: 0,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+          externalId: null,
+          active: true,
+          overagePriceId: null,
+          usageEventsPerUnit: null,
+          startsWithCreditTrial: false,
+          usageMeterId: null,
+        }
+
+        const newPrice = await insertPrice(
+          nonDefaultPriceInsert,
+          transaction
+        )
+        expect(newPrice.isDefault).toBe(false)
+
+        const productWithPrices =
+          await selectPricesAndProductByProductId(
+            product.id,
+            transaction
+          )
+        expect(productWithPrices.prices.length).toBe(2)
+        const defaultPriceCount = productWithPrices.prices.filter(
+          (p) => p.isDefault
+        ).length
+        expect(defaultPriceCount).toBe(1)
+      })
+    })
+
+    it('allows multiple non-default prices for the same product', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // The first default price is created in beforeEach
+
+        // Create a second non-default price
+        await setupPrice({
+          productId: product.id,
+          name: 'Second Price',
+          type: PriceType.Subscription,
+          unitPrice: 1500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          setupFeeAmount: 0,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+        })
+
+        // Create a third non-default price
+        await setupPrice({
+          productId: product.id,
+          name: 'Third Price',
+          type: PriceType.Subscription,
+          unitPrice: 2500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          setupFeeAmount: 0,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+        })
+
+        const productWithPrices =
+          await selectPricesAndProductByProductId(
+            product.id,
+            transaction
+          )
+        expect(productWithPrices.prices.length).toBe(3)
+        const defaultPrices = productWithPrices.prices.filter(
+          (p) => p.isDefault
+        )
+        expect(defaultPrices.length).toBe(1)
+        expect(defaultPrices[0].id).toBe(price.id)
+      })
+    })
+
+    it('allows multiple default prices for different products', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // The first default price for the first product is created in beforeEach
+
+        // Create a second product
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Test Product',
+          catalogId: product.catalogId,
+        })
+
+        // Create a default price for the second product
+        const defaultPriceForSecondProduct = await setupPrice({
+          productId: secondProduct.id,
+          name: 'Default Price for Second Product',
+          type: PriceType.Subscription,
+          unitPrice: 9999,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          setupFeeAmount: 0,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+        })
+
+        expect(defaultPriceForSecondProduct.isDefault).toBe(true)
+        expect(defaultPriceForSecondProduct.productId).toBe(
+          secondProduct.id
+        )
+
+        // Verify the original price is still default for its product
+        const originalPrice = await selectPriceById(
+          price.id,
+          transaction
+        )
+        expect(originalPrice.isDefault).toBe(true)
+        expect(originalPrice.productId).toBe(product.id)
       })
     })
   })

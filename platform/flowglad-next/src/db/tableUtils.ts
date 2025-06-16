@@ -188,6 +188,19 @@ export const createUpdateFunction = <
       })
       .where(eq(table.id, update.id))
       .returning()
+    if (!result) {
+      const [latestItem] = await transaction
+        .select()
+        .from(table)
+        .where(eq(table.id, update.id))
+        .limit(1)
+      if (!latestItem) {
+        throw Error(
+          `No ${noCase(config.tableName)} found with id: ${update.id}`
+        )
+      }
+      return selectSchema.parse(latestItem)
+    }
     return selectSchema.parse(result)
   }
 }

@@ -193,6 +193,7 @@ export const setupOrg = async (params?: {
         pluralQuantityLabel: 'seats',
         catalogId: catalog.id,
         externalId: null,
+        default: false,
       },
       transaction
     )
@@ -226,12 +227,14 @@ export const setupProduct = async ({
   livemode,
   catalogId,
   active = true,
+  default: isDefault = false,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
   catalogId: string
   active?: boolean
+  default?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return await insertProduct(
@@ -247,6 +250,7 @@ export const setupProduct = async ({
         pluralQuantityLabel: 'seats',
         catalogId,
         externalId: null,
+        default: isDefault,
       },
       transaction
     )
@@ -2162,7 +2166,7 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
     featureId: string
     productFeatureId: string
   }
-) => {
+): Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord> => {
   return adminTransaction(async ({ transaction }) => {
     return insertSubscriptionItemFeature(
       {
@@ -2174,8 +2178,8 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
         ...params,
       },
       transaction
-    )
-  }) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
+    ) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
+  })
 }
 
 /**

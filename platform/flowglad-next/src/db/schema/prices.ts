@@ -6,6 +6,7 @@ import {
   boolean,
   pgPolicy,
   PgColumn,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -29,7 +30,6 @@ import {
   productsClientInsertSchema,
   productsClientSelectSchema,
   productsClientUpdateSchema,
-  productsUpdateSchema,
 } from '@/db/schema/products'
 import core from '@/utils/core'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
@@ -127,6 +127,9 @@ export const prices = pgTable(
         table.externalId,
         table.productId,
       ]),
+      uniqueIndex('prices_product_id_is_default_unique_idx')
+        .on(table.productId)
+        .where(sql`${table.isDefault}`),
       constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
       pgPolicy(
         'On update, ensure usage meter belongs to same organization as product',
@@ -503,6 +506,7 @@ export const createProductPriceInputSchema = z.discriminatedUnion(
 export const createProductSchema = z.object({
   product: productsClientInsertSchema,
   price: createProductPriceInputSchema,
+  featureIds: z.array(z.string()).optional(),
 })
 
 export type CreateProductPriceInput = z.infer<
@@ -514,6 +518,7 @@ export type CreateProductSchema = z.infer<typeof createProductSchema>
 export const editProductSchema = z.object({
   product: productsClientUpdateSchema,
   price: pricesClientUpdateSchema.optional(),
+  featureIds: z.array(z.string()).optional(),
   id: z.string(),
 })
 
@@ -535,6 +540,11 @@ export const catalogWithProductsAndUsageMetersSchema =
   catalogsClientSelectSchema.extend({
     products: z.array(productWithPricesSchema),
     usageMeters: z.array(usageMetersClientSelectSchema),
+    defaultProduct: productWithPricesSchema
+      .optional()
+      .describe(
+        'The default product for the catalog. If no product is explicitly set as default, will return undefined.'
+      ),
   })
 
 export type CatalogWithProductsAndUsageMeters = z.infer<

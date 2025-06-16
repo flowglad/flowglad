@@ -9,6 +9,7 @@ import {
   createDeleteFunction,
   ORMMethodCreatorConfig,
   whereClauseFromObject,
+  createBulkInsertFunction,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
 import {
@@ -18,8 +19,10 @@ import {
   productFeaturesUpdateSchema,
   ProductFeature,
 } from '@/db/schema/productFeatures'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import { features, featuresSelectSchema } from '../schema/features'
+import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
+import { Product } from '../schema/products'
 
 // Define a truly empty Zod object schema for the update part
 const emptyUpdateSchema = z.object({}).strict()
@@ -70,17 +73,31 @@ export const upsertProductFeatureByProductIdAndFeatureId =
 export const selectProductFeaturesPaginated =
   createPaginatedSelectFunction(productFeatures, config)
 
-export const expireProductFeatureById = (
-  productFeatureId: string,
+export const expireProductFeaturesByFeatureId = async (
+  productFeatureIds: string[],
   transaction: DbTransaction
 ) => {
-  return updateProductFeature(
-    {
-      id: productFeatureId,
-      expiredAt: new Date(),
-    },
-    transaction
-  )
+  // First, detach any existing subscription item features
+  const detachedSubscriptionItemFeatures =
+    await detachSubscriptionItemFeaturesFromProductFeature(
+      {
+        productFeatureIds,
+        detachedReason: 'product_feature_expired',
+      },
+      transaction
+    )
+
+  // Then expire the product feature
+  const expiredProductFeature = await transaction
+    .update(productFeatures)
+    .set({ expiredAt: new Date() })
+    .where(inArray(productFeatures.id, productFeatureIds))
+    .returning()
+
+  return {
+    expiredProductFeature,
+    detachedSubscriptionItemFeatures,
+  }
 }
 
 export const createOrRestoreProductFeature = async (
@@ -122,4 +139,97 @@ export const selectFeaturesByProductFeatureWhere = async (
     productFeature: productFeaturesSelectSchema.parse(productFeature),
     feature: featuresSelectSchema.parse(feature),
   }))
+}
+
+export const bulkInsertProductFeatures = createBulkInsertFunction(
+  productFeatures,
+  config
+)
+
+export const unexpireProductFeatures = async (
+  {
+    featureIds,
+    productId,
+    organizationId,
+  }: {
+    featureIds: string[]
+    productId: string
+    organizationId: string
+  },
+  transaction: DbTransaction
+): Promise<ProductFeature.Record[]> => {
+  const unExpired = await transaction
+    .update(productFeatures)
+    .set({ expiredAt: null })
+    .where(
+      and(
+        eq(productFeatures.productId, productId),
+        inArray(productFeatures.featureId, featureIds),
+        eq(productFeatures.organizationId, organizationId),
+        isNotNull(productFeatures.expiredAt)
+      )
+    )
+    .returning()
+  return unExpired.map((pf) => productFeaturesSelectSchema.parse(pf))
+}
+
+export const syncProductFeatures = async (
+  params: {
+    product: Pick<
+      Product.Record,
+      'id' | 'livemode' | 'organizationId'
+    >
+    desiredFeatureIds: string[]
+  },
+  transaction: DbTransaction
+) => {
+  const { product, desiredFeatureIds } = params
+  const allProductFeaturesForProduct = await selectProductFeatures(
+    {
+      productId: product.id,
+    },
+    transaction
+  )
+  const existingProductFeaturesByFeatureId = new Map(
+    allProductFeaturesForProduct.map((pf) => [pf.featureId, pf])
+  )
+  const desiredFeatureIdsSet = new Set(desiredFeatureIds)
+
+  // Expire unwanted and active product features
+  const productFeaturesToExpire = allProductFeaturesForProduct.filter(
+    (pf) => !desiredFeatureIdsSet.has(pf.featureId) && !pf.expiredAt
+  )
+
+  await expireProductFeaturesByFeatureId(
+    productFeaturesToExpire.map((pf) => pf.id),
+    transaction
+  )
+  const featureIdsToUnexpire = allProductFeaturesForProduct
+    .filter(
+      (pf) => desiredFeatureIdsSet.has(pf.featureId) && pf.expiredAt
+    )
+    .map((pf) => pf.featureId)
+  const unexpiredFeatures = await unexpireProductFeatures(
+    {
+      featureIds: featureIdsToUnexpire,
+      productId: product.id,
+      organizationId: product.organizationId,
+    },
+    transaction
+  )
+  const featureIdsToCreate = desiredFeatureIds.filter(
+    (featureId) => !existingProductFeaturesByFeatureId.has(featureId)
+  )
+  const productFeatureInserts: ProductFeature.Insert[] =
+    featureIdsToCreate.map((featureId) => ({
+      productId: product.id,
+      featureId,
+      organizationId: product.organizationId,
+      livemode: product.livemode,
+    }))
+  const newlyCreatedFeatures = await bulkInsertProductFeatures(
+    productFeatureInserts,
+    transaction
+  )
+  return [...newlyCreatedFeatures, ...unexpiredFeatures]
 }

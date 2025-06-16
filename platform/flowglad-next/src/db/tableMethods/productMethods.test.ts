@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import { DbTransaction } from '@/db/types'
-import { getProductTableRows } from './productMethods'
+import {
+  getProductTableRows,
+  insertProduct,
+  updateProduct,
+} from './productMethods'
 import { insertUser } from './userMethods'
 import {
   setupOrg,
@@ -9,9 +13,10 @@ import {
   setupMemberships,
   setupProduct,
   setupPrice,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 import core from '@/utils/core'
+import { Product } from '@/db/schema/products'
 
 describe('getProductTableRows', () => {
   let organizationId: string
@@ -362,5 +367,128 @@ describe('getProductTableRows', () => {
 
     // The newest product should be first
     expect(result.data[0].product.id).toBe(newProduct.id)
+  })
+})
+
+describe('Database Constraints', () => {
+  let organizationId: string
+  let catalogId: string
+  let defaultProductId: string
+
+  beforeEach(async () => {
+    const { organization } = await setupOrg()
+    organizationId = organization.id
+
+    const catalog = await setupCatalog({ organizationId })
+    catalogId = catalog.id
+
+    const defaultProduct = await setupProduct({
+      organizationId,
+      name: 'Default Product',
+      catalogId,
+      default: true,
+    })
+    defaultProductId = defaultProduct.id
+  })
+
+  it('throws an error when inserting a second default product for the same catalog', async () => {
+    const newProductInsert: Product.Insert = {
+      name: 'Another Default Product',
+      organizationId,
+      catalogId,
+      livemode: true,
+      active: true,
+      default: true,
+      displayFeatures: [],
+      singularQuantityLabel: 'seat',
+      pluralQuantityLabel: 'seats',
+      externalId: null,
+      description: null,
+      imageURL: null,
+    }
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        await insertProduct(newProductInsert, transaction)
+      })
+    ).rejects.toThrow(
+      /duplicate key value violates unique constraint "products_catalog_id_default_unique_idx"/
+    )
+  })
+
+  it('throws an error when updating a product to be default when another default product exists', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId,
+      name: 'Non-Default Product',
+      catalogId,
+      default: false,
+    })
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        await updateProduct(
+          {
+            id: nonDefaultProduct.id,
+            default: true,
+          },
+          transaction
+        )
+      })
+    ).rejects.toThrow(
+      /duplicate key value violates unique constraint "products_catalog_id_default_unique_idx"/
+    )
+  })
+
+  it('allows inserting a non-default product when a default product already exists', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const nonDefaultProduct = await insertProduct(
+        {
+          name: 'Non-Default Product',
+          organizationId,
+          catalogId,
+          livemode: true,
+          active: true,
+          default: false,
+          displayFeatures: [],
+          singularQuantityLabel: 'seat',
+          pluralQuantityLabel: 'seats',
+          externalId: null,
+          description: null,
+          imageURL: null,
+        },
+        transaction
+      )
+      expect(nonDefaultProduct.default).toBe(false)
+    })
+  })
+
+  it('allows multiple default products in different catalogs', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // First default product is already created in the first catalog
+      // Create a second catalog
+      const secondCatalog = await setupCatalog({ organizationId })
+
+      // Create a default product in the second catalog
+      const secondDefaultProduct = await insertProduct(
+        {
+          name: 'Default Product in Second Catalog',
+          organizationId,
+          catalogId: secondCatalog.id,
+          livemode: true,
+          active: true,
+          default: true,
+          displayFeatures: [],
+          singularQuantityLabel: 'seat',
+          pluralQuantityLabel: 'seats',
+          externalId: null,
+          description: null,
+          imageURL: null,
+        },
+        transaction
+      )
+
+      expect(secondDefaultProduct.default).toBe(true)
+      expect(secondDefaultProduct.catalogId).toBe(secondCatalog.id)
+    })
   })
 })

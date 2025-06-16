@@ -27,6 +27,7 @@ import {
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
 import { CloneCatalogInput } from '@/db/schema/catalogs'
+import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 
 export const createPrice = async (
   payload: Price.Insert,
@@ -39,6 +40,7 @@ export const createProductTransaction = async (
   payload: {
     product: Product.ClientInsert
     prices: CreateProductPriceInput[]
+    featureIds?: string[]
   },
   { userId, transaction, livemode }: AuthenticatedTransactionParams
 ) => {
@@ -63,6 +65,15 @@ export const createProductTransaction = async (
     },
     transaction
   )
+  if (payload.featureIds) {
+    await syncProductFeatures(
+      {
+        product: createdProduct,
+        desiredFeatureIds: payload.featureIds,
+      },
+      transaction
+    )
+  }
   const pricesWithSafelyDefaultPrice = payload.prices.some(
     (price) => price.isDefault
   )
@@ -95,10 +106,23 @@ export const createProductTransaction = async (
 }
 
 export const editProduct = async (
-  payload: { product: Product.Update },
-  { transaction }: AuthenticatedTransactionParams
+  payload: { product: Product.Update; featureIds?: string[] },
+  transaction: DbTransaction
 ) => {
-  return updateProduct(payload.product, transaction)
+  const updatedProduct = await updateProduct(
+    payload.product,
+    transaction
+  )
+  if (updatedProduct && payload.featureIds !== undefined) {
+    await syncProductFeatures(
+      {
+        product: updatedProduct,
+        desiredFeatureIds: payload.featureIds,
+      },
+      transaction
+    )
+  }
+  return updatedProduct
 }
 
 export const cloneCatalogTransaction = async (

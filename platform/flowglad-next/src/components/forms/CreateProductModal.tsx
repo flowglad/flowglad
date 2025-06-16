@@ -29,6 +29,7 @@ const defaultProduct: Product.ClientInsert = {
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
   catalogId: 'catalog_111____',
+  default: false,
 }
 
 export const CreateProductModal = ({

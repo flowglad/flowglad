@@ -3,7 +3,9 @@ import {
   selectProductsPaginated,
   selectProductById,
   getProductTableRows,
+  selectProductsCursorPaginated,
 } from '@/db/tableMethods/productMethods'
+import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
   createProductTransaction,
   editProduct as editProductCatalog,
@@ -34,11 +36,11 @@ import { selectPricesProductsAndCatalogsForOrganization } from '@/db/tableMethod
 import * as R from 'ramda'
 import { Price } from '@/db/schema/prices'
 import { Catalog } from '@/db/schema/catalogs'
-import { selectProductsCursorPaginated } from '@/db/tableMethods/productMethods'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
+import { core } from '@/utils/core'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Product',
@@ -62,7 +64,7 @@ export const createProduct = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
-        const { product, price } = input
+        const { product, price, featureIds } = input
         return createProductTransaction(
           {
             product,
@@ -72,6 +74,7 @@ export const createProduct = protectedProcedure
                 isDefault: true,
               },
             ],
+            featureIds,
           },
           { transaction, userId, livemode }
         )
@@ -89,31 +92,29 @@ export const editProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
-        const { product } = input
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ transaction, input }) => {
+        const { product, featureIds } = input
 
         const updatedProduct = await editProductCatalog(
-          { product },
-          { transaction, userId, livemode }
+          { product, featureIds },
+          transaction
         )
 
         if (!updatedProduct) {
           throw new Error('Product not found or update failed')
         }
+
         if (input.price) {
           await safelyUpdatePrice(input.price, transaction)
         }
         return {
           product: updatedProduct,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 export const listProducts = protectedProcedure
   .meta(openApiMetas.LIST)

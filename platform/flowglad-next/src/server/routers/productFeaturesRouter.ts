@@ -9,7 +9,7 @@ import {
 import {
   selectProductFeatureById,
   selectProductFeaturesPaginated,
-  expireProductFeatureById,
+  expireProductFeaturesByFeatureId,
   createOrRestoreProductFeature as createOrRestoreProductFeatureMethod,
 } from '@/db/tableMethods/productFeatureMethods'
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
@@ -117,7 +117,10 @@ export const expireProductFeature = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        await expireProductFeatureById(input.id, transaction)
+        await expireProductFeaturesByFeatureId(
+          [input.id],
+          transaction
+        )
         return { success: true }
       }
     )
