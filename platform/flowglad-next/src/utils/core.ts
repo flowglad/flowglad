@@ -138,7 +138,9 @@ export const IS_PROD = process.env.VERCEL_ENV === 'production'
 export const IS_TEST =
   (process.env.NODE_ENV === 'test' || process.env.FORCE_TEST_MODE) &&
   process.env.VERCEL_ENV !== 'production'
-export const IS_DEV = process.env.VERCEL_ENV === 'development'
+export const IS_DEV =
+  !IS_PROD && process.env.NODE_ENV === 'development'
+
 /**
  * Used to prefix notifications sent in the dev environment,
  * otherwise an empty string
