@@ -92,14 +92,14 @@ export const editProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ transaction, input }) => {
         const { product, featureIds } = input
 
         const updatedProduct = await editProductCatalog(
           { product, featureIds },
-          { transaction, userId, livemode }
+          transaction
         )
 
         if (!updatedProduct) {
@@ -112,12 +112,9 @@ export const editProduct = protectedProcedure
         return {
           product: updatedProduct,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 export const listProducts = protectedProcedure
   .meta(openApiMetas.LIST)
