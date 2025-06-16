@@ -29,7 +29,6 @@ import {
   productsClientInsertSchema,
   productsClientSelectSchema,
   productsClientUpdateSchema,
-  productsUpdateSchema,
 } from '@/db/schema/products'
 import core from '@/utils/core'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'

@@ -68,6 +68,7 @@ const columns = {
    * from external processors onto Flowglad
    */
   externalId: text('external_id'),
+  default: boolean('default').notNull().default(false),
 }
 
 export const products = pgTable(

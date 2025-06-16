@@ -77,6 +77,7 @@ export const stripeProductToProductInsert = (
     pluralQuantityLabel: stripeProduct.unit_label
       ? `${stripeProduct.unit_label}s`
       : null,
+    default: false,
   }
 }
 

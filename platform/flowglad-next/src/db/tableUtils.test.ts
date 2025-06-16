@@ -834,6 +834,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
           active: true,
           externalId: null,
           catalogId,
+          default: false,
         }
         const createdProduct = await insertProduct(
           productInsert,

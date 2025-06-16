@@ -162,6 +162,7 @@ describe('cloneCatalogTransaction', () => {
               catalogId: sourceCatalog.id,
               imageURL: null,
               externalId: null,
+              default: false,
             },
             transaction
           )
@@ -529,6 +530,7 @@ describe('createProductTransaction', () => {
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
               catalogId: sourceCatalog.id,
+              default: false,
             },
             prices: [
               {

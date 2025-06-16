@@ -19,7 +19,7 @@ import {
   productFeaturesUpdateSchema,
   ProductFeature,
 } from '@/db/schema/productFeatures'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import { features, featuresSelectSchema } from '../schema/features'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 import { Product } from '../schema/products'
@@ -165,7 +165,8 @@ export const unexpireProductFeatures = async (
       and(
         eq(productFeatures.productId, productId),
         inArray(productFeatures.featureId, featureIds),
-        eq(productFeatures.organizationId, organizationId)
+        eq(productFeatures.organizationId, organizationId),
+        isNotNull(productFeatures.expiredAt)
       )
     )
     .returning()

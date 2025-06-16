@@ -193,6 +193,7 @@ export const setupOrg = async (params?: {
         pluralQuantityLabel: 'seats',
         catalogId: catalog.id,
         externalId: null,
+        default: false,
       },
       transaction
     )
@@ -247,6 +248,7 @@ export const setupProduct = async ({
         pluralQuantityLabel: 'seats',
         catalogId,
         externalId: null,
+        default: false,
       },
       transaction
     )
