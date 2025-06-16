@@ -64,7 +64,7 @@ export const createProduct = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
-        const { product, price } = input
+        const { product, price, featureIds } = input
         return createProductTransaction(
           {
             product,
@@ -74,6 +74,7 @@ export const createProduct = protectedProcedure
                 isDefault: true,
               },
             ],
+            featureIds,
           },
           { transaction, userId, livemode }
         )
@@ -97,22 +98,12 @@ export const editProduct = protectedProcedure
         const { product, featureIds } = input
 
         const updatedProduct = await editProductCatalog(
-          { product },
+          { product, featureIds },
           { transaction, userId, livemode }
         )
 
         if (!updatedProduct) {
           throw new Error('Product not found or update failed')
-        }
-
-        if (featureIds !== undefined) {
-          await syncProductFeatures(
-            {
-              product: updatedProduct,
-              desiredFeatureIds: featureIds,
-            },
-            transaction
-          )
         }
 
         if (input.price) {

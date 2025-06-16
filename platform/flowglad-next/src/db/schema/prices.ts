@@ -506,6 +506,7 @@ export const createProductPriceInputSchema = z.discriminatedUnion(
 export const createProductSchema = z.object({
   product: productsClientInsertSchema,
   price: createProductPriceInputSchema,
+  featureIds: z.array(z.string()).optional(),
 })
 
 export type CreateProductPriceInput = z.infer<

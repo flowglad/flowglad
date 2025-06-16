@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   setupOrg,
   setupCatalog,
   setupUserAndApiKey,
+  setupToggleFeature,
 } from '../../seedDatabase'
 import {
   cloneCatalogTransaction,
   createProductTransaction,
+  editProduct,
 } from './catalog'
 import { IntervalUnit, PriceType, CurrencyCode } from '@/types'
 import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
@@ -20,13 +23,22 @@ import { Product } from '@/db/schema/products'
 import { nulledPriceColumns, Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
 import { Catalog } from '@/db/schema/catalogs'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { Feature } from '@/db/schema/features'
+import {
+  insertFeature,
+  selectFeatures,
+} from '@/db/tableMethods/featureMethods'
+import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
+import { ApiKey } from '@/db/schema/apiKeys'
 
 describe('cloneCatalogTransaction', () => {
   let organization: Organization.Record
   let sourceCatalog: Catalog.Record
   let product: Product.Record
   let price: Price.Record
+  let features: Feature.Record[]
+  let org1ApiKeyToken: string
+  let userId: string
 
   beforeEach(async () => {
     const orgSetup = await setupOrg()
@@ -34,6 +46,28 @@ describe('cloneCatalogTransaction', () => {
     product = orgSetup.product
     price = orgSetup.price
     sourceCatalog = orgSetup.catalog
+    const userApiKeyOrg1 = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: false,
+    })
+    if (!userApiKeyOrg1.apiKey.token) {
+      throw new Error('API key token not found after setup for org1')
+    }
+    org1ApiKeyToken = userApiKeyOrg1.apiKey.token
+    userId = userApiKeyOrg1.user.id
+    const featureA = await setupToggleFeature({
+      name: 'Feature A',
+      organizationId: organization.id,
+      livemode: false,
+      catalogId: sourceCatalog.id,
+    })
+    const featureB = await setupToggleFeature({
+      name: 'Feature B',
+      organizationId: organization.id,
+      livemode: false,
+      catalogId: sourceCatalog.id,
+    })
+    features = [featureA, featureB]
   })
 
   describe('Basic Functionality', () => {
@@ -497,6 +531,7 @@ describe('createProductTransaction', () => {
   let sourceCatalog: Catalog.Record
   let org1ApiKeyToken: string
   let userId: string
+  let features: Feature.Record[]
   beforeEach(async () => {
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
@@ -515,6 +550,19 @@ describe('createProductTransaction', () => {
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
     userId = userApiKeyOrg1.user.id
+    const featureA = await setupToggleFeature({
+      name: 'Feature A',
+      organizationId: organization.id,
+      livemode: false,
+      catalogId: sourceCatalog.id,
+    })
+    const featureB = await setupToggleFeature({
+      name: 'Feature B',
+      organizationId: organization.id,
+      livemode: false,
+      catalogId: sourceCatalog.id,
+    })
+    features = [featureA, featureB]
   })
   it('should create a product with a default price', async () => {
     const result = await authenticatedTransaction(
@@ -544,14 +592,14 @@ describe('createProductTransaction', () => {
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
-                // @ts-expect-error - enforcing isDefault
-                isDefault: undefined,
+                isDefault: true,
+                startsWithCreditTrial: null,
+                overagePriceId: null,
               },
             ],
           },
           {
             userId,
-            apiKeyToken: org1ApiKeyToken,
             transaction,
             livemode: false,
           }
@@ -585,5 +633,264 @@ describe('createProductTransaction', () => {
     expect(price.isDefault).toBe(true)
     expect(price.active).toBe(true)
     expect(price.livemode).toBe(false)
+  })
+
+  it('should create a product and associate features with it', async () => {
+    const featureIds = features.map((f) => f.id)
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'Test Product with Features',
+              description: 'Test Description',
+              active: true,
+              imageURL: null,
+              displayFeatures: [],
+              singularQuantityLabel: 'singular',
+              pluralQuantityLabel: 'plural',
+              catalogId: sourceCatalog.id,
+              default: false,
+            },
+            prices: [
+              {
+                name: 'Test Price',
+                type: PriceType.Subscription,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 1000,
+                setupFeeAmount: 0,
+                trialPeriodDays: 0,
+                active: true,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                isDefault: true,
+                startsWithCreditTrial: null,
+                overagePriceId: null,
+              },
+            ],
+            featureIds,
+          },
+          {
+            userId,
+            transaction,
+            livemode: false,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product } = result
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(2)
+    expect(productFeatures.map((pf) => pf.featureId).sort()).toEqual(
+      featureIds.sort()
+    )
+  })
+
+  it('should create a product without features if featureIds is not provided', async () => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'Test Product No Features',
+              description: 'Test Description',
+              active: true,
+              imageURL: null,
+              displayFeatures: [],
+              singularQuantityLabel: 'singular',
+              pluralQuantityLabel: 'plural',
+              catalogId: sourceCatalog.id,
+              default: false,
+            },
+            prices: [
+              {
+                name: 'Test Price',
+                type: PriceType.Subscription,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 1000,
+                setupFeeAmount: 0,
+                trialPeriodDays: 0,
+                active: true,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+                isDefault: true,
+                startsWithCreditTrial: null,
+                overagePriceId: null,
+              },
+            ],
+          },
+          {
+            userId,
+            transaction,
+            livemode: false,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product } = result
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(0)
+  })
+})
+
+describe('editProduct', () => {
+  let organization: Organization.Record
+  let product: Product.Record
+  let features: Feature.Record[]
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+    product = orgSetup.product
+
+    const featureA = await setupToggleFeature({
+      name: 'Feature A',
+      organizationId: organization.id,
+      livemode: true,
+      catalogId: product.catalogId,
+    })
+    const featureB = await setupToggleFeature({
+      name: 'Feature B',
+      organizationId: organization.id,
+      livemode: true,
+      catalogId: product.catalogId,
+    })
+    const featureC = await setupToggleFeature({
+      name: 'Feature C',
+      organizationId: organization.id,
+      livemode: true,
+      catalogId: product.catalogId,
+    })
+    features = [featureA, featureB, featureC]
+  })
+
+  it('should add features to a product', async () => {
+    const featureIds = [features[0].id, features[1].id]
+    await adminTransaction(async ({ transaction }) => {
+      return editProduct(
+        {
+          product: { id: product.id, name: 'Updated Product' },
+          featureIds,
+        },
+        transaction
+      )
+    })
+
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(2)
+    expect(productFeatures.map((pf) => pf.featureId).sort()).toEqual(
+      featureIds.sort()
+    )
+  })
+
+  it('should remove features from a product', async () => {
+    // First, add features
+    await adminTransaction(async ({ transaction, livemode }) => {
+      await editProduct(
+        {
+          product: { id: product.id },
+          featureIds: [features[0].id, features[1].id],
+        },
+        transaction
+      )
+    })
+
+    // Then, remove one
+    await adminTransaction(async ({ transaction }) => {
+      await editProduct(
+        {
+          product: { id: product.id },
+          featureIds: [features[0].id],
+        },
+        transaction
+      )
+    })
+
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(
+      productFeatures.filter((pf) => !pf.expiredAt)
+    ).toHaveLength(1)
+    expect(
+      productFeatures.find((pf) => !pf.expiredAt)?.featureId
+    ).toBe(features[0].id)
+    expect(productFeatures.find((pf) => pf.expiredAt)).toBeDefined()
+  })
+
+  it('should not change features if featureIds is not provided', async () => {
+    // First, add features
+    await adminTransaction(async ({ transaction }) => {
+      await editProduct(
+        {
+          product: { id: product.id },
+          featureIds: [features[0].id, features[1].id],
+        },
+        transaction
+      )
+    })
+
+    // Then, edit product without featureIds
+    await adminTransaction(async ({ transaction }) => {
+      await editProduct(
+        {
+          product: { id: product.id, name: 'New Name' },
+        },
+        transaction
+      )
+    })
+
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(
+      productFeatures.filter((pf) => !pf.expiredAt)
+    ).toHaveLength(2)
   })
 })
