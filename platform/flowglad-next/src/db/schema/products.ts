@@ -4,6 +4,7 @@ import {
   text,
   boolean,
   jsonb,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -85,6 +86,9 @@ export const products = pgTable(
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
+      uniqueIndex('products_catalog_id_default_unique_idx')
+        .on(table.catalogId)
+        .where(sql`${table.default}`),
       livemodePolicy(),
     ]
   }

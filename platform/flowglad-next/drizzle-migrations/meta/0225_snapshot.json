@@ -1,5 +1,5 @@
 {
-  "id": "520559b5-2654-4bbe-b4ad-0bb422551510",
+  "id": "a8856fc3-7733-468c-b931-0a46cf7d5795",
   "prevId": "39782ebf-dfa6-4231-8838-6e8262d635a5",
   "version": "7",
   "dialect": "postgresql",
@@ -6974,6 +6974,22 @@
           "method": "btree",
           "with": {}
         },
+        "prices_product_id_is_default_unique_idx": {
+          "name": "prices_product_id_is_default_unique_idx",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"prices\".\"is_default\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "prices_usage_meter_id_idx": {
           "name": "prices_usage_meter_id_idx",
           "columns": [
@@ -7450,6 +7466,22 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "products_catalog_id_default_unique_idx": {
+          "name": "products_catalog_id_default_unique_idx",
+          "columns": [
+            {
+              "expression": "catalog_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"products\".\"default\"",
           "concurrently": false,
           "method": "btree",
           "with": {}

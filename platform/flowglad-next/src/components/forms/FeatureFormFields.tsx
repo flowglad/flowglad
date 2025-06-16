@@ -26,6 +26,7 @@ const FeatureFormFields = () => {
 
   const featureType = watch('feature.type')
   if (!core.IS_PROD) {
+    // eslint-disable-next-line no-console
     console.log('errors', errors)
   }
   const assignFeatureValueFromTuple = (tuple: [string, any]) => {

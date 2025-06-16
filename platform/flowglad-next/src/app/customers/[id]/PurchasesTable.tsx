@@ -105,11 +105,6 @@ const PurchasesTable = ({
     useQuery: trpc.purchases.getTableRows.useQuery,
   })
 
-  const paymentsByPurchaseId = useMemo(
-    () => new Map<string, Payment.ClientRecord[]>(),
-    []
-  )
-
   const columns = useMemo(
     () =>
       [
@@ -197,7 +192,7 @@ const PurchasesTable = ({
           ),
         },
       ] as ColumnDef<Purchase.PurchaseTableRowData>[],
-    [paymentsByPurchaseId]
+    []
   )
 
   const tableData = data?.items || []

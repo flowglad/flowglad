@@ -6,6 +6,7 @@ import {
   boolean,
   pgPolicy,
   PgColumn,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -126,6 +127,9 @@ export const prices = pgTable(
         table.externalId,
         table.productId,
       ]),
+      uniqueIndex('prices_product_id_is_default_unique_idx')
+        .on(table.productId)
+        .where(sql`${table.isDefault}`),
       constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
       pgPolicy(
         'On update, ensure usage meter belongs to same organization as product',
