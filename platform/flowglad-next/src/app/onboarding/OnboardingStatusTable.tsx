@@ -25,6 +25,7 @@ import { Tab, Tabs, TabsList } from '@/components/ion/Tab'
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
   children?: React.ReactNode
+  actionNode?: React.ReactNode
 }
 
 const OnboardingItemDescriptionLabel = ({
@@ -46,6 +47,7 @@ const OnboardingStatusRow = ({
   action,
   onClick,
   children,
+  actionNode,
 }: OnboardingStatusRowProps) => {
   return (
     <>
@@ -57,17 +59,17 @@ const OnboardingStatusRow = ({
           </OnboardingItemDescriptionLabel>
           {children}
         </div>
-        {action && (
-          <div className="flex flex-row items-start justify-end p-4">
+        {actionNode || action ? (
+          <div className="flex flex-row items-start justify-end">
             {completed ? (
               <div className="rounded-full bg-green-500  p-2 justify-end items-end">
                 <Check size={20} strokeWidth={2} />
               </div>
             ) : (
-              <Button onClick={onClick}>{action}</Button>
+              actionNode || <Button onClick={onClick}>{action}</Button>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </>
   )
@@ -204,30 +206,31 @@ const OnboardingStatusTable = ({
         />
       </OnboardingStatusRow>
       <OnboardingStatusRow
-        key={'complete-setup'}
+        key={'integrate-flowglad'}
         completed={false}
         title={'3. Integrate Flowglad'}
         description={'Get set up in localhost in a few minutes'}
-      >
-        <OnboardingItemDescriptionLabel>
-          <Link
-            href="https://docs.flowglad.com/quickstart#4-server-setup"
-            className="text-sm my-4 flex flex-row items-center gap-2"
-          >
-            <p>Step-by-step setup.</p>
-            <ArrowUpRightFromSquare size={16} />
-          </Link>
-        </OnboardingItemDescriptionLabel>
-        <OnboardingItemDescriptionLabel>
-          <Link
-            href="https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration"
-            className="text-sm my-4 flex flex-row items-center gap-2"
-          >
-            One shot integration via prompt (Next.js only for now).
-            <ArrowUpRightFromSquare size={16} />
-          </Link>
-        </OnboardingItemDescriptionLabel>
-      </OnboardingStatusRow>
+        actionNode={
+          <div className="flex flex-row items-end justify-center gap-2">
+            <Link
+              href="https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 border border-transparent rounded-radius-sm text-sm bg-primary text-on-primary hover:bg-primary-hover hover:text-on-primary-hover active:bg-primary-pressed active:text-on-primary-pressed whitespace-nowrap"
+            >
+              Auto Setup
+            </Link>
+            <Link
+              href="https://docs.flowglad.com/quickstart#4-server-setup"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 border border-white rounded-lg text-sm text-white bg-transparent whitespace-nowrap"
+            >
+              Manual Setup
+            </Link>
+          </div>
+        }
+      />
       {onboardingChecklistItems.map((item, index) => (
         <OnboardingStatusRow
           key={item.title}
