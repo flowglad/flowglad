@@ -49,7 +49,7 @@ const OnboardingStatusRow = ({
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div className="flex flex-row items-center justify-between first:rounded-t-lg last:rounded-b-lg bg-background-input py-4 border first:border-b-0 first:border-t-0 last:border-t-0 border-stroke-subtle border-l-0 border-r-0 px-4">
+      <div className="flex flex-row items-center justify-between border border-stroke-subtle rounded-lg bg-background-input py-4 px-4">
         <div className="flex flex-col justify-start w-full">
           <p className="font-medium text-foreground pb-1">{title}</p>
           <OnboardingItemDescriptionLabel>
@@ -85,7 +85,7 @@ const OnboardingCodeblock = ({
           {markdownText}
         </Markdown>
         <Button
-          iconLeading={<Copy />}
+          iconLeading={<Copy size={20} />}
           size="sm"
           onClick={() => {
             toast.success('Copied to clipboard')
@@ -175,11 +175,11 @@ const OnboardingStatusTable = ({
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
 
   return (
-    <div className="flex flex-col border border-stroke-subtle rounded-lg w-full">
+    <div className="flex flex-col w-full gap-4">
       <OnboardingStatusRow
         key={'copy-keys'}
         completed={false}
-        title={'Copy your keys'}
+        title={'1. Copy your keys'}
         description={'Copy these keys to your local .env file'}
       >
         <OnboardingCodeblock markdownText={apiKeyText} />
@@ -187,7 +187,7 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'install-packages'}
         completed={false}
-        title={'Install packages'}
+        title={'2. Install packages'}
         description={''}
       >
         <CodeblockGroup
@@ -206,7 +206,7 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'complete-setup'}
         completed={false}
-        title={'Integrate Flowglad'}
+        title={'3. Integrate Flowglad'}
         description={'Get set up in localhost in a few minutes'}
       >
         <OnboardingItemDescriptionLabel>
@@ -228,11 +228,11 @@ const OnboardingStatusTable = ({
           </Link>
         </OnboardingItemDescriptionLabel>
       </OnboardingStatusRow>
-      {onboardingChecklistItems.map((item) => (
+      {onboardingChecklistItems.map((item, index) => (
         <OnboardingStatusRow
           key={item.title}
           completed={item.completed}
-          title={item.title}
+          title={`${index + 4}. ${item.title}`}
           description={item.description}
           action={item.action}
           type={item.type}
