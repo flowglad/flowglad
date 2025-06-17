@@ -2,7 +2,10 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { PurchaseAccessSessionSource } from '@/types'
+import {
+  CheckoutSessionType,
+  PurchaseAccessSessionSource,
+} from '@/types'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import {
   getPaymentIntent,
@@ -197,6 +200,7 @@ const processSetupIntent = async ({
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
     setupSuceededResult.billingRun?.id
   ) {
+    const { billingRun } = setupSuceededResult
     await executeBillingRun(setupSuceededResult.billingRun.id)
   }
 

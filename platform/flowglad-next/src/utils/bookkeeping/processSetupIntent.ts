@@ -45,6 +45,7 @@ import { BillingRun } from '@/db/schema/billingRuns'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { Subscription } from '@/db/schema/subscriptions'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -506,6 +507,9 @@ interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
   organization: Organization.Record
   customer: Customer.Record
   paymentMethod: PaymentMethod.Record
+  billingRun: BillingRun.Record | null
+  subscription: Subscription.Record
+  purchase: null
 }
 
 const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
@@ -545,15 +549,16 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         customer,
         transaction
       )
-    await activateSubscription(
-      {
-        subscription: result.subscription,
-        subscriptionItems: result.subscriptionItems,
-        defaultPaymentMethod: paymentMethod,
-        autoStart: true,
-      },
-      transaction
-    )
+    const { billingRun, billingPeriod, billingPeriodItems } =
+      await activateSubscription(
+        {
+          subscription: result.subscription,
+          subscriptionItems: result.subscriptionItems,
+          defaultPaymentMethod: paymentMethod,
+          autoStart: true,
+        },
+        transaction
+      )
     return {
       type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,
@@ -575,6 +580,9 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         },
         transaction
       ),
+      billingRun,
+      subscription: result.subscription,
+      purchase: null,
     }
   }
 
