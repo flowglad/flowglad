@@ -405,3 +405,133 @@ This function handles the specific case of creating a subscription that starts w
 *   **Expectations:**
     *   The function throws an `Error` with the message "Price ... is not a usage price. Credit trial subscriptions must have a usage price...".
 
+# Test Case Plan for `createCheckoutSession.ts`
+
+This document outlines test cases for `createCheckoutSessionTransaction` in `createCheckoutSession.ts`.
+
+## 1. `createCheckoutSessionTransaction`
+
+This is the main function that creates a checkout session, interacts with Stripe, and returns a checkout URL.
+
+### Scenario 1.1: Customer not found
+*   **Setup:**
+    *   Provide a `checkoutSessionInput` with a `customerExternalId` that does not exist in the database.
+    *   Mock `selectCustomers` to return an empty array `[]`.
+*   **Expectations:**
+    *   The function should throw an `Error` with the message "Customer not found for externalId: [customerExternalId]".
+
+### Scenario 1.2: Checkout session for a `SinglePayment` product
+*   **Setup:**
+    *   A `checkoutSessionInput` with `type: 'Product'`.
+    *   An existing `Customer`.
+    *   Mock `selectCustomers` to return the customer.
+    *   Mock `insertCheckoutSession` to return a checkout session record with `type: 'Product'`.
+    *   Mock `selectPriceProductAndOrganizationByPriceWhere` to return a `price` with `type: 'single_payment'`, and a `product` and `organization`.
+    *   Mock `createPaymentIntentForCheckoutSession` to return a mock Stripe Payment Intent.
+    *   Mock `updateCheckoutSession` to return the final updated checkout session.
+*   **Expectations:**
+    *   `insertCheckoutSession` is called with the correct parameters derived from `checkoutSessionInsertFromInput`.
+    *   `selectPriceProductAndOrganizationByPriceWhere` is called because the type is `Product`.
+    *   `createPaymentIntentForCheckoutSession` is called because `price.type` is `SinglePayment`.
+    *   `createSetupIntentForCheckoutSession` is **not** called.
+    *   `updateCheckoutSession` is called with the `stripePaymentIntentId` from the created payment intent.
+    *   The function returns the updated checkout session and a URL like `.../checkout/[checkoutSession.id]`.
+    *   The returned checkout session has a `stripePaymentIntentId` and `stripeSetupIntentId` is `null`.
+
+### Scenario 1.3: Checkout session for a `Subscription` product
+*   **Setup:**
+    *   A `checkoutSessionInput` with `type: 'Product'`.
+    *   An existing `Customer`.
+    *   Mock `selectCustomers` to return the customer.
+    *   Mock `insertCheckoutSession` to return a checkout session record with `type: 'Product'`.
+    *   Mock `selectPriceProductAndOrganizationByPriceWhere` to return a `price` with `type: 'subscription'`, and a `product` and `organization`.
+    *   Mock `createSetupIntentForCheckoutSession` to return a mock Stripe Setup Intent.
+    *   Mock `updateCheckoutSession` to return the final updated checkout session.
+*   **Expectations:**
+    *   `insertCheckoutSession` is called correctly.
+    *   `selectPriceProductAndOrganizationByPriceWhere` is called.
+    *   `createSetupIntentForCheckoutSession` is called because `price.type` is `Subscription`.
+    *   `createPaymentIntentForCheckoutSession` is **not** called.
+    *   `updateCheckoutSession` is called with the `stripeSetupIntentId` from the created setup intent.
+    *   The function returns the updated checkout session and a URL like `.../checkout/[checkoutSession.id]`.
+    *   The returned checkout session has a `stripeSetupIntentId` and `stripePaymentIntentId` is `null`.
+
+### Scenario 1.4: Checkout session for a `Usage`-based product
+*   **Setup:**
+    *   Similar to 1.3, but the `price.type` is `Usage`.
+*   **Expectations:**
+    *   `createSetupIntentForCheckoutSession` is called because `price.type` is `Usage`.
+    *   `createPaymentIntentForCheckoutSession` is **not** called.
+    *   The rest of the expectations are the same as for `Subscription`.
+
+### Scenario 1.5: Checkout session for `AddPaymentMethod`
+*   **Setup:**
+    *   A `checkoutSessionInput` with `type: 'AddPaymentMethod'`.
+    *   An existing `Customer`.
+    *   Mock `selectCustomers` to return the customer.
+    *   Mock `insertCheckoutSession` to return a checkout session record with `type: 'add_payment_method'`.
+    *   Mock `selectOrganizationById` to return an `organization`.
+    *   Mock `createSetupIntentForCheckoutSession` to return a mock Stripe Setup Intent.
+    *   Mock `updateCheckoutSession` to return the final updated checkout session.
+*   **Expectations:**
+    *   `insertCheckoutSession` is called correctly, using the `AddPaymentMethod` branch of `checkoutSessionInsertFromInput`.
+    *   `selectPriceProductAndOrganizationByPriceWhere` is **not** called.
+    *   `selectOrganizationById` is called.
+    *   `createSetupIntentForCheckoutSession` is called because `checkoutSession.type` is `AddPaymentMethod`.
+    *   `createPaymentIntentForCheckoutSession` is **not** called.
+    *   `updateCheckoutSession` is called with the `stripeSetupIntentId`.
+    *   The function returns the updated checkout session and a URL like `.../add-payment-method/[checkoutSession.id]`.
+    *   The returned checkout session has a `stripeSetupIntentId` and `stripePaymentIntentId` is `null`.
+
+### Scenario 1.6: Checkout session for `ActivateSubscription`
+*   **Setup:**
+    *   A `checkoutSessionInput` with `type: 'ActivateSubscription'`.
+    *   An existing `Customer`.
+    *   Mock `selectCustomers` to return the customer.
+    *   Mock `insertCheckoutSession` to return a checkout session record with `type: 'activate_subscription'`.
+    *   Mock `selectOrganizationById` to return an `organization`.
+    *   Mock `updateCheckoutSession` to return the final updated checkout session.
+*   **Expectations:**
+    *   `insertCheckoutSession` is called correctly, using the `ActivateSubscription` branch of `checkoutSessionInsertFromInput`.
+    *   `selectOrganizationById` is called.
+    *   `createSetupIntentForCheckoutSession` is **not** called.
+    *   `createPaymentIntentForCheckoutSession` is **not** called.
+    *   `updateCheckoutSession` is called, but `stripeSetupIntentId` and `stripePaymentIntentId` are `null`.
+    *   The function returns the updated checkout session and a URL like `.../checkout/[checkoutSession.id]`.
+    *   The returned checkout session has `stripeSetupIntentId` and `stripePaymentIntentId` as `null`.
+
+### Scenario 1.7: Invalid `checkoutSession.type` in `checkoutSessionInsertFromInput`
+*   **Setup:**
+    *   This is a bit tricky to test as it's a type-level check in `checkoutSessionInsertFromInput` and should ideally not happen at runtime if TS is used correctly. The test would involve passing a `checkoutSessionInput` with a `type` that is not one of the handled `CheckoutSessionType`s.
+    *   Mock `selectCustomers` to return a customer.
+*   **Expectations:**
+    *   The function should throw an `Error` with the message "Invalid checkout session, type: [invalid_type]".
+
+## 2. `checkoutSessionInsertFromInput`
+
+This helper function translates the input into a `CheckoutSession.Insert` object. Its behavior is implicitly tested via `createCheckoutSessionTransaction`, but we can outline specific scenarios for it.
+
+### Scenario 2.1: `type` is `Product`
+*   **Setup:**
+    *   `checkoutSessionInput` with `type: 'Product'`, `priceId`, `successUrl`, `cancelUrl`, etc.
+    *   A `customer` record.
+*   **Expectations:**
+    *   Returns a `CheckoutSession.Insert` object with `type: 'Product'`, the correct `priceId`, and all the common fields (`customerId`, `organizationId`, `status`, etc.).
+    *   `invoiceId` and `targetSubscriptionId` are `null`.
+
+### Scenario 2.2: `type` is `AddPaymentMethod`
+*   **Setup:**
+    *   `checkoutSessionInput` with `type: 'AddPaymentMethod'`. Can optionally include `targetSubscriptionId`.
+    *   A `customer` record.
+*   **Expectations:**
+    *   Returns a `CheckoutSession.Insert` object with `type: 'AddPaymentMethod'` and `automaticallyUpdateSubscriptions: false`.
+    *   If `targetSubscriptionId` is provided in the input, it's set on the result, otherwise it's `null`.
+
+### Scenario 2.3: `type` is `ActivateSubscription`
+*   **Setup:**
+    *   `checkoutSessionInput` with `type: 'ActivateSubscription'` and a `targetSubscriptionId`.
+    *   A `customer` record.
+*   **Expectations:**
+    *   Returns a `CheckoutSession.Insert` object with `type: 'ActivateSubscription'` and the correct `targetSubscriptionId`.
+    *   `purchaseId` and `invoiceId` are `null`.
+

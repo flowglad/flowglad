@@ -84,6 +84,50 @@ export const stripeHandlers = [
       },
     })
   }),
+  http.post(
+    'https://api.stripe.com/v1/customers',
+    async ({ request }) => {
+      const customerId = `cus_${nanoid()}`
+      const body = (await request.json()) as {
+        email?: string
+        name?: string
+      }
+      return HttpResponse.json({
+        id: customerId,
+        object: 'customer',
+        email: body.email,
+        name: body.name,
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+      })
+    }
+  ),
+  http.get(
+    'https://api.stripe.com/v1/customers/:id',
+    ({ params }) => {
+      const { id } = params
+      // Simply return a mock customer object. The existence is what matters.
+      return HttpResponse.json({
+        id,
+        object: 'customer',
+        email: 'mock.customer@example.com',
+        name: 'Mock Customer',
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+      })
+    }
+  ),
+  http.post(
+    'https://api.stripe.com/v1/setup_intents',
+    ({ request }) => {
+      return HttpResponse.json({
+        id: `seti_${nanoid()}`,
+        object: 'setup_intent',
+        status: 'succeeded',
+        client_secret: 'seti_123_secret_456',
+      })
+    }
+  ),
 ]
 
 export const stripeServer = setupServer(...stripeHandlers)

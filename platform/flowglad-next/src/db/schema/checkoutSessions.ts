@@ -316,10 +316,6 @@ export const createCheckoutSessionInputSchema = z.object({
   checkoutSession: checkoutSessionsInsertSchema,
 })
 
-export type CreateCheckoutSessionInput = z.infer<
-  typeof createCheckoutSessionInputSchema
->
-
 const readOnlyColumns = {
   expires: true,
   status: true,
@@ -592,4 +588,100 @@ export const getIntentStatusInputSchema = z.discriminatedUnion(
 
 export type GetIntentStatusInput = z.infer<
   typeof getIntentStatusInputSchema
+>
+
+const coreCheckoutSessionSchema = z.object({
+  customerExternalId: z
+    .string()
+    .describe(
+      'The id of the Customer for this purchase session, as defined in your system'
+    ),
+  successUrl: z
+    .string()
+    .describe(
+      'The URL to redirect to after the purchase is successful'
+    ),
+  cancelUrl: z
+    .string()
+    .describe(
+      'The URL to redirect to after the purchase is canceled or fails'
+    ),
+  outputMetadata: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe(
+      'Metadata that will get added to the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+    ),
+  outputName: z
+    .string()
+    .optional()
+    .describe(
+      'The name of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+    ),
+})
+
+const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
+  {
+    type: z.literal(CheckoutSessionType.Product),
+    priceId: z
+      .string()
+      .describe('The ID of the price the customer shall purchase'),
+    quantity: z
+      .number()
+      .optional()
+      .describe(
+        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+      ),
+  }
+)
+
+const addPaymentMethodCheckoutSessionSchema =
+  coreCheckoutSessionSchema.extend({
+    type: z.literal(CheckoutSessionType.AddPaymentMethod),
+    targetSubscriptionId: z
+      .string()
+      .optional()
+      .describe(
+        'The id of the subscription that the payment method will be added to as the default payment method.'
+      ),
+    automaticallyUpdateSubscriptions: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
+      ),
+  })
+
+const activateSubscriptionCheckoutSessionSchema =
+  coreCheckoutSessionSchema.extend({
+    type: z.literal(CheckoutSessionType.ActivateSubscription),
+    priceId: z.string(),
+    targetSubscriptionId: z.string(),
+  })
+
+const createCheckoutSessionObject = z.discriminatedUnion('type', [
+  productCheckoutSessionSchema,
+  addPaymentMethodCheckoutSessionSchema,
+  activateSubscriptionCheckoutSessionSchema,
+])
+
+export type CreateCheckoutSessionObject = z.infer<
+  typeof createCheckoutSessionObject
+>
+
+export const singleCheckoutSessionOutputSchema = z.object({
+  checkoutSession: checkoutSessionClientSelectSchema,
+  url: z
+    .string()
+    .describe('The URL to redirect to complete the purchase'),
+})
+
+export const createCheckoutSessionSchema = z
+  .object({
+    checkoutSession: createCheckoutSessionObject,
+  })
+  .describe('Use this schema for new checkout sessions.')
+
+export type CreateCheckoutSessionInput = z.infer<
+  typeof createCheckoutSessionSchema
 >
