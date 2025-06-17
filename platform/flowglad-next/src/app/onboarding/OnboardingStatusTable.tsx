@@ -216,7 +216,7 @@ const OnboardingStatusTable = ({
               href="https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 border border-transparent rounded-radius-sm text-sm bg-primary text-on-primary hover:bg-primary-hover hover:text-on-primary-hover active:bg-primary-pressed active:text-on-primary-pressed whitespace-nowrap"
+              className="flex items-center gap-2 px-3 py-2 border border-transparent rounded-lg text-sm bg-primary text-on-primary hover:bg-primary-hover hover:text-on-primary-hover active:bg-primary-pressed active:text-on-primary-pressed whitespace-nowrap"
             >
               Auto Setup
             </Link>
