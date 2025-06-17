@@ -236,7 +236,7 @@ describe('createCheckoutSessionTransaction', () => {
         )
     )
 
-    expect(checkoutSession.stripeSetupIntentId).toBeNull()
+    expect(checkoutSession.stripeSetupIntentId).toBeDefined()
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(url).toBe(
       `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`

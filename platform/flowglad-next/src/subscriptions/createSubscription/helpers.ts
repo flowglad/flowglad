@@ -407,6 +407,39 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     return await initiateSubscriptionTrialPeriod(params, transaction)
   }
   /**
+   * Initial active subscription: create the first billing period based on subscription.currentBillingPeriodStart/end
+   */
+  if (
+    subscription.startDate?.getTime() ===
+      subscription.currentBillingPeriodStart?.getTime() &&
+    params.autoStart &&
+    defaultPaymentMethod &&
+    subscription.runBillingAtPeriodStart
+  ) {
+    const { billingPeriod, billingPeriodItems } =
+      await createBillingPeriodAndItems(
+        {
+          subscription,
+          subscriptionItems,
+          trialPeriod: false,
+          isInitialBillingPeriod: true,
+        },
+        transaction
+      )
+    const scheduledFor = subscription.runBillingAtPeriodStart
+      ? subscription.currentBillingPeriodStart
+      : subscription.currentBillingPeriodEnd
+    const billingRun = await createBillingRun(
+      {
+        billingPeriod,
+        paymentMethod: defaultPaymentMethod,
+        scheduledFor,
+      },
+      transaction
+    )
+    return { billingPeriod, billingPeriodItems, billingRun }
+  }
+  /**
    * If the subscription is in incomplete status and no default payment method is provided,
    * we throw an error.
    *

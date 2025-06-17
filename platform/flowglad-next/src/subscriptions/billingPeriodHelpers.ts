@@ -81,6 +81,12 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
     status = BillingPeriodStatus.Active
   } else if (endDate < new Date()) {
     status = BillingPeriodStatus.Completed
+  } else {
+    console.log('===== START LOGGING =====')
+    console.log('startDate', startDate.getTime())
+    console.log('endDate', endDate.getTime())
+    console.log('new Date()', new Date().getTime())
+    console.log('===== END LOGGING =====')
   }
   const billingPeriodInsert: BillingPeriod.Insert = {
     subscriptionId: params.subscription.id,

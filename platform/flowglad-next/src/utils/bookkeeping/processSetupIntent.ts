@@ -69,6 +69,7 @@ export type CoreSripeSetupIntent = Pick<
 >
 
 interface ProcessTerminalCheckoutSessionSetupIntentResult {
+  type: CheckoutSessionType
   checkoutSession: CheckoutSession.Record
   organization: Organization.Record
   customer: Customer.Record
@@ -90,6 +91,7 @@ export const processTerminalCheckoutSessionSetupIntent = async (
     transaction
   )
   return {
+    type: checkoutSession.type,
     checkoutSession,
     organization,
     customer,
@@ -499,6 +501,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
   }
 
 interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
+  type: CheckoutSessionType.ActivateSubscription
   checkoutSession: CheckoutSession.Record
   organization: Organization.Record
   customer: Customer.Record
@@ -509,7 +512,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
     transaction: DbTransaction
-  ) => {
+  ): Promise<ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult> => {
     const initialCheckoutSession =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
     const checkoutSession = await updateCheckoutSession(
@@ -552,6 +555,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
     return {
+      type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,
       organization: await selectOrganizationById(
         checkoutSession.organizationId,

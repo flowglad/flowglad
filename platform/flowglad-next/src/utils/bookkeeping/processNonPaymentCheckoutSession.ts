@@ -38,7 +38,7 @@ export const processNonPaymentCheckoutSession = async (
   }
 
   const price = await selectPriceById(
-    checkoutSession.priceId,
+    checkoutSession.priceId!,
     transaction
   )
 

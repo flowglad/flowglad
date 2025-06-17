@@ -1366,10 +1366,6 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
           },
           transaction
         )
-        console.log(
-          '"Once" grant workflow result:',
-          JSON.stringify(workflowResult, null, 2)
-        )
         return workflowResult
       }
     )
@@ -1536,10 +1532,6 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
             autoStart: true,
           },
           transaction
-        )
-        console.log(
-          '"Expiring" grant workflow result:',
-          JSON.stringify(workflowResult, null, 2)
         )
         return workflowResult
       }

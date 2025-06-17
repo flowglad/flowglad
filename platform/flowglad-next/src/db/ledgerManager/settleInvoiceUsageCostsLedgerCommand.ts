@@ -37,6 +37,7 @@ import {
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
   LedgerEntry,
+  ledgerEntryNulledSourceIdColumns,
   usageCostSelectSchema,
 } from '@/db/schema/ledgerEntries'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
@@ -317,6 +318,7 @@ const creditGrantRecognizedLedgerEntryInserts = (
     }
     const creditGrantRecognizedInsert: LedgerEntry.CreditGrantRecognizedInsert =
       {
+        ...ledgerEntryNulledSourceIdColumns,
         status: LedgerEntryStatus.Posted,
         livemode: usageCredit.livemode,
         organizationId: usageCredit.organizationId,
@@ -327,14 +329,11 @@ const creditGrantRecognizedLedgerEntryInserts = (
         entryType: LedgerEntryType.CreditGrantRecognized,
         entryTimestamp: usageCredit.issuedAt,
         direction: LedgerEntryDirection.Credit,
+        usageMeterId: usageCredit.usageMeterId,
         discardedAt: null,
         amount: usageCredit.issuedAmount,
-        claimedByBillingRunId: null,
-        sourceUsageEventId: null,
         sourceUsageCreditId: usageCredit.id,
-        sourceCreditApplicationId: null,
-        sourceCreditBalanceAdjustmentId: null,
-        sourceBillingPeriodCalculationId: null,
+        claimedByBillingRunId: null,
       }
     return creditGrantRecognizedInsert
   })

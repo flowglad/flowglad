@@ -217,6 +217,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: nonExpiringCredit1.id,
       livemode: subscription.livemode,
+      usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
     const futureExpiryDate = new Date(
@@ -243,6 +244,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: nonExpiringCredit2.id,
       livemode: subscription.livemode,
+      usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -287,6 +289,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: expiringCredit.id,
       livemode: subscription.livemode,
+      usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -374,6 +377,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       subscriptionId: subscription.id,
       ledgerAccountId: ledgerAccount1.id,
       ledgerTransactionId: baseLedgerTransaction.id,
+      usageMeterId: ledgerAccount1.usageMeterId!,
       entries: [
         {
           entryType: LedgerEntryType.CreditGrantRecognized,
@@ -450,6 +454,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: earlyExpiringCredit.id,
       livemode: subscription.livemode,
+      usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -504,6 +509,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       subscriptionId: subscription.id,
       ledgerTransactionId: baseLedgerTransaction.id,
       ledgerAccountId: ledgerAccount1.id,
+      usageMeterId: ledgerAccount1.usageMeterId!,
       amount: expiringBeforeAmount,
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: creditExpiringBefore.id,
@@ -531,6 +537,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: creditNonExpiringAfter.id,
       livemode: subscription.livemode,
+      usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
     const expiringAtAmount = 30
@@ -553,6 +560,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: creditExpiringAt.id,
       livemode: subscription.livemode,
+      usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
     const nonExpiringNullAmount = 40
@@ -574,6 +582,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: creditNonExpiringNull.id,
       livemode: subscription.livemode,
+      usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -638,6 +647,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       subscriptionId: subscription.id,
       ledgerTransactionId: baseLedgerTransaction.id,
       ledgerAccountId: ledgerAccount1.id,
+      usageMeterId: ledgerAccount1.usageMeterId!,
       amount: detailCheckAmount,
       entryType: LedgerEntryType.CreditGrantRecognized,
       sourceUsageCreditId: detailCredit.id,

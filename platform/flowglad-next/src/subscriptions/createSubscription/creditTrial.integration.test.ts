@@ -109,7 +109,6 @@ describe('Subscription Activation Workflow E2E', () => {
       usageMeterId: usageMeter.id,
       startsWithCreditTrial: true,
     })
-    console.log('price', price)
 
     const { subscription } = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
@@ -128,13 +127,8 @@ describe('Subscription Activation Workflow E2E', () => {
           },
           transaction
         )
-        console.log(
-          'output.result.subscription',
-          output.result.subscription
-        )
         expect(output.result.subscription).toBeDefined()
         expect(output.ledgerCommand).toBeDefined()
-        console.log('output.ledgerCommand', output.ledgerCommand)
         return output
       }
     )
@@ -159,7 +153,6 @@ describe('Subscription Activation Workflow E2E', () => {
         },
         transaction
       )
-      console.log('billingState1', billingState1)
       const sub1 = billingState1.subscriptions[0]
       expect(sub1.status).toBe(SubscriptionStatus.CreditTrial)
       expect(sub1.experimental?.featureItems).toHaveLength(3)
