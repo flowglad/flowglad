@@ -109,12 +109,17 @@ const PaymentsTable = ({
           ),
           accessorKey: 'payment.amount',
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">
-              {stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                cellData.payment.currency,
-                cellData.payment.amount
-              )}
-            </span>
+            <TableCell className="relative max-w-[160px] truncate text-sm text-muted-foreground" title={stripeCurrencyAmountToHumanReadableCurrencyAmount(
+              cellData.payment.currency,
+              cellData.payment.amount
+            )}>
+              <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                  cellData.payment.currency,
+                  cellData.payment.amount
+                )}
+              </span>
+            </TableCell>
           ),
         },
         {
