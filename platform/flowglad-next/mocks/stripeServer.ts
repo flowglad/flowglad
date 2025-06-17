@@ -128,6 +128,18 @@ export const stripeHandlers = [
       })
     }
   ),
+  http.get('https://api.stripe.com/v1/setup_intents/:id', (req) => {
+    const { id } = req.params
+    const status = decodeStatusFromId(id)
+    return HttpResponse.json({
+      id,
+      status,
+      object: 'setup_intent',
+      customer: `cus_${nanoid()}`,
+      payment_method: `pm_${nanoid()}`,
+      metadata: {},
+    })
+  }),
 ]
 
 export const stripeServer = setupServer(...stripeHandlers)

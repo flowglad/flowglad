@@ -1,9 +1,10 @@
-import { SubscriptionStatus, PriceType } from '@/types'
+import { SubscriptionStatus, PriceType, IntervalUnit } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import {
   safelyUpdateSubscriptionStatus,
   selectSubscriptions,
+  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import { currentSubscriptionStatuses } from '@/db/tableMethods/subscriptionMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -30,6 +31,7 @@ import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { createBillingPeriodAndItems } from '../billingPeriodHelpers'
 import { BillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 import { FeatureType } from '@/types'
+import { generateNextBillingPeriod } from '../billingIntervalHelpers'
 
 export const deriveSubscriptionStatus = ({
   autoStart,
@@ -247,15 +249,37 @@ export const activateSubscription = async (
 ) => {
   const { subscription, subscriptionItems, defaultPaymentMethod } =
     params
+  const { startDate, endDate } = generateNextBillingPeriod({
+    interval: subscription.interval ?? IntervalUnit.Month,
+    intervalCount: subscription.intervalCount ?? 1,
+    billingCycleAnchorDate:
+      subscription.billingCycleAnchorDate ?? new Date(),
+    lastBillingPeriodEndDate: subscription.currentBillingPeriodEnd,
+  })
   const scheduledFor = subscription.runBillingAtPeriodStart
-    ? subscription.currentBillingPeriodStart
-    : subscription.currentBillingPeriodEnd
+    ? startDate
+    : endDate
 
-  const activatedSubscription = await safelyUpdateSubscriptionStatus(
-    subscription,
-    SubscriptionStatus.Active,
+  const activatedSubscription = await updateSubscription(
+    {
+      id: subscription.id,
+      status: SubscriptionStatus.Active,
+      currentBillingPeriodStart: startDate,
+      currentBillingPeriodEnd: endDate,
+      billingCycleAnchorDate: startDate,
+      defaultPaymentMethodId: defaultPaymentMethod.id,
+      interval: subscription.interval ?? IntervalUnit.Month,
+      intervalCount: subscription.intervalCount ?? 1,
+    },
     transaction
   )
+
+  if (
+    activatedSubscription.status === SubscriptionStatus.CreditTrial
+  ) {
+    throw Error('Should never hit this')
+  }
+
   const { billingPeriod, billingPeriodItems } =
     await createBillingPeriodAndItems(
       {

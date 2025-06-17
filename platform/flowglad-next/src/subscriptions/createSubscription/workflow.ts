@@ -148,16 +148,28 @@ export const createSubscriptionWorkflow = async (
             billingRun,
           }),
         }
-
+  const transactionResult:
+    | StandardCreateSubscriptionResult
+    | CreditTrialCreateSubscriptionResult =
+    subscription.status === SubscriptionStatus.CreditTrial
+      ? {
+          type: 'credit_trial',
+          subscription,
+          subscriptionItems,
+          billingPeriod: null,
+          billingPeriodItems: null,
+          billingRun: null,
+        }
+      : {
+          type: 'standard',
+          subscription,
+          subscriptionItems,
+          billingPeriod,
+          billingPeriodItems,
+          billingRun,
+        }
   return {
-    result: {
-      type: 'standard',
-      subscription,
-      subscriptionItems,
-      billingPeriod,
-      billingPeriodItems,
-      billingRun,
-    },
+    result: transactionResult,
     ledgerCommand,
     eventsToLog: eventInserts,
   }

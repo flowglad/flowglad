@@ -73,6 +73,7 @@ const checkoutSessionInsertFromInput = ({
   ) {
     return {
       ...coreFields,
+      priceId: checkoutSessionInput.priceId,
       type: CheckoutSessionType.ActivateSubscription,
       targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
       purchaseId: null,
@@ -145,7 +146,8 @@ export const createCheckoutSessionTransaction = async (
   if (
     price?.type === PriceType.Subscription ||
     price?.type === PriceType.Usage ||
-    checkoutSession.type === CheckoutSessionType.AddPaymentMethod
+    checkoutSession.type === CheckoutSessionType.AddPaymentMethod ||
+    checkoutSession.type === CheckoutSessionType.ActivateSubscription
   ) {
     const stripeSetupIntent =
       await createSetupIntentForCheckoutSession({
