@@ -1,9 +1,26 @@
 ---
-title: 'Quickstart'
-description: 'Process your first payment in 3 minutes'
+title: "Quickstart"
+description: "Process your first payment in 3 minutes"
 ---
 
-This guide will show you how set up Flowglad in your app. It's optimized for Next.js, but it can be adapted for any React + Node.js application.
+This guide will show you how set up Flowglad in your app. It's optimized for Next.js, but it can be adapted for any React \+ Node.js application.
+
+## Before starting...
+
+<CardGroup cols={2}>
+  <Card title="Join our Discord" icon="Discord" iconType="regular" color="#5865F2" href="https://discord.gg/XTK7hVyQD9" cta="Join our Discord">
+    - Get help fast from the founders and others building in public.
+  </Card>
+  <Card title="Star on GitHub" icon="github" color="#FFFFFF" href="https://github.com/flowglad/flowglad" cta="Star on GitHub">
+    - Support the project and follow our open source roadmap.
+  </Card>
+  <Card title="Follow us on X" icon="x" color="#FFFFFF" href="https://x.com/flowglad" cta="Follow us on X">
+    - Get release updates and feature drops from the founders in real time.
+  </Card>
+  <Card title="Connect on LinkedIn" icon="Linkedin" color="#0A66C2" href="https://www.linkedin.com/company/flowglad/" cta="Connect on LinkedIn">
+    - Stay in the loop with company updates and community highlights.
+  </Card>
+</CardGroup>
 
 ## 1. Sign Up For Flowglad
 
@@ -31,6 +48,7 @@ Quicklinks to add your key to your secrets:
 pnpm install @flowglad/nextjs
 ```
 
+
 ```bash Other React Frameworks
 pnpm install @flowglad/react @flowglad/server
 ```
@@ -39,11 +57,12 @@ pnpm install @flowglad/react @flowglad/server
 
 ## 4. Server Setup
 
-First, set up a Flowglad server client. 
+First, set up a Flowglad server client.
 Do this in a file that can be imported wherever you need to access billing data, or make calls to Flowglad.
 Flowglad's premade backend modules use the Flowglad Server in sessionful contexts to determine who you're loading billing data for:
 
 <CodeGroup>
+
 ```ts Supabase Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
 // or wherever you initialize your supabase client
@@ -56,6 +75,7 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
+
 ```ts Clerk
 import { currentUser } from '@clerk/nextjs/server'
 import { FlowgladServer } from '@flowglad/nextjs/server'
@@ -67,6 +87,7 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
+
 ```ts Next Auth
 import { auth } from '@/auth' // your initialized, configured NextAuth client
 import { FlowgladServer } from '@flowglad/nextjs/server'
@@ -77,6 +98,8 @@ export const flowgladServer = new FlowgladServer({
   },
 })
 ```
+
+
 ```ts Custom Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
 // or whatever function you use to retrieve your session
@@ -114,6 +137,7 @@ const flowgladServer = (request: Request) => {
 Next, set up your Flowglad API route at `/api/flowglad/[...path]`. Your app will use this to send and receive data from Flowglad.
 
 <CodeGroup>
+
 ```ts Next.js
 // /api/flowglad/[...path]/route.ts
 'use server';
@@ -124,6 +148,7 @@ const routeHandler = createAppRouterRouteHandler(flowgladServer);
 
 export { routeHandler as GET, routeHandler as POST }
 ```
+
 
 ```ts Other React Frameworks
 import { createFetchRequestHandler } from '@flowglad/nextjs/server'
@@ -149,7 +174,7 @@ export const flowgladRouteHandler = async (
 <Info>
   You can mount Flowglad's handler at a different route, but you'll
   need to specify it via the `serverRoute` prop in `
-  <FlowgladProvider />` in your React app.
+            <FlowgladProvider />` in your React app.
 </Info>
 
 ## 5. Set up React
@@ -157,6 +182,7 @@ export const flowgladRouteHandler = async (
 Next, you need to set up the FlowgladProvider component. For the fastest possible demo, make your success route the home page you load once customers sign in.
 
 <CodeGroup>
+
 ```tsx Supabase Auth
 // app/layout.tsx
 import { PropsWithChildren } from 'react'
@@ -181,6 +207,7 @@ export default function RootLayout({
 }
 ```
 
+
 ```tsx Clerk
 // app/layout.tsx
 'use client'
@@ -203,6 +230,7 @@ export default async function RootLayout({
   )
 }
 ```
+
 
 ```tsx Next Auth
 // app/layout.tsx
@@ -239,6 +267,7 @@ export default async function RootLayout({
 Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
 
 <CodeGroup>
+
 ```tsx Next
 import { BillingPage } from '@flowglad/nextjs'
 
@@ -246,4 +275,5 @@ export default function Billing() {
   return <BillingPage />
 }
 ```
+
 </CodeGroup>
