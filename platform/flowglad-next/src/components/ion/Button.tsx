@@ -69,9 +69,9 @@ export const buttonVariants = cva(
         danger: 'focus-visible:danger-focus',
       },
       size: {
-        sm: 'py-2 rounded-lg px-3 text-sm',
-        md: 'h-8 rounded-lg px-4 text-sm',
-        lg: 'h-9 rounded-lg px-4 text-base',
+        sm: 'gap-x-1 px-2 text-sm h-7 rounded-radius-xs',
+        md: 'gap-x-1 px-3 text-sm h-8 rounded-radius-sm',
+        lg: 'gap-x-2 px-4 text-base h-10 rounded-radius',
         'icon-sm': 'h-7 w-7 rounded-radius-xs p-0',
         'icon-md': 'h-8 w-8 rounded-radius-sm p-0',
         'icon-lg': 'h-10 w-10 rounded-radius p-0',
