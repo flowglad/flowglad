@@ -1576,6 +1576,13 @@
       "when": 1750096752850,
       "tag": "0225_rapid_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 226,
+      "version": "7",
+      "when": 1750283355797,
+      "tag": "0226_awesome_sprite",
+      "breakpoints": true
     }
   ]
 }

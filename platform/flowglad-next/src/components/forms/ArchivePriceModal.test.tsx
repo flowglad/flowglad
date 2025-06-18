@@ -35,6 +35,7 @@ describe('priceToEditPriceInput', () => {
       usageMeterId: null,
       usageEventsPerUnit: null,
       overagePriceId: null,
+      slug: 'test-price',
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -66,6 +67,7 @@ describe('priceToEditPriceInput', () => {
       livemode: false,
       usageEventsPerUnit: null,
       overagePriceId: null,
+      slug: 'test-price',
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -96,6 +98,7 @@ describe('priceToEditPriceInput', () => {
       setupFeeAmount: null,
       usageEventsPerUnit: null,
       overagePriceId: null,
+      slug: 'test-price',
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({
@@ -126,6 +129,7 @@ describe('priceToEditPriceInput', () => {
       overagePriceId: null,
       usageMeterId: 'um_1',
       usageEventsPerUnit: 1,
+      slug: 'test-price',
     }
     const result = priceToArchivePriceInput(price)
     expect(result).toEqual({

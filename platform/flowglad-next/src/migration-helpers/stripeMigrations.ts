@@ -78,6 +78,7 @@ export const stripeProductToProductInsert = (
       ? `${stripeProduct.unit_label}s`
       : null,
     default: false,
+    slug: `flowglad_migration_stripe_product_${stripeProduct.id}`,
   }
 }
 
@@ -123,6 +124,7 @@ export const stripePriceToPriceInsert = (
       name: stripePrice.nickname ?? '',
       type,
       isDefault: stripeProduct.default_price === stripePrice.id,
+      slug: `flowglad_migration_stripe_price_${stripePrice.id}`,
     }
     return singlePaymentPrice
   }
@@ -140,6 +142,7 @@ export const stripePriceToPriceInsert = (
       trialPeriodDays:
         stripePrice.recurring?.trial_period_days ?? null,
       isDefault: stripeProduct.default_price === stripePrice.id,
+      slug: `flowglad_migration_stripe_price_${stripePrice.id}`,
     }
     return subscriptionPrice
   }

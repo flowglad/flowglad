@@ -835,6 +835,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
           externalId: null,
           catalogId,
           default: false,
+          slug: `flowglad-test-product-price+${core.nanoid()}`,
         }
         const createdProduct = await insertProduct(
           productInsert,
@@ -853,6 +854,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
           active: true,
           externalId: null,
           isDefault: false,
+          slug: `flowglad-test-product-price+${core.nanoid()}`,
         }
 
         const createdPrice = await insertPrice(

@@ -107,6 +107,7 @@ export const prices = pgTable(
      * from external processors onto Flowglad
      */
     externalId: text('external_id'),
+    slug: text('slug'),
     overagePriceId: text('overage_price_id').references(
       (): PgColumn<
         ColumnBaseConfig<ColumnDataType, string>,
