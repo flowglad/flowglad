@@ -35,15 +35,15 @@ const OnboardingNavigationSection = ({
           )
         }
         className={cn(
-          'w-full flex items-center transition-all duration-300 ease-in-out',
-          isCollapsed ? 'justify-center px-2' : 'justify-between px-3'
+          'w-full flex items-center justify-between transition-all duration-300 ease-in-out',
+          isCollapsed ? 'justify-center px-2' : 'px-3 gap-3'
         )}
         href="/onboarding"
         selected={selectedPath.startsWith('/onboarding')}
       >
         <span
           className={cn(
-            'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+            'flex-grow transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
             isCollapsed
               ? 'max-w-0 opacity-0 ml-0'
               : 'max-w-xs opacity-100 ml-2'

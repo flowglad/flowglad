@@ -8,12 +8,7 @@ import {
   OnboardingItemType,
   Verbs,
 } from '@/types'
-import {
-  ArrowUpRight,
-  ArrowUpRightFromSquare,
-  Check,
-  Copy,
-} from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 import NounVerbModal from '@/components/forms/NounVerbModal'
 import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { Country } from '@/db/schema/countries'
@@ -25,6 +20,7 @@ import { Tab, Tabs, TabsList } from '@/components/ion/Tab'
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
   children?: React.ReactNode
+  actionNode?: React.ReactNode
 }
 
 const OnboardingItemDescriptionLabel = ({
@@ -46,10 +42,11 @@ const OnboardingStatusRow = ({
   action,
   onClick,
   children,
+  actionNode,
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div className="flex flex-row items-center justify-between first:rounded-t-lg last:rounded-b-lg bg-background-input py-4 border first:border-b-0 first:border-t-0 last:border-t-0 border-stroke-subtle border-l-0 border-r-0 px-4">
+      <div className="flex flex-row items-center justify-between border border-stroke-subtle rounded-lg bg-background-input py-4 px-4">
         <div className="flex flex-col justify-start w-full">
           <p className="font-medium text-foreground pb-1">{title}</p>
           <OnboardingItemDescriptionLabel>
@@ -57,17 +54,19 @@ const OnboardingStatusRow = ({
           </OnboardingItemDescriptionLabel>
           {children}
         </div>
-        {action && (
-          <div className="flex flex-row items-start justify-end p-4">
+        {actionNode || action ? (
+          <div className="flex flex-row items-start justify-end">
             {completed ? (
               <div className="rounded-full bg-green-500  p-2 justify-end items-end">
                 <Check size={20} strokeWidth={2} />
               </div>
             ) : (
-              <Button onClick={onClick}>{action}</Button>
+              actionNode || (
+                <Button onClick={onClick}>{action}</Button>
+              )
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </>
   )
@@ -85,7 +84,7 @@ const OnboardingCodeblock = ({
           {markdownText}
         </Markdown>
         <Button
-          iconLeading={<Copy />}
+          iconLeading={<Copy size={20} />}
           size="sm"
           onClick={() => {
             toast.success('Copied to clipboard')
@@ -175,11 +174,11 @@ const OnboardingStatusTable = ({
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
 
   return (
-    <div className="flex flex-col border border-stroke-subtle rounded-lg w-full">
+    <div className="flex flex-col w-full gap-4">
       <OnboardingStatusRow
         key={'copy-keys'}
         completed={false}
-        title={'Copy your keys'}
+        title={'1. Copy your keys'}
         description={'Copy these keys to your local .env file'}
       >
         <OnboardingCodeblock markdownText={apiKeyText} />
@@ -187,7 +186,7 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'install-packages'}
         completed={false}
-        title={'Install packages'}
+        title={'2. Install packages'}
         description={''}
       >
         <CodeblockGroup
@@ -204,35 +203,42 @@ const OnboardingStatusTable = ({
         />
       </OnboardingStatusRow>
       <OnboardingStatusRow
-        key={'complete-setup'}
+        key={'integrate-flowglad'}
         completed={false}
-        title={'Integrate Flowglad'}
+        title={'3. Integrate Flowglad'}
         description={'Get set up in localhost in a few minutes'}
-      >
-        <OnboardingItemDescriptionLabel>
-          <Link
-            href="https://docs.flowglad.com/quickstart#4-server-setup"
-            className="text-sm my-4 flex flex-row items-center gap-2"
-          >
-            <p>Step-by-step setup.</p>
-            <ArrowUpRightFromSquare size={16} />
-          </Link>
-        </OnboardingItemDescriptionLabel>
-        <OnboardingItemDescriptionLabel>
-          <Link
-            href="https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration"
-            className="text-sm my-4 flex flex-row items-center gap-2"
-          >
-            One shot integration via prompt (Next.js only for now).
-            <ArrowUpRightFromSquare size={16} />
-          </Link>
-        </OnboardingItemDescriptionLabel>
-      </OnboardingStatusRow>
-      {onboardingChecklistItems.map((item) => (
+        actionNode={
+          <div className="flex flex-row items-end justify-center gap-2">
+            <Button
+              onClick={() => {
+                window.open(
+                  'https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration',
+                  '_blank'
+                )
+              }}
+            >
+              Setup by Prompt
+            </Button>
+            <Button
+              onClick={() => {
+                window.open(
+                  'https://docs.flowglad.com/quickstart#4-server-setup',
+                  '_blank'
+                )
+              }}
+              className="border-white bg-transparent hover:bg-white/10"
+              variant="outline"
+            >
+              Setup Manually
+            </Button>
+          </div>
+        }
+      />
+      {onboardingChecklistItems.map((item, index) => (
         <OnboardingStatusRow
           key={item.title}
           completed={item.completed}
-          title={item.title}
+          title={`${index + 4}. ${item.title}`}
           description={item.description}
           action={item.action}
           type={item.type}
