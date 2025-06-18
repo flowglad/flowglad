@@ -2,10 +2,7 @@ import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from '../components/EmailButton'
 import { EmailLayout, Header, Paragraph } from '../components/themed'
-
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : ''
+import { emailBaseUrl } from '@/utils/core'
 
 export interface OrganizationInvitationEmailProps {
   organizationName: string
@@ -16,7 +13,7 @@ export const OrganizationInvitationEmail = ({
   organizationName,
   inviterName,
 }: OrganizationInvitationEmailProps) => {
-  const invitationLink = `${baseUrl}/sign-in`
+  const invitationLink = `${emailBaseUrl}/sign-in`
   return (
     <EmailLayout
       previewText={`You've been invited to join ${organizationName}`}

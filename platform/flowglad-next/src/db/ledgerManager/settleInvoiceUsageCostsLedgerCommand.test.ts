@@ -331,6 +331,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         subscriptionId: subscription.id,
         ledgerAccountId: ledgerAccount2.id,
         ledgerTransactionId: usageCost2Transaction.id,
+        usageMeterId: ledgerAccount2.usageMeterId!,
         entries: [
           {
             entryType: LedgerEntryType.UsageCost,
@@ -722,6 +723,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: grantTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: ledgerAccount.usageMeterId!,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -798,6 +800,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: grantTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: ledgerAccount.usageMeterId!,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -872,6 +875,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: grantTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: ledgerAccount.usageMeterId!,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,

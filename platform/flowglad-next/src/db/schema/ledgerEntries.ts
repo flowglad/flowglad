@@ -211,6 +211,7 @@ export const creditGrantRecognizedEntryRefinements = {
   entryType: z.literal(LedgerEntryType.CreditGrantRecognized),
   sourceUsageCreditId: z.string(),
   claimedByBillingRunId: z.null(),
+  usageMeterId: z.string(),
 }
 
 export const creditBalanceAdjustedEntryRefinements = {

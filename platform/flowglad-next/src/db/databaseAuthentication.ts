@@ -23,6 +23,7 @@ export interface JWTClaim extends JwtPayload {
   app_metadata: SessionUser['app_metadata']
   email: string
   role: string
+  organization_id: string
 }
 
 interface KeyVerifyResult {
@@ -138,11 +139,12 @@ export async function dbAuthInfoForSecretApiKeyResult(
     membershipsForOrganization[0].users.id ??
     `${verifyKeyResult.userId}`
   const livemode = verifyKeyResult.environment === 'live'
-  const jwtClaim = {
+  const jwtClaim: JWTClaim = {
     role: 'authenticated',
     sub: userId,
     email: 'apiKey@example.com',
     session_id: 'mock_session_123',
+    organization_id: verifyKeyResult.ownerId,
     user_metadata: {
       id: userId,
       user_metadata: {},
@@ -225,7 +227,7 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   }
   const userId = membershipsForOrganization[0].users.id
   // TODO: scope this
-  const jwtClaim = {
+  const jwtClaim: JWTClaim = {
     role: 'authenticated',
     sub: userId,
     email: 'apiKey@example.com',
@@ -241,6 +243,7 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
         provider: 'apiKey',
       },
     },
+    organization_id: customer.organizationId,
     app_metadata: {
       provider: 'apiKey',
     },
@@ -283,6 +286,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
         provider: '',
       },
     },
+    organization_id: focusedMembership?.organizationId ?? '',
     app_metadata: { provider: 'apiKey' },
   }
   return {

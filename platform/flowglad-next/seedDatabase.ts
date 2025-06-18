@@ -1520,7 +1520,7 @@ interface CoreLedgerEntryUserParams {
   discardedAt?: Date | null
   expiredAt?: Date | null
   billingPeriodId?: string | null
-  usageMeterId?: string | null
+  usageMeterId: string
   appliedToLedgerItemId?: string | null
   claimedByBillingRunId?: string | null
 }
@@ -1597,7 +1597,7 @@ const baseLedgerEntryInsertFieldsFromParams = (
     discardedAt: params.discardedAt ?? null,
     expiredAt: params.expiredAt ?? null,
     billingPeriodId: params.billingPeriodId ?? null,
-    usageMeterId: params.usageMeterId ?? null,
+    usageMeterId: params.usageMeterId!,
     claimedByBillingRunId:
       params.entryType === LedgerEntryType.UsageCost
         ? (params.claimedByBillingRunId ?? null)
@@ -2005,6 +2005,7 @@ export const setupLedgerEntries = async (params: {
   subscriptionId: string
   ledgerTransactionId: string
   ledgerAccountId: string
+  usageMeterId: string
   entries: QuickLedgerEntry[]
 }) => {
   return await adminTransaction(async ({ transaction }) => {
@@ -2021,6 +2022,7 @@ export const setupLedgerEntries = async (params: {
             subscriptionId: params.subscriptionId,
             ledgerTransactionId: params.ledgerTransactionId,
             ledgerAccountId: params.ledgerAccountId,
+            usageMeterId: params.usageMeterId,
           } as DebitLedgerEntrySetupParams &
             CoreLedgerEntryUserParams)
         } else if (
@@ -2034,6 +2036,7 @@ export const setupLedgerEntries = async (params: {
             subscriptionId: params.subscriptionId,
             ledgerTransactionId: params.ledgerTransactionId,
             ledgerAccountId: params.ledgerAccountId,
+            usageMeterId: params.usageMeterId,
           } as CreditLedgerEntrySetupParams &
             CoreLedgerEntryUserParams)
         } else {
@@ -2308,6 +2311,7 @@ export const setupUsageLedgerScenario = async (params: {
       subscriptionId: subscription.id,
       ledgerTransactionId: ledgerTransaction.id,
       ledgerAccountId: ledgerAccount.id,
+      usageMeterId: usageMeter.id,
       entries: params.quickEntries,
     })
     ledgerEntries.push(...ledgerEntriesCreated)
@@ -2324,6 +2328,7 @@ export const setupUsageLedgerScenario = async (params: {
       subscriptionId: subscription.id,
       ledgerTransactionId: ledgerTransaction.id,
       ledgerAccountId: ledgerAccount.id,
+      usageMeterId: usageMeter.id,
       entries: usageEvents.map((usageEvent) => ({
         entryType: LedgerEntryType.UsageCost,
         sourceUsageEventId: usageEvent.id,

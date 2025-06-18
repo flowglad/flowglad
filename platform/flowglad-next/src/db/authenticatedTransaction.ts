@@ -84,7 +84,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     if (!jwtClaim) {
       throw new Error('No jwtClaim found')
     }
-    const organizationId = (jwtClaim as any).organization_id
+    const organizationId = jwtClaim.organization_id
     if (!organizationId) {
       throw new Error('No organization_id found in JWT claims')
     }

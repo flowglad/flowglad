@@ -17,6 +17,17 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { DbTransaction } from '@/db/types'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { Product } from '@/db/schema/products'
+import { FeeCalculation } from '@/db/schema/feeCalculations'
+import {
+  currentSubscriptionStatuses,
+  selectSubscriptions,
+} from '@/db/tableMethods/subscriptionMethods'
+import { Subscription } from '@/db/schema/subscriptions'
+import { Customer } from '@/db/schema/customers'
 
 interface CheckoutInfoSuccess {
   checkoutInfo: CheckoutInfoCore
@@ -162,4 +173,68 @@ export async function checkoutInfoForPriceWhere(
     }
   }
   throw new Error('Could not derive ')
+}
+
+export async function checkoutInfoForCheckoutSession(
+  checkoutSessionId: string,
+  transaction: DbTransaction
+): Promise<{
+  checkoutSession: CheckoutSession.Record
+  product: Product.Record
+  price: Price.Record
+  sellerOrganization: Organization.Record
+  feeCalculation: FeeCalculation.Record | null
+  maybeCustomer: Customer.Record | null
+  maybeCurrentSubscriptions: Subscription.Record[] | null
+}> {
+  const checkoutSession = await selectCheckoutSessionById(
+    checkoutSessionId,
+    transaction
+  )
+  /**
+   * Currently, only price / product checkout flows
+   * are supported on this page.
+   * For invoice or purchase flows, those should go through their respective
+   * pages.
+   */
+  if (!checkoutSession.priceId) {
+    throw new Error(
+      `No price id found for purchase session ${checkoutSession.id}. Currently, only price / product checkout flows are supported on this page.`
+    )
+  }
+  const [{ product, price, organization }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: checkoutSession.priceId },
+      transaction
+    )
+  const feeCalculation = await selectLatestFeeCalculation(
+    { checkoutSessionId: checkoutSession.id },
+    transaction
+  )
+  const maybeCustomer = checkoutSession.customerId
+    ? await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    : null
+  const maybeCurrentSubscriptions =
+    maybeCustomer &&
+    !organization.allowMultipleSubscriptionsPerCustomer
+      ? await selectSubscriptions(
+          {
+            customerId: maybeCustomer.id,
+            status: currentSubscriptionStatuses,
+          },
+          transaction
+        )
+      : null
+  return {
+    checkoutSession,
+    product,
+    price,
+    sellerOrganization: organization,
+    feeCalculation,
+    maybeCustomer,
+    maybeCurrentSubscriptions,
+  }
 }

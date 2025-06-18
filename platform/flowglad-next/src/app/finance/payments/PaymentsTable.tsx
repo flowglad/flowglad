@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DisplayColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
+import Table, { TableCell } from '@/components/ion/Table'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { Payment } from '@/db/schema/payments'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
@@ -109,10 +109,13 @@ const PaymentsTable = ({
           ),
           accessorKey: 'payment.amount',
           cell: ({ row: { original: cellData } }) => (
-            <TableCell className="relative max-w-[160px] truncate text-sm text-muted-foreground" title={stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              cellData.payment.currency,
-              cellData.payment.amount
-            )}>
+            <TableCell
+              className="relative max-w-[160px] truncate text-sm text-muted-foreground"
+              title={stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                cellData.payment.currency,
+                cellData.payment.amount
+              )}
+            >
               <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
                 {stripeCurrencyAmountToHumanReadableCurrencyAmount(
                   cellData.payment.currency,
