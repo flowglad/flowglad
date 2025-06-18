@@ -124,7 +124,7 @@ export const buttonVariants = cva(
                   ? `border-stroke`
                   : `border-stroke-${color}`,
                 `hover:bg-${color}-accent`,
-                `active:bg-${color}-container  `,
+                `active:bg-${color}-container`,
                 `active:text-on-${color}-container`,
                 'bg-background',
               ],
@@ -136,9 +136,7 @@ export const buttonVariants = cva(
                 `bg-${color}`,
                 `text-on-${color}`,
                 `hover:bg-${color}-hover`,
-                `active:text-on-${color}-container`,
                 `active:bg-${color}-pressed`,
-                `active:text-on-${color}-pressed`,
               ],
             },
             {

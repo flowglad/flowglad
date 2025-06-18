@@ -91,7 +91,7 @@ body {
     --primary-hover: #e6e6e6;
     --on-primary-hover: #f9f9f9;
 
-    --primary-pressed: #6c6c6c;
+    --primary-pressed: #cccccc;
     --on-primary-pressed: #f9f9f9;
 
     --neutral-accent: #141414;
@@ -206,7 +206,7 @@ body {
     --primary-strong: #606060;
     --primary-hover: #e6e6e6;
     --on-primary-hover: #f9f9f9;
-    --primary-pressed: #6c6c6c;
+    --primary-pressed: #cccccc;
     --on-primary-pressed: #f9f9f9;
     --neutral-accent: #141414;
     --neutral-container: #292929;

@@ -202,14 +202,22 @@ const clientSelectOmitSpec = {
   ...baseHiddenColumnsForClientSchema,
 } as const
 
+const clientSelectWithFeatureFieldRefinements = {
+  name: z.string(),
+  slug: z.string(),
+}
 /*
  * Client-facing Toggle SubscriptionItemFeature schemas
  */
 export const toggleSubscriptionItemFeatureClientInsertSchema =
-  toggleSubscriptionItemFeatureInsertSchema.omit(clientWriteOmitSpec)
+  toggleSubscriptionItemFeatureInsertSchema
+    .omit(clientWriteOmitSpec)
+    .extend(clientSelectWithFeatureFieldRefinements)
 
 export const toggleSubscriptionItemFeatureClientSelectSchema =
-  toggleSubscriptionItemFeatureSelectSchema.omit(clientSelectOmitSpec)
+  toggleSubscriptionItemFeatureSelectSchema
+    .omit(clientSelectOmitSpec)
+    .extend(clientSelectWithFeatureFieldRefinements)
 
 export const toggleSubscriptionItemFeatureClientUpdateSchema =
   toggleSubscriptionItemFeatureUpdateSchema
