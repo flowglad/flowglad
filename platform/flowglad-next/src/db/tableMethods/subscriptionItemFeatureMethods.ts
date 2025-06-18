@@ -41,6 +41,33 @@ export const selectSubscriptionItemFeatureById = createSelectById(
   config
 )
 
+export const selectClientSubscriptionItemFeatureAndFeatureById =
+  async (id: string, transaction: DbTransaction) => {
+    const result = await transaction
+      .select({
+        subscriptionItemFeature: subscriptionItemFeatures,
+        feature: {
+          name: features.name,
+          slug: features.slug,
+        },
+      })
+      .from(subscriptionItemFeatures)
+      .innerJoin(
+        features,
+        eq(subscriptionItemFeatures.featureId, features.id)
+      )
+      .where(eq(subscriptionItemFeatures.id, id))
+    return result.map((row) => {
+      return {
+        ...subscriptionItemFeaturesSelectSchema.parse(
+          row.subscriptionItemFeature
+        ),
+        name: row.feature.name,
+        slug: row.feature.slug,
+      }
+    })
+  }
+
 export const insertSubscriptionItemFeature = createInsertFunction(
   subscriptionItemFeatures,
   config
