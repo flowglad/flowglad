@@ -1,4 +1,10 @@
-export { FlowgladActionKey, HTTPMethod } from './types'
+export {
+  FlowgladActionKey,
+  HTTPMethod,
+  type FeatureItem,
+  type UsageMeterBalance,
+  type SubscriptionExperimentalFields,
+} from './types'
 export {
   createCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
@@ -17,5 +23,6 @@ export type {
   CancelSubscriptionParams,
   CreateUsageEventParams,
   CreateSubscriptionParams,
+  CreateActivateSubscriptionCheckoutSessionParams,
 } from './actions'
 export { getBaseURL } from './utils'
