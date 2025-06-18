@@ -163,7 +163,7 @@ const NavigationMenuLink = React.forwardRef<
         <Slot
           className={twMerge(
             clsx(
-              'shrink-0 text-subtle',
+              'shrink-0 text-subtle flex items-center',
               type === 'default' && {
                 'text-subtle': !selected,
                 'text-on-primary-container': selected,
@@ -175,7 +175,7 @@ const NavigationMenuLink = React.forwardRef<
         >
           {iconLeading}
         </Slot>
-        {children && <span className="truncate">{children}</span>}{' '}
+        {children && <span className="truncate">{children}</span>}
         {extra}
       </span>
       {children && (

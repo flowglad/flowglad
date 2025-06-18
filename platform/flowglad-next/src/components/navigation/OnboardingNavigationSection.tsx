@@ -43,7 +43,7 @@ const OnboardingNavigationSection = ({
       >
         <span
           className={cn(
-            'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+            'flex-grow transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
             isCollapsed
               ? 'max-w-0 opacity-0 ml-0'
               : 'max-w-xs opacity-100 ml-2'
