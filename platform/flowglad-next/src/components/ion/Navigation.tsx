@@ -159,7 +159,7 @@ const NavigationMenuLink = React.forwardRef<
       )}
       {...props}
     >
-      <span className={clsx('flex items-center truncate h-6')}>
+      <span className="flex items-center gap-2 truncate">
         <Slot
           className={twMerge(
             clsx(
