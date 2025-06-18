@@ -535,9 +535,12 @@ export const billingPortalPageURL = (params: {
   )
 }
 
-export const emailBaseUrl = process.env.VERCEL_URL
-  ? safeUrl('', process.env.VERCEL_URL ?? 'http://localhost:3000')
-  : ''
+export const emailBaseUrl = safeUrl(
+  '',
+  IS_TEST
+    ? 'https://example.com'
+    : (process.env.VERCEL_URL ?? 'https://localhost:3000')
+)
 
 export const core = {
   IS_PROD,
