@@ -248,7 +248,10 @@ export interface RequestConfig {
 }
 
 const constructCheckFeatureAccess = (
-  experimental: SubscriptionExperimentalFields
+  subscriptions: {
+    id: string
+    experimental: SubscriptionExperimentalFields
+  }[]
 ) => {
   return (
     featureSlug: string,
@@ -256,6 +259,15 @@ const constructCheckFeatureAccess = (
       subscriptionId?: string
     }
   ): boolean => {
+    const subscription = refinementParams?.subscriptionId
+      ? subscriptions.find(
+          (s) => s.id === refinementParams.subscriptionId
+        )
+      : subscriptions[0]
+    if (!subscription) {
+      return false
+    }
+    const experimental = subscription.experimental
     const featureItemsBySlug = experimental.featureItems.reduce(
       (acc, featureItem) => {
         acc[featureItem.slug] = featureItem
@@ -270,8 +282,12 @@ const constructCheckFeatureAccess = (
     return featureItem.type === 'toggle'
   }
 }
+
 const constructCheckUsageBalance = (
-  experimental: SubscriptionExperimentalFields
+  subscriptions: {
+    id: string
+    experimental: SubscriptionExperimentalFields
+  }[]
 ) => {
   return (
     usageMeterSlug: string,
@@ -281,6 +297,17 @@ const constructCheckUsageBalance = (
   ): {
     availableBalance: number
   } => {
+    const subscription = refinementParams?.subscriptionId
+      ? subscriptions.find(
+          (s) => s.id === refinementParams.subscriptionId
+        )
+      : subscriptions[0]
+    if (!subscription) {
+      return {
+        availableBalance: 0,
+      }
+    }
+    const experimental = subscription.experimental
     const usageMeterBalancesBySlug =
       experimental.usageMeterBalances.reduce(
         (acc, usageMeterBalance) => {
@@ -382,9 +409,6 @@ export const FlowgladContextProvider = ({
         queryKey: [FlowgladActionKey.GetCustomerBilling],
       })
     }
-    const experimental: SubscriptionExperimentalFields =
-      billingData.experimental
-
     value = {
       loaded: true,
       loadBilling,
@@ -393,8 +417,12 @@ export const FlowgladContextProvider = ({
       createAddPaymentMethodCheckoutSession,
       cancelSubscription,
       createActivateSubscriptionCheckoutSession,
-      checkFeatureAccess: constructCheckFeatureAccess(experimental),
-      checkUsageBalance: constructCheckUsageBalance(experimental),
+      checkFeatureAccess: constructCheckFeatureAccess(
+        billingData.currentSubscriptions
+      ),
+      checkUsageBalance: constructCheckUsageBalance(
+        billingData.currentSubscriptions
+      ),
       catalog: billingData.catalog,
       subscriptions: billingData.subscriptions,
       purchases: billingData.purchases,

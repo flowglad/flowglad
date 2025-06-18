@@ -8,6 +8,7 @@ import {
   getSubscription,
   getUser
 } from '@/utils/supabase/queries';
+import { FeatureCheck } from './FeatureCheck';
 
 export default async function Account() {
   const supabase = await createClient();
@@ -34,6 +35,7 @@ export default async function Account() {
         </div>
       </div>
       <div className="p-4">
+        <FeatureCheck />
         <CustomerPortalForm subscription={subscription} />
         <NameForm userName={userDetails?.full_name ?? ''} />
         <EmailForm userEmail={user.email} />
