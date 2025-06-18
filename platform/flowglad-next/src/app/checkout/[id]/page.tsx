@@ -16,6 +16,7 @@ import {
   selectSubscriptions,
   currentSubscriptionStatuses,
 } from '@/db/tableMethods/subscriptionMethods'
+import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
 const CheckoutSessionPage = async ({
   params,
@@ -32,56 +33,7 @@ const CheckoutSessionPage = async ({
     maybeCustomer,
     maybeCurrentSubscriptions,
   } = await adminTransaction(async ({ transaction }) => {
-    const checkoutSession = await selectCheckoutSessionById(
-      id,
-      transaction
-    )
-    /**
-     * Currently, only price / product checkout flows
-     * are supported on this page.
-     * For invoice or purchase flows, those should go through their respective
-     * pages.
-     */
-    if (!checkoutSession.priceId) {
-      throw new Error(
-        `No price id found for purchase session ${checkoutSession.id}. Currently, only price / product checkout flows are supported on this page.`
-      )
-    }
-    const [{ product, price, organization }] =
-      await selectPriceProductAndOrganizationByPriceWhere(
-        { id: checkoutSession.priceId },
-        transaction
-      )
-    const feeCalculation = await selectLatestFeeCalculation(
-      { checkoutSessionId: checkoutSession.id },
-      transaction
-    )
-    const maybeCustomer = checkoutSession.customerId
-      ? await selectCustomerById(
-          checkoutSession.customerId,
-          transaction
-        )
-      : null
-    const maybeCurrentSubscriptions =
-      maybeCustomer &&
-      !organization.allowMultipleSubscriptionsPerCustomer
-        ? await selectSubscriptions(
-            {
-              customerId: maybeCustomer.id,
-              status: currentSubscriptionStatuses,
-            },
-            transaction
-          )
-        : null
-    return {
-      checkoutSession,
-      product,
-      price,
-      sellerOrganization: organization,
-      feeCalculation,
-      maybeCustomer,
-      maybeCurrentSubscriptions,
-    }
+    return checkoutInfoForCheckoutSession(id, transaction)
   })
 
   if (!checkoutSession) {
