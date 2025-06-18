@@ -11,7 +11,7 @@ type SignupSideBarProps = {
 function SignupSideBar({ className = '' }: SignupSideBarProps) {
   const searchParams = useSearchParams()
   const flow = searchParams.get('flow')
-  let tagline = 'Start Making Internet Money'
+  let tagline = 'Payments anyone can program'
   let taglineDescription =
     'Make more sales, convert more customers, and grow faster.'
 
