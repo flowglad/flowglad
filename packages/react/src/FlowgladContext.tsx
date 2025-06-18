@@ -27,6 +27,12 @@ export type FrontendCreateAddPaymentMethodCheckoutSessionParams =
     autoRedirect?: boolean
   }
 
+type CreateCheckoutSessionResponse =
+  | {
+      id: string
+      url: string
+    }
+  | { error: { code: string; json: Record<string, unknown> } }
 export type LoadedFlowgladContextValues =
   Flowglad.CustomerRetrieveBillingResponse & {
     loaded: true
@@ -39,22 +45,10 @@ export type LoadedFlowgladContextValues =
     }>
     createCheckoutSession: (
       params: FrontendCreateCheckoutSessionParams
-    ) => Promise<
-      | {
-          id: string
-          url: string
-        }
-      | { error: { code: string; json: Record<string, unknown> } }
-    >
+    ) => Promise<CreateCheckoutSessionResponse>
     createAddPaymentMethodCheckoutSession: (
       params: FrontendCreateAddPaymentMethodCheckoutSessionParams
-    ) => Promise<
-      | {
-          id: string
-          url: string
-        }
-      | { error: { code: string; json: Record<string, unknown> } }
-    >
+    ) => Promise<CreateCheckoutSessionResponse>
     errors: null
   }
 
