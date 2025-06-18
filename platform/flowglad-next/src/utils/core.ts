@@ -535,6 +535,9 @@ export const billingPortalPageURL = (params: {
   )
 }
 
+export const emailBaseUrl =
+  envVariable('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000'
+
 export const core = {
   IS_PROD,
   IS_TEST,

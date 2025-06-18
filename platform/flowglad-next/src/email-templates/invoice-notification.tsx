@@ -12,10 +12,7 @@ import {
   Signature,
   TotalSection,
 } from './components/themed'
-
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : ''
+import { emailBaseUrl } from '@/utils/core'
 
 export const InvoiceNotificationEmail = ({
   invoice,
@@ -69,7 +66,7 @@ export const InvoiceNotificationEmail = ({
         convenience.
       </Paragraph>
       <EmailButton
-        href={`${baseUrl}/invoice/view/${invoice.organizationId}/${invoice.id}`}
+        href={`${emailBaseUrl}/invoice/view/${invoice.organizationId}/${invoice.id}`}
       >
         View Invoice →
       </EmailButton>

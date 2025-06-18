@@ -12,14 +12,11 @@ import {
   Text,
 } from '@react-email/components'
 import * as React from 'react'
+import { emailBaseUrl } from '@/utils/core'
 
 interface SendPurchaseAccessSessionTokenEmailProps {
   magicLink?: string
 }
-
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : ''
 
 export const SendPurchaseAccessSessionTokenEmail = ({
   magicLink,
@@ -30,7 +27,7 @@ export const SendPurchaseAccessSessionTokenEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Img
-          src={`${baseUrl}/static/flowglad-logo.png`}
+          src={`${emailBaseUrl}/static/flowglad-logo.png`}
           width={48}
           height={48}
           alt="Flowglad"
@@ -52,7 +49,7 @@ export const SendPurchaseAccessSessionTokenEmail = ({
         </Text>
         <Hr style={hr} />
         <Img
-          src={`${baseUrl}/static/flowglad-logo.png`}
+          src={`${emailBaseUrl}/static/flowglad-logo.png`}
           width={32}
           height={32}
           style={{

@@ -4,9 +4,11 @@ import {
   publicProcedure,
   router,
 } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
-  insertCheckoutSession,
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
+import {
   selectCheckoutSessionById,
   selectCheckoutSessions,
   selectCheckoutSessionsPaginated,
@@ -16,38 +18,26 @@ import {
   updateCheckoutSessionCustomerEmail,
   updateCheckoutSessionPaymentMethodType,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentMethodType,
 } from '@/types'
-import { PriceType } from '@/types'
 import { TRPCError } from '@trpc/server'
 import {
   editCheckoutSessionInputSchema,
   CheckoutSession,
-  checkoutSessionClientSelectSchema,
   checkoutSessionsPaginatedListSchema,
   checkoutSessionsPaginatedSelectSchema,
   getIntentStatusInputSchema,
+  singleCheckoutSessionOutputSchema,
+  createCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
 import { generateOpenApiMetas } from '@/utils/openapi'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import {
-  createPaymentIntentForCheckoutSession,
-  createSetupIntentForCheckoutSession,
-} from '@/utils/stripe'
-import { Customer } from '@/db/schema/customers'
-import {
-  billingAddressSchema,
-  Organization,
-} from '@/db/schema/organizations'
-import { Price } from '@/db/schema/prices'
-import { Product } from '@/db/schema/products'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { billingAddressSchema } from '@/db/schema/organizations'
 import { adminTransaction } from '@/db/adminTransaction'
 import { getIntentStatus } from '@/utils/bookkeeping/intentStatus'
+import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
@@ -57,252 +47,44 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const checkoutSessionsRouteConfigs = routeConfigs
 
-const coreCheckoutSessionSchema = z.object({
-  customerExternalId: z
-    .string()
-    .describe(
-      'The id of the Customer for this purchase session, as defined in your system'
-    ),
-  successUrl: z
-    .string()
-    .describe(
-      'The URL to redirect to after the purchase is successful'
-    ),
-  cancelUrl: z
-    .string()
-    .describe(
-      'The URL to redirect to after the purchase is canceled or fails'
-    ),
-  outputMetadata: z
-    .record(z.string(), z.any())
-    .optional()
-    .describe(
-      'Metadata that will get added to the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-    ),
-  outputName: z
-    .string()
-    .optional()
-    .describe(
-      'The name of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-    ),
-})
-
-const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
-  {
-    type: z.literal(CheckoutSessionType.Product),
-    priceId: z
-      .string()
-      .describe('The ID of the price the customer shall purchase'),
-    quantity: z
-      .number()
-      .optional()
-      .describe(
-        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-      ),
-  }
-)
-
-const addPaymentMethodCheckoutSessionSchema =
-  coreCheckoutSessionSchema.extend({
-    type: z.literal(CheckoutSessionType.AddPaymentMethod),
-    targetSubscriptionId: z
-      .string()
-      .optional()
-      .describe(
-        'The id of the subscription that the payment method will be added to as the default payment method.'
-      ),
-    automaticallyUpdateSubscriptions: z
-      .boolean()
-      .optional()
-      .describe(
-        'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
-      ),
-  })
-
-const createCheckoutSessionObject = z.discriminatedUnion('type', [
-  productCheckoutSessionSchema,
-  addPaymentMethodCheckoutSessionSchema,
-])
-
-const singleCheckoutSessionOutputSchema = z.object({
-  checkoutSession: checkoutSessionClientSelectSchema,
-  url: z
-    .string()
-    .describe('The URL to redirect to complete the purchase'),
-})
-
-const createCheckoutSessionSchema = z
-  .object({
-    checkoutSession: createCheckoutSessionObject,
-  })
-  .describe('Use this schema for new checkout sessions.')
-
-type CreateCheckoutSessionInput = z.infer<
-  typeof createCheckoutSessionSchema
->
-
-const checkoutSessionInsertFromInput = ({
-  checkoutSessionInput,
-  customer,
-  organizationId,
-  livemode,
-}: {
-  checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession']
-  customer: Customer.Record
-  organizationId: string
-  livemode: boolean
-}): CheckoutSession.Insert => {
-  const coreFields = {
-    customerId: customer.id,
-    organizationId,
-    customerEmail: customer.email,
-    customerName: customer.name,
-    status: CheckoutSessionStatus.Open,
-    livemode,
-    successUrl: checkoutSessionInput.successUrl,
-    cancelUrl: checkoutSessionInput.cancelUrl,
-    outputMetadata: checkoutSessionInput.outputMetadata,
-    outputName: checkoutSessionInput.outputName,
-    automaticallyUpdateSubscriptions: null,
-  }
-  if (checkoutSessionInput.type === CheckoutSessionType.Product) {
-    return {
-      ...coreFields,
-      type: CheckoutSessionType.Product,
-      invoiceId: null,
-      priceId: checkoutSessionInput.priceId,
-      targetSubscriptionId: null,
-    }
-  } else if (
-    checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
-  ) {
-    return {
-      ...coreFields,
-      automaticallyUpdateSubscriptions: false,
-      type: CheckoutSessionType.AddPaymentMethod,
-      targetSubscriptionId:
-        checkoutSessionInput.targetSubscriptionId ?? null,
-    }
-  }
-  throw new TRPCError({
-    code: 'BAD_REQUEST',
-    message: `Invalid checkout session`,
-  })
-}
-
 export const createCheckoutSession = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createCheckoutSessionSchema)
   .output(singleCheckoutSessionOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    const { checkoutSession: checkoutSessionInput } = input
-    const checkoutSessionType = checkoutSessionInput.type
-    if (
-      checkoutSessionType !== CheckoutSessionType.Product &&
-      checkoutSessionType !== CheckoutSessionType.AddPaymentMethod
-    ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Invalid checkout session type: ${checkoutSessionType}. Currently only ${CheckoutSessionType.Product} and ${CheckoutSessionType.AddPaymentMethod} are supported.`,
-      })
-    }
-    return authenticatedTransaction(
-      async ({ transaction, livemode }) => {
-        const organizationId = ctx.organizationId
-        if (!organizationId) {
-          throw new Error('organizationId is required')
-        }
-        const [customer] = await selectCustomers(
-          {
-            externalId: checkoutSessionInput.customerExternalId,
-          },
-          transaction
-        )
-        if (!customer) {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transaction }) => {
+        const { checkoutSession: checkoutSessionInput } = input
+        const checkoutSessionType = checkoutSessionInput.type
+        if (
+          checkoutSessionType !== CheckoutSessionType.Product &&
+          checkoutSessionType !==
+            CheckoutSessionType.AddPaymentMethod &&
+          checkoutSessionType !==
+            CheckoutSessionType.ActivateSubscription
+        ) {
           throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `Customer not found for externalId: ${checkoutSessionInput.customerExternalId}`,
+            code: 'BAD_REQUEST',
+            message: `Invalid checkout session type: ${checkoutSessionType}. Currently only ${CheckoutSessionType.Product}, ${CheckoutSessionType.AddPaymentMethod}, and ${CheckoutSessionType.ActivateSubscription} are supported.`,
           })
         }
-        // NOTE: invoice and purchase checkout sessions
-        // are not supported by API yet.
-        const checkoutSession = await insertCheckoutSession(
-          checkoutSessionInsertFromInput({
-            checkoutSessionInput,
-            customer,
-            organizationId,
-            livemode,
-          }),
-          transaction
-        )
-        let price: Price.Record | null = null
-        let product: Product.Record | null = null
-        let organization: Organization.Record | null = null
-        if (checkoutSession.type === CheckoutSessionType.Product) {
-          const [result] =
-            await selectPriceProductAndOrganizationByPriceWhere(
-              { id: checkoutSession.priceId },
-              transaction
-            )
-          price = result.price
-          product = result.product
-          organization = result.organization
-        } else {
-          organization = await selectOrganizationById(
-            checkoutSession.organizationId,
+
+        const { checkoutSession } =
+          await createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: ctx.organizationId!,
+              livemode: ctx.livemode,
+            },
             transaction
           )
-        }
-
-        let stripeSetupIntentId: string | null = null
-        let stripePaymentIntentId: string | null = null
-        if (
-          price?.type === PriceType.Subscription ||
-          price?.type === PriceType.Usage ||
-          checkoutSession.type ===
-            CheckoutSessionType.AddPaymentMethod
-        ) {
-          const stripeSetupIntent =
-            await createSetupIntentForCheckoutSession({
-              organization,
-              checkoutSession,
-              customer,
-            })
-          stripeSetupIntentId = stripeSetupIntent.id
-        } else if (
-          price?.type === PriceType.SinglePayment &&
-          product
-        ) {
-          const stripePaymentIntent =
-            await createPaymentIntentForCheckoutSession({
-              price,
-              product,
-              organization,
-              checkoutSession,
-            })
-          stripePaymentIntentId = stripePaymentIntent.id
-        }
-        const updatedCheckoutSession = await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            stripeSetupIntentId,
-            stripePaymentIntentId,
-          },
-          transaction
-        )
-        const url =
-          checkoutSession.type ===
-          CheckoutSessionType.AddPaymentMethod
-            ? `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
-            : `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
         return {
-          checkoutSession: updatedCheckoutSession,
-          url,
+          checkoutSession,
+          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
         }
-      },
-      { apiKey: ctx.apiKey }
+      }
     )
-  })
+  )
 
 export const editCheckoutSession = protectedProcedure
   //   .meta(openApiMetas.PUT)

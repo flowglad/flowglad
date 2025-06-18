@@ -35,8 +35,8 @@ const StandaloneNavigationItem = ({
             className={cn(
               'w-full flex items-center transition-all duration-300 ease-in-out',
               isCollapsed
-                ? 'justify-center px-2'
-                : 'justify-start px-3'
+                ? 'justify-center px-2 gap-0'
+                : 'justify-start px-3 gap-3'
             )}
             href={href}
             selected={pathname.startsWith(basePath)}

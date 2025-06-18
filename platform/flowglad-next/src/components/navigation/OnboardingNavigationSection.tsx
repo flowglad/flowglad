@@ -27,7 +27,7 @@ const OnboardingNavigationSection = ({
     <NavigationMenuItem className="w-full">
       <NavigationMenuLink
         iconLeading={
-          <TriangleRight size={14} strokeWidth={2} color="orange" />
+          <TriangleRight size={16} strokeWidth={2} color="orange" />
         }
         iconTrailing={
           isCollapsed ? null : (
@@ -35,8 +35,8 @@ const OnboardingNavigationSection = ({
           )
         }
         className={cn(
-          'w-full flex items-center justify-between transition-all duration-300 ease-in-out',
-          isCollapsed ? 'justify-center px-2' : 'px-3 gap-3'
+          'w-full flex items-center transition-all duration-300 ease-in-out',
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-3'
         )}
         href="/onboarding"
         selected={selectedPath.startsWith('/onboarding')}

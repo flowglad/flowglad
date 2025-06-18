@@ -13,9 +13,10 @@ import {
   Signature,
 } from './components/themed'
 
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : ''
+const baseUrl =
+  process.env.VERCEL_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  'https://localhost:3000'
 
 export const InvoiceReminderEmail = ({
   invoice,

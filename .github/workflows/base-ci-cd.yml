@@ -107,6 +107,7 @@ jobs:
       UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
       UNKEY_API_ID: ${{ secrets.UNKEY_API_ID }}
       NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3

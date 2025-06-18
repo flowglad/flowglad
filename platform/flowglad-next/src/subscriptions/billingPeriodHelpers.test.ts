@@ -1303,6 +1303,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: ledgerTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1369,6 +1370,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: grantTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1405,6 +1407,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: usageTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType:
@@ -1474,6 +1477,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: grantTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1510,6 +1514,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: usageTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType:
@@ -1578,6 +1583,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: ledgerTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1643,6 +1649,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: ledgerTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1707,6 +1714,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: ledgerTx1.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1736,6 +1744,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: ledgerTx2.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1767,6 +1776,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: ledgerTx3.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1861,6 +1871,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: expiringTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1979,6 +1990,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: expiringTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2009,6 +2021,7 @@ describe('Ledger Interactions', () => {
         subscriptionId: subscription.id,
         ledgerTransactionId: evergreenTx.id,
         ledgerAccountId: ledgerAccount.id,
+        usageMeterId: usageMeter.id,
         entries: [
           {
             entryType: LedgerEntryType.CreditGrantRecognized,

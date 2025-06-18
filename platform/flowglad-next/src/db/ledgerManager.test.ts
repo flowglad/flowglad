@@ -138,6 +138,7 @@ describe('Ledger Management System', async () => {
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
           sourceUsageEventId: usageEvent.id,
+          usageMeterId: usageMeter.id,
         })
         const usageCredit = await setupUsageCredit({
           organizationId: organization.id,
@@ -155,6 +156,7 @@ describe('Ledger Management System', async () => {
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
           sourceUsageCreditId: usageCredit.id,
+          usageMeterId: usageMeter.id,
         })
         const secondUsageEvent = await setupUsageEvent({
           organizationId: organization.id,
@@ -174,6 +176,7 @@ describe('Ledger Management System', async () => {
           status: LedgerEntryStatus.Posted,
           ledgerAccountId: ledgerAccount.id,
           sourceUsageEventId: secondUsageEvent.id,
+          usageMeterId: usageMeter.id,
         })
         const thirdUsageEvent = await setupUsageEvent({
           organizationId: organization.id,
@@ -193,6 +196,7 @@ describe('Ledger Management System', async () => {
           status: LedgerEntryStatus.Pending,
           ledgerAccountId: ledgerAccount.id,
           sourceUsageEventId: thirdUsageEvent.id,
+          usageMeterId: usageMeter.id,
         })
 
         const expectedBalance =
@@ -267,6 +271,7 @@ describe('Ledger Management System', async () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: ledgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: usageMeter.id,
           entries: [
             {
               entryType: LedgerEntryType.UsageCost,
@@ -354,6 +359,7 @@ describe('Ledger Management System', async () => {
                 ? LedgerEntryStatus.Pending
                 : LedgerEntryStatus.Posted,
               sourceUsageCreditId: usageCredit.id,
+              usageMeterId: usageMeter.id,
             })
           } else {
             const usageEvent = await setupUsageEvent({
@@ -374,6 +380,7 @@ describe('Ledger Management System', async () => {
                 ? LedgerEntryStatus.Pending
                 : LedgerEntryStatus.Posted,
               sourceUsageEventId: usageEvent.id,
+              usageMeterId: usageMeter.id,
             })
           }
 
