@@ -6,6 +6,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PurchaseStatus,
+  PriceType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -23,8 +24,11 @@ import {
   EditCheckoutSessionInput,
   feeReadyCheckoutSessionSelectSchema,
   CheckoutSession,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionObject,
 } from '@/db/schema/checkoutSessions'
 import {
+  insertCheckoutSession,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
@@ -68,6 +72,10 @@ import {
 } from '@/db/tableMethods/invoiceMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { Organization } from '@/db/schema/organizations'
+import { Product } from '@/db/schema/products'
+import { Price } from '@/db/schema/prices'
 
 export const createFeeCalculationForCheckoutSession = async (
   checkoutSession: CheckoutSession.FeeReadyRecord,

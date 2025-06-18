@@ -177,6 +177,7 @@ describe('ledgerEntryMethods', () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           ledgerTransactionId: localLedgerTransaction.id,
           entryType: LedgerEntryType.UsageCost,
           direction: LedgerEntryDirection.Debit,
@@ -202,6 +203,7 @@ describe('ledgerEntryMethods', () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           ledgerTransactionId: localLedgerTransaction.id,
           entryType: LedgerEntryType.CreditGrantRecognized,
           direction: LedgerEntryDirection.Credit,
@@ -271,6 +273,7 @@ describe('ledgerEntryMethods', () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           ledgerTransactionId: localLedgerTransaction.id,
           entryType: LedgerEntryType.CreditGrantRecognized,
           direction: LedgerEntryDirection.Credit,
@@ -409,6 +412,7 @@ describe('ledgerEntryMethods', () => {
           amount: 100,
           status: LedgerEntryStatus.Pending,
           sourceUsageCreditId: usageCreditId,
+          usageMeterId: ledgerAccount.usageMeterId!,
         })
         await adminTransaction(async ({ transaction }) => {
           // Setup a pending entry to ensure only posted are considered
@@ -431,10 +435,12 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 1000,
             status: LedgerEntryStatus.Posted,
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           await setupCreditLedgerEntry({
             organizationId: organization.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
@@ -461,6 +467,7 @@ describe('ledgerEntryMethods', () => {
           entryType: LedgerEntryType.PaymentRefunded,
           amount: 300,
           status: LedgerEntryStatus.Posted,
+          usageMeterId: ledgerAccount.usageMeterId!,
           sourceRefundId: refundId,
         })
 
@@ -474,6 +481,7 @@ describe('ledgerEntryMethods', () => {
             amount: 700,
             status: LedgerEntryStatus.Posted,
             sourceUsageEventId: usageEventId,
+            usageMeterId: ledgerAccount.usageMeterId!,
           })
           const balance =
             await aggregateBalanceForLedgerAccountFromEntries(
@@ -491,6 +499,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -534,6 +543,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -586,6 +596,7 @@ describe('ledgerEntryMethods', () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           ledgerTransactionId: testLedgerTransaction.id,
           entries: [
             {
@@ -637,7 +648,7 @@ describe('ledgerEntryMethods', () => {
           amount: 750,
           status: LedgerEntryStatus.Posted,
           discardedAt: futureDate,
-
+          usageMeterId: ledgerAccount.usageMeterId!,
           sourceUsageCreditId: usageCreditId,
         })
         const balance = await adminTransaction(
@@ -662,7 +673,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 300,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           await setupDebitLedgerEntry({
@@ -673,6 +684,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.UsageCost,
             amount: 100,
             status: LedgerEntryStatus.Posted,
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageEventId: usageEventId,
           })
           const secondSub = await setupSubscription({
@@ -699,6 +711,7 @@ describe('ledgerEntryMethods', () => {
           await setupCreditLedgerEntry({
             organizationId: organization.id,
             subscriptionId: secondSub.id,
+            usageMeterId: otherLedgerAccount.usageMeterId!,
             ledgerAccountId: otherLedgerAccount.id,
             ledgerTransactionId: otherLedgerTransaction.id,
             entryType: LedgerEntryType.CreditGrantRecognized,
@@ -729,6 +742,7 @@ describe('ledgerEntryMethods', () => {
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 100,
+            usageMeterId: ledgerAccount.usageMeterId!,
             status: LedgerEntryStatus.Pending,
             discardedAt: new Date(Date.now() - 1000),
             sourceUsageCreditId: usageCreditId,
@@ -752,7 +766,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 1000,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           await setupCreditLedgerEntry({
@@ -763,6 +777,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 500,
             status: LedgerEntryStatus.Pending, // Non-discarded pending credit
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           const balance =
@@ -782,6 +797,7 @@ describe('ledgerEntryMethods', () => {
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.UsageCost,
+            usageMeterId: ledgerAccount.usageMeterId!,
             amount: 700,
             status: LedgerEntryStatus.Posted,
             sourceUsageEventId: usageEventId,
@@ -792,6 +808,7 @@ describe('ledgerEntryMethods', () => {
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.UsageCost,
+            usageMeterId: ledgerAccount.usageMeterId!,
             amount: 300,
             status: LedgerEntryStatus.Pending, // Non-discarded pending debit
             sourceUsageEventId: usageEventId,
@@ -812,6 +829,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -856,6 +874,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -907,7 +926,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 300,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           await setupDebitLedgerEntry({
@@ -918,6 +937,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.UsageCost,
             amount: 100,
             status: LedgerEntryStatus.Pending, // Pending for this account
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageEventId: usageEventId,
           })
 
@@ -949,7 +969,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 5000,
             status: LedgerEntryStatus.Posted, // For other account
-
+            usageMeterId: otherLedgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           await setupDebitLedgerEntry({
@@ -957,6 +977,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: secondSub.id,
             ledgerAccountId: otherLedgerAccount.id,
             ledgerTransactionId: otherLedgerTransaction.id,
+            usageMeterId: otherLedgerAccount.usageMeterId!,
             entryType: LedgerEntryType.UsageCost,
             amount: 2000,
             status: LedgerEntryStatus.Pending, // Pending for other account
@@ -983,6 +1004,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1024,6 +1046,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1067,6 +1090,7 @@ describe('ledgerEntryMethods', () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           ledgerTransactionId: testLedgerTransaction.id,
           entries: [
             {
@@ -1121,6 +1145,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 300,
             status: LedgerEntryStatus.Posted,
@@ -1145,6 +1170,7 @@ describe('ledgerEntryMethods', () => {
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.UsageCost,
+            usageMeterId: ledgerAccount.usageMeterId!,
             amount: 150,
             status: LedgerEntryStatus.Posted,
             sourceUsageEventId: usageEventId,
@@ -1170,6 +1196,7 @@ describe('ledgerEntryMethods', () => {
             amount: 250,
             status: LedgerEntryStatus.Pending,
             sourceUsageEventId: usageEventId,
+            usageMeterId: ledgerAccount.usageMeterId!,
           })
           const balance =
             await aggregateBalanceForLedgerAccountFromEntries(
@@ -1188,6 +1215,7 @@ describe('ledgerEntryMethods', () => {
             organizationId: organization.id,
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 100,
@@ -1205,6 +1233,7 @@ describe('ledgerEntryMethods', () => {
             amount: 50,
             status: LedgerEntryStatus.Pending,
             sourceUsageCreditId: usageCreditId,
+            usageMeterId: ledgerAccount.usageMeterId!,
           })
           const balance =
             await aggregateBalanceForLedgerAccountFromEntries(
@@ -1224,6 +1253,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 200,
             status: LedgerEntryStatus.Posted,
@@ -1235,6 +1265,7 @@ describe('ledgerEntryMethods', () => {
             organizationId: organization.id,
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.UsageCost,
             amount: 75,
@@ -1263,7 +1294,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 300,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           // Discarded Pending Credit (should be ignored anyway by "available" logic for pending credits)
@@ -1271,6 +1302,7 @@ describe('ledgerEntryMethods', () => {
             organizationId: organization.id,
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 120,
@@ -1295,6 +1327,7 @@ describe('ledgerEntryMethods', () => {
             organizationId: organization.id,
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 500,
@@ -1311,6 +1344,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.UsageCost,
             amount: 150,
             status: LedgerEntryStatus.Pending,
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageEventId: usageEventId,
           })
           const balance =
@@ -1330,6 +1364,7 @@ describe('ledgerEntryMethods', () => {
             organizationId: organization.id,
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.PaymentRefunded,
             amount: 200,
@@ -1341,6 +1376,7 @@ describe('ledgerEntryMethods', () => {
             organizationId: organization.id,
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             ledgerTransactionId: testLedgerTransaction.id,
             entryType: LedgerEntryType.UsageCost,
             amount: 100,
@@ -1364,6 +1400,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1407,6 +1444,7 @@ describe('ledgerEntryMethods', () => {
           organizationId: organization.id,
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           ledgerTransactionId: testLedgerTransaction.id,
           entries: [
             {
@@ -1445,7 +1483,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 100,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           await setupDebitLedgerEntry({
@@ -1457,6 +1495,7 @@ describe('ledgerEntryMethods', () => {
             amount: 50,
             status: LedgerEntryStatus.Pending,
             sourceUsageEventId: usageEventId,
+            usageMeterId: ledgerAccount.usageMeterId!,
           })
 
           const secondSub = await setupSubscription({
@@ -1488,7 +1527,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 1000,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: otherLedgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
           await setupDebitLedgerEntry({
@@ -1500,6 +1539,7 @@ describe('ledgerEntryMethods', () => {
             amount: 200,
             status: LedgerEntryStatus.Pending,
             sourceUsageEventId: usageEventId,
+            usageMeterId: otherLedgerAccount.usageMeterId!,
           })
 
           const balance =
@@ -1522,6 +1562,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerTransactionId: testLedgerTransaction.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1573,7 +1614,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: mainAccountEntryAmount,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
 
@@ -1605,7 +1646,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 5000,
             status: LedgerEntryStatus.Posted,
-
+            usageMeterId: ledgerAccount.usageMeterId!,
             sourceUsageCreditId: usageCreditId,
           })
 
@@ -1639,6 +1680,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 // This entry should always be included as its not discarded
@@ -1713,6 +1755,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1780,6 +1823,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -1866,6 +1910,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               // Initial entry to have a non-zero balance
               {
@@ -1957,6 +2002,7 @@ describe('ledgerEntryMethods', () => {
             subscriptionId: subscription.id,
             ledgerTransactionId: testLedgerTransaction.id,
             ledgerAccountId: ledgerAccount.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2005,6 +2051,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2073,6 +2120,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2095,6 +2143,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2117,6 +2166,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2191,6 +2241,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2240,6 +2291,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2297,6 +2349,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2384,6 +2437,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerAccountId: ledgerAccount.id,
           ledgerTransactionId: testLedgerTransaction.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2466,6 +2520,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id, // Assuming adjustments can be linked to a subscription
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.UsageCost,
@@ -2517,6 +2572,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               // Pending Credit - ignored by available balance
@@ -2542,6 +2598,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               // Posted Credit, but discarded - ignored
@@ -2636,6 +2693,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id, // Uses primary subscription
           ledgerTransactionId: testLedgerTransaction.id, // Uses primary ledger transaction
           ledgerAccountId: ledgerAccountA.id,
+          usageMeterId: ledgerAccountA.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2652,6 +2710,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: secondSubscription.id, // Uses second subscription
           ledgerTransactionId: secondLedgerTransaction.id, // Uses second ledger transaction
           ledgerAccountId: ledgerAccountB.id,
+          usageMeterId: ledgerAccountB.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2699,6 +2758,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2786,6 +2846,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2820,6 +2881,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2850,6 +2912,7 @@ describe('ledgerEntryMethods', () => {
           subscriptionId: subscription.id,
           ledgerTransactionId: testLedgerTransaction.id,
           ledgerAccountId: ledgerAccount.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
           entries: [
             {
               entryType: LedgerEntryType.CreditGrantRecognized,
@@ -2926,6 +2989,7 @@ describe('ledgerEntryMethods', () => {
           amount: creditBalance,
           status: LedgerEntryStatus.Posted,
           sourceUsageCreditId: usageCreditWithExpiry.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
         })
 
         // execution:
@@ -2975,6 +3039,7 @@ describe('ledgerEntryMethods', () => {
           amount: creditBalance,
           status: LedgerEntryStatus.Posted,
           sourceUsageCreditId: usageCreditNullExpiry.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
         })
 
         // execution:
@@ -3023,6 +3088,7 @@ describe('ledgerEntryMethods', () => {
           amount: balanceA,
           status: LedgerEntryStatus.Posted,
           sourceUsageCreditId: usageCreditA.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
         })
 
         const balanceB = 300
@@ -3044,6 +3110,7 @@ describe('ledgerEntryMethods', () => {
           amount: balanceB,
           status: LedgerEntryStatus.Posted,
           sourceUsageCreditId: usageCreditB.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
         })
 
         const dateC = new Date('2025-06-30T12:00:00Z')
@@ -3066,6 +3133,7 @@ describe('ledgerEntryMethods', () => {
           amount: balanceC,
           status: LedgerEntryStatus.Posted,
           sourceUsageCreditId: usageCreditC.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
         })
 
         // execution:
@@ -3142,6 +3210,7 @@ describe('ledgerEntryMethods', () => {
           amount: creditBalance,
           status: LedgerEntryStatus.Posted,
           sourceUsageCreditId: usageCreditPastExpiry.id,
+          usageMeterId: ledgerAccount.usageMeterId!,
         })
 
         // execution:

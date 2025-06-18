@@ -40,10 +40,10 @@ export const grantEntitlementUsageCredits = async (
     command.payload.subscriptionFeatureItems.filter(
       (featureItem) => featureItem.usageMeterId
     )
-  const standardPayload =
-    command.payload as StandardBillingPeriodTransitionPayload
+  const standardPayload = command.payload
   const isInitialGrant =
-    standardPayload.previousBillingPeriod === null
+    standardPayload.type === 'credit_trial' ||
+    !standardPayload.previousBillingPeriod
 
   const featureItemsToGrant = isInitialGrant
     ? subscriptionFeatureItemsWithUsageMeters
@@ -75,8 +75,20 @@ export const grantEntitlementUsageCredits = async (
       )
     })
   }
-  const usageCreditInserts: UsageCredit.Insert[] =
-    featureItemsToGrant.map((featureItem) => {
+  /**
+   * Do not grant recurring credits for credit trials
+   */
+  const usageCreditInserts: UsageCredit.Insert[] = featureItemsToGrant
+    .filter((item) => {
+      if (
+        item.renewalFrequency ===
+        FeatureUsageGrantFrequency.EveryBillingPeriod
+      ) {
+        return standardPayload.type === 'standard'
+      }
+      return true
+    })
+    .map((featureItem) => {
       return {
         organizationId: command.organizationId,
         livemode: command.livemode,
@@ -84,7 +96,10 @@ export const grantEntitlementUsageCredits = async (
         status: UsageCreditStatus.Posted,
         usageMeterId: featureItem.usageMeterId!,
         subscriptionId: command.subscriptionId!,
-        billingPeriodId: standardPayload.newBillingPeriod.id,
+        billingPeriodId:
+          standardPayload.type === 'standard'
+            ? standardPayload.newBillingPeriod?.id
+            : null,
         notes: null,
         metadata: null,
         // Credits from recurring grants expire at the end of the billing period.
@@ -92,7 +107,9 @@ export const grantEntitlementUsageCredits = async (
         expiresAt:
           featureItem.renewalFrequency ===
           FeatureUsageGrantFrequency.EveryBillingPeriod
-            ? standardPayload.newBillingPeriod.endDate
+            ? standardPayload.type === 'standard'
+              ? standardPayload.newBillingPeriod.endDate
+              : null
             : null,
         issuedAmount: featureItem.amount,
         issuedAt: new Date(),
@@ -135,9 +152,10 @@ export const grantEntitlementUsageCredits = async (
           entryType: LedgerEntryType.CreditGrantRecognized,
           discardedAt: null,
           sourceUsageCreditId: usageCredit.id,
+          usageMeterId: usageCredit.usageMeterId,
           billingPeriodId:
             command.payload.type === 'standard'
-              ? standardPayload.newBillingPeriod.id
+              ? command.payload.newBillingPeriod.id
               : null,
         }
       return entitlementCreditLedgerEntry

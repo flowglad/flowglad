@@ -1,5 +1,5 @@
-import { StackServerApp } from '@stackframe/stack'
 import { core } from './utils/core'
+import { StackServerApp } from '@stackframe/stack'
 
 export const stackServerApp = new StackServerApp({
   tokenStore: 'nextjs-cookie',

@@ -27,7 +27,7 @@ const OnboardingNavigationSection = ({
     <NavigationMenuItem className="w-full">
       <NavigationMenuLink
         iconLeading={
-          <TriangleRight size={14} strokeWidth={2} color="orange" />
+          <TriangleRight size={16} strokeWidth={2} color="orange" />
         }
         iconTrailing={
           isCollapsed ? null : (

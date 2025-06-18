@@ -8,12 +8,7 @@ import {
   OnboardingItemType,
   Verbs,
 } from '@/types'
-import {
-  ArrowUpRight,
-  ArrowUpRightFromSquare,
-  Check,
-  Copy,
-} from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 import NounVerbModal from '@/components/forms/NounVerbModal'
 import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { Country } from '@/db/schema/countries'
@@ -66,7 +61,9 @@ const OnboardingStatusRow = ({
                 <Check size={20} strokeWidth={2} />
               </div>
             ) : (
-              actionNode || <Button onClick={onClick}>{action}</Button>
+              actionNode || (
+                <Button onClick={onClick}>{action}</Button>
+              )
             )}
           </div>
         ) : null}
@@ -212,22 +209,28 @@ const OnboardingStatusTable = ({
         description={'Get set up in localhost in a few minutes'}
         actionNode={
           <div className="flex flex-row items-end justify-center gap-2">
-            <Link
-              href="https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 border border-transparent rounded-radius-sm text-sm bg-primary text-on-primary hover:bg-primary-hover hover:text-on-primary-hover active:bg-primary-pressed active:text-on-primary-pressed whitespace-nowrap"
+            <Button
+              onClick={() => {
+                window.open(
+                  'https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration',
+                  '_blank'
+                )
+              }}
             >
-              Auto Setup
-            </Link>
-            <Link
-              href="https://docs.flowglad.com/quickstart#4-server-setup"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 border border-white rounded-lg text-sm text-white bg-transparent whitespace-nowrap"
+              Setup by Prompt
+            </Button>
+            <Button
+              onClick={() => {
+                window.open(
+                  'https://docs.flowglad.com/quickstart#4-server-setup',
+                  '_blank'
+                )
+              }}
+              className="border-white bg-transparent hover:bg-white/10"
+              variant="outline"
             >
-              Manual Setup
-            </Link>
+              Setup Manually
+            </Button>
           </div>
         }
       />

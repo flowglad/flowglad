@@ -128,9 +128,9 @@ const OnboardingPage = async () => {
   //   return redirect('/dashboard')
   // }
   return (
-    <div className="flex flex-col gap-4 p-8 w-full justify-center items-center m-auto max-w-2xl">
-      <div className="flex flex-col items-center justify-center w-full gap-4">
-        <div className="flex flex-col items-center justify-center gap-2">
+    <div className="flex flex-col gap-4 p-8 w-full justify-center items-start m-auto max-w-2xl">
+      <div className="flex flex-col items-start justify-center w-full gap-4">
+        <div className="flex flex-col items-start justify-center gap-2">
           <h2 className="text-2xl font-semibold">Set Up</h2>
           <p className="text-md text-foreground">
             Complete just a few steps to get up and running.

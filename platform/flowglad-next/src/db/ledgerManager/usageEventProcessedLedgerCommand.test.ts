@@ -685,6 +685,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         entryType: LedgerEntryType.CreditGrantRecognized,
         amount: creditAmount,
         livemode: TEST_LIVEMODE,
+        usageMeterId: ledgerAccount.usageMeterId!,
       })
 
       // Setup: Command for usage event (amount 100)
@@ -858,6 +859,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         entryType: LedgerEntryType.CreditGrantRecognized,
         amount: creditIssuedAmount,
         livemode: TEST_LIVEMODE,
+        usageMeterId: ledgerAccount.usageMeterId!,
       })
 
       // Setup: Command for usage event (amount 100)
@@ -1360,6 +1362,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         sourceUsageCreditId: usageCredit.id,
         entryType: LedgerEntryType.CreditGrantRecognized,
         amount: creditAmount,
+        usageMeterId: ledgerAccount.usageMeterId!,
       })
       const priorUsageEvent = await setupUsageEvent({
         organizationId: organization.id,
