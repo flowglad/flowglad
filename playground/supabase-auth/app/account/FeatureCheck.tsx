@@ -13,6 +13,7 @@ const FeatureAccessCheck = () => {
   }
   return <div>You have access to this feature</div>;
 };
+
 const UsageBalanceCheck = () => {
   const { checkUsageBalance, loaded } = useBilling();
   const usageBalance = checkUsageBalance && checkUsageBalance('usage-1');

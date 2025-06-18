@@ -3,7 +3,7 @@ import React, { createContext, useContext } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import {
-  CancelSubscriptionParams,
+  type CancelSubscriptionParams,
   FlowgladActionKey,
   flowgladActionValidators,
   type CreateCheckoutSessionParams,
@@ -11,7 +11,7 @@ import {
   type CreateAddPaymentMethodCheckoutSessionParams,
   type FeatureItem,
   type SubscriptionExperimentalFields,
-  UsageMeterBalance,
+  type UsageMeterBalance,
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
