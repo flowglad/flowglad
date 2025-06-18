@@ -136,7 +136,6 @@ export const buttonVariants = cva(
                 `bg-${color}`,
                 `text-on-${color}`,
                 `hover:bg-${color}-hover`,
-                `hover:text-on-${color}-hover`,
                 `active:text-on-${color}-container`,
                 `active:bg-${color}-pressed`,
                 `active:text-on-${color}-pressed`,

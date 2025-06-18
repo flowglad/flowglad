@@ -88,7 +88,7 @@ body {
     --on-primary-container: #acacac;
     --primary-strong: #606060;
 
-    --primary-hover: #797979;
+    --primary-hover: #e6e6e6;
     --on-primary-hover: #f9f9f9;
 
     --primary-pressed: #6c6c6c;
@@ -204,7 +204,7 @@ body {
     --on-primary: #000000;
     --on-primary-container: #acacac;
     --primary-strong: #606060;
-    --primary-hover: #797979;
+    --primary-hover: #e6e6e6;
     --on-primary-hover: #f9f9f9;
     --primary-pressed: #6c6c6c;
     --on-primary-pressed: #f9f9f9;
