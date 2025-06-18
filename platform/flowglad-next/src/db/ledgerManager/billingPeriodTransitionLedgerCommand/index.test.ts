@@ -380,6 +380,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,
@@ -472,6 +473,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             subscriptionId: subscription.id,
             ledgerAccountId: ledgerAccount.id,
             ledgerTransactionId: testLedgerTransaction.id,
+            usageMeterId: ledgerAccount.usageMeterId!,
             entries: [
               {
                 entryType: LedgerEntryType.CreditGrantRecognized,

@@ -35,10 +35,7 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { core } from '@/utils/core'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import {
-  selectSubscriptionItemFeatureById,
-  selectSubscriptionItemFeatures,
-} from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 
 interface CreateBillingPeriodParams {

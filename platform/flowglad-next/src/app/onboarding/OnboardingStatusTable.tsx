@@ -8,12 +8,7 @@ import {
   OnboardingItemType,
   Verbs,
 } from '@/types'
-import {
-  ArrowUpRight,
-  ArrowUpRightFromSquare,
-  Check,
-  Copy,
-} from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 import NounVerbModal from '@/components/forms/NounVerbModal'
 import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { Country } from '@/db/schema/countries'
@@ -66,7 +61,9 @@ const OnboardingStatusRow = ({
                 <Check size={20} strokeWidth={2} />
               </div>
             ) : (
-              actionNode || <Button onClick={onClick}>{action}</Button>
+              actionNode || (
+                <Button onClick={onClick}>{action}</Button>
+              )
             )}
           </div>
         ) : null}

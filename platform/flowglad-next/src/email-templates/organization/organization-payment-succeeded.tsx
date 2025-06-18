@@ -11,10 +11,7 @@ import {
   DetailItem,
   DetailValue,
 } from '../components/themed'
-
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : ''
+import { emailBaseUrl } from '@/utils/core'
 
 export interface OrganizationPaymentNotificationEmailProps {
   organizationName: string
@@ -72,9 +69,7 @@ export const OrganizationPaymentNotificationEmail = ({
       <Section
         style={{ textAlign: 'center' as const, marginTop: '32px' }}
       >
-        <EmailButton
-          href={`https://app.flowglad.com/customers/${customerId}`}
-        >
+        <EmailButton href={`${emailBaseUrl}/customers/${customerId}`}>
           View in Dashboard
         </EmailButton>
       </Section>

@@ -11,6 +11,8 @@ import {
   setupUsageMeter,
   setupPrice,
   setupTestFeaturesAndProductFeatures,
+  setupUsageCreditGrantFeature,
+  setupProductFeature,
 } from '@/../seedDatabase'
 import { createSubscriptionWorkflow } from './workflow'
 import {
@@ -20,6 +22,9 @@ import {
   SubscriptionStatus,
   PriceType,
   CurrencyCode,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  LedgerEntryType,
 } from '@/types'
 import { Price } from '@/db/schema/prices'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
@@ -36,18 +41,12 @@ import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import {
   selectLedgerEntries,
   aggregateBalanceForLedgerAccountFromEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { Catalog } from '@/db/schema/catalogs'
-import { LedgerEntryType } from '@/types'
-import {
-  setupUsageCreditGrantFeature,
-  setupProductFeature,
-} from '@/../seedDatabase'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 
 describe('createSubscriptionWorkflow', async () => {
@@ -558,7 +557,7 @@ describe('createSubscriptionWorkflow', async () => {
     expect(noPmBillingRun).toBeNull()
   })
 
-  it('should execute with a billingRun if customer has a default payment method but no defaultPaymentMethodId is provided', async () => {
+  it('should execute with a billingRun if price has no trial period, customer has a default payment method, but no defaultPaymentMethodId is provided', async () => {
     // Specific setup: customer with a default payment method in DB
     const customerWithDefaultPM = await setupCustomer({
       organizationId: organization.id,
@@ -569,7 +568,8 @@ describe('createSubscriptionWorkflow', async () => {
       default: true, // Set as default in DB
     })
     const stripeSetupIntentIdCustPM = `setupintent_cust_pm_${core.nanoid()}`
-
+    expect(defaultPrice.trialPeriodDays).toBe(0)
+    expect(defaultPrice.type).toBe(PriceType.Subscription)
     const {
       result: { billingRun: custPmBillingRun },
     } = await adminTransaction(async ({ transaction }) => {
@@ -1046,6 +1046,82 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     expect(sif.featureId).toBe(createdFeaturesAndPfs[0].feature.id)
   })
 
+  it('should associate the correct usageMeterId with usage credit grant SubscriptionItemFeatures', async () => {
+    // Setup
+    const { organization, product, price, catalog } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      catalogId: catalog.id,
+      name: 'Meter for explicit test',
+    })
+    const creditGrantFeature = await setupUsageCreditGrantFeature({
+      organizationId: organization.id,
+      name: 'Credit Grant Feature for explicit test',
+      usageMeterId: usageMeter.id,
+      renewalFrequency: FeatureUsageGrantFrequency.Once,
+      amount: 123,
+      livemode: true,
+      catalogId: catalog.id,
+    })
+    await setupProductFeature({
+      organizationId: organization.id,
+      productId: product.id,
+      featureId: creditGrantFeature.id,
+      livemode: true,
+    })
+
+    // Action
+    const {
+      result: { subscriptionItems },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+        },
+        transaction
+      )
+    })
+
+    // Assertions
+    expect(subscriptionItems.length).toBe(1)
+    const subItem = subscriptionItems[0]
+
+    const createdSifs = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionItemFeatures(
+          { subscriptionItemId: [subItem.id] },
+          transaction
+        )
+      }
+    )
+
+    expect(createdSifs.length).toBe(1)
+    const creditSif = createdSifs[0]
+    expect(creditSif.featureId).toBe(creditGrantFeature.id)
+    expect(creditSif.type).toBe(FeatureType.UsageCreditGrant)
+    expect(creditSif.usageMeterId).toBe(usageMeter.id)
+    expect(creditSif.usageMeterId).not.toBeNull()
+  })
+
   it('should NOT create SubscriptionItemFeatures if the product has no associated features', async () => {
     // Standard setupOrg creates product/price without features
     const { organization, product, price } = await setupOrg()
@@ -1273,7 +1349,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
     const { subscription } = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_once_grant_${core.nanoid()}`
-        return createSubscriptionWorkflow(
+        const workflowResult = await createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -1290,6 +1366,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
           },
           transaction
         )
+        return workflowResult
       }
     )
 
@@ -1439,7 +1516,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
     const { subscription } = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_expiring_grant_${core.nanoid()}`
-        return createSubscriptionWorkflow(
+        const workflowResult = await createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -1456,6 +1533,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
           },
           transaction
         )
+        return workflowResult
       }
     )
 
