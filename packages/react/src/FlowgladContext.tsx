@@ -75,7 +75,7 @@ export type LoadedFlowgladContextValues =
       }
     ) => {
       availableBalance: number
-    }
+    } | null
     errors: null
   }
 
@@ -296,16 +296,14 @@ const constructCheckUsageBalance = (
     }
   ): {
     availableBalance: number
-  } => {
+  } | null => {
     const subscription = refinementParams?.subscriptionId
       ? subscriptions.find(
           (s) => s.id === refinementParams.subscriptionId
         )
       : subscriptions[0]
     if (!subscription) {
-      return {
-        availableBalance: 0,
-      }
+      return null
     }
     const experimental = subscription.experimental
     const usageMeterBalancesBySlug =
@@ -318,9 +316,7 @@ const constructCheckUsageBalance = (
       )
     const usageMeterBalance = usageMeterBalancesBySlug[usageMeterSlug]
     if (!usageMeterBalance) {
-      return {
-        availableBalance: 0,
-      }
+      return null
     }
     return usageMeterBalance
   }
