@@ -3,15 +3,15 @@ import React, { createContext, useContext } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import {
-  type CancelSubscriptionParams,
   FlowgladActionKey,
   flowgladActionValidators,
+  type CancelSubscriptionParams,
   type CreateCheckoutSessionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
-  type FeatureItem,
-  type SubscriptionExperimentalFields,
-  type UsageMeterBalance,
+  constructCheckFeatureAccess,
+  constructCheckUsageBalance,
+  type BillingWithChecks,
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
@@ -43,41 +43,24 @@ type CreateCheckoutSessionResponse =
     }
   | { error: { code: string; json: Record<string, unknown> } }
 
-export type LoadedFlowgladContextValues =
-  Flowglad.CustomerRetrieveBillingResponse & {
-    loaded: true
-    loadBilling: true
-    reload: () => Promise<void>
-    cancelSubscription: (
-      params: CancelSubscriptionParams
-    ) => Promise<{
-      subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
-    }>
-    createCheckoutSession: (
-      params: FrontendCreateCheckoutSessionParams
-    ) => Promise<CreateCheckoutSessionResponse>
-    createAddPaymentMethodCheckoutSession: (
-      params: FrontendCreateAddPaymentMethodCheckoutSessionParams
-    ) => Promise<CreateCheckoutSessionResponse>
-    createActivateSubscriptionCheckoutSession: (
-      params: FrontendCreateActivateSubscriptionCheckoutSessionParams
-    ) => Promise<CreateCheckoutSessionResponse>
-    checkFeatureAccess: (
-      featureSlug: string,
-      refinementParams?: {
-        subscriptionId?: string
-      }
-    ) => boolean
-    checkUsageBalance: (
-      usageMeterSlug: string,
-      refinementParams?: {
-        subscriptionId?: string
-      }
-    ) => {
-      availableBalance: number
-    } | null
-    errors: null
-  }
+export type LoadedFlowgladContextValues = BillingWithChecks & {
+  loaded: true
+  loadBilling: true
+  reload: () => Promise<void>
+  cancelSubscription: (params: CancelSubscriptionParams) => Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
+  }>
+  createCheckoutSession: (
+    params: FrontendCreateCheckoutSessionParams
+  ) => Promise<CreateCheckoutSessionResponse>
+  createAddPaymentMethodCheckoutSession: (
+    params: FrontendCreateAddPaymentMethodCheckoutSessionParams
+  ) => Promise<CreateCheckoutSessionResponse>
+  createActivateSubscriptionCheckoutSession: (
+    params: FrontendCreateActivateSubscriptionCheckoutSessionParams
+  ) => Promise<CreateCheckoutSessionResponse>
+  errors: null
+}
 
 export interface NonPresentContextValues {
   customer: null
@@ -245,81 +228,6 @@ const constructCancelSubscription =
 export interface RequestConfig {
   serverRoute?: string
   headers?: Record<string, string>
-}
-
-const constructCheckFeatureAccess = (
-  subscriptions: {
-    id: string
-    experimental: SubscriptionExperimentalFields
-  }[]
-) => {
-  return (
-    featureSlug: string,
-    refinementParams?: {
-      subscriptionId?: string
-    }
-  ): boolean => {
-    const subscription = refinementParams?.subscriptionId
-      ? subscriptions.find(
-          (s) => s.id === refinementParams.subscriptionId
-        )
-      : subscriptions[0]
-    if (!subscription) {
-      return false
-    }
-    const experimental = subscription.experimental
-    const featureItemsBySlug = experimental.featureItems.reduce(
-      (acc, featureItem) => {
-        acc[featureItem.slug] = featureItem
-        return acc
-      },
-      {} as Record<string, FeatureItem>
-    )
-    const featureItem = featureItemsBySlug[featureSlug]
-    if (!featureItem) {
-      return false
-    }
-    return featureItem.type === 'toggle'
-  }
-}
-
-const constructCheckUsageBalance = (
-  subscriptions: {
-    id: string
-    experimental: SubscriptionExperimentalFields
-  }[]
-) => {
-  return (
-    usageMeterSlug: string,
-    refinementParams?: {
-      subscriptionId?: string
-    }
-  ): {
-    availableBalance: number
-  } | null => {
-    const subscription = refinementParams?.subscriptionId
-      ? subscriptions.find(
-          (s) => s.id === refinementParams.subscriptionId
-        )
-      : subscriptions[0]
-    if (!subscription) {
-      return null
-    }
-    const experimental = subscription.experimental
-    const usageMeterBalancesBySlug =
-      experimental.usageMeterBalances.reduce(
-        (acc, usageMeterBalance) => {
-          acc[usageMeterBalance.slug] = usageMeterBalance
-          return acc
-        },
-        {} as Record<string, UsageMeterBalance>
-      )
-    const usageMeterBalance = usageMeterBalancesBySlug[usageMeterSlug]
-    if (!usageMeterBalance) {
-      return null
-    }
-    return usageMeterBalance
-  }
 }
 
 export const FlowgladContextProvider = ({

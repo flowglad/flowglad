@@ -1,19 +1,22 @@
 import {
-  CancelSubscriptionParams,
-  CreateCheckoutSessionParams,
-  CreateSubscriptionParams,
-  createSubscriptionSchema,
-  CreateUsageEventParams,
+  type CancelSubscriptionParams,
+  type CreateCheckoutSessionParams,
+  type CreateSubscriptionParams,
+  type CreateUsageEventParams,
   createUsageEventSchema,
-  CreateAddPaymentMethodCheckoutSessionParams,
-  CreateProductCheckoutSessionParams,
+  constructCheckFeatureAccess,
+  constructCheckUsageBalance,
+  type CreateAddPaymentMethodCheckoutSessionParams,
+  type CreateProductCheckoutSessionParams,
+  type BillingWithChecks,
+  SubscriptionExperimentalFields,
 } from '@flowglad/shared'
 import {
-  ClerkFlowgladServerSessionParams,
-  CoreCustomerUser,
-  FlowgladServerSessionParams,
-  NextjsAuthFlowgladServerSessionParams,
-  SupabaseFlowgladServerSessionParams,
+  type ClerkFlowgladServerSessionParams,
+  type CoreCustomerUser,
+  type FlowgladServerSessionParams,
+  type NextjsAuthFlowgladServerSessionParams,
+  type SupabaseFlowgladServerSessionParams,
 } from './types'
 
 import { Flowglad as FlowgladNode } from '@flowglad/node'
@@ -133,13 +136,27 @@ export class FlowgladServer {
     return getSessionFromParams(this.createHandlerParams)
   }
 
-  public getBilling =
-    async (): Promise<FlowgladNode.Customers.CustomerRetrieveBillingResponse> => {
-      const customer = await this.findOrCreateCustomer()
-      return this.flowgladNode.customers.retrieveBilling(
+  public getBilling = async (): Promise<BillingWithChecks> => {
+    const customer = await this.findOrCreateCustomer()
+    const rawBilling =
+      await this.flowgladNode.customers.retrieveBilling(
         customer.externalId
       )
+    const currentSubscriptionsWithExperimental =
+      (rawBilling.currentSubscriptions ?? []) as unknown as {
+        id: string
+        experimental: SubscriptionExperimentalFields
+      }[]
+    return {
+      ...rawBilling,
+      checkFeatureAccess: constructCheckFeatureAccess(
+        currentSubscriptionsWithExperimental
+      ),
+      checkUsageBalance: constructCheckUsageBalance(
+        currentSubscriptionsWithExperimental
+      ),
     }
+  }
 
   public findOrCreateCustomer = async (): Promise<
     FlowgladNode.Customers.CustomerRetrieveResponse['customer']
@@ -199,6 +216,11 @@ export class FlowgladServer {
     )
     if (!session) {
       throw new Error('User not authenticated')
+    }
+    if (params.type === 'activate_subscription') {
+      throw new Error(
+        'Serverside activate subscription checkout sessions are not yet supported'
+      )
     }
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {

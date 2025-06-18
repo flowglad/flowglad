@@ -1,3 +1,5 @@
+import type { Flowglad as FlowgladNode } from '@flowglad/node'
+
 export enum FlowgladActionKey {
   GetCustomerBilling = 'customers/billing',
   FindOrCreateCustomer = 'customers/find-or-create',
@@ -38,6 +40,25 @@ export interface UsageMeterBalance {
   subscriptionId: string
 }
 
+export type CustomerRetrieveBillingResponse =
+  FlowgladNode.Customers.CustomerRetrieveBillingResponse
+
+export type BillingWithChecks = CustomerRetrieveBillingResponse & {
+  checkFeatureAccess: (
+    featureSlug: string,
+    refinementParams?: {
+      subscriptionId?: string
+    }
+  ) => boolean
+  checkUsageBalance: (
+    usageMeterSlug: string,
+    refinementParams?: {
+      subscriptionId?: string
+    }
+  ) => {
+    availableBalance: number
+  } | null
+}
 export type SubscriptionExperimentalFields = {
   featureItems: FeatureItem[]
   usageMeterBalances: UsageMeterBalance[]
