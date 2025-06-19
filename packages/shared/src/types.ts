@@ -44,12 +44,26 @@ export type CustomerRetrieveBillingResponse =
   FlowgladNode.Customers.CustomerRetrieveBillingResponse
 
 export type BillingWithChecks = CustomerRetrieveBillingResponse & {
+  /**
+   * @experimental
+   * Checks if a feature is accessible for a given subscription, based on the feature's slug
+   * @param featureSlug - The slug of the feature to check access for
+   * @param refinementParams - Optional refinement parameters to further refine the check. If not provided, defaults check to first current subscription
+   * @returns True if the feature is accessible, false otherwise
+   */
   checkFeatureAccess: (
     featureSlug: string,
     refinementParams?: {
       subscriptionId?: string
     }
   ) => boolean
+  /**
+   * @experimental
+   * Checks the available balance for a given usage meter, based on the usage meter's slug
+   * @param usageMeterSlug - The slug of the usage meter to check the balance for
+   * @param refinementParams - Optional refinement parameters to further refine the check. If not provided, defaults check to first current subscription
+   * @returns The available balance for the usage meter, or null if the usage meter is not found
+   */
   checkUsageBalance: (
     usageMeterSlug: string,
     refinementParams?: {
@@ -59,6 +73,7 @@ export type BillingWithChecks = CustomerRetrieveBillingResponse & {
     availableBalance: number
   } | null
 }
+
 export type SubscriptionExperimentalFields = {
   featureItems: FeatureItem[]
   usageMeterBalances: UsageMeterBalance[]
