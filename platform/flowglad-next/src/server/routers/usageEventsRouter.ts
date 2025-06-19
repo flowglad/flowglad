@@ -14,7 +14,6 @@ import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
 import { usageProcedure } from '@/server/trpc'
 import {
   authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'

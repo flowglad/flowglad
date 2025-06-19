@@ -275,35 +275,6 @@ describe('usageEventHelpers', () => {
       expect(subsequentLedgerItemCount).toBe(initialLedgerItemCount)
     })
 
-    it('should throw error if no current billing period is found for the subscription', async () => {
-      const testSubWithoutBP: Subscription.Record =
-        await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: paymentMethod.id,
-          priceId: usagePrice.id,
-        })
-
-      const usageEventDetails: CreateUsageEventInput['usageEvent'] = {
-        priceId: usagePrice.id,
-        subscriptionId: testSubWithoutBP.id,
-        transactionId: `txn_no_bp_${core.nanoid()}`,
-        amount: 1,
-      }
-      const input: CreateUsageEventInput = {
-        usageEvent: usageEventDetails,
-      }
-
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return ingestAndProcessUsageEvent(
-            { input, livemode: true },
-            transaction
-          )
-        })
-      ).rejects.toThrow('Billing period not found')
-    })
-
     it('should throw error if transactionId exists for a different subscription', async () => {
       const sharedTransactionId = `txn_shared_${core.nanoid()}`
 

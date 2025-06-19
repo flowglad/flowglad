@@ -19,6 +19,7 @@ import {
   constructUniqueIndex,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  nullableStringForeignKey,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -47,7 +48,7 @@ export const usageEvents = pgTable(
       'usage_meter_id',
       usageMeters
     ),
-    billingPeriodId: notNullStringForeignKey(
+    billingPeriodId: nullableStringForeignKey(
       'billing_period_id',
       billingPeriods
     ),
@@ -142,6 +143,7 @@ const columnRefinements = {
     ),
   billingPeriodId: z
     .string()
+    .nullable()
     .describe(
       'The billing period the usage belongs to. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing peirod.'
     ),
