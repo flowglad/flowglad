@@ -280,10 +280,14 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
   }
   if (
     customer &&
+    /**
+     * This is important:
+     * there is no providedStripeCustomerId if the checkout session is for a single guest payment.
+     * In that case, we don't want to throw an error.
+     */
+    providedStripeCustomerId &&
     providedStripeCustomerId !== customer.stripeCustomerId
   ) {
-    customer
-
     throw Error(
       `Attempting to process checkout session ${checkoutSession.id} with a different stripe customer ${providedStripeCustomerId} than the checkout session customer ${customer.stripeCustomerId} already linked to the purchase`
     )
