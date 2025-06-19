@@ -38,6 +38,7 @@ import {
   updateCheckoutSessionPaymentMethodType,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import core from '@/utils/core'
+import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 
 describe('Subscription Activation Workflow E2E', () => {
   it('should handle activating a credit trial subscription', async () => {
@@ -109,7 +110,18 @@ describe('Subscription Activation Workflow E2E', () => {
       usageMeterId: usageMeter.id,
       startsWithCreditTrial: true,
     })
-
+    const usagePrice = await setupPrice({
+      productId: product.id,
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      unitPrice: 1,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter.id,
+      startsWithCreditTrial: true,
+    })
     const { subscription } = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         // 1. call @createSubscriptionWorkflow with a price that creates a credit trial
@@ -160,6 +172,82 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(
         sub1.experimental?.usageMeterBalances?.[0].availableBalance
       ).toBe(1000)
+      // 2. Create a usage event for the subscription
+      const staticTransctionId = 'test-' + core.nanoid()
+      await ingestAndProcessUsageEvent(
+        {
+          input: {
+            usageEvent: {
+              subscriptionId: subscription.id,
+              priceId: usagePrice.id,
+              amount: 100,
+              transactionId: staticTransctionId,
+              properties: {},
+              usageDate: new Date().getTime(),
+            },
+          },
+          livemode: true,
+        },
+        transaction
+      )
+      // 3. Call @customerBillingTransaction again and assert final state
+      const billingState2 = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+      const sub2 = billingState2.subscriptions[0]
+      expect(sub2.status).toBe(SubscriptionStatus.CreditTrial)
+      expect(sub2.experimental?.featureItems).toHaveLength(3)
+      expect(sub2.experimental?.usageMeterBalances).toHaveLength(1)
+      expect(
+        sub2.experimental?.usageMeterBalances?.[0].availableBalance
+      ).toBe(900)
+
+      // 4. Create a usage event for the subscription
+      /**
+       * TODO: MUST PUT IN ITS OWN COMPREHENSIVE ADMIN TRANSACTION
+       */
+      await ingestAndProcessUsageEvent(
+        {
+          input: {
+            usageEvent: {
+              subscriptionId: subscription.id,
+              priceId: usagePrice.id,
+              amount: 100,
+              transactionId: staticTransctionId,
+              properties: {},
+              usageDate: new Date().getTime(),
+            },
+          },
+          livemode: true,
+        },
+        transaction
+      )
+
+      // 5. Call @customerBillingTransaction again and assert final state
+      const billingState2Prime = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+      const sub2Prime = billingState2Prime.subscriptions[0]
+      expect(sub2Prime.status).toBe(SubscriptionStatus.CreditTrial)
+      expect(sub2Prime.experimental?.featureItems).toHaveLength(3)
+      expect(sub2Prime.experimental?.usageMeterBalances).toHaveLength(
+        1
+      )
+      /**
+       * Expect the available balance to be 900 because the usage event was actually redundant
+       */
+      expect(
+        sub2Prime.experimental?.usageMeterBalances?.[0]
+          .availableBalance
+      ).toBe(900)
 
       // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
       const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
@@ -232,7 +320,7 @@ describe('Subscription Activation Workflow E2E', () => {
       await processSetupIntentSucceeded(setupIntent, transaction)
 
       // 5. Call @customerBillingTransaction again and assert final state
-      const billingState2 = await customerBillingTransaction(
+      const billingState3 = await customerBillingTransaction(
         {
           externalId: customer.externalId,
           organizationId: organization.id,
@@ -240,7 +328,7 @@ describe('Subscription Activation Workflow E2E', () => {
         transaction
       )
 
-      const activatedSubscription = billingState2.subscriptions.find(
+      const activatedSubscription = billingState3.subscriptions.find(
         (s) => s.id === subscription.id
       )
 

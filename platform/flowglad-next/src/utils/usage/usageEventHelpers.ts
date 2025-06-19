@@ -24,9 +24,6 @@ export const ingestAndProcessUsageEvent = async (
       usageEventInput.subscriptionId,
       transaction
     )
-  if (!billingPeriod) {
-    throw new Error('Billing period not found')
-  }
   const price = await selectPriceById(
     usageEventInput.priceId,
     transaction
@@ -63,7 +60,7 @@ export const ingestAndProcessUsageEvent = async (
     {
       ...usageEventInput,
       usageMeterId: price.usageMeterId,
-      billingPeriodId: billingPeriod.id,
+      billingPeriodId: billingPeriod?.id ?? null,
       customerId: subscription.customerId,
       livemode,
       properties: usageEventInput.properties ?? {},

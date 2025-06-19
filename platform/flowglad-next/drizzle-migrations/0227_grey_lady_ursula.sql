@@ -1,0 +1,1 @@
+ALTER TABLE "usage_events" ALTER COLUMN "billing_period_id" DROP NOT NULL;
