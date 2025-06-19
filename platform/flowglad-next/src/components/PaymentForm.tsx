@@ -277,6 +277,7 @@ const PaymentForm = () => {
         } catch (error: unknown) {
           setIsSubmitting(false)
           setErrorMessage((error as Error).message)
+          return
         }
         /**
          * If the total due amount is 0, and the price type is a single payment,
