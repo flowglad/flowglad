@@ -1284,7 +1284,7 @@ export const setupUsageMeter = async ({
         name,
         livemode,
         catalogId: catalogToUseId,
-        slug: slug ?? snakeCase(name),
+        slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
       },
       transaction
     )

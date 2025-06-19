@@ -122,7 +122,7 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
   createUpsertFunction(
     subscriptionItemFeatures,
     [
-      subscriptionItemFeatures.productFeatureId,
+      subscriptionItemFeatures.featureId,
       subscriptionItemFeatures.subscriptionItemId,
     ],
     config
