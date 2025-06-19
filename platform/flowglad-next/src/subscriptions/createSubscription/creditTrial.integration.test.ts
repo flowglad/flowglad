@@ -144,6 +144,8 @@ describe('Subscription Activation Workflow E2E', () => {
         return output
       }
     )
+
+    // 1. Expect usage credits and initial billing
     await adminTransaction(async ({ transaction }) => {
       // expect there to be a usageCredit record for the meter and subscription
       const usageCredits = await selectUsageCredits(
@@ -172,9 +174,12 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(
         sub1.experimental?.usageMeterBalances?.[0].availableBalance
       ).toBe(1000)
-      // 2. Create a usage event for the subscription
-      const staticTransctionId = 'test-' + core.nanoid()
-      await ingestAndProcessUsageEvent(
+    })
+
+    // 2. Create a usage event for the subscription
+    const staticTransctionId = 'test-' + core.nanoid()
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      return await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -190,7 +195,10 @@ describe('Subscription Activation Workflow E2E', () => {
         },
         transaction
       )
-      // 3. Call @customerBillingTransaction again and assert final state
+    })
+
+    // 3. Call @customerBillingTransaction again and assert final state
+    await adminTransaction(async ({ transaction }) => {
       const billingState2 = await customerBillingTransaction(
         {
           externalId: customer.externalId,
@@ -205,12 +213,11 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(
         sub2.experimental?.usageMeterBalances?.[0].availableBalance
       ).toBe(900)
+    })
 
-      // 4. Create a usage event for the subscription
-      /**
-       * TODO: MUST PUT IN ITS OWN COMPREHENSIVE ADMIN TRANSACTION
-       */
-      await ingestAndProcessUsageEvent(
+    // 4. Create a usage event for the subscription
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      return await ingestAndProcessUsageEvent(
         {
           input: {
             usageEvent: {
@@ -226,8 +233,10 @@ describe('Subscription Activation Workflow E2E', () => {
         },
         transaction
       )
+    })
 
-      // 5. Call @customerBillingTransaction again and assert final state
+    // 5. Call @customerBillingTransaction again and assert final state
+    await adminTransaction(async ({ transaction }) => {
       const billingState2Prime = await customerBillingTransaction(
         {
           externalId: customer.externalId,
@@ -248,8 +257,10 @@ describe('Subscription Activation Workflow E2E', () => {
         sub2Prime.experimental?.usageMeterBalances?.[0]
           .availableBalance
       ).toBe(900)
+    })
 
-      // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
+    // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
+    await adminTransaction(async ({ transaction }) => {
       const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
         {
           type: CheckoutSessionType.ActivateSubscription,
@@ -346,7 +357,47 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(
         activatedSubscription?.experimental?.usageMeterBalances?.[0]
           .availableBalance
-      ).toBe(1000)
+      ).toBe(900)
+    })
+
+    // 6. Create a usage event after activation
+    const newTransactionId = 'test2-' + core.nanoid()
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      return await ingestAndProcessUsageEvent(
+        {
+          input: {
+            usageEvent: {
+              subscriptionId: subscription.id,
+              priceId: usagePrice.id,
+              amount: 100,
+              transactionId: newTransactionId,
+              properties: {},
+              usageDate: new Date().getTime(),
+            },
+          },
+          livemode: true,
+        },
+        transaction
+      )
+    })
+
+    // 7. Call @customerBillingTransaction again and assert final state after new usage
+    await adminTransaction(async ({ transaction }) => {
+      const billingState4 = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+      const activatedSubscriptionAfterUsage =
+        billingState4.subscriptions.find(
+          (s) => s.id === subscription.id
+        )
+      expect(
+        activatedSubscriptionAfterUsage?.experimental
+          ?.usageMeterBalances?.[0].availableBalance
+      ).toBe(800)
     })
   })
 })
