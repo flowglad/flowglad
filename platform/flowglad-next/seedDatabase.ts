@@ -194,6 +194,7 @@ export const setupOrg = async (params?: {
         catalogId: catalog.id,
         externalId: null,
         default: false,
+        slug: `flowglad-test-product-price+${core.nanoid()}`,
       },
       transaction
     )
@@ -214,6 +215,7 @@ export const setupOrg = async (params?: {
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
         externalId: null,
+        slug: `flowglad-test-product-price+${core.nanoid()}`,
       },
       transaction
     )) as Price.SubscriptionRecord
@@ -251,6 +253,7 @@ export const setupProduct = async ({
         catalogId,
         externalId: null,
         default: isDefault,
+        slug: `flowglad-test-product-price+${core.nanoid()}`,
       },
       transaction
     )
@@ -742,6 +745,7 @@ export const setupPrice = async ({
             ...basePrice,
             ...priceConfig[PriceType.SinglePayment],
             type: PriceType.SinglePayment,
+            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -751,6 +755,7 @@ export const setupPrice = async ({
             ...basePrice,
             ...priceConfig[PriceType.Subscription],
             type: PriceType.Subscription,
+            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -761,6 +766,7 @@ export const setupPrice = async ({
             ...priceConfig[PriceType.Usage],
             usageMeterId: usageMeterId!,
             type: PriceType.Usage,
+            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -1278,7 +1284,7 @@ export const setupUsageMeter = async ({
         name,
         livemode,
         catalogId: catalogToUseId,
-        slug: slug ?? snakeCase(name),
+        slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
       },
       transaction
     )

@@ -70,6 +70,7 @@ const columns = {
    */
   externalId: text('external_id'),
   default: boolean('default').notNull().default(false),
+  slug: text('slug'),
 }
 
 export const products = pgTable(
@@ -80,15 +81,19 @@ export const products = pgTable(
       constructIndex(PRODUCTS_TABLE_NAME, [table.organizationId]),
       constructIndex(PRODUCTS_TABLE_NAME, [table.active]),
       constructUniqueIndex(PRODUCTS_TABLE_NAME, [table.externalId]),
+      constructUniqueIndex(PRODUCTS_TABLE_NAME, [
+        table.catalogId,
+        table.slug,
+      ]),
+      uniqueIndex('products_catalog_id_default_unique_idx')
+        .on(table.catalogId)
+        .where(sql`${table.default}`),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
         to: 'authenticated',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
-      uniqueIndex('products_catalog_id_default_unique_idx')
-        .on(table.catalogId)
-        .where(sql`${table.default}`),
       livemodePolicy(),
     ]
   }

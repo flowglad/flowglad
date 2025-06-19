@@ -11,6 +11,7 @@ import {
   updateSubscriptionItemFeature,
   insertSubscriptionItemFeature,
   expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
+  selectClientSubscriptionItemFeatureAndFeatureById,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import {
   generateOpenApiMetas,
@@ -79,12 +80,17 @@ const createSubscriptionItemFeature = protectedProcedure
         }
         // TODO: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
-        const subscriptionItemFeature =
+        const { id: subscriptionItemFeatureId } =
           await insertSubscriptionItemFeature(
             {
               ...input.subscriptionItemFeature,
               // livemode is part of tableBase, so it's handled by enhancedCreateInsertSchema
             },
+            transaction
+          )
+        const [subscriptionItemFeature] =
+          await selectClientSubscriptionItemFeatureAndFeatureById(
+            subscriptionItemFeatureId,
             transaction
           )
         return { subscriptionItemFeature }
@@ -104,9 +110,13 @@ const editSubscriptionItemFeature = protectedProcedure
           id: input.id,
         } as SubscriptionItemFeature.Update
 
-        const subscriptionItemFeature =
-          await updateSubscriptionItemFeature(
-            updatePayload,
+        await updateSubscriptionItemFeature(
+          updatePayload,
+          transaction
+        )
+        const [subscriptionItemFeature] =
+          await selectClientSubscriptionItemFeatureAndFeatureById(
+            input.id,
             transaction
           )
         return { subscriptionItemFeature }
@@ -121,8 +131,8 @@ const getSubscriptionItemFeature = protectedProcedure
   .query(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const subscriptionItemFeature =
-          await selectSubscriptionItemFeatureById(
+        const [subscriptionItemFeature] =
+          await selectClientSubscriptionItemFeatureAndFeatureById(
             input.id,
             transaction
           )
@@ -165,10 +175,15 @@ const expireSubscriptionItemFeature = protectedProcedure
           })
         }
 
-        const subscriptionItemFeature =
+        const { id: subscriptionItemFeatureId } =
           await expireSubscriptionItemFeatureMethod(
             existingFeature,
             expiredAt || new Date(), // Default to now if not provided
+            transaction
+          )
+        const [subscriptionItemFeature] =
+          await selectClientSubscriptionItemFeatureAndFeatureById(
+            subscriptionItemFeatureId,
             transaction
           )
         return { subscriptionItemFeature }

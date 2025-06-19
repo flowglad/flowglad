@@ -30,11 +30,18 @@ export const createAddPaymentMethodCheckoutSessionSchema =
     targetSubscriptionId: z.string().optional(),
   })
 
+export const createActivateSubscriptionCheckoutSessionSchema =
+  createCoreCheckoutSessionSchema.extend({
+    type: z.literal('activate_subscription'),
+    targetSubscriptionId: z.string(),
+  })
+
 export const createCheckoutSessionSchema = z.discriminatedUnion(
   'type',
   [
     createProductCheckoutSessionSchema,
     createAddPaymentMethodCheckoutSessionSchema,
+    createActivateSubscriptionCheckoutSessionSchema,
   ]
 )
 
@@ -44,7 +51,9 @@ export type CreateProductCheckoutSessionParams = z.infer<
 export type CreateAddPaymentMethodCheckoutSessionParams = z.infer<
   typeof createAddPaymentMethodCheckoutSessionSchema
 >
-
+export type CreateActivateSubscriptionCheckoutSessionParams = z.infer<
+  typeof createActivateSubscriptionCheckoutSessionSchema
+>
 export type CreateCheckoutSessionParams = z.infer<
   typeof createCheckoutSessionSchema
 >

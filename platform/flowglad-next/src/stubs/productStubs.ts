@@ -19,4 +19,5 @@ export const dummyProduct: Product.Record = {
   updatedByCommit: 'test',
   position: 0,
   default: false,
+  slug: 'test-product',
 }

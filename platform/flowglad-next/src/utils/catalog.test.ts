@@ -30,6 +30,7 @@ import {
 } from '@/db/tableMethods/featureMethods'
 import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { ApiKey } from '@/db/schema/apiKeys'
+import core from './core'
 
 describe('cloneCatalogTransaction', () => {
   let organization: Organization.Record
@@ -197,6 +198,7 @@ describe('cloneCatalogTransaction', () => {
               imageURL: null,
               externalId: null,
               default: false,
+              slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
             transaction
           )
@@ -220,6 +222,7 @@ describe('cloneCatalogTransaction', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             externalId: null,
+            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -579,6 +582,7 @@ describe('createProductTransaction', () => {
               pluralQuantityLabel: 'plural',
               catalogId: sourceCatalog.id,
               default: false,
+              slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
             prices: [
               {
@@ -595,6 +599,7 @@ describe('createProductTransaction', () => {
                 isDefault: true,
                 startsWithCreditTrial: null,
                 overagePriceId: null,
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
           },
@@ -651,6 +656,7 @@ describe('createProductTransaction', () => {
               pluralQuantityLabel: 'plural',
               catalogId: sourceCatalog.id,
               default: false,
+              slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
             prices: [
               {
@@ -667,6 +673,7 @@ describe('createProductTransaction', () => {
                 isDefault: true,
                 startsWithCreditTrial: null,
                 overagePriceId: null,
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
             featureIds,
@@ -714,6 +721,7 @@ describe('createProductTransaction', () => {
               pluralQuantityLabel: 'plural',
               catalogId: sourceCatalog.id,
               default: false,
+              slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
             prices: [
               {
@@ -730,6 +738,7 @@ describe('createProductTransaction', () => {
                 isDefault: true,
                 startsWithCreditTrial: null,
                 overagePriceId: null,
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
           },

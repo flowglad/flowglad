@@ -38,6 +38,7 @@ import { SubscriptionItemType, SubscriptionStatus } from '@/types'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItem,
   selectSubscriptionItemFeatures,
+  selectSubscriptionItemFeaturesWithFeatureSlug,
 } from './subscriptionItemFeatureMethods'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
 import core from '@/utils/core'
@@ -304,7 +305,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
   // Gets features and meter balances in a single Promise.all call
   const [subscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([
-      selectSubscriptionItemFeatures(
+      selectSubscriptionItemFeaturesWithFeatureSlug(
         {
           subscriptionItemId: activeSubscriptionItems.map(
             (item) => item.id

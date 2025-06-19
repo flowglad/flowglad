@@ -21,6 +21,8 @@ import {
   subscriptionItems,
 } from '../schema/subscriptionItems'
 import { eq, inArray } from 'drizzle-orm'
+import { productFeatures } from '../schema/productFeatures'
+import { features } from '../schema/features'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItemFeatures,
@@ -39,6 +41,33 @@ export const selectSubscriptionItemFeatureById = createSelectById(
   config
 )
 
+export const selectClientSubscriptionItemFeatureAndFeatureById =
+  async (id: string, transaction: DbTransaction) => {
+    const result = await transaction
+      .select({
+        subscriptionItemFeature: subscriptionItemFeatures,
+        feature: {
+          name: features.name,
+          slug: features.slug,
+        },
+      })
+      .from(subscriptionItemFeatures)
+      .innerJoin(
+        features,
+        eq(subscriptionItemFeatures.featureId, features.id)
+      )
+      .where(eq(subscriptionItemFeatures.id, id))
+    return result.map((row) => {
+      return {
+        ...subscriptionItemFeaturesSelectSchema.parse(
+          row.subscriptionItemFeature
+        ),
+        name: row.feature.name,
+        slug: row.feature.slug,
+      }
+    })
+  }
+
 export const insertSubscriptionItemFeature = createInsertFunction(
   subscriptionItemFeatures,
   config
@@ -54,11 +83,46 @@ export const selectSubscriptionItemFeatures = createSelectFunction(
   config
 )
 
+export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
+  where: SubscriptionItemFeature.Where,
+  transaction: DbTransaction
+): Promise<SubscriptionItemFeature.ClientRecord[]> => {
+  const whereClause = whereClauseFromObject(
+    subscriptionItemFeatures,
+    where
+  )
+  const result = await transaction
+    .select({
+      subscriptionItemFeature: subscriptionItemFeatures,
+      feature: {
+        name: features.name,
+        slug: features.slug,
+      },
+    })
+    .from(subscriptionItemFeatures)
+    .innerJoin(
+      features,
+      eq(subscriptionItemFeatures.featureId, features.id)
+    )
+    .where(whereClause)
+  return result.map((row) => {
+    const subscriptionItemFeature =
+      subscriptionItemFeaturesSelectSchema.parse(
+        row.subscriptionItemFeature
+      )
+    return {
+      ...subscriptionItemFeature,
+      name: row.feature.name,
+      slug: row.feature.slug,
+    }
+  })
+}
+
 export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
   createUpsertFunction(
     subscriptionItemFeatures,
     [
-      subscriptionItemFeatures.productFeatureId,
+      subscriptionItemFeatures.featureId,
       subscriptionItemFeatures.subscriptionItemId,
     ],
     config

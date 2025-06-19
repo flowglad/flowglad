@@ -98,6 +98,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               pluralQuantityLabel: 'units',
               catalogId: catalog.id,
               default: false,
+              slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
             prices: [
               {
@@ -114,6 +115,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 overagePriceId: null,
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
           },

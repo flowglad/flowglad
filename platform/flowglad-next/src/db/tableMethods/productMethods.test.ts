@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { DbTransaction } from '@/db/types'
 import {
   getProductTableRows,
   insertProduct,
@@ -405,6 +404,7 @@ describe('Database Constraints', () => {
       externalId: null,
       description: null,
       imageURL: null,
+      slug: `another-default-product+${core.nanoid()}`,
     }
 
     await expect(
@@ -455,6 +455,7 @@ describe('Database Constraints', () => {
           externalId: null,
           description: null,
           imageURL: null,
+          slug: `non-default-product+${core.nanoid()}`,
         },
         transaction
       )
@@ -483,6 +484,7 @@ describe('Database Constraints', () => {
           externalId: null,
           description: null,
           imageURL: null,
+          slug: `default-product-in-second-catalog+${core.nanoid()}`,
         },
         transaction
       )
@@ -490,5 +492,112 @@ describe('Database Constraints', () => {
       expect(secondDefaultProduct.default).toBe(true)
       expect(secondDefaultProduct.catalogId).toBe(secondCatalog.id)
     })
+  })
+})
+
+// Slug uniqueness tests using trigger enforcement
+describe('Slug uniqueness policies', () => {
+  let organizationId: string
+  let catalogId: string
+  beforeEach(async () => {
+    const setup = await setupOrg()
+    organizationId = setup.organization.id
+    catalogId = setup.catalog.id
+  })
+  it('throws an error when inserting a product with duplicate slug in the same catalog', async () => {
+    const slug = 'duplicate-slug'
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        // Insert first product with slug
+        await insertProduct(
+          {
+            name: 'First Product',
+            organizationId,
+            catalogId,
+            livemode: true,
+            active: true,
+            default: false,
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: null,
+            description: null,
+            imageURL: null,
+            slug,
+          },
+          transaction
+        )
+        // Attempt to insert second product with same slug
+        await insertProduct(
+          {
+            name: 'Second Product',
+            organizationId,
+            catalogId,
+            livemode: true,
+            active: true,
+            default: false,
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: null,
+            description: null,
+            imageURL: null,
+            slug,
+          },
+          transaction
+        )
+      })
+    ).rejects.toThrow(/products_catalog_id_slug_unique_idx/)
+  })
+  it('throws an error when updating a product slug to one that already exists in the same catalog', async () => {
+    const slug1 = 'slug-one'
+    const slug2 = 'slug-two'
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        // Insert first product with slug1
+        const firstProduct = await insertProduct(
+          {
+            name: 'First Product',
+            organizationId,
+            catalogId,
+            livemode: true,
+            active: true,
+            default: false,
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: null,
+            description: null,
+            imageURL: null,
+            slug: slug1,
+          },
+          transaction
+        )
+        // Insert second product with slug2
+        const secondProduct = await insertProduct(
+          {
+            name: 'Second Product',
+            organizationId,
+            catalogId,
+            livemode: true,
+            active: true,
+            default: false,
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: null,
+            description: null,
+            imageURL: null,
+            slug: slug2,
+          },
+          transaction
+        )
+        // Attempt to update second product to slug1
+        await updateProduct(
+          { id: secondProduct.id, slug: slug1 },
+          transaction
+        )
+      })
+    ).rejects.toThrow(/products_catalog_id_slug_unique_idx/)
   })
 })

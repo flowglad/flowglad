@@ -1,3 +1,5 @@
+import type { Flowglad as FlowgladNode } from '@flowglad/node'
+
 export enum FlowgladActionKey {
   GetCustomerBilling = 'customers/billing',
   FindOrCreateCustomer = 'customers/find-or-create',
@@ -13,4 +15,66 @@ export enum HTTPMethod {
   PUT = 'PUT',
   PATCH = 'PATCH',
   DELETE = 'DELETE',
+}
+
+export interface FeatureItem {
+  id: string
+  livemode: boolean
+  slug: string
+  name: string
+  type: 'toggle' | 'usage_credit_grant'
+  amount: number
+  usageMeterId: string
+  renewalFrequency: 'once' | 'every_billing_period'
+  expiredAt: string | null
+  detachedAt: string | null
+  detachedReason: string | null
+}
+
+export interface UsageMeterBalance {
+  id: string
+  livemode: boolean
+  name: string
+  slug: string
+  availableBalance: number
+  subscriptionId: string
+}
+
+export type CustomerRetrieveBillingResponse =
+  FlowgladNode.Customers.CustomerRetrieveBillingResponse
+
+export type BillingWithChecks = CustomerRetrieveBillingResponse & {
+  /**
+   * @experimental
+   * Checks if a feature is accessible for a given subscription, based on the feature's slug
+   * @param featureSlug - The slug of the feature to check access for
+   * @param refinementParams - Optional refinement parameters to further refine the check. If not provided, defaults check to first current subscription
+   * @returns True if the feature is accessible, false otherwise
+   */
+  checkFeatureAccess: (
+    featureSlug: string,
+    refinementParams?: {
+      subscriptionId?: string
+    }
+  ) => boolean
+  /**
+   * @experimental
+   * Checks the available balance for a given usage meter, based on the usage meter's slug
+   * @param usageMeterSlug - The slug of the usage meter to check the balance for
+   * @param refinementParams - Optional refinement parameters to further refine the check. If not provided, defaults check to first current subscription
+   * @returns The available balance for the usage meter, or null if the usage meter is not found
+   */
+  checkUsageBalance: (
+    usageMeterSlug: string,
+    refinementParams?: {
+      subscriptionId?: string
+    }
+  ) => {
+    availableBalance: number
+  } | null
+}
+
+export type SubscriptionExperimentalFields = {
+  featureItems: FeatureItem[]
+  usageMeterBalances: UsageMeterBalance[]
 }

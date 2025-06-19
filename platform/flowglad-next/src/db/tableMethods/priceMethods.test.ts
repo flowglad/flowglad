@@ -13,6 +13,7 @@ import {
 import { nulledPriceColumns, Price } from '../schema/prices'
 import { Organization } from '../schema/organizations'
 import { Product } from '../schema/products'
+import { core } from '@/utils/core'
 
 describe('priceMethods.ts', () => {
   let organization: Organization.Record
@@ -66,6 +67,7 @@ describe('priceMethods.ts', () => {
             currency: CurrencyCode.USD,
             externalId: null,
             active: true,
+            slug: `new-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -110,6 +112,7 @@ describe('priceMethods.ts', () => {
             currency: CurrencyCode.USD,
             externalId: null,
             active: true,
+            slug: `new-default-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -299,6 +302,7 @@ describe('priceMethods.ts', () => {
         usageEventsPerUnit: null,
         startsWithCreditTrial: false,
         usageMeterId: null,
+        slug: `another-default-price+${core.nanoid()}`,
       }
 
       // Expect the entire transaction to fail due to the unique constraint violation
@@ -366,6 +370,7 @@ describe('priceMethods.ts', () => {
           usageEventsPerUnit: null,
           startsWithCreditTrial: false,
           usageMeterId: null,
+          slug: `non-default-price+${core.nanoid()}`,
         }
 
         const newPrice = await insertPrice(
@@ -474,6 +479,131 @@ describe('priceMethods.ts', () => {
         expect(originalPrice.isDefault).toBe(true)
         expect(originalPrice.productId).toBe(product.id)
       })
+    })
+  })
+
+  // Slug uniqueness RLS policy tests
+  describe('Slug uniqueness policies', () => {
+    it('throws an error when inserting a price with duplicate slug in same catalog across products', async () => {
+      const slug = 'duplicate-slug'
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          // Create a second product in the same catalog
+          const secondProduct = await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            catalogId: product.catalogId,
+          })
+          // Insert first price with slug on the original product
+          await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'First Slug Price',
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              active: true,
+              slug,
+            },
+            transaction
+          )
+          // Attempt to insert another price with the same slug on the second product
+          await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: secondProduct.id,
+              name: 'Second Slug Price',
+              type: PriceType.Subscription,
+              unitPrice: 1500,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              active: true,
+              slug,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(/duplicate slug/)
+    })
+
+    it('throws an error when updating a price slug to one that already exists in the same catalog', async () => {
+      const slug1 = 'slug-one'
+      const slug2 = 'slug-two'
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          // Create a second product in the same catalog
+          const secondProduct = await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            catalogId: product.catalogId,
+          })
+          // Insert first price with slug1 on the original product
+          const firstPrice = await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'First Slug Price',
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              active: true,
+              slug: slug1,
+            },
+            transaction
+          )
+          // Insert second price with slug2 on the second product
+          const secondPrice = await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: secondProduct.id,
+              name: 'Second Slug Price',
+              type: PriceType.Subscription,
+              unitPrice: 1500,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              active: true,
+              slug: slug2,
+            },
+            transaction
+          )
+          // Attempt to update the second price to have slug1
+          await updatePrice(
+            {
+              id: secondPrice.id,
+              slug: slug1,
+              type: PriceType.Subscription,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(/duplicate slug/)
     })
   })
 })

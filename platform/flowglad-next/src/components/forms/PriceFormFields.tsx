@@ -187,7 +187,12 @@ const PriceFormFields = ({
           error={errors.price?.name?.message}
         />
       )}
-
+      <Input
+        label="Price Slug"
+        {...register('price.slug')}
+        error={errors.price?.slug?.message}
+        hint="The slug is used to identify the price in the API. It must be unique within the catalog."
+      />
       <div className="w-full relative flex flex-col gap-3">
         <Label>Price Type</Label>
         <Controller

@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.10.15
+
+### Patch Changes
+
+- Add check feature access, and check usage balance
+
 ## 0.10.14
 
 ### Patch Changes

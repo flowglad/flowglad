@@ -31,6 +31,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       currency: CurrencyCode.USD,
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
+      slug: 'test-price',
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
@@ -54,6 +55,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       unitPrice: 5000,
       isDefault: false,
       currency: CurrencyCode.USD,
+      slug: 'test-price',
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
@@ -84,6 +86,7 @@ describe('priceToSetPriceAsDefaultInput', () => {
       overagePriceId: null,
       usageMeterId: 'um_1',
       usageEventsPerUnit: 1,
+      slug: 'test-price',
     }
     const result = priceToSetPriceAsDefaultInput(price)
     expect(result).toEqual({
