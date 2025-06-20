@@ -13,19 +13,30 @@ if (typeof window !== 'undefined') {
   })
 }
 
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
+
 export default function Providers({
   children,
   authContext,
+  defaultSidebarOpen = true,
 }: {
   children: React.ReactNode
   authContext: Omit<AuthContextValues, 'setOrganization'>
+  defaultSidebarOpen?: boolean
 }) {
   return (
     <TrpcProvider>
       <AuthProvider values={authContext}>
         <PostHogProvider client={posthog}>
           <PostHogPageView user={authContext.user} />
-          {children}
+          <SidebarProvider defaultOpen={defaultSidebarOpen}>
+            <AppSidebar />
+            <main className="flex-1">
+              <SidebarTrigger className="md:hidden fixed top-2 left-2 z-50" />
+              {children}
+            </main>
+          </SidebarProvider>
         </PostHogProvider>
       </AuthProvider>
     </TrpcProvider>

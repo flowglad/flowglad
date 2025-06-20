@@ -172,6 +172,15 @@ body {
     --radius: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
+    /* shadcn sidebar vars - inherit from existing design tokens */
+    --sidebar-background: var(--nav);
+    --sidebar-foreground: var(--inverse);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--on-primary);
+    --sidebar-accent: var(--neutral-container);
+    --sidebar-accent-foreground: var(--inverse);
+    --sidebar-border: var(--stroke);
+    --sidebar-ring: var(--primary);
   }
 
   .dark {
@@ -265,6 +274,15 @@ body {
     --shadow-weak: rgba(0, 0, 0, 0.2);
     --shadow: rgba(0, 0, 0, 0.45);
     --shadow-strong: rgba(0, 0, 0, 0.7);
+    /* shadcn sidebar vars - inherit in dark mode */
+    --sidebar-background: var(--nav);
+    --sidebar-foreground: var(--inverse);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--on-primary);
+    --sidebar-accent: var(--neutral-container);
+    --sidebar-accent-foreground: var(--inverse);
+    --sidebar-border: var(--stroke);
+    --sidebar-ring: var(--primary);
   }
 }
 
@@ -304,4 +322,13 @@ input:-webkit-autofill {
 
 input {
   -webkit-text-fill-color: inherit !important;
+}
+
+
+
+@layer base {
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }

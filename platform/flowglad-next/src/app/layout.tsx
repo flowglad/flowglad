@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { cookies } from 'next/headers'
 
 import Providers from './Providers'
 import { cn } from '@/utils/core'
@@ -28,6 +29,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const cookieStore = await cookies()
+  const sidebarCookie = cookieStore.get('sidebar_state')?.value
+  const defaultSidebarOpen = sidebarCookie === undefined ? true : sidebarCookie === 'true'
+
   const user = await stackServerApp.getUser()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
@@ -57,6 +62,7 @@ export default async function RootLayout({
         <StackProvider app={stackServerApp}>
           <StackTheme>
             <Providers
+              defaultSidebarOpen={defaultSidebarOpen}
               authContext={{
                 organization,
                 livemode,
