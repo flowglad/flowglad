@@ -31,6 +31,7 @@ import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
+import { setupCatalogSchema } from '@/utils/catalogs/setupSchemas'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'catalog',
@@ -219,8 +220,29 @@ const getTableRowsProcedure = protectedProcedure
   )
   .query(authenticatedProcedureTransaction(selectCatalogsTableRows))
 
+const setupCatalogProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/catalogs/setup',
+      summary: 'Setup a Catalog',
+      tags: ['Catalogs'],
+      protect: true,
+    },
+  })
+  .input(setupCatalogSchema)
+  .output(z.object({ catalog: z.object({}) }))
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, transaction }) => {
+        return { result: { catalog: {} } }
+      }
+    )
+  )
+
 export const catalogsRouter = router({
   list: listCatalogsProcedure,
+  setup: setupCatalogProcedure,
   get: getCatalogProcedure,
   getDefault: getDefaultCatalogProcedure,
   create: createCatalogProcedure,
