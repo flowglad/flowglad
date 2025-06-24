@@ -22,6 +22,8 @@ export const featureCatalogSetupSchema = z.discriminatedUnion(
     toggleFeatureClientInsertSchema.omit({
       catalogId: true,
       usageMeterId: true,
+      amount: true,
+      renewalFrequency: true,
     }),
     usageCreditGrantFeatureClientInsertSchema
       .omit({

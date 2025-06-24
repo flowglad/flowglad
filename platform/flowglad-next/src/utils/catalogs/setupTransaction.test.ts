@@ -167,8 +167,6 @@ describe('setupCatalogTransaction (integration)', () => {
           name: 'Feat2',
           description: '',
           livemode: false,
-          amount: null,
-          renewalFrequency: null,
           active: true,
         },
       ],
