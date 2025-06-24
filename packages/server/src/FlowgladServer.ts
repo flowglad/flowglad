@@ -217,11 +217,6 @@ export class FlowgladServer {
     if (!session) {
       throw new Error('User not authenticated')
     }
-    if (params.type === 'activate_subscription') {
-      throw new Error(
-        'Serverside activate subscription checkout sessions are not yet supported'
-      )
-    }
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
         ...params,

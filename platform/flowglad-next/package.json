@@ -92,6 +92,7 @@
     "@trpc/server": "11.0.0-rc.566",
     "@unkey/api": "^0.31.0",
     "@unkey/nextjs": "^0.18.5",
+    "@vercel/mcp-adapter": "^0.11.1",
     "@vercel/otel": "^1.10.4",
     "ai": "^4.0.21",
     "axios": "1.8.4",
