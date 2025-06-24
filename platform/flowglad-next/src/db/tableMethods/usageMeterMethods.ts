@@ -9,6 +9,7 @@ import {
   SelectConditions,
   whereClauseFromObject,
   createCursorPaginatedSelectFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
   UsageMeter,
@@ -54,6 +55,25 @@ export const selectUsageMeters = createSelectFunction(
   usageMeters,
   config
 )
+
+export const bulkInsertOrDoNothingUsageMeters =
+  createBulkInsertOrDoNothingFunction(usageMeters, config)
+
+export const bulkInsertOrDoNothingUsageMetersBySlugAndCatalogId =
+  async (
+    inserts: UsageMeter.Insert[],
+    transaction: DbTransaction
+  ) => {
+    return bulkInsertOrDoNothingUsageMeters(
+      inserts,
+      [
+        usageMeters.slug,
+        usageMeters.catalogId,
+        usageMeters.organizationId,
+      ],
+      transaction
+    )
+  }
 
 export const selectUsageMetersPaginated =
   createPaginatedSelectFunction(usageMeters, config)

@@ -239,6 +239,7 @@ describe('Swagger Configuration', () => {
     const expectedBaseRoutes = [
       '/api/v1/catalogs',
       '/api/v1/catalogs/default',
+      '/api/v1/catalogs/setup',
       '/api/v1/checkout-sessions',
       '/api/v1/customers',
       '/api/v1/discounts',

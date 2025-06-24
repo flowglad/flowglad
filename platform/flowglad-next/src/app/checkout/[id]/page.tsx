@@ -1,21 +1,13 @@
 import CheckoutPage from '@/components/CheckoutPage'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import {
   CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { PriceType, CheckoutSessionStatus } from '@/types'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { notFound, redirect } from 'next/navigation'
-import {
-  selectSubscriptions,
-  currentSubscriptionStatuses,
-} from '@/db/tableMethods/subscriptionMethods'
 import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
 const CheckoutSessionPage = async ({

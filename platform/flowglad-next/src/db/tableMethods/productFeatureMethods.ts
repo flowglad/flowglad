@@ -10,6 +10,7 @@ import {
   ORMMethodCreatorConfig,
   whereClauseFromObject,
   createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
 import {
@@ -145,6 +146,21 @@ export const bulkInsertProductFeatures = createBulkInsertFunction(
   productFeatures,
   config
 )
+
+export const bulkInsertOrDoNothingProductFeatures =
+  createBulkInsertOrDoNothingFunction(productFeatures, config)
+
+export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
+  async (
+    inserts: ProductFeature.Insert[],
+    transaction: DbTransaction
+  ) => {
+    return bulkInsertOrDoNothingProductFeatures(
+      inserts,
+      [productFeatures.productId, productFeatures.featureId],
+      transaction
+    )
+  }
 
 export const unexpireProductFeatures = async (
   {
