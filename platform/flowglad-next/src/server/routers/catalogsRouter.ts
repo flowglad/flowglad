@@ -25,6 +25,7 @@ import {
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
+import { setupCatalogTransaction } from '@/utils/catalogs/setupTransaction'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
@@ -231,11 +232,28 @@ const setupCatalogProcedure = protectedProcedure
     },
   })
   .input(setupCatalogSchema)
-  .output(z.object({ catalog: z.object({}) }))
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transaction }) => {
-        return { result: { catalog: {} } }
+      async ({ input, transaction, ctx }) => {
+        const result = await setupCatalogTransaction(
+          {
+            input,
+            organizationId: ctx.organizationId!,
+            livemode: ctx.livemode,
+          },
+          transaction
+        )
+        const [catalogWithProductsAndUsageMeters] =
+          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+            { id: result.catalog.id },
+            transaction
+          )
+        return {
+          result: { catalog: catalogWithProductsAndUsageMeters },
+        }
       }
     )
   )
