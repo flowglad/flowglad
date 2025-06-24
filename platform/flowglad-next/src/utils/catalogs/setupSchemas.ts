@@ -21,6 +21,7 @@ export const featureCatalogSetupSchema = z.discriminatedUnion(
   [
     toggleFeatureClientInsertSchema.omit({
       catalogId: true,
+      usageMeterId: true,
     }),
     usageCreditGrantFeatureClientInsertSchema
       .omit({
@@ -54,16 +55,25 @@ export const setupCatalogProductPriceInputSchema =
         usageMeterSlug: z.string(),
       }),
   ])
+
+export type SetupCatalogProductPriceInput = z.infer<
+  typeof setupCatalogProductPriceInputSchema
+>
+
+const setupCatalogProductInputSchema = z.object({
+  product: productCatalogSetupSchema,
+  prices: z.array(setupCatalogProductPriceInputSchema),
+  features: z.array(z.string()),
+})
+
+export type SetupCatalogProductInput = z.infer<
+  typeof setupCatalogProductInputSchema
+>
+
 export const setupCatalogSchema = catalogsClientInsertSchema.extend({
   isDefault: z.boolean().optional().default(false),
   features: z.array(featureCatalogSetupSchema),
-  products: z.array(
-    z.object({
-      product: productCatalogSetupSchema,
-      prices: z.array(setupCatalogProductPriceInputSchema),
-      features: z.array(z.string()),
-    })
-  ),
+  products: z.array(setupCatalogProductInputSchema),
   usageMeters: z.array(
     usageMetersClientInsertSchema.omit({
       catalogId: true,
