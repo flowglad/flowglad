@@ -418,5 +418,46 @@ describe('SubscriptionItemFeatureHelpers', () => {
         ).toEqual([subscriptionItem.id, subscriptionItem2.id].sort())
       })
     })
+
+    // Test quantity-based usage credit grant amount multiplication
+    it('should multiply usage credit grant amount by subscription item quantity', async () => {
+      const featureName = 'Quantity Based Feature Test'
+      const featureAmount = 30
+      const [{ feature: usageGrantFeature, productFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.catalog.id,
+          true,
+          [
+            {
+              name: featureName,
+              type: FeatureType.UsageCreditGrant,
+              amount: featureAmount,
+              renewalFrequency: FeatureUsageGrantFrequency.Once,
+              usageMeterName: 'QuantityTestMeter',
+            },
+          ]
+        )
+      const quantity = 4
+      const subscriptionItem2 = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Quantity Subscription Item',
+        quantity,
+        unitPrice: priceForFeatures.unitPrice,
+        priceId: priceForFeatures.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const createdSifs = await createSubscriptionFeatureItems(
+          [subscriptionItem2],
+          transaction
+        )
+        expect(createdSifs.length).toBe(1)
+        const sif = createdSifs[0]
+        expect(sif.subscriptionItemId).toBe(subscriptionItem2.id)
+        expect(sif.amount).toBe(featureAmount * quantity)
+      })
+    })
   })
 })

@@ -1169,6 +1169,81 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     )
     expect(queriedSifs.length).toBe(0)
   })
+
+  // New test for quantity-based usage credit grant amount
+  it('should multiply usage credit grant amount by subscription item quantity for usage based product features', async () => {
+    const { organization, product, price, catalog } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    const featureSpecs = [
+      {
+        name: 'Quantity Based Credit Feature',
+        type: FeatureType.UsageCreditGrant,
+        amount: 50,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        usageMeterName: 'QuantityMeter',
+      },
+    ]
+
+    const createdFeaturesAndPfs =
+      await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs,
+      })
+
+    const quantity = 3
+
+    const {
+      result: { subscriptionItems },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price,
+          quantity,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+        },
+        transaction
+      )
+    })
+
+    expect(subscriptionItems.length).toBe(1)
+    const subItem = subscriptionItems[0]
+    expect(subItem.quantity).toBe(quantity)
+
+    const createdSifs = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionItemFeatures(
+          { subscriptionItemId: [subItem.id] },
+          transaction
+        )
+      }
+    )
+
+    expect(createdSifs.length).toBe(1)
+    const sif = createdSifs[0]
+    const originalFeatureSetup = createdFeaturesAndPfs[0]
+    expect(sif.amount).toBe(
+      originalFeatureSetup.feature.amount! * subItem.quantity
+    )
+  })
 })
 
 describe('createSubscriptionWorkflow ledger account creation', async () => {
