@@ -33,4 +33,6 @@ export {
   getBaseURL,
   constructCheckFeatureAccess,
   constructCheckUsageBalance,
+  constructGetProduct,
+  constructGetPrice,
 } from './utils'

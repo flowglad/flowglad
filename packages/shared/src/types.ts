@@ -72,9 +72,31 @@ export type BillingWithChecks = CustomerRetrieveBillingResponse & {
   ) => {
     availableBalance: number
   } | null
+
+  /**
+   * @experimental
+   * Gets a product from the catalog
+   * @param productSlug - The slug of the product to get
+   * @returns The product, or null if the product is not found
+   */
+  getProduct: (
+    productSlug: string
+  ) =>
+    | CustomerRetrieveBillingResponse['catalog']['products'][number]
+    | null
+
+  /**
+   * @experimental
+   * Gets a price from the catalog
+   * @param priceSlug - The slug of the price to get
+   * @returns The price, or null if the price is not found
+   */
+  getPrice: (
+    priceSlug: string
+  ) =>
+    | CustomerRetrieveBillingResponse['catalog']['products'][number]['prices'][number]
+    | null
 }
 
-export type SubscriptionExperimentalFields = {
-  featureItems: FeatureItem[]
-  usageMeterBalances: UsageMeterBalance[]
-}
+export type SubscriptionExperimentalFields =
+  FlowgladNode.CustomerRetrieveBillingResponse.SubscriptionItem.Experimental
