@@ -216,5 +216,6 @@ export const setupCatalogTransaction = async (
     prices,
     features,
     productFeatures,
+    usageMeters,
   }
 }

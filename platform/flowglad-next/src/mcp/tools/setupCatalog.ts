@@ -8,6 +8,31 @@ const schema = {
   catalog: setupCatalogSchema,
 }
 
+const constructCatalogSuccessContext = (
+  result: Awaited<ReturnType<typeof setupCatalogTransaction>>
+): string => {
+  const productSlugs = result.products
+    .map((product) => product.slug!)
+    .join(', ')
+  const priceSlugs = result.prices
+    .map((price) => price.slug!)
+    .join(', ')
+  const featureSlugs = result.features
+    .map((feature) => feature.slug!)
+    .join(', ')
+
+  const usageMeterSlugs = result.usageMeters
+    .map((usageMeter) => usageMeter.slug!)
+    .join(', ')
+
+  return `Catalog set up successfully: https://app.flowglad.com/store/catalogs/${result.catalog.id}
+Here are the slugs for the products, prices, features, and usage meters:
+Products: ${productSlugs}
+Prices: ${priceSlugs}
+Features: ${featureSlugs}
+Usage Meters: ${usageMeterSlugs}`
+}
+
 export const setupCatalog: ToolConstructor<typeof schema> = {
   name: 'setupCatalog',
   description: 'Setup a catalog',
@@ -42,7 +67,7 @@ export const setupCatalog: ToolConstructor<typeof schema> = {
       content: [
         {
           type: 'text',
-          text: `Catalog setup complete: https://app.flowglad.com/store/catalogs/${result.catalog.id}`,
+          text: constructCatalogSuccessContext(result),
         },
       ],
     }
