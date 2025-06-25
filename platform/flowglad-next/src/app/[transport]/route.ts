@@ -1,26 +1,13 @@
 import { createMcpHandler } from '@vercel/mcp-adapter'
-import { z } from 'zod'
+import { toolCapabilities, toolSet } from '@/mcp/toolSet'
 
 const handler = createMcpHandler(
   async (server) => {
-    server.tool(
-      'echo',
-      'description',
-      {
-        message: z.string(),
-      },
-      async ({ message }) => ({
-        content: [{ type: 'text', text: `Tool echo: ${message}` }],
-      })
-    )
+    toolSet(server)
   },
   {
     capabilities: {
-      tools: {
-        echo: {
-          description: 'Echo a message',
-        },
-      },
+      tools: toolCapabilities,
     },
   },
   {

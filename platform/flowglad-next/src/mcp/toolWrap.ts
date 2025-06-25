@@ -1,14 +1,14 @@
 import { z } from 'zod'
 import { createMcpHandler } from '@vercel/mcp-adapter'
 
-type McpHandler = typeof createMcpHandler
+export type McpHandler = typeof createMcpHandler
 
 type InitializeMcpServer = Parameters<McpHandler>[0]
 
-type McpServer = Parameters<InitializeMcpServer>[0]
-type ToolRegistrar = McpServer['tool']
-type ToolCallback = Parameters<ToolRegistrar>[4]
-type ToolResponse = ReturnType<ToolCallback>
+export type McpServer = Parameters<InitializeMcpServer>[0]
+export type ToolRegistrar = McpServer['tool']
+export type ToolCallback = Parameters<ToolRegistrar>[4]
+export type ToolResponse = ReturnType<ToolCallback>
 
 export interface ServerTool<T extends z.ZodRawShape> {
   name: string
