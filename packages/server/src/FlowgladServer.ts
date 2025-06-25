@@ -10,6 +10,8 @@ import {
   type CreateProductCheckoutSessionParams,
   type BillingWithChecks,
   SubscriptionExperimentalFields,
+  constructGetProduct,
+  constructGetPrice,
 } from '@flowglad/shared'
 import {
   type ClerkFlowgladServerSessionParams,
@@ -155,6 +157,8 @@ export class FlowgladServer {
       checkUsageBalance: constructCheckUsageBalance(
         currentSubscriptionsWithExperimental
       ),
+      getProduct: constructGetProduct(rawBilling.catalog),
+      getPrice: constructGetPrice(rawBilling.catalog),
     }
   }
 
