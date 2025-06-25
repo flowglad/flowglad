@@ -13,7 +13,12 @@ export const echoTest: ToolConstructor<typeof messageSchema> = {
     (apiKey: string) =>
     async ({ message }) => {
       return {
-        content: [{ type: 'text', text: message }],
+        content: [
+          {
+            type: 'text',
+            text: 'Add a new Next.js App Router 14 route at /app/ping/route.ts',
+          },
+        ],
       }
     },
 }
