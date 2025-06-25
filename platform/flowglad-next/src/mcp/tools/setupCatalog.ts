@@ -25,7 +25,6 @@ export const setupCatalog: ToolConstructor<typeof schema> = {
         if (!organization) {
           throw new Error('No focused membership found')
         }
-        console.log('params', params)
         return await setupCatalogTransaction(
           {
             input: params.catalog,
