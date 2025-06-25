@@ -1,9 +1,11 @@
 import { echoTest } from './tools/echoTest'
-import { McpServer, toolWrap } from './toolWrap'
+import { McpServer, ToolConstructor, toolWrap } from './toolWrap'
+import { setupCatalog } from './tools/setupCatalog'
 
-const tools = [echoTest]
-export const toolSet = (server: McpServer) =>
-  tools.map((tool) => toolWrap(tool, server))
+const tools: ToolConstructor<any>[] = [echoTest, setupCatalog]
+
+export const toolSet = (server: McpServer, apiKey: string) =>
+  tools.map((tool) => toolWrap(tool, server, apiKey))
 
 export const toolCapabilities: Record<
   string,

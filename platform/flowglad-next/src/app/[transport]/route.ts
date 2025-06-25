@@ -1,47 +1,26 @@
-import {
-  createMcpHandler,
-  experimental_withMcpAuth,
-} from '@vercel/mcp-adapter'
+import { createMcpHandler } from '@vercel/mcp-adapter'
 import { toolCapabilities, toolSet } from '@/mcp/toolSet'
-import { verifyApiKey } from '@/utils/unkey'
+import { NextRequest } from 'next/server'
 
-const handler = createMcpHandler(
-  async (server) => {
-    toolSet(server)
-  },
-  {
-    capabilities: {
-      tools: toolCapabilities,
+const handler = (req: NextRequest) => {
+  const authenticatedMCP = createMcpHandler(
+    (server) =>
+      toolSet(
+        server,
+        req.headers.get('Authorization')!.split(' ')[1]
+      ),
+    {
+      capabilities: {
+        tools: toolCapabilities,
+      },
     },
-  },
-  {
-    basePath: '',
-    verboseLogs: true,
-    maxDuration: 60,
-  }
-)
-
-const authHandler = experimental_withMcpAuth(
-  handler,
-  async (request) => {
-    const apiKey = request.headers.get('Authorization')?.split(' ')[1]
-    if (!apiKey) {
-      return undefined
+    {
+      basePath: '',
+      verboseLogs: true,
+      maxDuration: 60,
     }
-    const { valid, ownerId } = await verifyApiKey(apiKey)
-    if (!valid) {
-      return undefined
-    }
-    return {
-      token: apiKey,
-      clientId: ownerId!,
-      scopes: ['*'],
-    }
-  }
-)
-
-export {
-  authHandler as GET,
-  authHandler as POST,
-  authHandler as DELETE,
+  )
+  return authenticatedMCP(req)
 }
+
+export { handler as GET, handler as POST, handler as DELETE }

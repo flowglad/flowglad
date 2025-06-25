@@ -14,16 +14,21 @@ export interface ServerTool<T extends z.ZodRawShape> {
   name: string
   description: string
   schema: T
-  callback: (
+  callbackConstructor: (
+    apikey: string
+  ) => (
     args: z.objectOutputType<T, z.ZodTypeAny>
   ) => Promise<ToolResponse>
 }
 
+export type ToolConstructor<T extends z.ZodRawShape> = ServerTool<T>
+
 export function toolWrap<T extends z.ZodRawShape>(
-  tool: ServerTool<T>,
-  server: McpServer
+  tool: ToolConstructor<T>,
+  server: McpServer,
+  apiKey: string
 ): ServerTool<T> {
-  const { name, description, schema, callback } = tool
+  const { name, description, schema, callbackConstructor } = tool
   /**
    * not clear why, but need to explicitly type the schema as type z.ZodRawShape
    */
@@ -31,7 +36,7 @@ export function toolWrap<T extends z.ZodRawShape>(
 
   server.tool(name, description, typedSchema, async (args) => {
     // @ts-expect-error - zod types are not compatible with the mcp types
-    return await callback(args)
+    return await callbackConstructor(apiKey)(args)
   })
 
   return tool

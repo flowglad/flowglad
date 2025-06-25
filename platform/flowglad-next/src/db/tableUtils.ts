@@ -710,6 +710,9 @@ export const createBulkInsertOrDoNothingFunction = <
     const parsedData = dataArray.map((data) =>
       config.insertSchema.parse(data)
     ) as InferInsertModel<T>[]
+    if (parsedData.length === 0) {
+      return []
+    }
     const result = await transaction
       .insert(table)
       .values(parsedData)
