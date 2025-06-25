@@ -174,10 +174,28 @@ export const createCheckoutSessionTransaction = async (
     },
     transaction
   )
+  console.log('==updatedCheckoutSession', updatedCheckoutSession)
+  console.log('==checkoutSession', checkoutSession)
+  console.log('====checkoutSession.type', checkoutSession.type)
+  console.log(
+    'CheckoutSessionType.AddPaymentMethod',
+    CheckoutSessionType.AddPaymentMethod
+  )
+  console.log(
+    'updatedCheckoutSession.type',
+    updatedCheckoutSession.type
+  )
+  console.log(
+    'updatedCheckoutSession.type === CheckoutSessionType.AddPaymentMethod',
+    updatedCheckoutSession.type ===
+      CheckoutSessionType.AddPaymentMethod
+  )
   const url =
-    checkoutSession.type === CheckoutSessionType.AddPaymentMethod
+    updatedCheckoutSession.type ===
+    CheckoutSessionType.AddPaymentMethod
       ? `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
       : `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+  console.log('==url', url)
   return {
     checkoutSession: updatedCheckoutSession,
     url,
