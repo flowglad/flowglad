@@ -1,5 +1,15 @@
 # @flowglad/express
 
+## 0.10.16
+
+### Patch Changes
+
+- Add getProduct and getPrice to SDK, support activate_subscription checkout sessions
+- Updated dependencies
+  - @flowglad/server@0.10.16
+  - @flowglad/shared@0.10.16
+  - @flowglad/react@0.10.16
+
 ## 0.10.15
 
 ### Patch Changes
