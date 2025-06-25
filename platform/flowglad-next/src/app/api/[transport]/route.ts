@@ -1,17 +1,31 @@
+import { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
+import { verifyApiKey } from '@/utils/unkey'
 import {
   createMcpHandler,
   experimental_withMcpAuth,
 } from '@vercel/mcp-adapter'
-import { toolCapabilities, toolSet } from '@/mcp/toolSet'
-import { verifyApiKey } from '@/utils/unkey'
+import { z } from 'zod'
 
 const handler = createMcpHandler(
   async (server) => {
-    toolSet(server)
+    server.tool(
+      'echo',
+      'description',
+      {
+        message: z.string(),
+      },
+      async ({ message }) => ({
+        content: [{ type: 'text', text: `Tool echo: ${message}` }],
+      })
+    )
   },
   {
     capabilities: {
-      tools: toolCapabilities,
+      tools: {
+        echo: {
+          description: 'Echo a message',
+        },
+      },
     },
   },
   {

@@ -4,6 +4,7 @@ import core from './utils/core'
 import { stackServerApp } from './stack'
 
 const publicRoutes = [
+  '(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/handler/(.*)',
@@ -34,6 +35,10 @@ const publicRoutes = [
   '/api/trpc/discounts.clear',
   '/apple-touch-icon(.*).png',
   '/api/v1/(.*)',
+  '/api/mcp/(.*)',
+  '/api/mcp',
+  '/api/ai',
+  '/api/ai/(.*)',
   '/api/openapi',
   '/api/hosted-billing/(.*)',
   '/invoice/view/(.*)',
@@ -47,6 +52,7 @@ if (core.IS_DEV) {
 const isPublicRoute = createRouteMatcher(publicRoutes)
 
 export default async function middleware(req: NextRequest) {
+  console.log('===middleware===', req.url)
   // Handle CORS for staging
   if (
     req.method === 'OPTIONS' &&
