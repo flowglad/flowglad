@@ -17,8 +17,6 @@ import {
   IntervalUnit,
 } from '@/types'
 import type { Organization } from '@/db/schema/organizations'
-import type { DbTransaction } from '@/db/types'
-import core from '../core'
 
 let organization: Organization.Record
 
@@ -146,7 +144,7 @@ describe('setupCatalogTransaction (integration)', () => {
   it('creates catalog, features, products, prices, and productFeatures on happy path', async () => {
     const input: SetupCatalogInput = {
       name: 'MyCatalog',
-      isDefault: false,
+      isDefault: true,
       usageMeters: [{ slug: 'um', name: 'UM' }],
       features: [
         {

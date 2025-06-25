@@ -4,6 +4,7 @@ import core from './utils/core'
 import { stackServerApp } from './stack'
 
 const publicRoutes = [
+  '/mcp',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/handler/(.*)',

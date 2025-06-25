@@ -3,7 +3,7 @@ import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { DbTransaction } from '@/db/types'
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
-import { insertCatalog } from '@/db/tableMethods/catalogMethods'
+import { safelyInsertCatalog } from '@/db/tableMethods/catalogMethods'
 import { Catalog } from '@/db/schema/catalogs'
 import { bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId } from '@/db/tableMethods/productFeatureMethods'
 import {
@@ -19,7 +19,6 @@ import { hashData } from '@/utils/backendCore'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { ProductFeature } from '@/db/schema/productFeatures'
-import core from '../core'
 
 export const externalIdFromProductData = (
   product: SetupCatalogProductInput,
@@ -51,7 +50,10 @@ export const setupCatalogTransaction = async (
     organizationId,
     transaction
   )
-  const catalog = await insertCatalog(catalogInsert, transaction)
+  const catalog = await safelyInsertCatalog(
+    catalogInsert,
+    transaction
+  )
   const usageMeterInserts: UsageMeter.Insert[] =
     input.usageMeters.map((usageMeter) => ({
       slug: usageMeter.slug,
@@ -173,6 +175,7 @@ export const setupCatalogTransaction = async (
       })
     }
   )
+
   const prices = await bulkInsertPrices(priceInserts, transaction)
   const featuresBySlug = new Map(
     features.map((feature) => [feature.slug, feature])
@@ -200,6 +203,7 @@ export const setupCatalogTransaction = async (
         }
       })
     })
+
   const productFeatures =
     await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
       productFeatureInserts,

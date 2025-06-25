@@ -24,6 +24,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 import { productsInsertSchema, Product } from '@/db/schema/products'
 import {
   insertCatalog,
+  safelyInsertCatalog,
   selectCatalogById,
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
@@ -269,7 +270,10 @@ export const setupCatalogTransaction = async (
     organizationId,
     transaction
   )
-  const catalog = await insertCatalog(catalogInsert, transaction)
+  const catalog = await safelyInsertCatalog(
+    catalogInsert,
+    transaction
+  )
   const usageMeterInserts: UsageMeter.Insert[] =
     input.usageMeters.map((usageMeter) => ({
       slug: usageMeter.slug,

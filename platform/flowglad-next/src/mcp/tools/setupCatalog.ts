@@ -1,6 +1,6 @@
 import { setupCatalogSchema } from '@/utils/catalogs/setupSchemas'
 import { ToolConstructor } from '../toolWrap'
-import { setupCatalogTransaction } from '@/utils/catalog'
+import { setupCatalogTransaction } from '@/utils/catalogs/setupTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 
@@ -25,6 +25,7 @@ export const setupCatalog: ToolConstructor<typeof schema> = {
         if (!organization) {
           throw new Error('No focused membership found')
         }
+        console.log('params', params)
         return await setupCatalogTransaction(
           {
             input: params.catalog,
