@@ -16,29 +16,43 @@ import core from '../core'
 import * as R from 'ramda'
 import { FeatureType, PriceType } from '@/types'
 
-export const featureCatalogSetupSchema = z.discriminatedUnion(
-  'type',
-  [
-    toggleFeatureClientInsertSchema.omit({
-      catalogId: true,
-      usageMeterId: true,
-      amount: true,
-      renewalFrequency: true,
-    }),
+export const featureCatalogSetupSchema = z
+  .discriminatedUnion('type', [
+    toggleFeatureClientInsertSchema
+      .omit({
+        catalogId: true,
+        usageMeterId: true,
+        amount: true,
+        renewalFrequency: true,
+      })
+      .describe(
+        'A feature that can be granted in a true / false boolean state. When granted to a customer, it will return true.'
+      ),
     usageCreditGrantFeatureClientInsertSchema
       .omit({
         catalogId: true,
         usageMeterId: true,
       })
       .extend({
-        usageMeterSlug: z.string(),
-      }),
-  ]
-)
+        usageMeterSlug: z
+          .string()
+          .describe(
+            'The slug of the usage meter to grant credit for. Must be a valid slug for a usage meter.'
+          ),
+      })
+      .describe('A credit grant to give for a usage meter.'),
+  ])
+  .describe(
+    'A feature that can be granted to a customer. Will be associated with products.'
+  )
 
-const productCatalogSetupSchema = productsClientInsertSchema.omit({
-  catalogId: true,
-})
+const productCatalogSetupSchema = productsClientInsertSchema
+  .omit({
+    catalogId: true,
+  })
+  .describe(
+    'A product, which describes "what" a customer gets when they purchase via features, and how much they pay via prices.'
+  )
 
 const omitProductId = {
   productId: true,
@@ -63,9 +77,19 @@ export type SetupCatalogProductPriceInput = z.infer<
 >
 
 const setupCatalogProductInputSchema = z.object({
-  product: productCatalogSetupSchema,
-  prices: z.array(setupCatalogProductPriceInputSchema),
-  features: z.array(z.string()),
+  product: productCatalogSetupSchema.describe(
+    'The product to add to the catalog. Must be a subset of the products in the catalog.'
+  ),
+  prices: z
+    .array(setupCatalogProductPriceInputSchema)
+    .describe(
+      'The prices to add to the product. Must be a subset of the prices in the catalog.'
+    ),
+  features: z
+    .array(z.string())
+    .describe(
+      'The slugs of the features that will granted when they purchase the product. Must be a subset of the slugs of the features in the catalog.'
+    ),
 })
 
 export type SetupCatalogProductInput = z.infer<
@@ -73,13 +97,23 @@ export type SetupCatalogProductInput = z.infer<
 >
 
 export const setupCatalogSchema = catalogsClientInsertSchema.extend({
-  isDefault: z.boolean().optional().default(false),
+  isDefault: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'Whether the catalog to be created will be the default catalog for all customers moving forward.'
+    ),
   features: z.array(featureCatalogSetupSchema),
   products: z.array(setupCatalogProductInputSchema),
   usageMeters: z.array(
-    usageMetersClientInsertSchema.omit({
-      catalogId: true,
-    })
+    usageMetersClientInsertSchema
+      .omit({
+        catalogId: true,
+      })
+      .describe(
+        'The usage meters to add to the catalog. If the catalog has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
+      )
   ),
 })
 

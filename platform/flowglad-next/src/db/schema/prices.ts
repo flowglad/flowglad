@@ -166,8 +166,14 @@ const intervalZodSchema = core.createSafeZodEnum(IntervalUnit)
 
 const basePriceColumns = {
   type: core.createSafeZodEnum(PriceType),
-  isDefault: z.boolean(),
-  unitPrice: core.safeZodNonNegativeInteger,
+  isDefault: z
+    .boolean()
+    .describe(
+      'Whether or not this price is the default price for the product.'
+    ),
+  unitPrice: core.safeZodNonNegativeInteger.describe(
+    'The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents. If'
+  ),
   currency: core.createSafeZodEnum(CurrencyCode),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   startsWithCreditTrial: core.safeZodNullOrUndefined,
@@ -195,14 +201,23 @@ const subscriptionPriceColumns = {
   intervalCount: core.safeZodPositiveInteger,
   intervalUnit: intervalZodSchema,
   setupFeeAmount: core.safeZodPositiveIntegerOrZero.nullable(),
-  trialPeriodDays: core.safeZodPositiveIntegerOrZero.nullable(),
+  trialPeriodDays: core.safeZodPositiveIntegerOrZero
+    .nullable()
+    .describe(
+      'The trial period in days. If the trial period is 0 or null, there will be no trial period.'
+    ),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
-  overagePriceId: core.safeZodNullishString,
+  overagePriceId: core.safeZodNullishString.describe(
+    'The price to use when the usage exceeds the usage events per unit. If null, there is no overage price.'
+  ),
   usageMeterId: core.safeZodNullOrUndefined,
   startsWithCreditTrial: z
     .boolean()
     .nullish()
-    .transform((val) => val ?? null),
+    .transform((val) => val ?? null)
+    .describe(
+      'Whether or not subscriptions created from this price should automatically start with a credit trial. If true, the subscription will be created status "credit_trial".'
+    ),
 }
 
 const usagePriceColumns = {
@@ -215,7 +230,9 @@ const usagePriceColumns = {
     .describe(
       'The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.'
     ),
-  usageEventsPerUnit: core.safeZodPositiveInteger,
+  usageEventsPerUnit: core.safeZodPositiveInteger.describe(
+    'The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.'
+  ),
   type: z.literal(PriceType.Usage),
 }
 
@@ -301,14 +318,17 @@ export const usagePriceUpdateSchema = usagePriceInsertSchema
   })
   .describe(USAGE_PRICE_DESCRIPTION)
 
-export const usagePriceClientInsertSchema =
-  usagePriceInsertSchema.omit(nonClientEditableColumns)
+export const usagePriceClientInsertSchema = usagePriceInsertSchema
+  .omit(nonClientEditableColumns)
+  .describe(USAGE_PRICE_DESCRIPTION)
 
-export const usagePriceClientUpdateSchema =
-  usagePriceUpdateSchema.omit(nonClientEditableColumns)
+export const usagePriceClientUpdateSchema = usagePriceUpdateSchema
+  .omit(nonClientEditableColumns)
+  .describe(USAGE_PRICE_DESCRIPTION)
 
-export const usagePriceClientSelectSchema =
-  usagePriceSelectSchema.omit(hiddenColumns)
+export const usagePriceClientSelectSchema = usagePriceSelectSchema
+  .omit(hiddenColumns)
+  .describe(USAGE_PRICE_DESCRIPTION)
 
 export const pricesSelectSchema = z
   .discriminatedUnion('type', [

@@ -4,6 +4,7 @@ import core from './utils/core'
 import { stackServerApp } from './stack'
 
 const publicRoutes = [
+  '(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/handler/(.*)',
@@ -34,6 +35,10 @@ const publicRoutes = [
   '/api/trpc/discounts.clear',
   '/apple-touch-icon(.*).png',
   '/api/v1/(.*)',
+  '/api/mcp/(.*)',
+  '/api/mcp',
+  '/api/ai',
+  '/api/ai/(.*)',
   '/api/openapi',
   '/api/hosted-billing/(.*)',
   '/invoice/view/(.*)',
