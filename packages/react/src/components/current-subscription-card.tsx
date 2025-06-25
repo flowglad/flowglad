@@ -86,7 +86,8 @@ export function UsageCurrentSubscriptionCard({
                   </div>
                 )}
                 {shouldShowBillingPeriodEnd &&
-                  !subscription.cancelScheduledAt && (
+                  !subscription.cancelScheduledAt &&
+                  subscription.currentBillingPeriodEnd && (
                     <div>
                       Renews on{' '}
                       {formatDate(
@@ -158,7 +159,8 @@ export function StandardCurrentSubscriptionCard({
                   </div>
                 )}
                 {shouldShowBillingPeriodEnd &&
-                  !subscription.cancelScheduledAt && (
+                  !subscription.cancelScheduledAt &&
+                  subscription.currentBillingPeriodEnd && (
                     <div>
                       Renews on{' '}
                       {formatDate(
@@ -216,6 +218,7 @@ export const CurrentSubscriptionCard = ({
     (subscription.status !== 'trialing' &&
       !subscription.cancelScheduledAt) ||
     (subscription.cancelScheduledAt &&
+      subscription.currentBillingPeriodEnd &&
       new Date(subscription.cancelScheduledAt) >
         new Date(subscription.currentBillingPeriodEnd))
   const { cancelSubscription } = billing

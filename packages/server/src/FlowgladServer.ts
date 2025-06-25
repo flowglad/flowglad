@@ -147,6 +147,7 @@ export class FlowgladServer {
         id: string
         experimental: SubscriptionExperimentalFields
       }[]
+
     return {
       ...rawBilling,
       checkFeatureAccess: constructCheckFeatureAccess(

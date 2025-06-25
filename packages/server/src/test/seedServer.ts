@@ -18,6 +18,8 @@ export const setupProduct = async (params: {
       imageURL: null,
       pluralQuantityLabel: 'items',
       singularQuantityLabel: 'item',
+      slug: 'test-product',
+      default: false,
     },
     price: {
       unitPrice: 1000,
@@ -30,6 +32,7 @@ export const setupProduct = async (params: {
       type: 'subscription',
       usageMeterId: null,
       trialPeriodDays: null,
+      slug: 'test-product',
     },
   })
   return product
