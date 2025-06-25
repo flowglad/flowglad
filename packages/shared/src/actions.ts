@@ -34,6 +34,7 @@ export const createActivateSubscriptionCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
     type: z.literal('activate_subscription'),
     targetSubscriptionId: z.string(),
+    priceId: z.string(),
   })
 
 export const createCheckoutSessionSchema = z.discriminatedUnion(

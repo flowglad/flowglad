@@ -98,10 +98,4 @@ export class FlowgladServerAdmin {
   public async getUsageEvent(id: string) {
     return this.flowgladNode.usageEvents.retrieve(id)
   }
-  public async updateUsageEvent(
-    id: string,
-    params: FlowgladNode.UsageEvents.UsageEventUpdateParams
-  ) {
-    return this.flowgladNode.usageEvents.update(id, params)
-  }
 }

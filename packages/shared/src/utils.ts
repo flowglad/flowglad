@@ -3,6 +3,7 @@ import type {
   SubscriptionExperimentalFields,
   UsageMeterBalance,
 } from './types'
+import type { Flowglad as FlowgladNode } from '@flowglad/node'
 
 const IS_DEV = process.env.NODE_ENV === 'development'
 
@@ -17,7 +18,7 @@ export const getBaseURL = () => {
 export const constructCheckFeatureAccess = (
   subscriptions: {
     id: string
-    experimental: SubscriptionExperimentalFields
+    experimental?: SubscriptionExperimentalFields
   }[]
 ) => {
   return (
@@ -35,13 +36,19 @@ export const constructCheckFeatureAccess = (
       return false
     }
     const experimental = subscription.experimental
-    const featureItemsBySlug = experimental.featureItems.reduce(
-      (acc, featureItem) => {
-        acc[featureItem.slug] = featureItem
-        return acc
-      },
-      {} as Record<string, FeatureItem>
-    )
+    const featureItemsBySlug =
+      experimental?.featureItems.reduce(
+        (acc, featureItem) => {
+          if (featureItem.type === 'toggle') {
+            acc[featureItem.slug] = featureItem
+          }
+          return acc
+        },
+        {} as Record<
+          string,
+          SubscriptionExperimentalFields['featureItems'][number]
+        >
+      ) ?? {}
     const featureItem = featureItemsBySlug[featureSlug]
     if (!featureItem) {
       return false
@@ -53,7 +60,7 @@ export const constructCheckFeatureAccess = (
 export const constructCheckUsageBalance = (
   subscriptions: {
     id: string
-    experimental: SubscriptionExperimentalFields
+    experimental?: SubscriptionExperimentalFields
   }[]
 ) => {
   return (
@@ -74,17 +81,43 @@ export const constructCheckUsageBalance = (
     }
     const experimental = subscription.experimental
     const usageMeterBalancesBySlug =
-      experimental.usageMeterBalances.reduce(
+      experimental?.usageMeterBalances.reduce(
         (acc, usageMeterBalance) => {
           acc[usageMeterBalance.slug] = usageMeterBalance
           return acc
         },
         {} as Record<string, UsageMeterBalance>
-      )
+      ) ?? {}
     const usageMeterBalance = usageMeterBalancesBySlug[usageMeterSlug]
     if (!usageMeterBalance) {
       return null
     }
     return usageMeterBalance
   }
+}
+
+export const constructGetProduct = (
+  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog']
+) => {
+  const productsBySlug = new Map(
+    catalog.products.map((product) => [product.slug, product])
+  )
+  const getProduct = (productSlug: string) => {
+    return productsBySlug.get(productSlug) ?? null
+  }
+  return getProduct
+}
+
+export const constructGetPrice = (
+  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog']
+) => {
+  const pricesBySlug = new Map(
+    catalog.products.flatMap((product) =>
+      product.prices.map((price) => [price.slug, price])
+    )
+  )
+  const getPrice = (priceSlug: string) => {
+    return pricesBySlug.get(priceSlug) ?? null
+  }
+  return getPrice
 }

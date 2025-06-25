@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/nextjs",
-  "version": "0.10.15",
+  "version": "0.10.16",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -20,7 +20,7 @@
     "@flowglad/shared": "workspace:*",
     "@flowglad/react": "workspace:*",
     "@flowglad/server": "workspace:*",
-    "@flowglad/node": "0.19.3",
+    "@flowglad/node": "0.21.0",
     "zod": "3.24.3"
   },
   "devDependencies": {
