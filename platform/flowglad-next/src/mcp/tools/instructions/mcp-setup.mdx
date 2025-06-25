@@ -1,3 +1,23 @@
+# Flowglad MCP Middleware Setup
+
+Here's how you set up flowglad's Middleware for a Next.js-based MCP server in Vercel.
+
+1. If there isn't already a `[transport]/route.ts` directory in the project, create one in. Ideally this is in `/app`. If the directory can be found elsewhere in the codebase
+
+2. Use the `mcpHandlerWithFlowglad` to create the MCP function. And the `toolWithFeatureAccessCheck` to create the access check.
+
+Here are the parameters you need to get right:
+1. successURL and cancelURL - make stubs of these in the project if they're not already there.
+2. upgradePriceSlug: this should be the price that the customer will be prompted to purchase via a checkout session if they are unauthorized.
+3. The feature slug - this should be what we use to determine authorization.
+4. A method to derive the implied flowglad customer from a given incoming http request. Ideally this should get us as much information of the following shape as possible: 
+{
+  externalId: 'the_applications_concept_of_customer',
+  name: 'The Customer's Name',
+  email: 'admin@thecustomer.com'
+}
+
+```ts
 import { mcpUserFromRequest } from '@/utils/auth-helpers/server';
 import {
   FlowgladServer,
@@ -38,3 +58,4 @@ const handler = mcpHandlerWithFlowglad(
 );
 
 export { handler as GET, handler as POST, handler as DELETE };
+```

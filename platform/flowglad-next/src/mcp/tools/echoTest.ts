@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ServerTool, ToolConstructor } from '../toolWrap'
+import { ToolConstructor } from '../toolWrap'
 
 const messageSchema = {
   message: z.string(),
