@@ -327,6 +327,9 @@ importers:
       ramda:
         specifier: ^0.30.1
         version: 0.30.1
+      raw-loader:
+        specifier: ^4.0.2
+        version: 4.0.2(webpack@5.95.0(esbuild@0.25.0))
       react:
         specifier: 19.0.0
         version: 19.0.0
@@ -8028,6 +8031,12 @@ packages:
   raw-body@3.0.0:
     resolution: {integrity: sha512-RmkhL8CAyCRPXCE28MMH0z2PNWQBNk2Q09ZdxM9IOOXwxwZbN+qbWaatPkdkWIKL2ZVDImrN/pK5HTRz2PcS4g==}
     engines: {node: '>= 0.8'}
+
+  raw-loader@4.0.2:
+    resolution: {integrity: sha512-ZnScIV3ag9A4wPX/ZayxL/jZH+euYb6FcUinPcgiQW0+UBtEv0O6Q3lGd3cqJ+GHH+rksEv3Pj99oxJ3u3VIKA==}
+    engines: {node: '>= 10.13.0'}
+    peerDependencies:
+      webpack: ^4.0.0 || ^5.0.0
 
   react-avatar-editor@13.0.2:
     resolution: {integrity: sha512-a4ajbi7lwDh98kgEtSEeKMu0vs0CHTczkq4Xcxr1EiwMFH1GlgHCEtwGU8q/H5W8SeLnH4KPK8LUjEEaZXklxQ==}
@@ -18374,6 +18383,12 @@ snapshots:
       http-errors: 2.0.0
       iconv-lite: 0.6.3
       unpipe: 1.0.0
+
+  raw-loader@4.0.2(webpack@5.95.0(esbuild@0.25.0)):
+    dependencies:
+      loader-utils: 2.0.4
+      schema-utils: 3.3.0
+      webpack: 5.95.0(esbuild@0.25.0)
 
   react-avatar-editor@13.0.2(@babel/core@7.26.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:

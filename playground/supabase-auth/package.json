@@ -29,6 +29,7 @@
     "@flowglad/server": "file:.yalc/@flowglad/server",
     "@flowglad/shared": "file:.yalc/@flowglad/shared",
     "@flowglad/types": "file:.yalc/@flowglad/types",
+    "@vercel/mcp-adapter": "0.11.1",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.1.8",

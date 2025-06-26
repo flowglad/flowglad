@@ -12,3 +12,9 @@ export {
   type RequestHandlerInput,
   type RequestHandlerOutput,
 } from '@flowglad/server'
+
+export {
+  mcpHandlerWithFlowglad,
+  toolWithFeatureAccessCheck,
+  toolWithUsageBalanceCheck,
+} from './withMCPToolAuthorization'

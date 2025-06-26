@@ -1,0 +1,77 @@
+Please set up billing for our app according to the following instructions:
+
+1. Create a `flowglad.ts` file in /src, that looks like this:
+
+`// flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+import { createClient } from '@/utils/supabase/server' // or wherever you store your supabase server client constructor.
+
+export const flowgladServer = new FlowgladServer({
+  supabaseAuth: {
+    client: createClient,
+  },
+})
+`
+
+<Important>
+If your customers are organizations rather than individual users, you should use the `getRequestingCustomer` initializer method:
+
+`ts flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: () => {
+   // whatever logic you currently use to 
+   // derive the organization associated with a given request
+  }
+})
+
+`
+</Important>
+
+2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
+
+`// /api/flowglad/[...path]/route.ts
+'use server'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
+import { flowgladServer } from '@/flowglad'
+
+const routeHandler = createAppRouterRouteHandler(flowgladServer)
+
+export { routeHandler as GET, routeHandler as POST }
+`
+
+3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
+
+- get the user via supabase auth
+- mount the `FlowgladProvider` with the user
+- pass the user to the `FlowgladProvider`
+
+`
+// /app/layout.tsx
+import { createClient } from '@/utils/supabase/server' // or wherever we create our supabase client
+// ... existing code ...
+// inside of the layout component:
+const supabase = createClient()
+const {
+data: { user }
+} = await supabase.auth.getUser()
+
+return (
+
+<FlowgladProvider loadBilling={!!user}>
+  {/* ... existing layout JSX ... */}
+  {children}
+  {/* ... existing layout JSX ... */}
+</FlowgladProvider>
+) `
+
+4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
+
+`tsx /billing/page.tsx
+import { BillingPage } from '@flowglad/nextjs'
+
+export default function Billing() {
+  return <BillingPage />
+}
+`

@@ -16,8 +16,6 @@ import {
 import {
   insertCatalog,
   selectCatalogsPaginated,
-  updateCatalog,
-  makeCatalogDefault,
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectCatalogsTableRows,
   safelyUpdateCatalog,
@@ -26,7 +24,6 @@ import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
 import { setupCatalogTransaction } from '@/utils/catalogs/setupTransaction'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
   createPaginatedTableRowInputSchema,

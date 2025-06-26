@@ -15,37 +15,19 @@ import {
 } from '@/db/types'
 import {
   CreateProductPriceInput,
-  CreateProductSchema,
   Price,
   pricesInsertSchema,
   ProductWithPrices,
 } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { productsInsertSchema, Product } from '@/db/schema/products'
+import { Product } from '@/db/schema/products'
 import {
   insertCatalog,
   selectCatalogById,
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
 } from '@/db/tableMethods/catalogMethods'
-import { Catalog, CloneCatalogInput } from '@/db/schema/catalogs'
-import {
-  syncProductFeatures,
-  bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId,
-} from '@/db/tableMethods/productFeatureMethods'
-import {
-  SetupCatalogInput,
-  SetupCatalogProductInput,
-  SetupCatalogProductPriceInput,
-  validateSetupCatalogInput,
-} from './catalogs/setupSchemas'
-import { Feature } from '@/db/schema/features'
-import { bulkInsertOrDoNothingUsageMetersBySlugAndCatalogId } from '@/db/tableMethods/usageMeterMethods'
-import { FeatureType, PriceType } from '@/types'
-import { bulkInsertOrDoNothingFeaturesByCatalogIdAndSlug } from '@/db/tableMethods/featureMethods'
-import { hashData } from './backendCore'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { ProductFeature } from '@/db/schema/productFeatures'
+import { CloneCatalogInput } from '@/db/schema/catalogs'
+import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 
 export const createPrice = async (
   payload: Price.Insert,
@@ -238,197 +220,4 @@ export const cloneCatalogTransaction = async (
     )
 
   return newCatalogWithProducts
-}
-
-const externalIdFromProductData = (
-  product: SetupCatalogProductInput
-) => {
-  return hashData(JSON.stringify(product))
-}
-
-export const setupCatalogTransaction = async (
-  {
-    input: rawInput,
-    organizationId,
-    livemode,
-  }: {
-    input: SetupCatalogInput
-    organizationId: string
-    livemode: boolean
-  },
-  transaction: DbTransaction
-) => {
-  const input = validateSetupCatalogInput(rawInput)
-  const catalogInsert: Catalog.Insert = {
-    name: input.name,
-    livemode,
-    organizationId,
-    isDefault: input.isDefault,
-  }
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
-  const catalog = await insertCatalog(catalogInsert, transaction)
-  const usageMeterInserts: UsageMeter.Insert[] =
-    input.usageMeters.map((usageMeter) => ({
-      slug: usageMeter.slug,
-      name: usageMeter.name,
-      livemode,
-      organizationId,
-      catalogId: catalog.id,
-    }))
-  const usageMeters =
-    await bulkInsertOrDoNothingUsageMetersBySlugAndCatalogId(
-      usageMeterInserts,
-      transaction
-    )
-  const usageMetersBySlug = new Map(
-    usageMeters.map((usageMeter) => [usageMeter.slug, usageMeter])
-  )
-  const featureInserts: Feature.Insert[] = input.features.map(
-    (feature) => {
-      const coreParams: Pick<
-        Feature.Insert,
-        | 'slug'
-        | 'catalogId'
-        | 'livemode'
-        | 'organizationId'
-        | 'name'
-        | 'description'
-      > = {
-        slug: feature.slug,
-        name: feature.name,
-        description: feature.description,
-        catalogId: catalog.id,
-        livemode,
-        organizationId,
-      }
-      if (feature.type === FeatureType.UsageCreditGrant) {
-        const usageMeter = usageMetersBySlug.get(
-          feature.usageMeterSlug
-        )
-        if (!usageMeter) {
-          throw new Error(
-            `Usage meter ${feature.usageMeterSlug} not found`
-          )
-        }
-        return {
-          ...coreParams,
-          type: FeatureType.UsageCreditGrant,
-          usageMeterId: usageMeter.id,
-          amount: feature.amount,
-          renewalFrequency: feature.renewalFrequency,
-        }
-      }
-      return {
-        ...coreParams,
-        type: FeatureType.Toggle,
-        usageMeterId: null,
-        amount: null,
-        renewalFrequency: null,
-      }
-    }
-  )
-  const features =
-    await bulkInsertOrDoNothingFeaturesByCatalogIdAndSlug(
-      featureInserts,
-      transaction
-    )
-  const productInserts: Product.Insert[] = input.products.map(
-    (product) => {
-      return {
-        ...product.product,
-        catalogId: catalog.id,
-        livemode,
-        organizationId,
-        externalId: externalIdFromProductData(product),
-      }
-    }
-  )
-  const products = await bulkInsertProducts(
-    productInserts,
-    transaction
-  )
-  const productsByExternalId = new Map(
-    products.map((product) => [product.externalId, product])
-  )
-
-  const priceInserts: Price.Insert[] = input.products.flatMap(
-    (product) => {
-      const productId = productsByExternalId.get(
-        externalIdFromProductData(product)
-      )?.id
-      if (!productId) {
-        throw new Error(`Product ${product.product.name} not found`)
-      }
-      return product.prices.map((price) => {
-        if (price.type === PriceType.Usage) {
-          const usageMeterId = features.find(
-            (feature) => feature.slug === price.usageMeterSlug
-          )?.usageMeterId
-          if (!usageMeterId) {
-            throw new Error(
-              `Usage meter ${price.usageMeterSlug} not found`
-            )
-          }
-          return {
-            ...price,
-            currency: organization.defaultCurrency,
-            productId,
-            livemode,
-            externalId: null,
-            usageMeterId,
-          }
-        }
-        return {
-          ...price,
-          currency: organization.defaultCurrency,
-          productId,
-          livemode,
-          externalId: null,
-        }
-      })
-    }
-  )
-  const prices = await bulkInsertPrices(priceInserts, transaction)
-  const featuresBySlug = new Map(
-    features.map((feature) => [feature.slug, feature])
-  )
-
-  const productFeatureInserts: ProductFeature.Insert[] =
-    input.products.flatMap((product) => {
-      return product.features.map((featureSlug) => {
-        const feature = featuresBySlug.get(featureSlug)
-        if (!feature) {
-          throw new Error(`Feature ${featureSlug} not found`)
-        }
-        const productId = productsByExternalId.get(
-          externalIdFromProductData(product)
-        )?.id
-        if (!productId) {
-          throw new Error(`Product ${product.product.name} not found`)
-        }
-        return {
-          organizationId,
-          productId,
-          featureId: feature.id,
-          livemode,
-          externalId: null,
-        }
-      })
-    })
-  const productFeatures =
-    await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
-      productFeatureInserts,
-      transaction
-    )
-
-  return {
-    catalog,
-    products,
-    prices,
-    features,
-    productFeatures,
-  }
 }

@@ -31,7 +31,7 @@ if (core.IS_PROD) {
 } else if (core.IS_TEST) {
   logger = false
 } else if (core.IS_DEV) {
-  logger = false
+  logger = true
 }
 
 export const db = drizzle(client, {
