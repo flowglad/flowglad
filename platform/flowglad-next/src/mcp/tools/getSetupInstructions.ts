@@ -3,12 +3,26 @@ import { ToolConstructor } from '../toolWrap'
 import { promises as fs } from 'fs'
 import path from 'path'
 
-enum ProjectStructure {}
+enum ProjectStructure {
+  MCP = 'mcp_server',
+}
 
-enum PricingComponent {}
+enum PricingComponent {
+  FeatureAccess = 'feature_access',
+  UsageBased = 'usage_based',
+  Subscription = 'subscription',
+  OneTime = 'one_time',
+  FreeTrial = 'free_trial_by_time',
+  FreeTrialByCredit = 'free_trial_by_credit',
+  Discount = 'discount',
+}
 
 const getSetupInstructionsSchema = {
-  projectStructure: z.nativeEnum(ProjectStructure),
+  projectStructure: z
+    .nativeEnum(ProjectStructure)
+    .describe(
+      'The structure of the project. Currently only MCP servers are supported.'
+    ),
   pricingComponents: z
     .array(z.nativeEnum(PricingComponent))
     .describe(
@@ -30,7 +44,7 @@ const loadInstructions = async (
   filename: string
 ): Promise<string> => {
   return await fs.readFile(
-    path.join(process.cwd(), 'src', 'mcp', 'tools', filename),
+    path.join(process.cwd(), 'src/mcp/tools/instructions', filename),
     'utf8'
   )
 }
@@ -40,7 +54,7 @@ export const getSetupInstructions: ToolConstructor<
 > = {
   name: 'getSetupInstructions',
   description:
-    'Get setup instructions for a project to integrate billing and payments',
+    'Get instructions for a project to integrate billing and payments.',
   schema: getSetupInstructionsSchema,
   callbackConstructor:
     (apiKey: string) =>
@@ -50,9 +64,7 @@ export const getSetupInstructions: ToolConstructor<
       stackDetails,
       additionalDetails,
     }) => {
-      const instructions = await loadInstructions(
-        'mcpsetupinstructions.md'
-      )
+      const instructions = await loadInstructions('mcp-setup.mdx')
       return {
         content: [
           {
