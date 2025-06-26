@@ -4,7 +4,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 
 enum ProjectStructure {
-  MCP = 'mcp_server',
+  Nextjs = 'nextjs',
 }
 
 enum PricingComponent {
@@ -64,7 +64,9 @@ export const getSetupInstructions: ToolConstructor<
       stackDetails,
       additionalDetails,
     }) => {
-      const instructions = await loadInstructions('mcp-setup.mdx')
+      const instructions = await loadInstructions(
+        `${projectStructure}-setup.mdx`
+      )
       return {
         content: [
           {
