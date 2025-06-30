@@ -256,7 +256,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     return {
       result: {
         subscription,
-        billingRun,
+        billingRun: null,
         updatedBillingPeriod,
       },
       eventsToLog: [],
