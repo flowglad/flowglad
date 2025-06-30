@@ -1,5 +1,13 @@
 # @flowglad/server
 
+## 0.10.17
+
+### Patch Changes
+
+- Remove flowglad-root root theming
+- Updated dependencies
+  - @flowglad/shared@0.10.17
+
 ## 0.10.16
 
 ### Patch Changes
