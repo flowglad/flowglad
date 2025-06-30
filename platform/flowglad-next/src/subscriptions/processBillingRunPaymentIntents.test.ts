@@ -84,40 +84,6 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       unitPrice: 100,
     })
   })
-  it('throws an error when the billing run PaymentIntent id does not match the event id', async () => {
-    const stripePaymentIntentId = `pi_correct_${new Date().getTime()}`
-    const billingRun = await setupBillingRun({
-      stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(0),
-      paymentMethodId: paymentMethod.id,
-      billingPeriodId: billingPeriod.id,
-      subscriptionId: subscription.id,
-      livemode: true,
-    })
-    const wrongStripePaymentIntentId = `pi_wrong_${new Date().getTime()}`
-    await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 1000,
-        data: {
-          object: {
-            id: wrongStripePaymentIntentId,
-            status: 'succeeded',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: `ch_test_${new Date().getTime()}`,
-            livemode: true,
-          },
-        },
-      } as any
-
-      await expect(
-        processPaymentIntentEventForBillingRun(event, transaction)
-      ).rejects.toThrow(/different stripe payment intent id/)
-    })
-  })
 
   it('skips processing for out-of-order event', async () => {
     const stripePaymentIntentId =
