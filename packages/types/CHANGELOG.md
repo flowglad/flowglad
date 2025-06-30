@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.10.17
+
+### Patch Changes
+
+- Remove flowglad-root root theming
+
 ## 0.10.16
 
 ### Patch Changes
