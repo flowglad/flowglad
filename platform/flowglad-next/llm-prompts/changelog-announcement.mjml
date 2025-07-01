@@ -1,0 +1,41 @@
+<mjml>
+  <mj-head>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
+  </mj-head>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="bold">
+          Changelog Announcement
+        </mj-text>
+        <mj-text font-size="16px" font-family="Inter, Helvetica, Arial, sans-serif">
+          Here are the latest updates from the past two weeks:
+        </mj-text>
+        <mj-text font-size="14px" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="bold">
+          Top Features & Improvements
+        </mj-text>
+        <mj-text font-size="14px" font-family="Inter, Helvetica, Arial, sans-serif">
+          • Activate Payment Failed Notifications: Notifications are now sent to both customers and organizations on payment failures. [PR #278](https://github.com/flowglad/flowglad/pull/278)
+          • SDK Improvements: Removed flowglad-root class from root element in React SDK. [PR #277](https://github.com/flowglad/flowglad/pull/277)
+          • MCP Middleware: Added Vercel MCP adapter to Next.js SDK. [PR #276](https://github.com/flowglad/flowglad/pull/276)
+        </mj-text>
+        <mj-text font-size="14px" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="bold">
+          New Features
+        </mj-text>
+        <mj-text font-size="14px" font-family="Inter, Helvetica, Arial, sans-serif">
+          • Collapsible Sidebar Component with Mobile Support: A new sidebar component has been added with full mobile support. [PR #274](https://github.com/flowglad/flowglad/pull/274)
+          • MCP MVP: Introduced a rudimentary MCP server supporting catalog setup features. [PR #274](https://github.com/flowglad/flowglad/pull/274)
+        </mj-text>
+        <mj-text font-size="14px" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="bold">
+          Improvements & Fixes
+        </mj-text>
+        <mj-text font-size="14px" font-family="Inter, Helvetica, Arial, sans-serif">
+          • Fixed Middleware: Removed catchall on middleware for better performance. [PR #275](https://github.com/flowglad/flowglad/pull/275)
+          • Support for activate_subscription Checkout Sessions: Enhanced SDK to support activate_subscription checkout sessions. [PR #273](https://github.com/flowglad/flowglad/pull/273)
+          • Subscription Item Feature Quantity Test Coverage: Added test coverage for subscription item quantities. [PR #272](https://github.com/flowglad/flowglad/pull/272)
+          • Setup Catalog Endpoint: Created an endpoint for setting up entire catalogs from scratch. [PR #271](https://github.com/flowglad/flowglad/pull/271)
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
