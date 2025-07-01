@@ -3,7 +3,7 @@ Using the git commit logs from the past 2 weeks, generate a concise, customer-fa
 * Aggregate and deduplicate: Group related commits and changes into a single, clear item.
 * Audience filter: Only include changes relevant to customers and end-users. Ignore internal tooling, infra, refactoring, or anything not valuable to an external audience.
 * Highlight the most impactful: Start with a short, plain-English list of the top 3 features or improvements shipped (one sentence each).
-* Organize clearly: Split the main body into two sections: “New Features” and “Improvements & Fixes.”
+* Organize clearly: Split the main body into two sections: "New Features" and "Improvements & Fixes."
 * Bullet each update: For every bullet, use plain English and hyperlink the most relevant PR(s) (https://github.com/flowglad/flowglad/pull/PR_NUMBER).
 * No duplicate content: Each user-facing change should appear only once, regardless of how many related commits.
 * Versioning: Only mention version numbers for new client SDK releases. The server is not versioned.
@@ -48,7 +48,6 @@ Example:
   </mj-head>
   <mj-body background-color="#1B1B1B">
     <mj-wrapper full-width background-color="#1B1B1B">
-
       <!-- Header -->
       <mj-section padding="32px 16px 40px">
         <mj-column>
@@ -63,7 +62,6 @@ Example:
           </mj-text>
         </mj-column>
       </mj-section>
-
       <!-- Highlights -->
       <mj-section padding="0 16px 8px">
         <mj-column>
@@ -95,7 +93,6 @@ Example:
           </mj-text>
         </mj-column>
       </mj-section>
-
       <!-- 🧩 Features -->
       <mj-section padding="0 16px 8px">
         <mj-column>
@@ -133,8 +130,7 @@ Example:
           </mj-text>
         </mj-column>
       </mj-section>
-
-      <!-- 🛠️ Improvements -->
+      <!-- :hammer_and_wrench: Improvements -->
       <mj-section padding="0 16px 8px">
         <mj-column>
           <mj-text
@@ -193,7 +189,6 @@ Example:
           </mj-text>
         </mj-column>
       </mj-section>
-
       <!-- Footer -->
       <mj-section padding="24px 16px 40px">
         <mj-column>
@@ -201,7 +196,7 @@ Example:
             Agree Ahmed<br />
             CEO, <a href="https://flowglad.com" style="color:#F5F5F5"><strong>Flowglad</strong></a><br /><br />
             PS - Treat us like your payments therapist by <a href="https://cal.com/team/flowglad/chat" style="color:#F5F5F5"><strong>grabbing time on our calendar</strong></a>.<br /><br />
-            ⭐️ us on
+            :star:️ us on
             <a href="https://github.com/flowglad/flowglad" style="color:#F5F5F5"><strong>GitHub</strong></a>. Chat on
             <a href="https://discord.gg/XTK7hVyQD9" style="color:#F5F5F5"><strong>Discord</strong></a> or follow on
             <a href="https://x.com/flowglad" style="color:#F5F5F5"><strong>X</strong></a> and
@@ -210,7 +205,6 @@ Example:
           </mj-text>
         </mj-column>
       </mj-section>
-
     </mj-wrapper>
   </mj-body>
 </mjml>
