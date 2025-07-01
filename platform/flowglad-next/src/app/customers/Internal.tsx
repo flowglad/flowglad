@@ -4,7 +4,7 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Tabs, TabsList, TabsContent } from '@/components/ion/Tab'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { useAuthenticatedContext } from '@/contexts/authContext'
@@ -58,9 +58,11 @@ function Internal() {
           <div className="flex flex-row justify-between">
             <PageTitle>Customers</PageTitle>
             <Button
-              iconLeading={<Plus size={16} />}
+              size="sm"
+              className="gap-x-1 px-3 text-sm h-8 rounded-radius-sm bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-pressed"
               onClick={() => setIsCreateCustomerOpen(true)}
             >
+              <Plus className="mr-2 h-4 w-4" />
               Create Customer
             </Button>
           </div>

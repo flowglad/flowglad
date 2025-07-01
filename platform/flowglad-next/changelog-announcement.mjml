@@ -1,0 +1,161 @@
+<mjml>
+  <mj-head>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.6" color="#F5F5F5" align="left" padding="0" />
+      <mj-button font-weight="600" border-radius="8px" />
+      <mj-section padding="0" />
+      <mj-column padding="0" />
+    </mj-attributes>
+    <mj-style inline="inline">
+      .cardColumn {
+        background-color: #232323 !important;
+        border: 1px solid #424242 !important;
+        border-radius: 8px !important;
+      }
+      a {
+        text-decoration: none;
+        color: #F5F5F5;
+      }
+      ol,
+      ul {
+        margin: 0 0 16px;
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 12px;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#1B1B1B">
+    <mj-wrapper full-width background-color="#1B1B1B">
+
+      <!-- Header -->
+      <mj-section padding="32px 16px 40px">
+        <mj-column>
+          <mj-text align="center" font-size="32px" font-weight="700" color="#FFFFFF" padding="0">
+            Flowglad Product Updates
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+      <!-- Highlights -->
+      <mj-section padding="0 16px 8px">
+        <mj-column>
+          <mj-text font-size="20px" font-weight="600" color="#FFFFFF" padding="0 0 8px">
+            🏆 Highlights
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section padding="0 16px 36px">
+        <mj-column width="100%" css-class="cardColumn">
+          <mj-text padding="16px 20px">
+            <ol>
+              <li>
+                Dive into real-time event notifications with our new UI and API support. <a href="https://github.com/flowglad/flowglad/pull/192"><strong>#192</strong></a>
+              </li>
+              <li>
+                Simplify checkout by generating direct payment links. <a href="https://github.com/flowglad/flowglad/pull/175"><strong>#175</strong></a>
+              </li>
+              <li>
+                Manage billing via a direct dashboard link. <a href="https://github.com/flowglad/flowglad/pull/169"><strong>#169</strong></a>
+              </li>
+            </ol>
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+      <!-- 🧩 Features -->
+      <mj-section padding="0 16px 8px">
+        <mj-column>
+          <mj-text font-size="20px" font-weight="600" color="#FFFFFF" padding="0 0 8px">
+            🧩 Features
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section padding="0 16px 36px">
+        <mj-column width="100%" css-class="cardColumn">
+          <mj-text padding="16px 20px">
+            <ul>
+              <li>
+                Launched comprehensive Webhooks system with UI/API support. <a href="https://github.com/flowglad/flowglad/pull/192"><strong>#192</strong></a>
+              </li>
+              <li>
+                Introduced live Price-Based Payment Links. <a href="https://github.com/flowglad/flowglad/pull/175"><strong>#175</strong></a>
+              </li>
+              <li>
+                Enabled direct access to Billing Portal from dashboard. <a href="https://github.com/flowglad/flowglad/pull/169"><strong>#169</strong></a>
+              </li>
+              <li>
+                Automatic user sync with Loops on signup. <a href="https://github.com/flowglad/flowglad/pull/180"><strong>#180</strong></a>
+              </li>
+            </ul>
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+      <!-- 🛠️ Improvements -->
+      <mj-section padding="0 16px 8px">
+        <mj-column>
+          <mj-text font-size="20px" font-weight="600" color="#FFFFFF" padding="0 0 8px">
+            🛠️ Improvements
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section padding="0 16px 32px">
+        <mj-column width="100%" css-class="cardColumn">
+          <mj-text padding="16px 20px">
+            <ul>
+              <li>
+                Fixed teammate visibility in settings. <a href="https://github.com/flowglad/flowglad/pull/205"><strong>#205</strong></a>
+              </li>
+              <li>
+                Expanded docs for subscriptions, checkout, payment methods. <a href="https://github.com/flowglad/flowglad/pull/202"><strong>#202</strong></a>
+              </li>
+              <li>
+                Resolved icon and pricing display bugs. <a href="https://github.com/flowglad/flowglad/pull/199"><strong>#199</strong></a>
+              </li>
+              <li>
+                Improved discount input accuracy. <a href="https://github.com/flowglad/flowglad/pull/198"><strong>#198</strong></a>
+              </li>
+              <li>
+                Made usage meter ID optional in Create Price. <a href="https://github.com/flowglad/flowglad/pull/197"><strong>#197</strong></a>
+              </li>
+              <li>
+                Enhanced dark mode styling. <a href="https://github.com/flowglad/flowglad/pull/193"><strong>#193</strong></a>
+              </li>
+              <li>
+                Reliable event parsing and Supabase fixes. <a href="https://github.com/flowglad/flowglad/pull/185"><strong>#185</strong></a>, <a href="https://github.com/flowglad/flowglad/pull/186"><strong>#186</strong></a>
+              </li>
+              <li>
+                Improved trial logic, pagination, magic links. <a href="https://github.com/flowglad/flowglad/pull/176"><strong>#176</strong></a>, <a href="https://github.com/flowglad/flowglad/pull/177"><strong>#177</strong></a>
+              </li>
+              <li>
+                Cleaner UI for portal URLs. <a href="https://github.com/flowglad/flowglad/pull/172"><strong>#172</strong></a>
+              </li>
+            </ul>
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+      <!-- Footer -->
+      <mj-section padding="24px 16px 40px">
+        <mj-column>
+          <mj-text font-size="14px" line-height="1.6" color="#AAAAAA" padding="0">
+            Agree Ahmed<br />
+            CEO, <a href="https://flowglad.com" style="color:#F5F5F5"><strong>Flowglad</strong></a><br /><br />
+            PS - Treat us like your payments therapist by <a href="https://cal.com/team/flowglad/chat" style="color:#F5F5F5"><strong>grabbing time on our calendar</strong></a>.<br /><br />
+            ⭐️ us on
+            <a href="https://github.com/flowglad/flowglad" style="color:#F5F5F5"><strong>GitHub</strong></a>. Chat on
+            <a href="https://discord.gg/XTK7hVyQD9" style="color:#F5F5F5"><strong>Discord</strong></a> or follow on
+            <a href="https://x.com/flowglad" style="color:#F5F5F5"><strong>X</strong></a> and
+            <a href="http://linkedin.com/company/flowglad/" style="color:#F5F5F5"><strong>LinkedIn</strong></a>.<br /><br />
+            <a href="{unsubscribe_link}" style="color:#ffffff; text-decoration:none;">Unsubscribe</a>
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+    </mj-wrapper>
+  </mj-body>
+</mjml>
