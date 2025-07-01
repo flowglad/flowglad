@@ -7,6 +7,8 @@ import {
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
   createCursorPaginatedSelectFunction,
+  createBulkInsertOrDoNothingFunction,
+  createBulkInsertFunction,
 } from '@/db/tableUtils'
 import {
   features,
@@ -41,12 +43,30 @@ export const updateFeature = createUpdateFunction(features, config)
 
 export const selectFeatures = createSelectFunction(features, config)
 
-export const upsertFeatureByOrganizationIdAndSlug =
-  createUpsertFunction(
-    features,
-    [features.organizationId, features.slug],
-    config
+export const upsertFeatureByCatalogIdAndSlug = createUpsertFunction(
+  features,
+  [features.catalogId, features.slug],
+  config
+)
+
+export const bulkInsertOrDoNothingFeatures =
+  createBulkInsertOrDoNothingFunction(features, config)
+
+export const bulkInsertOrDoNothingFeaturesByCatalogIdAndSlug = async (
+  inserts: Feature.Insert[],
+  transaction: DbTransaction
+) => {
+  return bulkInsertOrDoNothingFeatures(
+    inserts,
+    [features.catalogId, features.slug, features.organizationId],
+    transaction
   )
+}
+
+export const bulkInsertFeatures = createBulkInsertFunction(
+  features,
+  config
+)
 
 export const selectFeaturesPaginated = createPaginatedSelectFunction(
   features,

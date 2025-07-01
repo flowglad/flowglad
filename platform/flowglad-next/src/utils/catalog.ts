@@ -20,7 +20,7 @@ import {
   ProductWithPrices,
 } from '@/db/schema/prices'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { productsInsertSchema, Product } from '@/db/schema/products'
+import { Product } from '@/db/schema/products'
 import {
   insertCatalog,
   selectCatalogById,

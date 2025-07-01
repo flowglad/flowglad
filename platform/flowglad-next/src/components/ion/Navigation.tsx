@@ -83,7 +83,7 @@ export interface NavigationMenuLinkProps
 /* ---------------------------------- Component --------------------------------- */
 
 const navigationMenuLinkClassnames = cva(
-  'group flex w-full font-medium cursor-pointer justify-between items-center gap-3 rounded-radius-xs border-transparent px-3 py-2 text-base no-underline outline-none transition-colors',
+  'group flex w-full font-medium cursor-pointer justify-between items-center gap-3 rounded-radius-xs border-transparent px-3 py-2 text-base no-underline outline-none transition-colors h-11',
   {
     variants: {
       type: {

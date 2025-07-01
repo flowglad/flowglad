@@ -10,6 +10,8 @@ import {
   type CreateProductCheckoutSessionParams,
   type BillingWithChecks,
   SubscriptionExperimentalFields,
+  constructGetProduct,
+  constructGetPrice,
 } from '@flowglad/shared'
 import {
   type ClerkFlowgladServerSessionParams,
@@ -155,6 +157,8 @@ export class FlowgladServer {
       checkUsageBalance: constructCheckUsageBalance(
         currentSubscriptionsWithExperimental
       ),
+      getProduct: constructGetProduct(rawBilling.catalog),
+      getPrice: constructGetPrice(rawBilling.catalog),
     }
   }
 
@@ -216,11 +220,6 @@ export class FlowgladServer {
     )
     if (!session) {
       throw new Error('User not authenticated')
-    }
-    if (params.type === 'activate_subscription') {
-      throw new Error(
-        'Serverside activate subscription checkout sessions are not yet supported'
-      )
     }
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {

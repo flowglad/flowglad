@@ -69,19 +69,14 @@ export const createCheckoutSession = protectedProcedure
           })
         }
 
-        const { checkoutSession } =
-          await createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: ctx.organizationId!,
-              livemode: ctx.livemode,
-            },
-            transaction
-          )
-        return {
-          checkoutSession,
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
-        }
+        return await createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: ctx.organizationId!,
+            livemode: ctx.livemode,
+          },
+          transaction
+        )
       }
     )
   )

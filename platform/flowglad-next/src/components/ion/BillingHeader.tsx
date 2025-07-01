@@ -74,14 +74,20 @@ const BillingHeader = React.forwardRef<
     return null
   }
 
-  const { purchase, price, product, subscriptionDetails, flowType } =
-    checkoutPageContext
+  const {
+    purchase,
+    price,
+    product,
+    subscriptionDetails,
+    flowType,
+    checkoutSession,
+  } = checkoutPageContext
   let mainTitleSuffix = ''
   if (price.type === PriceType.SinglePayment) {
     mainTitleSuffix = `${stripeCurrencyAmountToHumanReadableCurrencyAmount(
       price.currency,
       core.isNil(purchase?.firstInvoiceValue)
-        ? price.unitPrice
+        ? price.unitPrice * checkoutSession.quantity
         : purchase.firstInvoiceValue
     )}`
   } else if (flowType === CheckoutFlowType.Subscription) {

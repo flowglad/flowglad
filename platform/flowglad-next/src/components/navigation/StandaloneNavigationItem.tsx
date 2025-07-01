@@ -33,10 +33,8 @@ const StandaloneNavigationItem = ({
           <NavigationMenuLink
             iconLeading={icon}
             className={cn(
-              'w-full flex items-center transition-all duration-300 ease-in-out',
-              isCollapsed
-                ? 'justify-center px-2 gap-0'
-                : 'justify-start px-3 gap-3'
+              'w-full flex items-center transition-all duration-300 ease-in-out gap-3 px-3',
+              isCollapsed ? 'justify-center' : 'justify-start'
             )}
             href={href}
             selected={pathname.startsWith(basePath)}

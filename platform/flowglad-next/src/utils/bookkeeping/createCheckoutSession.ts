@@ -175,7 +175,8 @@ export const createCheckoutSessionTransaction = async (
     transaction
   )
   const url =
-    checkoutSession.type === CheckoutSessionType.AddPaymentMethod
+    updatedCheckoutSession.type ===
+    CheckoutSessionType.AddPaymentMethod
       ? `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
       : `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
   return {

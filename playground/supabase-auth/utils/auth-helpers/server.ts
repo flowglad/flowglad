@@ -334,3 +334,11 @@ export async function updateName(formData: FormData) {
     );
   }
 }
+
+export const mcpUserFromRequest = async (request: Request) => {
+  return {
+    externalId: '123_oklkjlk12j34__',
+    email: 'test@test.com',
+    name: 'Test User'
+  };
+};

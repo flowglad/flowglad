@@ -12,9 +12,12 @@ import {
   constructCheckFeatureAccess,
   constructCheckUsageBalance,
   type BillingWithChecks,
+  constructGetProduct,
+  constructGetPrice,
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
+import { CustomerBillingDetails } from '@flowglad/types'
 
 export type FrontendCreateCheckoutSessionParams =
   CreateCheckoutSessionParams & {
@@ -307,12 +310,14 @@ export const FlowgladContextProvider = ({
       ...notPresentContextValues,
     }
   } else if (billing) {
-    const billingData = billing.data
+    const billingData: CustomerBillingDetails = billing.data
     const reload = async () => {
       await queryClient.invalidateQueries({
         queryKey: [FlowgladActionKey.GetCustomerBilling],
       })
     }
+    const getProduct = constructGetProduct(billingData.catalog)
+    const getPrice = constructGetPrice(billingData.catalog)
     value = {
       loaded: true,
       loadBilling,
@@ -321,11 +326,13 @@ export const FlowgladContextProvider = ({
       createAddPaymentMethodCheckoutSession,
       cancelSubscription,
       createActivateSubscriptionCheckoutSession,
+      getProduct,
+      getPrice,
       checkFeatureAccess: constructCheckFeatureAccess(
-        billingData.currentSubscriptions
+        billingData.currentSubscriptions ?? []
       ),
       checkUsageBalance: constructCheckUsageBalance(
-        billingData.currentSubscriptions
+        billingData.currentSubscriptions ?? []
       ),
       catalog: billingData.catalog,
       subscriptions: billingData.subscriptions,

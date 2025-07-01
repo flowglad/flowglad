@@ -1,5 +1,21 @@
 # @flowglad/server
 
+## 0.10.17
+
+### Patch Changes
+
+- Remove flowglad-root root theming
+- Updated dependencies
+  - @flowglad/shared@0.10.17
+
+## 0.10.16
+
+### Patch Changes
+
+- Add getProduct and getPrice to SDK, support activate_subscription checkout sessions
+- Updated dependencies
+  - @flowglad/shared@0.10.16
+
 ## 0.10.15
 
 ### Patch Changes

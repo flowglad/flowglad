@@ -46,8 +46,8 @@ const ParentChildNavigationItem = ({
           )
         }
         className={cn(
-          'w-full flex items-center transition-all duration-300 ease-in-out',
-          isCollapsed ? 'justify-center px-2' : ''
+          'w-full flex items-center transition-all duration-300 ease-in-out gap-3 px-3',
+          isCollapsed ? 'justify-center' : ''
         )}
         onClick={() => {
           onClickParent?.()

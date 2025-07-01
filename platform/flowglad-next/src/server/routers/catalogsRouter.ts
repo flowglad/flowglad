@@ -16,8 +16,6 @@ import {
 import {
   insertCatalog,
   selectCatalogsPaginated,
-  updateCatalog,
-  makeCatalogDefault,
   selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
   selectCatalogsTableRows,
   safelyUpdateCatalog,
@@ -25,12 +23,13 @@ import {
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { cloneCatalogTransaction } from '@/utils/catalog'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { setupCatalogTransaction } from '@/utils/catalogs/setupTransaction'
 import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
+import { setupCatalogSchema } from '@/utils/catalogs/setupSchemas'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'catalog',
@@ -219,8 +218,46 @@ const getTableRowsProcedure = protectedProcedure
   )
   .query(authenticatedProcedureTransaction(selectCatalogsTableRows))
 
+const setupCatalogProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/catalogs/setup',
+      summary: 'Setup a Catalog',
+      tags: ['Catalogs'],
+      protect: true,
+    },
+  })
+  .input(setupCatalogSchema)
+  .output(
+    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+  )
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, transaction, ctx }) => {
+        const result = await setupCatalogTransaction(
+          {
+            input,
+            organizationId: ctx.organizationId!,
+            livemode: ctx.livemode,
+          },
+          transaction
+        )
+        const [catalogWithProductsAndUsageMeters] =
+          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+            { id: result.catalog.id },
+            transaction
+          )
+        return {
+          result: { catalog: catalogWithProductsAndUsageMeters },
+        }
+      }
+    )
+  )
+
 export const catalogsRouter = router({
   list: listCatalogsProcedure,
+  setup: setupCatalogProcedure,
   get: getCatalogProcedure,
   getDefault: getDefaultCatalogProcedure,
   create: createCatalogProcedure,

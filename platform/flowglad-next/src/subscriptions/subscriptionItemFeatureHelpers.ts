@@ -107,7 +107,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           type: FeatureType.UsageCreditGrant,
           livemode: subscriptionItem.livemode,
           usageMeterId: feature.usageMeterId,
-          amount: feature.amount,
+          amount: feature.amount * subscriptionItem.quantity,
           renewalFrequency: feature.renewalFrequency,
           productFeatureId: productFeature.id,
           expiredAt: null,

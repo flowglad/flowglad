@@ -262,6 +262,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       eventsToLog: [],
     }
   }
+
   const allBillingPeriods = await selectBillingPeriods(
     { subscriptionId: subscription.id },
     transaction
