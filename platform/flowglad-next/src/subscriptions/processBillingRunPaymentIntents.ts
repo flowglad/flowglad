@@ -60,6 +60,7 @@ import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import { Event } from '@/db/schema/events'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -185,11 +186,6 @@ export const processPaymentIntentEventForBillingRun = async (
     metadata.billingRunId,
     transaction
   )
-  if (billingRun.stripePaymentIntentId !== event.data.object.id) {
-    throw Error(
-      `Aborting billing run update: Billing run ${billingRun.id} has a different stripe payment intent id than the event ${event.data.object.id}`
-    )
-  }
 
   const eventTimestamp = dateFromStripeTimestamp(event.created)
   const eventPrecedesLastPaymentIntentEvent =
@@ -354,6 +350,7 @@ export const processPaymentIntentEventForBillingRun = async (
   const organizationMemberUsers = usersAndMemberships.map(
     (userAndMembership) => userAndMembership.user
   )
+  const eventsToLog: Event.Insert[] = []
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,
@@ -437,6 +434,7 @@ export const processPaymentIntentEventForBillingRun = async (
       payment,
     },
     ledgerCommand: invoiceLedgerCommand,
+    eventsToLog,
   }
 }
 

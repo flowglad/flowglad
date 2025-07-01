@@ -103,7 +103,7 @@ export function FlowgladThemeProvider({
         nonce={nonce}
         data-flowglad-theme
       />
-      <div className={themeWrapperClassName}>{children}</div>
+      <div>{children}</div>
     </FlowgladThemeContext.Provider>
   )
 }
