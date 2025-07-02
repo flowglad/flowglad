@@ -131,7 +131,6 @@ export const updateOrganizationOnboardingStatus = async (
         {
           id: organization.id,
           onboardingStatus: newOnboardingStatus,
-          payoutsEnabled: onboardingStatus.payoutsEnabled,
         },
         transaction
       )
