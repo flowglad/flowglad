@@ -140,7 +140,6 @@ Next, set up your Flowglad API route at `/api/flowglad/[...path]`. Your app will
 
 ```ts Next.js
 // /api/flowglad/[...path]/route.ts
-'use server';
 import { createAppRouterRouteHandler } from '@flowglad/nextjs/server';
 import { flowgladServer } from '@/app/flowglad';
 
@@ -210,7 +209,6 @@ export default function RootLayout({
 
 ```tsx Clerk
 // app/layout.tsx
-'use client'
 import { PropsWithChildren } from 'react'
 import { FlowgladProvider } from '@flowglad/nextjs'
 import { currentUser } from '@clerk/nextjs/server'
