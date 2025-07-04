@@ -166,8 +166,12 @@ export const calculateInternationalFeePercentage = ({
   if (organizationCountryCode === billingAddressCountryCode) {
     return 0
   }
-
-  const baseInternationalFeePercentage = 1
+  
+/**
+ * Cards incur a cross border fee of 1.5%.
+ * Other foreign exchange fees are calculated during the payout step, rather than the pay-in step.
+ */
+  const baseInternationalFeePercentage = 0
 
   if (
     paymentMethod !== PaymentMethodType.Card &&
