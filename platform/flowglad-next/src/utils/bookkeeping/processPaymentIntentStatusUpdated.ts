@@ -34,6 +34,7 @@ import {
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
+import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
@@ -267,6 +268,13 @@ export const updatePaymentToReflectLatestChargeStatus = async (
       await sendCustomerPaymentFailedNotificationIdempotently(
         updatedPayment
       )
+      await idempotentSendOrganizationPaymentFailedNotification({
+        organizationId: updatedPayment.organizationId,
+        customerId: updatedPayment.customerId,
+        amount: updatedPayment.amount,
+        currency: updatedPayment.currency,
+        invoiceNumber: updatedPayment.invoiceId,
+      })
     }
   }
   /**
