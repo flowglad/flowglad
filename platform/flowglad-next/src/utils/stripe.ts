@@ -1053,6 +1053,10 @@ export const refundPayment = async (
   return stripe(livemode).refunds.create({
     charge: chargeId,
     amount: partialAmount ?? undefined,
+    /**
+     * Always attempt to reverse the transfer associated with the payment to be refunded
+     */
+    reverse_transfer: true,
   })
 }
 
