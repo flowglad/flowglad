@@ -26,6 +26,7 @@ import {
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -72,7 +73,15 @@ export const createSubscriptionWorkflow = async (
     )
   const { subscription, subscriptionItems } =
     await insertSubscriptionAndItems(params, transaction)
-
+  if (params.discountRedemption) {
+    await updateDiscountRedemption(
+      {
+        ...params.discountRedemption,
+        subscriptionId: subscription.id,
+      },
+      transaction
+    )
+  }
   const { price } = params
   const subscriptionItemFeatures =
     await createSubscriptionFeatureItems(

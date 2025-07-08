@@ -13,6 +13,9 @@ import {
   setupTestFeaturesAndProductFeatures,
   setupUsageCreditGrantFeature,
   setupProductFeature,
+  setupDiscount,
+  setupPurchase,
+  setupDiscountRedemption,
 } from '@/../seedDatabase'
 import { createSubscriptionWorkflow } from './workflow'
 import {
@@ -25,6 +28,7 @@ import {
   FeatureType,
   FeatureUsageGrantFrequency,
   LedgerEntryType,
+  DiscountAmountType,
 } from '@/types'
 import { Price } from '@/db/schema/prices'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
@@ -48,6 +52,8 @@ import {
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { Catalog } from '@/db/schema/catalogs'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { insertDiscountRedemption, selectDiscountRedemptionById } from '@/db/tableMethods/discountRedemptionMethods'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 
 describe('createSubscriptionWorkflow', async () => {
   let organization: Organization.Record
@@ -1722,5 +1728,298 @@ describe('createSubscriptionWorkflow with Credit Trial', () => {
     )
     expect(result.billingPeriod).toBeNull()
     expect(result.billingRun).toBeNull()
+  })
+})
+
+describe('createSubscriptionWorkflow with discount redemption', async () => {
+  let organization: Organization.Record
+  let product: Product.Record
+  let defaultPrice: Price.Record
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let catalog: Catalog.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    product = orgData.product
+    defaultPrice = orgData.price
+    catalog = orgData.catalog
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+  })
+
+  it('should create a subscription with a single discount redemption', async () => {
+    // Create a discount first
+    const discount = await setupDiscount({
+      organizationId: organization.id,
+      name: 'Test Discount',
+      amount: 10, // 10% off
+      amountType: DiscountAmountType.Percent,
+      code: 'TEST10',
+      livemode: true,
+    })
+
+    const purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: defaultPrice.id,
+      livemode: true,
+    })
+
+    const discountRedemption = await setupDiscountRedemption({
+      discount,
+      purchaseId: purchase.id,
+    })
+
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_discount_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            discountRedemption,
+          },
+          transaction
+        )
+      }
+    )
+
+    const { subscription, subscriptionItems, billingPeriod, billingRun } = result
+
+    expect(subscription).toBeDefined()
+    expect(subscriptionItems.length).toBeGreaterThan(0)
+
+    // Verify discount redemption was updated
+    const updatedDiscountRedemption = await adminTransaction(async ({ transaction }) => {
+      return selectDiscountRedemptionById(discountRedemption.id, transaction)
+    })
+    expect(updatedDiscountRedemption.subscriptionId).toBe(subscription.id)
+    /**
+     * NOTE: no point in asserting discount reflection in other bookkeeping records,
+     * as the discount redemption's impact is calculated AFTER computing the billing period items, which themselves are a
+     * "pre-discount redemption" calculation.
+     */
+  })
+
+  it('should create a subscription with multiple discount redemptions', async () => {
+    const discounts = await Promise.all([
+      setupDiscount({
+        organizationId: organization.id,
+        name: 'Test Discount 1',
+        amount: 10,
+        amountType: DiscountAmountType.Percent,
+        code: 'TEST10_1',
+        livemode: true,
+      }),
+      setupDiscount({
+        organizationId: organization.id,
+        name: 'Test Discount 2',
+        amount: 15,
+        amountType: DiscountAmountType.Percent,
+        code: 'TEST15_2',
+        livemode: true,
+      }),
+    ])
+
+    const discountRedemptions = await Promise.all(
+      discounts.map(async (discount) => {
+        const purchase = await setupPurchase({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: defaultPrice.id,
+          livemode: true,
+        })
+        return setupDiscountRedemption({
+          discount,
+          purchaseId: purchase.id,
+        })
+      })
+    )
+
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_multi_discount_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            discountRedemption: discountRedemptions[0], // Currently only supports one discount
+          },
+          transaction
+        )
+      }
+    )
+
+    const { subscription, subscriptionItems } = result
+
+    expect(subscription).toBeDefined()
+    expect(subscriptionItems.length).toBeGreaterThan(0)
+
+    // Verify first discount redemption was updated
+    const updatedDiscountRedemption = await adminTransaction(async ({ transaction }) => {
+      return selectDiscountRedemptionById(discountRedemptions[0].id, transaction)
+    })
+    expect(updatedDiscountRedemption.subscriptionId).toBe(subscription.id)
+
+    // Verify second discount redemption was not updated
+    const unchangedDiscountRedemption = await adminTransaction(async ({ transaction }) => {
+      return selectDiscountRedemptionById(discountRedemptions[1].id, transaction)
+    })
+    expect(unchangedDiscountRedemption.subscriptionId).toBeNull()
+  })
+
+  it('should handle trial periods correctly with discount redemptions', async () => {
+    const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+    const discount = await setupDiscount({
+      organizationId: organization.id,
+      name: 'Test Discount',
+      amount: 10,
+      amountType: DiscountAmountType.Percent,
+      code: 'TEST10_' + core.nanoid().substring(0, 8),
+      livemode: true,
+    })
+    const purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: defaultPrice.id,
+      livemode: true,
+    })
+    const { subscription, subscriptionItems, billingPeriod } = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_trial_discount_${core.nanoid()}`
+        // @ts-expect-error - TODO: fix this
+        const discountRedemption = await insertDiscountRedemption({
+          purchaseId: purchase.id,
+          discountId: discount.id,
+          livemode: true,
+          duration: discount.duration,
+          numberOfPayments: discount.numberOfPayments,
+          discountName: discount.name,
+          discountCode: discount.code,
+          discountAmount: discount.amount,
+          discountAmountType: discount.amountType,
+        }, transaction)
+        const { result } = await createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd,
+            discountRedemption,
+          },
+          transaction
+        )
+        return {
+          result
+        }
+      }
+    )
+
+    expect(subscription).toBeDefined()
+    expect(subscription.trialEnd?.getTime()).toBe(trialEnd.getTime())
+    expect(subscriptionItems.length).toBeGreaterThan(0)
+    expect(billingPeriod).toBeDefined()
+    expect(billingPeriod!.endDate.getTime()).toBe(trialEnd.getTime())
+  })
+
+  it('should handle credit trial with discount redemptions', async () => {
+    const creditTrialPrice = await adminTransaction(async ({ transaction }) => {
+      return updatePrice(
+        {
+          id: defaultPrice.id,
+          startsWithCreditTrial: true,
+          type: PriceType.Subscription,
+        },
+        transaction
+      )
+    })
+    const purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: defaultPrice.id,
+      livemode: true,
+    })
+    const discount = await setupDiscount({
+      organizationId: organization.id,
+      name: 'Test Discount',
+      amount: 10,
+      amountType: DiscountAmountType.Percent,
+      code: 'TEST10_' + core.nanoid().substring(0, 5),
+      livemode: true,
+    })
+
+    const discountRedemption = await setupDiscountRedemption({
+      discount,
+      purchaseId: purchase.id,
+    })
+
+    const { subscription, subscriptionItems, billingPeriod, billingRun } = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_credit_trial_discount_${core.nanoid()}`
+        const { result } = await createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: creditTrialPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            discountRedemption,
+          },
+          transaction
+        )
+        return {
+          result
+        }
+      }
+    )
+
+    expect(subscription).toBeDefined()
+    expect(subscription.status).toBe(SubscriptionStatus.CreditTrial)
+    expect(subscriptionItems.length).toBeGreaterThan(0)
+    expect(billingPeriod).toBeNull()
+    expect(billingRun).toBeNull()
   })
 })

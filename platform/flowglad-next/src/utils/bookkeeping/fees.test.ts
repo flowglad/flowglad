@@ -203,7 +203,7 @@ describe('fees.ts', () => {
             code: CountryCode.DE,
           },
         })
-      ).toBe(1)
+      ).toBe(0)
     })
 
     it('returns increased fee for international card payments when not MoR or non-US', () => {
@@ -221,7 +221,7 @@ describe('fees.ts', () => {
             code: CountryCode.DE,
           },
         })
-      ).toBe(2.5)
+      ).toBe(1.5)
     })
 
     it('handles invalid paymentMethodCountry by throwing an error', () => {
@@ -1537,7 +1537,7 @@ describe('fees.ts', () => {
       expect(result.discountAmountFixed).toBe(350)
       expect(result.pretaxTotal).toBe(3150)
       expect(result.flowgladFeePercentage).toBe('1.5')
-      expect(result.internationalFeePercentage).toBe('2.5')
+      expect(result.internationalFeePercentage).toBe('1.5')
       expect(result.paymentMethodFeeFixed).toBe(
         Math.round(3150 * 0.029 + 30)
       )

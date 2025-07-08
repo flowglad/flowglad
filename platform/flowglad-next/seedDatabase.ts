@@ -122,6 +122,9 @@ import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { Subscription } from '@/db/schema/subscriptions'
 import { snakeCase } from 'change-case'
+import { insertDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { Discount } from '@/db/schema/discounts'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -2360,4 +2363,51 @@ export const setupUsageLedgerScenario = async (params: {
     ledgerEntries,
     ledgerTransactions,
   }
+}
+
+export const setupDiscountRedemption = async (params: {
+  discount: Discount.Record
+  purchaseId: string
+}) => {
+  return adminTransaction(async ({ transaction }) => {
+    if (params.discount.duration === DiscountDuration.Once) {
+      return insertDiscountRedemption({
+        purchaseId: params.purchaseId,
+        livemode: true,
+        duration: DiscountDuration.Forever,
+        numberOfPayments: null,
+        discountName: params.discount.name,
+        discountCode: params.discount.code, 
+        discountId: params.discount.id,
+        discountAmount: params.discount.amount,
+        discountAmountType: params.discount.amountType,
+      }, transaction)
+    } else if (params.discount.duration === DiscountDuration.NumberOfPayments) {  
+      return insertDiscountRedemption({
+        purchaseId: params.purchaseId,
+        livemode: true,
+        duration: DiscountDuration.NumberOfPayments,
+        numberOfPayments: params.discount.numberOfPayments,
+        discountName: params.discount.name,
+        discountCode: params.discount.code, 
+        discountId: params.discount.id,
+        discountAmount: params.discount.amount,
+        discountAmountType: params.discount.amountType,
+      }, transaction)
+    } else if (params.discount.duration === DiscountDuration.Forever) {
+      return insertDiscountRedemption({
+        purchaseId: params.purchaseId,
+        livemode: true,
+        duration: DiscountDuration.Forever,
+        numberOfPayments: null,
+        discountName: params.discount.name,
+        discountCode: params.discount.code, 
+        discountId: params.discount.id,
+        discountAmount: params.discount.amount,
+        discountAmountType: params.discount.amountType,
+      }, transaction)
+    } else {
+      throw new Error('Invalid discount duration')
+    }
+  })
 }
