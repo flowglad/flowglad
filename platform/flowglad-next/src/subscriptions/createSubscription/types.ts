@@ -9,6 +9,7 @@ import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { BillingRun } from '@/db/schema/billingRuns'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 
 export interface CreateSubscriptionParams {
   organization: Organization.Record
@@ -30,6 +31,7 @@ export interface CreateSubscriptionParams {
   defaultPaymentMethod?: PaymentMethod.Record
   backupPaymentMethod?: PaymentMethod.Record
   autoStart?: boolean
+  discountRedemption?: DiscountRedemption.Record | null
 }
 
 export interface StandardCreateSubscriptionResult {

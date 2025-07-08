@@ -61,12 +61,6 @@ import {
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
-import {
-  selectDiscountAndDiscountRedemptionByDiscountRedemptionWhere,
-  selectDiscountRedemptions,
-} from '@/db/tableMethods/discountRedemptionMethods'
-import { Discount } from '@/db/schema/discounts'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { Subscription } from '@/db/schema/subscriptions'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'

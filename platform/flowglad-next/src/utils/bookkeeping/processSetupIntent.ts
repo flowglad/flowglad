@@ -46,6 +46,7 @@ import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { Subscription } from '@/db/schema/subscriptions'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -382,6 +383,7 @@ interface SetupIntentSucceededBookkeepingResult {
   organization: Organization.Record
   customer: Customer.Record
   paymentMethod: PaymentMethod.Record
+  discountRedemption?: DiscountRedemption.Record | null
 }
 
 export const createSubscriptionFromSetupIntentableCheckoutSession =
@@ -395,6 +397,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       organization,
       customer,
       paymentMethod,
+      discountRedemption
     }: SetupIntentSucceededBookkeepingResult & {
       setupIntent: CoreSripeSetupIntent
     },
@@ -457,6 +460,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         customer,
         interval: price.intervalUnit,
         intervalCount: price.intervalCount,
+        discountRedemption,
         /**
          * If the price has a trial period, set the trial end date to the
          * end of the period

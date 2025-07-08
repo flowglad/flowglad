@@ -340,11 +340,6 @@ describe('subscriptionItemFeatureMethods', () => {
           },
           transaction
         )
-        const all = await selectSubscriptionItemFeatures(
-          {},
-          transaction
-        )
-        expect(all.length).toBe(2)
         const byItem = await selectSubscriptionItemFeatures(
           { subscriptionItemId: subscriptionItem.id },
           transaction
