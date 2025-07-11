@@ -121,6 +121,7 @@ const processSucceededNotifications = async (
       .map((user) => user.email!),
     currency: params.invoice.currency,
     customerName: params.customer.name,
+    customerEmail: params.customer.email,
   })
 }
 

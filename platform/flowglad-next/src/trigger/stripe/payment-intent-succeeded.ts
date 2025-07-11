@@ -123,6 +123,7 @@ export const stripePaymentIntentSucceededTask = task({
       organizationName: organization.name,
       currency: invoice.currency,
       customerName: customer.name,
+      customerEmail: customer.email,
     })
 
     return {
