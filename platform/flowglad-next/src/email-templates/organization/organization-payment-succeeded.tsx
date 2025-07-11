@@ -20,6 +20,7 @@ export interface OrganizationPaymentNotificationEmailProps {
   currency: CurrencyCode
   customerId: string
   customerName: string
+  customerEmail: string
 }
 
 export const OrganizationPaymentNotificationEmail = ({
@@ -29,6 +30,7 @@ export const OrganizationPaymentNotificationEmail = ({
   currency,
   customerId,
   customerName,
+  customerEmail,
 }: OrganizationPaymentNotificationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -54,7 +56,7 @@ export const OrganizationPaymentNotificationEmail = ({
       </Paragraph>
       <DetailSection>
         <DetailItem variant="organization">Customer</DetailItem>
-        <DetailValue>{customerName}</DetailValue>
+        <DetailValue>{customerName} - ({customerEmail})</DetailValue>
         <DetailItem variant="organization">Payment</DetailItem>
         <DetailValue>{humanReadableAmount}</DetailValue>
         <DetailItem variant="organization">Status</DetailItem>

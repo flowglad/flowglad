@@ -22,6 +22,7 @@ const publicRoutes = [
   '/checkout/(.*)',
   '/add-payment-method/(.*)',
   '/price/(.*)/purchase',
+  '/invite-discord',
   /**
    * Purchase session procedures need to be public,
    * otherwise anon users will hit 307 redirects.
