@@ -1147,6 +1147,9 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     off_session: true,
     application_fee_amount: applicationFeeAmount,
     metadata,
+    automatic_payment_methods: {
+      enabled: true,
+    },
     ...transferData,
   })
 }
