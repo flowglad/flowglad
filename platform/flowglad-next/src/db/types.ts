@@ -39,6 +39,7 @@ export type PgTableWithCreatedAtAndId = PgTable & {
 
 export type PgTableWithPosition = PgTable & {
   position: SQLWrapper
+  createdAt: SQLWrapper
   id: SQLWrapper
 }
 

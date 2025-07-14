@@ -1086,7 +1086,7 @@ export const createCursorPaginatedSelectFunction = <
     // Handle special navigation cases
     if (goToFirst) {
       // Clear cursors and start from beginning
-      const orderBy = asc(table.position)
+      const orderBy = [desc(table.createdAt), desc(table.position)]
       const filterClause = params.input.filters
         ? whereClauseFromObject(table, params.input.filters)
         : undefined
@@ -1105,7 +1105,7 @@ export const createCursorPaginatedSelectFunction = <
         .select()
         .from(table)
         .where(whereClauses)
-        .orderBy(orderBy)
+        .orderBy(...orderBy)
         .limit(pageSize + 1)
 
       const total = await transaction
@@ -1142,7 +1142,7 @@ export const createCursorPaginatedSelectFunction = <
 
     if (goToLast) {
       // Fetch the last page by ordering desc and taking the first pageSize items
-      const orderBy = desc(table.position)
+      const orderBy = [desc(table.createdAt), desc(table.position)]
       const filterClause = params.input.filters
         ? whereClauseFromObject(table, params.input.filters)
         : undefined
@@ -1171,7 +1171,7 @@ export const createCursorPaginatedSelectFunction = <
         .select()
         .from(table)
         .where(whereClauses)
-        .orderBy(orderBy)
+        .orderBy(...orderBy)
         .limit(lastPageSize + 1)
 
       // Reverse to get ascending order
@@ -1204,8 +1204,8 @@ export const createCursorPaginatedSelectFunction = <
     // Determine pagination direction and cursor
     const isForward = !!pageAfter || (!pageBefore && !pageAfter)
     const orderBy = isForward
-      ? asc(table.position)
-      : desc(table.position)
+      ? [desc(table.createdAt), desc(table.position)]
+      : [asc(table.createdAt), asc(table.position)]
     const filterClause = params.input.filters
       ? whereClauseFromObject(table, params.input.filters)
       : undefined
@@ -1237,7 +1237,7 @@ export const createCursorPaginatedSelectFunction = <
       .select()
       .from(table)
       .where(whereClauses)
-      .orderBy(orderBy)
+      .orderBy(...orderBy)
       .limit(pageSize + 1)
     if (!isForward) {
       queryResult = queryResult.reverse()
