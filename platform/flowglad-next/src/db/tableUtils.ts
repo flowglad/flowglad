@@ -1167,17 +1167,20 @@ export const createCursorPaginatedSelectFunction = <
       const totalCount = total[0].count
       const lastPageSize = totalCount % pageSize || pageSize
 
+      // For goToLast, we need to:
+      // 1. Get the last N items in descending order (newest first)
+      // 2. Calculate the correct offset to get the last page
+      const offset = Math.max(0, totalCount - lastPageSize)
+      
       const queryResult = await transaction
         .select()
         .from(table)
         .where(whereClauses)
-        .orderBy(...orderBy)
+        .orderBy(...orderBy) // Already in desc order
+        .offset(offset)
         .limit(lastPageSize + 1)
 
-      // Reverse to get ascending order
-      const reversedResult = queryResult.reverse()
-
-      const data: z.infer<S>[] = reversedResult
+      const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))
         .slice(0, lastPageSize)
       const enrichedData: z.infer<D>[] = await (enrichmentFunction
@@ -1239,6 +1242,10 @@ export const createCursorPaginatedSelectFunction = <
       .where(whereClauses)
       .orderBy(...orderBy)
       .limit(pageSize + 1)
+
+    // For backward pagination, we need to:
+    // 1. Get the items in ascending order
+    // 2. Reverse them to get back to descending order
     if (!isForward) {
       queryResult = queryResult.reverse()
     }

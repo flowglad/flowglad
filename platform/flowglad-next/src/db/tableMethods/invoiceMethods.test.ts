@@ -144,7 +144,7 @@ describe('selectInvoicesTableRowData', () => {
     expect(result.hasNextPage).toBe(true)
   })
 
-  it('should maintain correct order by creation date', async () => {
+  it('should maintain correct order by creation date (newest first)', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectInvoicesTableRowData({
         input: {
@@ -154,11 +154,11 @@ describe('selectInvoicesTableRowData', () => {
       })
     })
 
-    // Verify records are ordered by creation date ascending
+    // Verify records are ordered by creation date descending (newest first)
     for (let i = 0; i < result.items.length - 1; i++) {
       expect(
         result.items[i].invoice.createdAt.getTime()
-      ).toBeLessThanOrEqual(
+      ).toBeGreaterThanOrEqual(
         result.items[i + 1].invoice.createdAt.getTime()
       )
     }
@@ -250,7 +250,6 @@ describe('selectInvoicesTableRowData', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectInvoicesTableRowData({
         input: {
-          pageSize: 1,
           filters: {
             organizationId: org1Id,
           },
@@ -258,7 +257,6 @@ describe('selectInvoicesTableRowData', () => {
         transaction,
       })
     })
-
     // Find the invoice with multiple line items
     const invoiceWithMultipleLineItems = result.items.find(
       (item) => item.invoice.id === invoice1Id
