@@ -206,10 +206,10 @@ describe('usageMeterMethods', () => {
       })
     })
 
-    it('should sort usage meters by creation date ascending (oldest first) by default', async () => {
+    it('should sort usage meters by creation date descending (newest first) by default', async () => {
       const old = await setupUsageMeter({
         organizationId,
-        name: 'Old',
+        name: 'Old', 
         catalogId,
       })
       const neu = await setupUsageMeter({
@@ -222,8 +222,8 @@ describe('usageMeterMethods', () => {
           input: { pageSize: 10, filters: { organizationId } },
           transaction,
         })
-        expect(result.items[0].usageMeter.id).toBe(old.id)
-        expect(result.items[1].usageMeter.id).toBe(neu.id)
+        expect(result.items[0].usageMeter.id).toBe(neu.id)
+        expect(result.items[1].usageMeter.id).toBe(old.id)
       })
     })
 

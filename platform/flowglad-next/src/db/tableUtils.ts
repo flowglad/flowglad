@@ -1020,7 +1020,7 @@ const cursorComparison = async <T extends PgTableWithPosition>(
     return undefined
   }
   const result = results[0]
-  const comparisonOperator = isForward ? gt : lt
+  const comparisonOperator = isForward ? lt : gt
   /**
    * When we're paginating forward, we want to include the item at the cursor
    * in the results. When we're paginating backward, we don't want to include
@@ -1086,7 +1086,7 @@ export const createCursorPaginatedSelectFunction = <
     // Handle special navigation cases
     if (goToFirst) {
       // Clear cursors and start from beginning
-      const orderBy = asc(table.position)
+      const orderBy = [desc(table.createdAt), desc(table.position)]
       const filterClause = params.input.filters
         ? whereClauseFromObject(table, params.input.filters)
         : undefined
@@ -1105,7 +1105,7 @@ export const createCursorPaginatedSelectFunction = <
         .select()
         .from(table)
         .where(whereClauses)
-        .orderBy(orderBy)
+        .orderBy(...orderBy)
         .limit(pageSize + 1)
 
       const total = await transaction
@@ -1142,7 +1142,7 @@ export const createCursorPaginatedSelectFunction = <
 
     if (goToLast) {
       // Fetch the last page by ordering desc and taking the first pageSize items
-      const orderBy = desc(table.position)
+      const orderBy = [desc(table.createdAt), desc(table.position)]
       const filterClause = params.input.filters
         ? whereClauseFromObject(table, params.input.filters)
         : undefined
@@ -1167,17 +1167,20 @@ export const createCursorPaginatedSelectFunction = <
       const totalCount = total[0].count
       const lastPageSize = totalCount % pageSize || pageSize
 
+      // For goToLast, we need to:
+      // 1. Get the last N items in descending order (newest first)
+      // 2. Calculate the correct offset to get the last page
+      const offset = Math.max(0, totalCount - lastPageSize)
+      
       const queryResult = await transaction
         .select()
         .from(table)
         .where(whereClauses)
-        .orderBy(orderBy)
+        .orderBy(...orderBy) // Already in desc order
+        .offset(offset)
         .limit(lastPageSize + 1)
 
-      // Reverse to get ascending order
-      const reversedResult = queryResult.reverse()
-
-      const data: z.infer<S>[] = reversedResult
+      const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))
         .slice(0, lastPageSize)
       const enrichedData: z.infer<D>[] = await (enrichmentFunction
@@ -1204,8 +1207,8 @@ export const createCursorPaginatedSelectFunction = <
     // Determine pagination direction and cursor
     const isForward = !!pageAfter || (!pageBefore && !pageAfter)
     const orderBy = isForward
-      ? asc(table.position)
-      : desc(table.position)
+      ? [desc(table.createdAt), desc(table.position)]
+      : [asc(table.createdAt), asc(table.position)]
     const filterClause = params.input.filters
       ? whereClauseFromObject(table, params.input.filters)
       : undefined
@@ -1237,8 +1240,12 @@ export const createCursorPaginatedSelectFunction = <
       .select()
       .from(table)
       .where(whereClauses)
-      .orderBy(orderBy)
+      .orderBy(...orderBy)
       .limit(pageSize + 1)
+
+    // For backward pagination, we need to:
+    // 1. Get the items in ascending order
+    // 2. Reverse them to get back to descending order
     if (!isForward) {
       queryResult = queryResult.reverse()
     }

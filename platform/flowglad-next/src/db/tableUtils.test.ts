@@ -114,7 +114,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(result.endCursor).toBeDefined()
   })
 
-  it('should maintain correct order by creation date', async () => {
+  it('should maintain correct order by creation date (newest first)', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomersCursorPaginatedWithTableRowData({
         input: {
@@ -127,11 +127,11 @@ describe('createCursorPaginatedSelectFunction', () => {
       })
     })
 
-    // Verify records are ordered by creation date ascending
+    // Verify records are ordered by creation date descending (newest first)
     for (let i = 0; i < result.items.length - 1; i++) {
       expect(
         result.items[i].customer.createdAt.getTime()
-      ).toBeLessThanOrEqual(
+      ).toBeGreaterThanOrEqual(
         result.items[i + 1].customer.createdAt.getTime()
       )
     }
@@ -674,32 +674,32 @@ describe('createCursorPaginatedSelectFunction', () => {
       }
     )
 
-    // Verify first page is ordered by creation date ascending
+    // Verify first page is ordered by creation date descending (newest first)
     for (let i = 0; i < firstPage.items.length - 1; i++) {
       expect(
         firstPage.items[i].customer.createdAt.getTime()
-      ).toBeLessThanOrEqual(
+      ).toBeGreaterThanOrEqual(
         firstPage.items[i + 1].customer.createdAt.getTime()
       )
     }
 
-    // Verify last page is ordered by creation date ascending
+    // Verify last page is ordered by creation date descending (newest first)
     for (let i = 0; i < lastPage.items.length - 1; i++) {
       expect(
         lastPage.items[i].customer.createdAt.getTime()
-      ).toBeLessThanOrEqual(
+      ).toBeGreaterThanOrEqual(
         lastPage.items[i + 1].customer.createdAt.getTime()
       )
     }
 
-    // Verify that last page items come after first page items chronologically
+    // Verify that first page items come after last page items chronologically
     const lastItemFromFirstPage =
       firstPage.items[firstPage.items.length - 1]
     const firstItemFromLastPage = lastPage.items[0]
 
     expect(
       lastItemFromFirstPage.customer.createdAt.getTime()
-    ).toBeLessThanOrEqual(
+    ).toBeGreaterThanOrEqual(
       firstItemFromLastPage.customer.createdAt.getTime()
     )
   })
