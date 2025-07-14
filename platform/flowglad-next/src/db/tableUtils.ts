@@ -1020,7 +1020,7 @@ const cursorComparison = async <T extends PgTableWithPosition>(
     return undefined
   }
   const result = results[0]
-  const comparisonOperator = isForward ? gt : lt
+  const comparisonOperator = isForward ? lt : gt
   /**
    * When we're paginating forward, we want to include the item at the cursor
    * in the results. When we're paginating backward, we don't want to include
