@@ -14,7 +14,7 @@ import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestS
 import { Country } from '@/db/schema/countries'
 import Markdown from 'react-markdown'
 import Link from 'next/link'
-import { cn } from '@/utils/core'
+import core, { cn } from '@/utils/core'
 import { Tab, Tabs, TabsList } from '@/components/ion/Tab'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
@@ -172,7 +172,13 @@ const OnboardingStatusTable = ({
     setIsRequestStripeConnectOnboardingLinkModalOpen,
   ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
-
+  const mcpServerConfig = {
+      url: core.safeUrl("/mcp", process.env.NEXT_PUBLIC_APP_URL!),
+      headers: {
+        Authorization: `Bearer ${secretApiKey}`
+      },
+  }
+  
   return (
     <div className="flex flex-col w-full gap-4">
       <OnboardingStatusRow
@@ -261,6 +267,15 @@ const OnboardingStatusTable = ({
           }}
         />
       ))}
+      <OnboardingStatusRow
+        key={'integrate-flowglad'}
+        completed={false}
+        title={`${onboardingChecklistItems.length + 1}. Setup Flowglad MCP Server`}
+        description={'Get set up in localhost in a few minutes'}
+        actionNode={
+          <a href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}><img src="https://cursor.com/deeplink/mcp-install-light.svg" alt="Add flowglad MCP server to Cursor" height="40" style={{ height: '40px' }} /></a>
+        }
+      />
       <NounVerbModal
         isOpen={isNounVerbModalOpen}
         setIsOpen={setIsNounVerbModalOpen}
