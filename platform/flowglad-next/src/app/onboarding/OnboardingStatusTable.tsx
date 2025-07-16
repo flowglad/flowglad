@@ -14,7 +14,7 @@ import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestS
 import { Country } from '@/db/schema/countries'
 import Markdown from 'react-markdown'
 import Link from 'next/link'
-import { cn } from '@/utils/core'
+import core, { cn } from '@/utils/core'
 import { Tab, Tabs, TabsList } from '@/components/ion/Tab'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
@@ -173,14 +173,10 @@ const OnboardingStatusTable = ({
   ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
   const mcpServerConfig = {
-    "mcpServers": {
-      "flowglad": {
-        "url": "https://app.flowglad.com/mcp",
-        "headers": {
-          "Authorization": `Bearer ${secretApiKey}`
-        }
-      }
-    }
+      url: core.safeUrl("/mcp", core.envVariable('NEXT_PUBLIC_BASE_URL')),
+      headers: {
+        Authorization: `Bearer ${secretApiKey}`
+      },
   }
   
   return (
