@@ -173,7 +173,7 @@ const OnboardingStatusTable = ({
   ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
   const mcpServerConfig = {
-      url: core.safeUrl("/mcp", core.envVariable('NEXT_PUBLIC_BASE_URL')),
+      url: core.safeUrl("/mcp", process.env.NEXT_PUBLIC_APP_URL!),
       headers: {
         Authorization: `Bearer ${secretApiKey}`
       },
