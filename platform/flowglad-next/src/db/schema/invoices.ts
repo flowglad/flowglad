@@ -135,6 +135,10 @@ const refineColumns = {
   currency: core.createSafeZodEnum(CurrencyCode),
   receiptPdfURL: z.string().url().nullable(),
   pdfURL: z.string().url().nullable(),
+  invoiceDate: core.safeZodDate,
+  dueDate: core.safeZodDate,
+  billingPeriodStartDate: core.safeZodDate,
+  billingPeriodEndDate: core.safeZodDate,
   ...taxSchemaColumns,
 }
 
