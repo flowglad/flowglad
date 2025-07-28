@@ -6,6 +6,7 @@ import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import WebhooksTable from '@/app/settings/webhooks/WebhooksTable'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
 import TableTitle from '@/components/ion/TableTitle'
+import { FlowgladApiKeyType } from '@/types'
 
 const ApiSettingsTab = () => {
   const [isCreateApiKeyModalOpen, setIsCreateApiKeyModalOpen] =
@@ -22,7 +23,9 @@ const ApiSettingsTab = () => {
           buttonIcon={<PlusIcon size={16} />}
           buttonOnClick={() => setIsCreateApiKeyModalOpen(true)}
         />
-        <ApiKeysTable />
+        <ApiKeysTable filters={{
+          type: FlowgladApiKeyType.Secret,
+        }} />
         <CreateApiKeyModal
           isOpen={isCreateApiKeyModalOpen}
           setIsOpen={setIsCreateApiKeyModalOpen}
