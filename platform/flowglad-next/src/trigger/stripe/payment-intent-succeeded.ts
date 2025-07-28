@@ -15,11 +15,12 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
-import { InvoiceStatus, LedgerTransactionType } from '@/types'
+import { FlowgladEventType, EventNoun, InvoiceStatus, LedgerTransactionType } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Event } from '@/db/schema/events'
+import { constructPaymentSucceededEventHash } from '@/utils/eventHelpers'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -99,8 +100,25 @@ export const stripePaymentIntentSucceededTask = task({
         membersForOrganization,
         payment,
       }
-      const events: Event.Insert[] = []
-      return [result, events]
+      const timestamp = new Date()
+      const eventInserts: Event.Insert[] = [
+        {
+          type: FlowgladEventType.SubscriptionCreated,
+          occurredAt: timestamp,
+          organizationId: payment.organizationId,
+          livemode: payment.livemode,
+          payload: {
+            object: EventNoun.Payment,
+            id: payment.id,
+          },
+          submittedAt: timestamp,
+          hash: constructPaymentSucceededEventHash(payment),
+          metadata: {},
+          processedAt: null,
+        },
+      ]
+    
+      return [result, eventInserts]
     }, {})
 
     /**
