@@ -356,6 +356,7 @@ export const safeZodNullishString = z
 
 export const safeZodDate = z
   .date()
+  .or(z.number().transform((num) => new Date(num)))
   .or(z.string())
   .transform((date) => new Date(date))
   .describe('safeZodDate')
