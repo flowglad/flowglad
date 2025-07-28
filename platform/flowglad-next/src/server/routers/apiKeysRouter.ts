@@ -20,7 +20,6 @@ import { FlowgladApiKeyType } from '@/types'
 import { createApiKeyInputSchema } from '@/db/schema/apiKeys'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
-import { TRPCError } from '@trpc/server'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'apiKey',

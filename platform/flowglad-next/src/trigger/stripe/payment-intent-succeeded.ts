@@ -1,6 +1,7 @@
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
+  eventfulAdminTransaction,
 } from '@/db/adminTransaction'
 import { selectCustomerAndCustomerFromCustomerWhere } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
@@ -18,6 +19,7 @@ import { InvoiceStatus, LedgerTransactionType } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import { Event } from '@/db/schema/events'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -48,7 +50,7 @@ export const stripePaymentIntentSucceededTask = task({
       organization,
       customerAndCustomer,
       payment,
-    } = await adminTransaction(async ({ transaction }) => {
+    } = await eventfulAdminTransaction(async ({ transaction }) => {
       const { payment } = await processPaymentIntentStatusUpdated(
         payload.data.object,
         transaction
@@ -88,8 +90,7 @@ export const stripePaymentIntentSucceededTask = task({
         payment,
         transaction
       )
-
-      return {
+      const result = {
         invoice: invoice.invoice,
         invoiceLineItems: invoice.invoiceLineItems,
         purchase,
@@ -98,7 +99,9 @@ export const stripePaymentIntentSucceededTask = task({
         membersForOrganization,
         payment,
       }
-    })
+      const events: Event.Insert[] = []
+      return [result, events]
+    }, {})
 
     /**
      * Generate the invoice PDF, which should be finalized now
