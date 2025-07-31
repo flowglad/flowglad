@@ -142,7 +142,6 @@ const subscriptionFeeCalculationExtension = {
 const checkoutSessionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.CheckoutSessionPayment),
   billingPeriodId: z.null(),
-  priceId: z.string(),
 }
 
 const SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION =

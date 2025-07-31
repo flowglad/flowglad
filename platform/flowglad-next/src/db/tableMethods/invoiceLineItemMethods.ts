@@ -113,7 +113,7 @@ export const selectInvoiceLineItemsAndInvoicesByInvoiceWhere = async (
       invoice: invoices,
     })
     .from(invoiceLineItems)
-    .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
+    .leftJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
     .where(whereClauseFromObject(invoices, whereConditions))
 
   return transformInvoiceLineItemAndInvoiceTuplesToInvoicesWithLineItems(

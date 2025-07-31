@@ -34,10 +34,14 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectResolvedPaymentsMonthToDate } from '@/db/tableMethods/paymentMethods'
 import {
   ClientInvoiceWithLineItems,
+  InvoiceLineItem,
+  invoiceLineItems,
   InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { Invoice } from '@/db/schema/invoices'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 export const calculateInvoiceBaseAmount = (
   invoice: ClientInvoiceWithLineItems
@@ -316,7 +320,71 @@ interface CheckoutSessionFeeCalculationParams {
   organizationCountry: Country.Record
 }
 
-export const createCheckoutSessionFeeCalculationInsert = async ({
+interface InvoiceFeeCalculationParams extends Omit<CheckoutSessionFeeCalculationParams, 'price' | 'product' | 'purchase' | 'discount'> {
+  invoice: Invoice.ClientRecord
+  invoiceLineItems: InvoiceLineItem.ClientRecord[]
+}
+
+export const createCheckoutSessionFeeCalculationInsertForInvoice = async (
+  params: InvoiceFeeCalculationParams
+) => {
+  const { organization, organizationCountry, invoice, checkoutSessionId, invoiceLineItems, billingAddress } = params
+  const baseAmount = calculateInvoiceBaseAmount({
+    invoice,
+    invoiceLineItems,
+  })
+  const flowgladFeePercentage = calculateFlowgladFeePercentage({
+    organization,
+  })
+  const internationalFeePercentage =
+    calculateInternationalFeePercentage({
+      paymentMethod: PaymentMethodType.Card,
+      paymentMethodCountry: billingAddress.address
+        .country as CountryCode,
+      organization,
+      organizationCountry,
+    })
+
+  const paymentMethodFeeFixed = calculatePaymentMethodFeeAmount(
+    baseAmount,
+    PaymentMethodType.Card
+  )
+
+  const feeCalculationInsert: FeeCalculation.Insert = {
+    type: FeeCalculationType.CheckoutSessionPayment,
+    checkoutSessionId,
+    priceId: null,
+    discountId: null,
+    billingPeriodId: null,
+    currency: invoice.currency,
+    livemode: invoice.livemode,
+    organizationId: organization.id,
+    paymentMethodType: PaymentMethodType.Card,
+    internalNotes: 'Invoice fee calculation',
+    baseAmount,
+    flowgladFeePercentage: flowgladFeePercentage.toString(),
+    discountAmountFixed: 0,
+    pretaxTotal: baseAmount,
+    internationalFeePercentage: internationalFeePercentage.toString(),
+    paymentMethodFeeFixed,
+    taxAmountFixed: 0,
+    stripeTaxCalculationId: null,
+    stripeTaxTransactionId: null,
+    purchaseId: null,
+    billingAddress,
+  }
+  return feeCalculationInsert
+}
+
+export const createInvoiceFeeCalculationForCheckoutSession = async (
+  params: InvoiceFeeCalculationParams,
+  transaction: DbTransaction
+) => {
+  const insert = await createCheckoutSessionFeeCalculationInsertForInvoice(params)
+  return insertFeeCalculation(insert, transaction)
+}
+
+export const createCheckoutSessionFeeCalculationInsertForPrice = async ({
   organization,
   product,
   price,
@@ -551,7 +619,7 @@ export const createCheckoutSessionFeeCalculation = async (
   transaction: DbTransaction
 ) => {
   const feeCalculationInsert =
-    await createCheckoutSessionFeeCalculationInsert(params)
+    await createCheckoutSessionFeeCalculationInsertForPrice(params)
   return insertFeeCalculation(feeCalculationInsert, transaction)
 }
 

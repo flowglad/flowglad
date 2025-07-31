@@ -29,7 +29,7 @@ import {
   calculatePaymentMethodFeeAmount,
   calculateTotalFeeAmount,
   calculateTotalDueAmount,
-  createCheckoutSessionFeeCalculationInsert,
+  createCheckoutSessionFeeCalculationInsertForPrice,
   finalizeFeeCalculation,
   calculateBillingItemBaseAmount,
   createSubscriptionFeeCalculationInsert as createSubscriptionFeeCalculationInsertFunction,
@@ -410,7 +410,7 @@ describe('fees.ts', () => {
     })
   })
 
-  describe('createCheckoutSessionFeeCalculationInsert', () => {
+  describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
     it('returns taxAmount = 0 and stripeTaxCalculationId null when calculating fee for organization with StripeConnectContractType Platform', async () => {
       const organization = {
         id: 'org_1',
@@ -443,7 +443,7 @@ describe('fees.ts', () => {
       } as Country.Record
 
       const feeCalculationInsert =
-        await createCheckoutSessionFeeCalculationInsert({
+        await createCheckoutSessionFeeCalculationInsertForPrice({
           organization,
           product,
           price,
