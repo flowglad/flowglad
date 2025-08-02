@@ -130,7 +130,6 @@ const CustomerInvoiceOpenView = async (
             </span>
           </div>
         </div>
-
         <CustomerInvoicePayButtonBanner
           invoice={invoice}
           checkoutInfo={checkoutInfo}
