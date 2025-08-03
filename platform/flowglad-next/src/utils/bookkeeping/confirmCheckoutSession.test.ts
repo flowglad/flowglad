@@ -37,14 +37,8 @@ import {
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import {
   FeeCalculation,
-  feeCalculations,
 } from '@/db/schema/feeCalculations'
 import { Purchase } from '@/db/schema/purchases'
-import {
-  calculateTotalDueAmount,
-  calculateTotalFeeAmount,
-  finalizeFeeCalculation,
-} from '@/utils/bookkeeping/fees'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import Stripe from 'stripe'

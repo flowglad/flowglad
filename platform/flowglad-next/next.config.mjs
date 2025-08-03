@@ -8,7 +8,6 @@ const nextConfig = {
     '@sparticuz/chromium',
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
-    'zlib-sync',
     'chromium-bidi',
   ],
   images: {

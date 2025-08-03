@@ -39,10 +39,10 @@ import {
   checkoutSessionFeeCalculationParametersChanged,
 } from '@/db/schema/feeCalculations'
 import {
-  calculateTotalFeeAmount,
   createCheckoutSessionFeeCalculation,
-} from './fees'
-import { calculateTotalDueAmount } from './fees'
+  createInvoiceFeeCalculationForCheckoutSession,
+} from '@/utils/bookkeeping/fees/checkoutSession'
+import { calculateTotalDueAmount, calculateTotalFeeAmount } from '@/utils/bookkeeping/fees/common'
 import {
   selectDiscountRedemptions,
   upsertDiscountRedemptionForPurchaseAndDiscount,
@@ -87,6 +87,33 @@ export const createFeeCalculationForCheckoutSession = async (
         transaction
       )
     : undefined
+  if (checkoutSession.type === CheckoutSessionType.Invoice) {
+    const organization = await selectOrganizationById(
+      checkoutSession.organizationId,
+      transaction
+    )
+    const organizationCountry = await selectCountryById(
+      organization.countryId,
+      transaction
+    )
+    const [{
+      invoice,
+      invoiceLineItems,
+    }] = await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+      { id: checkoutSession.invoiceId },
+      transaction
+    )
+    return createInvoiceFeeCalculationForCheckoutSession({
+      organization,
+      organizationCountry,
+      invoice,
+      checkoutSessionId: checkoutSession.id,
+      invoiceLineItems,
+      billingAddress: checkoutSession.billingAddress,
+      paymentMethodType: checkoutSession.paymentMethodType,
+    }, transaction)
+  }
+
   const [{ price, product, organization }] =
     await selectPriceProductAndOrganizationByPriceWhere(
       { id: checkoutSession.priceId! },
