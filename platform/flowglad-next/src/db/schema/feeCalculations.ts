@@ -266,6 +266,27 @@ export namespace FeeCalculation {
     typeof customerFacingFeeCalculationSelectSchema
   >
   export type Where = SelectConditions<typeof feeCalculations>
+
+  // --- Specific subtypes ---
+  /** Insert types for discriminated schemas */
+  export type SubscriptionInsert = z.infer<typeof subscriptionPaymentFeeCalculationInsertSchema>
+  export type CheckoutSessionInsert = z.infer<typeof checkoutSessionPaymentFeeCalculationInsertSchema>
+
+  /** Update types for each fee calculation kind */
+  export type SubscriptionUpdate = z.infer<typeof subscriptionPaymentFeeCalculationUpdateSchema>
+  export type CheckoutSessionUpdate = z.infer<typeof checkoutSessionPaymentFeeCalculationUpdateSchema>
+
+  /** Record types as selected by schemas */
+  export type SubscriptionRecord = z.infer<typeof subscriptionPaymentFeeCalculationSelectSchema>
+  export type CheckoutSessionRecord = z.infer<typeof checkoutSessionPaymentFeeCalculationSelectSchema>
+
+  /** ClientRecord types omitting hidden fields */
+  export type SubscriptionClientRecord = z.infer<typeof subscriptionFeeCalculationClientSelectSchema>
+  export type CheckoutSessionClientRecord = z.infer<typeof checkoutSessionFeeCalculationClientSelectSchema>
+
+  /** Customer-facing records with sensitive fields omitted */
+  export type SubscriptionCustomerRecord = z.infer<typeof customerFacingSubscriptionFeeCalculationSelectSchema>
+  export type CheckoutSessionCustomerRecord = z.infer<typeof customerFacingCheckoutSessionFeeCalculationSelectSchema>
 }
 
 export const checkoutSessionFeeCalculationParametersChanged = ({

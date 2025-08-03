@@ -39,11 +39,10 @@ import {
   checkoutSessionFeeCalculationParametersChanged,
 } from '@/db/schema/feeCalculations'
 import {
-  calculateTotalFeeAmount,
   createCheckoutSessionFeeCalculation,
   createInvoiceFeeCalculationForCheckoutSession,
-} from './fees'
-import { calculateTotalDueAmount } from './fees'
+} from '@/utils/bookkeeping/fees/checkoutSession'
+import { calculateTotalDueAmount, calculateTotalFeeAmount } from '@/utils/bookkeeping/fees/common'
 import {
   selectDiscountRedemptions,
   upsertDiscountRedemptionForPurchaseAndDiscount,
