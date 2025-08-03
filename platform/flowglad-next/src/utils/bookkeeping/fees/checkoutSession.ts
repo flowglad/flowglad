@@ -72,14 +72,12 @@ export const createCheckoutSessionFeeCalculationInsertForInvoice = async (
     paymentMethodType: PaymentMethodType
     checkoutSessionId: string
     organizationCountry: Country.Record
-    livemode: boolean
-    currency: string
   }
 ): Promise<FeeCalculation.Insert> => {
-  const { organization, invoice, invoiceLineItems, billingAddress, paymentMethodType, checkoutSessionId, organizationCountry, livemode, currency } = params
+  const { organization, invoice, invoiceLineItems, billingAddress, paymentMethodType, checkoutSessionId, organizationCountry, } = params
   const base = calculateInvoiceBaseAmount({ invoiceLineItems })
-  const insert = createBaseFeeCalculationInsert({ organization, billingAddress, paymentMethodType, baseAmount: base, currency, livemode, checkoutSessionId, organizationCountry })
-  return { ...insert, priceId: null, discountId: null, billingPeriodId: null, taxAmountFixed: 0, stripeTaxCalculationId: null, stripeTaxTransactionId: null, purchaseId: null } as FeeCalculation.Insert
+  const insert = createBaseFeeCalculationInsert({ organization, billingAddress, paymentMethodType, baseAmount: base, currency: invoice.currency, livemode: invoice.livemode, checkoutSessionId, organizationCountry })
+  return { ...insert, priceId: null, discountId: null, billingPeriodId: null, taxAmountFixed: 0, stripeTaxCalculationId: null, stripeTaxTransactionId: null, purchaseId: null }
 }
 
 export const createCheckoutSessionFeeCalculationInsertForPrice = async (
