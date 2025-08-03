@@ -100,8 +100,6 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
       paymentMethodType: PaymentMethodType.Card,
       checkoutSessionId: 'sess_inv_domestic',
       organizationCountry,
-      livemode: invoice.livemode,
-      currency: invoice.currency,
     })
 
     // Base amount = 1000*2 + 500*1 = 2500
@@ -143,8 +141,6 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
       paymentMethodType: PaymentMethodType.Card,
       checkoutSessionId: 'sess_inv_intl',
       organizationCountry,
-      livemode: invoice.livemode,
-      currency: invoice.currency,
     })
 
     // Base amount = 2000
