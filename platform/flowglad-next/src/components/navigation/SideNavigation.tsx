@@ -23,7 +23,7 @@ import Switch from '../ion/Switch'
 import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/utils/core'
 import { useEffect, useState } from 'react'
-import { FallbackSkeleton } from '../ion/Skeleton'
+import { FallbackSkeleton } from '@/components/ui/skeleton'
 import { FeatureFlag } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
 

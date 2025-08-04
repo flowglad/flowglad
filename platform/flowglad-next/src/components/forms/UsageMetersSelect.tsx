@@ -2,7 +2,7 @@ import { Control, Controller, useFormContext } from 'react-hook-form'
 import Label from '@/components/ion/Label'
 import Select from '@/components/ion/Select'
 import { useListUsageMetersQuery } from '@/app/hooks/useListUsageMetersQuery'
-import { Skeleton } from '@/components/ion/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect } from 'react'
 
 interface UsageMetersSelectProps {

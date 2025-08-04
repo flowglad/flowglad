@@ -1,4 +1,4 @@
-import core from '@/utils/core'
+import { cn } from "@/utils/core"
 import React from 'react'
 
 type SkeletonTheme = 'default' | 'light' | 'dark'
@@ -15,7 +15,7 @@ function Skeleton({
   return (
     <div className={className}>
       <div
-        className={core.cn(
+        className={cn(
           'animate-pulse rounded-md bg-[#8d8d8d]',
           disableAnimation && '!animate-none',
           'h-full w-full'
@@ -58,7 +58,7 @@ const FallbackSkeleton: React.FC<{
   if (shouldRender) {
     return (
       <Skeleton
-        className={core.cn(
+        className={cn(
           'transition-opacity duration-300',
           showSkeleton ? 'opacity-100' : 'opacity-0',
           className

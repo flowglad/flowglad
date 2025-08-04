@@ -11,7 +11,7 @@ import { FormEvent, useState } from 'react'
 import core, { cn } from '@/utils/core'
 import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
-import { Skeleton } from '@/components/ion/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import {
   CheckoutFlowType,

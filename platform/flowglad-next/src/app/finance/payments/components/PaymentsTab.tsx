@@ -1,7 +1,7 @@
 import { Tab } from '@/components/ion/Tab'
 import { PaymentStatus } from '@/types'
 import { usePaymentCountsByStatusMap } from '../hooks/usePaymentCountsByStatusMap'
-import { FallbackSkeleton } from '@/components/ion/Skeleton'
+import { FallbackSkeleton } from '@/components/ui/skeleton'
 import { sentenceCase } from 'change-case'
 
 interface PaymentsTabProps {
