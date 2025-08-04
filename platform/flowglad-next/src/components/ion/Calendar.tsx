@@ -6,7 +6,7 @@ import * as React from 'react'
 import { DayPicker } from 'react-day-picker'
 import { twMerge } from 'tailwind-merge'
 
-import { buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ion/Button'
 
 /* ---------------------------------- Type --------------------------------- */
 

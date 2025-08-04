@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button'
+import Button from '@/components/ion/Button'
 
 interface TableTitleButtonProps {
   buttonLabel: string
