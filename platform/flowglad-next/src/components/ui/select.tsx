@@ -1,6 +1,5 @@
 
 'use client'
-// ion/Select: Generated with Ion on 9/20/2024, 3:49:00 PM
 import { Check, ChevronDown } from 'lucide-react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import clsx from 'clsx'
