@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=770:28007
 'use client'
 import { GripVertical, X } from 'lucide-react'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Input from '@/components/ion/Input'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'

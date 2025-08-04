@@ -3,7 +3,7 @@
 'use client'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Input from '@/components/ion/Input'
 import { trpc } from '@/app/_trpc/client'
 import {

@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import InvoiceFormLineItem from './InvoiceFormLineItem'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { Plus, GripVertical } from 'lucide-react'
 import Label from '@/components/ion/Label'
 import { useFieldArray, useFormContext } from 'react-hook-form'

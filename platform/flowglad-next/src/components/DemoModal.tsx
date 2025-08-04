@@ -3,7 +3,7 @@
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import Modal from '@/components/ion/Modal'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 
 interface FormData {
   message: string

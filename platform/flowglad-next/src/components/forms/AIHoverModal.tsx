@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '../ion/Popover'
-import Button from '../ion/Button'
+import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
 
 const HoverModal = ({

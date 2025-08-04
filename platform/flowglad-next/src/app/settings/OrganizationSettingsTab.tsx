@@ -7,7 +7,7 @@ import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import PageTitle from '@/components/ion/PageTitle'
 import OrganizationMembersTable from '@/app/settings/teammates/OrganizationMembersTable'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import TableTitle from '@/components/ion/TableTitle'
 
 const OrganizationSettingsTab = () => {

@@ -8,7 +8,7 @@ import {
   DefaultValues,
   UseFormReturn,
 } from 'react-hook-form'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Modal, { ModalInterfaceProps } from '../ion/Modal'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
