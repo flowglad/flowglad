@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/utils/core"
-import DisabledTooltip from "@/components/ion/DisabledTooltip"
+import DisabledTooltip from "@/components/ui/disabled-tooltip"
 
 const buttonVariants = cva(
   [
@@ -171,43 +171,60 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const buttonClassName = cn(
       buttonVariants({ variant, size: actualSize, color }),
-      disabledTooltip && 'group relative',
       className
+    )
+
+    const buttonContent = (
+      <>
+        {iconLeading}
+        {children}
+        {iconTrailing}
+      </>
     )
 
     // Render as div if asDiv is true
     if (asDiv) {
-      return (
+      const divElement = (
         <div
           className={buttonClassName}
           ref={ref as React.Ref<HTMLDivElement>}
         >
-          {iconLeading}
-          {children}
-          {iconTrailing}
-          {disabled && disabledTooltip && (
-            <DisabledTooltip message={disabledTooltip} />
-          )}
+          {buttonContent}
         </div>
       )
+
+      if (disabled && disabledTooltip) {
+        return (
+          <DisabledTooltip message={disabledTooltip}>
+            {divElement}
+          </DisabledTooltip>
+        )
+      }
+
+      return divElement
     }
 
     const Comp = asChild ? Slot : "button"
-    return (
+    const buttonElement = (
       <Comp
         className={buttonClassName}
         ref={ref}
         disabled={disabled}
         {...props}
       >
-        {iconLeading}
-        {children}
-        {iconTrailing}
-        {disabled && disabledTooltip && (
-          <DisabledTooltip message={disabledTooltip} />
-        )}
+        {buttonContent}
       </Comp>
     )
+
+    if (disabled && disabledTooltip) {
+      return (
+        <DisabledTooltip message={disabledTooltip}>
+          {buttonElement}
+        </DisabledTooltip>
+      )
+    }
+
+    return buttonElement
   }
 )
 Button.displayName = "Button"
