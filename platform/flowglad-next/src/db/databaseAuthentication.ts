@@ -12,9 +12,11 @@ import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membe
 import { ServerUser } from '@stackframe/stack'
 import { FlowgladApiKeyType } from '@/types'
 import { JwtPayload } from 'jsonwebtoken'
+import { headers } from "next/headers"
 import { customers } from './schema/customers'
 import { ApiKey, apiKeyMetadataSchema } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
+import { auth } from '@/utils/auth'
 
 type SessionUser = Session['user']
 
@@ -256,29 +258,33 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
 }
 
 export async function databaseAuthenticationInfoForWebappRequest(
-  user: ServerUser
+  user: {
+    id: string
+    email: string
+  }
 ): Promise<DatabaseAuthenticationInfo> {
   const userId = user.id
   const [focusedMembership] = await db
     .select()
     .from(memberships)
+    .innerJoin(users, eq(memberships.userId, users.id))
     .where(
       and(
-        eq(memberships.userId, userId),
+        eq(users.betterAuthId, userId),
         eq(memberships.focused, true)
       )
     )
     .limit(1)
-  const livemode = focusedMembership?.livemode ?? false
+  const livemode = focusedMembership?.memberships.livemode ?? false
   const jwtClaim = {
     role: 'authenticated',
     sub: userId,
-    email: user?.primaryEmail ?? '',
+    email: user.email,
     user_metadata: {
       id: userId,
       user_metadata: {},
       aud: 'stub',
-      email: user.primaryEmail ?? '',
+      email: user.email,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       role: 'authenticated',
@@ -286,7 +292,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
         provider: '',
       },
     },
-    organization_id: focusedMembership?.organizationId ?? '',
+    organization_id: focusedMembership?.memberships.organizationId ?? '',
     app_metadata: { provider: 'apiKey' },
   }
   return {
@@ -326,9 +332,11 @@ export async function getDatabaseAuthenticationInfo(
       verifyKeyResult
     )
   }
-  const user = await stackServerApp.getUser()
-  if (!user) {
+  const sessionResult = await auth.api.getSession({
+    headers: await headers(),
+  })
+  if (!sessionResult) {
     throw new Error('No user found for a non-API key transaction')
   }
-  return await databaseAuthenticationInfoForWebappRequest(user)
+  return await databaseAuthenticationInfoForWebappRequest(sessionResult.user)
 }
