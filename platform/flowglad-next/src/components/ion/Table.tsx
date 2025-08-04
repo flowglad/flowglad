@@ -14,7 +14,7 @@ import clsx from 'clsx'
 import * as React from 'react'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import Button from './Button'
+import { Button } from '@/components/ui/button'
 import {
   ArrowLeft,
   ArrowRight,
@@ -221,9 +221,7 @@ const PaginationRow = ({
           <Button
             variant="ghost"
             onClick={() => goToFirstPage?.() || table.setPageIndex(0)}
-            disabled={
-              !table.getCanPreviousPage() || isLoading || isFetching
-            }
+            disabled={!table.getCanPreviousPage() || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >
@@ -233,9 +231,7 @@ const PaginationRow = ({
           <Button
             variant="ghost"
             onClick={() => table.previousPage()}
-            disabled={
-              !table.getCanPreviousPage() || isLoading || isFetching
-            }
+            disabled={!table.getCanPreviousPage() || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >
@@ -244,9 +240,7 @@ const PaginationRow = ({
           <Button
             variant="ghost"
             onClick={() => table.nextPage()}
-            disabled={
-              !table.getCanNextPage() || isLoading || isFetching
-            }
+            disabled={!table.getCanNextPage() || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >
@@ -254,13 +248,8 @@ const PaginationRow = ({
           </Button>
           <Button
             variant="ghost"
-            onClick={() =>
-              goToLastPage?.() ||
-              table.setPageIndex(table.getPageCount() - 1)
-            }
-            disabled={
-              !table.getCanNextPage() || isLoading || isFetching
-            }
+            onClick={() => goToLastPage?.() || table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage() || isLoading || isFetching}
             size="sm"
             className="p-0 h-8 w-8"
           >

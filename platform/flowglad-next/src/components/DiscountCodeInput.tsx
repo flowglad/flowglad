@@ -2,7 +2,7 @@ import Input from '@/components/ion/Input'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import { useState } from 'react'
 import Hint from './ion/Hint'
-import Button from './ion/Button'
+import { Button } from '@/components/ui/button'
 import Label from './ion/Label'
 import { CheckoutFlowType } from '@/types'
 

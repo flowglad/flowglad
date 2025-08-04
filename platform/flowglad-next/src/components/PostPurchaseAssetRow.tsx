@@ -1,19 +1,12 @@
-import {
-  SquareArrowOutUpRight,
-  File as FileIcon,
-  Link as LinkIcon,
-  Pencil,
-  Trash,
-  Download,
-} from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Pencil, Trash, Download, SquareArrowOutUpRight, File as FileIcon, Link as LinkIcon } from 'lucide-react'
 import { File } from '@/db/schema/files'
 import { Link } from '@/db/schema/links'
-import Button from './ion/Button'
-import { useState } from 'react'
-import EditFileModal from '@/components/forms/EditFileModal'
-import EditLinkModal from '@/components/forms/EditLinkModal'
-import DeleteFileModal from '@/components/forms/DeleteFileModal'
-import DeleteLinkModal from '@/components/forms/DeleteLinkModal'
+import EditFileModal from './forms/EditFileModal'
+import DeleteFileModal from './forms/DeleteFileModal'
+import EditLinkModal from './forms/EditLinkModal'
+import DeleteLinkModal from './forms/DeleteLinkModal'
 
 interface FilePostPurchaseAsset {
   asset: File.ClientRecord

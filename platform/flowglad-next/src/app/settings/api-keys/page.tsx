@@ -7,7 +7,7 @@ import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
 import { Plus } from 'lucide-react'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { FlowgladApiKeyType } from '@/types'
 
 function ApiKeysPage() {

@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=770:28007
 'use client'
 import { GripVertical, X } from 'lucide-react'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Input from '@/components/ion/Input'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -116,8 +116,7 @@ const InvoiceFormLineItem = ({
         {...listeners}
         iconLeading={<GripVertical size={16} />}
         variant="ghost"
-        color="primary"
-        size="md"
+        size="default"
         className={clsx(
           'cursor-grab',
           isDragging && 'cursor-grabbing'
@@ -126,8 +125,7 @@ const InvoiceFormLineItem = ({
       <Button
         iconLeading={<X size={16} />}
         variant="ghost"
-        color="primary"
-        size="md"
+        size="default"
         onClick={xOnClickHandler}
         disabled={disableRemove}
       />

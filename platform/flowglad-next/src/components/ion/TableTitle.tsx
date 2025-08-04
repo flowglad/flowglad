@@ -1,4 +1,4 @@
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 
 interface TableTitleButtonProps {
   buttonLabel: string
@@ -30,27 +30,25 @@ const TableTitleButtonStrip = ({
     <div className="flex flex-row gap-2">
       {secondaryButtonLabel && (
         <Button
-          iconLeading={secondaryButtonIcon}
           variant="outline"
-          color="primary"
           size="sm"
           onClick={secondaryButtonOnClick}
           disabled={secondaryButtonDisabled}
           disabledTooltip={secondaryButtonDisabledTooltip}
         >
+          {secondaryButtonIcon}
           {secondaryButtonLabel}
         </Button>
       )}
       <Button
-        iconLeading={buttonIcon}
         variant="outline"
-        color="primary"
         size="sm"
         className="border-primary"
         onClick={buttonOnClick}
         disabled={buttonDisabled}
         disabledTooltip={buttonDisabledTooltip}
       >
+        {buttonIcon}
         {buttonLabel}
       </Button>
     </div>

@@ -172,6 +172,24 @@ body {
     --radius: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
+
+    /* shadcn compatibility layer */
+    --primary-foreground: var(--on-primary);
+    --secondary-foreground: var(--on-neutral);
+    --accent: var(--primary-container);
+    --accent-foreground: var(--on-primary-container);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--on-danger);
+    --input: var(--stroke);
+    --ring: var(--primary);
+    --muted: var(--neutral-container);
+    --muted-foreground: var(--on-neutral-container);
+    --popover: var(--background);
+    --popover-foreground: var(--foreground);
+    --card: var(--background);
+    --card-foreground: var(--foreground);
+    --border: var(--stroke);
+    --radius: var(--radius);
   }
 
   .dark {
@@ -265,6 +283,24 @@ body {
     --shadow-weak: rgba(0, 0, 0, 0.2);
     --shadow: rgba(0, 0, 0, 0.45);
     --shadow-strong: rgba(0, 0, 0, 0.7);
+
+    /* shadcn compatibility layer */
+    --primary-foreground: var(--on-primary);
+    --secondary-foreground: var(--on-neutral);
+    --accent: var(--primary-container);
+    --accent-foreground: var(--on-primary-container);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--on-danger);
+    --input: var(--stroke);
+    --ring: var(--primary);
+    --muted: var(--neutral-container);
+    --muted-foreground: var(--on-neutral-container);
+    --popover: var(--background);
+    --popover-foreground: var(--foreground);
+    --card: var(--background);
+    --card-foreground: var(--foreground);
+    --border: var(--stroke);
+    --radius: var(--radius);
   }
 }
 

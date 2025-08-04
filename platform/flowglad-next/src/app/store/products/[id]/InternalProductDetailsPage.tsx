@@ -2,31 +2,22 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import { useState } from 'react'
-import Button from '@/components/ion/Button'
-import { Price } from '@/db/schema/prices'
-import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
+import { Pencil, Plus, Ellipsis } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Product } from '@/db/schema/products'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { Price } from '@/db/schema/prices'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import EditProductModal from '@/components/forms/EditProductModal'
-
-import { Plus } from 'lucide-react'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
 import TableTitle from '@/components/ion/TableTitle'
 import PricesTable from './PricesTable'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
-import PopoverMenu, {
-  PopoverMenuItem,
-} from '@/components/PopoverMenu'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ion/Popover'
+import EditProductModal from '@/components/forms/EditProductModal'
+import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ion/Popover'
+import PopoverMenu, { PopoverMenuItem } from '@/components/PopoverMenu'
 
 export type InternalProductDetailsPageProps = {
   product: Product.ClientRecord

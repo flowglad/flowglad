@@ -19,7 +19,7 @@ import {
 } from '@/components/ion/Input'
 import Label from '@/components/ion/Label'
 import { Popover, PopoverContent, PopoverTrigger } from './Popover'
-import Button from './Button'
+import { Button } from '@/components/ui/button'
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react'
 import core from '@/utils/core'
 
@@ -293,14 +293,12 @@ export const DateRangePicker = ({
       >
         <PopoverTrigger asChild>
           <Button
-            iconLeading={<CalendarIcon size={16} />}
-            iconTrailing={<ChevronDown size={16} strokeWidth={2} />}
             variant="outline"
-            color="primary"
             size="sm"
           >
-            {core.formatDate(fromDate)} -{' '}
-            {toDate ? core.formatDate(toDate) : 'Present'}
+            <CalendarIcon size={16} />
+            {core.formatDate(fromDate)} - {toDate ? core.formatDate(toDate) : 'Present'}
+            <ChevronDown size={16} strokeWidth={2} />
           </Button>
         </PopoverTrigger>
         <PopoverContent

@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import Button from './ion/Button'
+import { Button } from '@/components/ui/button'
 
 const ChatPreviewDetails = ({
   children,

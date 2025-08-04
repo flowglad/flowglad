@@ -4,7 +4,7 @@ import { ModalInterfaceProps } from '../ion/Modal'
 import { trpc } from '@/app/_trpc/client'
 import { Purchase } from '@/db/schema/purchases'
 import Modal from '../ion/Modal'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Datepicker from '@/components/ion/Datepicker'
 
 interface EndPurchaseModalProps extends ModalInterfaceProps {
@@ -91,7 +91,7 @@ const EndPurchaseModal = ({
           >
             Cancel
           </Button>
-          <Button color="danger" type="submit">
+          <Button variant="destructive" type="submit">
             End Purchase
           </Button>
         </div>
