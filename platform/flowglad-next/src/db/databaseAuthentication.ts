@@ -5,14 +5,12 @@ import { and, asc, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
 import core from '@/utils/core'
 import { memberships } from './schema/memberships'
-import { stackServerApp } from '@/stack'
 import { users } from './schema/users'
 import { selectApiKeys } from './tableMethods/apiKeyMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
-import { ServerUser } from '@stackframe/stack'
 import { FlowgladApiKeyType } from '@/types'
 import { JwtPayload } from 'jsonwebtoken'
-import { headers } from "next/headers"
+import { headers } from 'next/headers'
 import { customers } from './schema/customers'
 import { ApiKey, apiKeyMetadataSchema } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
@@ -257,12 +255,10 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   }
 }
 
-export async function databaseAuthenticationInfoForWebappRequest(
-  user: {
-    id: string
-    email: string
-  }
-): Promise<DatabaseAuthenticationInfo> {
+export async function databaseAuthenticationInfoForWebappRequest(user: {
+  id: string
+  email: string
+}): Promise<DatabaseAuthenticationInfo> {
   const userId = user.id
   const [focusedMembership] = await db
     .select()
@@ -292,7 +288,8 @@ export async function databaseAuthenticationInfoForWebappRequest(
         provider: '',
       },
     },
-    organization_id: focusedMembership?.memberships.organizationId ?? '',
+    organization_id:
+      focusedMembership?.memberships.organizationId ?? '',
     app_metadata: { provider: 'apiKey' },
   }
   return {
@@ -338,5 +335,7 @@ export async function getDatabaseAuthenticationInfo(
   if (!sessionResult) {
     throw new Error('No user found for a non-API key transaction')
   }
-  return await databaseAuthenticationInfoForWebappRequest(sessionResult.user)
+  return await databaseAuthenticationInfoForWebappRequest(
+    sessionResult.user
+  )
 }

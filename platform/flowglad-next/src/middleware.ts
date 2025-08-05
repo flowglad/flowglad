@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteMatcher } from '@clerk/nextjs/server'
 import core from './utils/core'
-// import { stackServerApp } from './stack'
-import { getSessionCookie } from "better-auth/cookies";
-
+import { getSessionCookie } from 'better-auth/cookies'
 
 const publicRoutes = [
   '/mcp',
@@ -71,7 +69,7 @@ export default async function middleware(req: NextRequest) {
       }
     )
   }
-  const sessionCookie = getSessionCookie(req);
+  const sessionCookie = getSessionCookie(req)
 
   const isProtectedRoute = !isPublicRoute(req)
 

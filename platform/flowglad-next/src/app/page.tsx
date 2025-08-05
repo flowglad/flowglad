@@ -1,24 +1,26 @@
 import { adminTransaction } from '@/db/adminTransaction'
-import { memberships } from '@/db/schema/memberships'
+import { UserRecord } from '@/db/schema/users'
 import {
   selectMembershipAndOrganizations,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
-import {
-  selectUsers,
-  upsertUserById,
-} from '@/db/tableMethods/userMethods'
-import { stackServerApp } from '@/stack'
+import { selectUsers } from '@/db/tableMethods/userMethods'
+import { insertUser } from '@/db/tableMethods/userMethods'
+import { auth } from '@/utils/auth'
 import { inArray } from 'drizzle-orm'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 export default async function Home() {
-  const user = await stackServerApp.getUser()
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
 
-  if (!user) {
+  if (!session) {
     throw new Error('User not authenticated')
   }
-  const email = user.primaryEmail
+  const { user: betterAuthUser } = session
+  const email = betterAuthUser.email
   if (!email) {
     throw new Error('User email not found')
   }
@@ -39,30 +41,22 @@ export default async function Home() {
       },
       transaction
     )
-    await upsertUserById(
-      {
-        id: user.id,
-        name: user.displayName ?? undefined,
-        email,
-      },
-      transaction
-    )
-    /**
-     * If the user already exists (aka they signed up before the stack auth migration),
-     * update their existing memberships to point to the new user id.
-     */
-    if (existingUsers.length > 0) {
-      await transaction
-        .update(memberships)
-        .set({
-          userId: user.id,
-        })
-        .where(
-          inArray(
-            memberships.userId,
-            existingUsers.map((user) => user.id)
-          )
-        )
+    let user: UserRecord | null = null
+    if (existingUsers.length === 0) {
+      user = await insertUser(
+        {
+          id: betterAuthUser.id,
+          name: betterAuthUser.name ?? undefined,
+          email,
+          betterAuthId: betterAuthUser.id,
+        },
+        transaction
+      )
+    } else {
+      user = existingUsers[0]
+    }
+    if (!user) {
+      throw new Error('User not found')
     }
     const membershipsAndOrganizations =
       await selectMembershipAndOrganizations(

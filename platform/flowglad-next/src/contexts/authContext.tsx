@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 
 export type AuthContextValues = Partial<{
-  user: ReturnType<CurrentServerUser['toClientJson']>
+  user: User
   organization: Organization.ClientRecord
 }> & {
   setOrganization: (organization: Organization.ClientRecord) => void
