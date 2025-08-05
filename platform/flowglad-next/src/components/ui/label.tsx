@@ -19,6 +19,14 @@ interface LabelProps
   required?: boolean
   /** Whether the label is disabled */
   disabled?: boolean
+  /** Description below the label */
+  description?: string
+  /** HTML ID of the description element */
+  descriptionId?: string
+  /** Classname of the label container (use this to position the label) */
+  className?: string
+  /** Classname of the label (use this to restyle the label) */
+  labelClassName?: string
 }
 
 const Label = React.forwardRef<
@@ -26,31 +34,54 @@ const Label = React.forwardRef<
   LabelProps
 >(
   (
-    { className, helper, required, disabled, children, ...props },
+    { 
+      className, 
+      helper, 
+      required, 
+      disabled, 
+      description,
+      descriptionId,
+      labelClassName,
+      children, 
+      ...props 
+    },
     ref
   ) => (
-    <div className="flex items-center gap-2">
-      <LabelPrimitive.Root
-        ref={ref}
-        className={cn(
-          labelVariants(),
-          disabled && 'opacity-50',
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {required && <span className="text-destructive ml-1">*</span>}
-      </LabelPrimitive.Root>
-      {helper && (
-        <span
+    <div className={cn("flex flex-col gap-1", className)}>
+      <div className="flex items-center gap-2">
+        <LabelPrimitive.Root
+          ref={ref}
           className={cn(
-            'text-xs text-muted-foreground',
+            labelVariants(),
+            disabled && 'opacity-50',
+            labelClassName
+          )}
+          {...props}
+        >
+          {children}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </LabelPrimitive.Root>
+        {helper && (
+          <span
+            className={cn(
+              'text-xs text-muted-foreground',
+              disabled && 'opacity-50'
+            )}
+          >
+            ({helper})
+          </span>
+        )}
+      </div>
+      {description && (
+        <p
+          id={descriptionId}
+          className={cn(
+            'text-sm text-muted-foreground',
             disabled && 'opacity-50'
           )}
         >
-          {helper}
-        </span>
+          {description}
+        </p>
       )}
     </div>
   )

@@ -13,6 +13,9 @@ import {
 
 const ApiKeyFormFields = () => {
   const form = useFormContext<CreateApiKeyInput>()
+  const {
+    formState: { errors },
+  } = form
   return (
     <div className="flex flex-col gap-4">
       <FormField
@@ -24,6 +27,7 @@ const ApiKeyFormFields = () => {
             <FormControl>
               <Input
                 placeholder="e.g. Production API Key"
+                error={errors.apiKey?.name?.message}
                 {...field}
               />
             </FormControl>

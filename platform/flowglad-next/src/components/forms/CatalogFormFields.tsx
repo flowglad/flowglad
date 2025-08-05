@@ -10,7 +10,7 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 
 export default function CatalogFormFields() {
   const form = useFormContext<CreateCatalogInput>()

@@ -20,7 +20,7 @@ import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import { Customer } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import Label from '../ion/Label'
 import Badge from '../ion/Badge'
 import ConnectedSelect from './ConnectedSelect'
@@ -105,7 +105,12 @@ const InvoiceFormFields = ({
         )
       )
     }
-  }, [totalInvoicesForCustomer, invoiceNumberBase, form.setValue])
+  }, [
+    totalInvoicesForCustomer,
+    invoiceNumberBase,
+    form.setValue,
+    form,
+  ])
   return (
     <>
       <div className="w-full flex items-start gap-2.5">
@@ -136,7 +141,9 @@ const InvoiceFormFields = ({
                   defaultValue={customer?.id}
                   disabled={!!customer}
                   value={field.value?.toString()}
-                  onValueChange={(value) => field.onChange(Number(value))}
+                  onValueChange={(value) =>
+                    field.onChange(Number(value))
+                  }
                 />
               </FormControl>
               <FormMessage />
@@ -157,7 +164,9 @@ const InvoiceFormFields = ({
                   onSelect={(value) =>
                     field.onChange(value ? value.toISOString() : '')
                   }
-                  value={field.value ? new Date(field.value) : undefined}
+                  value={
+                    field.value ? new Date(field.value) : undefined
+                  }
                   iconTrailing={<ChevronDown size={16} />}
                   iconLeading={<Calendar size={16} />}
                   className="flex-1 w-full"
@@ -174,10 +183,7 @@ const InvoiceFormFields = ({
             <FormItem className="flex-1 w-full">
               <FormLabel>Invoice #</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="0000"
-                  {...field}
-                />
+                <Input placeholder="0000" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -211,7 +217,9 @@ const InvoiceFormFields = ({
                   defaultValueFromData={(data) => {
                     return (data ?? [])[0]?.membership.id ?? ''
                   }}
-                  onValueChange={(value) => field.onChange(value ?? '')}
+                  onValueChange={(value) =>
+                    field.onChange(value ?? '')
+                  }
                 />
               </FormControl>
               <FormMessage />
@@ -262,10 +270,12 @@ const InvoiceFormFields = ({
           control={form.control}
           name="invoice.dueDate"
           render={({ field }) => (
-            <FormItem className={clsx(
-              'flex-1',
-              dueOption !== 'Custom Date' && 'opacity-0'
-            )}>
+            <FormItem
+              className={clsx(
+                'flex-1',
+                dueOption !== 'Custom Date' && 'opacity-0'
+              )}
+            >
               <FormLabel>Due Date</FormLabel>
               <FormControl>
                 <Datepicker
@@ -273,7 +283,9 @@ const InvoiceFormFields = ({
                   onSelect={(value) =>
                     field.onChange(value ? value.toISOString() : '')
                   }
-                  value={field.value ? new Date(field.value) : undefined}
+                  value={
+                    field.value ? new Date(field.value) : undefined
+                  }
                   iconTrailing={<ChevronDown size={16} />}
                   iconLeading={<Calendar size={16} />}
                   className="flex-1"

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Label from '@/components/ion/Label'
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import Select from '@/components/ion/Select'
 import {
@@ -135,10 +135,7 @@ const SinglePaymentFields = () => {
           <FormItem className="flex-1">
             <FormLabel>Amount</FormLabel>
             <FormControl>
-              <CurrencyInput
-                {...field}
-                className="flex-1"
-              />
+              <CurrencyInput {...field} className="flex-1" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -208,10 +205,7 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input 
-                  {...field}
-                  value={field.value ?? ''}
-                />
+                <Input {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -225,13 +219,11 @@ const PriceFormFields = ({
           <FormItem>
             <FormLabel>Price Slug</FormLabel>
             <FormControl>
-              <Input 
-                {...field}
-                value={field.value ?? ''}
-              />
+              <Input {...field} value={field.value ?? ''} />
             </FormControl>
             <FormDescription>
-              The slug is used to identify the price in the API. It must be unique within the catalog.
+              The slug is used to identify the price in the API. It
+              must be unique within the catalog.
             </FormDescription>
             <FormMessage />
           </FormItem>

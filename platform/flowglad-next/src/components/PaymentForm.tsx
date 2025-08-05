@@ -33,7 +33,7 @@ import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
-import Switch from './ion/Switch'
+import { Switch } from '@/components/ui/switch'
 
 export const PaymentLoadingForm = ({
   disableAnimation,

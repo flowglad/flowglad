@@ -69,7 +69,9 @@ const BusinessDetails = () => {
                 name="organization.name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel required>What's your business name?</FormLabel>
+                    <FormLabel required>
+                      What&apos;s your business name?
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Your Company"
@@ -110,7 +112,9 @@ const BusinessDetails = () => {
             >
               Continue
             </Button>
-            {form.formState.errors.root && <ErrorLabel error={form.formState.errors.root} />}
+            {form.formState.errors.root && (
+              <ErrorLabel error={form.formState.errors.root} />
+            )}
           </form>
         </div>
       </div>

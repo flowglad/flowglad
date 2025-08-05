@@ -71,6 +71,7 @@ const InvoiceFormLineItem = ({
             <FormItem className="flex-1 min-w-20">
               <FormControl>
                 <Input
+                  {...field}
                   placeholder="Item/Service name"
                   value={field.value ?? ''}
                   onChange={(e) => {

@@ -14,7 +14,7 @@ import { FlowgladEventType } from '@/types'
 import MultiSelect, { Option } from './MultiSelect'
 import Label from '@/components/ion/Label'
 import StatusBadge from '../StatusBadge'
-import Switch from '../ion/Switch'
+import { Switch } from '@/components/ui/switch'
 // import { MultiSelect } from '@/components/ion/ui/MultiSelect'
 
 const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
@@ -36,10 +36,7 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
           <FormItem>
             <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input
-                placeholder="e.g. Payment Webhook"
-                {...field}
-              />
+              <Input placeholder="e.g. Payment Webhook" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -79,7 +76,9 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
                 selectedOptions.map((option) => option.value)
               )
             }}
-            error={form.formState.errors.webhook?.filterTypes?.message}
+            error={
+              form.formState.errors.webhook?.filterTypes?.message
+            }
           />
         )}
       />

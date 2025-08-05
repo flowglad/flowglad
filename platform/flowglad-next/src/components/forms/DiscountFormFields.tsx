@@ -14,7 +14,7 @@ import { Select } from '@/components/ion/Select'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import NumberInput from '@/components/ion/NumberInput'
 import StatusBadge from '@/components/StatusBadge'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import Label from '@/components/ion/Label'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { Percent } from 'lucide-react'
@@ -47,10 +47,7 @@ export default function DiscountFormFields({
           <FormItem>
             <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input
-                placeholder="Your Discount's Name"
-                {...field}
-              />
+              <Input placeholder="Your Discount's Name" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -67,7 +64,9 @@ export default function DiscountFormFields({
                 placeholder="Your Discount's Code"
                 {...field}
                 onBlur={() => {
+                  field.onBlur()
                   const value = form.getValues('discount.code')
+
                   form.setValue('discount.code', value.toUpperCase())
                 }}
               />

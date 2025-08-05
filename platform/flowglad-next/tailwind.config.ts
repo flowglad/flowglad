@@ -718,6 +718,7 @@ const config: Config = {
           container: 'var(--neutral-container)',
           stroke: 'var(--neutral-stroke)',
           DEFAULT: 'var(--neutral)',
+          foreground: 'var(--neutral-foreground)',
           hover: 'var(--neutral-hover)',
           pressed: 'var(--neutral-pressed)',
         },

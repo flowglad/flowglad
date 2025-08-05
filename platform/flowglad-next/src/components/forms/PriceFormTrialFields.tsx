@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import Select from '@/components/ion/Select'
 import NumberInput from '@/components/ion/NumberInput'
 import { Controller, FieldError } from 'react-hook-form'

@@ -13,7 +13,7 @@ import { InviteUserToOrganizationInput } from '@/db/schema/memberships'
 
 const InviteUserToOrganizationFormFields: React.FC = () => {
   const form = useFormContext<InviteUserToOrganizationInput>()
-  
+
   return (
     <div className="flex flex-col gap-3">
       <FormField
@@ -40,10 +40,7 @@ const InviteUserToOrganizationFormFields: React.FC = () => {
           <FormItem>
             <FormLabel required>Name</FormLabel>
             <FormControl>
-              <Input
-                placeholder="Enter name"
-                {...field}
-              />
+              <Input placeholder="Enter name" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

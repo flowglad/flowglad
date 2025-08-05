@@ -30,17 +30,16 @@ const LinkFormFields = ({ basePath }: LinkFormFieldsProps) => {
     <>
       <FormField
         control={form.control}
-        name={(basePath
-          ? `${basePath}.link.name`
-          : 'link.name') as 'link.name'}
+        name={
+          (basePath
+            ? `${basePath}.link.name`
+            : 'link.name') as 'link.name'
+        }
         render={({ field }) => (
           <FormItem>
             <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input
-                placeholder="Name"
-                {...field}
-              />
+              <Input placeholder="Name" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -48,17 +47,16 @@ const LinkFormFields = ({ basePath }: LinkFormFieldsProps) => {
       />
       <FormField
         control={form.control}
-        name={(basePath
-          ? `${basePath}.link.url`
-          : 'link.url') as 'link.url'}
+        name={
+          (basePath
+            ? `${basePath}.link.url`
+            : 'link.url') as 'link.url'
+        }
         render={({ field }) => (
           <FormItem>
             <FormLabel>URL</FormLabel>
             <FormControl>
-              <Input
-                placeholder="https://..."
-                {...field}
-              />
+              <Input placeholder="https://..." {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

@@ -12,7 +12,7 @@ import { CloneCatalogInput } from '@/db/schema/catalogs'
 
 const CloneCatalogFormFields: React.FC = () => {
   const form = useFormContext<CloneCatalogInput>()
-  
+
   return (
     <div className="flex flex-col gap-3">
       <FormField
@@ -22,10 +22,7 @@ const CloneCatalogFormFields: React.FC = () => {
           <FormItem>
             <FormLabel required>Catalog Name</FormLabel>
             <FormControl>
-              <Input
-                placeholder="Enter catalog name"
-                {...field}
-              />
+              <Input placeholder="Enter catalog name" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

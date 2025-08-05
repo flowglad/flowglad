@@ -6,7 +6,7 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import { useEffect, useState } from 'react'
 import { Skeleton } from '@/components/ion/Skeleton'
 import Label from '@/components/ion/Label'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import { Price } from '@/db/schema/prices'
 
 const FIELD_NAME = 'price.overagePriceId'
