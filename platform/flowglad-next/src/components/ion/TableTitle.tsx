@@ -30,17 +30,18 @@ const TableTitleButtonStrip = ({
     <div className="flex flex-row gap-2">
       {secondaryButtonLabel && (
         <Button
+          iconLeading={secondaryButtonIcon}
           variant="outline"
           size="sm"
           onClick={secondaryButtonOnClick}
           disabled={secondaryButtonDisabled}
           disabledTooltip={secondaryButtonDisabledTooltip}
         >
-          {secondaryButtonIcon}
           {secondaryButtonLabel}
         </Button>
       )}
       <Button
+        iconLeading={buttonIcon}
         variant="outline"
         size="sm"
         className="border-primary"
@@ -48,7 +49,6 @@ const TableTitleButtonStrip = ({
         disabled={buttonDisabled}
         disabledTooltip={buttonDisabledTooltip}
       >
-        {buttonIcon}
         {buttonLabel}
       </Button>
     </div>

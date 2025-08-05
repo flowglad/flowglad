@@ -10,7 +10,13 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { Select } from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import NumberInput from '@/components/ion/NumberInput'
 import StatusBadge from '@/components/StatusBadge'
@@ -80,26 +86,31 @@ export default function DiscountFormFields({
           control={control}
           name="discount.amountType"
           render={({ field }) => (
-            <Select
-              label="Type"
-              options={[
-                {
-                  label: 'Fixed',
-                  value: DiscountAmountType.Fixed,
-                },
-                {
-                  label: 'Percentage',
-                  value: DiscountAmountType.Percent,
-                },
-              ]}
-              error={errors.discount?.amountType?.message}
-              value={field.value ?? DiscountAmountType.Fixed}
-              onValueChange={(value) => {
-                form.setValue('discount.amount', 0)
-                field.onChange(value)
-              }}
-              className="flex-1"
-            />
+            <FormItem className="flex-1">
+              <FormLabel>Type</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value ?? DiscountAmountType.Fixed}
+                  onValueChange={(value) => {
+                    form.setValue('discount.amount', 0)
+                    field.onChange(value)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={DiscountAmountType.Fixed}>
+                      Fixed
+                    </SelectItem>
+                    <SelectItem value={DiscountAmountType.Percent}>
+                      Percentage
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
         {amountType === DiscountAmountType.Percent ? (
@@ -147,32 +158,38 @@ export default function DiscountFormFields({
         control={control}
         name="discount.duration"
         render={({ field }) => (
-          <Select
-            label="Duration"
-            options={[
-              {
-                label: 'Once',
-                value: DiscountDuration.Once,
-              },
-              {
-                label: 'Recurring',
-                value: DiscountDuration.NumberOfPayments,
-              },
-              {
-                label: 'Forever',
-                value: DiscountDuration.Forever,
-              },
-            ]}
-            error={errors.discount?.duration?.message}
-            value={field.value ?? DiscountDuration.Once}
-            onValueChange={(value) => {
-              if (value !== DiscountDuration.NumberOfPayments) {
-                form.setValue('discount.numberOfPayments', null)
-              }
-              field.onChange(value)
-            }}
-            className="flex-1"
-          />
+          <FormItem className="flex-1">
+            <FormLabel>Duration</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value ?? DiscountDuration.Once}
+                onValueChange={(value) => {
+                  if (value !== DiscountDuration.NumberOfPayments) {
+                    form.setValue('discount.numberOfPayments', null)
+                  }
+                  field.onChange(value)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={DiscountDuration.Once}>
+                    Once
+                  </SelectItem>
+                  <SelectItem
+                    value={DiscountDuration.NumberOfPayments}
+                  >
+                    Recurring
+                  </SelectItem>
+                  <SelectItem value={DiscountDuration.Forever}>
+                    Forever
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
       {duration === DiscountDuration.NumberOfPayments && (

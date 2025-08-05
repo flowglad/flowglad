@@ -8,7 +8,13 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import Textarea from '@/components/ion/Textarea'
 import { InvoiceFormLineItemsField } from './InvoiceFormLineItemsField'
 
@@ -134,17 +140,26 @@ const InvoiceFormFields = ({
               <FormLabel>Bill To</FormLabel>
               <FormControl>
                 <Select
-                  {...field}
-                  placeholder="placeholder"
-                  options={customerOptions}
-                  className="flex-1"
-                  defaultValue={customer?.id}
-                  disabled={!!customer}
                   value={field.value?.toString()}
                   onValueChange={(value) =>
                     field.onChange(Number(value))
                   }
-                />
+                  disabled={!!customer}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="placeholder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customerOptions.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -249,23 +264,21 @@ const InvoiceFormFields = ({
         />
       </div>
       <div className="w-full flex flex-row items-start gap-2.5">
-        <Select
-          placeholder="placeholder"
-          options={[
-            {
-              label: 'On Receipt',
-              value: 'On Receipt',
-            },
-            {
-              label: 'Custom Date',
-              value: 'Custom Date',
-            },
-          ]}
-          label="Due"
-          className="flex-1"
-          value={dueOption}
-          onValueChange={(value) => setDueOption(value)}
-        />
+        <div className="flex-1">
+          <Label>Due</Label>
+          <Select
+            value={dueOption}
+            onValueChange={(value) => setDueOption(value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="placeholder" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="On Receipt">On Receipt</SelectItem>
+              <SelectItem value="Custom Date">Custom Date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <FormField
           control={form.control}
           name="invoice.dueDate"

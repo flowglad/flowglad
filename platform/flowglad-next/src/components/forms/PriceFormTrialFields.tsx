@@ -1,7 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import NumberInput from '@/components/ion/NumberInput'
 import { Controller, FieldError } from 'react-hook-form'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
@@ -52,32 +58,45 @@ const TrialFields = () => {
       />
       {offerTrial && (
         <>
-          <Select
-            label="Trial Type"
-            options={[
-              {
-                label: 'Time',
-                value: 'time',
-                description: 'For trials with a set number of days.',
-              },
-              {
-                label: 'Credit',
-                value: 'credit',
-                disabled: !overagePriceId,
-                description:
-                  'For one-time credit grant trials. Requires an overage price',
-              },
-            ]}
-            value={trialType}
-            onValueChange={(value) => {
-              setTrialType(value as 'credit' | 'time')
-              if (value === 'credit') {
-                setValue('price.startsWithCreditTrial', true)
-              } else {
-                setValue('price.startsWithCreditTrial', null)
-              }
-            }}
-          />
+          <div>
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-1">
+              Trial Type
+            </label>
+            <Select
+              value={trialType}
+              onValueChange={(value) => {
+                setTrialType(value as 'credit' | 'time')
+                if (value === 'credit') {
+                  setValue('price.startsWithCreditTrial', true)
+                } else {
+                  setValue('price.startsWithCreditTrial', null)
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="time">
+                  <div>
+                    <div>Time</div>
+                    <div className="text-xs text-muted-foreground">
+                      For trials with a set number of days.
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="credit" disabled={!overagePriceId}>
+                  <div>
+                    <div>Credit</div>
+                    <div className="text-xs text-muted-foreground">
+                      For one-time credit grant trials. Requires an
+                      overage price
+                    </div>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {trialType === 'time' && (
             <Controller
               name="price.trialPeriodDays"

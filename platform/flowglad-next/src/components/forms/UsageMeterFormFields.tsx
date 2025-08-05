@@ -11,7 +11,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import CatalogSelect from './CatalogSelect'
-import Select from '../ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { UsageMeterAggregationType } from '@/types'
 import { sentenceCase } from 'change-case'
 import core from '@/utils/core'
@@ -66,17 +72,29 @@ export default function UsageMeterFormFields({
         control={form.control}
         name="usageMeter.aggregationType"
         render={({ field }) => (
-          <Select
-            {...field}
-            options={Object.values(UsageMeterAggregationType).map(
-              (type) => ({
-                label: sentenceCase(type),
-                value: type,
-              })
-            )}
-            error={form.formState.errors.usageMeter?.aggregationType?.message}
-            label="Aggregation Type"
-          />
+          <FormItem>
+            <FormLabel>Aggregation Type</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(UsageMeterAggregationType).map(
+                    (type) => (
+                      <SelectItem key={type} value={type}>
+                        {sentenceCase(type)}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
     </div>

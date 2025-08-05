@@ -4,7 +4,13 @@ import Label from '@/components/ion/Label'
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   singlePaymentPriceDefaultColumns,
   subscriptionPriceDefaultColumns,
@@ -59,17 +65,27 @@ const SubscriptionFields = ({
               <FormLabel>Per</FormLabel>
               <FormControl>
                 <Select
-                  placeholder="Select interval"
-                  options={[
-                    { label: 'Day', value: IntervalUnit.Day },
-                    { label: 'Week', value: IntervalUnit.Week },
-                    { label: 'Month', value: IntervalUnit.Month },
-                    { label: 'Year', value: IntervalUnit.Year },
-                  ]}
-                  className="flex-1"
                   value={field.value ?? ''}
                   onValueChange={field.onChange}
-                />
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select interval" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={IntervalUnit.Day}>
+                      Day
+                    </SelectItem>
+                    <SelectItem value={IntervalUnit.Week}>
+                      Week
+                    </SelectItem>
+                    <SelectItem value={IntervalUnit.Month}>
+                      Month
+                    </SelectItem>
+                    <SelectItem value={IntervalUnit.Year}>
+                      Year
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -262,27 +278,29 @@ const PriceFormFields = ({
                   field.onChange(value)
                 }}
                 disabled={edit}
-                hint="What type of payment the user will make. Cannot be edited after creation."
-                options={[
-                  {
-                    label: 'Single Payment',
-                    value: PriceType.SinglePayment,
-                  },
-                  {
-                    label: 'Subscription',
-                    value: PriceType.Subscription,
-                  },
-                  ...(hasUsage
-                    ? [
-                        {
-                          label: 'Usage',
-                          value: PriceType.Usage,
-                        },
-                      ]
-                    : []),
-                ]}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PriceType.SinglePayment}>
+                    Single Payment
+                  </SelectItem>
+                  <SelectItem value={PriceType.Subscription}>
+                    Subscription
+                  </SelectItem>
+                  {hasUsage && (
+                    <SelectItem value={PriceType.Usage}>
+                      Usage
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </FormControl>
+            <FormDescription>
+              What type of payment the user will make. Cannot be
+              edited after creation.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}

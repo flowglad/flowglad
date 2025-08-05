@@ -68,7 +68,7 @@ function InternalCustomerDetailsScreen({
                 Edit
               </Button>
               <Popover>
-                <PopoverTrigger className="flex">
+                <PopoverTrigger asChild>
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"

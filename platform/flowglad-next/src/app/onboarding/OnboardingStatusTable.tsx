@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
   Nouns,
@@ -173,12 +174,12 @@ const OnboardingStatusTable = ({
   ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
   const mcpServerConfig = {
-      url: core.safeUrl("/mcp", process.env.NEXT_PUBLIC_APP_URL!),
-      headers: {
-        Authorization: `Bearer ${secretApiKey}`
-      },
+    url: core.safeUrl('/mcp', process.env.NEXT_PUBLIC_APP_URL!),
+    headers: {
+      Authorization: `Bearer ${secretApiKey}`,
+    },
   }
-  
+
   return (
     <div className="flex flex-col w-full gap-4">
       <OnboardingStatusRow
@@ -273,7 +274,17 @@ const OnboardingStatusTable = ({
         title={`${onboardingChecklistItems.length + 1}. Setup Flowglad MCP Server`}
         description={'Get set up in localhost in a few minutes'}
         actionNode={
-          <a href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}><img src="https://cursor.com/deeplink/mcp-install-light.svg" alt="Add flowglad MCP server to Cursor" height="40" style={{ height: '40px' }} /></a>
+          <a
+            href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}
+          >
+            <Image
+              src="https://cursor.com/deeplink/mcp-install-light.svg"
+              alt="Add flowglad MCP server to Cursor"
+              width={40}
+              height={40}
+              style={{ height: '40px', width: 'auto' }}
+            />
+          </a>
         }
       />
       <NounVerbModal

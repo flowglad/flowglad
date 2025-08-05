@@ -11,6 +11,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 import { trpc } from '@/app/_trpc/client'
 import {
@@ -20,7 +21,13 @@ import {
 import ErrorLabel from '@/components/ErrorLabel'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/contexts/authContext'
-import { Select } from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
@@ -91,12 +98,26 @@ const BusinessDetails = () => {
                     <FormLabel>Country</FormLabel>
                     <FormControl>
                       <Select
-                        options={countryOptions}
                         value={value ?? undefined}
                         onValueChange={onChange}
-                        placeholder="Select Country"
-                        hint="Used to determine your default currency"
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countryOptions.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Used to determine your default currency
+                      </FormDescription>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

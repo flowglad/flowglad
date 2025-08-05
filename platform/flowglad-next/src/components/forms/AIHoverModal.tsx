@@ -61,7 +61,7 @@ const AIHoverModal: React.FC<{
   const [isOpen, setIsOpen] = useState(false)
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger>
+      <PopoverTrigger asChild>
         <div className="cursor-pointer text-sm">{triggerLabel}</div>
       </PopoverTrigger>
       <PopoverContent className="w-fit bg-black" align="end">

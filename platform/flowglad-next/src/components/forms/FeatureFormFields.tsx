@@ -16,7 +16,13 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import NumberInput from '@/components/ion/NumberInput'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import UsageMetersSelect from './UsageMetersSelect'
 import Textarea from '@/components/ion/Textarea'
@@ -68,7 +74,8 @@ const FeatureFormFields = () => {
               />
             </FormControl>
             <FormDescription>
-              Used to check access on the SDK. Must be unique within each catalog.
+              Used to check access on the SDK. Must be unique within
+              each catalog.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -81,10 +88,7 @@ const FeatureFormFields = () => {
           <FormItem>
             <FormLabel>Description</FormLabel>
             <FormControl>
-              <Input
-                placeholder="Describe the feature"
-                {...field}
-              />
+              <Input placeholder="Describe the feature" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -94,37 +98,51 @@ const FeatureFormFields = () => {
         control={form.control}
         name="feature.type"
         render={({ field }) => (
-          <Select
-            label="Type"
-            value={field.value}
-            onValueChange={(value) => {
-              field.onChange(value)
-              // Reset fields when type changes
-              if (value === FeatureType.Toggle) {
-                Object.entries(toggleFeatureDefaultColumns).forEach(
-                  assignFeatureValueFromTuple
-                )
-              }
-              if (value === FeatureType.UsageCreditGrant) {
-                Object.entries(
-                  usageCreditGrantFeatureDefaultColumns
-                ).forEach(assignFeatureValueFromTuple)
-              }
-            }}
-            options={[
-              {
-                label: 'Toggle',
-                value: FeatureType.Toggle,
-                description: 'Boolean access to a feature.',
-              },
-              {
-                label: 'Usage Credit Grant',
-                value: FeatureType.UsageCreditGrant,
-                description:
-                  'Credits towards a specific usage meter.',
-              },
-            ]}
-          />
+          <FormItem>
+            <FormLabel>Type</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value)
+                  // Reset fields when type changes
+                  if (value === FeatureType.Toggle) {
+                    Object.entries(
+                      toggleFeatureDefaultColumns
+                    ).forEach(assignFeatureValueFromTuple)
+                  }
+                  if (value === FeatureType.UsageCreditGrant) {
+                    Object.entries(
+                      usageCreditGrantFeatureDefaultColumns
+                    ).forEach(assignFeatureValueFromTuple)
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={FeatureType.Toggle}>
+                    <div>
+                      <div>Toggle</div>
+                      <div className="text-xs text-muted-foreground">
+                        Boolean access to a feature.
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value={FeatureType.UsageCreditGrant}>
+                    <div>
+                      <div>Usage Credit Grant</div>
+                      <div className="text-xs text-muted-foreground">
+                        Credits towards a specific usage meter.
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
 
@@ -142,7 +160,9 @@ const FeatureFormFields = () => {
                     placeholder="e.g. 100"
                     value={field.value ?? undefined} // Ensure undefined for empty to avoid "0" display issues
                     onChange={(e) =>
-                      field.onChange(parseInt(e.target.value, 10) || null)
+                      field.onChange(
+                        parseInt(e.target.value, 10) || null
+                      )
                     }
                   />
                 </FormControl>
@@ -162,16 +182,22 @@ const FeatureFormFields = () => {
                 <FormLabel>Renewal Frequency</FormLabel>
                 <FormControl>
                   <Select
-                    placeholder="Select renewal frequency"
-                    options={Object.values(
-                      FeatureUsageGrantFrequency
-                    ).map((value) => ({
-                      label: titleCase(value),
-                      value,
-                    }))}
                     value={field.value ?? ''}
                     onValueChange={field.onChange}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select renewal frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(FeatureUsageGrantFrequency).map(
+                        (value) => (
+                          <SelectItem key={value} value={value}>
+                            {titleCase(value)}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
                 </FormControl>
                 <FormMessage />
               </FormItem>

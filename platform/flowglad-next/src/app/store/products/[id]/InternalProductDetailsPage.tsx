@@ -16,8 +16,14 @@ import EditProductModal from '@/components/forms/EditProductModal'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ion/Popover'
-import PopoverMenu, { PopoverMenuItem } from '@/components/PopoverMenu'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ion/Popover'
+import PopoverMenu, {
+  PopoverMenuItem,
+} from '@/components/PopoverMenu'
 
 export type InternalProductDetailsPageProps = {
   product: Product.ClientRecord
@@ -73,7 +79,7 @@ function InternalProductDetailsPage(
                 Edit
               </Button>
               <Popover>
-                <PopoverTrigger className="flex">
+                <PopoverTrigger asChild>
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"

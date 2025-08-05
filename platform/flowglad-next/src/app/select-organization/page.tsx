@@ -10,7 +10,11 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ion/Skeleton'
 import ErrorLabel from '@/components/ErrorLabel'
-import { RadioGroup, RadioGroupItem } from '@/components/ion/Radio'
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
 
 type FormValues = z.infer<typeof updateFocusedMembershipSchema>
 
@@ -121,13 +125,10 @@ const SelectOrganizationPage = () => {
                   {sortedOrganizations.map((org) => (
                     <div
                       key={org.id}
-                      className="flex items-center gap-2"
+                      className="flex items-center space-x-2"
                     >
-                      <RadioGroupItem
-                        value={org.id}
-                        label={org.name}
-                        id={org.id}
-                      />
+                      <RadioGroupItem value={org.id} id={org.id} />
+                      <Label htmlFor={org.id}>{org.name}</Label>
                     </div>
                   ))}
                 </RadioGroup>
