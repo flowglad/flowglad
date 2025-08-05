@@ -2,7 +2,14 @@
 
 import { Controller, useFormContext } from 'react-hook-form'
 import { CreateUsageMeterInput } from '@/db/schema/usageMeters'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import CatalogSelect from './CatalogSelect'
 import Select from '../ion/Select'
 import { UsageMeterAggregationType } from '@/types'
@@ -14,37 +21,49 @@ export default function UsageMeterFormFields({
 }: {
   edit?: boolean
 }) {
-  const {
-    register,
-    control,
-    formState: { errors },
-  } = useFormContext<CreateUsageMeterInput>()
+  const form = useFormContext<CreateUsageMeterInput>()
   if (!core.IS_PROD) {
     // eslint-disable-next-line no-console
-    console.log('errors', errors)
+    console.log('errors', form.formState.errors)
   }
   return (
     <div className="space-y-4">
-      <Input
-        label="Name"
-        {...register('usageMeter.name')}
-        error={errors.usageMeter?.name?.message}
+      <FormField
+        control={form.control}
+        name="usageMeter.name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
       <div className="w-full relative flex flex-col gap-3">
         <CatalogSelect
           name="usageMeter.catalogId"
-          control={control}
+          control={form.control}
         />
       </div>
       <div className="w-full relative flex flex-col gap-3">
-        <Input
-          label="Slug"
-          {...register('usageMeter.slug')}
-          error={errors.usageMeter?.slug?.message}
+        <FormField
+          control={form.control}
+          name="usageMeter.slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
       </div>
       <Controller
-        control={control}
+        control={form.control}
         name="usageMeter.aggregationType"
         render={({ field }) => (
           <Select
@@ -55,7 +74,7 @@ export default function UsageMeterFormFields({
                 value: type,
               })
             )}
-            error={errors.usageMeter?.aggregationType?.message}
+            error={form.formState.errors.usageMeter?.aggregationType?.message}
             label="Aggregation Type"
           />
         )}

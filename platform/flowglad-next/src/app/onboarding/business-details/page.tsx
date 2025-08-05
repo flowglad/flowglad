@@ -1,10 +1,17 @@
 // Generated with Ion on 11/18/2024, 2:07:04 PM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1303:14448
 'use client'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import { trpc } from '@/app/_trpc/client'
 import {
   createOrganizationSchema,
@@ -19,13 +26,7 @@ const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const { data } = trpc.countries.list.useQuery()
   const { setOrganization, user } = useAuthContext()
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors, isSubmitting },
-    setError,
-  } = useForm<CreateOrganizationInput>({
+  const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
     defaultValues: {
       organization: {
@@ -34,7 +35,7 @@ const BusinessDetails = () => {
     },
   })
   const router = useRouter()
-  const onSubmit = handleSubmit(async (data) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       const { organization } =
         await createOrganization.mutateAsync(data)
@@ -42,7 +43,7 @@ const BusinessDetails = () => {
       router.refresh()
       router.push('/onboarding')
     } catch (error) {
-      setError('root', { message: (error as Error).message })
+      form.setError('root', { message: (error as Error).message })
     }
   })
 
@@ -63,26 +64,40 @@ const BusinessDetails = () => {
             className="w-[380px] flex flex-col gap-6"
           >
             <div className="w-full flex flex-col gap-4">
-              <Input
-                placeholder="Your Company"
-                required
-                label="What's your business name?"
-                error={errors.organization?.name?.message}
-                {...register('organization.name')}
-                className="w-full"
+              <FormField
+                control={form.control}
+                name="organization.name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel required>What's your business name?</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Your Company"
+                        className="w-full"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <Controller
-                control={control}
+              <FormField
+                control={form.control}
                 name="organization.countryId"
                 render={({ field: { value, onChange } }) => (
-                  <Select
-                    options={countryOptions}
-                    value={value ?? undefined}
-                    onValueChange={onChange}
-                    placeholder="Select Country"
-                    error={errors.organization?.countryId?.message}
-                    hint="Used to determine your default currency"
-                  />
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Select
+                        options={countryOptions}
+                        value={value ?? undefined}
+                        onValueChange={onChange}
+                        placeholder="Select Country"
+                        hint="Used to determine your default currency"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
             </div>
@@ -90,12 +105,12 @@ const BusinessDetails = () => {
               variant="default"
               size="default"
               type="submit"
-              disabled={isSubmitting}
+              disabled={form.formState.isSubmitting}
               className="w-full"
             >
               Continue
             </Button>
-            {errors.root && <ErrorLabel error={errors.root} />}
+            {form.formState.errors.root && <ErrorLabel error={form.formState.errors.root} />}
           </form>
         </div>
       </div>

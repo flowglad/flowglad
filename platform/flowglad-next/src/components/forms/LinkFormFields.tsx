@@ -2,7 +2,14 @@
 
 import { useFormContext } from 'react-hook-form'
 import { CreateLinkInput } from '@/db/schema/links'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 
 interface LinkFormFieldsProps {
   /**
@@ -21,23 +28,41 @@ const LinkFormFields = ({ basePath }: LinkFormFieldsProps) => {
 
   return (
     <>
-      <Input
-        label="Name"
-        {...form.register(
-          (basePath
-            ? `${basePath}.link.name`
-            : 'link.name') as 'link.name'
+      <FormField
+        control={form.control}
+        name={(basePath
+          ? `${basePath}.link.name`
+          : 'link.name') as 'link.name'}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="Name"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
-        placeholder="Name"
       />
-      <Input
-        label="URL"
-        {...form.register(
-          (basePath
-            ? `${basePath}.link.url`
-            : 'link.url') as 'link.url'
+      <FormField
+        control={form.control}
+        name={(basePath
+          ? `${basePath}.link.url`
+          : 'link.url') as 'link.url'}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>URL</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="https://..."
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
-        placeholder="https://..."
       />
     </>
   )

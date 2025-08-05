@@ -1,10 +1,15 @@
-import Input from '@/components/ion/Input'
+import { useForm } from 'react-hook-form'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import { useState } from 'react'
-import Hint from './ion/Hint'
 import { Button } from '@/components/ui/button'
-import Label from './ion/Label'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import Hint from './ion/Hint'
 import { CheckoutFlowType } from '@/types'
+
+interface DiscountCodeFormData {
+  discountCode: string
+}
 
 export default function DiscountCodeInput() {
   const checkoutPageContext = useCheckoutPageContext()
@@ -12,9 +17,20 @@ export default function DiscountCodeInput() {
   const [discountCodeStatus, setDiscountCodeStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >(discount ? 'success' : 'idle')
-  const [discountCode, setDiscountCode] = useState(
-    discount?.code ?? ''
-  )
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors }
+  } = useForm<DiscountCodeFormData>({
+    defaultValues: {
+      discountCode: discount?.code ?? ''
+    }
+  })
+
+  const discountCode = watch('discountCode')
 
   if (
     flowType === CheckoutFlowType.Invoice ||
@@ -38,11 +54,9 @@ export default function DiscountCodeInput() {
   } else if (discountCodeStatus === 'success') {
     hint = 'Discount code applied!'
   }
-  const attemptHandler = async (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    e.preventDefault()
-    const code = discountCode
+
+  const attemptHandler = async (data: DiscountCodeFormData) => {
+    const code = data.discountCode
     let discountSucceeded = false
     setDiscountCodeStatus('loading')
     if (purchase) {
@@ -74,7 +88,7 @@ export default function DiscountCodeInput() {
           productId: product.id,
         })
         setDiscountCodeStatus('idle')
-        setDiscountCode('')
+        setValue('discountCode', '')
       }}
       variant="ghost"
       disabled={!discount}
@@ -82,34 +96,35 @@ export default function DiscountCodeInput() {
       Clear
     </Button>
   )
+
   const applyDiscountCodeButton = (
     <Button
-      onClick={attemptHandler}
+      onClick={handleSubmit(attemptHandler)}
       disabled={discountCodeStatus === 'loading'}
       variant="ghost"
     >
       Apply
     </Button>
   )
+
   return (
     <div className="flex flex-col gap-1 w-full">
-      <Label>Discount Code</Label>
+      <Label htmlFor="discountCode">Discount Code</Label>
       <div className="flex flex-row gap-2 w-full">
-        <Input
-          className="w-full"
-          autoCapitalize="characters"
-          value={discountCode}
-          inputClassName="focus-within:bg-[#353535] p-2 pl-3 pr-0 h-15 border-none bg-[#353535]"
-          onChange={(event) => {
-            const code = event.target.value.toUpperCase()
-            setDiscountCode(code)
-          }}
-          iconTrailing={
-            discount
-              ? clearDiscountCodeButton
-              : applyDiscountCodeButton
-          }
-        />
+        <div className="flex-1">
+          <Input
+            id="discountCode"
+            className="focus-within:bg-[#353535] p-2 pl-3 h-15 border-none bg-[#353535]"
+            autoCapitalize="characters"
+            iconTrailing={discount ? clearDiscountCodeButton : applyDiscountCodeButton}
+            {...register('discountCode', {
+              onChange: (e) => {
+                const code = e.target.value.toUpperCase()
+                setValue('discountCode', code)
+              }
+            })}
+          />
+        </div>
       </div>
       <Hint error={discountCodeStatus === 'error'}>{hint}</Hint>
     </div>

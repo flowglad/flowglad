@@ -1,20 +1,35 @@
 import React from 'react'
 import { useFormContext } from 'react-hook-form'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import { CloneCatalogInput } from '@/db/schema/catalogs'
 
 const CloneCatalogFormFields: React.FC = () => {
-  const {
-    register,
-    formState: { errors },
-  } = useFormContext<CloneCatalogInput>()
+  const form = useFormContext<CloneCatalogInput>()
+  
   return (
     <div className="flex flex-col gap-3">
-      <Input
-        label="Catalog Name"
-        required
-        {...register('name')}
-        error={errors.name?.message}
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel required>Catalog Name</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="Enter catalog name"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
     </div>
   )

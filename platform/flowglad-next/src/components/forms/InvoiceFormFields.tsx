@@ -1,6 +1,13 @@
 import { Calendar, ChevronDown } from 'lucide-react'
 import { encodeCursor } from '@/db/tableUtils'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import Select from '@/components/ion/Select'
 import Textarea from '@/components/ion/Textarea'
 import { InvoiceFormLineItemsField } from './InvoiceFormLineItemsField'
@@ -62,11 +69,11 @@ const InvoiceFormFields = ({
     }
   )
   const customerOptions = selectOptionsFromCustomers(customer, data)
-  const { control, register, watch, setValue } = useFormContext<{
+  const form = useFormContext<{
     invoice: Invoice.Insert
     autoSend: boolean
   }>()
-  const customerId = watch('invoice.customerId')
+  const customerId = form.watch('invoice.customerId')
   const { data: associatedCustomerData } =
     trpc.customers.internal__getById.useQuery(
       { id: customerId! },
@@ -90,7 +97,7 @@ const InvoiceFormFields = ({
   const [dueOption, setDueOption] = useState('On Receipt')
   useEffect(() => {
     if (totalInvoicesForCustomer > 0 && invoiceNumberBase) {
-      setValue(
+      form.setValue(
         'invoice.invoiceNumber',
         core.createInvoiceNumber(
           invoiceNumberBase,
@@ -98,104 +105,138 @@ const InvoiceFormFields = ({
         )
       )
     }
-  }, [totalInvoicesForCustomer, invoiceNumberBase, setValue])
+  }, [totalInvoicesForCustomer, invoiceNumberBase, form.setValue])
   return (
     <>
       <div className="w-full flex items-start gap-2.5">
-        <Input
-          label="Bill From"
-          value={organization!.name}
-          className="flex-1"
-          disabled
-        />
-        <Controller
+        <div className="flex-1">
+          <FormItem>
+            <FormLabel>Bill From</FormLabel>
+            <FormControl>
+              <Input
+                value={organization!.name}
+                disabled
+                className="w-full"
+              />
+            </FormControl>
+          </FormItem>
+        </div>
+        <FormField
+          control={form.control}
           name="invoice.customerId"
-          control={control}
           render={({ field }) => (
-            <Select
-              {...field}
-              placeholder="placeholder"
-              options={customerOptions}
-              label="Bill To"
-              className="flex-1"
-              defaultValue={customer?.id}
-              disabled={!!customer}
-              value={field.value?.toString()}
-              onValueChange={(value) => field.onChange(Number(value))}
-            />
+            <FormItem className="flex-1">
+              <FormLabel>Bill To</FormLabel>
+              <FormControl>
+                <Select
+                  {...field}
+                  placeholder="placeholder"
+                  options={customerOptions}
+                  className="flex-1"
+                  defaultValue={customer?.id}
+                  disabled={!!customer}
+                  value={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(Number(value))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       </div>
       <div className="w-full flex items-start gap-2.5">
-        <Controller
+        <FormField
+          control={form.control}
           name="invoice.invoiceDate"
-          control={control}
           render={({ field }) => (
-            <Datepicker
-              {...field}
-              onSelect={(value) =>
-                field.onChange(value ? value.toISOString() : '')
-              }
-              value={field.value ? new Date(field.value) : undefined}
-              iconTrailing={<ChevronDown size={16} />}
-              iconLeading={<Calendar size={16} />}
-              label="Issued On"
-              className="flex-1 w-full"
-            />
+            <FormItem className="flex-1 w-full">
+              <FormLabel>Issued On</FormLabel>
+              <FormControl>
+                <Datepicker
+                  {...field}
+                  onSelect={(value) =>
+                    field.onChange(value ? value.toISOString() : '')
+                  }
+                  value={field.value ? new Date(field.value) : undefined}
+                  iconTrailing={<ChevronDown size={16} />}
+                  iconLeading={<Calendar size={16} />}
+                  className="flex-1 w-full"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
-        <Input
-          {...register('invoice.invoiceNumber')}
-          placeholder="0000"
-          label="Invoice #"
-          className="flex-1 w-full"
+        <FormField
+          control={form.control}
+          name="invoice.invoiceNumber"
+          render={({ field }) => (
+            <FormItem className="flex-1 w-full">
+              <FormLabel>Invoice #</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="0000"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
       </div>
       <div className="w-full flex flex-row items-start gap-2.5">
-        <Controller
+        <FormField
+          control={form.control}
           name="invoice.ownerMembershipId"
-          control={control}
           render={({ field }) => (
-            <ConnectedSelect
-              {...field}
-              value={field.value?.toString()}
-              fetchOptionData={async () => {
-                const { data: membersData } = await refetch()
-                return membersData?.data
-              }}
-              label="Owner"
-              mapDataToOptions={(data) => {
-                return (
-                  data?.map((member) => ({
-                    label: member.user.name ?? '',
-                    value: member.membership.id,
-                  })) ?? []
-                )
-              }}
-              className="flex-1"
-              defaultValueFromData={(data) => {
-                return (data ?? [])[0]?.membership.id ?? ''
-              }}
-              onValueChange={(value) => field.onChange(value ?? '')}
-            />
+            <FormItem className="flex-1">
+              <FormLabel>Owner</FormLabel>
+              <FormControl>
+                <ConnectedSelect
+                  {...field}
+                  value={field.value?.toString()}
+                  fetchOptionData={async () => {
+                    const { data: membersData } = await refetch()
+                    return membersData?.data
+                  }}
+                  mapDataToOptions={(data) => {
+                    return (
+                      data?.map((member) => ({
+                        label: member.user.name ?? '',
+                        value: member.membership.id,
+                      })) ?? []
+                    )
+                  }}
+                  className="flex-1"
+                  defaultValueFromData={(data) => {
+                    return (data ?? [])[0]?.membership.id ?? ''
+                  }}
+                  onValueChange={(value) => field.onChange(value ?? '')}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
-        <Controller
+        <FormField
+          control={form.control}
           name="invoice.bankPaymentOnly"
-          control={control}
           render={({ field }) => (
-            <div className="flex flex-col items-start gap-2 flex-1">
-              <Label>Bank Payment Only</Label>
-              <Switch
-                checked={Boolean(field.value)}
-                onCheckedChange={field.onChange}
-                label={
-                  <div className="cursor-pointer w-full">
-                    Only accept payment via ACH or Wire.
-                  </div>
-                }
-              />
-            </div>
+            <FormItem className="flex-1">
+              <FormLabel>Bank Payment Only</FormLabel>
+              <FormControl>
+                <Switch
+                  checked={Boolean(field.value)}
+                  onCheckedChange={field.onChange}
+                  label={
+                    <div className="cursor-pointer w-full">
+                      Only accept payment via ACH or Wire.
+                    </div>
+                  }
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       </div>
@@ -217,43 +258,53 @@ const InvoiceFormFields = ({
           value={dueOption}
           onValueChange={(value) => setDueOption(value)}
         />
-        <Controller
+        <FormField
+          control={form.control}
           name="invoice.dueDate"
-          control={control}
           render={({ field }) => (
-            <Datepicker
-              {...field}
-              onSelect={(value) =>
-                field.onChange(value ? value.toISOString() : '')
-              }
-              value={field.value ? new Date(field.value) : undefined}
-              iconTrailing={<ChevronDown size={16} />}
-              iconLeading={<Calendar size={16} />}
-              label="Due Date"
-              className={clsx(
-                'flex-1',
-                dueOption !== 'Custom Date' && 'opacity-0'
-              )}
-              disabled={dueOption !== 'Custom Date'}
-            />
+            <FormItem className={clsx(
+              'flex-1',
+              dueOption !== 'Custom Date' && 'opacity-0'
+            )}>
+              <FormLabel>Due Date</FormLabel>
+              <FormControl>
+                <Datepicker
+                  {...field}
+                  onSelect={(value) =>
+                    field.onChange(value ? value.toISOString() : '')
+                  }
+                  value={field.value ? new Date(field.value) : undefined}
+                  iconTrailing={<ChevronDown size={16} />}
+                  iconLeading={<Calendar size={16} />}
+                  className="flex-1"
+                  disabled={dueOption !== 'Custom Date'}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       </div>
       {!editMode && (
-        <Controller
+        <FormField
+          control={form.control}
           name="autoSend"
-          control={control}
           render={({ field }) => (
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                id="auto-send"
-              />
-              <Label htmlFor="auto-send">
-                Email invoice to customer after creation
-              </Label>
-            </div>
+            <FormItem>
+              <div className="flex items-center gap-2">
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    id="auto-send"
+                  />
+                </FormControl>
+                <FormLabel htmlFor="auto-send">
+                  Email invoice to customer after creation
+                </FormLabel>
+              </div>
+              <FormMessage />
+            </FormItem>
           )}
         />
       )}
@@ -266,17 +317,22 @@ const InvoiceFormFields = ({
       </div>
       <div className="w-full flex items-start py-6">
         <div className="flex-1 w-full flex flex-col justify-center gap-6">
-          <Controller
+          <FormField
+            control={form.control}
             name="invoice.memo"
-            control={control}
             render={({ field }) => (
-              <Textarea
-                {...field}
-                placeholder="Add scope of work and other notes"
-                label="Memo"
-                className="w-full"
-                value={field.value ?? ''}
-              />
+              <FormItem>
+                <FormLabel>Memo</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder="Add scope of work and other notes"
+                    className="w-full"
+                    value={field.value ?? ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
         </div>

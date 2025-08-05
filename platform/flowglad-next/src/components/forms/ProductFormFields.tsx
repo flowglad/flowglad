@@ -1,9 +1,17 @@
-import Input from '@/components/ion/Input'
-import Label from '@/components/ion/Label'
-import Textarea from '@/components/ion/Textarea'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form'
+
 import FileInput from '@/components/FileInput'
 import PriceFormFields from '@/components/forms/PriceFormFields'
-import { Controller, useFormContext } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import Switch from '../ion/Switch'
 import StatusBadge from '../StatusBadge'
@@ -17,17 +25,11 @@ export const ProductFormFields = ({
 }: {
   editProduct?: boolean
 }) => {
-  const {
-    register,
-    formState: { errors },
-    setValue,
-    watch,
-    control,
-  } = useFormContext<CreateProductSchema>()
-  const product = watch('product')
-  if (!core.IS_PROD && Object.keys(errors).length > 0) {
+  const form = useFormContext<CreateProductSchema>()
+  const product = form.watch('product')
+  if (!core.IS_PROD && Object.keys(form.formState.errors).length > 0) {
     // eslint-disable-next-line no-console
-    console.log('errors', errors)
+    console.log('errors', form.formState.errors)
   }
   return (
     <div className="relative flex justify-between items-center gap-2.5 bg-background">
@@ -47,60 +49,87 @@ export const ProductFormFields = ({
                 header: <div>General</div>,
                 content: (
                   <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
-                    <Input
-                      placeholder="Product"
-                      label="Name"
-                      {...register('product.name')}
-                      className="w-full"
-                      error={errors.product?.name?.message}
+                    <FormField
+                      control={form.control}
+                      name="product.name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Product"
+                              className="w-full"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <Textarea
-                      placeholder="Product description"
-                      label="Description"
-                      className="w-full"
-                      {...register('product.description')}
-                      error={errors.product?.description?.message}
-                      rightLabelElement={
-                        <AIHoverModal
-                          productName={product.name}
-                          triggerLabel="Generate"
-                          onGenerateComplete={(result) => {
-                            setValue('product.description', result)
-                          }}
-                        />
-                      }
-                      hint="Details about your product that will be displayed on the purchase page."
+                    <FormField
+                      control={form.control}
+                      name="product.description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Description</FormLabel>
+                            <AIHoverModal
+                              productName={product.name}
+                              triggerLabel="Generate"
+                              onGenerateComplete={(result) => {
+                                form.setValue('product.description', result)
+                              }}
+                            />
+                          </div>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Product description"
+                              className="w-full"
+                              {...field}
+                              value={field.value || ''}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Details about your product that will be displayed on the purchase page.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                     {!editProduct && (
                       <div className="w-full relative flex flex-col gap-3">
                         <CatalogSelect
                           name="product.catalogId"
-                          control={control}
+                          control={form.control}
                         />
                       </div>
                     )}
                     {editProduct && (
-                      <div className="w-full relative flex flex-col gap-3">
-                        <Label>Status</Label>
-                        <Controller
-                          name="product.active"
-                          render={({ field }) => (
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              label={
-                                <div className="cursor-pointer w-full">
-                                  {field.value ? (
-                                    <StatusBadge active={true} />
-                                  ) : (
-                                    <StatusBadge active={false} />
-                                  )}
-                                </div>
-                              }
-                            />
-                          )}
-                        />
-                      </div>
+                      <FormField
+                        control={form.control}
+                        name="product.active"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                label={
+                                  <div className="cursor-pointer w-full">
+                                    {field.value ? (
+                                      <StatusBadge active={true} />
+                                    ) : (
+                                      <StatusBadge active={false} />
+                                    )}
+                                  </div>
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
                   </div>
                 ),
@@ -117,10 +146,10 @@ export const ProductFormFields = ({
                   <FileInput
                     directory="products"
                     onUploadComplete={({ publicURL }) => {
-                      setValue('product.imageURL', publicURL)
+                      form.setValue('product.imageURL', publicURL)
                     }}
                     onUploadDeleted={() => {
-                      setValue('product.imageURL', '')
+                      form.setValue('product.imageURL', '')
                     }}
                     fileTypes={[
                       'png',

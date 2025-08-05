@@ -2,7 +2,14 @@
 
 import { useFormContext, Controller } from 'react-hook-form'
 import { CreateDiscountInput } from '@/db/schema/discounts'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import { Select } from '@/components/ion/Select'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import NumberInput from '@/components/ion/NumberInput'
@@ -23,7 +30,6 @@ export default function DiscountFormFields({
     formState: { errors },
     watch,
     control,
-    register,
   } = form
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
@@ -34,19 +40,41 @@ export default function DiscountFormFields({
   }
   return (
     <div className="space-y-4">
-      <Input
-        label="Name"
-        placeholder="Your Discount's Name"
-        {...register('discount.name')}
+      <FormField
+        control={control}
+        name="discount.name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="Your Discount's Name"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
-      <Input
-        label="Code"
-        placeholder="Your Discount's Code"
-        {...register('discount.code')}
-        onBlur={() => {
-          const value = form.getValues('discount.code')
-          form.setValue('discount.code', value.toUpperCase())
-        }}
+      <FormField
+        control={control}
+        name="discount.code"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Code</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="Your Discount's Code"
+                {...field}
+                onBlur={() => {
+                  const value = form.getValues('discount.code')
+                  form.setValue('discount.code', value.toUpperCase())
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
       <div className="flex gap-4">
         <Controller

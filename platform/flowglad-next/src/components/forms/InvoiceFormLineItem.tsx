@@ -3,7 +3,12 @@
 'use client'
 import { GripVertical, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormControl,
+} from '@/components/ui/form'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import clsx from 'clsx'
@@ -27,11 +32,10 @@ const InvoiceFormLineItem = ({
   onRemove,
   disableRemove = false,
 }: InvoiceFormLineItemProps) => {
-  const { watch, control, register } =
-    useFormContext<CreateInvoiceInput>()
+  const form = useFormContext<CreateInvoiceInput>()
   const { organization } = useAuthenticatedContext()
-  const quantity = watch(`invoiceLineItems.${index}.quantity`)
-  const price = watch(`invoiceLineItems.${index}.price`)
+  const quantity = form.watch(`invoiceLineItems.${index}.quantity`)
+  const price = form.watch(`invoiceLineItems.${index}.price`)
   const {
     attributes,
     listeners,
@@ -60,27 +64,28 @@ const InvoiceFormLineItem = ({
       )}
     >
       <div className="flex flex-row gap-2 min-w-80">
-        <Controller
+        <FormField
+          control={form.control}
           name={`invoiceLineItems.${index}.description`}
-          control={control}
-          render={({ field }) => {
-            return (
-              <Input
-                placeholder="Item/Service name"
-                value={field.value ?? ''}
-                onChange={(e) => {
-                  field.onChange(e.target.value)
-                }}
-                className="flex-1 min-w-20"
-                inputClassName="h-9"
-              />
-            )
-          }}
+          render={({ field }) => (
+            <FormItem className="flex-1 min-w-20">
+              <FormControl>
+                <Input
+                  placeholder="Item/Service name"
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    field.onChange(e.target.value)
+                  }}
+                  className="h-9"
+                />
+              </FormControl>
+            </FormItem>
+          )}
         />
       </div>
       <Controller
         name={`invoiceLineItems.${index}.quantity`}
-        control={control}
+        control={form.control}
         render={({ field }) => {
           return (
             <NumberInput
@@ -100,7 +105,7 @@ const InvoiceFormLineItem = ({
       />
       <ControlledCurrencyInput
         name={`invoiceLineItems.${index}.price`}
-        control={control}
+        control={form.control}
         className="w-[100px]"
       />
       <div className="w-20 flex items-center">

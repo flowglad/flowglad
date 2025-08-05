@@ -2,20 +2,34 @@
 
 import { useFormContext } from 'react-hook-form'
 import { CreateApiKeyInput } from '@/db/schema/apiKeys'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 
 const ApiKeyFormFields = () => {
-  const {
-    register,
-    formState: { errors },
-  } = useFormContext<CreateApiKeyInput>()
+  const form = useFormContext<CreateApiKeyInput>()
   return (
     <div className="flex flex-col gap-4">
-      <Input
-        {...register('apiKey.name')}
-        label="Name"
-        placeholder="e.g. Production API Key"
-        error={errors.apiKey?.name?.message}
+      <FormField
+        control={form.control}
+        name="apiKey.name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="e.g. Production API Key"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
     </div>
   )
