@@ -1,27 +1,50 @@
 import React from 'react'
 import { useFormContext } from 'react-hook-form'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import { InviteUserToOrganizationInput } from '@/db/schema/memberships'
 
 const InviteUserToOrganizationFormFields: React.FC = () => {
-  const {
-    register,
-    formState: { errors },
-  } = useFormContext<InviteUserToOrganizationInput>()
+  const form = useFormContext<InviteUserToOrganizationInput>()
+
   return (
     <div className="flex flex-col gap-3">
-      <Input
-        label="Email"
-        type="email"
-        required
-        {...register('email')}
-        error={errors.email?.message}
+      <FormField
+        control={form.control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel required>Email</FormLabel>
+            <FormControl>
+              <Input
+                type="email"
+                placeholder="Enter email"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
-      <Input
-        label="Name"
-        required
-        {...register('name')}
-        error={errors.name?.message}
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel required>Name</FormLabel>
+            <FormControl>
+              <Input placeholder="Enter name" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
     </div>
   )
