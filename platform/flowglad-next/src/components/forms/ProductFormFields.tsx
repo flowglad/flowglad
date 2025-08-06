@@ -54,6 +54,13 @@ export const ProductFormFields = ({
                       className="w-full"
                       error={errors.product?.name?.message}
                     />
+                    <Input
+                      placeholder="Product"
+                      label="Name"
+                      {...register('product.slug')}
+                      className="w-full"
+                      error={errors.product?.slug?.message}
+                    />
                     <Textarea
                       placeholder="Product description"
                       label="Description"
