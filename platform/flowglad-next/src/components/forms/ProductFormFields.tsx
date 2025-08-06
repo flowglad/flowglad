@@ -55,9 +55,10 @@ export const ProductFormFields = ({
                       error={errors.product?.name?.message}
                     />
                     <Input
-                      placeholder="Product"
-                      label="Name"
+                      placeholder="product_slug"
+                      label="Product Slug"
                       {...register('product.slug')}
+                      hint="Used to identify the product in its catalog. Must be unique per-catalog."
                       className="w-full"
                       error={errors.product?.slug?.message}
                     />
