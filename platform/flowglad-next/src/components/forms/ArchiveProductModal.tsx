@@ -1,7 +1,7 @@
 'use client'
 
 import Modal from '@/components/ion/Modal'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import {
@@ -76,7 +76,6 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
         <div className="flex justify-end gap-3 w-full">
           <Button
             variant="outline"
-            color="neutral"
             onClick={() => setIsOpen(false)}
           >
             Cancel

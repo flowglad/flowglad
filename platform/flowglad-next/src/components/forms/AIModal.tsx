@@ -1,6 +1,6 @@
 'use client'
 import { Controller, useForm } from 'react-hook-form'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
 import { useEffect, useState } from 'react'
 import { ArrowUp, LoaderCircle } from 'lucide-react'

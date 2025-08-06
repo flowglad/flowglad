@@ -200,6 +200,7 @@ body {
     --background-start-rgb: 0, 0, 0;
     --background-end-rgb: 0, 0, 0;
     --background: #1b1b1b;
+    --background-input: #2b2b2b;
     --disabled: #1f1f1f;
     --overlay: rgba(11, 7, 7, 0.5);
     --container: #000000;
@@ -291,7 +292,7 @@ body {
     --accent-foreground: var(--on-primary-container);
     --destructive: var(--danger);
     --destructive-foreground: var(--on-danger);
-    --input: var(--stroke);
+    --input: var(--background-input);
     --ring: var(--primary);
     --muted: var(--neutral-container);
     --muted-foreground: var(--on-neutral-container);

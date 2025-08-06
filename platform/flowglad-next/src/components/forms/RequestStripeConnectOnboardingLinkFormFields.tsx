@@ -1,6 +1,12 @@
 'use client'
 
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Country,
   RequestStripeConnectOnboardingLinkInput,
@@ -26,13 +32,25 @@ const RequestStripeConnectOnboardingLinkFormFields: React.FC<{
       control={control}
       name="CountryId"
       render={({ field: { value, onChange } }) => (
-        <Select
-          options={countryOptions}
-          value={value ?? undefined}
-          onValueChange={onChange}
-          placeholder="Select Country"
-          error={errors.CountryId?.message}
-        />
+        <div>
+          <Select value={value ?? undefined} onValueChange={onChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Country" />
+            </SelectTrigger>
+            <SelectContent>
+              {countryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.CountryId?.message && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.CountryId?.message}
+            </p>
+          )}
+        </div>
       )}
     />
   )

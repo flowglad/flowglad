@@ -7,7 +7,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/utils/core'
 
 const labelVariants = cva(
-  'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+  'text-sm font-medium leading-none text-secondary peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
 )
 
 interface LabelProps
@@ -34,20 +34,20 @@ const Label = React.forwardRef<
   LabelProps
 >(
   (
-    { 
-      className, 
-      helper, 
-      required, 
-      disabled, 
+    {
+      className,
+      helper,
+      required,
+      disabled,
       description,
       descriptionId,
       labelClassName,
-      children, 
-      ...props 
+      children,
+      ...props
     },
     ref
   ) => (
-    <div className={cn("flex flex-col gap-1", className)}>
+    <div className={cn('flex flex-col gap-1', className)}>
       <div className="flex items-center gap-2">
         <LabelPrimitive.Root
           ref={ref}
@@ -59,7 +59,9 @@ const Label = React.forwardRef<
           {...props}
         >
           {children}
-          {required && <span className="text-destructive ml-1">*</span>}
+          {required && (
+            <span className="text-destructive ml-1">*</span>
+          )}
         </LabelPrimitive.Root>
         {helper && (
           <span

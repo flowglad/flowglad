@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '../ion/Popover'
-import Button from '../ion/Button'
+import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
 
 const HoverModal = ({
@@ -43,7 +43,6 @@ const HoverModal = ({
       <div className="flex w-full justify-end">
         <Button
           onClick={handleGenerate}
-          color="primary"
           size="sm"
           disabled={isLoading || generateDescription.isPending}
         >
@@ -62,7 +61,7 @@ const AIHoverModal: React.FC<{
   const [isOpen, setIsOpen] = useState(false)
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger>
+      <PopoverTrigger asChild>
         <div className="cursor-pointer text-sm">{triggerLabel}</div>
       </PopoverTrigger>
       <PopoverContent className="w-fit bg-black" align="end">

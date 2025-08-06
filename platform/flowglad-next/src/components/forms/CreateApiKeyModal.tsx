@@ -6,7 +6,7 @@ import ApiKeyFormFields from '@/components/forms/ApiKeyFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { Copy } from 'lucide-react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
 import { FlowgladApiKeyType } from '@/types'
 
 interface CreateApiKeyModalProps {
@@ -60,13 +60,14 @@ const CreateApiKeyModal = ({
             className="flex flex-row gap-4 items-center cursor-pointer w-full"
             onClick={copyTextHandler}
           >
-            <Input
-              value={rawApiKey}
-              readOnly
-              className="w-full pr-0 cursor-pointer"
-              inputClassName="cursor-pointer"
-              iconTrailing={<Copy size={16} />}
-            />
+            <div className="flex-1">
+              <Input
+                value={rawApiKey}
+                readOnly
+                className="w-full cursor-pointer"
+                iconTrailing={<Copy size={16} />}
+              />
+            </div>
           </div>
           {livemode ? (
             <p className="text-sm text-foreground text-orange-600">
