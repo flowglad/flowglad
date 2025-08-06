@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import InvoiceFormLineItem from './InvoiceFormLineItem'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { Plus, GripVertical } from 'lucide-react'
 import Label from '@/components/ion/Label'
 import { useFieldArray, useFormContext } from 'react-hook-form'
@@ -79,8 +79,7 @@ export const InvoiceFormLineItemsField = () => {
           <Button
             iconLeading={<GripVertical size={16} />}
             variant="ghost"
-            color="primary"
-            size="md"
+            size="default"
             className="opacity-0"
           />
           <Label className="flex-1">Item</Label>
@@ -116,7 +115,6 @@ export const InvoiceFormLineItemsField = () => {
       <Button
         iconLeading={<Plus size={16} />}
         variant="ghost"
-        color="primary"
         size="sm"
         onClick={addAnItemClickHandler}
       >

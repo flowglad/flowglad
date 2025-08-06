@@ -1,6 +1,12 @@
 import { Control, Controller, useFormContext } from 'react-hook-form'
 import Label from '../ion/Label'
-import Select from '../ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useListCatalogsQuery } from '@/app/hooks/useListCatalogsQuery'
 import { useEffect } from 'react'
 import { trpc } from '@/app/_trpc/client'
@@ -45,17 +51,28 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
           control={control}
           name={name}
           render={({ field }) => (
-            <Select
-              options={
-                catalogs?.data?.map((catalog) => ({
-                  label: catalog.name,
-                  value: catalog.id,
-                })) || []
-              }
-              value={field.value}
-              onValueChange={field.onChange}
-              error={errors[name]?.message as string | undefined}
-            />
+            <div>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {catalogs?.data?.map((catalog) => (
+                    <SelectItem key={catalog.id} value={catalog.id}>
+                      {catalog.name}
+                    </SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
+              {errors[name]?.message && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors[name]?.message as string}
+                </p>
+              )}
+            </div>
           )}
         />
       )}

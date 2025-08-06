@@ -8,7 +8,7 @@ import {
   DefaultValues,
   UseFormReturn,
 } from 'react-hook-form'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Modal, { ModalInterfaceProps } from '../ion/Modal'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
@@ -107,9 +107,8 @@ export const NestedFormModal = <T extends FieldValues>({
   const footer = (
     <div className="flex flex-1 justify-end gap-2 w-full">
       <Button
-        variant="soft"
-        color="neutral"
-        size="md"
+        variant="secondary"
+        size="default"
         onClick={() => {
           if (form) {
             form.reset(defaultValues)
@@ -120,9 +119,8 @@ export const NestedFormModal = <T extends FieldValues>({
         Cancel
       </Button>
       <Button
-        variant="filled"
-        color="primary"
-        size="md"
+        variant="default"
+        size="default"
         disabled={form?.formState.isSubmitting}
         onClick={async (e) => {
           e.preventDefault()
@@ -242,9 +240,8 @@ const FormModal = <T extends FieldValues>({
   const footer = (
     <div className="flex flex-1 justify-end gap-2 w-full">
       <Button
-        variant="soft"
-        color="neutral"
-        size="md"
+        variant="secondary"
+        size="default"
         onClick={() => {
           form.reset(defaultValues)
           setIsOpen(false)
@@ -253,9 +250,8 @@ const FormModal = <T extends FieldValues>({
         Cancel
       </Button>
       <Button
-        variant="filled"
-        color="primary"
-        size="md"
+        variant="default"
+        size="default"
         type="submit"
         form={id}
         disabled={isSubmitting}
