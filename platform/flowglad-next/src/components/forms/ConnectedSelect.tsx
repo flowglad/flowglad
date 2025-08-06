@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import Label from '@/components/ion/Label'
 
 interface Option {
   label: string
@@ -32,12 +33,14 @@ interface ConnectedSelectProps<T>
   fetchOptionData: () => Promise<T>
   mapDataToOptions: (data: T) => Option[]
   defaultValueFromData: (data: T) => string
+  label?: string
 }
 
 const ConnectedSelect = <T,>({
   fetchOptionData,
   mapDataToOptions,
   defaultValueFromData,
+  label,
   ...props
 }: ConnectedSelectProps<T>) => {
   const [options, setOptions] = useState<Option[]>([])
@@ -52,18 +55,21 @@ const ConnectedSelect = <T,>({
   }, [fetchOptionData, mapDataToOptions, defaultValueFromData])
 
   return (
-    <Select value={defaultValue} {...props}>
-      <SelectTrigger>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="w-full">
+      {label && <Label className="mb-1">{label}</Label>}
+      <Select value={defaultValue} {...props}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   )
 }
 
