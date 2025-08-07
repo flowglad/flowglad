@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -8,9 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import NumberInput from '@/components/ion/NumberInput'
-import { Controller, FieldError } from 'react-hook-form'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 
 const TrialFields = () => {
@@ -93,24 +99,26 @@ const TrialFields = () => {
             </Select>
           </div>
           {trialType === 'time' && (
-            <Controller
+            <FormField
               name="price.trialPeriodDays"
               control={control}
-              render={({ field }) => (
-                <NumberInput
-                  {...field}
-                  onChange={(e) => {
-                    field.onChange(Number(e.target.value))
-                  }}
-                  label="Trial Period Days"
-                  min={1}
-                  max={365}
-                  step={1}
-                  error={
-                    (errors.price?.trialPeriodDays as FieldError)
-                      ?.message
-                  }
-                />
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <FormLabel>Trial Period Days</FormLabel>
+                  <FormControl>
+                    <NumberInput
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(Number(e.target.value))
+                      }}
+                      min={1}
+                      max={365}
+                      step={1}
+                      error={fieldState.error?.message}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
           )}

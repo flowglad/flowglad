@@ -17,8 +17,9 @@ import {
 } from '@dnd-kit/sortable'
 import InvoiceFormLineItem from './InvoiceFormLineItem'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { Plus, GripVertical } from 'lucide-react'
-import Label from '@/components/ion/Label'
+
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import {
   CreateInvoiceInput,

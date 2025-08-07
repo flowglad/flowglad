@@ -27,7 +27,7 @@ import { useEffect, useState } from 'react'
 import { Customer } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
 import { Switch } from '@/components/ui/switch'
-import Label from '../ion/Label'
+
 import Badge from '../ion/Badge'
 import ConnectedSelect from './ConnectedSelect'
 import core from '@/utils/core'
@@ -265,7 +265,7 @@ const InvoiceFormFields = ({
       </div>
       <div className="w-full flex flex-row items-start gap-2.5">
         <div className="flex-1">
-          <Label>Due</Label>
+          <FormLabel>Due</FormLabel>
           <Select
             value={dueOption}
             onValueChange={(value) => setDueOption(value)}

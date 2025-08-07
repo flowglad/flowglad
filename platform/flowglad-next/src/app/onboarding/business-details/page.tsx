@@ -1,10 +1,10 @@
 // Generated with Ion on 11/18/2024, 2:07:04 PM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1303:14448
 'use client'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import Button from '@/components/ion/Button'
-import Input from '@/components/ion/Input'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { trpc } from '@/app/_trpc/client'
 import {
   createOrganizationSchema,
@@ -13,19 +13,27 @@ import {
 import ErrorLabel from '@/components/ErrorLabel'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/contexts/authContext'
-import { Select } from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  FormField,
+  FormItem,
+  FormControl,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form'
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const { data } = trpc.countries.list.useQuery()
   const { setOrganization, user } = useAuthContext()
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors, isSubmitting },
-    setError,
-  } = useForm<CreateOrganizationInput>({
+  const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
     defaultValues: {
       organization: {
@@ -34,7 +42,7 @@ const BusinessDetails = () => {
     },
   })
   const router = useRouter()
-  const onSubmit = handleSubmit(async (data) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       const { organization } =
         await createOrganization.mutateAsync(data)
@@ -42,7 +50,7 @@ const BusinessDetails = () => {
       router.refresh()
       router.push('/onboarding')
     } catch (error) {
-      setError('root', { message: (error as Error).message })
+      form.setError('root', { message: (error as Error).message })
     }
   })
 
@@ -63,40 +71,71 @@ const BusinessDetails = () => {
             className="w-[380px] flex flex-col gap-6"
           >
             <div className="w-full flex flex-col gap-4">
-              <Input
-                placeholder="Your Company"
-                required
-                label="What's your business name?"
-                error={errors.organization?.name?.message}
-                {...register('organization.name')}
-                className="w-full"
+              <FormField
+                control={form.control}
+                name="organization.name"
+                render={({ field, fieldState }) => (
+                  <FormItem>
+                    <FormLabel required>
+                      What&apos;s your business name?
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Your Company"
+                        {...field}
+                        className="w-full"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <Controller
-                control={control}
+              <FormField
+                control={form.control}
                 name="organization.countryId"
-                render={({ field: { value, onChange } }) => (
-                  <Select
-                    options={countryOptions}
-                    value={value ?? undefined}
-                    onValueChange={onChange}
-                    placeholder="Select Country"
-                    error={errors.organization?.countryId?.message}
-                    hint="Used to determine your default currency"
-                  />
+                render={({ field, fieldState }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value ?? undefined}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countryOptions.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                    <FormDescription>
+                      Used to determine your default currency
+                    </FormDescription>
+                  </FormItem>
                 )}
               />
             </div>
             <Button
-              variant="filled"
-              color="primary"
-              size="md"
+              variant="default"
+              size="default"
               type="submit"
-              disabled={isSubmitting}
+              disabled={form.formState.isSubmitting}
               className="w-full"
             >
               Continue
             </Button>
-            {errors.root && <ErrorLabel error={errors.root} />}
+            {form.formState.errors.root && (
+              <ErrorLabel error={form.formState.errors.root} />
+            )}
           </form>
         </div>
       </div>

@@ -7,10 +7,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { trpc } from '@/app/_trpc/client'
 import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
 import { z } from 'zod'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ion/Skeleton'
 import ErrorLabel from '@/components/ErrorLabel'
-import { RadioGroup, RadioGroupItem } from '@/components/ion/Radio'
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group'
 
 type FormValues = z.infer<typeof updateFocusedMembershipSchema>
 
@@ -123,11 +126,13 @@ const SelectOrganizationPage = () => {
                       key={org.id}
                       className="flex items-center gap-2"
                     >
-                      <RadioGroupItem
-                        value={org.id}
-                        label={org.name}
-                        id={org.id}
-                      />
+                      <RadioGroupItem value={org.id} id={org.id} />
+                      <label
+                        htmlFor={org.id}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {org.name}
+                      </label>
                     </div>
                   ))}
                 </RadioGroup>
@@ -144,7 +149,6 @@ const SelectOrganizationPage = () => {
               type="submit"
               disabled={isSubmitting || !selectedOrganizationId}
               className="w-full"
-              loading={isSubmitting}
             >
               {isSubmitting ? 'Switching...' : 'Switch Organization'}
             </Button>

@@ -11,7 +11,7 @@ import { Price } from '@/db/schema/prices'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { Pencil, Ellipsis } from 'lucide-react'
 import PopoverMenu, {
   PopoverMenuItem,
