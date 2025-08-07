@@ -1,7 +1,7 @@
 // Generated with Ion on 9/20/2024, 10:31:46 PM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=372:12322
 'use client'
-import { Plus } from 'lucide-react'
+import { Map, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Tabs, TabsList, TabsContent } from '@/components/ion/Tab'
 import Button from '@/components/ion/Button'
@@ -11,7 +11,7 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import CustomersTable from './CustomersTable'
 import PageTitle from '@/components/ion/PageTitle'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-
+import { useRouter } from 'next/navigation'
 import { Tab } from '@/components/ion/Tab'
 
 interface CustomerTabProps {
@@ -31,6 +31,7 @@ const CustomerTab = ({ label, isActive }: CustomerTabProps) => {
 
 function Internal() {
   const { organization } = useAuthenticatedContext()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('all')
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] =
     useState(false)
@@ -57,12 +58,21 @@ function Internal() {
           <Breadcrumb />
           <div className="flex flex-row justify-between">
             <PageTitle>Customers</PageTitle>
-            <Button
-              iconLeading={<Plus size={16} />}
-              onClick={() => setIsCreateCustomerOpen(true)}
-            >
-              Create Customer
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                iconLeading={<Map size={16} />}
+                onClick={() => router.push('/customers/map')}
+              >
+                View Map
+              </Button>
+              <Button
+                iconLeading={<Plus size={16} />}
+                onClick={() => setIsCreateCustomerOpen(true)}
+              >
+                Create Customer
+              </Button>
+            </div>
           </div>
           <div>
             <CustomersTable filters={getFiltersForTab(activeTab)} />
