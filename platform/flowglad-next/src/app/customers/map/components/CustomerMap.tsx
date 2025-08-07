@@ -15,10 +15,7 @@ import { MAP_CONSTANTS } from '../utils/constants'
 import {
   GeocodedCustomer,
   MapState,
-  ActivityItem,
-  ActivityType,
 } from '../utils/types'
-import { NewActivityFeed } from './NewActivityFeed'
 
 export interface CustomerMapProps {
   geocodedCustomers: GeocodedCustomer[]
@@ -26,6 +23,7 @@ export interface CustomerMapProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onRefresh: () => void
+	isCustomerMapDataLoading: boolean
 }
 
 export function CustomerMap({
@@ -34,6 +32,7 @@ export function CustomerMap({
   searchQuery,
   onSearchChange,
   onRefresh,
+	isCustomerMapDataLoading
 }: CustomerMapProps) {
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -48,40 +47,6 @@ export function CustomerMap({
     useState<GeocodedCustomer | null>(null)
   const [isGlobeSpinning, setIsGlobeSpinning] = useState(false)
   const [userInteracting, setUserInteracting] = useState(false)
-  const [activities, setActivities] = useState<ActivityItem[]>([])
-  const [previousCustomerIds, setPreviousCustomerIds] = useState<
-    Set<string>
-  >(new Set())
-
-  useEffect(() => {
-    if (!geocodedCustomers.length) return
-
-    const currentCustomerIds = new Set(
-      geocodedCustomers.map((c) => c.id)
-    )
-
-    if (previousCustomerIds.size === 0) {
-      setPreviousCustomerIds(currentCustomerIds)
-      return
-    }
-
-    const newCustomers = geocodedCustomers.filter(
-      (customer) => !previousCustomerIds.has(customer.id)
-    )
-
-    if (newCustomers.length > 0) {
-      const newActivities = newCustomers.map((customer) => ({
-        id: `${customer.id}-${Date.now()}`,
-        customer,
-        type: ActivityType.NewCustomer,
-        timestamp: new Date(),
-      }))
-
-      setActivities((prev) => [...prev, ...newActivities])
-    }
-
-    setPreviousCustomerIds(currentCustomerIds)
-  }, [geocodedCustomers])
 
   const refreshMapData = useCallback(() => {
     setSelectedCustomer(null)
@@ -118,15 +83,6 @@ export function CustomerMap({
     [isGlobeSpinning]
   )
 
-  const handleDismissActivity = useCallback((activityId: string) => {
-    setActivities((prev) =>
-      prev.filter((activity) => activity.id !== activityId)
-    )
-  }, [])
-
-  const handleClearAllActivities = useCallback(() => {
-    setActivities([])
-  }, [])
 
   const handleResetMap = useCallback(() => {
     if (!mapRef.current) return
@@ -322,13 +278,13 @@ export function CustomerMap({
         className="w-full h-full relative"
         style={{ minHeight: '400px' }}
       >
-        {!isMapLoaded && (
+        {!isMapLoaded && !isCustomerMapDataLoading && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
             <div className="bg-container p-4 rounded-radius shadow-lg">
               <div className="flex items-center gap-2">
                 <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
                 <span className="text-foreground">
-                  Loading map...
+                  Loading data...
                 </span>
               </div>
             </div>
@@ -351,12 +307,6 @@ export function CustomerMap({
             onClose={() => setSelectedCustomer(null)}
           />
         )}
-
-				<NewActivityFeed
-          activities={activities}
-          onDismiss={handleDismissActivity}
-          onClearAll={handleClearAllActivities}
-        />
       </div>
     </div>
   )

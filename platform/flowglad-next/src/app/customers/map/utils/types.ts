@@ -17,14 +17,3 @@ export interface MapConstants {
   MARKER_COLOR_INACTIVE: string
 }
 
-export enum ActivityType {
-  NewCustomer = 'new_customer',
-  SubscriptionStatusChanged = 'subscription_status_changed',
-}
-
-export interface ActivityItem {
-  id: string
-  customer: GeocodedCustomer
-  type: ActivityType
-  timestamp: Date
-}
