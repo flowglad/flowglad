@@ -11,7 +11,7 @@ import {
   PriceType,
 } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { FallbackSkeleton } from './Skeleton'
+import { FallbackSkeleton } from '../ui/skeleton'
 import {
   calculatePriceBaseAmount,
   calculateDiscountAmount,

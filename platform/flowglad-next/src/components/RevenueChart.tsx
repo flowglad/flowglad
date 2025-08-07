@@ -18,7 +18,7 @@ import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import { FallbackSkeleton, Skeleton } from './ion/Skeleton'
+import { FallbackSkeleton, Skeleton } from './ui/skeleton'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
 

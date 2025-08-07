@@ -9,7 +9,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Mention from '@tiptap/extension-mention'
 import type { Classification } from '@/ai/classify'
 import { ChatMessageSubcomponent } from './ChatMessageSubcomponent'
-import { Skeleton } from './ion/Skeleton'
+import { Skeleton } from './ui/skeleton'
 
 export interface ChatMessageProps {
   id: string

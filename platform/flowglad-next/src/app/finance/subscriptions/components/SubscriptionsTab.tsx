@@ -1,7 +1,7 @@
 import { Tab } from '@/components/ion/Tab'
 import { SubscriptionStatus } from '@/types'
 import { useSubscriptionCountsByStatusMap } from '../hooks/useSubscriptionCountsByStatusMap'
-import { FallbackSkeleton } from '@/components/ion/Skeleton'
+import { FallbackSkeleton } from '@/components/ui/skeleton'
 import { sentenceCase } from 'change-case'
 
 interface SubscriptionsTabProps {

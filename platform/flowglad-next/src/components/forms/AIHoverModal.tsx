@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import Textarea from '@/components/ion/Textarea'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Popover,
   PopoverContent,

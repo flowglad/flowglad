@@ -50,7 +50,7 @@
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-label": "2.1.4",
     "@radix-ui/react-navigation-menu": "^1.2.0",
-    "@radix-ui/react-popover": "^1.1.2",
+    "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-radio-group": "^1.2.0",
     "@radix-ui/react-select": "^2.1.1",
@@ -186,7 +186,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "5.5.4",
     "vite": "6.0.11",
-    "vitest": "3.0.5"
+    "vitest": "3.0.5",
+    "zlib-sync": "^0.1.9"
   },
   "pnpm": {
     "overrides": {
