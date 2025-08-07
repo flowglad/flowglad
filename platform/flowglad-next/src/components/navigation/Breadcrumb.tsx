@@ -91,7 +91,6 @@ const noCrumbList = [
   'finance',
   'catalog',
   'store',
-  'customers',
   'settings',
 ]
 

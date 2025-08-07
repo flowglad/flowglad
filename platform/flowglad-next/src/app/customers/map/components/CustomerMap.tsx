@@ -18,6 +18,7 @@ import {
   ActivityItem,
   ActivityType,
 } from '../utils/types'
+import { NewActivityFeed } from './NewActivityFeed'
 
 export interface CustomerMapProps {
   geocodedCustomers: GeocodedCustomer[]
@@ -350,6 +351,12 @@ export function CustomerMap({
             onClose={() => setSelectedCustomer(null)}
           />
         )}
+
+				<NewActivityFeed
+          activities={activities}
+          onDismiss={handleDismissActivity}
+          onClearAll={handleClearAllActivities}
+        />
       </div>
     </div>
   )
