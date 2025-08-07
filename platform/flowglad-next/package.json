@@ -115,6 +115,7 @@
     "jszip": "^3.10.1",
     "loops": "^5.0.0",
     "lucide-react": "0.479.0",
+    "mapbox-gl": "^3.14.0",
     "nanoid": "^5.0.7",
     "next": "15.2.3",
     "octokit": "4.1.2",
