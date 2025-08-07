@@ -7,11 +7,15 @@ import { SubscriptionStatus } from '@/types'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { trpc } from '@/app/_trpc/client'
 import { useState } from 'react'
-import { Tabs, TabsContent, TabsList } from '@/components/ion/Tab'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import Badge from '@/components/ion/Badge'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import { SubscriptionsTab } from './components/SubscriptionsTab'
 
 function InternalSubscriptionsPage() {
   const [activeTab, setActiveTab] = useState<string>('all')
@@ -43,40 +47,32 @@ function InternalSubscriptionsPage() {
         <div className="flex flex-row justify-between">
           <PageTitle>Subscriptions</PageTitle>
         </div>
+
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
           className="w-full"
         >
           <TabsList className="gap-8 border-b border-stroke-subtle">
-            <SubscriptionsTab
-              status="all"
-              isActive={activeTab === 'all'}
-            />
-            <SubscriptionsTab
-              status={SubscriptionStatus.Active}
-              isActive={activeTab === SubscriptionStatus.Active}
-            />
-            <SubscriptionsTab
-              status={SubscriptionStatus.Trialing}
-              isActive={activeTab === SubscriptionStatus.Trialing}
-            />
-            <SubscriptionsTab
-              status={SubscriptionStatus.Canceled}
-              isActive={activeTab === SubscriptionStatus.Canceled}
-            />
-            <SubscriptionsTab
-              status={SubscriptionStatus.Paused}
-              isActive={activeTab === SubscriptionStatus.Paused}
-            />
-            <SubscriptionsTab
-              status={SubscriptionStatus.PastDue}
-              isActive={activeTab === SubscriptionStatus.PastDue}
-            />
-            <SubscriptionsTab
-              status={SubscriptionStatus.Incomplete}
-              isActive={activeTab === SubscriptionStatus.Incomplete}
-            />
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value={SubscriptionStatus.Active}>
+              Active
+            </TabsTrigger>
+            <TabsTrigger value={SubscriptionStatus.Trialing}>
+              Trialing
+            </TabsTrigger>
+            <TabsTrigger value={SubscriptionStatus.Canceled}>
+              Canceled
+            </TabsTrigger>
+            <TabsTrigger value={SubscriptionStatus.Paused}>
+              Paused
+            </TabsTrigger>
+            <TabsTrigger value={SubscriptionStatus.PastDue}>
+              Past Due
+            </TabsTrigger>
+            <TabsTrigger value={SubscriptionStatus.Incomplete}>
+              Incomplete
+            </TabsTrigger>
           </TabsList>
           <TabsContent value={activeTab} className="mt-6">
             <SubscriptionsTable

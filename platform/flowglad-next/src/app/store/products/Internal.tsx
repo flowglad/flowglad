@@ -10,7 +10,7 @@ import { ProductsTable, ProductsTableFilters } from './ProductsTable'
 import { trpc } from '@/app/_trpc/client'
 import { Catalog } from '@/db/schema/catalogs'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import { Tabs, TabsContent, TabsList } from '@/components/ion/Tab'
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
 import { ProductStatusTab } from './components/ProductStatusTab'
@@ -61,18 +61,9 @@ function InternalProductsPage({ products: initialProducts }: Props) {
           className="w-full"
         >
           <TabsList className="gap-8 border-b border-stroke-subtle w-full">
-            <ProductStatusTab
-              status="all"
-              isActive={activeTab === 'all'}
-            />
-            <ProductStatusTab
-              status="active"
-              isActive={activeTab === 'active'}
-            />
-            <ProductStatusTab
-              status="inactive"
-              isActive={activeTab === 'inactive'}
-            />
+            <ProductStatusTab status="all" />
+            <ProductStatusTab status="active" />
+            <ProductStatusTab status="inactive" />
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">
