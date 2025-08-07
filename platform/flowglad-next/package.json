@@ -37,6 +37,7 @@
     "@dotenvx/dotenvx": "^1.9.1",
     "@hookform/resolvers": "3.10.0",
     "@logtail/next": "^0.1.7",
+    "@mapbox/mapbox-sdk": "^0.16.1",
     "@modelcontextprotocol/sdk": "^1.13.1",
     "@momentic/js": "0.0.1-alpha.5",
     "@next/env": "^14.2.8",
