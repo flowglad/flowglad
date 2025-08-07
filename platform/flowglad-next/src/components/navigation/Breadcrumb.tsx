@@ -13,6 +13,8 @@ const pathMap: Record<string, string> = {
   products: '/store/products',
   payments: '/finance/payments',
   subscriptions: '/finance/subscriptions',
+	map: '/customers/map',
+  customers: '/customers',
 }
 
 /**

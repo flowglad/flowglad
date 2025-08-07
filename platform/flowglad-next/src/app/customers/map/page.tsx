@@ -1,24 +1,37 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { CustomerMap } from './components/CustomerMap'
+import { GeocodedCustomer } from './utils/types'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import { CustomerMap } from './components/CustomerMap'
-import { trpc } from '@/app/_trpc/client'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import { GeocodedCustomer } from './utils/types'
 
 const CustomerMapPage = () => {
-	const { organization } = useAuthenticatedContext()
-	
-	const {
+  const { organization } = useAuthenticatedContext()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const {
     data: customerMapData,
+    isLoading: isCustomerMapDataLoading,
     error,
+    refetch,
   } = trpc.customerMap.getMapData.useQuery(
     {
       organizationId: organization?.id!,
       limit: 1000,
+      search: debouncedSearchQuery || undefined,
     },
     {
       enabled: !!organization?.id,
@@ -27,13 +40,21 @@ const CustomerMapPage = () => {
     }
   )
 
-	const geocodedCustomers = useMemo(() => {
+  const geocodedCustomers = useMemo(() => {
     const customers = customerMapData?.customers || []
 
     return customers.filter(
       (customer: GeocodedCustomer) => customer.coordinates !== null
     )
   }, [customerMapData])
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query)
+  }, [])
+
+  const refreshMapData = useCallback(() => {
+    refetch()
+  }, [refetch])
 
   return (
     <InternalPageContainer>
@@ -48,7 +69,21 @@ const CustomerMapPage = () => {
             </div>
           </div>
         </div>
-        <CustomerMap geocodedCustomers={geocodedCustomers} error={error} />
+        <div className="pt-6">
+          {isCustomerMapDataLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <CustomerMap
+              geocodedCustomers={geocodedCustomers}
+              error={error}
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              onRefresh={refreshMapData}
+            />
+          )}
+        </div>
       </div>
     </InternalPageContainer>
   )

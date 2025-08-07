@@ -5,21 +5,34 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import '../utils/mapbox-overrides.css'
 
+import { MapInfoOverlay } from './MapInfoOverlay'
+import { CustomerPopup } from './CustomerPopup'
+import {
+  updateMarkersOnMap,
+  fitMapToCustomers,
+} from '../utils/markerUtils'
 import { MAP_CONSTANTS } from '../utils/constants'
 import {
   GeocodedCustomer,
   MapState,
+  ActivityItem,
+  ActivityType,
 } from '../utils/types'
-import { fitMapToCustomers, updateMarkersOnMap } from '../utils/markerUtils';
 
 export interface CustomerMapProps {
   geocodedCustomers: GeocodedCustomer[]
   error: any
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  onRefresh: () => void
 }
 
 export function CustomerMap({
   geocodedCustomers,
   error,
+  searchQuery,
+  onSearchChange,
+  onRefresh,
 }: CustomerMapProps) {
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -30,17 +43,67 @@ export function CustomerMap({
     zoom: MAP_CONSTANTS.INITIAL_ZOOM,
   })
   const [isMapLoaded, setIsMapLoaded] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<GeocodedCustomer | null>(null)
   const [isGlobeSpinning, setIsGlobeSpinning] = useState(false)
+  const [userInteracting, setUserInteracting] = useState(false)
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [previousCustomerIds, setPreviousCustomerIds] = useState<
+    Set<string>
+  >(new Set())
 
+  useEffect(() => {
+    if (!geocodedCustomers.length) return
+
+    const currentCustomerIds = new Set(
+      geocodedCustomers.map((c) => c.id)
+    )
+
+    if (previousCustomerIds.size === 0) {
+      setPreviousCustomerIds(currentCustomerIds)
+      return
+    }
+
+    const newCustomers = geocodedCustomers.filter(
+      (customer) => !previousCustomerIds.has(customer.id)
+    )
+
+    if (newCustomers.length > 0) {
+      const newActivities = newCustomers.map((customer) => ({
+        id: `${customer.id}-${Date.now()}`,
+        customer,
+        type: ActivityType.NewCustomer,
+        timestamp: new Date(),
+      }))
+
+      setActivities((prev) => [...prev, ...newActivities])
+    }
+
+    setPreviousCustomerIds(currentCustomerIds)
+  }, [geocodedCustomers])
+
+  const refreshMapData = useCallback(() => {
+    setSelectedCustomer(null)
+
+    onRefresh()
+
+    setTimeout(() => {
+      if (mapRef.current && geocodedCustomers.length > 0) {
+        fitMapToCustomers(geocodedCustomers, mapRef.current)
+      }
+    }, 500)
+  }, [onRefresh, geocodedCustomers])
 
   const handleCustomerSelect = useCallback(
     (customer: GeocodedCustomer) => {
+      setSelectedCustomer(customer)
+
       if (mapRef.current && customer.coordinates) {
         if (isGlobeSpinning) {
           mapRef.current.stop()
           setIsGlobeSpinning(false)
         }
-	
+
         mapRef.current.flyTo({
           center: [
             customer.coordinates.longitude,
@@ -54,6 +117,82 @@ export function CustomerMap({
     [isGlobeSpinning]
   )
 
+  const handleDismissActivity = useCallback((activityId: string) => {
+    setActivities((prev) =>
+      prev.filter((activity) => activity.id !== activityId)
+    )
+  }, [])
+
+  const handleClearAllActivities = useCallback(() => {
+    setActivities([])
+  }, [])
+
+  const handleResetMap = useCallback(() => {
+    if (!mapRef.current) return
+
+    setSelectedCustomer(null)
+
+    if (isGlobeSpinning) {
+      mapRef.current.stop()
+      setIsGlobeSpinning(false)
+    }
+
+    if (geocodedCustomers.length > 0) {
+      fitMapToCustomers(geocodedCustomers, mapRef.current)
+    } else {
+      mapRef.current.flyTo({
+        center: MAP_CONSTANTS.INITIAL_CENTER,
+        zoom: MAP_CONSTANTS.INITIAL_ZOOM,
+        duration: 1500,
+      })
+    }
+  }, [isGlobeSpinning, geocodedCustomers])
+
+  const spinGlobe = useCallback(() => {
+    if (!mapRef.current) return
+
+    const map = mapRef.current
+    const zoom = map.getZoom()
+
+    const secondsPerRevolution = 120
+    const maxSpinZoom = 5
+    const slowSpinZoom = 3
+
+    if (isGlobeSpinning && !userInteracting && zoom < maxSpinZoom) {
+      let distancePerSecond = 360 / secondsPerRevolution
+      if (zoom > slowSpinZoom) {
+        const zoomDif =
+          (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom)
+        distancePerSecond *= zoomDif
+      }
+      const center = map.getCenter()
+      center.lng -= distancePerSecond
+      map.easeTo({ center, duration: 1000, easing: (n) => n })
+    }
+  }, [isGlobeSpinning, userInteracting])
+
+  const handleToggleGlobe = useCallback(() => {
+    if (!mapRef.current) return
+
+    const map = mapRef.current
+
+    setSelectedCustomer(null)
+
+    if (!isGlobeSpinning) {
+      map.easeTo({
+        zoom: 1.5,
+        center: [-90, 40],
+        duration: 2000,
+      })
+      setIsGlobeSpinning(true)
+      setTimeout(() => {
+        spinGlobe()
+      }, 2100) // account for the globe spin and the delay
+    } else {
+      map.stop()
+      setIsGlobeSpinning(false)
+    }
+  }, [isGlobeSpinning, spinGlobe])
 
   useEffect(() => {
     if (!mapContainerRef.current) return
@@ -89,6 +228,12 @@ export function CustomerMap({
       map.on('move', handleMove)
       map.on('load', handleLoad)
       map.on('error', handleError)
+      map.on('mousedown', () => setUserInteracting(true))
+      map.on('mouseup', () => setUserInteracting(false))
+      map.on('dragend', () => setUserInteracting(false))
+      map.on('pitchend', () => setUserInteracting(false))
+      map.on('rotateend', () => setUserInteracting(false))
+      map.on('moveend', () => setUserInteracting(false))
 
       mapRef.current = map
 
@@ -99,7 +244,12 @@ export function CustomerMap({
           map.off('move', handleMove)
           map.off('load', handleLoad)
           map.off('error', handleError)
-
+          map.off('mousedown', () => setUserInteracting(true))
+          map.off('mouseup', () => setUserInteracting(false))
+          map.off('dragend', () => setUserInteracting(false))
+          map.off('pitchend', () => setUserInteracting(false))
+          map.off('rotateend', () => setUserInteracting(false))
+          map.off('moveend', () => setUserInteracting(false))
 
           markersRef.current.forEach((marker) => marker.remove())
           markersRef.current.clear()
@@ -139,6 +289,15 @@ export function CustomerMap({
     )
   }, [geocodedCustomers, isMapLoaded, handleCustomerSelect])
 
+  useEffect(() => {
+    if (isGlobeSpinning && !userInteracting) {
+      const interval = setInterval(() => {
+        spinGlobe()
+      }, 1000)
+
+      return () => clearInterval(interval)
+    }
+  }, [isGlobeSpinning, userInteracting, spinGlobe])
 
   if (error) {
     return (
@@ -173,6 +332,23 @@ export function CustomerMap({
               </div>
             </div>
           </div>
+        )}
+
+        <MapInfoOverlay
+          geocodedCustomers={geocodedCustomers}
+          onRefresh={refreshMapData}
+          onToggleGlobe={handleToggleGlobe}
+          onReset={handleResetMap}
+          isGlobeSpinning={isGlobeSpinning}
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+        />
+
+        {selectedCustomer && (
+          <CustomerPopup
+            customer={selectedCustomer}
+            onClose={() => setSelectedCustomer(null)}
+          />
         )}
       </div>
     </div>
