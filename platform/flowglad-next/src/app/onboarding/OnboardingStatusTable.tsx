@@ -16,7 +16,7 @@ import Markdown from 'react-markdown'
 import Link from 'next/link'
 import Image from 'next/image'
 import core, { cn } from '@/utils/core'
-import { Tab, Tabs, TabsList } from '@/components/ion/Tab'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
@@ -105,29 +105,26 @@ const CodeblockGroup = ({
     code: string
   }[]
 }) => {
-  const [selectedSection, setSelectedSection] = useState<
-    string | undefined
-  >(sections[0].title)
+  const [selectedSection, setSelectedSection] = useState<string>(
+    sections[0].title
+  )
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-row gap-2">
-        <Tabs className="w-full flex border-b border-stroke-subtle font-semibold">
+        <Tabs
+          value={selectedSection}
+          onValueChange={setSelectedSection}
+          className="w-full flex border-b border-stroke-subtle font-semibold"
+        >
           <TabsList className="gap-8">
             {sections.map((section) => (
-              <Tab
+              <TabsTrigger
                 key={section.title}
                 value={section.title}
-                onClick={() => setSelectedSection(section.title)}
-                state={
-                  selectedSection === section.title
-                    ? 'selected'
-                    : 'default'
-                }
-                title={section.title}
                 className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-sm"
               >
                 {section.title}
-              </Tab>
+              </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>

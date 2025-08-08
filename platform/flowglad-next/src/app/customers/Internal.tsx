@@ -3,7 +3,12 @@
 'use client'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Tabs, TabsList, TabsContent } from '@/components/ion/Tab'
+import {
+  Tabs,
+  TabsList,
+  TabsContent,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -12,20 +17,17 @@ import CustomersTable from './CustomersTable'
 import PageTitle from '@/components/ion/PageTitle'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
-import { Tab } from '@/components/ion/Tab'
-
 interface CustomerTabProps {
   label: string
-  isActive: boolean
 }
 
-const CustomerTab = ({ label, isActive }: CustomerTabProps) => {
+const CustomerTab = ({ label }: CustomerTabProps) => {
   return (
-    <Tab value={label} state={isActive ? 'selected' : 'default'}>
+    <TabsTrigger value={label}>
       <div className="flex items-center gap-2">
         <span>{label}</span>
       </div>
-    </Tab>
+    </TabsTrigger>
   )
 }
 

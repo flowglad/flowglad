@@ -7,29 +7,31 @@ import DiscountsTable, {
   DiscountsTableFilters,
 } from './DiscountsTable'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import { Tabs, TabsContent, TabsList } from '@/components/ion/Tab'
-import { Tab } from '@/components/ion/Tab'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import { sentenceCase } from 'change-case'
 import PageTitle from '@/components/ion/PageTitle'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 interface DiscountStatusTabProps {
   status: 'all' | 'active' | 'inactive'
-  isActive: boolean
 }
 
 export const DiscountStatusTab = ({
   status,
-  isActive,
 }: DiscountStatusTabProps) => {
   const label = status === 'all' ? 'All' : sentenceCase(status)
 
   return (
-    <Tab value={status} state={isActive ? 'selected' : 'default'}>
+    <TabsTrigger value={status}>
       <div className="flex items-center gap-2">
         <span>{label}</span>
       </div>
-    </Tab>
+    </TabsTrigger>
   )
 }
 
@@ -72,18 +74,9 @@ function InternalDiscountsPage() {
           className="w-full"
         >
           <TabsList className="gap-8 border-b border-stroke-subtle">
-            <DiscountStatusTab
-              status="all"
-              isActive={activeTab === 'all'}
-            />
-            <DiscountStatusTab
-              status="active"
-              isActive={activeTab === 'active'}
-            />
-            <DiscountStatusTab
-              status="inactive"
-              isActive={activeTab === 'inactive'}
-            />
+            <DiscountStatusTab status="all" />
+            <DiscountStatusTab status="active" />
+            <DiscountStatusTab status="inactive" />
           </TabsList>
 
           <TabsContent value={activeTab}>

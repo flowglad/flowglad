@@ -22,7 +22,7 @@ import {
   PopoverTrigger,
 } from '@/components/ion/Popover'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
-import { Tab, Tabs, TabsList } from '@/components/ion/Tab'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 function InternalCustomerDetailsScreen({
   customer,
@@ -85,13 +85,12 @@ function InternalCustomerDetailsScreen({
         </div>
         <Tabs className="w-full flex border-b border-stroke-subtle text-sm font-semibold">
           <TabsList className="gap-8">
-            <Tab
-              state={'selected'}
+            <TabsTrigger
               className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-lg"
-              title={'Billing'}
               value={'billing'}
-              key={'billing'}
-            />
+            >
+              Billing
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="pt-6">

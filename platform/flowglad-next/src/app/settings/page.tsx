@@ -6,8 +6,8 @@ import {
   Tabs,
   TabsContent,
   TabsList,
-  Tab,
-} from '@/components/ion/Tab'
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import OrganizationSettingsTab from '@/app/settings/OrganizationSettingsTab'
 import ApiSettingsTab from '@/app/settings/ApiSettingsTab'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
@@ -26,24 +26,16 @@ const SettingsPage = () => {
           className="w-full"
         >
           <TabsList className="gap-8 border-b border-stroke-subtle">
-            <Tab
-              value="overview"
-              state={
-                activeTab === 'overview' ? 'selected' : 'default'
-              }
-            >
+            <TabsTrigger value="overview">
               <div className="flex items-center gap-2">
                 <span>Overview</span>
               </div>
-            </Tab>
-            <Tab
-              value="api"
-              state={activeTab === 'api' ? 'selected' : 'default'}
-            >
+            </TabsTrigger>
+            <TabsTrigger value="api">
               <div className="flex items-center gap-2">
                 <span>API</span>
               </div>
-            </Tab>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="mt-6">
             <OrganizationSettingsTab />

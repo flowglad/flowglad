@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import PaymentsTable from './PaymentsTable'
 import { PaymentStatus } from '@/types'
-import { Tabs, TabsList, TabsContent } from '@/components/ion/Tab'
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs'
 import { PaymentsTab } from './components/PaymentsTab'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -35,26 +35,11 @@ export default function InternalPaymentsPage() {
           className="w-full"
         >
           <TabsList className="gap-8 border-b border-stroke-subtle">
-            <PaymentsTab
-              status="all"
-              isActive={activeTab === 'all'}
-            />
-            <PaymentsTab
-              status={PaymentStatus.Succeeded}
-              isActive={activeTab === PaymentStatus.Succeeded}
-            />
-            <PaymentsTab
-              status={PaymentStatus.Processing}
-              isActive={activeTab === PaymentStatus.Processing}
-            />
-            <PaymentsTab
-              status={PaymentStatus.Refunded}
-              isActive={activeTab === PaymentStatus.Refunded}
-            />
-            <PaymentsTab
-              status={PaymentStatus.Canceled}
-              isActive={activeTab === PaymentStatus.Canceled}
-            />
+            <PaymentsTab status="all" />
+            <PaymentsTab status={PaymentStatus.Succeeded} />
+            <PaymentsTab status={PaymentStatus.Processing} />
+            <PaymentsTab status={PaymentStatus.Refunded} />
+            <PaymentsTab status={PaymentStatus.Canceled} />
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">
