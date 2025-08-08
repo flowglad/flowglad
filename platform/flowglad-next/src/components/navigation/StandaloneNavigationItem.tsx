@@ -1,13 +1,12 @@
 'use client'
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from '@/components/ion/Navigation'
 import { usePathname } from 'next/navigation'
 import { ReactNode } from 'react'
 import { cn } from '@/utils/core'
+import {
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar'
+import Link from 'next/link'
 
 interface StandaloneNavigationItemProps {
   title: string
@@ -25,34 +24,41 @@ const StandaloneNavigationItem = ({
   isCollapsed,
 }: StandaloneNavigationItemProps) => {
   const pathname = usePathname()
+  const isActive =
+    pathname === basePath || pathname.startsWith(basePath + '/')
 
   return (
-    <NavigationMenu>
-      <NavigationMenuList className="w-full flex flex-col">
-        <NavigationMenuItem className="w-full">
-          <NavigationMenuLink
-            iconLeading={icon}
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        tooltip={title}
+        className={cn(
+          'group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center'
+        )}
+      >
+        <Link
+          href={href}
+          aria-current={isActive ? 'page' : undefined}
+          className={cn(
+            'w-full h-full flex items-center',
+            isCollapsed ? 'gap-0' : 'gap-2'
+          )}
+        >
+          {icon}
+          <span
             className={cn(
-              'w-full flex items-center transition-all duration-300 ease-in-out gap-3 px-3',
-              isCollapsed ? 'justify-center' : 'justify-start'
+              'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+              isCollapsed
+                ? 'max-w-0 opacity-0 ml-0'
+                : 'max-w-xs opacity-100'
             )}
-            href={href}
-            selected={pathname.startsWith(basePath)}
           >
-            <span
-              className={cn(
-                'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
-                isCollapsed
-                  ? 'max-w-0 opacity-0 ml-0'
-                  : 'max-w-xs opacity-100 ml-2'
-              )}
-            >
-              {isCollapsed ? null : title}
-            </span>
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-      </NavigationMenuList>
-    </NavigationMenu>
+            {isCollapsed ? null : title}
+          </span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   )
 }
 

@@ -5,13 +5,8 @@ import {
   Store,
   Users,
   CircleDollarSign,
-  PanelLeft,
   BookOpen,
 } from 'lucide-react'
-import {
-  NavigationMenu,
-  NavigationMenuList,
-} from '@/components/ion/Navigation'
 import { UserButton } from '@stackframe/stack'
 import { useAuthContext } from '@/contexts/authContext'
 import { usePathname, useRouter } from 'next/navigation'
@@ -26,10 +21,19 @@ import { useEffect, useState } from 'react'
 import { FallbackSkeleton } from '../ui/skeleton'
 import { FeatureFlag } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
+import {
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
+} from '@/components/ui/sidebar'
 
 export const SideNavigation = () => {
   const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
   const { user, organization } = useAuthContext()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
@@ -53,6 +57,9 @@ export const SideNavigation = () => {
   }, [focusedMembershipData])
   const livemode = focusedMembership.data?.membership.livemode
   const router = useRouter()
+  const { state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
+
   const maybeLogo = organization?.logoURL ? (
     /* eslint-disable-next-line @next/next/no-img-element */
     <Image
@@ -92,131 +99,108 @@ export const SideNavigation = () => {
       href: '/store/usage-meters',
     })
   }
+
   return (
-    <div
-      className={cn(
-        'bg-nav h-full flex flex-col gap-3 border-r border-container justify-between',
-        'transition-[width] duration-300 ease-in-out',
-        isCollapsed ? 'w-[64px]' : 'w-[240px]'
-      )}
-    >
-      <div className="flex-1 flex flex-col min-h-0">
+    <>
+      <SidebarHeader
+        className={cn(
+          'w-full flex flex-row items-center border-b border-stroke-subtle py-3',
+          isCollapsed
+            ? 'justify-center px-3 gap-0'
+            : 'justify-between px-3 gap-2.5 p-2'
+        )}
+      >
         <div
           className={cn(
-            'w-full flex items-center border-b border-stroke-subtle py-3',
+            'flex items-center',
+            'overflow-hidden',
             isCollapsed
-              ? 'justify-center px-3'
-              : 'justify-between px-3 gap-2.5'
+              ? 'max-w-0 opacity-0'
+              : 'max-w-md opacity-100 flex-1'
           )}
         >
-          <div
-            className={cn(
-              'flex items-center',
-              'overflow-hidden',
-              isCollapsed
-                ? 'max-w-0 opacity-0'
-                : 'max-w-md opacity-100'
-            )}
-          >
-            <div className="flex items-center gap-3 rounded-radius-sm">
-              {maybeLogo}
-              <div className="flex flex-col justify-center gap-0.5 whitespace-nowrap">
-                <div className="text-sm font-semibold text-foreground truncate">
-                  {organization?.name}
-                </div>
-                <div className="text-xs font-medium text-subtle truncate">
-                  {organization?.tagline}
-                </div>
+          <div className="flex items-center gap-3 rounded-radius-sm">
+            {maybeLogo}
+            <div className="flex flex-col justify-center gap-0.5 whitespace-nowrap">
+              <div className="text-sm font-semibold text-foreground truncate">
+                {organization?.name}
+              </div>
+              <div className="text-xs font-medium text-subtle truncate">
+                {organization?.tagline}
               </div>
             </div>
           </div>
-          <button
-            className={cn(
-              'flex-shrink-0 flex items-center py-3 px-3 text-subtle'
-            )}
-            onClick={() => {
-              setIsCollapsed(!isCollapsed)
-            }}
-          >
-            <PanelLeft size={16} />
-          </button>
         </div>
-        <NavigationMenu className="pt-3 flex-1 overflow-y-auto flex flex-col">
-          <NavigationMenuList
-            className={cn(
-              'flex flex-col gap-1',
-              isCollapsed ? 'px-0 items-center' : 'px-3 w-full'
-            )}
-          >
-            <OnboardingNavigationSection isCollapsed={isCollapsed} />
-            <StandaloneNavigationItem
-              title="Dashboard"
-              href="/dashboard"
-              icon={<Gauge size={16} />}
-              basePath="/dashboard"
-              isCollapsed={isCollapsed}
-            />
-            <StandaloneNavigationItem
-              title="Customers"
-              href="/customers"
-              icon={<Users size={16} />}
-              basePath="/customers"
-              isCollapsed={isCollapsed}
-            />
-            <ParentChildNavigationItem
-              parentLabel="Store"
-              parentLeadingIcon={<Store size={16} />}
-              childItems={storeChildItems}
-              basePath="/store"
-              isCollapsed={isCollapsed}
-              onClickParent={() => {
-                setIsCollapsed(false)
-              }}
-            />
-            <ParentChildNavigationItem
-              parentLabel="Finance"
-              parentLeadingIcon={<CircleDollarSign size={16} />}
-              childItems={[
-                {
-                  label: 'Payments',
-                  href: '/finance/payments',
-                },
-                {
-                  label: 'Subscriptions',
-                  href: '/finance/subscriptions',
-                },
-                {
-                  label: 'Invoices',
-                  href: '/finance/invoices',
-                },
-              ]}
-              basePath="/finance"
-              isCollapsed={isCollapsed}
-              onClickParent={() => {
-                setIsCollapsed(false)
-              }}
-            />
-            <StandaloneNavigationItem
-              title="Settings"
-              href="/settings"
-              icon={<Settings size={16} />}
-              basePath="/settings"
-              isCollapsed={isCollapsed}
-            />
-          </NavigationMenuList>
-          <div className="flex-1" />
-        </NavigationMenu>
-      </div>
+        <SidebarTrigger className="flex-shrink-0 text-subtle" />
+      </SidebarHeader>
 
-      <div
+      <SidebarContent className="pt-3">
+        <SidebarMenu
+          className={cn(
+            'flex flex-col gap-1',
+            isCollapsed ? 'px-0 items-center' : 'px-3 w-full'
+          )}
+        >
+          <OnboardingNavigationSection isCollapsed={isCollapsed} />
+          <StandaloneNavigationItem
+            title="Dashboard"
+            href="/dashboard"
+            icon={<Gauge size={16} />}
+            basePath="/dashboard"
+            isCollapsed={isCollapsed}
+          />
+          <StandaloneNavigationItem
+            title="Customers"
+            href="/customers"
+            icon={<Users size={16} />}
+            basePath="/customers"
+            isCollapsed={isCollapsed}
+          />
+          <ParentChildNavigationItem
+            parentLabel="Store"
+            parentLeadingIcon={<Store size={16} />}
+            childItems={storeChildItems}
+            basePath="/store"
+            isCollapsed={isCollapsed}
+          />
+          <ParentChildNavigationItem
+            parentLabel="Finance"
+            parentLeadingIcon={<CircleDollarSign size={16} />}
+            childItems={[
+              { label: 'Payments', href: '/finance/payments' },
+              {
+                label: 'Subscriptions',
+                href: '/finance/subscriptions',
+              },
+              { label: 'Invoices', href: '/finance/invoices' },
+            ]}
+            basePath="/finance"
+            isCollapsed={isCollapsed}
+          />
+          <StandaloneNavigationItem
+            title="Settings"
+            href="/settings"
+            icon={<Settings size={16} />}
+            basePath="/settings"
+            isCollapsed={isCollapsed}
+          />
+        </SidebarMenu>
+        <div className="flex-1" />
+      </SidebarContent>
+
+      <SidebarFooter
         className={cn(
-          'flex flex-col gap-3 p-3 overflow-hidden transition-all duration-300 ease-in-out',
+          'flex flex-col gap-3 overflow-hidden transition-all duration-300 ease-in-out',
           isCollapsed
             ? 'opacity-0 max-h-0 pointer-events-none'
-            : 'opacity-100 max-h-[300px]'
+            : 'opacity-100'
         )}
       >
-        <div className="flex flex-col gap-1">
+        <SidebarMenu
+          className={cn(
+            isCollapsed ? 'px-0 items-center' : 'px-2 w-full'
+          )}
+        >
           <StandaloneNavigationItem
             title="Discord"
             href="https://app.flowglad.com/invite-discord"
@@ -231,7 +215,7 @@ export const SideNavigation = () => {
             basePath="https://docs.flowglad.com"
             isCollapsed={isCollapsed}
           />
-        </div>
+        </SidebarMenu>
         <div className="flex-0 w-full flex items-center border-b border-stroke-subtle pb-6 pl-2">
           <FallbackSkeleton
             showSkeleton={!user}
@@ -253,33 +237,35 @@ export const SideNavigation = () => {
             </div>
           </FallbackSkeleton>
         </div>
-        <div className="flex flex-row justify-between pt-4 pl-2">
+        <div className="pt-4 px-2">
           <FallbackSkeleton
             showSkeleton={initialFocusedMembershipLoading}
-            className="w-full h-6 justify-between flex flex-row"
+            className="w-full h-6"
           >
-            <span className="text-sm font-medium text-foreground">
-              Test Mode
-            </span>
-            <Switch
-              checked={!livemode}
-              onCheckedChange={async () => {
-                await toggleTestMode.mutateAsync({
-                  livemode: !Boolean(livemode),
-                })
-              }}
-              disabled={
-                toggleTestMode.isPending ||
-                focusedMembership.isPending
-              }
-              className={
-                'data-[state=checked]:!bg-orange-primary-500'
-              }
-              thumbClassName={'data-[state=checked]:!bg-white'}
-            />
+            <div className="w-full h-6 flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">
+                Test Mode
+              </span>
+              <Switch
+                checked={!livemode}
+                onCheckedChange={async () => {
+                  await toggleTestMode.mutateAsync({
+                    livemode: !Boolean(livemode),
+                  })
+                }}
+                disabled={
+                  toggleTestMode.isPending ||
+                  focusedMembership.isPending
+                }
+                className={
+                  'data-[state=checked]:!bg-orange-primary-500'
+                }
+                thumbClassName={'data-[state=checked]:!bg-white'}
+              />
+            </div>
           </FallbackSkeleton>
         </div>
-      </div>
-    </div>
+      </SidebarFooter>
+    </>
   )
 }
