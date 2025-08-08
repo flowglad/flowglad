@@ -12,7 +12,8 @@ import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
 import { PaymentMethodType } from '@/types'
-import Label from '@/components/ion/Label'
+import { Label } from '@/components/ui/label'
+
 import InvoicesTable from '@/components/InvoicesTable'
 
 const InnerSubscriptionPage = ({

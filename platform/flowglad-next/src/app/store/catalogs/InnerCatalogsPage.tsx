@@ -5,7 +5,7 @@ import InternalPageContainer from '@/components/InternalPageContainer'
 import CreateCatalogModal from '@/components/forms/CreateCatalogModal'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 const InnerCatalogsPage = () => {

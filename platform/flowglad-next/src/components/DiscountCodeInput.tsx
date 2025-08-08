@@ -6,6 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Hint from './ion/Hint'
 import { CheckoutFlowType } from '@/types'
+import {
+  FormField,
+  FormItem,
+  FormControl,
+} from '@/components/ui/form'
 
 interface DiscountCodeFormData {
   discountCode: string
@@ -18,19 +23,13 @@ export default function DiscountCodeInput() {
     'idle' | 'loading' | 'success' | 'error'
   >(discount ? 'success' : 'idle')
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors }
-  } = useForm<DiscountCodeFormData>({
+  const form = useForm<DiscountCodeFormData>({
     defaultValues: {
-      discountCode: discount?.code ?? ''
-    }
+      discountCode: discount?.code ?? '',
+    },
   })
 
-  const discountCode = watch('discountCode')
+  const discountCode = form.watch('discountCode')
 
   if (
     flowType === CheckoutFlowType.Invoice ||
@@ -88,7 +87,7 @@ export default function DiscountCodeInput() {
           productId: product.id,
         })
         setDiscountCodeStatus('idle')
-        setValue('discountCode', '')
+        form.setValue('discountCode', '')
       }}
       variant="ghost"
       disabled={!discount}
@@ -99,7 +98,7 @@ export default function DiscountCodeInput() {
 
   const applyDiscountCodeButton = (
     <Button
-      onClick={handleSubmit(attemptHandler)}
+      onClick={form.handleSubmit(attemptHandler)}
       disabled={discountCodeStatus === 'loading'}
       variant="ghost"
     >
@@ -112,17 +111,30 @@ export default function DiscountCodeInput() {
       <Label htmlFor="discountCode">Discount Code</Label>
       <div className="flex flex-row gap-2 w-full">
         <div className="flex-1">
-          <Input
-            id="discountCode"
-            className="focus-within:bg-[#353535] p-2 pl-3 h-15 border-none bg-[#353535]"
-            autoCapitalize="characters"
-            iconTrailing={discount ? clearDiscountCodeButton : applyDiscountCodeButton}
-            {...register('discountCode', {
-              onChange: (e) => {
-                const code = e.target.value.toUpperCase()
-                setValue('discountCode', code)
-              }
-            })}
+          <FormField
+            control={form.control}
+            name="discountCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    id="discountCode"
+                    className="focus-within:bg-[#353535] p-2 pl-3 h-15 border-none bg-[#353535]"
+                    autoCapitalize="characters"
+                    iconTrailing={
+                      discount
+                        ? clearDiscountCodeButton
+                        : applyDiscountCodeButton
+                    }
+                    {...field}
+                    onChange={(e) => {
+                      const code = e.target.value.toUpperCase()
+                      field.onChange(code)
+                    }}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
           />
         </div>
       </div>

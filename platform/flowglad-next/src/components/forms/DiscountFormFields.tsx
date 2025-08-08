@@ -21,7 +21,7 @@ import { DiscountAmountType, DiscountDuration } from '@/types'
 import NumberInput from '@/components/ion/NumberInput'
 import StatusBadge from '@/components/StatusBadge'
 import { Switch } from '@/components/ui/switch'
-import Label from '@/components/ion/Label'
+
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { Percent } from 'lucide-react'
 import { core } from '@/utils/core'
@@ -217,7 +217,7 @@ export default function DiscountFormFields({
       )}
       {edit && (
         <div className="w-full relative flex flex-col gap-3">
-          <Label>Status</Label>
+          <FormLabel>Status</FormLabel>
           <Controller
             name="discount.active"
             control={control}

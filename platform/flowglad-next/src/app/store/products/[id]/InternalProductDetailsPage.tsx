@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import { useState } from 'react'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { Price } from '@/db/schema/prices'
 import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
 import { Product } from '@/db/schema/products'

@@ -1,5 +1,11 @@
-import { Control, Controller, useFormContext } from 'react-hook-form'
-import Label from '@/components/ion/Label'
+import { Control, useFormContext } from 'react-hook-form'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   Select,
   SelectContent,
@@ -23,11 +29,7 @@ const UsageMetersSelect = ({
   const { data: usageMeters, isLoading: isLoadingUsageMeters } =
     useListUsageMetersQuery()
   const form = useFormContext()
-  const {
-    watch,
-    setValue,
-    formState: { errors },
-  } = form
+  const { watch, setValue } = form
   const usageMeterId = watch(name)
 
   // Auto-select first usage meter if none is selected when data loads
@@ -43,36 +45,34 @@ const UsageMetersSelect = ({
 
   return (
     <>
-      <Label>Usage Meter</Label>
       {isLoadingUsageMeters ? (
         <Skeleton className="h-9 w-full" />
       ) : (
-        <Controller
+        <FormField
           control={control}
           name={name}
-          render={({ field }) => (
-            <div>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {usageMeters?.data?.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name}
-                    </SelectItem>
-                  )) || []}
-                </SelectContent>
-              </Select>
-              {errors[name]?.message && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors[name]?.message as string}
-                </p>
-              )}
-            </div>
+          render={({ field, fieldState }) => (
+            <FormItem>
+              <FormLabel>Usage Meter</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {usageMeters?.data?.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    )) || []}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       )}

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/form'
 import { FlowgladEventType } from '@/types'
 import MultiSelect, { Option } from './MultiSelect'
-import Label from '@/components/ion/Label'
+
 import StatusBadge from '../StatusBadge'
 import { Switch } from '@/components/ui/switch'
 // import { MultiSelect } from '@/components/ion/ui/MultiSelect'
@@ -84,7 +84,7 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
       />
       {edit && (
         <div className="w-full relative flex flex-col gap-3">
-          <Label>Status</Label>
+          <FormLabel>Status</FormLabel>
           <Controller
             name="webhook.active"
             control={form.control}

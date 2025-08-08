@@ -1,5 +1,11 @@
-import { Control, Controller, useFormContext } from 'react-hook-form'
-import Label from '../ion/Label'
+import { Control, useFormContext } from 'react-hook-form'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   Select,
   SelectContent,
@@ -25,11 +31,7 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
   )
   const defaultCatalogId = defaultCatalog?.catalog.id
   const form = useFormContext()
-  const {
-    watch,
-    setValue,
-    formState: { errors },
-  } = form
+  const { watch, setValue } = form
   const catalogId = watch(name)
   // once the default catalog loads, set it if the catalog id has not been set
   useEffect(() => {
@@ -43,36 +45,34 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
   }, [name, catalogId, defaultCatalogId, setValue])
   return (
     <>
-      <Label>Catalog</Label>
       {isLoadingCatalogs ? (
         <Skeleton className="h-9 w-full" />
       ) : (
-        <Controller
+        <FormField
           control={control}
           name={name}
-          render={({ field }) => (
-            <div>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {catalogs?.data?.map((catalog) => (
-                    <SelectItem key={catalog.id} value={catalog.id}>
-                      {catalog.name}
-                    </SelectItem>
-                  )) || []}
-                </SelectContent>
-              </Select>
-              {errors[name]?.message && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors[name]?.message as string}
-                </p>
-              )}
-            </div>
+          render={({ field, fieldState }) => (
+            <FormItem>
+              <FormLabel>Catalog</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {catalogs?.data?.map((catalog) => (
+                      <SelectItem key={catalog.id} value={catalog.id}>
+                        {catalog.name}
+                      </SelectItem>
+                    )) || []}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       )}

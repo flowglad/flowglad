@@ -4,8 +4,9 @@ import { Command as CommandPrimitive, useCommandState } from 'cmdk'
 import { X } from 'lucide-react'
 import * as React from 'react'
 import { forwardRef, useEffect } from 'react'
-import Label from '@/components/ion/Label'
+
 import { Badge } from '@/components/ion/Badge'
+import { Label } from '@/components/ui/label'
 import {
   Command,
   CommandGroup,
@@ -523,7 +524,6 @@ const MultipleSelector = React.forwardRef<
             htmlFor={id}
             required={required}
             helper={helper}
-            disabled={disabled}
             className="mb-0.5"
           >
             {label}

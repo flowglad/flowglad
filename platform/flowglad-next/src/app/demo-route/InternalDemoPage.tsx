@@ -1,6 +1,6 @@
 'use client'
 
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { trpc } from '../_trpc/client'
 import { useState } from 'react'
 

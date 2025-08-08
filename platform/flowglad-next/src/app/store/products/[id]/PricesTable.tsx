@@ -1,6 +1,6 @@
 import { ChartColumnIncreasing, Plus } from 'lucide-react'
 import Badge from '@/components/ion/Badge'
-import Checkbox from '@/components/ion/Checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { RotateCw, Check } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'

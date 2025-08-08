@@ -19,7 +19,7 @@ import Image from 'next/image'
 import OnboardingNavigationSection from './OnboardingNavigationSection'
 import ParentChildNavigationItem from './ParentChildNavigationItem'
 import StandaloneNavigationItem from './StandaloneNavigationItem'
-import Switch from '../ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/utils/core'
 import { useEffect, useState } from 'react'
@@ -262,7 +262,6 @@ export const SideNavigation = () => {
               Test Mode
             </span>
             <Switch
-              label=""
               checked={!livemode}
               onCheckedChange={async () => {
                 await toggleTestMode.mutateAsync({
@@ -277,9 +276,6 @@ export const SideNavigation = () => {
                 'data-[state=checked]:!bg-orange-primary-500'
               }
               thumbClassName={'data-[state=checked]:!bg-white'}
-              labelClassName={
-                'text-sm font-medium text-foreground data-[state=checked]:!text-orange-primary-500'
-              }
             />
           </FallbackSkeleton>
         </div>

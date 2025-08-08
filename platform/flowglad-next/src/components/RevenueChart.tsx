@@ -1,7 +1,13 @@
 'use client'
 import { differenceInHours, isDate } from 'date-fns'
 import React from 'react'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   AreaChart,
   TooltipCallbackProps,
@@ -185,13 +191,22 @@ export function RevenueChart({
         <div className="text-sm text-gray-700 dark:text-gray-300 w-fit flex items-center flex-row">
           <p className="whitespace-nowrap">Revenue by</p>
           <Select
-            options={intervalOptions}
-            triggerClassName="border-none bg-transparent"
             value={interval}
             onValueChange={(value) =>
               setInterval(value as RevenueChartIntervalUnit)
             }
-          />
+          >
+            <SelectTrigger className="border-none bg-transparent">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {intervalOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {/* <Button
           iconLeading={<Export size={16} weight={'regular'} />}

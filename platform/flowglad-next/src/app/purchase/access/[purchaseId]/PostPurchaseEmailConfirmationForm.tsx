@@ -1,5 +1,5 @@
 'use client'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
 
 const PostPurchaseEmailConfirmationForm = ({
@@ -41,10 +41,9 @@ const PostPurchaseEmailConfirmationForm = ({
                 livemode,
               })
             }
-            loading={isPending}
             disabled={isPending}
           >
-            Email Magic Link
+            {isPending ? 'Sending...' : 'Email Magic Link'}
           </Button>
         )}
       </div>

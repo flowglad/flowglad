@@ -4,7 +4,7 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Tabs, TabsList, TabsContent } from '@/components/ion/Tab'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { useAuthenticatedContext } from '@/contexts/authContext'
