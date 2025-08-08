@@ -2,20 +2,23 @@
 
 import { useFormContext, Controller } from 'react-hook-form'
 import { CreateWebhookInput } from '@/db/schema/webhooks'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import { FlowgladEventType } from '@/types'
 import MultiSelect, { Option } from './MultiSelect'
 import Label from '@/components/ion/Label'
 import StatusBadge from '../StatusBadge'
-import Switch from '../ion/Switch'
+import { Switch } from '@/components/ui/switch'
 // import { MultiSelect } from '@/components/ion/ui/MultiSelect'
 
 const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
-  const {
-    register,
-    formState: { errors },
-    control,
-  } = useFormContext<CreateWebhookInput>()
+  const form = useFormContext<CreateWebhookInput>()
 
   const eventOptions = Object.values(FlowgladEventType).map(
     (type) => ({
@@ -26,20 +29,37 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
 
   return (
     <div className="flex flex-col gap-4 max-w-md">
-      <Input
-        {...register('webhook.name')}
-        label="Name"
-        placeholder="e.g. Payment Webhook"
-        error={errors.webhook?.name?.message}
+      <FormField
+        control={form.control}
+        name="webhook.name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input placeholder="e.g. Payment Webhook" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
-      <Input
-        {...register('webhook.url')}
-        label="URL"
-        placeholder="e.g. https://api.example.com/webhooks"
-        error={errors.webhook?.url?.message}
+      <FormField
+        control={form.control}
+        name="webhook.url"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>URL</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="e.g. https://api.example.com/webhooks"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
       <Controller
-        control={control}
+        control={form.control}
         name="webhook.filterTypes"
         render={({ field }) => (
           <MultiSelect
@@ -56,7 +76,9 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
                 selectedOptions.map((option) => option.value)
               )
             }}
-            error={errors.webhook?.filterTypes?.message}
+            error={
+              form.formState.errors.webhook?.filterTypes?.message
+            }
           />
         )}
       />
@@ -65,7 +87,7 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
           <Label>Status</Label>
           <Controller
             name="webhook.active"
-            control={control}
+            control={form.control}
             render={({ field }) => (
               <Switch
                 checked={field.value}

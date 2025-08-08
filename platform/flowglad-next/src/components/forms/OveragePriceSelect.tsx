@@ -1,12 +1,18 @@
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { trpc } from '@/app/_trpc/client'
 import { Controller, FieldError } from 'react-hook-form'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useEffect, useState } from 'react'
 import { Skeleton } from '@/components/ion/Skeleton'
 import Label from '@/components/ion/Label'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import { Price } from '@/db/schema/prices'
 
 const FIELD_NAME = 'price.overagePriceId'
@@ -51,21 +57,36 @@ const OveragePriceSelect = ({ productId }: { productId: string }) => {
           name={FIELD_NAME}
           control={control}
           render={({ field }) => (
-            <Select
-              placeholder="Select overage price"
-              options={
-                overagePrices?.map((price) => ({
-                  label: overagePriceLabelFromPrice(price),
-                  value: price.id,
-                })) ?? []
-              }
-              value={field.value ?? ''}
-              onValueChange={field.onChange}
-              hint="The display price to show for overages on the checkout screen."
-              error={
-                (errors.price?.overagePriceId as FieldError)?.message
-              }
-            />
+            <div>
+              <Select
+                value={field.value ?? ''}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select overage price" />
+                </SelectTrigger>
+                <SelectContent>
+                  {overagePrices?.map((price) => (
+                    <SelectItem key={price.id} value={price.id}>
+                      {overagePriceLabelFromPrice(price)}
+                    </SelectItem>
+                  )) ?? []}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground mt-1">
+                The display price to show for overages on the checkout
+                screen.
+              </p>
+              {(errors.price?.overagePriceId as FieldError)
+                ?.message && (
+                <p className="text-sm text-destructive mt-1">
+                  {
+                    (errors.price?.overagePriceId as FieldError)
+                      ?.message
+                  }
+                </p>
+              )}
+            </div>
           )}
         />
       )}
