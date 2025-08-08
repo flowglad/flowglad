@@ -1,5 +1,11 @@
 import { SideNavigation } from '@/components/navigation/SideNavigation'
 import React from 'react'
+import {
+  Sidebar,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
 
 const SidebarLayout = ({
   children,
@@ -7,12 +13,18 @@ const SidebarLayout = ({
   children: React.ReactNode
 }) => {
   return (
-    <div className="flex h-screen">
-      <div className="sticky top-0 bottom-0 h-full">
+    <SidebarProvider>
+      <Sidebar collapsible="icon" className="z-20">
         <SideNavigation />
-      </div>
-      <div className="flex-1 overflow-auto">{children}</div>
-    </div>
+      </Sidebar>
+      <SidebarInset>
+        {/* Mobile top bar with trigger */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center h-12 border-b bg-background px-2">
+          <SidebarTrigger />
+        </div>
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 

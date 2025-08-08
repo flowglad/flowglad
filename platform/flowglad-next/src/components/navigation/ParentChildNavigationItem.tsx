@@ -1,14 +1,17 @@
 'use client'
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from '@/components/ion/Navigation'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 import { cn } from '@/utils/core'
+import {
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  useSidebar,
+} from '@/components/ui/sidebar'
+import Link from 'next/link'
 
 type NavigationChild = {
   label: string
@@ -33,77 +36,80 @@ const ParentChildNavigationItem = ({
   onClickParent,
 }: ParentChildNavigationItemProps) => {
   const pathname = usePathname()
-  const [isOpen, setIsOpen] = useState(pathname.startsWith(basePath))
+  const [isOpen, setIsOpen] = useState(
+    pathname === basePath || pathname.startsWith(basePath + '/')
+  )
+  const { setOpen } = useSidebar()
+
   return (
-    <NavigationMenuItem className="w-full min-w-8">
-      <NavigationMenuLink
-        iconLeading={parentLeadingIcon}
-        iconTrailing={
-          isCollapsed ? null : isOpen ? (
-            <ChevronUp size={16} strokeWidth={2} />
-          ) : (
-            <ChevronDown size={16} strokeWidth={2} />
-          )
-        }
-        className={cn(
-          'w-full flex items-center transition-all duration-300 ease-in-out gap-3 px-3',
-          isCollapsed ? 'justify-center' : ''
-        )}
+    <SidebarMenuItem>
+      <SidebarMenuButton
         onClick={() => {
           onClickParent?.()
-          setIsOpen(!isOpen)
+          if (isCollapsed) {
+            setOpen(true)
+            setIsOpen(true)
+          } else {
+            setIsOpen((prev) => !prev)
+          }
         }}
+        tooltip={parentLabel}
+        className={cn(
+          'w-full flex items-center',
+          isCollapsed ? 'justify-center gap-0' : 'gap-2'
+        )}
       >
         <span
           className={cn(
-            'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
-            isCollapsed
-              ? 'max-w-0 opacity-0 ml-0'
-              : 'max-w-xs opacity-100 ml-2'
+            'w-full h-full flex items-center',
+            isCollapsed ? 'gap-0' : 'gap-2'
           )}
         >
-          {isCollapsed ? null : parentLabel}
-        </span>
-      </NavigationMenuLink>
-      {isOpen && !isCollapsed && (
-        <NavigationMenu>
-          <NavigationMenuList className="w-full flex flex-col pl-5 relative">
-            {childItems.length > 1 && !isCollapsed && (
-              <div
-                className="absolute top-0 bottom-0 flex pl-5"
-                style={{ left: '0px' }}
-              >
-                <div
-                  className="w-px bg-stroke-subtle"
-                  style={{
-                    marginTop: '1rem',
-                    marginBottom: '1rem',
-                  }}
-                />
-              </div>
+          {parentLeadingIcon}
+          <span
+            className={cn(
+              'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+              isCollapsed
+                ? 'max-w-0 opacity-0 ml-0'
+                : 'max-w-xs opacity-100'
             )}
-            {childItems.map((child) => (
-              <NavigationMenuItem
-                key={child.href}
-                className={cn(
-                  'transition-opacity duration-300',
-                  isCollapsed ? 'opacity-0' : 'opacity-100 pl-4'
-                )}
-              >
-                <NavigationMenuLink
-                  className="w-full"
-                  isChild
-                  href={child.href}
-                  selected={pathname.startsWith(child.href)}
-                >
-                  {child.label}
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            ))}
-          </NavigationMenuList>
-        </NavigationMenu>
+          >
+            {isCollapsed ? null : parentLabel}
+          </span>
+          {!isCollapsed && (
+            <span className="ml-auto shrink-0">
+              {isOpen ? (
+                <ChevronUp size={16} strokeWidth={2} />
+              ) : (
+                <ChevronDown size={16} strokeWidth={2} />
+              )}
+            </span>
+          )}
+        </span>
+      </SidebarMenuButton>
+      {isOpen && !isCollapsed && (
+        <SidebarMenuSub className="pl-5">
+          {childItems.map((child) => {
+            const childActive =
+              pathname === child.href ||
+              pathname.startsWith(child.href + '/')
+            return (
+              <SidebarMenuSubItem key={child.href}>
+                <SidebarMenuSubButton asChild isActive={childActive}>
+                  <Link
+                    href={child.href}
+                    aria-current={childActive ? 'page' : undefined}
+                    className="block w-full"
+                  >
+                    {child.label}
+                  </Link>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            )
+          })}
+        </SidebarMenuSub>
       )}
-    </NavigationMenuItem>
+    </SidebarMenuItem>
   )
 }
 

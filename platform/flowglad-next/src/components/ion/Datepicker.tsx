@@ -102,8 +102,14 @@ function Datepicker({
     disabledMatchers.push({ after: maxDate })
   }
   useEffect(() => {
-    if (dayPickerProps.selected !== value) {
-      onSelect?.(dayPickerProps.selected)
+    const selectedDate = dayPickerProps.selected as Date | undefined
+    const isSameDate =
+      selectedDate === value ||
+      (!!selectedDate &&
+        !!value &&
+        selectedDate.getTime() === value.getTime())
+    if (!isSameDate) {
+      onSelect?.(selectedDate)
     }
   }, [dayPickerProps.selected, onSelect, value])
 
