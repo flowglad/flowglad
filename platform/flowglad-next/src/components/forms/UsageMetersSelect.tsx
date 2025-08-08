@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useListUsageMetersQuery } from '@/app/hooks/useListUsageMetersQuery'
-import { Skeleton } from '@/components/ion/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect } from 'react'
 
 interface UsageMetersSelectProps {

@@ -15,11 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import Textarea from '@/components/ion/Textarea'
+import { Textarea } from '@/components/ui/textarea'
 import { InvoiceFormLineItemsField } from './InvoiceFormLineItemsField'
 
 import { Invoice } from '@/db/schema/invoices'
-import { Controller, useFormContext } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 import { useAuthenticatedContext } from '../../contexts/authContext'
 import Datepicker from '../ion/Datepicker'
 import clsx from 'clsx'

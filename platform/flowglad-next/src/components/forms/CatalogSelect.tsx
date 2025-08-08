@@ -16,7 +16,7 @@ import {
 import { useListCatalogsQuery } from '@/app/hooks/useListCatalogsQuery'
 import { useEffect } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { Skeleton } from '../ion/Skeleton'
+import { Skeleton } from '../ui/skeleton'
 
 interface CatalogSelectProps {
   name: string
