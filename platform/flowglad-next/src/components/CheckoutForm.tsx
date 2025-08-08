@@ -4,7 +4,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import PaymentForm, { PaymentLoadingForm } from './PaymentForm'
 import { ChevronRight, TriangleAlert } from 'lucide-react'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 

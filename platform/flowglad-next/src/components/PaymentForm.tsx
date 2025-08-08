@@ -9,7 +9,7 @@ import {
 } from '@stripe/react-stripe-js'
 import { FormEvent, useState } from 'react'
 import core, { cn } from '@/utils/core'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
 import { Skeleton } from '@/components/ion/Skeleton'
 import { useRouter } from 'next/navigation'
@@ -33,7 +33,7 @@ import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
-import Switch from './ion/Switch'
+import { Switch } from '@/components/ui/switch'
 
 export const PaymentLoadingForm = ({
   disableAnimation,

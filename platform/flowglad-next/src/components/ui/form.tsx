@@ -166,7 +166,7 @@ const FormDescription = React.forwardRef<
         ref={ref}
         id={formDescriptionId}
         className={cn(
-          'flex items-center gap-1 text-[0.8rem]',
+          'flex items-center gap-1 text-xs',
           {
             'text-destructive': error,
             'text-muted-foreground': !error && !disabled,

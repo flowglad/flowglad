@@ -2,16 +2,30 @@
 import { useEffect, useState } from 'react'
 import Label from '@/components/ion/Label'
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   singlePaymentPriceDefaultColumns,
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
 import { Controller, FieldError } from 'react-hook-form'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthContext } from '@/contexts/authContext'
@@ -43,26 +57,38 @@ const SubscriptionFields = ({
           label="Amount"
           className="flex-1"
         />
-        <Controller
-          name="price.intervalUnit"
+        <FormField
           control={control}
+          name="price.intervalUnit"
           render={({ field }) => (
-            <Select
-              label="Per"
-              placeholder="Select interval"
-              options={[
-                { label: 'Day', value: IntervalUnit.Day },
-                { label: 'Week', value: IntervalUnit.Week },
-                { label: 'Month', value: IntervalUnit.Month },
-                { label: 'Year', value: IntervalUnit.Year },
-              ]}
-              className="flex-1"
-              value={field.value ?? ''}
-              onValueChange={field.onChange}
-              error={
-                (errors.price?.intervalUnit as FieldError)?.message
-              }
-            />
+            <FormItem className="flex-1">
+              <FormLabel>Per</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value ?? ''}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select interval" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={IntervalUnit.Day}>
+                      Day
+                    </SelectItem>
+                    <SelectItem value={IntervalUnit.Week}>
+                      Week
+                    </SelectItem>
+                    <SelectItem value={IntervalUnit.Month}>
+                      Month
+                    </SelectItem>
+                    <SelectItem value={IntervalUnit.Year}>
+                      Year
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       </div>
@@ -101,12 +127,9 @@ const SubscriptionFields = ({
 //         render={({ field }) => (
 //           <CurrencyInput
 //             {...field}
-//             label="First Installment Amount"
+//             label="First Installment"
 //             className="flex-1"
-//             error={
-//               (errors.price?.firstInstallmentAmount as FieldError)
-//                 ?.message
-//             }
+//             error={(errors.price?.firstInstallmentAmount as FieldError)?.message}
 //           />
 //         )}
 //       />
@@ -115,15 +138,26 @@ const SubscriptionFields = ({
 // }
 
 const SinglePaymentFields = () => {
-  const { control } = usePriceFormContext()
+  const {
+    formState: { errors },
+    control,
+  } = usePriceFormContext()
   return (
-    <Controller
-      name="price.unitPrice"
-      control={control}
-      render={({ field }) => (
-        <CurrencyInput {...field} label="Amount" defaultValue={0} />
-      )}
-    />
+    <div className="flex items-end gap-2.5">
+      <FormField
+        control={control}
+        name="price.unitPrice"
+        render={({ field }) => (
+          <FormItem className="flex-1">
+            <FormLabel>Amount</FormLabel>
+            <FormControl>
+              <CurrencyInput {...field} className="flex-1" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
   )
 }
 
@@ -140,7 +174,6 @@ const PriceFormFields = ({
     control,
     watch,
     setValue,
-    register,
     formState: { errors },
   } = usePriceFormContext()
   const type = watch('price.type')
@@ -181,88 +214,115 @@ const PriceFormFields = ({
   return (
     <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
       {priceOnly && (
-        <Input
-          label="Price Name"
-          {...register('price.name')}
-          error={errors.price?.name?.message}
-        />
-      )}
-      <Input
-        label="Price Slug"
-        {...register('price.slug')}
-        error={errors.price?.slug?.message}
-        hint="The slug is used to identify the price in the API. It must be unique within the catalog."
-      />
-      <div className="w-full relative flex flex-col gap-3">
-        <Label>Price Type</Label>
-        <Controller
-          name="price.type"
+        <FormField
           control={control}
+          name="price.name"
           render={({ field }) => (
-            <Select
-              value={field.value}
-              onValueChange={(value) => {
-                /**
-                 * When price type changes,
-                 * set default values for the new price type to ensure
-                 * that the price will parse correctly.
-                 */
-                if (value === PriceType.Usage) {
-                  Object.entries(usagePriceDefaultColumns).forEach(
-                    assignPriceValueFromTuple
-                  )
-                }
-                if (value === PriceType.SinglePayment) {
-                  Object.entries(
-                    singlePaymentPriceDefaultColumns
-                  ).forEach(assignPriceValueFromTuple)
-                }
-                if (value === PriceType.Subscription) {
-                  Object.entries(
-                    subscriptionPriceDefaultColumns
-                  ).forEach(assignPriceValueFromTuple)
-                }
-                field.onChange(value)
-              }}
-              disabled={edit}
-              hint="What type of payment the user will make. Cannot be edited after creation."
-              options={[
-                {
-                  label: 'Single Payment',
-                  value: PriceType.SinglePayment,
-                },
-                {
-                  label: 'Subscription',
-                  value: PriceType.Subscription,
-                },
-                ...(hasUsage
-                  ? [
-                      {
-                        label: 'Usage',
-                        value: PriceType.Usage,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
+            <FormItem>
+              <FormLabel>Price Name</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
-      </div>
+      )}
+      <FormField
+        control={control}
+        name="price.slug"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Price Slug</FormLabel>
+            <FormControl>
+              <Input {...field} value={field.value ?? ''} />
+            </FormControl>
+            <FormDescription>
+              The slug is used to identify the price in the API. It
+              must be unique within the catalog.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="price.type"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Price Type</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  /**
+                   * When price type changes,
+                   * set default values for the new price type to ensure
+                   * that the price will parse correctly.
+                   */
+                  if (value === PriceType.Usage) {
+                    Object.entries(usagePriceDefaultColumns).forEach(
+                      assignPriceValueFromTuple
+                    )
+                  }
+                  if (value === PriceType.SinglePayment) {
+                    Object.entries(
+                      singlePaymentPriceDefaultColumns
+                    ).forEach(assignPriceValueFromTuple)
+                  }
+                  if (value === PriceType.Subscription) {
+                    Object.entries(
+                      subscriptionPriceDefaultColumns
+                    ).forEach(assignPriceValueFromTuple)
+                  }
+                  field.onChange(value)
+                }}
+                disabled={edit}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PriceType.SinglePayment}>
+                    Single Payment
+                  </SelectItem>
+                  <SelectItem value={PriceType.Subscription}>
+                    Subscription
+                  </SelectItem>
+                  {hasUsage && (
+                    <SelectItem value={PriceType.Usage}>
+                      Usage
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormDescription>
+              What type of payment the user will make. Cannot be
+              edited after creation.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       {typeFields}
       {priceOnly && (
-        <div className="w-full relative flex flex-col gap-3">
-          <Controller
-            name="price.isDefault"
-            control={control}
-            render={({ field }) => (
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                label="Default"
-              />
-            )}
-          />
-        </div>
+        <FormField
+          control={control}
+          name="price.isDefault"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Default</FormLabel>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       )}
     </div>
   )

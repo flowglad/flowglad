@@ -6,139 +6,207 @@ import {
   toggleFeatureDefaultColumns,
   usageCreditGrantFeatureDefaultColumns,
 } from '@/db/schema/features'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form'
 import NumberInput from '@/components/ion/NumberInput'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import UsageMetersSelect from './UsageMetersSelect'
 import Textarea from '@/components/ion/Textarea'
 import core, { titleCase } from '@/utils/core'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 
 const FeatureFormFields = () => {
-  const {
-    register,
-    formState: { errors },
-    control,
-    watch,
-    setValue,
-  } = useFormContext<CreateFeatureInput>()
+  const form = useFormContext<CreateFeatureInput>()
 
-  const featureType = watch('feature.type')
+  const featureType = form.watch('feature.type')
   if (!core.IS_PROD) {
     // eslint-disable-next-line no-console
-    console.log('errors', errors)
+    console.log('errors', form.formState.errors)
   }
   const assignFeatureValueFromTuple = (tuple: [string, any]) => {
     const [key, value] = tuple
     // @ts-expect-error - key is a valid key of usagePriceDefaultColumns
-    setValue(`feature.${key}`, value)
+    form.setValue(`feature.${key}`, value)
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <Input
-        {...register('feature.name')}
-        label="Name"
-        placeholder="e.g. My Awesome Feature"
-        error={errors.feature?.name?.message}
+      <FormField
+        control={form.control}
+        name="feature.name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="e.g. My Awesome Feature"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
-      <Input
-        {...register('feature.slug')}
-        label="Slug"
-        placeholder="e.g. my-awesome-feature"
-        hint="Used to check access on the SDK. Must be unique within each catalog."
-        error={errors.feature?.slug?.message}
+      <FormField
+        control={form.control}
+        name="feature.slug"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Slug</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="e.g. my-awesome-feature"
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              Used to check access on the SDK. Must be unique within
+              each catalog.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
       />
-      <Input
-        {...register('feature.description')}
-        label="Description"
-        placeholder="Describe the feature"
-        error={errors.feature?.description?.message}
+      <FormField
+        control={form.control}
+        name="feature.description"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Description</FormLabel>
+            <FormControl>
+              <Input placeholder="Describe the feature" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
       <Controller
-        control={control}
+        control={form.control}
         name="feature.type"
         render={({ field }) => (
-          <Select
-            label="Type"
-            value={field.value}
-            onValueChange={(value) => {
-              field.onChange(value)
-              // Reset fields when type changes
-              if (value === FeatureType.Toggle) {
-                Object.entries(toggleFeatureDefaultColumns).forEach(
-                  assignFeatureValueFromTuple
-                )
-              }
-              if (value === FeatureType.UsageCreditGrant) {
-                Object.entries(
-                  usageCreditGrantFeatureDefaultColumns
-                ).forEach(assignFeatureValueFromTuple)
-              }
-            }}
-            options={[
-              {
-                label: 'Toggle',
-                value: FeatureType.Toggle,
-                description: 'Boolean access to a feature.',
-              },
-              {
-                label: 'Usage Credit Grant',
-                value: FeatureType.UsageCreditGrant,
-                description:
-                  'Credits towards a specific usage meter.',
-              },
-            ]}
-          />
+          <FormItem>
+            <FormLabel>Type</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value)
+                  // Reset fields when type changes
+                  if (value === FeatureType.Toggle) {
+                    Object.entries(
+                      toggleFeatureDefaultColumns
+                    ).forEach(assignFeatureValueFromTuple)
+                  }
+                  if (value === FeatureType.UsageCreditGrant) {
+                    Object.entries(
+                      usageCreditGrantFeatureDefaultColumns
+                    ).forEach(assignFeatureValueFromTuple)
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={FeatureType.Toggle}>
+                    <div>
+                      <div>Toggle</div>
+                      <div className="text-xs text-muted-foreground">
+                        Boolean access to a feature.
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value={FeatureType.UsageCreditGrant}>
+                    <div>
+                      <div>Usage Credit Grant</div>
+                      <div className="text-xs text-muted-foreground">
+                        Credits towards a specific usage meter.
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
 
       {featureType === FeatureType.UsageCreditGrant && (
         <>
-          <Controller
-            control={control}
+          <FormField
+            control={form.control}
             name="feature.amount"
             render={({ field }) => (
-              <NumberInput
-                {...field}
-                label="Amount"
-                placeholder="e.g. 100"
-                value={field.value ?? undefined} // Ensure undefined for empty to avoid "0" display issues
-                onChange={(e) =>
-                  field.onChange(parseInt(e.target.value, 10) || null)
-                }
-                error={errors.feature?.amount?.message}
-              />
+              <FormItem>
+                <FormLabel>Amount</FormLabel>
+                <FormControl>
+                  <NumberInput
+                    {...field}
+                    placeholder="e.g. 100"
+                    value={field.value ?? undefined} // Ensure undefined for empty to avoid "0" display issues
+                    onChange={(e) =>
+                      field.onChange(
+                        parseInt(e.target.value, 10) || null
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
           <UsageMetersSelect
             name="feature.usageMeterId"
-            control={control}
+            control={form.control}
           />
-          <Controller
-            control={control}
+          <FormField
+            control={form.control}
             name="feature.renewalFrequency"
             render={({ field }) => (
-              <Select
-                label="Renewal Frequency"
-                placeholder="Select renewal frequency"
-                options={Object.values(
-                  FeatureUsageGrantFrequency
-                ).map((value) => ({
-                  label: titleCase(value),
-                  value,
-                }))}
-                value={field.value ?? ''}
-                onValueChange={field.onChange}
-                error={errors.feature?.renewalFrequency?.message}
-              />
+              <FormItem>
+                <FormLabel>Renewal Frequency</FormLabel>
+                <FormControl>
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select renewal frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(FeatureUsageGrantFrequency).map(
+                        (value) => (
+                          <SelectItem key={value} value={value}>
+                            {titleCase(value)}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
           />
         </>
       )}
       <Controller
-        control={control}
+        control={form.control}
         name="feature.active"
         render={({ field }) => (
           <Switch
