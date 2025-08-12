@@ -76,7 +76,7 @@ Example:
             color="#AAAAAA"
             padding="16px 0 0"
           >
-            Set up payments and billing in seconds with 100% open-source tools. The Flowglad MCP lets you design any pricing model and integrate it instantly into your app.
+            Set up payments and billing in seconds with 100% open-source tools. Design any pricing model and integrate it instantly with the Flowglad MCP.
           </mj-text>
           <mj-text
             align="center"
