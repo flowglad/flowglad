@@ -60,6 +60,24 @@ Example:
           >
             Flowglad Product Updates
           </mj-text>
+          <mj-text
+            align="center"
+            font-size="16px"
+            line-height="1.6"
+            color="#AAAAAA"
+            padding="16px 0 0"
+          >
+            The easiest way to make internet money.
+          </mj-text>
+          <mj-text
+            align="center"
+            font-size="16px"
+            line-height="1.6"
+            color="#AAAAAA"
+            padding="16px 0 0"
+          >
+            Set up payments and billing in seconds with 100% open-source tools. Process your first payment in under three minutes. The Flowglad MCP lets you design any pricing model and instantly integrate it into your app. <a href="https://docs.flowglad.com/quickstart" style="color:#F5F5F5"><strong>Get started with our quickstart guide</strong></a>.
+          </mj-text>
         </mj-column>
       </mj-section>
       <!-- Highlights -->
