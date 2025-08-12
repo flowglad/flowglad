@@ -223,7 +223,7 @@ Example:
             Agree Ahmed<br />
             CEO, <a href="https://flowglad.com" style="color:#F5F5F5"><strong>Flowglad</strong></a><br /><br />
             PS - Treat us like your payments therapist by <a href="https://cal.com/team/flowglad/chat" style="color:#F5F5F5"><strong>grabbing time on our calendar</strong></a>.<br /><br />
-            :star:️ us on
+            ⭐️ us on
             <a href="https://github.com/flowglad/flowglad" style="color:#F5F5F5"><strong>GitHub</strong></a>. Chat on
             <a href="https://discord.gg/XTK7hVyQD9" style="color:#F5F5F5"><strong>Discord</strong></a> or follow on
             <a href="https://x.com/flowglad" style="color:#F5F5F5"><strong>X</strong></a> and
