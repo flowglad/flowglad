@@ -3,12 +3,6 @@ import { admin } from 'better-auth/plugins'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/db/client'
 import {
-  insertUser,
-  selectUsers,
-  updateUser,
-} from '@/db/tableMethods/userMethods'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
   user,
   session,
   account,
