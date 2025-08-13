@@ -3,9 +3,10 @@ import { Organization } from '@/db/schema/organizations'
 import { CurrentServerUser } from '@stackframe/stack'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
+import { UserRecord } from '@/db/schema/users'
 
 export type AuthContextValues = Partial<{
-  user: User
+  user: UserRecord
   organization: Organization.ClientRecord
 }> & {
   setOrganization: (organization: Organization.ClientRecord) => void
