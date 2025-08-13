@@ -12,7 +12,6 @@ export default async function Home() {
         userId,
         transaction
       )
-      console.log('$$$ result', result)
       if (!result || !result.organization) {
         redirect('/onboarding')
       }

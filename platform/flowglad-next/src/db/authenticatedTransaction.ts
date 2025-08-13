@@ -26,12 +26,7 @@ export async function authenticatedTransaction<T>(
   const { apiKey } = options ?? {}
   const { userId, livemode, jwtClaim } =
     await getDatabaseAuthenticationInfo(apiKey)
-  console.log('userId, livemode, jwtClaim', {
-    userId,
-    livemode,
-    jwtClaim,
-  })
-  return db.transaction(async (transaction) => {
+  return await db.transaction(async (transaction) => {
     if (!jwtClaim) {
       throw new Error('No jwtClaim found')
     }
