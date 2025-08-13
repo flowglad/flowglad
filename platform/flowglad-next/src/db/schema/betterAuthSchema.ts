@@ -20,7 +20,7 @@ export const user = pgTable('better_auth_user', {
   updatedAt: timestamp('updated_at')
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),
-})
+}).enableRLS()
 
 export const session = pgTable('better_auth_session', {
   id: text('id').primaryKey(),
@@ -33,7 +33,7 @@ export const session = pgTable('better_auth_session', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-})
+}).enableRLS()
 
 export const account = pgTable('better_auth_account', {
   id: text('id').primaryKey(),
@@ -51,7 +51,7 @@ export const account = pgTable('better_auth_account', {
   password: text('password'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
-})
+}).enableRLS()
 
 export const verification = pgTable('better_auth_verification', {
   id: text('id').primaryKey(),
@@ -64,4 +64,4 @@ export const verification = pgTable('better_auth_verification', {
   updatedAt: timestamp('updated_at').$defaultFn(
     () => /* @__PURE__ */ new Date()
   ),
-})
+}).enableRLS()

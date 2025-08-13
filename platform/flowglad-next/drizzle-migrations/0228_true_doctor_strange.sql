@@ -94,3 +94,8 @@ DO $$ BEGIN
 EXCEPTION
   WHEN duplicate_column THEN null;
 END $$;
+
+ALTER TABLE "better_auth_account" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "better_auth_session" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "better_auth_user" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "better_auth_verification" ENABLE ROW LEVEL SECURITY;
