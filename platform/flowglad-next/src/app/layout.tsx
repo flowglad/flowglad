@@ -18,6 +18,7 @@ import {
 } from '@/db/schema/organizations'
 import { auth } from '@/utils/auth'
 import { headers } from 'next/headers'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -38,27 +39,11 @@ export default async function RootLayout({
   let livemode: boolean = true
   let user: UserRecord | undefined = undefined
   if (session) {
+    user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = await adminTransaction(
       async ({ transaction }) => {
-        const [userResult] = await selectUsers(
-          {
-            betterAuthId: session.user.id,
-          },
-          transaction
-        )
-
-        if (!userResult) {
-          user = await insertUser(
-            {
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.name ?? undefined,
-              betterAuthId: session.user.id,
-            },
-            transaction
-          )
-        } else {
-          user = userResult
+        if (!user) {
+          throw new Error('User not found')
         }
         return await selectMembershipAndOrganizations(
           {
@@ -69,8 +54,9 @@ export default async function RootLayout({
         )
       }
     )
+
     livemode = membershipData?.membership.livemode
-    if (membershipData?.organization) {
+    if (membershipData?.organization && membershipData.membership) {
       organization = organizationsClientSelectSchema.parse(
         membershipData.organization
       )

@@ -43,6 +43,10 @@ const publicRoutes = [
   '/api/openapi',
   '/api/hosted-billing/(.*)',
   '/invoice/view/(.*)',
+  /**
+   * Better Auth URLS
+   */
+  '/api/auth/(.*)',
 ]
 
 if (core.IS_DEV) {

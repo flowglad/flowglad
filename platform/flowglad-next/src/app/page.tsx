@@ -7,6 +7,7 @@ import {
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import { auth } from '@/utils/auth'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { inArray } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -24,40 +25,8 @@ export default async function Home() {
   if (!email) {
     throw new Error('User email not found')
   }
+  const user = await betterAuthUserToApplicationUser(betterAuthUser)
   const result = await adminTransaction(async ({ transaction }) => {
-    /**
-     * Upsert flow:
-     * - get users with the same email as the current one
-     * - if no users are found, create a new user
-     * - if existing users are found with the same email,
-     *   update the user id of their memberships to match
-     *   the id of the current user
-     * - if no memberships exist for the current user,
-     *   redirect them to onboarding.
-     */
-    const existingUsers = await selectUsers(
-      {
-        email,
-      },
-      transaction
-    )
-    let user: UserRecord | null = null
-    if (existingUsers.length === 0) {
-      user = await insertUser(
-        {
-          id: betterAuthUser.id,
-          name: betterAuthUser.name ?? undefined,
-          email,
-          betterAuthId: betterAuthUser.id,
-        },
-        transaction
-      )
-    } else {
-      user = existingUsers[0]
-    }
-    if (!user) {
-      throw new Error('User not found')
-    }
     const membershipsAndOrganizations =
       await selectMembershipAndOrganizations(
         {

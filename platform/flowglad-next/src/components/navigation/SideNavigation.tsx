@@ -7,6 +7,8 @@ import {
   CircleDollarSign,
   PanelLeft,
   BookOpen,
+  Loader2,
+  LogOut,
 } from 'lucide-react'
 import {
   NavigationMenu,
@@ -26,6 +28,8 @@ import { useEffect, useState } from 'react'
 import { FallbackSkeleton } from '../ion/Skeleton'
 import { FeatureFlag } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
+import Button from '../ion/Button'
+import { signOut } from '@/utils/authClient'
 
 export const SideNavigation = () => {
   const pathname = usePathname()
@@ -45,6 +49,7 @@ export const SideNavigation = () => {
     initialFocusedMembershipLoading,
     setInitialFocusedMembershipLoading,
   ] = useState(true)
+  const [signingOut, setSigningOut] = useState(false)
   const focusedMembershipData = focusedMembership.data
   useEffect(() => {
     if (focusedMembershipData) {
@@ -231,27 +236,13 @@ export const SideNavigation = () => {
             basePath="https://docs.flowglad.com"
             isCollapsed={isCollapsed}
           />
-        </div>
-        <div className="flex-0 w-full flex items-center border-b border-stroke-subtle pb-6 pl-2">
-          <FallbackSkeleton
-            showSkeleton={!user}
-            className="w-full h-12"
-          >
-            <div className="flex h-full items-center gap-3">
-              <UserButton />
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-foreground">
-                  {user?.display_name}
-                </span>
-                <span
-                  className="text-xs text-subtle truncate max-w-[16ch]"
-                  title={user?.primary_email ?? ''}
-                >
-                  {user?.primary_email}
-                </span>
-              </div>
-            </div>
-          </FallbackSkeleton>
+          <StandaloneNavigationItem
+            title="Logout"
+            href="/logout"
+            icon={<LogOut size={16} />}
+            basePath="/logout"
+            isCollapsed={isCollapsed}
+          />
         </div>
         <div className="flex flex-row justify-between pt-4 pl-2">
           <FallbackSkeleton

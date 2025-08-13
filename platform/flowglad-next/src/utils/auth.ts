@@ -8,45 +8,41 @@ import {
   updateUser,
 } from '@/db/tableMethods/userMethods'
 import { adminTransaction } from '@/db/adminTransaction'
+import {
+  user,
+  session,
+  account,
+  verification,
+} from '@/db/schema/betterAuthSchema'
+import { betterAuthUserToApplicationUser } from './authHelpers'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
+    schema: {
+      user,
+      session,
+      account,
+      verification,
+    },
   }),
   plugins: [admin()],
   databaseHooks: {
     user: {
       create: {
-        after: async (user) => {
-          await adminTransaction(async ({ transaction }) => {
-            const [existingUser] = await selectUsers(
-              {
-                email: user.email,
-              },
-              transaction
-            )
-            if (existingUser) {
-              await updateUser(
-                {
-                  id: existingUser.id,
-                  betterAuthId: user.id,
-                },
-                transaction
-              )
-            } else {
-              await insertUser(
-                {
-                  email: user.email,
-                  name: user.name ?? null,
-                  id: user.id,
-                  betterAuthId: user.id,
-                  stackAuthId: null,
-                },
-                transaction
-              )
-            }
-          })
+        after: async (betterAuthUser) => {
+          await betterAuthUserToApplicationUser(betterAuthUser)
         },
+      },
+    },
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: 'string',
+        required: false,
+        defaultValue: 'user',
+        input: false, // don't allow user to set role
       },
     },
   },

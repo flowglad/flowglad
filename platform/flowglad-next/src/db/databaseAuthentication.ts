@@ -15,6 +15,7 @@ import { customers } from './schema/customers'
 import { ApiKey, apiKeyMetadataSchema } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
 import { auth } from '@/utils/auth'
+import { User } from 'better-auth'
 
 type SessionUser = Session['user']
 
@@ -255,22 +256,22 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   }
 }
 
-export async function databaseAuthenticationInfoForWebappRequest(user: {
-  id: string
-  email: string
-}): Promise<DatabaseAuthenticationInfo> {
-  const userId = user.id
+export async function databaseAuthenticationInfoForWebappRequest(
+  user: User
+): Promise<DatabaseAuthenticationInfo> {
+  const betterAuthId = user.id
   const [focusedMembership] = await db
     .select()
     .from(memberships)
     .innerJoin(users, eq(memberships.userId, users.id))
     .where(
       and(
-        eq(users.betterAuthId, userId),
+        eq(users.betterAuthId, betterAuthId),
         eq(memberships.focused, true)
       )
     )
     .limit(1)
+  const userId = focusedMembership?.memberships.userId
   const livemode = focusedMembership?.memberships.livemode ?? false
   const jwtClaim = {
     role: 'authenticated',
