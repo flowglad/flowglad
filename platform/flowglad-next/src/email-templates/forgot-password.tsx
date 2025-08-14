@@ -36,8 +36,7 @@ export const ForgotPasswordEmail = ({
         <EmailButton href={url}>Reset Password</EmailButton>
       </Section>
       <Paragraph variant="customer" style={{ marginTop: '24px' }}>
-        If you didn't request this password reset, you can safely
-        ignore this email. Your password will remain unchanged.
+        {`If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.`}
       </Paragraph>
       <Paragraph variant="customer">
         For security reasons, this link will expire in 24 hours.

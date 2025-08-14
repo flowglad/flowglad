@@ -21,14 +21,7 @@ export const auth = betterAuth({
       verification,
     },
   }),
-  plugins: [
-    admin(),
-    emailOTP({
-      async sendVerificationOTP({ email, otp, type }) {
-        console.log('=====sendVerificationOTP', { email, otp, type })
-      },
-    }),
-  ],
+  plugins: [admin()],
   databaseHooks: {
     user: {
       create: {

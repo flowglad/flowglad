@@ -17,7 +17,6 @@ async function example(db: PostgresJsDatabase) {
       .select()
       .from(users)
       .where(isNull(users.betterAuthId))
-    console.log('=====nonMigratedUsers', nonMigratedUsers)
     const ctx = await auth.$context
     for (const user of nonMigratedUsers) {
       const existingUser = await transaction
