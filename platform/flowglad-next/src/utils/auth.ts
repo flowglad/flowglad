@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth'
-import { admin } from 'better-auth/plugins'
+import { admin, emailOTP } from 'better-auth/plugins'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/db/client'
 import {
@@ -9,6 +9,7 @@ import {
   verification,
 } from '@/db/schema/betterAuthSchema'
 import { betterAuthUserToApplicationUser } from './authHelpers'
+import { sendForgotPasswordEmail } from './email'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -20,7 +21,14 @@ export const auth = betterAuth({
       verification,
     },
   }),
-  plugins: [admin()],
+  plugins: [
+    admin(),
+    emailOTP({
+      async sendVerificationOTP({ email, otp, type }) {
+        console.log('=====sendVerificationOTP', { email, otp, type })
+      },
+    }),
+  ],
   databaseHooks: {
     user: {
       create: {
@@ -42,6 +50,12 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    sendResetPassword: async ({ user, url, token }, request) => {
+      await sendForgotPasswordEmail({
+        to: [user.email],
+        url,
+      })
+    },
   },
   socialProviders: {
     google: {

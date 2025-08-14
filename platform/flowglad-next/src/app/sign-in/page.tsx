@@ -14,10 +14,12 @@ import Label from '@/components/ion/Label'
 import Checkbox from '@/components/ion/Checkbox'
 import { useState } from 'react'
 import { Loader2, Key } from 'lucide-react'
-import { signIn } from '@/utils/authClient'
+import { authClient, signIn } from '@/utils/authClient'
 import Link from 'next/link'
 import { cn } from '@/utils/core'
 import ErrorLabel from '@/components/ErrorLabel'
+import { toast } from 'sonner'
+import z from 'zod'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
@@ -25,13 +27,12 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
+  const forgotPasswordDisabled = !z.string().email().safeParse(email)
+    .success
   return (
-    <Card className="max-w-md">
+    <Card className="max-w-lg lg:w-80 w-full">
       <CardHeader>
         <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
-        <CardDescription className="text-xs md:text-sm">
-          Enter your email below to login to your account
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
@@ -40,7 +41,7 @@ export default function SignIn() {
             <Input
               id="email"
               type="email"
-              placeholder="m@example.com"
+              placeholder="user@example.com"
               required
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -52,14 +53,28 @@ export default function SignIn() {
           <div className="grid gap-2">
             <div className="flex items-center">
               <Label htmlFor="password">Password</Label>
-              <Link
-                href="#"
-                className="ml-auto inline-block text-sm underline"
+              <div
+                className={cn(
+                  'ml-auto inline-block text-sm underline cursor-pointer',
+                  forgotPasswordDisabled &&
+                    'opacity-25 cursor-not-allowed'
+                )}
+                onClick={async (e) => {
+                  if (forgotPasswordDisabled) {
+                    return
+                  }
+                  await authClient.requestPasswordReset({
+                    email,
+                    redirectTo: '/sign-in/reset-password',
+                  })
+                  toast.success(
+                    'If that email has an account, a password reset email has been sent.'
+                  )
+                }}
               >
                 Forgot your password?
-              </Link>
+              </div>
             </div>
-
             <Input
               id="password"
               type="password"
