@@ -17,13 +17,14 @@ import { Loader2, Key } from 'lucide-react'
 import { signIn } from '@/utils/authClient'
 import Link from 'next/link'
 import { cn } from '@/utils/core'
+import ErrorLabel from '@/components/ErrorLabel'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-
+  const [error, setError] = useState('')
   return (
     <Card className="max-w-md">
       <CardHeader>
@@ -88,10 +89,15 @@ export default function SignIn() {
                 {
                   email,
                   password,
+                  callbackURL: '/',
                 },
                 {
                   onRequest: (ctx) => {
                     setLoading(true)
+                    setError('')
+                  },
+                  onError: (ctx) => {
+                    setError(ctx.error.message)
                   },
                   onResponse: (ctx) => {
                     setLoading(false)
@@ -121,7 +127,7 @@ export default function SignIn() {
                 await signIn.social(
                   {
                     provider: 'google',
-                    callbackURL: '/dashboard',
+                    callbackURL: '/',
                   },
                   {
                     onRequest: (ctx) => {
@@ -160,6 +166,10 @@ export default function SignIn() {
               Sign in with Google
             </Button>
           </div>
+          <ErrorLabel
+            error={error}
+            className={cn(error ? 'opacity-100' : 'opacity-0')}
+          />
         </div>
       </CardContent>
     </Card>

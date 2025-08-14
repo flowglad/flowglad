@@ -1,7 +1,7 @@
 import { adminTransaction } from './adminTransaction'
 import { verifyKey } from '@unkey/api'
 import db from './client'
-import { and, asc, eq, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
 import core from '@/utils/core'
 import { memberships } from './schema/memberships'
@@ -264,12 +264,8 @@ export async function databaseAuthenticationInfoForWebappRequest(
     .select()
     .from(memberships)
     .innerJoin(users, eq(memberships.userId, users.id))
-    .where(
-      and(
-        eq(users.betterAuthId, betterAuthId),
-        eq(memberships.focused, true)
-      )
-    )
+    .where(and(eq(users.betterAuthId, betterAuthId)))
+    .orderBy(desc(memberships.focused))
     .limit(1)
   const userId = focusedMembership?.memberships.userId
   const livemode = focusedMembership?.memberships.livemode ?? false

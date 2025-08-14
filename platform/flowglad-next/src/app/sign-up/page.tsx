@@ -118,39 +118,6 @@ export default function SignUp() {
               placeholder="Confirm Password"
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="image">Profile Image (optional)</Label>
-            <div className="flex items-end gap-4">
-              {imagePreview && (
-                <div className="relative w-16 h-16 rounded-sm overflow-hidden">
-                  <Image
-                    src={imagePreview}
-                    alt="Profile preview"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-              )}
-              <div className="flex items-center gap-2 w-full">
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="w-full"
-                />
-                {imagePreview && (
-                  <X
-                    className="cursor-pointer"
-                    onClick={() => {
-                      setImage(null)
-                      setImagePreview(null)
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
           <Button
             type="submit"
             className="w-full"
@@ -160,7 +127,6 @@ export default function SignUp() {
                 email,
                 password,
                 name: `${firstName} ${lastName}`,
-                image: image ? await convertImageToBase64(image) : '',
                 callbackURL: '/dashboard',
                 fetchOptions: {
                   onResponse: () => {
@@ -187,23 +153,6 @@ export default function SignUp() {
           </Button>
         </div>
       </CardContent>
-      <CardFooter>
-        <div className="flex justify-center w-full border-t py-4">
-          <p className="text-center text-xs text-neutral-500">
-            Secured by{' '}
-            <span className="text-orange-400">better-auth.</span>
-          </p>
-        </div>
-      </CardFooter>
     </Card>
   )
-}
-
-async function convertImageToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onloadend = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
 }
