@@ -266,27 +266,21 @@ const getCurrentSubscribers = protectedProcedure.query(
 )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
-  console.log('==ctx.user???', ctx.user)
-  return authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      // Get all memberships and organizations for the user
-      const membershipsAndOrganizations =
-        await selectMembershipsAndOrganizationsByMembershipWhere(
-          { userId },
-          transaction
-        )
-
-      // Extract just the organizations
-      const organizations = membershipsAndOrganizations.map(
-        ({ organization }) => organization
+  return adminTransaction(async ({ transaction }) => {
+    // Get all memberships and organizations for the user
+    const membershipsAndOrganizations =
+      await selectMembershipsAndOrganizationsByMembershipWhere(
+        { userId: ctx.user!.id },
+        transaction
       )
 
-      return organizations
-    },
-    {
-      apiKey: ctx.apiKey,
-    }
-  )
+    // Extract just the organizations
+    const organizations = membershipsAndOrganizations.map(
+      ({ organization }) => organization
+    )
+
+    return organizations
+  }, {})
 })
 
 const createOrganization = protectedProcedure
