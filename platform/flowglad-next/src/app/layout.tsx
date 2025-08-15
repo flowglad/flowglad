@@ -1,5 +1,3 @@
-import { StackProvider, StackTheme } from '@stackframe/stack'
-import { stackServerApp } from '../stack'
 import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -10,11 +8,17 @@ import { cn } from '@/utils/core'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
+  insertUser,
+  selectUsers,
+  UserRecord,
+} from '@/db/tableMethods/userMethods'
+import {
   Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
-// import AIModal from './components/forms/AIModal'
-// import { ChatActionsProvider } from './components/ChatActionsContext'
+import { auth } from '@/utils/auth'
+import { headers } from 'next/headers'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -28,12 +32,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const user = await stackServerApp.getUser()
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
-  if (user) {
+  let user: UserRecord | undefined = undefined
+  if (session) {
+    user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = await adminTransaction(
       async ({ transaction }) => {
+        if (!user) {
+          throw new Error('User not found')
+        }
         return await selectMembershipAndOrganizations(
           {
             userId: user.id,
@@ -43,37 +54,33 @@ export default async function RootLayout({
         )
       }
     )
+
     livemode = membershipData?.membership.livemode
-    if (membershipData?.organization) {
+    if (membershipData?.organization && membershipData.membership) {
       organization = organizationsClientSelectSchema.parse(
         membershipData.organization
       )
     }
   }
-  const userJson = user?.toClientJson()
   return (
     <html lang="en" className="dark h-full" data-mode="dark">
       <body className={cn(inter.className, 'dark', 'h-full')}>
-        <StackProvider app={stackServerApp}>
-          <StackTheme>
-            <Providers
-              authContext={{
-                organization,
-                livemode,
-                user: userJson,
-              }}
-            >
-              {/* {!livemode && (
+        <Providers
+          authContext={{
+            organization,
+            livemode,
+            user,
+          }}
+        >
+          {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
-              <Toaster />
-              {/* <ChatActionsProvider>
+          <Toaster />
+          {/* <ChatActionsProvider>
             <AIModal />
           </ChatActionsProvider> */}
-              {children}
-            </Providers>
-          </StackTheme>
-        </StackProvider>
+          {children}
+        </Providers>
       </body>
     </html>
   )

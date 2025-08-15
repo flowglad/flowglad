@@ -4,8 +4,19 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import InternalDashboard from './InternalDashboard'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { redirect } from 'next/navigation'
+import { auth } from '@/utils/auth'
+import { headers } from 'next/headers'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 
 export default async function Home() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  if (!session) {
+    redirect('/sign-in')
+  }
+  const user = await betterAuthUserToApplicationUser(session.user)
   const organization = await authenticatedTransaction(
     async ({ userId, transaction }) => {
       const result = await selectFocusedMembershipAndOrganization(

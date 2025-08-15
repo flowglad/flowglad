@@ -24,7 +24,6 @@ import {
 import { getRevenueDataInputSchema } from '@/db/schema/payments'
 import { z } from 'zod'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
-import { stackServerApp } from '@/stack'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 import {
@@ -45,6 +44,9 @@ import {
 import { TRPCError } from '@trpc/server'
 import { createPaginatedTableRowInputSchema } from '@/db/tableUtils'
 import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
+import { headers } from 'next/headers'
+import { auth } from '@/utils/auth'
+import { selectUsers } from '@/db/tableMethods/userMethods'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -295,24 +297,27 @@ const createOrganization = protectedProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const user = await stackServerApp.getUser()
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
 
-    if (!user) {
+    if (!session) {
       throw new Error('User not found')
-    }
-    const email = user.primaryEmail
-    const userId = user.id
-    if (!email) {
-      throw new Error('User email not found')
     }
 
     const result = await adminTransaction(async ({ transaction }) => {
+      const [user] = await selectUsers(
+        {
+          betterAuthId: session.user.id,
+        },
+        transaction
+      )
       return createOrganizationTransaction(
         input,
         {
-          id: userId,
-          email,
-          fullName: user.displayName ?? undefined,
+          id: user.id,
+          email: user.email!,
+          fullName: user.name ?? undefined,
         },
         transaction
       )

@@ -15,10 +15,11 @@ import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { ApiKey } from '@/db/schema/apiKeys'
-import { stackServerApp } from '@/stack'
+import { auth } from '@/utils/auth'
+import { headers } from 'next/headers'
+import { selectUsers } from '@/db/tableMethods/userMethods'
 
 const OnboardingPage = async () => {
-  const user = await stackServerApp.getUser()
   const results = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       const membershipsAndOrganizations =
@@ -64,9 +65,19 @@ const OnboardingPage = async () => {
     testmodeApiKeys.find(
       (key) => key.type === FlowgladApiKeyType.Secret
     )
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
   if (!secretApiKey) {
     secretApiKey = await adminTransaction(
       async ({ transaction }): Promise<ApiKey.Record> => {
+        const [user] = await selectUsers(
+          {
+            betterAuthId: session?.user.id,
+          },
+          transaction
+        )
         const { apiKey } = await createSecretApiKeyTransaction(
           {
             apiKey: {
