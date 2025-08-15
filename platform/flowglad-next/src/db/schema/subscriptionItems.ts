@@ -99,7 +99,10 @@ const baseColumnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
   quantity: core.safeZodPositiveInteger,
   metadata: metadataSchema.nullable(),
+  // Accept ISO datetime strings or Date objects
+  addedDate: z.coerce.date(),
   expiredAt: z
+    .coerce
     .date()
     .nullable()
     .describe(
