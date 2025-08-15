@@ -118,6 +118,7 @@ export const adjustSubscription = async (
   const subscriptionItemUpserts: SubscriptionItem.ClientUpsert[] =
     newSubscriptionItems.map((item) => ({
       ...item,
+      subscriptionId: subscription.id,
       addedDate: adjustmentDate,
       livemode: subscription.livemode,
     }))
@@ -125,7 +126,6 @@ export const adjustSubscription = async (
   for (const item of existingSubscriptionItemsToRemove) {
     await expireSubscriptionItem(item.id, adjustmentDate, transaction)
   }
-
   const subscriptionItems = await bulkCreateOrUpdateSubscriptionItems(
     // @ts-expect-error - upsert type mismatch
     subscriptionItemUpserts,
