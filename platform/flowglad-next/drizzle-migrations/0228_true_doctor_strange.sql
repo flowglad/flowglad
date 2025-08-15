@@ -99,3 +99,11 @@ ALTER TABLE "better_auth_account" ENABLE ROW LEVEL SECURITY;--> statement-breakp
 ALTER TABLE "better_auth_session" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "better_auth_user" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "better_auth_verification" ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION current_organization_id()
+RETURNS TEXT
+LANGUAGE SQL
+STABLE
+AS $$
+    SELECT NULLIF(((current_setting('request.jwt.claims', true))::json)->>'organization_id', '');
+$$;

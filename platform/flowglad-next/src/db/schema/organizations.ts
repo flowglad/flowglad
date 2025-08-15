@@ -6,6 +6,7 @@ import {
   boolean,
   jsonb,
   integer,
+  pgPolicy,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
@@ -28,6 +29,7 @@ import {
 } from '@/types'
 import { generateRandomBytes } from '@/utils/backendCore'
 import { nanoid } from 'nanoid'
+import { sql } from 'drizzle-orm'
 
 const TABLE_NAME = 'organizations'
 
@@ -86,6 +88,14 @@ export const organizations = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.domain]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       constructIndex(TABLE_NAME, [table.countryId]),
+      pgPolicy('Enable read for own organizations', {
+        as: 'permissive',
+        to: 'authenticated',
+        for: 'select',
+        using: sql`id IN ( SELECT memberships.organization_id
+   FROM memberships
+  WHERE (memberships.user_id = requesting_user_id() and memberships.organization_id = current_organization_id()))`,
+      }),
     ]
   }
 ).enableRLS()

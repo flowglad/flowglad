@@ -1,21 +1,14 @@
 import { adminTransaction } from '@/db/adminTransaction'
-import { UserRecord } from '@/db/schema/users'
 import {
   selectMembershipAndOrganizations,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
-import { selectUsers } from '@/db/tableMethods/userMethods'
-import { insertUser } from '@/db/tableMethods/userMethods'
-import { auth } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { inArray } from 'drizzle-orm'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 export default async function Home() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await getSession()
 
   if (!session) {
     throw new Error('User not authenticated')

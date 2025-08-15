@@ -63,7 +63,7 @@ export const createProduct = protectedProcedure
   .output(singleProductOutputSchema)
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+      async ({ transaction, userId, livemode, organizationId }) => {
         const { product, price, featureIds } = input
         return createProductTransaction(
           {
@@ -76,7 +76,7 @@ export const createProduct = protectedProcedure
             ],
             featureIds,
           },
-          { transaction, userId, livemode }
+          { transaction, userId, livemode, organizationId }
         )
       },
       {

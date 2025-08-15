@@ -16,7 +16,7 @@ import {
   Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
-import { auth } from '@/utils/auth'
+import { auth, getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 
@@ -32,9 +32,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await getSession()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
   let user: UserRecord | undefined = undefined

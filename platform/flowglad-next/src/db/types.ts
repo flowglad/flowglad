@@ -47,6 +47,7 @@ export interface AuthenticatedTransactionParams {
   transaction: DbTransaction
   livemode: boolean
   userId: string
+  organizationId: string
 }
 
 export interface AdminTransactionParams {

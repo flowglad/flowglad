@@ -95,6 +95,7 @@ export const selectMembershipAndOrganizationsByBetterAuthUserId =
       .select({
         membership: memberships,
         organization: organizations,
+        user: users,
       })
       .from(memberships)
       .innerJoin(
@@ -105,9 +106,10 @@ export const selectMembershipAndOrganizationsByBetterAuthUserId =
       .where(eq(users.betterAuthId, betterAuthUserId))
 
     const result = await query
-    return result.map(({ membership, organization }) => ({
+    return result.map(({ membership, organization, user }) => ({
       membership: membershipsSelectSchema.parse(membership),
       organization: organizationsSelectSchema.parse(organization),
+      user: usersSelectSchema.parse(user),
     }))
   }
 
