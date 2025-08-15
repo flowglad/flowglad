@@ -99,12 +99,14 @@ const baseColumnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
   quantity: core.safeZodPositiveInteger,
   metadata: metadataSchema.nullable(),
-  expiredAt: z
+  addedDate: z.coerce.date(),
+  expiredAt: z.coerce
     .date()
     .nullable()
     .describe(
       'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list.'
     ),
+
   // type refinement is handled by discriminated union literals
 }
 
