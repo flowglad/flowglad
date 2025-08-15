@@ -89,6 +89,28 @@ export const selectMembershipAndOrganizations = async (
   }))
 }
 
+export const selectMembershipAndOrganizationsByBetterAuthUserId =
+  async (betterAuthUserId: string, transaction: DbTransaction) => {
+    let query = transaction
+      .select({
+        membership: memberships,
+        organization: organizations,
+      })
+      .from(memberships)
+      .innerJoin(
+        organizations,
+        eq(memberships.organizationId, organizations.id)
+      )
+      .innerJoin(users, eq(memberships.userId, users.id))
+      .where(eq(users.betterAuthId, betterAuthUserId))
+
+    const result = await query
+    return result.map(({ membership, organization }) => ({
+      membership: membershipsSelectSchema.parse(membership),
+      organization: organizationsSelectSchema.parse(organization),
+    }))
+  }
+
 export const selectMembershipsAndUsersByMembershipWhere = async (
   whereConditions: Membership.Where,
   transaction: DbTransaction
