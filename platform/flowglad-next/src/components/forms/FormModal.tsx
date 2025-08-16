@@ -341,6 +341,9 @@ const FormModal = <T extends FieldValues>({
           <div className="flex-1 overflow-y-auto px-6 py-5">
             {innerContent}
           </div>
+          <div className="sticky bottom-0 z-10 bg-background border-t border-stroke-subtle px-6 py-4">
+            {hideFooter ? null : footer}
+          </div>
         </DrawerContent>
       </Drawer>
     )
