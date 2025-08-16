@@ -17,6 +17,12 @@ import core from '@/utils/core'
 import { useEffect, useId, useState } from 'react'
 import ErrorLabel from '@/components/ErrorLabel'
 import ChatPreviewDetails from '../ChatPreviewDetails'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 
 const useShouldRenderContent = ({
   isOpen,
@@ -79,6 +85,7 @@ interface FormModalProps<T extends FieldValues>
    * Whether the footer should be hidden. Defaults to false.
    */
   hideFooter?: boolean
+  mode?: 'drawer' | 'modal'
 }
 
 interface NestedFormModalProps<T extends FieldValues>
@@ -102,6 +109,7 @@ export const NestedFormModal = <T extends FieldValues>({
   autoClose = true,
   form,
   onSuccess,
+  mode = 'modal',
 }: NestedFormModalProps<T>) => {
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
@@ -210,6 +218,7 @@ const FormModal = <T extends FieldValues>({
   submitButtonText,
   autoClose = true,
   hideFooter = false,
+  mode = 'modal',
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
@@ -318,7 +327,25 @@ const FormModal = <T extends FieldValues>({
         {innerContent}
       </ChatPreviewDetails>
     )
+  } else if (mode === 'drawer') {
+    content = (
+      <Drawer
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        direction="right"
+      >
+        <DrawerContent className="h-full flex flex-col">
+          <DrawerHeader className="sticky top-0 z-10 bg-background border-b border-stroke-subtle px-6 py-4">
+            <DrawerTitle>{title}</DrawerTitle>
+          </DrawerHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {innerContent}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
   }
+
   return (
     <FormProvider {...form}>
       <form
