@@ -17,7 +17,7 @@ import {
   selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { users } from '@/db/schema/users'
-import { apiKeys } from '@/db/schema/apiKeys'
+import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
 import { insertBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -1341,7 +1341,7 @@ export const setupUserAndApiKey = async ({
 
     if (!apiKeyInsertResult)
       throw new Error('Failed to create API key')
-    const apiKey = apiKeyInsertResult as typeof apiKeys.$inferSelect
+    const apiKey = apiKeyInsertResult as ApiKey.Record
 
     return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
   })
@@ -2371,41 +2371,54 @@ export const setupDiscountRedemption = async (params: {
 }) => {
   return adminTransaction(async ({ transaction }) => {
     if (params.discount.duration === DiscountDuration.Once) {
-      return insertDiscountRedemption({
-        purchaseId: params.purchaseId,
-        livemode: true,
-        duration: DiscountDuration.Forever,
-        numberOfPayments: null,
-        discountName: params.discount.name,
-        discountCode: params.discount.code, 
-        discountId: params.discount.id,
-        discountAmount: params.discount.amount,
-        discountAmountType: params.discount.amountType,
-      }, transaction)
-    } else if (params.discount.duration === DiscountDuration.NumberOfPayments) {  
-      return insertDiscountRedemption({
-        purchaseId: params.purchaseId,
-        livemode: true,
-        duration: DiscountDuration.NumberOfPayments,
-        numberOfPayments: params.discount.numberOfPayments,
-        discountName: params.discount.name,
-        discountCode: params.discount.code, 
-        discountId: params.discount.id,
-        discountAmount: params.discount.amount,
-        discountAmountType: params.discount.amountType,
-      }, transaction)
-    } else if (params.discount.duration === DiscountDuration.Forever) {
-      return insertDiscountRedemption({
-        purchaseId: params.purchaseId,
-        livemode: true,
-        duration: DiscountDuration.Forever,
-        numberOfPayments: null,
-        discountName: params.discount.name,
-        discountCode: params.discount.code, 
-        discountId: params.discount.id,
-        discountAmount: params.discount.amount,
-        discountAmountType: params.discount.amountType,
-      }, transaction)
+      return insertDiscountRedemption(
+        {
+          purchaseId: params.purchaseId,
+          livemode: true,
+          duration: DiscountDuration.Forever,
+          numberOfPayments: null,
+          discountName: params.discount.name,
+          discountCode: params.discount.code,
+          discountId: params.discount.id,
+          discountAmount: params.discount.amount,
+          discountAmountType: params.discount.amountType,
+        },
+        transaction
+      )
+    } else if (
+      params.discount.duration === DiscountDuration.NumberOfPayments
+    ) {
+      return insertDiscountRedemption(
+        {
+          purchaseId: params.purchaseId,
+          livemode: true,
+          duration: DiscountDuration.NumberOfPayments,
+          numberOfPayments: params.discount.numberOfPayments,
+          discountName: params.discount.name,
+          discountCode: params.discount.code,
+          discountId: params.discount.id,
+          discountAmount: params.discount.amount,
+          discountAmountType: params.discount.amountType,
+        },
+        transaction
+      )
+    } else if (
+      params.discount.duration === DiscountDuration.Forever
+    ) {
+      return insertDiscountRedemption(
+        {
+          purchaseId: params.purchaseId,
+          livemode: true,
+          duration: DiscountDuration.Forever,
+          numberOfPayments: null,
+          discountName: params.discount.name,
+          discountCode: params.discount.code,
+          discountId: params.discount.id,
+          discountAmount: params.discount.amount,
+          discountAmountType: params.discount.amountType,
+        },
+        transaction
+      )
     } else {
       throw new Error('Invalid discount duration')
     }

@@ -15,17 +15,10 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { users } from '@/db/schema/users'
 import { memberships } from '@/db/schema/memberships'
-import { stackServerApp } from '@/stack'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import { adminTransaction } from '@/db/adminTransaction'
-
-vi.mock('@/stack', () => ({
-  stackServerApp: {
-    createUser: vi.fn(),
-  },
-}))
 
 vi.mock('@/utils/email', () => ({
   sendOrganizationInvitationEmail: vi.fn(),
@@ -74,14 +67,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
     it('should create a new user and membership when the user does not exist', async () => {
       const email = `newuser-${Math.random()}@test.com`
       const input = { email, name: 'New User' }
-      const mockNewStackUser = {
-        id: `usr_test_${Math.random()}`,
-        primary_email: email,
-        display_name: input.name,
-      }
-      vi.mocked(stackServerApp.createUser).mockResolvedValue({
-        toClientJson: () => mockNewStackUser,
-      } as any)
 
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
@@ -89,10 +74,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
         inviterUser
       )
 
-      expect(stackServerApp.createUser).toHaveBeenCalledWith({
-        primaryEmail: email,
-        displayName: input.name,
-      })
       expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
         to: [email],
         organizationName: organization.name,
@@ -102,7 +83,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
       await adminTransaction(async ({ transaction }) => {
         const [newUser] = await selectUsers({ email }, transaction)
         expect(newUser).toBeDefined()
-        expect(newUser.id).toBe(mockNewStackUser.id)
         expect(newUser.name).toBe(input.name)
 
         const newMemberships = await selectMemberships(
@@ -127,14 +107,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
       const inviterUserWithoutName = { ...inviterUser, name: null }
       const email = `newuser-${Math.random()}@test.com`
       const input = { email, name: 'New User' }
-      const mockNewStackUser = {
-        id: `stack_user_123_${Math.random()}`,
-        primary_email: email,
-        display_name: input.name,
-      }
-      vi.mocked(stackServerApp.createUser).mockResolvedValue({
-        toClientJson: () => mockNewStackUser,
-      } as any)
 
       await innerInviteUserToOrganizationHandler(
         focusedMembership,
@@ -152,25 +124,10 @@ describe('innerInviteUserToOrganizationHandler', () => {
     it("should handle invitations for new users when the invitee's name is not provided", async () => {
       const email = `newuser-${Math.random()}@test.com`
       const input = { email }
-      const mockNewStackUser = {
-        id: `stack_user_123_${Math.random()}`,
-        primary_email: email,
-        display_name: null,
-      }
-      vi.mocked(stackServerApp.createUser).mockResolvedValue({
-        toClientJson: () => mockNewStackUser,
-      } as any)
-
       await innerInviteUserToOrganizationHandler(
         focusedMembership,
-        input as any,
+        input,
         inviterUser
-      )
-
-      expect(stackServerApp.createUser).toHaveBeenCalledWith(
-        expect.objectContaining({
-          displayName: undefined,
-        })
       )
     })
   })
@@ -190,7 +147,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
         inviterUser
       )
 
-      expect(stackServerApp.createUser).not.toHaveBeenCalled()
       expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
 
       await adminTransaction(async ({ transaction }) => {
@@ -234,7 +190,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
         inviterUser
       )
 
-      expect(stackServerApp.createUser).not.toHaveBeenCalled()
       expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
 
       await adminTransaction(async ({ transaction }) => {

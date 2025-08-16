@@ -10,6 +10,7 @@ import {
   createSelectFunction,
   createInsertFunction,
   ORMMethodCreatorConfig,
+  createUpdateFunction,
 } from '@/db/tableUtils'
 
 export type UserInsert = typeof users.$inferInsert
@@ -51,3 +52,5 @@ export const upsertUserById = createUpsertFunction(
 export const selectUsers = createSelectFunction(users, config)
 
 export const insertUser = createInsertFunction(users, config)
+
+export const updateUser = createUpdateFunction(users, config)

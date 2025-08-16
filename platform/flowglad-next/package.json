@@ -98,6 +98,7 @@
     "ai": "^4.0.21",
     "axios": "1.8.4",
     "bcrypt": "^5.1.1",
+    "better-auth": "^1.3.4",
     "change-case": "^5.4.4",
     "class-variance-authority": "0.7.1",
     "client-only": "^0.0.1",
@@ -149,7 +150,8 @@
     "tippy.js": "^6.3.7",
     "trpc-swagger": "1.2.6",
     "tsx": "^4.17.0",
-    "zod": "3.24.3",
+    "vaul": "1.1.2",
+    "zod": "3.25.76",
     "zod-openapi": "^4.2.4"
   },
   "devDependencies": {

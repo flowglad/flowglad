@@ -12,7 +12,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'
 import { PriceType, CurrencyCode, FlowgladApiKeyType } from '@/types'
 import { eq, and as drizzleAnd } from 'drizzle-orm'
-import { apiKeys } from '@/db/schema/apiKeys'
+import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
 import { users } from '@/db/schema/users'
 import { memberships } from '@/db/schema/memberships'
 import { Catalog, catalogs } from './schema/catalogs'
@@ -763,7 +763,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
   let org1ApiKeyToken: string
 
   let org2Data: Awaited<ReturnType<typeof setupOrg>>
-
+  let org1UserApiKey: ApiKey.Record & { token: string }
   beforeEach(async () => {
     org1Data = await setupOrg() // Sets up org, product, price in livemode (presumably true)
     const userApiKeyOrg1 = await setupUserAndApiKey({
@@ -774,19 +774,19 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
       throw new Error('API key token not found after setup for org1')
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
-
+    org1UserApiKey = userApiKeyOrg1.apiKey
     org2Data = await setupOrg() // Sets up another org
   })
 
   it('should ALLOW a user to manage catalogs, products, and prices within their organization', async () => {
     await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
-        expect(livemode).toBe(false) // Session livemode should be false based on API key
+        expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode should be false based on API key
 
         const newCatalogInput: Catalog.Insert = {
           name: 'Test Allowed RLS Catalog',
           organizationId: org1Data.organization.id,
-          livemode: false, // Catalog livemode matches session
+          livemode: org1UserApiKey.livemode, // Catalog livemode matches session
         }
 
         // INSERT
@@ -824,7 +824,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
         const productInsert: Product.Insert = {
           name: 'Test Product',
           organizationId: org1Data.organization.id,
-          livemode: false,
+          livemode,
           description: 'Test product description',
           imageURL: 'https://example.com/test-product.jpg',
           singularQuantityLabel:
@@ -846,7 +846,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
         const priceInput: Price.Insert = {
           ...nulledPriceColumns,
           name: 'Test Price',
-          livemode: false,
+          livemode,
           productId: createdProduct.id,
           unitPrice: 1000,
           currency: CurrencyCode.USD,
@@ -905,11 +905,11 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
     try {
       await authenticatedTransaction(
         async ({ transaction, livemode }) => {
-          expect(livemode).toBe(false) // Session livemode is true
+          expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode is true
           const newCatalogInput: Catalog.Insert = {
             name: catalogNameAttempt,
             organizationId: org2Data.organization.id, // Attempting to use other org's ID
-            livemode: false, // Catalog livemode matches session, but orgId is wrong
+            livemode, // Catalog livemode matches session, but orgId is wrong
           }
           await transaction
             .insert(catalogs)

@@ -24,7 +24,6 @@ import {
 import { getRevenueDataInputSchema } from '@/db/schema/payments'
 import { z } from 'zod'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
-import { stackServerApp } from '@/stack'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 import {
@@ -45,6 +44,8 @@ import {
 import { TRPCError } from '@trpc/server'
 import { createPaginatedTableRowInputSchema } from '@/db/tableUtils'
 import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
+import { getSession } from '@/utils/auth'
+import { selectUsers } from '@/db/tableMethods/userMethods'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -265,26 +266,21 @@ const getCurrentSubscribers = protectedProcedure.query(
 )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
-  return authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      // Get all memberships and organizations for the user
-      const membershipsAndOrganizations =
-        await selectMembershipsAndOrganizationsByMembershipWhere(
-          { userId },
-          transaction
-        )
-
-      // Extract just the organizations
-      const organizations = membershipsAndOrganizations.map(
-        ({ organization }) => organization
+  return adminTransaction(async ({ transaction }) => {
+    // Get all memberships and organizations for the user
+    const membershipsAndOrganizations =
+      await selectMembershipsAndOrganizationsByMembershipWhere(
+        { userId: ctx.user!.id },
+        transaction
       )
 
-      return organizations
-    },
-    {
-      apiKey: ctx.apiKey,
-    }
-  )
+    // Extract just the organizations
+    const organizations = membershipsAndOrganizations.map(
+      ({ organization }) => organization
+    )
+
+    return organizations
+  }, {})
 })
 
 const createOrganization = protectedProcedure
@@ -295,24 +291,25 @@ const createOrganization = protectedProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const user = await stackServerApp.getUser()
+    const session = await getSession()
 
-    if (!user) {
+    if (!session) {
       throw new Error('User not found')
-    }
-    const email = user.primaryEmail
-    const userId = user.id
-    if (!email) {
-      throw new Error('User email not found')
     }
 
     const result = await adminTransaction(async ({ transaction }) => {
+      const [user] = await selectUsers(
+        {
+          betterAuthId: session.user.id,
+        },
+        transaction
+      )
       return createOrganizationTransaction(
         input,
         {
-          id: userId,
-          email,
-          fullName: user.displayName ?? undefined,
+          id: user.id,
+          email: user.email!,
+          fullName: user.name ?? undefined,
         },
         transaction
       )
