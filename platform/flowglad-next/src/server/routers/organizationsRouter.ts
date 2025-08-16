@@ -44,8 +44,7 @@ import {
 import { TRPCError } from '@trpc/server'
 import { createPaginatedTableRowInputSchema } from '@/db/tableUtils'
 import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
-import { headers } from 'next/headers'
-import { auth } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 
 const generateSubdomainSlug = (name: string) => {
@@ -267,26 +266,21 @@ const getCurrentSubscribers = protectedProcedure.query(
 )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
-  return authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      // Get all memberships and organizations for the user
-      const membershipsAndOrganizations =
-        await selectMembershipsAndOrganizationsByMembershipWhere(
-          { userId },
-          transaction
-        )
-
-      // Extract just the organizations
-      const organizations = membershipsAndOrganizations.map(
-        ({ organization }) => organization
+  return adminTransaction(async ({ transaction }) => {
+    // Get all memberships and organizations for the user
+    const membershipsAndOrganizations =
+      await selectMembershipsAndOrganizationsByMembershipWhere(
+        { userId: ctx.user!.id },
+        transaction
       )
 
-      return organizations
-    },
-    {
-      apiKey: ctx.apiKey,
-    }
-  )
+    // Extract just the organizations
+    const organizations = membershipsAndOrganizations.map(
+      ({ organization }) => organization
+    )
+
+    return organizations
+  }, {})
 })
 
 const createOrganization = protectedProcedure
@@ -297,9 +291,7 @@ const createOrganization = protectedProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getSession()
 
     if (!session) {
       throw new Error('User not found')

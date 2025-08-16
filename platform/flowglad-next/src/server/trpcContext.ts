@@ -7,19 +7,19 @@ import {
 } from '@/db/tableMethods/membershipMethods'
 import { Organization } from '@/db/schema/organizations'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { auth } from '@/utils/auth'
-import { headers } from 'next/headers'
+import { getSession } from '@/utils/auth'
+import { UserRecord } from '@/db/schema/users'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
 ) => {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await getSession()
   const betterAuthUserId = session?.user?.id
   let environment: ApiEnvironment = 'live'
   let organizationId: string | undefined
   let organization: Organization.Record | undefined
+  let user: UserRecord | undefined
+
   if (betterAuthUserId) {
     const [maybeMembership] = await adminTransaction(
       async ({ transaction }) => {
@@ -34,10 +34,11 @@ export const createContext = async (
       environment = membership.livemode ? 'live' : 'test'
       organization = maybeMembership.organization
       organizationId = organization.id
+      user = maybeMembership.user
     }
   }
   return {
-    user: session?.user,
+    user,
     path: opts.req.url,
     environment,
     livemode: environment === 'live',

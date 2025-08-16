@@ -15,8 +15,7 @@ import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { ApiKey } from '@/db/schema/apiKeys'
-import { auth } from '@/utils/auth'
-import { headers } from 'next/headers'
+import { auth, getSession } from '@/utils/auth'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 
 const OnboardingPage = async () => {
@@ -65,16 +64,18 @@ const OnboardingPage = async () => {
     testmodeApiKeys.find(
       (key) => key.type === FlowgladApiKeyType.Secret
     )
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await getSession()
 
   if (!secretApiKey) {
+    const betterAuthId = session?.user.id
+    if (!betterAuthId) {
+      throw new Error('User not found')
+    }
     secretApiKey = await adminTransaction(
       async ({ transaction }): Promise<ApiKey.Record> => {
         const [user] = await selectUsers(
           {
-            betterAuthId: session?.user.id,
+            betterAuthId,
           },
           transaction
         )
@@ -85,7 +86,12 @@ const OnboardingPage = async () => {
               type: FlowgladApiKeyType.Secret,
             },
           },
-          { transaction, livemode: false, userId: user!.id }
+          {
+            transaction,
+            livemode: false,
+            userId: user!.id,
+            organizationId: organization.id,
+          }
         )
         return apiKey
       }

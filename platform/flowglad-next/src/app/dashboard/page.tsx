@@ -4,14 +4,12 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import InternalDashboard from './InternalDashboard'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { redirect } from 'next/navigation'
-import { auth } from '@/utils/auth'
+import { auth, getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 
 export default async function Home() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await getSession()
 
   if (!session) {
     redirect('/sign-in')

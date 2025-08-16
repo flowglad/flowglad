@@ -14,7 +14,7 @@ import { headers } from 'next/headers'
 import { customers } from './schema/customers'
 import { ApiKey } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
-import { auth } from '@/utils/auth'
+import { auth, getSession } from '@/utils/auth'
 import { User } from 'better-auth'
 
 type SessionUser = Session['user']
@@ -75,32 +75,37 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     }
   }
 
-  const { membershipAndUser, organizationId, apiKeyType } =
-    await adminTransaction(async ({ transaction }) => {
-      const [apiKeyRecord] = await selectApiKeys(
+  const {
+    membershipAndUser,
+    organizationId,
+    apiKeyType,
+    apiKeyLivemode,
+  } = await adminTransaction(async ({ transaction }) => {
+    const [apiKeyRecord] = await selectApiKeys(
+      {
+        token: key,
+      },
+      transaction
+    )
+    const [membershipAndUser] =
+      await selectMembershipsAndUsersByMembershipWhere(
         {
-          token: key,
+          organizationId: apiKeyRecord.organizationId,
         },
         transaction
       )
-      const [membershipAndUser] =
-        await selectMembershipsAndUsersByMembershipWhere(
-          {
-            organizationId: apiKeyRecord.organizationId,
-          },
-          transaction
-        )
-      return {
-        membershipAndUser,
-        organizationId: apiKeyRecord.organizationId,
-        apiKeyType: apiKeyRecord.type,
-      }
-    })
+    return {
+      membershipAndUser,
+      organizationId: apiKeyRecord.organizationId,
+      apiKeyType: apiKeyRecord.type,
+      apiKeyLivemode: apiKeyRecord.livemode,
+    }
+  })
   return {
     keyType: apiKeyType,
     userId: membershipAndUser.user.id,
     ownerId: organizationId,
-    environment: 'test',
+    environment: apiKeyLivemode ? 'live' : 'test',
     metadata: {
       type: apiKeyType as FlowgladApiKeyType.Secret,
       userId: membershipAndUser.user.id,
@@ -326,9 +331,7 @@ export async function getDatabaseAuthenticationInfo(
       verifyKeyResult
     )
   }
-  const sessionResult = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const sessionResult = await getSession()
   if (!sessionResult) {
     throw new Error('No user found for a non-API key transaction')
   }

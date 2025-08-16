@@ -10,6 +10,7 @@ import {
 } from '@/db/schema/betterAuthSchema'
 import { betterAuthUserToApplicationUser } from './authHelpers'
 import { sendForgotPasswordEmail } from './email'
+import { headers } from 'next/headers'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -57,3 +58,10 @@ export const auth = betterAuth({
     },
   },
 })
+
+export const getSession = async () => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+  return session
+}

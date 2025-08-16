@@ -76,8 +76,14 @@ const createCustomerProcedure = protectedProcedure
   .output(createCustomerOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode, ctx }) => {
-        const organizationId = ctx.organizationId
+      async ({
+        input,
+        transaction,
+        userId,
+        livemode,
+        ctx,
+        organizationId,
+      }) => {
         if (!organizationId) {
           throw new Error('organizationId is required')
         }
@@ -94,7 +100,7 @@ const createCustomerProcedure = protectedProcedure
               livemode: ctx.livemode,
             },
           },
-          { transaction, userId, livemode }
+          { transaction, userId, livemode, organizationId }
         )
 
         if (ctx.path) {
