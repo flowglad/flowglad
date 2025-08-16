@@ -687,7 +687,10 @@ const config: Config = {
           'info-pressed': 'var(--on-info-pressed)',
         },
         foreground: 'var(--foreground)',
-        secondary: 'var(--secondary)',
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
         subtle: 'var(--subtle)',
         stroke: {
           DEFAULT: 'var(--stroke)',
@@ -708,15 +711,40 @@ const config: Config = {
           strong: 'var(--primary-strong)',
           hover: 'var(--primary-hover)',
           pressed: 'var(--primary-pressed)',
+          foreground: 'var(--primary-foreground)',
         },
         neutral: {
           accent: 'var(--neutral-accent)',
           container: 'var(--neutral-container)',
           stroke: 'var(--neutral-stroke)',
           DEFAULT: 'var(--neutral)',
+          foreground: 'var(--neutral-foreground)',
           hover: 'var(--neutral-hover)',
           pressed: 'var(--neutral-pressed)',
         },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        border: 'var(--border)',
         success: {
           accent: 'var(--success-accent)',
           container: 'var(--success-container)',
@@ -797,56 +825,6 @@ const config: Config = {
       pattern:
         /^(bg|stroke|fill|text)-(blue|emerald|violet|amber|gray|cyan|pink|lime|fuchsia)-500$/,
       variants: ['hover', 'active'],
-    },
-    {
-      pattern:
-        /^(?:bg|bg-on|text|text-on|border|border-on|fill|ring)-(?:primary|neutral|danger)(?:|-sub|-container|-accent|-pressed|-hover)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(border)-(stroke)(?:-primary|-neutral|-danger|-info|-warning|-success)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(?:bg|bg-on|text|text-on|border|border-on|fill|ring)-(?:primary|neutral|danger)(?:|-sub|-container|-accent|-pressed|-hover)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(border)-(stroke)(?:-primary|-neutral|-danger|-info|-warning|-success)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(?:bg|bg-on|text|text-on|border|border-on|fill|ring)-(?:primary|neutral|danger)(?:|-sub|-container|-accent|-pressed|-hover)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(border)-(stroke)(?:-primary|-neutral|-danger|-info|-warning|-success)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(?:bg|bg-on|text|text-on|border|border-on|fill|ring)-(?:primary|neutral|danger)(?:|-sub|-container|-accent|-pressed|-hover)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(border)-(stroke)(?:-primary|-neutral|-danger|-info|-warning|-success)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(?:bg|bg-on|text|text-on|border|border-on|fill|ring)-(?:primary|neutral|danger)(?:|-sub|-container|-accent|-pressed|-hover)$/,
-      variants: ['hover', 'ui-selected', 'active'],
-    },
-    {
-      pattern:
-        /^(border)-(stroke)(?:-primary|-neutral|-danger|-info|-warning|-success)$/,
-      variants: ['hover', 'ui-selected', 'active'],
     },
     {
       pattern:

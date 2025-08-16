@@ -14,6 +14,7 @@ import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestS
 import { Country } from '@/db/schema/countries'
 import Markdown from 'react-markdown'
 import Link from 'next/link'
+import Image from 'next/image'
 import core, { cn } from '@/utils/core'
 import { Tab, Tabs, TabsList } from '@/components/ion/Tab'
 
@@ -268,7 +269,7 @@ const OnboardingStatusTable = ({
         />
       ))}
       <OnboardingStatusRow
-        key={'integrate-flowglad'}
+        key={'setup-flowglad-mcp-server'}
         completed={false}
         title={`5. Setup Flowglad MCP Server`}
         description={'Get set up in localhost in a few minutes'}
