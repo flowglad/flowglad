@@ -620,6 +620,13 @@ export const createPaginatedSelectSchema = <T extends {}>(
   }>
 }
 
+export const createFlowgladSelectSchema = <T extends PgTableWithId>(
+  table: T,
+  refine?: Parameters<typeof createSelectSchema<T>>[1]
+) => {
+  return createSelectSchema(table, refine)
+}
+
 export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
   table,
   tableName,
@@ -641,6 +648,7 @@ export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
     schema: z.string(),
     record: selectSchema,
   })
+
   const supabaseUpdatePayloadSchema = z.object({
     type: z.literal(SupabasePayloadType.UPDATE),
     table: z.literal(tableName),
@@ -1171,7 +1179,7 @@ export const createCursorPaginatedSelectFunction = <
       // 1. Get the last N items in descending order (newest first)
       // 2. Calculate the correct offset to get the last page
       const offset = Math.max(0, totalCount - lastPageSize)
-      
+
       const queryResult = await transaction
         .select()
         .from(table)
