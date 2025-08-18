@@ -45,9 +45,7 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
-  console.log('====== useFormContext', useFormContext)
   const formContext = useFormContext()
-  console.log('====== formContext', formContext)
   const fieldState = formContext.getFieldState(fieldContext.name)
 
   if (!fieldContext) {
