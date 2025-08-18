@@ -33,14 +33,7 @@ const CancelSubscriptionFormFields: React.FC = () => {
   const selectedArrangement = watch('cancellation.timing')
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-3',
-        selectedArrangement ===
-          SubscriptionCancellationArrangement.AtFutureDate &&
-          'min-h-[500px]'
-      )}
-    >
+    <div className={cn('flex flex-col gap-3')}>
       <Label>Timing</Label>
       <Controller
         name="cancellation.timing"
