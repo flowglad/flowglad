@@ -15,6 +15,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
+import NumberInput from '@/components/ion/NumberInput'
 import {
   Select,
   SelectContent,
@@ -23,7 +24,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import NumberInput from '@/components/ion/NumberInput'
 import UsageMetersSelect from './UsageMetersSelect'
 
 import core, { titleCase } from '@/utils/core'

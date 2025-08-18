@@ -354,12 +354,7 @@ export const safeZodNullishString = z
   .transform((val) => val ?? null)
   .describe('safeZodNullishString')
 
-export const safeZodDate = z
-  .date()
-  .or(z.number().transform((num) => new Date(num)))
-  .or(z.string())
-  .transform((date) => new Date(date))
-  .describe('safeZodDate')
+export const safeZodDate = z.coerce.date().describe('safeZodDate')
 
 export const nanoid = customAlphabet(
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',

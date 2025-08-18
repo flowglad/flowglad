@@ -80,12 +80,19 @@ const FeaturesTable = ({
           ),
           accessorKey: 'feature.name',
           cell: ({ row: { original: cellData } }) => (
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm">
-                {cellData.feature.name}
-              </span>
-              <StatusBadge active={cellData.feature.active} />
-            </div>
+            <span className="font-bold text-sm">
+              {cellData.feature.name}
+            </span>
+          ),
+        },
+        {
+          id: 'status',
+          header: ({ column }) => (
+            <ColumnHeaderCell title="Status" column={column} />
+          ),
+          accessorKey: 'feature.active',
+          cell: ({ row: { original: cellData } }) => (
+            <StatusBadge active={cellData.feature.active} />
           ),
         },
         {

@@ -4,6 +4,7 @@ import {
   subscriptionDummyPrice,
   usageDummyPrice,
 } from '@/stubs/priceStubs'
+import { z } from 'zod'
 import {
   Price,
   pricesSelectSchema,
@@ -15,7 +16,7 @@ import {
 const testStartingPriceToDestinationPrice = (
   startingPrice: Price.Record,
   defaultColumns: Record<string, any>,
-  selectSchema: Zod.ZodType
+  selectSchema: typeof pricesSelectSchema
 ) => {
   const transformedToDestinationPrice = {
     ...startingPrice,

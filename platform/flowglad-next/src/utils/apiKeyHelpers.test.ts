@@ -69,6 +69,7 @@ describe('apiKeyHelpers', () => {
             transaction,
             userId,
             livemode: false,
+            organizationId: organization.id,
           })
         }
       )
@@ -106,6 +107,7 @@ describe('apiKeyHelpers', () => {
             transaction,
             userId,
             livemode: false,
+            organizationId: organization.id,
           })
         })
       ).rejects.toThrow('No focused membership found')
@@ -136,6 +138,7 @@ describe('apiKeyHelpers', () => {
             transaction,
             userId,
             livemode: true,
+            organizationId: organization.id,
           })
         })
       ).rejects.toThrow(
@@ -168,6 +171,7 @@ describe('apiKeyHelpers', () => {
             transaction,
             userId,
             livemode: false,
+            organizationId: organization.id,
           })
         }
       )
@@ -203,6 +207,7 @@ describe('apiKeyHelpers', () => {
             transaction,
             userId,
             livemode: true,
+            organizationId: organization.id,
           })
         })
       ).rejects.toThrow(

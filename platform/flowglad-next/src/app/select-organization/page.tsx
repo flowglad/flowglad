@@ -8,12 +8,21 @@ import { trpc } from '@/app/_trpc/client'
 import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ion/Skeleton'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   RadioGroup,
   RadioGroupItem,
 } from '@/components/ui/radio-group'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ion/Card'
 
 type FormValues = z.infer<typeof updateFocusedMembershipSchema>
 
@@ -76,85 +85,88 @@ const SelectOrganizationPage = () => {
 
   if (isLoadingOrganizations || isLoadingFocusedMembership) {
     return (
-      <div className="container max-w-2xl py-10">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold">
+      <div className="w-full min-h-[100dvh] grid place-items-center p-4">
+        <Card className="max-w-lg w-full">
+          <CardHeader>
+            <CardTitle className="text-lg md:text-xl">
               Select Organization
-            </h1>
-            <p className="text-gray-600 mt-1">
+            </CardTitle>
+            <CardDescription>
               Choose which organization you want to work with
-            </p>
-          </div>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center space-x-2">
-                <Skeleton className="h-4 w-4 rounded-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ))}
-          </div>
-        </div>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="container max-w-2xl py-10">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold">
+    <div className="w-full min-h-[100dvh] grid place-items-center p-4">
+      <Card className="max-w-lg w-full">
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">
             Select Organization
-          </h1>
-          <p className="text-gray-600 mt-1">
+          </CardTitle>
+          <CardDescription>
             Choose which organization you want to work with
-          </p>
-        </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-3">
-            <Controller
-              control={control}
-              name="organizationId"
-              render={({ field }) => (
-                <RadioGroup
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="flex flex-col gap-2"
-                >
-                  {sortedOrganizations.map((org) => (
-                    <div
-                      key={org.id}
-                      className="flex items-center gap-2"
-                    >
-                      <RadioGroupItem value={org.id} id={org.id} />
-                      <label
-                        htmlFor={org.id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
+            <div className="space-y-3">
+              <Controller
+                control={control}
+                name="organizationId"
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="flex flex-col gap-2"
+                  >
+                    {sortedOrganizations.map((org) => (
+                      <div
+                        key={org.id}
+                        className="flex items-center space-x-2"
                       >
-                        {org.name}
-                      </label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
-            />
-          </div>
+                        <RadioGroupItem value={org.id} id={org.id} />
+                        <Label htmlFor={org.id}>{org.name}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </div>
 
-          {errors.organizationId && (
-            <ErrorLabel error={errors.organizationId} />
-          )}
-
-          <div className="mt-6">
-            <Button
-              type="submit"
-              disabled={isSubmitting || !selectedOrganizationId}
-              className="w-full"
-            >
-              {isSubmitting ? 'Switching...' : 'Switch Organization'}
-            </Button>
-          </div>
-        </form>
-      </div>
+            {errors.organizationId && (
+              <ErrorLabel error={errors.organizationId} />
+            )}
+          </form>
+        </CardContent>
+        <CardFooter>
+          <Button
+            type="submit"
+            disabled={isSubmitting || !selectedOrganizationId}
+            className="w-full"
+            loading={isSubmitting}
+            onClick={handleSubmit(onSubmit)}
+          >
+            {isSubmitting ? 'Switching...' : 'Switch Organization'}
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

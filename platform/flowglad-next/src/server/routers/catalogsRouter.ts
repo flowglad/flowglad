@@ -162,6 +162,7 @@ const getDefaultCatalogProcedure = protectedProcedure
             {
               organizationId: ctx.organizationId!,
               livemode: ctx.livemode,
+              isDefault: true,
             },
             transaction
           )

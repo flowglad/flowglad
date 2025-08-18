@@ -47,6 +47,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         await editProduct.mutateAsync(item)
       }}
       key={`${product.id}-${pricesLoading}`}
+      mode="drawer"
     >
       <ProductFormFields editProduct />
     </FormModal>

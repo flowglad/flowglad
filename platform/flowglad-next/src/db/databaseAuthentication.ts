@@ -1,20 +1,21 @@
 import { adminTransaction } from './adminTransaction'
-import { Unkey, verifyKey } from '@unkey/api'
+import { verifyKey } from '@unkey/api'
 import db from './client'
-import { and, asc, eq, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
 import core from '@/utils/core'
 import { memberships } from './schema/memberships'
-import { stackServerApp } from '@/stack'
 import { users } from './schema/users'
 import { selectApiKeys } from './tableMethods/apiKeyMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
-import { ServerUser } from '@stackframe/stack'
 import { FlowgladApiKeyType } from '@/types'
 import { JwtPayload } from 'jsonwebtoken'
+import { headers } from 'next/headers'
 import { customers } from './schema/customers'
-import { ApiKey, apiKeyMetadataSchema } from './schema/apiKeys'
+import { ApiKey } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
+import { auth, getSession } from '@/utils/auth'
+import { User } from 'better-auth'
 
 type SessionUser = Session['user']
 
@@ -74,32 +75,37 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     }
   }
 
-  const { membershipAndUser, organizationId, apiKeyType } =
-    await adminTransaction(async ({ transaction }) => {
-      const [apiKeyRecord] = await selectApiKeys(
+  const {
+    membershipAndUser,
+    organizationId,
+    apiKeyType,
+    apiKeyLivemode,
+  } = await adminTransaction(async ({ transaction }) => {
+    const [apiKeyRecord] = await selectApiKeys(
+      {
+        token: key,
+      },
+      transaction
+    )
+    const [membershipAndUser] =
+      await selectMembershipsAndUsersByMembershipWhere(
         {
-          token: key,
+          organizationId: apiKeyRecord.organizationId,
         },
         transaction
       )
-      const [membershipAndUser] =
-        await selectMembershipsAndUsersByMembershipWhere(
-          {
-            organizationId: apiKeyRecord.organizationId,
-          },
-          transaction
-        )
-      return {
-        membershipAndUser,
-        organizationId: apiKeyRecord.organizationId,
-        apiKeyType: apiKeyRecord.type,
-      }
-    })
+    return {
+      membershipAndUser,
+      organizationId: apiKeyRecord.organizationId,
+      apiKeyType: apiKeyRecord.type,
+      apiKeyLivemode: apiKeyRecord.livemode,
+    }
+  })
   return {
     keyType: apiKeyType,
     userId: membershipAndUser.user.id,
     ownerId: organizationId,
-    environment: 'test',
+    environment: apiKeyLivemode ? 'live' : 'test',
     metadata: {
       type: apiKeyType as FlowgladApiKeyType.Secret,
       userId: membershipAndUser.user.id,
@@ -256,29 +262,27 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
 }
 
 export async function databaseAuthenticationInfoForWebappRequest(
-  user: ServerUser
+  user: User
 ): Promise<DatabaseAuthenticationInfo> {
-  const userId = user.id
+  const betterAuthId = user.id
   const [focusedMembership] = await db
     .select()
     .from(memberships)
-    .where(
-      and(
-        eq(memberships.userId, userId),
-        eq(memberships.focused, true)
-      )
-    )
+    .innerJoin(users, eq(memberships.userId, users.id))
+    .where(and(eq(users.betterAuthId, betterAuthId)))
+    .orderBy(desc(memberships.focused))
     .limit(1)
-  const livemode = focusedMembership?.livemode ?? false
+  const userId = focusedMembership?.memberships.userId
+  const livemode = focusedMembership?.memberships.livemode ?? false
   const jwtClaim = {
     role: 'authenticated',
     sub: userId,
-    email: user?.primaryEmail ?? '',
+    email: user.email,
     user_metadata: {
       id: userId,
       user_metadata: {},
       aud: 'stub',
-      email: user.primaryEmail ?? '',
+      email: user.email,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       role: 'authenticated',
@@ -286,7 +290,8 @@ export async function databaseAuthenticationInfoForWebappRequest(
         provider: '',
       },
     },
-    organization_id: focusedMembership?.organizationId ?? '',
+    organization_id:
+      focusedMembership?.memberships.organizationId ?? '',
     app_metadata: { provider: 'apiKey' },
   }
   return {
@@ -326,9 +331,11 @@ export async function getDatabaseAuthenticationInfo(
       verifyKeyResult
     )
   }
-  const user = await stackServerApp.getUser()
-  if (!user) {
+  const sessionResult = await getSession()
+  if (!sessionResult) {
     throw new Error('No user found for a non-API key transaction')
   }
-  return await databaseAuthenticationInfoForWebappRequest(user)
+  return await databaseAuthenticationInfoForWebappRequest(
+    sessionResult.user
+  )
 }

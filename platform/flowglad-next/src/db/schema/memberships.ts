@@ -40,12 +40,15 @@ export const memberships = pgTable(
         table.userId,
         table.organizationId,
       ]),
-      pgPolicy('Enable read for own organizations', {
-        as: 'permissive',
-        to: 'authenticated',
-        for: 'select',
-        using: sql`"UserId" = requesting_user_id()`,
-      }),
+      pgPolicy(
+        'Enable read for own organizations where focused is true',
+        {
+          as: 'permissive',
+          to: 'authenticated',
+          for: 'select',
+          using: sql`"user_id" = requesting_user_id() and "focused" = true and "organization_id" = current_organization_id()`,
+        }
+      ),
       // no livemode policy for memberships, because memberships are used to determine access to
       // everything else.
       // livemodePolicy(),

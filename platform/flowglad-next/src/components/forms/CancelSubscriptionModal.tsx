@@ -1,7 +1,10 @@
 import React from 'react'
 import FormModal from '@/components/forms/FormModal'
 import CancelSubscriptionFormFields from '@/components/forms/CancelSubscriptionFormFields'
-import { scheduleSubscriptionCancellationSchema } from '@/subscriptions/schemas'
+import {
+  scheduleSubscriptionCancellationSchema,
+  type ScheduleSubscriptionCancellationParams,
+} from '@/subscriptions/schemas'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { trpc } from '@/app/_trpc/client'
 
@@ -17,15 +20,9 @@ const CancelSubscriptionModal: React.FC<
   const cancelSubscriptionMutation =
     trpc.subscriptions.cancel.useMutation()
 
-  const onSubmit = async (data: any) => {
-    // Convert endDate to a Date if the cancellation arrangement is AtFutureDate and the value is a string
-    if (
-      data.timing ===
-        SubscriptionCancellationArrangement.AtFutureDate &&
-      typeof data.endDate === 'string'
-    ) {
-      data.endDate = new Date(data.endDate)
-    }
+  const onSubmit = async (
+    data: ScheduleSubscriptionCancellationParams
+  ) => {
     try {
       await cancelSubscriptionMutation.mutateAsync(data)
     } catch (error) {
@@ -34,10 +31,11 @@ const CancelSubscriptionModal: React.FC<
     }
   }
 
-  const defaultValues = {
+  const defaultValues: ScheduleSubscriptionCancellationParams = {
     id: subscriptionId,
-    timing: SubscriptionCancellationArrangement.Immediately,
-    endDate: '', // initial value; will be converted if needed
+    cancellation: {
+      timing: SubscriptionCancellationArrangement.Immediately,
+    },
   }
 
   return (
