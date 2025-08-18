@@ -44,39 +44,37 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
     setValue(name, defaultCatalogId)
   }, [name, catalogId, defaultCatalogId, setValue])
   return (
-    <>
-      {isLoadingCatalogs ? (
-        <Skeleton className="h-9 w-full" />
-      ) : (
-        <FormField
-          control={control}
-          name={name}
-          render={({ field, fieldState }) => (
-            <FormItem>
-              <FormLabel>Catalog</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {catalogs?.data?.map((catalog) => (
-                      <SelectItem key={catalog.id} value={catalog.id}>
-                        {catalog.name}
-                      </SelectItem>
-                    )) || []}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Catalog</FormLabel>
+          <FormControl>
+            {isLoadingCatalogs ? (
+              <Skeleton className="h-9 w-full" />
+            ) : (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {catalogs?.data?.map((catalog) => (
+                    <SelectItem key={catalog.id} value={catalog.id}>
+                      {catalog.name}
+                    </SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
+            )}
+          </FormControl>
+          <FormMessage />
+        </FormItem>
       )}
-    </>
+    />
   )
 }
 
