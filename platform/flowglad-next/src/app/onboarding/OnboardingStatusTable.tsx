@@ -271,19 +271,17 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'setup-flowglad-mcp-server'}
         completed={false}
-        title={`${onboardingChecklistItems.length + 1}. Setup Flowglad MCP Server`}
+        title={`5. Setup Flowglad MCP Server`}
         description={'Get set up in localhost in a few minutes'}
         actionNode={
           <a
             href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}
           >
-            <Image
+            <img
               src="https://cursor.com/deeplink/mcp-install-light.svg"
               alt="Add flowglad MCP server to Cursor"
-              height={40}
-              width={120}
-              style={{ height: '40px', width: 'auto' }}
-              unoptimized
+              height="40"
+              style={{ height: '40px' }}
             />
           </a>
         }
