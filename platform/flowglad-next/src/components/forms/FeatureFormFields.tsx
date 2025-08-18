@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import UsageMetersSelect from './UsageMetersSelect'
-import Textarea from '@/components/ion/Textarea'
+
 import core, { titleCase } from '@/utils/core'
 import { Switch } from '@/components/ui/switch'
 

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useEffect, useState } from 'react'
-import { Skeleton } from '@/components/ion/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Price } from '@/db/schema/prices'
 import {
