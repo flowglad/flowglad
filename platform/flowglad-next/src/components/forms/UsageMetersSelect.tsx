@@ -1,6 +1,12 @@
 import { Control, Controller, useFormContext } from 'react-hook-form'
 import Label from '@/components/ion/Label'
-import Select from '@/components/ion/Select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useListUsageMetersQuery } from '@/app/hooks/useListUsageMetersQuery'
 import { Skeleton } from '@/components/ion/Skeleton'
 import { useEffect } from 'react'
@@ -45,17 +51,28 @@ const UsageMetersSelect = ({
           control={control}
           name={name}
           render={({ field }) => (
-            <Select
-              options={
-                usageMeters?.data?.map((item) => ({
-                  label: item.name,
-                  value: item.id,
-                })) || []
-              }
-              value={field.value}
-              onValueChange={field.onChange}
-              error={errors[name]?.message as string | undefined}
-            />
+            <div>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {usageMeters?.data?.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
+              {errors[name]?.message && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors[name]?.message as string}
+                </p>
+              )}
+            </div>
           )}
         />
       )}

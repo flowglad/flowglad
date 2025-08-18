@@ -1,8 +1,11 @@
 import React from 'react'
 import { useFormContext, Controller } from 'react-hook-form'
-import { RadioGroup, RadioGroupItem } from '@/components/ion/Radio'
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group'
 import { SubscriptionCancellationArrangement } from '@/types'
-import { Label } from '@radix-ui/react-label'
+import { Label } from '@/components/ui/label'
 import Datepicker from '@/components/ion/Datepicker'
 import { cn } from '@/utils/core'
 import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
@@ -49,11 +52,16 @@ const CancelSubscriptionFormFields: React.FC = () => {
             onValueChange={field.onChange}
           >
             {options.map((option) => (
-              <RadioGroupItem
+              <div
                 key={option.value}
-                label={option.label}
-                value={option.value}
-              />
+                className="flex items-center space-x-2"
+              >
+                <RadioGroupItem
+                  value={option.value}
+                  id={option.value}
+                />
+                <Label htmlFor={option.value}>{option.label}</Label>
+              </div>
             ))}
           </RadioGroup>
         )}
