@@ -11,6 +11,7 @@ import {
   selectFeaturesPaginated,
   selectFeaturesTableRowData,
   featuresTableRowOutputSchema,
+  selectFeatures,
 } from '@/db/tableMethods/featureMethods'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { protectedProcedure } from '@/server/trpc'
@@ -132,10 +133,36 @@ export const getTableRows = protectedProcedure
     authenticatedProcedureTransaction(selectFeaturesTableRowData)
   )
 
+const getFeaturesForCatalog = protectedProcedure
+  .input(
+    z.object({
+      catalogId: z.string(),
+    })
+  )
+  .output(
+    z.object({
+      features: z.array(featuresClientSelectSchema),
+    })
+  )
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const features = await selectFeatures(
+          {
+            catalogId: input.catalogId,
+          },
+          transaction
+        )
+        return { features }
+      }
+    )
+  )
+
 export const featuresRouter = router({
   get: getFeature,
   create: createFeature,
   update: editFeature,
   list: listFeaturesProcedure,
   getTableRows,
+  getFeaturesForCatalog,
 })

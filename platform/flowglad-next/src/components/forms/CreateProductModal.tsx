@@ -90,6 +90,7 @@ export const CreateProductModal = ({
       chatPreview={chatPreview}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
+      mode="drawer"
     >
       <ProductFormFields />
     </FormModal>

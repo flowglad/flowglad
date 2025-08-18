@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteMatcher } from '@clerk/nextjs/server'
 import core from './utils/core'
-import { stackServerApp } from './stack'
+import { getSessionCookie } from 'better-auth/cookies'
 
 const publicRoutes = [
   '/mcp',
@@ -43,6 +43,10 @@ const publicRoutes = [
   '/api/openapi',
   '/api/hosted-billing/(.*)',
   '/invoice/view/(.*)',
+  /**
+   * Better Auth URLS
+   */
+  '/api/auth/(.*)',
 ]
 
 if (core.IS_DEV) {
@@ -69,10 +73,11 @@ export default async function middleware(req: NextRequest) {
       }
     )
   }
-  const user = await stackServerApp.getUser()
+  const sessionCookie = getSessionCookie(req)
+
   const isProtectedRoute = !isPublicRoute(req)
 
-  if (!user && isProtectedRoute) {
+  if (!sessionCookie && isProtectedRoute) {
     if (req.nextUrl.pathname.startsWith('/billing/org_')) {
       return NextResponse.redirect(
         new URL('/billing/sign-in', req.url)

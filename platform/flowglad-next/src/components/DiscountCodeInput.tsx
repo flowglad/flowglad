@@ -16,6 +16,10 @@ interface DiscountCodeFormData {
   discountCode: string
 }
 
+interface DiscountCodeFormData {
+  discountCode: string
+}
+
 export default function DiscountCodeInput() {
   const checkoutPageContext = useCheckoutPageContext()
   const { discount, flowType } = checkoutPageContext

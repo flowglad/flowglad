@@ -1,8 +1,8 @@
 import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
-import { stackServerApp } from '@/stack'
 import { requestBillingPortalLinkSchema } from '@/db/schema/customers'
+import { hostedBillingStackServerApp } from '@/stack'
 
 export const requestBillingPortalLink = publicProcedure
   .input(requestBillingPortalLinkSchema)
@@ -18,7 +18,9 @@ export const requestBillingPortalLink = publicProcedure
       )
 
       if (customers.length > 0) {
-        await stackServerApp.sendMagicLinkEmail(input.email)
+        await hostedBillingStackServerApp.sendMagicLinkEmail(
+          input.email
+        )
       }
     })
 
