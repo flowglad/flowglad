@@ -31,8 +31,8 @@ export default function PostHogPageView({
     if (user && !posthog._isIdentified()) {
       // 👉 Identify the user
       posthog.identify(user.id, {
-        email: user.primary_email!,
-        username: user.display_name!,
+        email: user.email,
+        username: user.name!,
       })
     }
   }, [posthog, user])

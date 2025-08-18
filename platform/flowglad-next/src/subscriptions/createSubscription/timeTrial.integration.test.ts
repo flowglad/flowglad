@@ -119,7 +119,12 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               },
             ],
           },
-          { userId: user.id, transaction, livemode: true }
+          {
+            userId: user.id,
+            transaction,
+            livemode: true,
+            organizationId: organization.id,
+          }
         )
       )
     // 2. Associate the toggle feature with the created product

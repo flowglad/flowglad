@@ -99,7 +99,9 @@ const baseColumnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
   quantity: core.safeZodPositiveInteger,
   metadata: metadataSchema.nullable(),
-  expiredAt: z
+  // Accept ISO datetime strings or Date objects
+  addedDate: z.coerce.date(),
+  expiredAt: z.coerce
     .date()
     .nullable()
     .describe(
@@ -219,25 +221,26 @@ const hiddenColumns = {
 const clientNonEditableColumns = R.omit(['position'], {
   ...readOnlyColumns,
   ...hiddenColumns,
-  ...createOnlyColumns,
 })
 
 // Static Subscription Item Client Schemas
 export const staticSubscriptionItemClientInsertSchema =
   staticSubscriptionItemInsertSchema.omit(clientNonEditableColumns)
 export const staticSubscriptionItemClientUpdateSchema =
-  staticSubscriptionItemUpdateSchema.omit(clientNonEditableColumns)
+  staticSubscriptionItemUpdateSchema
+    .omit(clientNonEditableColumns)
+    .omit(createOnlyColumns)
 
 export const staticSubscriptionItemClientSelectSchema =
   staticSubscriptionItemSelectSchema.omit(hiddenColumns)
 
 // Usage Subscription Item Client Schemas
 export const usageSubscriptionItemClientInsertSchema =
-  usageSubscriptionItemInsertSchema.omit(
-    R.omit(['position'], hiddenColumns)
-  )
+  usageSubscriptionItemInsertSchema.omit(clientNonEditableColumns)
 export const usageSubscriptionItemClientUpdateSchema =
-  usageSubscriptionItemUpdateSchema.omit(clientNonEditableColumns)
+  usageSubscriptionItemUpdateSchema
+    .omit(clientNonEditableColumns)
+    .omit(createOnlyColumns)
 
 export const usageSubscriptionItemClientSelectSchema =
   usageSubscriptionItemSelectSchema.omit(hiddenColumns)

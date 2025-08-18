@@ -19,12 +19,8 @@ export const createCustomer = protectedProcedure
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    const organizationId = ctx.organizationId
-    if (!organizationId) {
-      throw new Error('organizationId is required')
-    }
     return authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+      async ({ transaction, userId, livemode, organizationId }) => {
         const { customer } = input
         /**
          * We have to parse the customer record here because of the billingAddress json
@@ -33,11 +29,11 @@ export const createCustomer = protectedProcedure
           {
             customer: {
               ...customer,
-              organizationId: organizationId,
+              organizationId,
               livemode,
             },
           },
-          { transaction, userId, livemode }
+          { transaction, userId, livemode, organizationId }
         )
 
         if (ctx.path) {
