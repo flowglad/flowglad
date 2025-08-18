@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import Label from '@/components/ion/Label'
+
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'

@@ -3,7 +3,7 @@
 'use client'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import { ProductWithPrices } from '@/db/schema/prices'
 import { ProductsTable, ProductsTableFilters } from './ProductsTable'

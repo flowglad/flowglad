@@ -1,5 +1,5 @@
 import React from 'react'
-import { useFormContext, Controller } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 import {
   RadioGroup,
   RadioGroupItem,
@@ -9,6 +9,13 @@ import { Label } from '@/components/ui/label'
 import Datepicker from '@/components/ion/Datepicker'
 import { cn } from '@/utils/core'
 import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 
 // Define the available radio options
 const options = [
@@ -34,48 +41,58 @@ const CancelSubscriptionFormFields: React.FC = () => {
 
   return (
     <div className={cn('flex flex-col gap-3')}>
-      <Label>Timing</Label>
-      <Controller
+      <FormField
         name="cancellation.timing"
         control={control}
         defaultValue={SubscriptionCancellationArrangement.Immediately}
-        render={({ field }) => (
-          <RadioGroup
-            value={field.value}
-            onValueChange={field.onChange}
-          >
-            {options.map((option) => (
-              <div
-                key={option.value}
-                className="flex items-center space-x-2"
+        render={({ field, fieldState }) => (
+          <FormItem>
+            <FormLabel>Timing</FormLabel>
+            <FormControl>
+              <RadioGroup
+                value={field.value}
+                onValueChange={field.onChange}
               >
-                <RadioGroupItem
-                  value={option.value}
-                  id={option.value}
-                />
-                <Label htmlFor={option.value}>{option.label}</Label>
-              </div>
-            ))}
-          </RadioGroup>
+                {options.map((option) => (
+                  <div
+                    key={option.value}
+                    className="flex items-center space-x-2"
+                  >
+                    <RadioGroupItem
+                      value={option.value}
+                      id={option.value}
+                    />
+                    <Label htmlFor={option.value}>
+                      {option.label}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
       {selectedArrangement ===
         SubscriptionCancellationArrangement.AtFutureDate && (
-        <div className="flex flex-col gap-3">
-          <Label>End Date</Label>
-          <Controller
-            name="cancellation.endDate"
-            control={control}
-            render={({ field }) => (
-              <Datepicker
-                {...field}
-                minDate={new Date()}
-                onSelect={(value) => field.onChange(value)}
-                value={field.value || undefined}
-              />
-            )}
-          />
-        </div>
+        <FormField
+          name="cancellation.endDate"
+          control={control}
+          render={({ field, fieldState }) => (
+            <FormItem>
+              <FormLabel>End Date</FormLabel>
+              <FormControl>
+                <Datepicker
+                  {...field}
+                  minDate={new Date()}
+                  onSelect={(value) => field.onChange(value)}
+                  value={field.value || undefined}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       )}
     </div>
   )

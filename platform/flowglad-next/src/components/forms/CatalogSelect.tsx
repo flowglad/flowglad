@@ -1,5 +1,11 @@
-import { Control, Controller, useFormContext } from 'react-hook-form'
-import Label from '../ion/Label'
+import { Control, useFormContext } from 'react-hook-form'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   Select,
   SelectContent,
@@ -25,11 +31,7 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
   )
   const defaultCatalogId = defaultCatalog?.catalog.id
   const form = useFormContext()
-  const {
-    watch,
-    setValue,
-    formState: { errors },
-  } = form
+  const { watch, setValue } = form
   const catalogId = watch(name)
   // once the default catalog loads, set it if the catalog id has not been set
   useEffect(() => {
@@ -42,16 +44,16 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
     setValue(name, defaultCatalogId)
   }, [name, catalogId, defaultCatalogId, setValue])
   return (
-    <>
-      <Label>Catalog</Label>
-      {isLoadingCatalogs ? (
-        <Skeleton className="h-9 w-full" />
-      ) : (
-        <Controller
-          control={control}
-          name={name}
-          render={({ field }) => (
-            <div>
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Catalog</FormLabel>
+          <FormControl>
+            {isLoadingCatalogs ? (
+              <Skeleton className="h-9 w-full" />
+            ) : (
               <Select
                 value={field.value}
                 onValueChange={field.onChange}
@@ -67,16 +69,12 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
                   )) || []}
                 </SelectContent>
               </Select>
-              {errors[name]?.message && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors[name]?.message as string}
-                </p>
-              )}
-            </div>
-          )}
-        />
+            )}
+          </FormControl>
+          <FormMessage />
+        </FormItem>
       )}
-    </>
+    />
   )
 }
 

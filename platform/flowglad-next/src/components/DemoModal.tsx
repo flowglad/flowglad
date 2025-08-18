@@ -3,7 +3,14 @@
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import Modal from '@/components/ion/Modal'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 
 interface FormData {
   message: string
@@ -11,11 +18,8 @@ interface FormData {
 
 const DemoModal: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false)
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting, isLoading },
-  } = useForm<FormData>()
+  const form = useForm<FormData>()
+
   const onSubmit = async (data: FormData) => {
     // Create a promise that resolves after 10 seconds
     await new Promise<void>((resolve) => {
@@ -40,25 +44,29 @@ const DemoModal: React.FC = () => {
           <Button
             type="submit"
             form="helloWorldForm"
-            disabled={isSubmitting}
+            disabled={form.formState.isSubmitting}
           >
-            {isSubmitting ? 'Submitting...' : 'Submit'}
+            {form.formState.isSubmitting ? 'Submitting...' : 'Submit'}
           </Button>
         }
       >
-        <form id="helloWorldForm" onSubmit={handleSubmit(onSubmit)}>
-          <input
-            {...register('message', {
-              required: 'This field is required',
-            })}
-            placeholder="Enter a message"
-            className="w-full p-2 border rounded"
+        <form
+          id="helloWorldForm"
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
+          <FormField
+            control={form.control}
+            name="message"
+            rules={{ required: 'This field is required' }}
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormControl>
+                  <Input placeholder="Enter a message" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.message && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.message.message}
-            </p>
-          )}
         </form>
       </Modal>
     </>

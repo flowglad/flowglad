@@ -5,7 +5,7 @@ import PageTitle from '@/components/ion/PageTitle'
 import OrganizationMembersTable from './OrganizationMembersTable'
 import { useState } from 'react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 function TeammatesPage() {
