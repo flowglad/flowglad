@@ -535,6 +535,7 @@ describe('createProductTransaction', () => {
   let org1ApiKeyToken: string
   let userId: string
   let features: Feature.Record[]
+  let org1ApiKey: ApiKey.Record
   beforeEach(async () => {
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
@@ -551,6 +552,7 @@ describe('createProductTransaction', () => {
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
+    org1ApiKey = userApiKeyOrg1.apiKey
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
     userId = userApiKeyOrg1.user.id
     const featureA = await setupToggleFeature({
@@ -606,7 +608,8 @@ describe('createProductTransaction', () => {
           {
             userId,
             transaction,
-            livemode: false,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
           }
         )
       },
@@ -637,13 +640,13 @@ describe('createProductTransaction', () => {
     expect(price.usageMeterId).toBe(null)
     expect(price.isDefault).toBe(true)
     expect(price.active).toBe(true)
-    expect(price.livemode).toBe(false)
+    expect(price.livemode).toBe(org1ApiKey.livemode)
   })
 
   it('should create a product and associate features with it', async () => {
     const featureIds = features.map((f) => f.id)
     const result = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, livemode }) => {
         return createProductTransaction(
           {
             product: {
@@ -681,7 +684,8 @@ describe('createProductTransaction', () => {
           {
             userId,
             transaction,
-            livemode: false,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
           }
         )
       },
@@ -708,7 +712,7 @@ describe('createProductTransaction', () => {
 
   it('should create a product without features if featureIds is not provided', async () => {
     const result = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, livemode }) => {
         return createProductTransaction(
           {
             product: {
@@ -745,7 +749,8 @@ describe('createProductTransaction', () => {
           {
             userId,
             transaction,
-            livemode: false,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
           }
         )
       },

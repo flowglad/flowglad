@@ -12,16 +12,14 @@ import {
   selectUsers,
 } from '@/db/tableMethods/userMethods'
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
-import { stackServerApp } from '@/stack'
 import {
   inviteUserToOrganizationSchema,
   Membership,
 } from '@/db/schema/memberships'
-import {
-  sendAwaitingPaymentConfirmationEmail,
-  sendOrganizationInvitationEmail,
-} from '@/utils/email'
+import { sendOrganizationInvitationEmail } from '@/utils/email'
 import { Organization } from '@/db/schema/organizations'
+import { auth } from '@/utils/auth'
+import core from '@/utils/core'
 
 export const innerInviteUserToOrganizationHandler = async (
   focusedMembership: {
@@ -44,17 +42,12 @@ export const innerInviteUserToOrganizationHandler = async (
   )
 
   if (!userForEmail) {
-    const result = await stackServerApp.createUser({
-      primaryEmail: input.email,
-      displayName: input.name,
-    })
-    const stackAuthUser = result.toClientJson()
     await adminTransaction(async ({ transaction }) => {
       const databaseUser = await insertUser(
         {
-          id: stackAuthUser.id,
-          email: stackAuthUser.primary_email,
-          name: stackAuthUser.display_name,
+          id: `user_${core.nanoid()}`,
+          email: input.email,
+          name: input.name ?? '',
         },
         transaction
       )

@@ -13,9 +13,6 @@ export const attemptBillingPeriodTransitionTask = task({
   ) => {
     const { billingRun } = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
-        /**
-         * Get the most up to date billing period from the database
-         */
         const billingPeriod = await selectBillingPeriodById(
           payload.billingPeriod.id,
           transaction

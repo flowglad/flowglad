@@ -8,12 +8,13 @@ export const editPurchase = protectedProcedure
   .input(editPurchaseFormSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+      async ({ transaction, userId, livemode, organizationId }) => {
         const { purchase } = input
         const updatedPurchase = await editOpenPurchase(purchase, {
           transaction,
           userId,
           livemode,
+          organizationId,
         })
 
         if (!updatedPurchase) {

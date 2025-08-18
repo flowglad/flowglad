@@ -1,23 +1,30 @@
 import * as trpcNext from '@trpc/server/adapters/next'
 import { ApiEnvironment } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { stackServerApp } from '@/stack'
+import {
+  selectFocusedMembershipAndOrganization,
+  selectMembershipAndOrganizationsByBetterAuthUserId,
+} from '@/db/tableMethods/membershipMethods'
 import { Organization } from '@/db/schema/organizations'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { getSession } from '@/utils/auth'
+import { UserRecord } from '@/db/schema/users'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
 ) => {
-  const user = await stackServerApp.getUser()
+  const session = await getSession()
+  const betterAuthUserId = session?.user?.id
   let environment: ApiEnvironment = 'live'
   let organizationId: string | undefined
   let organization: Organization.Record | undefined
-  if (user) {
-    const maybeMembership = await adminTransaction(
+  let user: UserRecord | undefined
+
+  if (betterAuthUserId) {
+    const [maybeMembership] = await adminTransaction(
       async ({ transaction }) => {
-        return selectFocusedMembershipAndOrganization(
-          user.id,
+        return selectMembershipAndOrganizationsByBetterAuthUserId(
+          betterAuthUserId,
           transaction
         )
       }
@@ -27,6 +34,7 @@ export const createContext = async (
       environment = membership.livemode ? 'live' : 'test'
       organization = maybeMembership.organization
       organizationId = organization.id
+      user = maybeMembership.user
     }
   }
   return {
