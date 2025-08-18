@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import NumberInput from '@/components/ion/NumberInput'
 import { Controller, FieldError } from 'react-hook-form'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
@@ -59,9 +60,7 @@ const TrialFields = () => {
       {offerTrial && (
         <>
           <div>
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-1">
-              Trial Type
-            </label>
+            <Label className="mb-1">Trial Type</Label>
             <Select
               value={trialType}
               onValueChange={(value) => {
@@ -74,25 +73,21 @@ const TrialFields = () => {
               }}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select trial type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="time">
-                  <div>
-                    <div>Time</div>
-                    <div className="text-xs text-muted-foreground">
-                      For trials with a set number of days.
-                    </div>
-                  </div>
+                <SelectItem
+                  value="time"
+                  description="For trials with a set number of days."
+                >
+                  Time
                 </SelectItem>
-                <SelectItem value="credit" disabled={!overagePriceId}>
-                  <div>
-                    <div>Credit</div>
-                    <div className="text-xs text-muted-foreground">
-                      For one-time credit grant trials. Requires an
-                      overage price
-                    </div>
-                  </div>
+                <SelectItem
+                  value="credit"
+                  disabled={!overagePriceId}
+                  description="For one-time credit grant trials. Requires an overage price"
+                >
+                  Credit
                 </SelectItem>
               </SelectContent>
             </Select>

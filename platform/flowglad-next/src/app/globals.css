@@ -183,7 +183,7 @@ body {
     --input: var(--stroke);
     --ring: var(--primary);
     --muted: var(--neutral-container);
-    --muted-foreground: var(--on-neutral-container);
+    --muted-foreground: var(--subtle);
     --popover: var(--background);
     --popover-foreground: var(--foreground);
     --card: var(--background);
@@ -295,7 +295,7 @@ body {
     --input: var(--background-input);
     --ring: var(--primary);
     --muted: var(--neutral-container);
-    --muted-foreground: var(--on-neutral-container);
+    --muted-foreground: var(--subtle);
     --popover: var(--background);
     --popover-foreground: var(--foreground);
     --card: var(--background);

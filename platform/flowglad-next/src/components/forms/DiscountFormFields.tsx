@@ -2,12 +2,25 @@
 
 import { useFormContext, Controller } from 'react-hook-form'
 import { CreateDiscountInput } from '@/db/schema/discounts'
-import Input from '@/components/ion/Input'
-import { Select } from '@/components/ion/Select'
+import { Input } from '@/components/ui/input'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import NumberInput from '@/components/ion/NumberInput'
 import StatusBadge from '@/components/StatusBadge'
-import Switch from '@/components/ion/Switch'
+import { Switch } from '@/components/ui/switch'
 import Label from '@/components/ion/Label'
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { Percent } from 'lucide-react'
@@ -23,7 +36,6 @@ export default function DiscountFormFields({
     formState: { errors },
     watch,
     control,
-    register,
   } = form
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
@@ -34,45 +46,71 @@ export default function DiscountFormFields({
   }
   return (
     <div className="space-y-4">
-      <Input
-        label="Name"
-        placeholder="Your Discount's Name"
-        {...register('discount.name')}
+      <FormField
+        control={control}
+        name="discount.name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl>
+              <Input placeholder="Your Discount's Name" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
-      <Input
-        label="Code"
-        placeholder="Your Discount's Code"
-        {...register('discount.code')}
-        onBlur={() => {
-          const value = form.getValues('discount.code')
-          form.setValue('discount.code', value.toUpperCase())
-        }}
+      <FormField
+        control={control}
+        name="discount.code"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Code</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="Your Discount's Code"
+                {...field}
+                onBlur={() => {
+                  field.onBlur()
+                  const value = form.getValues('discount.code')
+
+                  form.setValue('discount.code', value.toUpperCase())
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
       <div className="flex gap-4">
         <Controller
           control={control}
           name="discount.amountType"
           render={({ field }) => (
-            <Select
-              label="Type"
-              options={[
-                {
-                  label: 'Fixed',
-                  value: DiscountAmountType.Fixed,
-                },
-                {
-                  label: 'Percentage',
-                  value: DiscountAmountType.Percent,
-                },
-              ]}
-              error={errors.discount?.amountType?.message}
-              value={field.value ?? DiscountAmountType.Fixed}
-              onValueChange={(value) => {
-                form.setValue('discount.amount', 0)
-                field.onChange(value)
-              }}
-              className="flex-1"
-            />
+            <FormItem className="flex-1">
+              <FormLabel>Type</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value ?? DiscountAmountType.Fixed}
+                  onValueChange={(value) => {
+                    form.setValue('discount.amount', 0)
+                    field.onChange(value)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={DiscountAmountType.Fixed}>
+                      Fixed
+                    </SelectItem>
+                    <SelectItem value={DiscountAmountType.Percent}>
+                      Percentage
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
         {amountType === DiscountAmountType.Percent ? (
@@ -120,32 +158,38 @@ export default function DiscountFormFields({
         control={control}
         name="discount.duration"
         render={({ field }) => (
-          <Select
-            label="Duration"
-            options={[
-              {
-                label: 'Once',
-                value: DiscountDuration.Once,
-              },
-              {
-                label: 'Recurring',
-                value: DiscountDuration.NumberOfPayments,
-              },
-              {
-                label: 'Forever',
-                value: DiscountDuration.Forever,
-              },
-            ]}
-            error={errors.discount?.duration?.message}
-            value={field.value ?? DiscountDuration.Once}
-            onValueChange={(value) => {
-              if (value !== DiscountDuration.NumberOfPayments) {
-                form.setValue('discount.numberOfPayments', null)
-              }
-              field.onChange(value)
-            }}
-            className="flex-1"
-          />
+          <FormItem className="flex-1">
+            <FormLabel>Duration</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value ?? DiscountDuration.Once}
+                onValueChange={(value) => {
+                  if (value !== DiscountDuration.NumberOfPayments) {
+                    form.setValue('discount.numberOfPayments', null)
+                  }
+                  field.onChange(value)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={DiscountDuration.Once}>
+                    Once
+                  </SelectItem>
+                  <SelectItem
+                    value={DiscountDuration.NumberOfPayments}
+                  >
+                    Recurring
+                  </SelectItem>
+                  <SelectItem value={DiscountDuration.Forever}>
+                    Forever
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
       {duration === DiscountDuration.NumberOfPayments && (
