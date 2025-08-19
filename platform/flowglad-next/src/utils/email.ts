@@ -20,8 +20,11 @@ import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
 import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
 import { kebabCase } from 'change-case'
 import { OrganizationInvitationEmail } from '@/email-templates/organization/organization-invitation'
-import { OrganizationPaymentFailedNotificationEmail,
-  OrganizationPaymentFailedNotificationEmailProps } from '@/email-templates/organization/organization-payment-failed'
+import {
+  OrganizationPaymentFailedNotificationEmail,
+  OrganizationPaymentFailedNotificationEmailProps,
+} from '@/email-templates/organization/organization-payment-failed'
+import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -304,7 +307,9 @@ export const sendOrganizationInvitationEmail = async ({
 }
 
 export const sendOrganizationPaymentFailedNotificationEmail = async (
-  params: OrganizationPaymentFailedNotificationEmailProps & { to: string[] }
+  params: OrganizationPaymentFailedNotificationEmailProps & {
+    to: string[]
+  }
 ) => {
   return safeSend({
     from: `Flowglad <notifications@flowglad.com>`,
@@ -315,5 +320,23 @@ export const sendOrganizationPaymentFailedNotificationEmail = async (
      * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
      */
     react: await OrganizationPaymentFailedNotificationEmail(params),
+  })
+}
+
+export const sendForgotPasswordEmail = async ({
+  to,
+  url,
+}: {
+  to: string[]
+  url: string
+}) => {
+  return safeSend({
+    from: 'notifications@flowglad.com',
+    to: to.map(safeTo),
+    subject: 'Reset your password',
+    react: await ForgotPasswordEmail({
+      user: to[0],
+      url,
+    }),
   })
 }

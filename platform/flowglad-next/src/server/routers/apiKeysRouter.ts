@@ -71,11 +71,12 @@ export const createApiKey = protectedProcedure
   .input(createApiKeyInputSchema)
   .mutation(async ({ input }) => {
     const result = await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+      async ({ transaction, userId, livemode, organizationId }) => {
         return createSecretApiKeyTransaction(input, {
           transaction,
           userId,
           livemode,
+          organizationId,
         })
       }
     )

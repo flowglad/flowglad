@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import Hint from './ion/Hint'
 import { CheckoutFlowType } from '@/types'
 import {
+  Form,
   FormField,
   FormItem,
   FormControl,
@@ -55,25 +56,29 @@ export default function DiscountCodeInput() {
   }
 
   const attemptHandler = async (data: DiscountCodeFormData) => {
-    const code = data.discountCode
-    let discountSucceeded = false
-    setDiscountCodeStatus('loading')
-    if (purchase) {
-      const result = await attemptDiscountCode({
-        code,
-        purchaseId: purchase.id,
-      })
-      discountSucceeded = result?.isValid
-    } else if (product) {
-      const result = await attemptDiscountCode({
-        code,
-        productId: product.id,
-      })
-      discountSucceeded = result?.isValid
-    }
-    if (discountSucceeded) {
-      setDiscountCodeStatus('success')
-    } else {
+    try {
+      const code = data.discountCode
+      let discountSucceeded = false
+      setDiscountCodeStatus('loading')
+      if (purchase) {
+        const result = await attemptDiscountCode({
+          code,
+          purchaseId: purchase.id,
+        })
+        discountSucceeded = result?.isValid
+      } else if (product) {
+        const result = await attemptDiscountCode({
+          code,
+          productId: product.id,
+        })
+        discountSucceeded = result?.isValid
+      }
+      if (discountSucceeded) {
+        setDiscountCodeStatus('success')
+      } else {
+        setDiscountCodeStatus('error')
+      }
+    } catch (error) {
       setDiscountCodeStatus('error')
     }
   }
@@ -90,6 +95,7 @@ export default function DiscountCodeInput() {
         form.setValue('discountCode', '')
       }}
       variant="ghost"
+      className="px-0 hover:bg-transparent focus-visible:ring-0 text-muted-foreground"
       disabled={!discount}
     >
       Clear
@@ -101,44 +107,47 @@ export default function DiscountCodeInput() {
       onClick={form.handleSubmit(attemptHandler)}
       disabled={discountCodeStatus === 'loading'}
       variant="ghost"
+      className="px-0 hover:bg-transparent focus-visible:ring-0 text-muted-foreground"
     >
       Apply
     </Button>
   )
 
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <Label htmlFor="discountCode">Discount Code</Label>
-      <div className="flex flex-row gap-2 w-full">
-        <div className="flex-1">
-          <FormField
-            control={form.control}
-            name="discountCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    id="discountCode"
-                    className="focus-within:bg-[#353535] p-2 pl-3 h-15 border-none bg-[#353535]"
-                    autoCapitalize="characters"
-                    iconTrailing={
-                      discount
-                        ? clearDiscountCodeButton
-                        : applyDiscountCodeButton
-                    }
-                    {...field}
-                    onChange={(e) => {
-                      const code = e.target.value.toUpperCase()
-                      field.onChange(code)
-                    }}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+    <Form {...form}>
+      <div className="flex flex-col gap-1 w-full">
+        <Label htmlFor="discountCode">Discount Code</Label>
+        <div className="flex flex-row gap-2 w-full">
+          <div className="flex-1">
+            <FormField
+              control={form.control}
+              name="discountCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      id="discountCode"
+                      className="h-11 bg-[#353535] focus-visible:bg-[#353535] border-none"
+                      autoCapitalize="characters"
+                      iconTrailing={
+                        discount
+                          ? clearDiscountCodeButton
+                          : applyDiscountCodeButton
+                      }
+                      {...field}
+                      onChange={(e) => {
+                        const code = e.target.value.toUpperCase()
+                        field.onChange(code)
+                      }}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
+        <Hint error={discountCodeStatus === 'error'}>{hint}</Hint>
       </div>
-      <Hint error={discountCodeStatus === 'error'}>{hint}</Hint>
-    </div>
+    </Form>
   )
 }

@@ -16,13 +16,14 @@ export const createPurchase = protectedProcedure
   })
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
+      async ({ transaction, userId, livemode, organizationId }) => {
         const { purchase } = input
 
         const createdPurchase = await createOpenPurchase(purchase, {
           transaction,
           userId,
           livemode,
+          organizationId,
         })
 
         if (!createdPurchase) {
