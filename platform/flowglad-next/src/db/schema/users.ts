@@ -19,6 +19,8 @@ export const users = pgTable(
     name: text('name'),
     email: text('email'),
     clerkId: text('clerk_id').unique(),
+    betterAuthId: text('better_auth_id').unique(),
+    stackAuthId: text('stack_auth_id').unique(),
   },
   (table) => {
     return [

@@ -104,10 +104,10 @@ export const createOrganizationTransaction = async (
       },
       transaction
     )
-
+  const organizationId = organizationRecord.id
   await insertMembership(
     {
-      organizationId: organizationRecord.id,
+      organizationId,
       userId: user.id,
       focused: true,
       /**
@@ -123,7 +123,7 @@ export const createOrganizationTransaction = async (
     {
       name: 'Default',
       livemode: true,
-      organizationId: organizationRecord.id,
+      organizationId,
       isDefault: true,
     },
     transaction
@@ -133,7 +133,7 @@ export const createOrganizationTransaction = async (
     {
       name: 'Default (testmode)',
       livemode: false,
-      organizationId: organizationRecord.id,
+      organizationId,
       isDefault: true,
     },
     transaction
@@ -152,7 +152,12 @@ export const createOrganizationTransaction = async (
         },
       ],
     },
-    { transaction, livemode: false, userId }
+    {
+      transaction,
+      livemode: false,
+      userId,
+      organizationId,
+    }
   )
 
   await createSecretApiKeyTransaction(
@@ -162,7 +167,12 @@ export const createOrganizationTransaction = async (
         type: FlowgladApiKeyType.Secret,
       },
     },
-    { transaction, livemode: false, userId }
+    {
+      transaction,
+      livemode: false,
+      userId,
+      organizationId,
+    }
   )
 
   await findOrCreateSvixApplication({

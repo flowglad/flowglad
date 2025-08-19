@@ -103,6 +103,11 @@ function Datepicker({
   }
   useEffect(() => {
     const selectedDate = dayPickerProps.selected as Date | undefined
+    // Check if dates are the same to prevent infinite loop:
+    // - First check: same object reference (fast path)
+    // - Second check: same date value (handles different Date objects for same date)
+    // Without this, Date objects with same value but different references would
+    // continuously trigger onSelect, causing infinite re-renders
     const isSameDate =
       selectedDate === value ||
       (!!selectedDate &&

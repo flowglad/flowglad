@@ -49,7 +49,7 @@ Example:
   <mj-body background-color="#1B1B1B">
     <mj-wrapper full-width background-color="#1B1B1B">
       <!-- Header -->
-      <mj-section padding="32px 16px 40px">
+      <mj-section padding="32px 16px 80px">
         <mj-column>
           <mj-text
             align="center"
@@ -59,6 +59,33 @@ Example:
             padding="0"
           >
             Flowglad Product Updates
+          </mj-text>
+          <mj-text
+            align="center"
+            font-size="16px"
+            line-height="1.6"
+            color="#AAAAAA"
+            padding="16px 0 0"
+          >
+            The easiest way to make internet money.
+          </mj-text>
+          <mj-text
+            align="center"
+            font-size="16px"
+            line-height="1.6"
+            color="#AAAAAA"
+            padding="16px 0 0"
+          >
+            Set up payments and billing in seconds with 100% open-source tools. Design any pricing model and integrate it instantly with the Flowglad MCP.
+          </mj-text>
+          <mj-text
+            align="center"
+            font-size="16px"
+            line-height="1.6"
+            color="#AAAAAA"
+            padding="16px 0 0"
+          >
+            Use our <a href="https://docs.flowglad.com/quickstart" style="color:#F5F5F5"><strong>quickstart guide</strong></a> to process your first payment in under 3 minutes.
           </mj-text>
         </mj-column>
       </mj-section>
@@ -196,7 +223,7 @@ Example:
             Agree Ahmed<br />
             CEO, <a href="https://flowglad.com" style="color:#F5F5F5"><strong>Flowglad</strong></a><br /><br />
             PS - Treat us like your payments therapist by <a href="https://cal.com/team/flowglad/chat" style="color:#F5F5F5"><strong>grabbing time on our calendar</strong></a>.<br /><br />
-            :star:️ us on
+            ⭐️ us on
             <a href="https://github.com/flowglad/flowglad" style="color:#F5F5F5"><strong>GitHub</strong></a>. Chat on
             <a href="https://discord.gg/XTK7hVyQD9" style="color:#F5F5F5"><strong>Discord</strong></a> or follow on
             <a href="https://x.com/flowglad" style="color:#F5F5F5"><strong>X</strong></a> and
