@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from '@/components/ion/Card'
+} from '@/components/ui/card'
 import Input from '@/components/ion/Input'
 import Button from '@/components/ion/Button'
 import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react'

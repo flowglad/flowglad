@@ -8,7 +8,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ion/Card'
+} from '@/components/ui/card'
 import Input from '@/components/ion/Input'
 import Label from '@/components/ion/Label'
 import { useState } from 'react'

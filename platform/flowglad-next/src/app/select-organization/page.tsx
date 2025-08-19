@@ -8,8 +8,8 @@ import { trpc } from '@/app/_trpc/client'
 import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ion/Skeleton'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   RadioGroup,
@@ -22,7 +22,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from '@/components/ion/Card'
+} from '@/components/ui/card'
 
 type FormValues = z.infer<typeof updateFocusedMembershipSchema>
 

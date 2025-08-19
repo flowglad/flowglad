@@ -5,7 +5,7 @@ import { InvoiceStatus } from '@/types'
 import { InvoiceStatusTab } from './components/InvoiceStatusTab'
 import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
-import { Tabs, TabsContent, TabsList } from '@/components/ion/Tab'
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import PageTitle from '@/components/ion/PageTitle'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
@@ -45,32 +45,12 @@ const InternalInvoicesPage = () => {
 
         <Tabs value={selectedStatus} onValueChange={handleTabChange}>
           <TabsList className="gap-8 border-b border-stroke-subtle">
-            <InvoiceStatusTab
-              status="all"
-              isActive={selectedStatus === 'all'}
-            />
-            <InvoiceStatusTab
-              status={InvoiceStatus.Draft}
-              isActive={selectedStatus === InvoiceStatus.Draft}
-            />
-            <InvoiceStatusTab
-              status={InvoiceStatus.Open}
-              isActive={selectedStatus === InvoiceStatus.Open}
-            />
-            <InvoiceStatusTab
-              status={InvoiceStatus.Paid}
-              isActive={selectedStatus === InvoiceStatus.Paid}
-            />
-            <InvoiceStatusTab
-              status={InvoiceStatus.Uncollectible}
-              isActive={
-                selectedStatus === InvoiceStatus.Uncollectible
-              }
-            />
-            <InvoiceStatusTab
-              status={InvoiceStatus.Void}
-              isActive={selectedStatus === InvoiceStatus.Void}
-            />
+            <InvoiceStatusTab status="all" />
+            <InvoiceStatusTab status={InvoiceStatus.Draft} />
+            <InvoiceStatusTab status={InvoiceStatus.Open} />
+            <InvoiceStatusTab status={InvoiceStatus.Paid} />
+            <InvoiceStatusTab status={InvoiceStatus.Uncollectible} />
+            <InvoiceStatusTab status={InvoiceStatus.Void} />
           </TabsList>
 
           <TabsContent value={selectedStatus} className="mt-6">
