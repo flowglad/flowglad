@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  Form,
   FormField,
   FormItem,
   FormControl,
@@ -66,77 +67,79 @@ const BusinessDetails = () => {
     <div className="bg-internal h-full w-full flex justify-between items-center">
       <div className="flex-1 h-full w-full flex flex-col justify-center items-center gap-9 p-20">
         <div className="w-full flex flex-col items-center gap-4">
-          <form
-            onSubmit={onSubmit}
-            className="w-[380px] flex flex-col gap-6"
-          >
-            <div className="w-full flex flex-col gap-4">
-              <FormField
-                control={form.control}
-                name="organization.name"
-                render={({ field, fieldState }) => (
-                  <FormItem>
-                    <FormLabel required>
-                      What&apos;s your business name?
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Your Company"
-                        {...field}
-                        className="w-full"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="organization.countryId"
-                render={({ field, fieldState }) => (
-                  <FormItem>
-                    <FormLabel>Country</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value ?? undefined}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countryOptions.map((option) => (
-                            <SelectItem
-                              key={option.value}
-                              value={option.value}
-                            >
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                    <FormDescription>
-                      Used to determine your default currency
-                    </FormDescription>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <Button
-              variant="default"
-              size="default"
-              type="submit"
-              disabled={form.formState.isSubmitting}
-              className="w-full"
+          <Form {...form}>
+            <form
+              onSubmit={onSubmit}
+              className="w-[380px] flex flex-col gap-6"
             >
-              Continue
-            </Button>
-            {form.formState.errors.root && (
-              <ErrorLabel error={form.formState.errors.root} />
-            )}
-          </form>
+              <div className="w-full flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="organization.name"
+                  render={({ field, fieldState }) => (
+                    <FormItem>
+                      <FormLabel>
+                        What is your business name?
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Your Company"
+                          {...field}
+                          className="w-full"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="organization.countryId"
+                  render={({ field, fieldState }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value ?? undefined}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countryOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                      <FormDescription>
+                        Used to determine your default currency
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <Button
+                variant="default"
+                size="default"
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="w-full"
+              >
+                Continue
+              </Button>
+              {form.formState.errors.root && (
+                <ErrorLabel error={form.formState.errors.root} />
+              )}
+            </form>
+          </Form>
         </div>
       </div>
     </div>
