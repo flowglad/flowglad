@@ -9,6 +9,7 @@ import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Label } from '@/components/ui/label'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   RadioGroup,
