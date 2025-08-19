@@ -14,8 +14,7 @@ export default async function Home() {
   if (!session) {
     redirect('/sign-in')
   }
-  const user = await betterAuthUserToApplicationUser(session.user)
-  console.log('====== newly created user', user)
+  await betterAuthUserToApplicationUser(session.user)
   const organization = await authenticatedTransaction(
     async ({ userId, transaction }) => {
       const result = await selectFocusedMembershipAndOrganization(
