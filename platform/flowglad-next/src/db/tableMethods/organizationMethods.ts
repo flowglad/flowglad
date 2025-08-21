@@ -15,6 +15,9 @@ import {
   createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import { DbTransaction } from '../types'
+import { memberships } from '@/db/schema/memberships'
+import { users, usersSelectSchema } from '@/db/schema/users'
+import { asc, eq } from 'drizzle-orm'
 
 const config: ORMMethodCreatorConfig<
   typeof organizations,
@@ -95,4 +98,30 @@ export const insertOrDoNothingOrganizationByExternalId = async (
     return organization
   }
   return result[0]
+}
+
+export const selectOrganizationAndFirstMemberByOrganizationId = async (
+  organizationId: string,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      organization: organizations,
+      user: users,
+    })
+    .from(organizations)
+    .innerJoin(memberships, eq(memberships.organizationId, organizations.id))
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(eq(organizations.id, organizationId))
+    .orderBy(asc(memberships.createdAt))
+    .limit(1)
+
+  if (!result || result.length === 0) {
+    return null
+  }
+
+  return {
+    organization: organizationsSelectSchema.parse(result[0].organization),
+    user: usersSelectSchema.parse(result[0].user),
+  }
 }

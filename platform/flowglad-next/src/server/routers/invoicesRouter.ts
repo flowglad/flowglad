@@ -45,7 +45,7 @@ import {
   sendInvoiceReminderEmail,
   sendInvoiceNotificationEmail,
 } from '@/utils/email'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectOrganizationById, selectOrganizationAndFirstMemberByOrganizationId } from '@/db/tableMethods/organizationMethods'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 import { InvoiceStatus, SubscriptionItemType } from '@/types'
 
@@ -157,12 +157,17 @@ const createInvoiceProcedure = protectedProcedure
             ctx.organizationId!,
             transaction
           )
+          const orgAndFirstMember = await selectOrganizationAndFirstMemberByOrganizationId(
+            organization.id,
+            transaction
+          )
           await sendInvoiceNotificationEmail({
             to: [customer.email],
             invoice,
             invoiceLineItems,
             organizationName: organization.name,
             organizationLogoUrl: organization.logoURL ?? undefined,
+            replyTo: orgAndFirstMember?.user.email,
           })
         }
 
@@ -227,6 +232,11 @@ const sendInvoiceReminderProcedure = protectedProcedure
           transaction
         )
 
+        const orgAndFirstMember = await selectOrganizationAndFirstMemberByOrganizationId(
+          organization.id,
+          transaction
+        )
+
         await sendInvoiceReminderEmail({
           to: input.to,
           cc: input.cc,
@@ -234,6 +244,7 @@ const sendInvoiceReminderProcedure = protectedProcedure
           invoiceLineItems,
           organizationName: organization.name,
           organizationLogoUrl: organization.logoURL ?? undefined,
+          replyTo: orgAndFirstMember?.user.email,
         })
 
         return { success: true }
