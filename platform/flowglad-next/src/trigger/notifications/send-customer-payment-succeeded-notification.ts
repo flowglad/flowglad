@@ -1,4 +1,4 @@
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectOrganizationById, selectOrganizationAndFirstMemberByOrganizationId } from '@/db/tableMethods/organizationMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
@@ -57,9 +57,14 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
       })
     }
     // Fetch the latest invoice after the PDF generation tasks have completed
-    const mostUpToDateInvoice = await adminTransaction(
+    const { mostUpToDateInvoice, orgAndFirstMember } = await adminTransaction(
       async ({ transaction }) => {
-        return selectInvoiceById(invoice.id, transaction)
+        const mostUpToDateInvoice = await selectInvoiceById(invoice.id, transaction)
+        const orgAndFirstMember = await selectOrganizationAndFirstMemberByOrganizationId(
+          organization.id,
+          transaction
+        )
+        return { mostUpToDateInvoice, orgAndFirstMember }
       }
     )
     const result = await sendReceiptEmail({
@@ -69,6 +74,7 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
       to: [customer.email],
       organizationId: organization.id,
       customerExternalId: customer.externalId,
+      replyTo: orgAndFirstMember?.user.email ?? null,
     })
 
     if (result?.error) {

@@ -5,6 +5,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationAndFirstMemberByOrganizationId } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
 import { PurchaseAccessSessionSource } from '@/types'
 import { sendPurchaseAccessSessionTokenEmail } from '@/utils/email'
@@ -46,6 +47,11 @@ export const requestPurchaseAccessSession = publicProcedure
         transaction
       )
 
+      const orgAndFirstMember = await selectOrganizationAndFirstMemberByOrganizationId(
+        customer.organizationId,
+        transaction
+      )
+
       const verificationURL =
         core.safeUrl(
           `/purchase/verify/${purchase.id}`,
@@ -55,6 +61,7 @@ export const requestPurchaseAccessSession = publicProcedure
       await sendPurchaseAccessSessionTokenEmail({
         to: [customer.email!],
         magicLink: verificationURL,
+        replyTo: orgAndFirstMember?.user.email,
       })
 
       return {
