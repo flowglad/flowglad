@@ -24,7 +24,7 @@ const client = postgres(dbUrl, {
   debug: true,
 })
 
-let logger = false
+let logger = true
 
 if (core.IS_PROD) {
   logger = true
