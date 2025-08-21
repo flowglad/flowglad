@@ -9,6 +9,7 @@ import { Organization } from '@/db/schema/organizations'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { getSession } from '@/utils/auth'
 import { UserRecord } from '@/db/schema/users'
+import { selectUsers } from '@/db/tableMethods/userMethods'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
@@ -21,6 +22,7 @@ export const createContext = async (
   let user: UserRecord | undefined
 
   if (betterAuthUserId) {
+    console.log('====betterAuthUserId', betterAuthUserId)
     const [maybeMembership] = await adminTransaction(
       async ({ transaction }) => {
         return selectMembershipAndOrganizationsByBetterAuthUserId(
@@ -35,6 +37,18 @@ export const createContext = async (
       organization = maybeMembership.organization
       organizationId = organization.id
       user = maybeMembership.user
+    } else {
+      const [maybeUser] = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsers(
+            { betterAuthId: betterAuthUserId },
+            transaction
+          )
+        }
+      )
+      if (maybeUser) {
+        user = maybeUser
+      }
     }
   }
   return {
