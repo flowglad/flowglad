@@ -54,7 +54,7 @@ export const sendReceiptEmail = async (params: {
   organizationLogoUrl?: string
   organizationId: string
   customerExternalId: string
-  replyTo?: string
+  replyTo?: string | null
 }) => {
   const { invoice } = params
   const attachments: {
@@ -83,7 +83,7 @@ export const sendReceiptEmail = async (params: {
     from: `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`,
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     to: params.to.map(safeTo),
-    replyTo: params.replyTo,
+    replyTo: params.replyTo ?? undefined,
     subject: `${params.organizationName} Order Receipt: #${invoice.invoiceNumber}`,
     attachments,
     react: await OrderReceiptEmail({
@@ -128,13 +128,13 @@ export const sendOrganizationPaymentNotificationEmail = async (
 export const sendPurchaseAccessSessionTokenEmail = async (params: {
   to: string[]
   magicLink: string
-  replyTo?: string
+  replyTo?: string | null
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-    replyTo: params.replyTo,
+    replyTo: params.replyTo ?? undefined,
     subject: 'Your Order Link',
     /**
      * NOTE: await needed to prevent
@@ -160,13 +160,13 @@ export const sendPaymentFailedEmail = async (params: {
   }[]
   retryDate?: Date
   currency: CurrencyCode
-  replyTo?: string
+  replyTo?: string | null
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-    replyTo: params.replyTo,
+    replyTo: params.replyTo ?? undefined,
     subject: 'Payment Unsuccessful',
     react: await PaymentFailedEmail({
       invoiceNumber: params.invoiceNumber,
@@ -235,13 +235,13 @@ export const sendInvoiceReminderEmail = async ({
   invoiceLineItems: InvoiceLineItem.Record[]
   organizationName: string
   organizationLogoUrl?: string
-  replyTo?: string
+  replyTo?: string | null
 }) => {
   return safeSend({
     from: 'notifs@flowglad.com',
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
-    replyTo,
+    replyTo: replyTo ?? undefined,
     subject: `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
     /**
      * NOTE: await needed to prevent
@@ -274,13 +274,13 @@ export const sendInvoiceNotificationEmail = async ({
   invoiceLineItems: InvoiceLineItem.Record[]
   organizationName: string
   organizationLogoUrl?: string
-  replyTo?: string
+  replyTo?: string | null
 }) => {
   return safeSend({
     from: 'notifs@flowglad.com',
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
-    replyTo,
+    replyTo: replyTo ?? undefined,
     subject: `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
     /**
      * NOTE: await needed to prevent
