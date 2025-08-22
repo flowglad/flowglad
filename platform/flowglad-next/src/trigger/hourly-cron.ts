@@ -4,6 +4,7 @@ import { schedules } from '@trigger.dev/sdk'
 import { attemptBillingRunsTask } from './attempt-run-all-billings'
 import { attemptCancelScheduledSubscriptionsTask } from './attempt-cancel-scheduled-subscriptions'
 import { attemptTransitionBillingPeriodsTask } from './attempt-transition-billing-periods'
+import { failStalePaymentsTask } from './fail-stale-payments'
 
 export const hourlyCron = schedules.task({
   id: 'hourly-cron',
@@ -41,6 +42,15 @@ export const hourlyCron = schedules.task({
         },
         {
           idempotencyKey: `attempt-transition-billing-periods:${timestamp.toISOString()}`,
+        }
+      )
+
+      await failStalePaymentsTask.trigger(
+        {
+          timestamp,
+        },
+        {
+          idempotencyKey: `fail-stale-payments:${timestamp.toISOString()}`,
         }
       )
     })

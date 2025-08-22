@@ -23,7 +23,7 @@ import {
 } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { and, desc, eq, gte, inArray, sql, count } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, sql, count, lte } from 'drizzle-orm'
 import { invoices } from '../schema/invoices'
 import { GetRevenueDataInput } from '../schema/payments'
 import { customers } from '../schema/customers'
@@ -275,6 +275,27 @@ export const safelyUpdatePaymentStatus = async (
     },
     transaction
   )
+}
+
+export const selectStalePayments = async (
+  staleThresholdDate: Date,
+  transaction: DbTransaction
+): Promise<Payment.Record[]> => {
+  const stalePaymentStatuses = [
+    PaymentStatus.Processing,
+    PaymentStatus.RequiresConfirmation,
+    PaymentStatus.RequiresAction,
+  ]
+  
+  return await transaction
+    .select()
+    .from(payments)
+    .where(
+      and(
+        inArray(payments.status, stalePaymentStatuses),
+        lte(payments.updatedAt, staleThresholdDate)
+      )
+    )
 }
 
 export const selectPaymentsPaginated = createPaginatedSelectFunction(
