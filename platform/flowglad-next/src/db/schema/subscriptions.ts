@@ -163,6 +163,7 @@ export const standardSubscriptionSelectSchema =
 
 export const creditTrialSubscriptionSelectSchema =
   baseSelectSchema.extend(creditTrialColumnRefinements)
+
 export const subscriptionsSelectSchema = z.discriminatedUnion(
   'status',
   [
