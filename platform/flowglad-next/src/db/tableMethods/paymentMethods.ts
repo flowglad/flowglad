@@ -23,7 +23,16 @@ import {
 } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { and, desc, eq, gte, inArray, sql, count, lte } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  sql,
+  count,
+  lte,
+} from 'drizzle-orm'
 import { invoices } from '../schema/invoices'
 import { GetRevenueDataInput } from '../schema/payments'
 import { customers } from '../schema/customers'
@@ -286,8 +295,8 @@ export const selectStalePayments = async (
     PaymentStatus.RequiresConfirmation,
     PaymentStatus.RequiresAction,
   ]
-  
-  return await transaction
+
+  const result = await transaction
     .select()
     .from(payments)
     .where(
@@ -296,6 +305,7 @@ export const selectStalePayments = async (
         lte(payments.updatedAt, staleThresholdDate)
       )
     )
+  return paymentsSelectSchema.array().parse(result)
 }
 
 export const selectPaymentsPaginated = createPaginatedSelectFunction(
