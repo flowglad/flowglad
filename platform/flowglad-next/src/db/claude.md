@@ -37,12 +37,13 @@ db/
 
 ### 1. Basic Database Operations
 
+**Key Rule**: Use `authenticatedTransaction` for ALL API/client-initiated operations, and `adminTransaction` for ALL background operations.
+
 ```typescript
-// Import the transaction function and methods you need
+// For API routes/procedures (client-initiated)
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerById, updateCustomer } from '@/db/tableMethods/customerMethods'
 
-// Use in API routes/procedures
 const result = await authenticatedTransaction(async ({ transaction, organizationId }) => {
   // All operations are scoped to the authenticated user/org
   const customer = await selectCustomerById(customerId, transaction)
@@ -62,7 +63,7 @@ const result = await authenticatedTransaction(async ({ transaction, organization
 ```typescript
 import { adminTransaction } from '@/db/adminTransaction'
 
-// Admin transactions bypass RLS for system operations
+// Use adminTransaction for ALL background operations (Trigger tasks, cron jobs, etc.)
 await adminTransaction(async ({ transaction }) => {
   // Can access all data across all organizations
   const allInvoices = await db
@@ -75,6 +76,7 @@ await adminTransaction(async ({ transaction }) => {
 ### 3. Complex Business Logic with Events and Ledger
 
 ```typescript
+// For client-initiated operations with events/ledger
 import { comprehensiveAuthenticatedTransaction } from '@/db/authenticatedTransaction'
 
 const result = await comprehensiveAuthenticatedTransaction(async (params) => {
@@ -93,6 +95,20 @@ const result = await comprehensiveAuthenticatedTransaction(async (params) => {
     ledgerCommand: new CreditAdjustmentCommand(amount)
   }
 }, { apiKey })
+
+// For background operations with events/ledger
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+
+const result = await comprehensiveAdminTransaction(async ({ transaction }) => {
+  // Perform system operations
+  const processed = await processSystemTask(transaction)
+  
+  return {
+    result: processed,
+    eventsToLog: [{ type: 'system.task.completed', data: { taskId } }],
+    ledgerCommand: new UsageProcessedCommand(usage)
+  }
+}, { livemode: true })
 ```
 
 ### 4. Using Table Methods
@@ -307,35 +323,65 @@ Add indexes for:
 - Unique constraints
 
 ### 6. **Schema Validation**
-Always use Zod schemas for input validation:
+Use Zod schemas for both input AND output validation:
 ```typescript
+// Validate inputs
 const validated = customerInsertSchema.parse(inputData)
+
+// Validate outputs for type safety
+const customer = customerSelectSchema.parse(rawCustomerData)
+
+// Use in API responses
+const response = apiResponseSchema.parse({
+  customer: customer,
+  success: true
+})
 ```
 
-### 7. **Error Handling**
-Transactions automatically rollback on errors. Handle specific cases:
-```typescript
-try {
-  await authenticatedTransaction(...)
-} catch (error) {
-  if (error.code === '23505') {  // Unique violation
-    // Handle duplicate
-  }
-  throw error
-}
-```
 
 ## Testing Database Code
 
 ```typescript
-// Use test transactions that rollback
-import { createTestTransaction } from '@/db/testUtils'
+// Tests use real database operations with setup helpers
+import { describe, it, expect, beforeEach } from 'vitest'
+import { adminTransaction } from '@/db/adminTransaction'
+import { setupOrg, setupCustomer } from '@/../seedDatabase'
+import { selectCustomers, updateCustomer } from './tableMethods/customerMethods'
 
-test('should create customer', async () => {
-  await createTestTransaction(async (transaction) => {
-    const customer = await createCustomer(data, transaction)
-    expect(customer.id).toBeDefined()
-    // Transaction rolls back after test
+describe('Customer operations', () => {
+  let organizationId: string
+  let customerId: string
+
+  beforeEach(async () => {
+    // Use seed helpers to set up test data
+    const { organization } = await setupOrg()
+    organizationId = organization.id
+    
+    const customer = await setupCustomer({
+      organizationId,
+      email: `test+${core.nanoid()}@test.com`
+    })
+    customerId = customer.id
+  })
+
+  it('should update customer email', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const updated = await updateCustomer(
+        { id: customerId, email: 'new@example.com' },
+        transaction
+      )
+      expect(updated.email).toBe('new@example.com')
+    })
+  })
+
+  it('should select customers by organization', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const customers = await selectCustomers(
+        { where: { organizationId } },
+        transaction
+      )
+      expect(customers.length).toBeGreaterThan(0)
+    })
   })
 })
 ```
@@ -348,7 +394,7 @@ test('should create customer', async () => {
 4. **Don't forget indexes** - Performance degrades quickly without proper indexing
 5. **Don't mix admin and user operations** - Keep them separate for security
 6. **Don't skip validation** - Always validate inputs with Zod schemas
-7. **Don't ignore the ledger** - Financial operations must go through the ledger system
+7. **Don't ignore the ledger** - Operations that impact usage tracking must go through the ledger system
 
 ## Need Help?
 
