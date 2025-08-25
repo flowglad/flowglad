@@ -1,4 +1,6 @@
+import { adminTransaction } from '@/db/adminTransaction'
 import { BillingRun } from '@/db/schema/billingRuns'
+import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { BillingRunStatus } from '@/types'
 import { logger, task } from '@trigger.dev/sdk'
@@ -19,8 +21,17 @@ export const attemptBillingRunTask = task({
       })
     }
     await executeBillingRun(payload.billingRun.id)
+    const updatedBillingRun = await adminTransaction(
+      ({ transaction }) => {
+        return selectBillingRunById(
+          payload.billingRun.id,
+          transaction
+        )
+      }
+    )
     return {
       message: 'Billing run executed',
+      updatedBillingRun,
     }
   },
 })
