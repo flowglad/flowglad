@@ -239,10 +239,6 @@ interface CoreFlowgladContextProviderProps {
   serverRoute?: string
   requestConfig?: RequestConfig
   children: React.ReactNode
-  /**
-   * Should never be provided.
-   */
-  __devMode?: never
 }
 
 /**
@@ -263,7 +259,7 @@ export const FlowgladContextProvider = (
   props: FlowgladContextProviderProps
 ) => {
   const queryClient = useQueryClient()
-
+  const isDevMode = '__devMode' in props
   // In a perfect world, this would be a useMutation hook rather than useQuery.
   // Because technically, billing fetch requests run a "find or create" operation on
   // the customer. But useQuery allows us to execute the call using `enabled`
@@ -274,9 +270,9 @@ export const FlowgladContextProvider = (
     data: billing,
   } = useQuery({
     queryKey: [FlowgladActionKey.GetCustomerBilling],
-    enabled: props.__devMode ? false : props.loadBilling,
+    enabled: isDevMode ? false : props.loadBilling,
     queryFn: async () => {
-      if (props.__devMode) {
+      if (isDevMode) {
         return props.billingMocks
       }
       const response = await fetch(
@@ -294,7 +290,8 @@ export const FlowgladContextProvider = (
       return data
     },
   })
-  if (props.__devMode) {
+
+  if (isDevMode) {
     const billingData = props.billingMocks
     const getProduct = constructGetProduct(billingData.catalog)
     const getPrice = constructGetPrice(billingData.catalog)

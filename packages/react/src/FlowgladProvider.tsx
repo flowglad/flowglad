@@ -21,29 +21,39 @@ export interface Appearance {
 
 export interface LoadedFlowgladProviderProps {
   children: React.ReactNode
-  appearance?: Appearance
   requestConfig?: RequestConfig
   serverRoute?: string
   loadBilling: boolean
   theme?: FlowgladThemeConfig
-  devMode: never
+}
+
+interface DevModeFlowgladProviderProps {
+  __devMode: true
+  theme?: FlowgladThemeConfig
+  billingMocks: CustomerRetrieveBillingResponse
+  children: React.ReactNode
 }
 
 export type FlowgladProviderProps =
   | LoadedFlowgladProviderProps
-  | {
-      devMode: true
-      billingMocks: CustomerRetrieveBillingResponse
-      children: React.ReactNode
-    }
+  | DevModeFlowgladProviderProps
 
 export const FlowgladProvider = (props: FlowgladProviderProps) => {
-  if (props.devMode) {
-    return <>{props.children}</>
+  if ('__devMode' in props) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <FlowgladContextProvider
+          __devMode
+          billingMocks={props.billingMocks}
+        >
+          {props.children}
+        </FlowgladContextProvider>
+      </QueryClientProvider>
+    )
   }
 
   const { serverRoute, loadBilling, requestConfig, theme, children } =
-    props
+    props as LoadedFlowgladProviderProps
   validateUrl(serverRoute, 'serverRoute', true)
   return (
     <QueryClientProvider client={queryClient}>
