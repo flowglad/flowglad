@@ -11,7 +11,7 @@ import {
 import { validateUrl } from './utils'
 import { FlowgladThemeProvider } from './FlowgladTheme'
 import { FlowgladThemeConfig } from './lib/themes'
-import { CustomerRetrieveBillingResponse } from '@flowglad/node/resources/customers.js'
+import { CustomerBillingDetails } from '@flowglad/types'
 
 const queryClient = new QueryClient()
 
@@ -30,7 +30,7 @@ export interface LoadedFlowgladProviderProps {
 interface DevModeFlowgladProviderProps {
   __devMode: true
   theme?: FlowgladThemeConfig
-  billingMocks: CustomerRetrieveBillingResponse
+  billingMocks: CustomerBillingDetails
   children: React.ReactNode
 }
 

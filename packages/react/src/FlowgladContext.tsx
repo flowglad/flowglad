@@ -18,7 +18,6 @@ import {
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
 import { CustomerBillingDetails } from '@flowglad/types'
-import { CustomerRetrieveBillingResponse } from '@flowglad/node/resources/customers.js'
 
 export type FrontendCreateCheckoutSessionParams =
   CreateCheckoutSessionParams & {
@@ -246,7 +245,7 @@ interface CoreFlowgladContextProviderProps {
  * used for developing UI powered by useBilling()
  */
 interface DevModeFlowgladContextProviderProps {
-  billingMocks: CustomerRetrieveBillingResponse
+  billingMocks: CustomerBillingDetails
   children: React.ReactNode
   __devMode: true
 }

@@ -1,5 +1,4 @@
 import Flowglad from '@flowglad/node'
-import { SubscriptionItem } from '@flowglad/types'
 
 import { Subscription } from '@flowglad/types'
 
