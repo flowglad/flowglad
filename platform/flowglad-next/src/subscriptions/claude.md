@@ -139,184 +139,44 @@ if (result.status === 'succeeded') {
 ### 5. Managing Usage-Based Billing
 
 ```typescript
-import { recordUsageEvent } from '@/subscriptions/ledger/processUsage'
-import { grantCredits } from '@/subscriptions/ledger/grantCredits'
+// Record usage events
+import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
+import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
 
-// Record usage
-await recordUsageEvent({
-  customerId,
-  meterId: 'api_calls',
-  quantity: 1000,
-  timestamp: new Date()
-})
-
-// Grant credits
-await grantCredits({
-  customerId,
-  subscriptionId,
-  amount: 10000,  // $100 in cents
-  description: 'Promotional credits'
-})
-```
-
-## How to Modify
-
-### 1. Adding New Subscription Features
-
-To add a new subscription feature or capability:
-
-```typescript
-// 1. Update schemas in schemas.ts
-export const newFeatureSchema = z.object({
-  featureName: z.string(),
-  enabled: z.boolean(),
-  configuration: z.record(z.unknown()).optional()
-})
-
-// 2. Add to subscription creation logic
-// In createSubscription/createSubscription.ts
-export async function createSubscription(params) {
-  // ... existing logic
-  
-  // Add your feature logic
-  if (params.newFeature) {
-    await enableNewFeature(subscription.id, params.newFeature)
-  }
-  
-  return subscription
-}
-
-// 3. Create feature-specific helper
-export async function enableNewFeature(
-  subscriptionId: string,
-  config: NewFeatureConfig
-) {
-  return adminTransaction(async ({ transaction }) => {
-    // Implementation
-  })
-}
-```
-
-### 2. Modifying Billing Calculations
-
-To change how fees are calculated:
-
-```typescript
-// In billingRunHelpers.ts
-export async function calculateBillingRunFees(
-  billingRun: BillingRun,
-  transaction: DbTransaction
-) {
-  // Get base subscription fees
-  const baseFees = await calculateBaseFees(billingRun, transaction)
-  
-  // Add your custom fee logic
-  const customFees = await calculateCustomFees(billingRun, transaction)
-  
-  // Calculate usage-based charges
-  const usageFees = await calculateUsageFees(billingRun, transaction)
-  
-  // Apply discounts
-  const discount = await calculateDiscounts(billingRun, transaction)
-  
-  return {
-    subtotal: baseFees + customFees + usageFees,
-    discount,
-    total: baseFees + customFees + usageFees - discount
-  }
-}
-```
-
-### 3. Adding New Billing Intervals
-
-To support new billing intervals (e.g., quarterly):
-
-```typescript
-// 1. Update interval helpers in billingIntervalHelpers.ts
-export function getNextBillingDate(
-  currentDate: Date,
-  interval: 'month' | 'year' | 'quarter',
-  intervalCount: number
-) {
-  switch (interval) {
-    case 'quarter':
-      return addMonths(currentDate, intervalCount * 3)
-    // ... existing cases
-  }
-}
-
-// 2. Update schema validation
-const billingIntervalSchema = z.enum(['month', 'year', 'quarter'])
-
-// 3. Handle in billing period creation
-export function createBillingPeriod(subscription, interval) {
-  const duration = interval === 'quarter' ? 90 : getDuration(interval)
-  // ... create period with appropriate duration
-}
-```
-
-### 4. Implementing Custom Trial Logic
-
-```typescript
-// Create a new trial type
-export async function createCustomTrial(
-  subscription: Subscription,
-  config: CustomTrialConfig
-) {
-  return adminTransaction(async ({ transaction }) => {
-    // 1. Create trial period
-    const trialPeriod = await createBillingPeriod({
-      subscriptionId: subscription.id,
-      startsAt: new Date(),
-      endsAt: config.trialEnd,
-      status: 'trial',
-      customTrialType: config.type
-    }, transaction)
-    
-    // 2. Set up trial-specific features
-    if (config.includedFeatures) {
-      await enableTrialFeatures(
-        subscription.id, 
-        config.includedFeatures,
-        transaction
-      )
+// Record usage via helper (returns with ledger command)
+const result = await ingestAndProcessUsageEvent({
+  input: {
+    usageEvent: {
+      subscriptionId,
+      priceId,
+      quantity: 1000,
+      timestamp: new Date()
     }
-    
-    // 3. Schedule trial end processing
-    await scheduleTrialEndProcessing(
-      subscription.id,
-      config.trialEnd
-    )
-    
-    return trialPeriod
-  })
-}
-```
+  },
+  livemode: true
+}, transaction)
 
-### 5. Adding Payment Retry Logic
+// Or directly insert usage event
+await insertUsageEvent({
+  subscriptionId,
+  customerId,
+  organizationId,
+  priceId,
+  quantity: 1000,
+  occurredAt: new Date(),
+  livemode: true
+}, transaction)
 
-```typescript
-// Customize retry strategy in billingRunHelpers.ts
-export function getRetryStrategy(attempt: number): RetryConfig {
-  // Custom retry intervals
-  const retryIntervals = [
-    { days: 1, attempt: 1 },   // First retry after 1 day
-    { days: 3, attempt: 2 },   // Second after 3 days
-    { days: 7, attempt: 3 },   // Third after 7 days
-    { days: 14, attempt: 4 },  // Fourth after 14 days
-  ]
-  
-  const config = retryIntervals[attempt - 1]
-  if (!config) {
-    return { shouldRetry: false }
-  }
-  
-  return {
-    shouldRetry: true,
-    retryDate: addDays(new Date(), config.days),
-    finalAttempt: attempt >= 4
-  }
-}
+// Grant usage credits
+import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
+
+await insertUsageCredit({
+  customerId,
+  organizationId,
+  amount: 10000,  // $100 in cents
+  description: 'Promotional credits',
+  livemode: true
+}, transaction)
 ```
 
 ## Key Concepts
@@ -386,46 +246,6 @@ await processPayment(paymentData, {
 })
 ```
 
-### 4. **Event Logging**
-Log all significant events:
-```typescript
-return {
-  result: subscription,
-  eventsToLog: [{
-    type: 'subscription.created',
-    data: { subscriptionId: subscription.id }
-  }]
-}
-```
-
-### 5. **Date Handling**
-Use billing helpers for date calculations:
-```typescript
-// Don't use raw date manipulation
-// Use billing interval helpers instead
-const nextBillingDate = getNextBillingDate(
-  currentDate,
-  interval,
-  intervalCount,
-  anchorDay
-)
-```
-
-### 6. **Error Handling**
-Handle specific error cases:
-```typescript
-try {
-  await processPayment()
-} catch (error) {
-  if (error.code === 'insufficient_funds') {
-    await scheduleRetry()
-  } else if (error.code === 'card_declined') {
-    await notifyCustomer()
-  }
-  throw error
-}
-```
-
 ## Testing Subscription Logic
 
 ```typescript
@@ -449,74 +269,6 @@ test('should prorate subscription upgrade', async () => {
     expect(adjustment.proratedAmount).toBe(expectedAmount)
   })
 })
-```
-
-## Common Patterns
-
-### Handling Subscription Upgrades/Downgrades
-```typescript
-export async function handlePlanChange(
-  subscriptionId: string,
-  newPriceId: string,
-  timing: 'immediately' | 'next_period'
-) {
-  return comprehensiveAuthenticatedTransaction(async (params) => {
-    const { transaction } = params
-    
-    // Get current subscription
-    const subscription = await getSubscription(subscriptionId, transaction)
-    
-    // Calculate proration if immediate
-    let proratedCredit = 0
-    if (timing === 'immediately') {
-      proratedCredit = calculateProration(subscription, newPriceId)
-    }
-    
-    // Apply the change
-    const updated = await adjustSubscription({
-      subscriptionId,
-      newPriceId,
-      effectiveTiming: timing,
-      proratedCredit
-    }, transaction)
-    
-    return {
-      result: updated,
-      eventsToLog: [{
-        type: 'subscription.plan_changed',
-        data: { from: subscription.priceId, to: newPriceId }
-      }]
-    }
-  })
-}
-```
-
-### Processing End-of-Period Transitions
-```typescript
-export async function transitionBillingPeriod(
-  subscriptionId: string
-) {
-  return adminTransaction(async ({ transaction }) => {
-    // Close current period
-    const currentPeriod = await getCurrentBillingPeriod(
-      subscriptionId, 
-      transaction
-    )
-    await completeBillingPeriod(currentPeriod.id, transaction)
-    
-    // Create next period
-    const nextPeriod = await createNextBillingPeriod(
-      subscriptionId,
-      currentPeriod,
-      transaction
-    )
-    
-    // Schedule billing run
-    await scheduleBillingRun(nextPeriod.id, transaction)
-    
-    return nextPeriod
-  })
-}
 ```
 
 ## Common Pitfalls to Avoid
