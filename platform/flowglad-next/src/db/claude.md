@@ -63,13 +63,13 @@ const result = await authenticatedTransaction(async ({ transaction, organization
 ```typescript
 import { adminTransaction } from '@/db/adminTransaction'
 
+const ORGANIZATION_ID = 'org_foo'
 // Use adminTransaction for ALL background operations (Trigger tasks, cron jobs, etc.)
 await adminTransaction(async ({ transaction }) => {
   // Can access all data across all organizations
-  const allInvoices = await db
-    .select()
-    .from(invoicesTable)
-    .where(eq(invoicesTable.status, 'pending'))
+  const testmodeInvoices = await selectInvoices({
+    organizationId: ORGANIZATION_ID
+  }, transaction)
 }, { livemode: true })
 ```
 
@@ -78,37 +78,56 @@ await adminTransaction(async ({ transaction }) => {
 ```typescript
 // For client-initiated operations with events/ledger
 import { comprehensiveAuthenticatedTransaction } from '@/db/authenticatedTransaction'
+import { Event } from '@/db/schema/events'
+import { EventType, LedgerTransactionType } from '@/types'
+import { constructPaymentSucceededEventHash } from '@/utils/eventHelpers'
 
 const result = await comprehensiveAuthenticatedTransaction(async (params) => {
   const { transaction, organizationId } = params
   
-  // Perform business logic
-  const invoice = await createInvoice(data, transaction)
-  
+  // Perform business logic (hypothetical code)
+  const { invoice, invoiceLineItems } = await createInvoice(data, transaction)
+  const payment = await selectPaymentById(invoice.paymentId, transaction)
+  const eventsToLog: Event.Insert[] = const eventInserts: Event.Insert[] = [
+    {
+      type: FlowgladEventType.PaymentSucceeded,
+      occurredAt: new Date(),
+      organizationId,
+      livemode: invoice.livemode,
+      payload: {
+        object: EventNoun.Payment,
+        id: payment.id,
+      },
+      submittedAt: timestamp,
+      // always use a helper method to construct the event hash
+      hash: constructPaymentSucceededEventHash(subscription),
+      metadata: {},
+      processedAt: null,
+    },
+  ]
+  const invoiceLedgerCommand:
+    | SettleInvoiceUsageCostsLedgerCommand
+    | undefined =
+    invoice.status === InvoiceStatus.Paid
+      ? {
+          type: LedgerTransactionType.SettleInvoiceUsageCosts,
+          payload: {
+            invoice,
+            invoiceLineItems,
+          },
+          livemode: invoice.livemode,
+          organizationId: invoice.organizationId,
+          subscriptionId: invoice.subscriptionId!,
+        }
+      : undefined
   // Return with events and ledger commands
   return {
     result: invoice,
-    eventsToLog: [{
-      type: 'invoice.created',
-      data: { invoiceId: invoice.id }
-    }],
-    ledgerCommand: new CreditAdjustmentCommand(amount)
+    eventsToLog,
+    ledgerCommand: invoiceLedgerCommand
   }
 }, { apiKey })
 
-// For background operations with events/ledger
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-
-const result = await comprehensiveAdminTransaction(async ({ transaction }) => {
-  // Perform system operations
-  const processed = await processSystemTask(transaction)
-  
-  return {
-    result: processed,
-    eventsToLog: [{ type: 'system.task.completed', data: { taskId } }],
-    ledgerCommand: new UsageProcessedCommand(usage)
-  }
-}, { livemode: true })
 ```
 
 ### 4. Using Table Methods
@@ -121,21 +140,12 @@ import {
   selectCustomerById,           // Get by ID
   selectCustomerByExternalId,   // Get by unique field
   selectCustomers,               // Query with filters
-  selectPaginatedCustomers,      // Cursor-based pagination
   upsertCustomerByExternalId,   // Insert or update
   updateCustomer,                // Update existing
-  deleteCustomer                 // Delete record
 } from '@/db/tableMethods/customerMethods'
 
 // Use with transactions
 const customer = await selectCustomerById(id, transaction)
-
-// Pagination example
-const { records, nextCursor } = await selectPaginatedCustomers({
-  where: { organizationId },
-  limit: 20,
-  cursor: previousCursor
-}, transaction)
 ```
 
 ## How to Modify
