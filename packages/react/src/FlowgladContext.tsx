@@ -276,7 +276,7 @@ export const FlowgladContextProvider = (
         return props.billingMocks
       }
       const response = await fetch(
-        `${props.serverRoute}/${FlowgladActionKey.GetCustomerBilling}`,
+        `${props.serverRoute ?? '/api/flowglad'}/${FlowgladActionKey.GetCustomerBilling}`,
         {
           method:
             flowgladActionValidators[
@@ -336,7 +336,13 @@ export const FlowgladContextProvider = (
           getProduct,
           getPrice,
           reload: () => Promise.resolve(),
-          ...props.billingMocks,
+          customer: billingData.customer,
+          subscriptions: billingData.subscriptions,
+          purchases: billingData.purchases,
+          invoices: billingData.invoices,
+          paymentMethods: billingData.paymentMethods,
+          currentSubscriptions: billingData.currentSubscriptions,
+          catalog: billingData.catalog,
         }}
       >
         {props.children}
