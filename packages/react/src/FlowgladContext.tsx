@@ -18,6 +18,7 @@ import {
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
 import { CustomerBillingDetails } from '@flowglad/types'
+import { CustomerRetrieveBillingResponse } from '@flowglad/node/resources/customers.js'
 
 export type FrontendCreateCheckoutSessionParams =
   CreateCheckoutSessionParams & {
@@ -233,17 +234,34 @@ export interface RequestConfig {
   headers?: Record<string, string>
 }
 
-export const FlowgladContextProvider = ({
-  children,
-  serverRoute = '/api/flowglad',
-  loadBilling = false,
-  requestConfig,
-}: {
+interface CoreFlowgladContextProviderProps {
   loadBilling?: boolean
   serverRoute?: string
   requestConfig?: RequestConfig
   children: React.ReactNode
-}) => {
+  /**
+   * Should never be provided.
+   */
+  __devMode?: never
+}
+
+/**
+ * This is a special case for development mode,
+ * used for developing UI powered by useBilling()
+ */
+interface DevModeFlowgladContextProviderProps {
+  billingMocks: CustomerRetrieveBillingResponse
+  children: React.ReactNode
+  __devMode: true
+}
+
+type FlowgladContextProviderProps =
+  | CoreFlowgladContextProviderProps
+  | DevModeFlowgladContextProviderProps
+
+export const FlowgladContextProvider = (
+  props: FlowgladContextProviderProps
+) => {
   const queryClient = useQueryClient()
 
   // In a perfect world, this would be a useMutation hook rather than useQuery.
@@ -256,10 +274,13 @@ export const FlowgladContextProvider = ({
     data: billing,
   } = useQuery({
     queryKey: [FlowgladActionKey.GetCustomerBilling],
-    enabled: loadBilling,
+    enabled: props.__devMode ? false : props.loadBilling,
     queryFn: async () => {
+      if (props.__devMode) {
+        return props.billingMocks
+      }
       const response = await fetch(
-        `${serverRoute}/${FlowgladActionKey.GetCustomerBilling}`,
+        `${props.serverRoute}/${FlowgladActionKey.GetCustomerBilling}`,
         {
           method:
             flowgladActionValidators[
@@ -273,7 +294,66 @@ export const FlowgladContextProvider = ({
       return data
     },
   })
+  if (props.__devMode) {
+    const billingData = props.billingMocks
+    const getProduct = constructGetProduct(billingData.catalog)
+    const getPrice = constructGetPrice(billingData.catalog)
+    const checkFeatureAccess = constructCheckFeatureAccess(
+      billingData.currentSubscriptions ?? []
+    )
+    const checkUsageBalance = constructCheckUsageBalance(
+      billingData.currentSubscriptions ?? []
+    )
 
+    return (
+      <FlowgladContext.Provider
+        value={{
+          loaded: true,
+          loadBilling: true,
+          errors: null,
+          createCheckoutSession: () =>
+            Promise.resolve({
+              id: 'checkout-session-id',
+              url: '',
+            }),
+          createAddPaymentMethodCheckoutSession: () =>
+            Promise.resolve({
+              id: 'checkout-session-id',
+              url: '',
+            }),
+          createActivateSubscriptionCheckoutSession: () =>
+            Promise.resolve({
+              id: 'checkout-session-id',
+              url: '',
+            }),
+          cancelSubscription: () =>
+            Promise.resolve({
+              subscription: {
+                id: 'sub_123',
+                status: 'canceled',
+                canceledAt: new Date().toISOString(),
+              } as any,
+            }),
+          checkFeatureAccess,
+          checkUsageBalance,
+          getProduct,
+          getPrice,
+          reload: () => Promise.resolve(),
+          ...props.billingMocks,
+        }}
+      >
+        {props.children}
+      </FlowgladContext.Provider>
+    )
+  }
+
+  const {
+    serverRoute: serverRouteProp,
+    requestConfig,
+    loadBilling: loadBillingProp,
+  } = props as CoreFlowgladContextProviderProps
+  const serverRoute = serverRouteProp ?? '/api/flowglad'
+  const loadBilling = loadBillingProp ?? false
   const createCheckoutSession =
     makeCreateCheckoutSession<FrontendCreateCheckoutSessionParams>(
       serverRoute,
@@ -364,7 +444,7 @@ export const FlowgladContextProvider = ({
 
   return (
     <FlowgladContext.Provider value={value}>
-      {children}
+      {props.children}
     </FlowgladContext.Provider>
   )
 }
