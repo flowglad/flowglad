@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.10.18
+
+### Patch Changes
+
+- add devmode support to FlowgladContext
+
 ## 0.10.17
 
 ### Patch Changes
