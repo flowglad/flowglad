@@ -81,6 +81,8 @@ export const hourlyBilling = schedules.task({
 
 ### 3. Processing Webhooks
 
+Always process webhook payloads using trigger tasks. That way we can retry and get observability into whether processing succeeds.
+
 ```typescript
 // Webhook events are routed from processStripeEvents.ts
 // In stripe/payment-intent-succeeded.ts
