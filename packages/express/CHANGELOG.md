@@ -1,5 +1,15 @@
 # @flowglad/express
 
+## 0.10.18
+
+### Patch Changes
+
+- add devmode support to FlowgladContext
+- Updated dependencies
+  - @flowglad/react@0.10.18
+  - @flowglad/server@0.10.18
+  - @flowglad/shared@0.10.18
+
 ## 0.10.17
 
 ### Patch Changes

@@ -233,19 +233,32 @@ export interface RequestConfig {
   headers?: Record<string, string>
 }
 
-export const FlowgladContextProvider = ({
-  children,
-  serverRoute = '/api/flowglad',
-  loadBilling = false,
-  requestConfig,
-}: {
+interface CoreFlowgladContextProviderProps {
   loadBilling?: boolean
   serverRoute?: string
   requestConfig?: RequestConfig
   children: React.ReactNode
-}) => {
-  const queryClient = useQueryClient()
+}
 
+/**
+ * This is a special case for development mode,
+ * used for developing UI powered by useBilling()
+ */
+interface DevModeFlowgladContextProviderProps {
+  billingMocks: CustomerBillingDetails
+  children: React.ReactNode
+  __devMode: true
+}
+
+type FlowgladContextProviderProps =
+  | CoreFlowgladContextProviderProps
+  | DevModeFlowgladContextProviderProps
+
+export const FlowgladContextProvider = (
+  props: FlowgladContextProviderProps
+) => {
+  const queryClient = useQueryClient()
+  const isDevMode = '__devMode' in props
   // In a perfect world, this would be a useMutation hook rather than useQuery.
   // Because technically, billing fetch requests run a "find or create" operation on
   // the customer. But useQuery allows us to execute the call using `enabled`
@@ -256,10 +269,13 @@ export const FlowgladContextProvider = ({
     data: billing,
   } = useQuery({
     queryKey: [FlowgladActionKey.GetCustomerBilling],
-    enabled: loadBilling,
+    enabled: isDevMode ? false : props.loadBilling,
     queryFn: async () => {
+      if (isDevMode) {
+        return props.billingMocks
+      }
       const response = await fetch(
-        `${serverRoute}/${FlowgladActionKey.GetCustomerBilling}`,
+        `${props.serverRoute ?? '/api/flowglad'}/${FlowgladActionKey.GetCustomerBilling}`,
         {
           method:
             flowgladActionValidators[
@@ -274,6 +290,72 @@ export const FlowgladContextProvider = ({
     },
   })
 
+  if (isDevMode) {
+    const billingData = props.billingMocks
+    const getProduct = constructGetProduct(billingData.catalog)
+    const getPrice = constructGetPrice(billingData.catalog)
+    const checkFeatureAccess = constructCheckFeatureAccess(
+      billingData.currentSubscriptions ?? []
+    )
+    const checkUsageBalance = constructCheckUsageBalance(
+      billingData.currentSubscriptions ?? []
+    )
+
+    return (
+      <FlowgladContext.Provider
+        value={{
+          loaded: true,
+          loadBilling: true,
+          errors: null,
+          createCheckoutSession: () =>
+            Promise.resolve({
+              id: 'checkout-session-id',
+              url: '',
+            }),
+          createAddPaymentMethodCheckoutSession: () =>
+            Promise.resolve({
+              id: 'checkout-session-id',
+              url: '',
+            }),
+          createActivateSubscriptionCheckoutSession: () =>
+            Promise.resolve({
+              id: 'checkout-session-id',
+              url: '',
+            }),
+          cancelSubscription: () =>
+            Promise.resolve({
+              subscription: {
+                id: 'sub_123',
+                status: 'canceled',
+                canceledAt: new Date().toISOString(),
+              } as any,
+            }),
+          checkFeatureAccess,
+          checkUsageBalance,
+          getProduct,
+          getPrice,
+          reload: () => Promise.resolve(),
+          customer: billingData.customer,
+          subscriptions: billingData.subscriptions,
+          purchases: billingData.purchases,
+          invoices: billingData.invoices,
+          paymentMethods: billingData.paymentMethods,
+          currentSubscriptions: billingData.currentSubscriptions,
+          catalog: billingData.catalog,
+        }}
+      >
+        {props.children}
+      </FlowgladContext.Provider>
+    )
+  }
+
+  const {
+    serverRoute: serverRouteProp,
+    requestConfig,
+    loadBilling: loadBillingProp,
+  } = props as CoreFlowgladContextProviderProps
+  const serverRoute = serverRouteProp ?? '/api/flowglad'
+  const loadBilling = loadBillingProp ?? false
   const createCheckoutSession =
     makeCreateCheckoutSession<FrontendCreateCheckoutSessionParams>(
       serverRoute,
@@ -364,7 +446,7 @@ export const FlowgladContextProvider = ({
 
   return (
     <FlowgladContext.Provider value={value}>
-      {children}
+      {props.children}
     </FlowgladContext.Provider>
   )
 }
