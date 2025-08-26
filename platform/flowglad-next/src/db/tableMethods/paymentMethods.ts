@@ -2,7 +2,6 @@ import {
   createSelectById,
   createInsertFunction,
   createUpdateFunction,
-  createUpsertFunction,
   ORMMethodCreatorConfig,
   createSelectFunction,
   createBulkUpsertFunction,
@@ -404,3 +403,21 @@ export const selectPaymentsCursorPaginatedWithTableRowData =
       }))
     }
   )
+
+export const selectLifetimeUsageForPayments = async (
+  selectConditions: SelectConditions<typeof payments>,
+  transaction: DbTransaction
+) => {
+  const monthToDateResolvedPayments = await transaction
+    .select()
+    .from(payments)
+    .where(
+      and(
+        whereClauseFromObject(payments, selectConditions),
+        inArray(payments.status, resolvedPaymentStatuses)
+      )
+    )
+  return paymentsSelectSchema
+    .array()
+    .parse(monthToDateResolvedPayments)
+}

@@ -28,7 +28,7 @@ import {
   SubscriptionCheckoutDetails,
   useCheckoutPageContext,
 } from '@/contexts/checkoutPageContext'
-import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees'
+import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'

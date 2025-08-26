@@ -13,11 +13,11 @@ import {
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { FallbackSkeleton } from '../ui/skeleton'
 import {
+  calculateTotalDueAmount,
   calculatePriceBaseAmount,
   calculateDiscountAmount,
-  calculateTotalDueAmount,
   calculateInvoiceBaseAmount,
-} from '@/utils/bookkeeping/fees'
+} from '@/utils/bookkeeping/fees/common'
 import { isNil } from '@/utils/core'
 import { Purchase } from '@/db/schema/purchases'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
@@ -107,7 +107,6 @@ const calculateTotalBillingDetails = (
   const baseAmount =
     type === 'invoice'
       ? calculateInvoiceBaseAmount({
-          invoice,
           invoiceLineItems: params.invoiceLineItems,
         })
       : calculatePriceBaseAmount({

@@ -26,7 +26,10 @@ import {
 } from '@/db/tableMethods/feeCalculationMethods'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { Country } from '@/db/schema/countries'
-import { selectResolvedPaymentsMonthToDate } from '@/db/tableMethods/paymentMethods'
+import {
+  selectLifetimeUsageForPayments,
+  selectResolvedPaymentsMonthToDate,
+} from '@/db/tableMethods/paymentMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 /* Constants */
@@ -42,20 +45,28 @@ const SEPA_DEBIT_MAX_FEE_CENTS = 600
 export const parseFeePercentage = (feePercentage: string): number =>
   parseFloat(feePercentage)
 
-export const calculatePercentageFee = (amount: number, percentage: number): number =>
-  Math.round((amount * percentage) / 100)
+export const calculatePercentageFee = (
+  amount: number,
+  percentage: number
+): number => Math.round((amount * percentage) / 100)
 
-export const validateNumericAmount = (amount: number, fieldName: string): void => {
+export const validateNumericAmount = (
+  amount: number,
+  fieldName: string
+): void => {
   if (isNaN(amount)) {
     throw Error(`${fieldName} is NaN`)
   }
 }
 
 /* Base Amount Calculations */
-export const calculateInvoiceBaseAmount = (
-  invoice: { invoiceLineItems: { price: number; quantity: number }[] }
-): number => {
-  return invoice.invoiceLineItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
+export const calculateInvoiceBaseAmount = (invoice: {
+  invoiceLineItems: { price: number; quantity: number }[]
+}): number => {
+  return invoice.invoiceLineItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  )
 }
 
 export const calculatePriceBaseAmount = ({
@@ -64,15 +75,26 @@ export const calculatePriceBaseAmount = ({
   purchase,
 }: {
   price: Price.ClientRecord
-  invoice?: { invoiceLineItems: { price: number; quantity: number }[] } | null
+  invoice?: {
+    invoiceLineItems: { price: number; quantity: number }[]
+  } | null
   purchase?: Purchase.ClientRecord | null
 }): number => {
   if (!purchase && !invoice) return price.unitPrice
-  if (isNil(purchase?.firstInvoiceValue) && isNil(purchase?.pricePerBillingCycle))
+  if (
+    isNil(purchase?.firstInvoiceValue) &&
+    isNil(purchase?.pricePerBillingCycle)
+  )
     return price.unitPrice
-  if (purchase.priceType === PriceType.SinglePayment && purchase.firstInvoiceValue)
+  if (
+    purchase.priceType === PriceType.SinglePayment &&
+    purchase.firstInvoiceValue
+  )
     return purchase.firstInvoiceValue
-  if (purchase.priceType === PriceType.Subscription && purchase.pricePerBillingCycle)
+  if (
+    purchase.priceType === PriceType.Subscription &&
+    purchase.pricePerBillingCycle
+  )
     return purchase.pricePerBillingCycle
   return price.unitPrice
 }
@@ -83,9 +105,13 @@ export const calculateDiscountAmount = (
   discount?: Discount.ClientRecord | null
 ): number => {
   if (!discount) return 0
-  if (discount.amountType === DiscountAmountType.Fixed) return discount.amount
+  if (discount.amountType === DiscountAmountType.Fixed)
+    return discount.amount
   if (discount.amountType === DiscountAmountType.Percent)
-    return calculatePercentageFee(basePrice, Math.min(discount.amount, 100))
+    return calculatePercentageFee(
+      basePrice,
+      Math.min(discount.amount, 100)
+    )
   return 0
 }
 
@@ -96,7 +122,10 @@ export const calculateDiscountAmountFromRedemption = (
   if (!redemption) return 0
   if (redemption.discountAmountType === DiscountAmountType.Fixed)
     return redemption.discountAmount
-  return calculatePercentageFee(baseAmount, Math.min(redemption.discountAmount, 100))
+  return calculatePercentageFee(
+    baseAmount,
+    Math.min(redemption.discountAmount, 100)
+  )
 }
 
 /* Fee Percentage Calculations */
@@ -118,16 +147,21 @@ export const calculateInternationalFeePercentage = ({
   organizationCountry: Country.Record
 }): number => {
   if (
-    organization.stripeConnectContractType === StripeConnectContractType.MerchantOfRecord &&
+    organization.stripeConnectContractType ===
+      StripeConnectContractType.MerchantOfRecord &&
     paymentMethodCountry.toUpperCase() === 'US'
   ) {
     return 0
   }
   const orgCode = organizationCountry.code.toUpperCase()
   const payCode = paymentMethodCountry.toUpperCase()
-  const valid = Object.values(CountryCode).map((c) => c.toUpperCase()).includes(payCode)
+  const valid = Object.values(CountryCode)
+    .map((c) => c.toUpperCase())
+    .includes(payCode)
   if (!valid) {
-    throw Error(`Billing address country ${payCode} is not in the list of country codes`)
+    throw Error(
+      `Billing address country ${payCode} is not in the list of country codes`
+    )
   }
   if (orgCode === payCode) return 0
   if (
@@ -149,7 +183,8 @@ export const calculatePaymentMethodFeeAmount = (
     case PaymentMethodType.Card:
     case PaymentMethodType.Link:
       return Math.round(
-        totalAmountToCharge * (CARD_BASE_FEE_PERCENTAGE / 100) + CARD_FIXED_FEE_CENTS
+        totalAmountToCharge * (CARD_BASE_FEE_PERCENTAGE / 100) +
+          CARD_FIXED_FEE_CENTS
       )
     case PaymentMethodType.USBankAccount:
       return Math.round(
@@ -167,7 +202,8 @@ export const calculatePaymentMethodFeeAmount = (
       )
     default:
       return Math.round(
-        totalAmountToCharge * (CARD_BASE_FEE_PERCENTAGE / 100) + CARD_FIXED_FEE_CENTS
+        totalAmountToCharge * (CARD_BASE_FEE_PERCENTAGE / 100) +
+          CARD_FIXED_FEE_CENTS
       )
   }
 }
@@ -235,12 +271,17 @@ export const calculateTotalFeeAmount = (
     taxAmountFixed,
   } = feeCalculation
   validateNumericAmount(baseAmount, 'Base amount')
-  validateNumericAmount(discountAmountFixed ?? 0, 'Discount amount fixed')
+  validateNumericAmount(
+    discountAmountFixed ?? 0,
+    'Discount amount fixed'
+  )
   validateNumericAmount(
     parseFloat(internationalFeePercentage),
     'International fee percentage'
   )
-  const safeDiscount = discountAmountFixed ? Math.max(discountAmountFixed, 0) : 0
+  const safeDiscount = discountAmountFixed
+    ? Math.max(discountAmountFixed, 0)
+    : 0
   const discountInclusiveAmount = baseAmount - safeDiscount
   const flowFixed = calculatePercentageFee(
     discountInclusiveAmount,
@@ -250,14 +291,17 @@ export const calculateTotalFeeAmount = (
     discountInclusiveAmount,
     parseFloat(internationalFeePercentage!)
   )
-  return Math.round(flowFixed + intlFixed + paymentMethodFeeFixed + taxAmountFixed)
+  return Math.round(
+    flowFixed + intlFixed + paymentMethodFeeFixed + taxAmountFixed
+  )
 }
 
 export const calculateTotalDueAmount = (
   feeCalculation: FeeCalculation.CustomerRecord
 ): number =>
   Math.max(
-    feeCalculation.baseAmount - (feeCalculation.discountAmountFixed ?? 0) +
+    feeCalculation.baseAmount -
+      (feeCalculation.discountAmountFixed ?? 0) +
       feeCalculation.taxAmountFixed,
     0
   )
@@ -269,7 +313,8 @@ export const generateFeeCalculationNotes = (
   monthlyFreeTier: number,
   finalFlowgladFeePercentage: number
 ): string => {
-  const newTotal = totalProcessedMonthToDate + currentTransactionAmount
+  const newTotal =
+    totalProcessedMonthToDate + currentTransactionAmount
   if (monthlyFreeTier <= totalProcessedMonthToDate)
     return `Full fee applied. Processed this month before transaction: ${totalProcessedMonthToDate}. Free tier: ${monthlyFreeTier}.`
   if (newTotal <= monthlyFreeTier)
@@ -278,41 +323,143 @@ export const generateFeeCalculationNotes = (
   return `Partial fee applied. Overage: ${overage}. Processed this month before transaction: ${totalProcessedMonthToDate}. Free tier: ${monthlyFreeTier}. Effective percentage: ${finalFlowgladFeePercentage.toPrecision(6)}%.`
 }
 
+const generateFeeCalculationNotesWithCredits = ({
+  totalProcessedMonthToDate,
+  currentTransactionAmount,
+  monthlyFreeTier,
+  finalFlowgladFeePercentage,
+  totalProcessedLifetime,
+  upfrontProcessingCredits,
+}: {
+  totalProcessedMonthToDate: number
+  currentTransactionAmount: number
+  monthlyFreeTier: number
+  finalFlowgladFeePercentage: number
+  totalProcessedLifetime: number
+  upfrontProcessingCredits: number
+}): string => {
+  const creditsRemainingBefore = Math.max(
+    upfrontProcessingCredits - totalProcessedLifetime,
+    0
+  )
+  const amountAfterCredits = Math.max(
+    currentTransactionAmount - creditsRemainingBefore,
+    0
+  )
+
+  const creditsPortionApplied = Math.min(
+    currentTransactionAmount,
+    creditsRemainingBefore
+  )
+
+  // If credits cover everything
+  if (amountAfterCredits === 0) {
+    return `No fee applied due to upfront processing credits. Credits applied: ${creditsPortionApplied}. Remaining credits before transaction: ${creditsRemainingBefore}.`
+  }
+
+  // Consider monthly free tier on the post-credit amount
+  const newTotalVolumeAfterCredits =
+    totalProcessedMonthToDate + amountAfterCredits
+
+  if (monthlyFreeTier <= totalProcessedMonthToDate) {
+    return `Credits applied: ${creditsPortionApplied}. Monthly free tier already exhausted. Full fee applied on post-credit amount ${amountAfterCredits}. Effective percentage on entire transaction: ${finalFlowgladFeePercentage.toPrecision(6)}%.`
+  }
+
+  if (newTotalVolumeAfterCredits <= monthlyFreeTier) {
+    return `Credits applied: ${creditsPortionApplied}. No fee after credits due to monthly free tier. Processed MTD after post-credit amount: ${newTotalVolumeAfterCredits}. Free tier: ${monthlyFreeTier}.`
+  }
+
+  const freeTierOverageAfterCredits =
+    newTotalVolumeAfterCredits - monthlyFreeTier
+  return `Credits applied: ${creditsPortionApplied}. Partial fee after credits due to monthly free tier overage: ${freeTierOverageAfterCredits}. Processed MTD before post-credit amount: ${totalProcessedMonthToDate}. Free tier: ${monthlyFreeTier}. Effective percentage on entire transaction: ${finalFlowgladFeePercentage.toPrecision(6)}%.`
+}
+
 export const finalizeFeeCalculation = async (
   feeCalculation: FeeCalculation.Record,
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
-  const payments = await selectResolvedPaymentsMonthToDate(
-    { organizationId: feeCalculation.organizationId },
-    transaction
-  )
+  const monthToDateResolvedPayments =
+    await selectResolvedPaymentsMonthToDate(
+      { organizationId: feeCalculation.organizationId },
+      transaction
+    )
+  const lifetimeResolvedPayments =
+    await selectLifetimeUsageForPayments(
+      { organizationId: feeCalculation.organizationId },
+      transaction
+    )
   const organization = await selectOrganizationById(
     feeCalculation.organizationId,
     transaction
   )
-  const totalProcessed = payments.reduce((acc, p) => acc + p.amount, 0)
-  const orgPct = parseFeePercentage(organization.feePercentage)
-  const freeTier = organization.monthlyBillingVolumeFreeTier
-  const currentAmt = feeCalculation.pretaxTotal ?? 0
-  const newTotal = totalProcessed + currentAmt
-  let finalPct: number
-  if (freeTier <= totalProcessed) finalPct = orgPct
-  else if (newTotal <= freeTier) finalPct = 0
-  else {
-    const overAmt = newTotal - freeTier
-    const feeAmt = calculatePercentageFee(overAmt, orgPct)
-    finalPct = currentAmt > 0 ? (feeAmt / currentAmt) * 100 : 0
-  }
-  const notes = generateFeeCalculationNotes(
-    totalProcessed,
-    currentAmt,
-    freeTier,
-    finalPct
+
+  // Hard assume that the payments are processed in pennies.
+  // We accept imprecision for Euros, and for other currencies.
+  const totalProcessedMonthToDate =
+    monthToDateResolvedPayments.reduce(
+      (acc, payment) => acc + payment.amount,
+      0
+    )
+  const totalProcessedLifetime = lifetimeResolvedPayments.reduce(
+    (acc, payment) => acc + payment.amount,
+    0
   )
-  const update: FeeCalculation.Update = {
-    ...feeCalculation,
-    flowgladFeePercentage: finalPct.toString(),
-    internalNotes: `${notes} Calculated time: ${new Date().toISOString()}`,
+
+  const organizationFeePercentage = parseFeePercentage(
+    organization.feePercentage
+  )
+  const monthlyFreeTier = organization.monthlyBillingVolumeFreeTier
+  const currentTransactionAmount = feeCalculation.pretaxTotal ?? 0
+
+  // Step 1: Apply upfront processing credits first
+  const creditsRemainingBefore = Math.max(
+    organization.upfrontProcessingCredits - totalProcessedLifetime,
+    0
+  )
+  const amountAfterCredits = Math.max(
+    currentTransactionAmount - creditsRemainingBefore,
+    0
+  )
+
+  // Step 2: Apply monthly free tier to the post-credit amount
+  let chargeableAmount = 0
+  if (amountAfterCredits > 0) {
+    if (monthlyFreeTier <= totalProcessedMonthToDate) {
+      chargeableAmount = amountAfterCredits
+    } else {
+      const freeTierRemaining =
+        monthlyFreeTier - totalProcessedMonthToDate
+      chargeableAmount = Math.max(
+        amountAfterCredits - freeTierRemaining,
+        0
+      )
+    }
   }
-  return updateFeeCalculation(update, transaction)
+
+  const finalFlowgladFeePercentage =
+    currentTransactionAmount > 0
+      ? (organizationFeePercentage * chargeableAmount) /
+        currentTransactionAmount
+      : 0
+
+  const internalNotes = generateFeeCalculationNotesWithCredits({
+    totalProcessedMonthToDate,
+    currentTransactionAmount,
+    monthlyFreeTier,
+    finalFlowgladFeePercentage,
+    totalProcessedLifetime,
+    upfrontProcessingCredits: organization.upfrontProcessingCredits,
+  })
+
+  const feeCalculationUpdate = {
+    id: feeCalculation.id,
+    flowgladFeePercentage: finalFlowgladFeePercentage.toString(),
+    type: feeCalculation.type,
+    priceId: feeCalculation.priceId,
+    billingPeriodId: feeCalculation.billingPeriodId,
+    checkoutSessionId: feeCalculation.checkoutSessionId,
+    internalNotes: `${internalNotes} Calculated time: ${new Date().toISOString()}`,
+  } as FeeCalculation.Update
+
+  return updateFeeCalculation(feeCalculationUpdate, transaction)
 }
