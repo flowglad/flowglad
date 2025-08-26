@@ -21,7 +21,8 @@
     "trigger:dev": "dotenvx run -f .env.local -- npx trigger.dev@4.0.0-v4-beta.11 dev",
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
-    "migrations:push": "tsx ./src/scripts/migrate.ts"
+    "migrations:push": "tsx ./src/scripts/migrate.ts",
+    "shadcn:build": "shadcn build --output 'public/ui'"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.10",
@@ -140,6 +141,7 @@
     "recharts": "^2.13.2",
     "resend": "^4.0.0",
     "server-only": "^0.0.1",
+    "shadcn": "2.10.0",
     "sonner": "^1.5.0",
     "stripe": "17.2.0",
     "superjson": "^2.2.1",

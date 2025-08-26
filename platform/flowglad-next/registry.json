@@ -1,0 +1,64 @@
+{
+    "$schema": "https://ui.shadcn.com/schema/registry.json",
+    "name": "flowglad",
+    "homepage": "https://flowglad.com",
+    "items": [
+      {
+        "name": "hello-world",
+        "type": "registry:component",
+        "title": "Hello World",
+        "description": "A simple hello world component",
+        "registryDependencies": ["button"],
+        "files": [
+          {
+            "path": "src/registry/new-york/hello-world/hello-world.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "example-form",
+        "type": "registry:component",
+        "title": "Example Form",
+        "description": "A contact form with Zod validation.",
+        "dependencies": ["zod"],
+        "registryDependencies": ["button", "input", "label", "textarea", "card"],
+        "files": [
+          {
+            "path": "src/registry/new-york/example-form/example-form.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "complex-component",
+        "type": "registry:component",
+        "title": "Complex Component",
+        "description": "A complex component showing hooks, libs and components.",
+        "registryDependencies": ["card"],
+        "files": [
+          {
+            "path": "src/registry/new-york/complex-component/page.tsx",
+            "type": "registry:page",
+            "target": "app/pokemon/page.tsx"
+          },
+          {
+            "path": "src/registry/new-york/complex-component/components/pokemon-card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/complex-component/components/pokemon-image.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/complex-component/lib/pokemon.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/new-york/complex-component/hooks/use-pokemon.ts",
+            "type": "registry:hook"
+          }
+        ]
+      }
+    ]
+  }
