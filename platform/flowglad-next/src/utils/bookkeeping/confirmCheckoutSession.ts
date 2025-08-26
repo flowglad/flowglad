@@ -25,7 +25,7 @@ import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
   finalizeFeeCalculation,
-} from '@/utils/bookkeeping/fees'
+} from '@/utils/bookkeeping/fees/common'
 import { DbTransaction } from '@/db/types'
 
 export const confirmCheckoutSessionTransaction = async (

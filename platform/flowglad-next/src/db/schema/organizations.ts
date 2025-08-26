@@ -80,6 +80,9 @@ export const organizations = pgTable(
     )
       .notNull()
       .default(100000),
+    upfrontProcessingCredits: integer('upfront_processing_credits')
+      .notNull()
+      .default(0),
   },
   (table) => {
     return [
@@ -161,6 +164,7 @@ const hiddenColumns = {
   updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
   securitySalt: true,
+  upfrontProcessingCredits: true,
 } as const
 
 const readOnlyColumns = {

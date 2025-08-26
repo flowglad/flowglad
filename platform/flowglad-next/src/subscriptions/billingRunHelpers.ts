@@ -51,10 +51,8 @@ import {
   SubscriptionItemType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
-import {
-  calculateTotalDueAmount,
-  createAndFinalizeSubscriptionFeeCalculation,
-} from '@/utils/bookkeeping/fees'
+import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
+import { createAndFinalizeSubscriptionFeeCalculation } from '@/utils/bookkeeping/fees/subscription'
 import core from '@/utils/core'
 import {
   createAndConfirmPaymentIntentForBillingRun,

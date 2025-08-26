@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "upfront_processing_credits" integer DEFAULT 0 NOT NULL;
