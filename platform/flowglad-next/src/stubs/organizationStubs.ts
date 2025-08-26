@@ -28,4 +28,5 @@ export const dummyOrganization: Organization.Record = {
   position: 0,
   securitySalt: 'lol',
   monthlyBillingVolumeFreeTier: 100000,
+  upfrontProcessingCredits: 0,
 }
