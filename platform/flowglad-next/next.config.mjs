@@ -3,6 +3,9 @@ import { withLogtail } from '@logtail/next'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingIncludes: {
+    registry: ['./src/registry/**/*'],
+  },
   serverExternalPackages: [
     'puppeteer-core',
     '@sparticuz/chromium',

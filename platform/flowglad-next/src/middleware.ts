@@ -43,6 +43,7 @@ const publicRoutes = [
   '/api/openapi',
   '/api/hosted-billing/(.*)',
   '/invoice/view/(.*)',
+  '/ui/(.*)',
   /**
    * Better Auth URLS
    */
