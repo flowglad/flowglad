@@ -6,7 +6,7 @@ import * as productMethods from '@/db/tableMethods/productMethods'
 import * as priceMethods from '@/db/tableMethods/priceMethods'
 import * as organizationMethods from '@/db/tableMethods/organizationMethods'
 import * as subscriptionModule from '@/subscriptions/createSubscription'
-import { IntervalUnit, PriceType } from '@/types'
+import { IntervalUnit, PriceType, FlowgladEventType, EventNoun } from '@/types'
 
 vi.mock('./stripe', () => ({
   createStripeCustomer: vi.fn().mockResolvedValue({ id: 'stripe_cust_123' }),
@@ -170,12 +170,17 @@ describe('createCustomerBookkeeping', () => {
       mockTransaction
     )
     
-    // Verify result contains customer and subscription
-    expect(result).toEqual({
+    // Verify result contains customer and subscription in TransactionOutput format
+    expect(result.result).toEqual({
       customer: mockCustomer,
       subscription: mockSubscription,
       subscriptionItems: mockSubscriptionItems,
     })
+    
+    // Verify events were created
+    expect(result.eventsToLog).toBeDefined()
+    expect(result.eventsToLog?.length).toBeGreaterThan(0)
+    expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
   })
 
   it('should create a customer with subscription from specified pricing model', async () => {
@@ -241,10 +246,14 @@ describe('createCustomerBookkeeping', () => {
     // Verify subscription was NOT created
     expect(subscriptionModule.createSubscriptionWorkflow).not.toHaveBeenCalled()
     
-    // Verify result contains only customer
-    expect(result).toEqual({
+    // Verify result contains only customer in TransactionOutput format
+    expect(result.result).toEqual({
       customer: mockCustomer,
     })
+    
+    // Verify customer created event exists
+    expect(result.eventsToLog).toBeDefined()
+    expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
   })
 
   it('should create customer without subscription if no default price exists', async () => {
@@ -270,10 +279,14 @@ describe('createCustomerBookkeeping', () => {
     // Verify subscription was NOT created
     expect(subscriptionModule.createSubscriptionWorkflow).not.toHaveBeenCalled()
     
-    // Verify result contains only customer
-    expect(result).toEqual({
+    // Verify result contains only customer in TransactionOutput format
+    expect(result.result).toEqual({
       customer: mockCustomer,
     })
+    
+    // Verify customer created event exists
+    expect(result.eventsToLog).toBeDefined()
+    expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
   })
 
   it('should handle subscription creation failure gracefully', async () => {
@@ -307,10 +320,14 @@ describe('createCustomerBookkeeping', () => {
       expect.any(Error)
     )
     
-    // Verify customer was still created successfully
-    expect(result).toEqual({
+    // Verify customer was still created successfully in TransactionOutput format
+    expect(result.result).toEqual({
       customer: mockCustomer,
     })
+    
+    // Verify customer created event exists even when subscription fails
+    expect(result.eventsToLog).toBeDefined()
+    expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
     
     consoleErrorSpy.mockRestore()
   })

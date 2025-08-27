@@ -92,7 +92,7 @@ const createCustomerProcedure = protectedProcedure
         /**
          * We have to parse the customer record here because of the billingAddress json
          */
-        const createdCustomerResult = await createCustomerBookkeeping(
+        const createdCustomerOutput = await createCustomerBookkeeping(
           {
             customer: {
               ...customer,
@@ -109,10 +109,12 @@ const createCustomerProcedure = protectedProcedure
 
         return {
           data: {
-            customer: createdCustomerResult.customer,
-            subscription: createdCustomerResult.subscription,
-            subscriptionItems: createdCustomerResult.subscriptionItems,
+            customer: createdCustomerOutput.result.customer,
+            subscription: createdCustomerOutput.result.subscription,
+            subscriptionItems: createdCustomerOutput.result.subscriptionItems,
           },
+          eventsToLog: createdCustomerOutput.eventsToLog,
+          ledgerCommand: createdCustomerOutput.ledgerCommand,
         }
       }
     )

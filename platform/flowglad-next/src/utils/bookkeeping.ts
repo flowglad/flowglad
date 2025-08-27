@@ -58,6 +58,10 @@ import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { Event } from '@/db/schema/events'
+import { FlowgladEventType, EventNoun } from '@/types'
+import { constructEventHash } from '@/utils/eventHelpers'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -471,7 +475,11 @@ export const createCustomerBookkeeping = async (
     customer: Customer.Insert
   },
   { transaction, organizationId }: AuthenticatedTransactionParams
-) => {
+): Promise<TransactionOutput<{
+  customer: Customer.Record
+  subscription?: any // Will be properly typed based on subscription result
+  subscriptionItems?: any[]
+}>> => {
   let customer = await insertCustomer(payload.customer, transaction)
   if (!customer.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
@@ -485,6 +493,28 @@ export const createCustomerBookkeeping = async (
       transaction
     )
   }
+
+  const timestamp = new Date()
+  const eventsToLog: Event.Insert[] = []
+  
+  // Create customer created event
+  eventsToLog.push({
+    type: FlowgladEventType.CustomerCreated,
+    occurredAt: timestamp,
+    organizationId: customer.organizationId,
+    livemode: customer.livemode,
+    payload: {
+      object: EventNoun.Customer,
+      id: customer.id,
+    },
+    submittedAt: timestamp,
+    hash: constructEventHash({
+      type: FlowgladEventType.CustomerCreated,
+      id: customer.id,
+    }),
+    metadata: {},
+    processedAt: null,
+  })
 
   // Create default subscription for the customer
   if (organizationId) {
@@ -567,11 +597,20 @@ export const createCustomerBookkeeping = async (
               transaction
             )
 
-            // Return both customer and subscription info
-            return { 
-              customer,
-              subscription: subscriptionResult.result.subscription,
-              subscriptionItems: subscriptionResult.result.subscriptionItems
+            // Merge events from subscription creation
+            if (subscriptionResult.eventsToLog) {
+              eventsToLog.push(...subscriptionResult.eventsToLog)
+            }
+
+            // Return combined result with all events and ledger commands
+            return {
+              result: {
+                customer,
+                subscription: subscriptionResult.result.subscription,
+                subscriptionItems: subscriptionResult.result.subscriptionItems
+              },
+              eventsToLog,
+              ledgerCommand: subscriptionResult.ledgerCommand
             }
           }
         }
@@ -582,5 +621,9 @@ export const createCustomerBookkeeping = async (
     }
   }
 
-  return { customer }
+  // Return just the customer with events
+  return {
+    result: { customer },
+    eventsToLog
+  }
 }
