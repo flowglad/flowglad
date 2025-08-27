@@ -75,7 +75,7 @@ const FeatureFormFields = () => {
             </FormControl>
             <FormDescription>
               Used to check access on the SDK. Must be unique within
-              each catalog.
+              each pricing model.
             </FormDescription>
             <FormMessage />
           </FormItem>

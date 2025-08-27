@@ -30,7 +30,7 @@ import { Invoice } from '../schema/invoices'
 import { Customer } from '../schema/customers'
 import { Product } from '../schema/products'
 import { Price } from '../schema/prices'
-import { Catalog } from '../schema/catalogs'
+import { PricingModel } from '../schema/pricingModels'
 
 describe('paymentMethods.ts', () => {
   let organization: Organization.Record
@@ -313,14 +313,14 @@ describe('selectRevenueDataForOrganization', () => {
   let product: Product.Record
   let price: Price.Record
   let customer: Customer.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
     product = orgData.product
     price = orgData.price
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
 
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -505,13 +505,13 @@ describe('selectRevenueDataForOrganization', () => {
       const productA = await setupProduct({
         organizationId: organization.id,
         name: 'Product A',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode: true,
       })
       const productB = await setupProduct({
         organizationId: organization.id,
         name: 'Product B',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode: true,
       })
 
@@ -722,7 +722,7 @@ describe('selectRevenueDataForOrganization', () => {
       const productA = await setupProduct({
         organizationId: organization.id,
         name: 'Product A - No Revenue',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode: true,
       })
 
@@ -730,7 +730,7 @@ describe('selectRevenueDataForOrganization', () => {
       const productB = await setupProduct({
         organizationId: organization.id,
         name: 'Product B - Has Revenue',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode: true,
       })
 

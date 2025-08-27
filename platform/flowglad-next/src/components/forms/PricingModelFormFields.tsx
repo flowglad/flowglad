@@ -1,7 +1,7 @@
 'use client'
 
 import { useFormContext, Controller } from 'react-hook-form'
-import { CreateCatalogInput } from '@/db/schema/catalogs'
+import { CreatePricingModelInput } from '@/db/schema/pricingModels'
 import { Input } from '@/components/ui/input'
 import {
   FormField,
@@ -12,21 +12,21 @@ import {
 } from '@/components/ui/form'
 import { Switch } from '@/components/ui/switch'
 
-export default function CatalogFormFields() {
-  const form = useFormContext<CreateCatalogInput>()
+export default function PricingModelFormFields() {
+  const form = useFormContext<CreatePricingModelInput>()
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <FormField
           control={form.control}
-          name="catalog.name"
+          name="pricingModel.name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
                 <Input
                   id="name"
-                  placeholder="Catalog name"
+                  placeholder="Pricing model name"
                   {...field}
                 />
               </FormControl>
@@ -36,14 +36,14 @@ export default function CatalogFormFields() {
         />
       </div>
       <Controller
-        name="catalog.isDefault"
+        name="pricingModel.isDefault"
         control={form.control}
         render={({ field }) => (
           <Switch
             checked={field.value}
             onCheckedChange={field.onChange}
-            label="Default catalog"
-            description="This become the catalog that automatically attaches to new customers."
+            label="Default pricing model"
+            description="This become the pricing model that automatically attaches to new customers."
           />
         )}
       />

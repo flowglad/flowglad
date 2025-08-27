@@ -66,13 +66,13 @@ describe('usageEventHelpers', () => {
         customerId: customer.id,
       })
 
-      const defaultCatalogForOrg = orgSetup.catalog
+      const defaultPricingModelForOrg = orgSetup.pricingModel
       const defaultProductForOrg = orgSetup.product
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Test Usage Meter',
         livemode: true,
-        catalogId: defaultCatalogForOrg.id,
+        pricingModelId: defaultPricingModelForOrg.id,
       })
       usagePrice = await setupPrice({
         productId: defaultProductForOrg.id,

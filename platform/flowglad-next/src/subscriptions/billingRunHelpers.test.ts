@@ -90,7 +90,7 @@ import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { UsageMeter } from '@/db/schema/usageMeters'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { updateBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -99,7 +99,7 @@ import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 
 describe('billingRunHelpers', async () => {
   let organization: Organization.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
   let product: Product.Record
   let staticPrice: Price.Record
   let customer: Customer.Record
@@ -119,7 +119,7 @@ describe('billingRunHelpers', async () => {
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
     product = orgData.product
     staticPrice = orgData.price
 
@@ -134,7 +134,7 @@ describe('billingRunHelpers', async () => {
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Global Test Usage Meter',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       livemode: true,
     })
 
@@ -1658,7 +1658,7 @@ describe('billingRunHelpers', async () => {
   describe('tabulateOutstandingUsageCosts', () => {
     let organization: Organization.Record
     let product: Product.Record
-    let catalog: Catalog.Record
+    let pricingModel: PricingModel.Record
     let price: Price.Record
     let usageBasedPrice: Price.Record
     let customer: Customer.Record
@@ -1671,7 +1671,7 @@ describe('billingRunHelpers', async () => {
       organization = orgData.organization
       product = orgData.product
       price = orgData.price
-      catalog = orgData.catalog
+      pricingModel = orgData.pricingModel
 
       customer = await setupCustomer({
         organizationId: organization.id,
@@ -1684,7 +1684,7 @@ describe('billingRunHelpers', async () => {
       usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Test Usage Meter For Tabulation',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       })
 
       usageBasedPrice = await setupPrice({
@@ -1933,7 +1933,7 @@ describe('billingRunHelpers', async () => {
       const anotherUsageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Another Meter',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       })
       const la2 = await setupLedgerAccount({
         organizationId: organization.id,
@@ -1944,7 +1944,7 @@ describe('billingRunHelpers', async () => {
       const usageMeter3 = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Another Meter 3',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       })
       const la3 = await setupLedgerAccount({
         organizationId: organization.id,

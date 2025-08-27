@@ -15,7 +15,7 @@ import { eq, and as drizzleAnd } from 'drizzle-orm'
 import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
 import { users } from '@/db/schema/users'
 import { memberships } from '@/db/schema/memberships'
-import { Catalog, catalogs } from './schema/catalogs'
+import { PricingModel, pricingModels } from './schema/pricingModels'
 import { Product } from './schema/products'
 import {
   insertProduct,
@@ -758,7 +758,7 @@ describe('createCursorPaginatedSelectFunction', () => {
 })
 
 // Start of new RLS integration tests
-describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
+describe('RLS Integration Tests: organizationId integrity on pricingModels', () => {
   let org1Data: Awaited<ReturnType<typeof setupOrg>>
   let org1ApiKeyToken: string
 
@@ -778,47 +778,49 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
     org2Data = await setupOrg() // Sets up another org
   })
 
-  it('should ALLOW a user to manage catalogs, products, and prices within their organization', async () => {
+  it('should ALLOW a user to manage pricingModels, products, and prices within their organization', async () => {
     await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
         expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode should be false based on API key
 
-        const newCatalogInput: Catalog.Insert = {
-          name: 'Test Allowed RLS Catalog',
+        const newPricingModelInput: PricingModel.Insert = {
+          name: 'Test Allowed RLS PricingModel',
           organizationId: org1Data.organization.id,
-          livemode: org1UserApiKey.livemode, // Catalog livemode matches session
+          livemode: org1UserApiKey.livemode, // PricingModel livemode matches session
         }
 
         // INSERT
-        const createdCatalogResult = await transaction
-          .insert(catalogs)
-          .values(newCatalogInput)
+        const createdPricingModelResult = await transaction
+          .insert(pricingModels)
+          .values(newPricingModelInput)
           .returning()
-        expect(createdCatalogResult.length).toBe(1)
-        const createdCatalog =
-          createdCatalogResult[0] as typeof catalogs.$inferSelect
-        expect(createdCatalog.name).toBe('Test Allowed RLS Catalog')
-        expect(createdCatalog.organizationId).toBe(
+        expect(createdPricingModelResult.length).toBe(1)
+        const createdPricingModel =
+          createdPricingModelResult[0] as typeof pricingModels.$inferSelect
+        expect(createdPricingModel.name).toBe(
+          'Test Allowed RLS PricingModel'
+        )
+        expect(createdPricingModel.organizationId).toBe(
           org1Data.organization.id
         )
-        const catalogId = createdCatalog.id
+        const pricingModelId = createdPricingModel.id
         // SELECT
-        const selectedCatalogs = await transaction
+        const selectedPricingModels = await transaction
           .select()
-          .from(catalogs)
-          .where(eq(catalogs.id, catalogId))
-        expect(selectedCatalogs.length).toBe(1)
-        expect(selectedCatalogs[0].id).toBe(catalogId)
+          .from(pricingModels)
+          .where(eq(pricingModels.id, pricingModelId))
+        expect(selectedPricingModels.length).toBe(1)
+        expect(selectedPricingModels[0].id).toBe(pricingModelId)
 
         // UPDATE
-        const updatedCatalogResult = await transaction
-          .update(catalogs)
-          .set({ name: 'Updated Allowed RLS Catalog' })
-          .where(eq(catalogs.id, catalogId))
+        const updatedPricingModelResult = await transaction
+          .update(pricingModels)
+          .set({ name: 'Updated Allowed RLS PricingModel' })
+          .where(eq(pricingModels.id, pricingModelId))
           .returning()
-        expect(updatedCatalogResult.length).toBe(1)
-        expect(updatedCatalogResult[0].name).toBe(
-          'Updated Allowed RLS Catalog'
+        expect(updatedPricingModelResult.length).toBe(1)
+        expect(updatedPricingModelResult[0].name).toBe(
+          'Updated Allowed RLS PricingModel'
         )
 
         const productInsert: Product.Insert = {
@@ -833,7 +835,7 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
           displayFeatures: null,
           active: true,
           externalId: null,
-          catalogId,
+          pricingModelId: org1Data.pricingModel.id,
           default: false,
           slug: `flowglad-test-product-price+${core.nanoid()}`,
         }
@@ -900,24 +902,25 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
     )
   })
 
-  it('should DENY a user from creating a catalog for another organization due to RLS', async () => {
-    const catalogNameAttempt = 'Test Denied RLS Catalog - Other Org'
+  it('should DENY a user from creating a pricingModel for another organization due to RLS', async () => {
+    const pricingModelNameAttempt =
+      'Test Denied RLS PricingModel - Other Org'
     try {
       await authenticatedTransaction(
         async ({ transaction, livemode }) => {
           expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode is true
-          const newCatalogInput: Catalog.Insert = {
-            name: catalogNameAttempt,
+          const newPricingModelInput: PricingModel.Insert = {
+            name: pricingModelNameAttempt,
             organizationId: org2Data.organization.id, // Attempting to use other org's ID
-            livemode, // Catalog livemode matches session, but orgId is wrong
+            livemode, // PricingModel livemode matches session, but orgId is wrong
           }
           await transaction
-            .insert(catalogs)
-            .values(newCatalogInput)
+            .insert(pricingModels)
+            .values(newPricingModelInput)
             .returning()
           // Should not reach here
           throw new Error(
-            'Catalog insert was unexpectedly allowed for another organization'
+            'PricingModel insert was unexpectedly allowed for another organization'
           )
         },
         { apiKey: org1ApiKeyToken }
@@ -928,20 +931,23 @@ describe('RLS Integration Tests: organizationId integrity on catalogs', () => {
       )
     }
 
-    // Verify (using admin) that the catalog was not actually created
-    const checkCatalog = await adminTransaction(
+    // Verify (using admin) that the pricingModel was not actually created
+    const checkPricingModel = await adminTransaction(
       async ({ transaction }) => {
         return transaction
           .select()
-          .from(catalogs)
+          .from(pricingModels)
           .where(
             drizzleAnd(
-              eq(catalogs.organizationId, org2Data.organization.id),
-              eq(catalogs.name, catalogNameAttempt)
+              eq(
+                pricingModels.organizationId,
+                org2Data.organization.id
+              ),
+              eq(pricingModels.name, pricingModelNameAttempt)
             )
           )
       }
     )
-    expect(checkCatalog.length).toBe(0)
+    expect(checkPricingModel.length).toBe(0)
   })
 })

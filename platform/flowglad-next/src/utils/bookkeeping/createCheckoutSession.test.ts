@@ -36,7 +36,11 @@ describe('createCheckoutSessionTransaction', () => {
   })
 
   beforeEach(async () => {
-    const { organization: org, product, catalog } = await setupOrg()
+    const {
+      organization: org,
+      product,
+      pricingModel,
+    } = await setupOrg()
     organization = org
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -45,7 +49,7 @@ describe('createCheckoutSessionTransaction', () => {
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Usage Meter',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
     singlePaymentPrice = await setupPrice({
       productId: product.id,

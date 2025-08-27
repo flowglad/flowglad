@@ -16,7 +16,7 @@ import {
   stripeSubscriptionItemToSubscriptionItemInsert,
   stripeSubscriptionToSubscriptionInsert,
 } from '@/migration-helpers/stripeMigrations'
-import { selectDefaultCatalog } from '@/db/tableMethods/catalogMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import {
   bulkInsertOrDoNothingProductsByExternalId,
   selectProducts,
@@ -459,7 +459,7 @@ const migrateStripeCatalogDataToFlowglad = async (
   )
 
   await db.transaction(async (transaction) => {
-    const defaultCatalog = await selectDefaultCatalog(
+    const defaultCatalog = await selectDefaultPricingModel(
       {
         organizationId: migrationParams.flowgladOrganizationId,
         livemode: true,
@@ -467,7 +467,7 @@ const migrateStripeCatalogDataToFlowglad = async (
       transaction
     )
     if (!defaultCatalog) {
-      console.error('Error: default catalog not found')
+      console.error('Error: default pricingModel not found')
       process.exit(1)
     }
     const productInserts = stripeProducts.map((product) =>
@@ -513,7 +513,7 @@ const migrateStripeCatalogDataToFlowglad = async (
 
 /**
  * In 3 steps this should:
- * 1. Migrate catalog: prices, products, (eventually discounts) [x]
+ * 1. Migrate pricingModel: prices, products, (eventually discounts) [x]
  * 2. Migrate customers: customers [x], payment methods [x]
  * 3. Migrate subscriptions:
  *    - Subscriptions [ ]

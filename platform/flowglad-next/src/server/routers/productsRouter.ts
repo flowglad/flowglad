@@ -2,14 +2,13 @@ import { protectedProcedure, router } from '../trpc'
 import {
   selectProductsPaginated,
   selectProductById,
-  getProductTableRows,
   selectProductsCursorPaginated,
 } from '@/db/tableMethods/productMethods'
 import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
   createProductTransaction,
-  editProduct as editProductCatalog,
-} from '@/utils/catalog'
+  editProduct as editProductPricingModel,
+} from '@/utils/pricingModel'
 import {
   createProductSchema,
   editProductSchema,
@@ -32,15 +31,12 @@ import {
   safelyUpdatePrice,
   selectPrices,
 } from '@/db/tableMethods/priceMethods'
-import { selectPricesProductsAndCatalogsForOrganization } from '@/db/tableMethods/priceMethods'
+import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
 import * as R from 'ramda'
-import { Price } from '@/db/schema/prices'
-import { Catalog } from '@/db/schema/catalogs'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
-import { core } from '@/utils/core'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Product',
@@ -97,7 +93,7 @@ export const editProduct = protectedProcedure
       async ({ transaction, input }) => {
         const { product, featureIds } = input
 
-        const updatedProduct = await editProductCatalog(
+        const updatedProduct = await editProductPricingModel(
           { product, featureIds },
           transaction
         )
@@ -166,7 +162,7 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowInputSchema(
       z.object({
         active: z.boolean().optional(),
-        catalogId: z.string().optional(),
+        pricingModelId: z.string().optional(),
       })
     )
   )
@@ -201,9 +197,9 @@ export const getCountsByStatus = protectedProcedure
           transaction
         )
 
-        // Get products with prices and catalogs
+        // Get products with prices and pricing models
         const productsResult =
-          await selectPricesProductsAndCatalogsForOrganization(
+          await selectPricesProductsAndPricingModelsForOrganization(
             {},
             membership.organization.id,
             transaction

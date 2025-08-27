@@ -118,7 +118,7 @@ const getTableRowsProcedure = usageProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        catalogId: z.string().optional(),
+        pricingModelId: z.string().optional(),
       })
     )
   )

@@ -13,13 +13,13 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 interface CreateFeatureModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  defaultCatalogId: string
+  defaultPricingModelId: string
 }
 
 const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
   isOpen,
   setIsOpen,
-  defaultCatalogId,
+  defaultPricingModelId,
 }) => {
   const createFeatureMutation = trpc.features.create.useMutation() // Adjusted endpoint
   const { livemode } = useAuthenticatedContext()
@@ -35,7 +35,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           name: '',
           slug: '',
           description: '',
-          catalogId: defaultCatalogId,
+          pricingModelId: defaultPricingModelId,
           amount: null,
           usageMeterId: null,
           renewalFrequency: null,

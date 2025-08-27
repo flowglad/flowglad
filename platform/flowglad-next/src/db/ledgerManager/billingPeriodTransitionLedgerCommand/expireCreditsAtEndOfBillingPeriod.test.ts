@@ -46,13 +46,13 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { core } from '@/utils/core'
 import { adminTransaction } from '@/db/adminTransaction'
 import { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 
 let organization: Organization.Record
-let catalog: Catalog.Record
+let pricingModel: PricingModel.Record
 let product: Product.Record
 let price: Price.Record
 let customer: Customer.Record
@@ -68,7 +68,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
     product = orgData.product
     price = orgData.price
 
@@ -98,7 +98,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     usageMeter1 = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Usage Meter 1',
     })
 

@@ -239,7 +239,7 @@ const PriceFormFields = ({
             </FormControl>
             <FormDescription>
               The slug is used to identify the price in the API. It
-              must be unique within the catalog.
+              must be unique within the pricing model.
             </FormDescription>
             <FormMessage />
           </FormItem>

@@ -19,7 +19,7 @@ import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import PricingCellView from '@/components/PricingCellView'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
@@ -34,13 +34,13 @@ export enum FocusedTab {
 export interface ProductsTableFilters {
   active?: boolean
   organizationId?: string
-  catalogId?: string
+  pricingModelId?: string
 }
 
 interface ProductRow {
   prices: Price.ClientRecord[]
   product: Product.ClientRecord
-  catalog?: Catalog.ClientRecord
+  pricingModel?: PricingModel.ClientRecord
 }
 
 const MoreMenuCell = ({
@@ -196,15 +196,15 @@ export const ProductsTable = ({
           ),
         },
         {
-          id: 'catalog',
+          id: 'pricingModel',
           header: ({ column }) => (
-            <ColumnHeaderCell title="Catalog" column={column} />
+            <ColumnHeaderCell title="Pricing Model" column={column} />
           ),
-          accessorKey: 'catalog.name',
+          accessorKey: 'pricingModel.name',
           cell: ({ row: { original: cellData } }) => {
-            const catalogName = cellData.catalog?.name
-            if (catalogName) {
-              return <div className="w-fit">{catalogName}</div>
+            const pricingModelName = cellData.pricingModel?.name
+            if (pricingModelName) {
+              return <div className="w-fit">{pricingModelName}</div>
             }
             return <div className="w-fit">-</div>
           },

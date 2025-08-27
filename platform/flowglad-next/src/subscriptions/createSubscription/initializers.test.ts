@@ -18,21 +18,21 @@ import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Customer } from '@/db/schema/customers'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 
 describe('insertSubscriptionAndItems', () => {
   let organization: Organization.Record
   let product: Product.Record
   let defaultPrice: Price.Record
   let customer: Customer.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
     product = orgData.product
     defaultPrice = orgData.price
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
     customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -81,7 +81,7 @@ describe('insertSubscriptionAndItems', () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Credit Trial Usage Meter',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       })
       // - Create a price with type PriceType.Usage and startsWithCreditTrial = true, associated with the usage meter.
       const creditTrialPrice = await setupPrice({
@@ -286,7 +286,7 @@ describe('insertSubscriptionAndItems', () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Standard Usage Meter',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       })
       // - Create a price with type PriceType.Usage but ensure startsWithCreditTrial is false.
       const usagePrice = await setupPrice({
@@ -387,7 +387,7 @@ describe('insertSubscriptionAndItems', () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Credit Trial Usage Meter 2',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       })
       // - Create a price with type PriceType.Usage and startsWithCreditTrial = true.
       const creditTrialPrice = await setupPrice({

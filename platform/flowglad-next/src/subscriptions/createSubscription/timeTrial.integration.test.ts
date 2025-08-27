@@ -33,11 +33,11 @@ import {
   checkoutInfoForCheckoutSession,
 } from '@/utils/checkoutHelpers'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { createProductTransaction } from '@/utils/catalog'
+import { createProductTransaction } from '@/utils/pricingModel'
 import { setupUserAndApiKey } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Feature } from '@/db/schema/features'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { Organization } from '@/db/schema/organizations'
 
 vi.mock('next/headers', () => ({
@@ -51,17 +51,17 @@ vi.mock('next/headers', () => ({
 describe('Subscription Activation Workflow E2E - Time Trial', () => {
   let trialPeriodDays: number
   let organization: Organization.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
   let customer: Customer.Record
   let toggleFeature: Feature.Record
 
   beforeEach(async () => {
     // Define trial period length
     trialPeriodDays = 5
-    // Setup organization, catalog, product
+    // Setup organization, pricingModel, product
     const orgData = await setupOrg()
     organization = orgData.organization
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
 
     // Setup customer
     customer = await setupCustomer({
@@ -73,7 +73,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       organizationId: organization.id,
       name: 'Test Toggle Feature',
       livemode: true,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
   })
 
@@ -96,7 +96,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               displayFeatures: [],
               singularQuantityLabel: 'unit',
               pluralQuantityLabel: 'units',
-              catalogId: catalog.id,
+              pricingModelId: pricingModel.id,
               default: false,
               slug: `flowglad-test-product-price+${core.nanoid()}`,
             },

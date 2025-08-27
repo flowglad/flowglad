@@ -28,7 +28,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { UsageMeter } from '@/db/schema/usageMeters'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { Product } from '@/db/schema/products'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
@@ -55,7 +55,7 @@ import {
 
 describe('ledgerEntryMethods', () => {
   let organization: Organization.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
   let product: Product.Record
   let price: Price.Record
   let customer: Customer.Record
@@ -86,7 +86,7 @@ describe('ledgerEntryMethods', () => {
     })
     organization = scenarioData.organization
     price = scenarioData.price
-    catalog = scenarioData.catalog
+    pricingModel = scenarioData.pricingModel
     product = scenarioData.product
     customer = scenarioData.customer
     paymentMethod = scenarioData.paymentMethod
@@ -112,7 +112,7 @@ describe('ledgerEntryMethods', () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Test Usage Meter 2',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode: true,
       })
       const usageEvent = await setupUsageEvent({
@@ -2654,7 +2654,7 @@ describe('ledgerEntryMethods', () => {
         const secondUsageMeter = await setupUsageMeter({
           organizationId: organization.id,
           name: 'Second Test Usage Meter',
-          catalogId: catalog.id, // Assuming catalog can be shared or is appropriate
+          pricingModelId: pricingModel.id, // Assuming pricingModel can be shared or is appropriate
           livemode: true,
         })
 

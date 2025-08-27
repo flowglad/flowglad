@@ -6,13 +6,13 @@ import Label from '@/components/ion/Label'
 import { Skeleton } from '@/components/ion/Skeleton'
 
 export const ProductFeatureMultiSelect = ({
-  catalogId,
+  pricingModelId,
 }: {
-  catalogId: string
+  pricingModelId: string
 }) => {
   const { data: features } =
-    trpc.features.getFeaturesForCatalog.useQuery({
-      catalogId,
+    trpc.features.getFeaturesForPricingModel.useQuery({
+      pricingModelId,
     })
   const {
     formState: { errors },

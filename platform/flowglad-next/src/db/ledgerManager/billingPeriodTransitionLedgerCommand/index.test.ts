@@ -47,7 +47,7 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { adminTransaction } from '@/db/adminTransaction'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
@@ -67,7 +67,7 @@ import * as ledgerAccountMethods from '@/db/tableMethods/ledgerAccountMethods'
 
 describe('processBillingPeriodTransitionLedgerCommand', () => {
   let organization: Organization.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
   let product: Product.Record
   let price: Price.Record
   let customer: Customer.Record
@@ -87,7 +87,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
     product = orgData.product
     price = orgData.price
 
@@ -125,7 +125,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
 
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       name: 'Primary Test Meter',
     })
 
@@ -143,7 +143,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       amount: 1000,
       renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
       livemode: true,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
 
     productFeature = await setupProductFeature({
@@ -266,7 +266,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Arrange
           const otherUsageMeter = await setupUsageMeter({
             organizationId: organization.id,
-            catalogId: catalog.id,
+            pricingModelId: pricingModel.id,
             name: 'Unaccounted Meter',
           })
           const otherFeature = await setupUsageCreditGrantFeature({

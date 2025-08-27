@@ -26,7 +26,7 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import { catalogs } from './catalogs'
+import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'features'
 
@@ -56,7 +56,10 @@ export const features = pgTable(
       columnName: 'renewal_frequency',
       enumBase: FeatureUsageGrantFrequency,
     }),
-    catalogId: notNullStringForeignKey('catalog_id', catalogs),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
     active: boolean('active').notNull().default(true),
   },
   (table) => [
@@ -65,9 +68,9 @@ export const features = pgTable(
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,
       table.slug,
-      table.catalogId,
+      table.pricingModelId,
     ]),
-    constructIndex(TABLE_NAME, [table.catalogId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
       to: 'authenticated',

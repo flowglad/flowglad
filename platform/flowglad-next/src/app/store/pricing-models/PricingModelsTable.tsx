@@ -6,36 +6,36 @@ import Table, {
 } from '@/components/ion/Table'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import Badge from '@/components/ion/Badge'
-import { Catalog } from '@/db/schema/catalogs'
-import EditCatalogModal from '@/components/forms/EditCatalogModal'
-import CloneCatalogModal from '@/components/forms/CloneCatalogModal'
+import { PricingModel } from '@/db/schema/pricingModels'
+import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
+import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useRouter } from 'next/navigation'
-import SetCatalogAsDefaultModal from '@/components/forms/SetCatalogAsDefaultModal'
+import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
 
 const MoreMenuCell = ({
-  catalog,
+  pricingModel,
 }: {
-  catalog: Catalog.ClientRecord
+  pricingModel: PricingModel.ClientRecord
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCloneOpen, setIsCloneOpen] = useState(false)
   const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const menuItems: PopoverMenuItem[] = [
     {
-      label: 'Edit Catalog',
+      label: 'Edit Pricing Model',
       handler: () => setIsEditOpen(true),
     },
     {
-      label: 'Clone Catalog',
+      label: 'Clone Pricing Model',
       handler: () => setIsCloneOpen(true),
     },
   ]
-  if (!catalog.isDefault) {
+  if (!pricingModel.isDefault) {
     menuItems.push({
       label: 'Set as Default',
       handler: () => setIsSetDefaultOpen(true),
@@ -43,34 +43,34 @@ const MoreMenuCell = ({
   }
   return (
     <MoreMenuTableCell items={menuItems}>
-      <EditCatalogModal
-        catalog={catalog}
+      <EditPricingModelModal
+        pricingModel={pricingModel}
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
       />
-      <CloneCatalogModal
+      <ClonePricingModelModal
         isOpen={isCloneOpen}
         setIsOpen={setIsCloneOpen}
-        catalog={catalog}
+        pricingModel={pricingModel}
       />
-      <SetCatalogAsDefaultModal
+      <SetPricingModelAsDefaultModal
         isOpen={isSetDefaultOpen}
         setIsOpen={setIsSetDefaultOpen}
-        catalog={catalog}
+        pricingModel={pricingModel}
       />
     </MoreMenuTableCell>
   )
 }
 
-export interface CatalogsTableFilters {
+export interface PricingModelsTableFilters {
   organizationId?: string
   isDefault?: boolean
 }
 
-const CatalogsTable = ({
+const PricingModelsTable = ({
   filters = {},
 }: {
-  filters?: CatalogsTableFilters
+  filters?: PricingModelsTableFilters
 }) => {
   const router = useRouter()
   const {
@@ -80,11 +80,14 @@ const CatalogsTable = ({
     data,
     isLoading,
     isFetching,
-  } = usePaginatedTableState<Catalog.TableRow, CatalogsTableFilters>({
+  } = usePaginatedTableState<
+    PricingModel.TableRow,
+    PricingModelsTableFilters
+  >({
     initialCurrentCursor: undefined,
     pageSize: 10,
     filters,
-    useQuery: trpc.catalogs.getTableRows.useQuery,
+    useQuery: trpc.pricingModels.getTableRows.useQuery,
   })
 
   const columns = useMemo(
@@ -94,12 +97,14 @@ const CatalogsTable = ({
           header: ({ column }) => (
             <ColumnHeaderCell title="Name" column={column} />
           ),
-          accessorKey: 'catalog.name',
+          accessorKey: 'pricingModel.name',
           width: '20%',
           cell: ({ row: { original: cellData } }) => (
             <div className="flex items-center gap-2">
-              <span className="text-sm">{cellData.catalog.name}</span>
-              {cellData.catalog.isDefault && (
+              <span className="text-sm">
+                {cellData.pricingModel.name}
+              </span>
+              {cellData.pricingModel.isDefault && (
                 <Badge color="green" size="sm">
                   Default
                 </Badge>
@@ -121,11 +126,13 @@ const CatalogsTable = ({
           header: ({ column }) => (
             <ColumnHeaderCell title="ID" column={column} />
           ),
-          accessorKey: 'catalog.id',
+          accessorKey: 'pricingModel.id',
           width: '30%',
           cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.catalog.id}>
-              {cellData.catalog.id}
+            <CopyableTextTableCell
+              copyText={cellData.pricingModel.id}
+            >
+              {cellData.pricingModel.id}
             </CopyableTextTableCell>
           ),
         },
@@ -133,10 +140,10 @@ const CatalogsTable = ({
           id: '_',
           width: '10%',
           cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell catalog={cellData.catalog} />
+            <MoreMenuCell pricingModel={cellData.pricingModel} />
           ),
         },
-      ] as ColumnDefWithWidth<Catalog.TableRow, string>[],
+      ] as ColumnDefWithWidth<PricingModel.TableRow, string>[],
     []
   )
 
@@ -150,7 +157,7 @@ const CatalogsTable = ({
       className="bg-nav"
       bordered
       onClickRow={(row) => {
-        router.push(`/store/catalogs/${row.catalog.id}`)
+        router.push(`/store/pricing-models/${row.pricingModel.id}`)
       }}
       pagination={{
         pageIndex,
@@ -164,4 +171,4 @@ const CatalogsTable = ({
   )
 }
 
-export default CatalogsTable
+export default PricingModelsTable

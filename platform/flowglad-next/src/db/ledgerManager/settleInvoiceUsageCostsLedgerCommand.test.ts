@@ -38,7 +38,7 @@ import { UsageMeter } from '@/db/schema/usageMeters'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { updateInvoice } from '../tableMethods/invoiceMethods'
-import { Catalog } from '../schema/catalogs'
+import { PricingModel } from '../schema/pricingModels'
 import { aggregateBalanceForLedgerAccountFromEntries } from '../tableMethods/ledgerEntryMethods'
 
 describe('settleInvoiceUsageCostsLedgerCommand', () => {
@@ -50,14 +50,14 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
   let invoice: Invoice.Record
   let usageCostLedgerEntry: LedgerEntry.Record
   let usageInvoiceLineItem: InvoiceLineItem.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
   beforeEach(async () => {
     // 1. Use setupUsageLedgerScenario to create a base state with a usage cost.
     const scenario = await setupUsageLedgerScenario({
       usageEventAmounts: [1500], // This creates a usage event and a corresponding usage_cost ledger entry
     })
     organization = scenario.organization
-    catalog = scenario.catalog
+    pricingModel = scenario.pricingModel
     subscription = scenario.subscription
     usageMeter = scenario.usageMeter
     ledgerAccount = scenario.ledgerAccount
@@ -301,7 +301,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       const usageMeter2 = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Second Usage Meter',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       })
       const ledgerAccount2 = await setupLedgerAccount({
         organizationId: organization.id,

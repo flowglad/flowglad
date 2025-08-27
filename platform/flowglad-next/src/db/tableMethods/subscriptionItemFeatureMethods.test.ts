@@ -46,10 +46,10 @@ describe('subscriptionItemFeatureMethods', () => {
     // Clear table for isolation
     await db.delete(subscriptionItemFeatures)
 
-    // Setup org, product, price, catalog
+    // Setup org, product, price, pricingModel
     const orgData = await setupOrg()
     organization = orgData.organization
-    const { product, price, catalog } = orgData
+    const { product, price, pricingModel } = orgData
 
     // Setup customer and payment method
     customer = await setupCustomer({
@@ -109,7 +109,7 @@ describe('subscriptionItemFeatureMethods', () => {
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Meter',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
   })
 

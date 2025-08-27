@@ -122,7 +122,7 @@ export const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        catalogId: z.string().optional(),
+        pricingModelId: z.string().optional(),
       })
     )
   )
@@ -133,10 +133,10 @@ export const getTableRows = protectedProcedure
     authenticatedProcedureTransaction(selectFeaturesTableRowData)
   )
 
-const getFeaturesForCatalog = protectedProcedure
+const getFeaturesForPricingModel = protectedProcedure
   .input(
     z.object({
-      catalogId: z.string(),
+      pricingModelId: z.string(),
     })
   )
   .output(
@@ -149,7 +149,7 @@ const getFeaturesForCatalog = protectedProcedure
       async ({ input, transaction }) => {
         const features = await selectFeatures(
           {
-            catalogId: input.catalogId,
+            pricingModelId: input.pricingModelId,
           },
           transaction
         )
@@ -164,5 +164,5 @@ export const featuresRouter = router({
   update: editFeature,
   list: listFeaturesProcedure,
   getTableRows,
-  getFeaturesForCatalog,
+  getFeaturesForPricingModel,
 })

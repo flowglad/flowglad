@@ -19,8 +19,8 @@ import {
   Feature,
 } from '@/db/schema/features'
 import { z } from 'zod'
-import { selectCatalogs } from './catalogMethods'
-import { Catalog } from '../schema/catalogs'
+import { selectPricingModels } from './pricingModelMethods'
+import { PricingModel } from '../schema/pricingModels'
 import { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
@@ -43,25 +43,28 @@ export const updateFeature = createUpdateFunction(features, config)
 
 export const selectFeatures = createSelectFunction(features, config)
 
-export const upsertFeatureByCatalogIdAndSlug = createUpsertFunction(
-  features,
-  [features.catalogId, features.slug],
-  config
-)
+export const upsertFeatureByPricingModelIdAndSlug =
+  createUpsertFunction(
+    features,
+    [features.pricingModelId, features.slug],
+    config
+  )
 
 export const bulkInsertOrDoNothingFeatures =
   createBulkInsertOrDoNothingFunction(features, config)
 
-export const bulkInsertOrDoNothingFeaturesByCatalogIdAndSlug = async (
-  inserts: Feature.Insert[],
-  transaction: DbTransaction
-) => {
-  return bulkInsertOrDoNothingFeatures(
-    inserts,
-    [features.catalogId, features.slug, features.organizationId],
-    transaction
-  )
-}
+export const bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug =
+  async (inserts: Feature.Insert[], transaction: DbTransaction) => {
+    return bulkInsertOrDoNothingFeatures(
+      inserts,
+      [
+        features.pricingModelId,
+        features.slug,
+        features.organizationId,
+      ],
+      transaction
+    )
+  }
 
 export const bulkInsertFeatures = createBulkInsertFunction(
   features,
@@ -75,7 +78,7 @@ export const selectFeaturesPaginated = createPaginatedSelectFunction(
 
 export const featuresTableRowOutputSchema = z.object({
   feature: featuresClientSelectSchema,
-  catalog: z.object({
+  pricingModel: z.object({
     id: z.string(),
     name: z.string(),
   }),
@@ -90,22 +93,24 @@ export const selectFeaturesTableRowData =
       features: Feature.Record[],
       transaction: DbTransaction
     ) => {
-      const catalogIds = features.map((feature) => feature.catalogId)
-      const catalogs = await selectCatalogs(
-        { id: catalogIds },
+      const pricingModelIds = features.map(
+        (feature) => feature.pricingModelId
+      )
+      const pricingModels = await selectPricingModels(
+        { id: pricingModelIds },
         transaction
       )
-      const catalogsById = new Map(
-        catalogs.map((catalog: Catalog.Record) => [
-          catalog.id,
-          catalog,
+      const pricingModelsById = new Map(
+        pricingModels.map((pricingModel: PricingModel.Record) => [
+          pricingModel.id,
+          pricingModel,
         ])
       )
       return features.map((feature) => ({
         feature,
-        catalog: {
-          id: catalogsById.get(feature.catalogId)!.id,
-          name: catalogsById.get(feature.catalogId)!.name,
+        pricingModel: {
+          id: pricingModelsById.get(feature.pricingModelId)!.id,
+          name: pricingModelsById.get(feature.pricingModelId)!.name,
         },
       }))
     }

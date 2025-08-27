@@ -22,9 +22,9 @@ import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
 import { trace, SpanStatusCode, context } from '@opentelemetry/api'
 import { logger } from '@/utils/logger'
 import {
-  catalogsRouteConfigs,
-  getDefaultCatalogRouteConfig,
-} from '@/server/routers/catalogsRouter'
+  pricingModelsRouteConfigs,
+  getDefaultPricingModelRouteConfig,
+} from '@/server/routers/pricingModelsRouter'
 import {
   paymentsRouteConfigs,
   refundPaymentRouteConfig,
@@ -52,7 +52,7 @@ const routeConfigs = [
   ...invoicesRouteConfigs,
   ...paymentMethodsRouteConfigs,
   ...paymentsRouteConfigs,
-  ...catalogsRouteConfigs,
+  ...pricingModelsRouteConfigs,
   ...usageMetersRouteConfigs,
   ...usageEventsRouteConfigs,
   ...webhooksRouteConfigs,
@@ -68,7 +68,7 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 )
 
 const routes: Record<string, RouteConfig> = {
-  ...getDefaultCatalogRouteConfig,
+  ...getDefaultPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
   ...customersRouteConfigs,
   ...discountsRouteConfigs,
@@ -77,7 +77,7 @@ const routes: Record<string, RouteConfig> = {
   ...trpcToRest('utils.ping'),
   // note it's important to add the array routes last
   // because the more specific patterns above will match first,
-  // so e.g. /catalogs/default will not attempt to match to /catalogs/:id => id="default"
+  // so e.g. /pricing-models/default will not attempt to match to /pricing-models/:id => id="default"
   ...arrayRoutes,
 } as const
 

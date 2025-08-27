@@ -13,10 +13,10 @@ import {
   getProductTableRows,
 } from './tableMethods/productMethods'
 import {
-  selectCatalogs,
-  insertCatalog,
-  updateCatalog,
-} from './tableMethods/catalogMethods'
+  selectPricingModels,
+  insertPricingModel,
+  updatePricingModel,
+} from './tableMethods/pricingModelMethods'
 import {
   insertMembership,
   selectMemberships,
@@ -40,7 +40,7 @@ import {
 } from '@/types'
 import { Event } from './schema/events'
 import { hashData } from '@/utils/backendCore'
-import { Catalog } from './schema/catalogs'
+import { PricingModel } from './schema/pricingModels'
 
 describe('authenticatedTransaction', () => {
   // Global test state variables
@@ -907,8 +907,8 @@ describe('RLS for selectProducts', () => {
   // Global state for products RLS tests
   let prodOrg1: Organization.Record
   let prodOrg2: Organization.Record
-  let prodCatalog1: any
-  let prodCatalog2: any
+  let prodPricingModel1: any
+  let prodPricingModel2: any
   let product1: any
   let product2: any
   let prodUserA: UserRecord
@@ -917,16 +917,16 @@ describe('RLS for selectProducts', () => {
   let apiKeyAForOrg2: ApiKey.Record
 
   beforeEach(async () => {
-    // Create two orgs, each with a default product and catalog
+    // Create two orgs, each with a default product and pricingModel
     const orgSetup1 = await setupOrg()
     prodOrg1 = orgSetup1.organization
     product1 = orgSetup1.product
-    prodCatalog1 = orgSetup1.catalog
+    prodPricingModel1 = orgSetup1.pricingModel
 
     const orgSetup2 = await setupOrg()
     prodOrg2 = orgSetup2.organization
     product2 = orgSetup2.product
-    prodCatalog2 = orgSetup2.catalog
+    prodPricingModel2 = orgSetup2.pricingModel
 
     // Create user A focused on org1 with an API key
     const uaOrg1 = await setupUserAndApiKey({
@@ -1054,7 +1054,7 @@ describe('RLS for selectProducts', () => {
             {
               name: 'Cross Org Product',
               organizationId: prodOrg2.id,
-              catalogId: prodCatalog2.id,
+              pricingModelId: prodPricingModel2.id,
               default: false,
               description: null,
               livemode: false,
@@ -1081,7 +1081,7 @@ describe('RLS for selectProducts', () => {
           {
             name: 'Org1 New Product',
             organizationId: prodOrg1.id,
-            catalogId: prodCatalog1.id,
+            pricingModelId: prodPricingModel1.id,
             default: false,
             description: null,
             livemode,
@@ -1187,26 +1187,26 @@ describe('RLS for selectProducts', () => {
   })
 })
 
-describe('RLS for selectCatalogs', () => {
-  // Global state for catalogs RLS tests
+describe('RLS for selectPricingModels', () => {
+  // Global state for pricingModels RLS tests
   let catOrg1: Organization.Record
   let catOrg2: Organization.Record
-  let catalog1: Catalog.Record
-  let catalog2: Catalog.Record
+  let pricingModel1: PricingModel.Record
+  let pricingModel2: PricingModel.Record
   let catUserA: UserRecord
   let catUserB: UserRecord
   let apiKeyCatAOrg1: ApiKey.Record
   let apiKeyCatAOrg2: ApiKey.Record
 
   beforeEach(async () => {
-    // Create two orgs, capture default catalogs
+    // Create two orgs, capture default pricingModels
     const orgSetup1 = await setupOrg()
     catOrg1 = orgSetup1.organization
-    catalog1 = orgSetup1.catalog
+    pricingModel1 = orgSetup1.pricingModel
 
     const orgSetup2 = await setupOrg()
     catOrg2 = orgSetup2.organization
-    catalog2 = orgSetup2.catalog
+    pricingModel2 = orgSetup2.pricingModel
 
     // Create user A focused on org1 with an API key
     const uaOrg1 = await setupUserAndApiKey({
@@ -1244,9 +1244,9 @@ describe('RLS for selectCatalogs', () => {
     apiKeyCatAOrg2 = uaOrg2.apiKey
   })
 
-  it('returns only catalogs for the currently-focused organization', async () => {
+  it('returns only pricingModels for the currently-focused organization', async () => {
     const result = await authenticatedTransaction(
-      async ({ transaction }) => selectCatalogs({}, transaction),
+      async ({ transaction }) => selectPricingModels({}, transaction),
       { apiKey: apiKeyCatAOrg1.token }
     )
     expect(result.every((c) => c.organizationId === catOrg1.id)).toBe(
@@ -1254,18 +1254,21 @@ describe('RLS for selectCatalogs', () => {
     )
   })
 
-  it('does not return catalogs for other organizations even when passing explicit where conditions', async () => {
+  it('does not return pricingModels for other organizations even when passing explicit where conditions', async () => {
     const result = await authenticatedTransaction(
       async ({ transaction }) =>
-        selectCatalogs({ organizationId: catOrg2.id }, transaction),
+        selectPricingModels(
+          { organizationId: catOrg2.id },
+          transaction
+        ),
       { apiKey: apiKeyCatAOrg1.token }
     )
     expect(result).toHaveLength(0)
   })
 
-  it('switching focus changes which catalogs are visible', async () => {
+  it('switching focus changes which pricingModels are visible', async () => {
     const inOrg1 = await authenticatedTransaction(
-      async ({ transaction }) => selectCatalogs({}, transaction),
+      async ({ transaction }) => selectPricingModels({}, transaction),
       { apiKey: apiKeyCatAOrg1.token }
     )
     expect(inOrg1.every((c) => c.organizationId === catOrg1.id)).toBe(
@@ -1273,7 +1276,7 @@ describe('RLS for selectCatalogs', () => {
     )
 
     const inOrg2 = await authenticatedTransaction(
-      async ({ transaction }) => selectCatalogs({}, transaction),
+      async ({ transaction }) => selectPricingModels({}, transaction),
       { apiKey: apiKeyCatAOrg2.token }
     )
     expect(inOrg2.every((c) => c.organizationId === catOrg2.id)).toBe(
@@ -1281,12 +1284,15 @@ describe('RLS for selectCatalogs', () => {
     )
   })
 
-  it('cannot update a catalog in another organization', async () => {
+  it('cannot update a pricingModel in another organization', async () => {
     await expect(
       authenticatedTransaction(
         async ({ transaction }) => {
-          await updateCatalog(
-            { id: catalog2.id, name: 'Blocked Catalog Update' },
+          await updatePricingModel(
+            {
+              id: pricingModel2.id,
+              name: 'Blocked PricingModel Update',
+            },
             transaction
           )
         },
@@ -1295,12 +1301,12 @@ describe('RLS for selectCatalogs', () => {
     ).rejects.toThrow()
   })
 
-  it('can update a catalog in the current organization', async () => {
-    const newName = 'Updated Catalog Name'
+  it('can update a pricingModel in the current organization', async () => {
+    const newName = 'Updated PricingModel Name'
     await authenticatedTransaction(
       async ({ transaction }) => {
-        await updateCatalog(
-          { id: catalog1.id, name: newName },
+        await updatePricingModel(
+          { id: pricingModel1.id, name: newName },
           transaction
         )
       },
@@ -1308,20 +1314,20 @@ describe('RLS for selectCatalogs', () => {
     )
     const after = await authenticatedTransaction(
       async ({ transaction }) =>
-        selectCatalogs({ id: catalog1.id }, transaction),
+        selectPricingModels({ id: pricingModel1.id }, transaction),
       { apiKey: apiKeyCatAOrg1.token }
     )
     expect(after[0].name).toBe(newName)
   })
 
-  it('cannot insert a catalog for a different organization', async () => {
+  it('cannot insert a pricingModel for a different organization', async () => {
     await expect(
       authenticatedTransaction(
         async ({ transaction }) => {
-          await insertCatalog(
+          await insertPricingModel(
             {
               organizationId: catOrg2.id,
-              name: 'Cross Org Catalog',
+              name: 'Cross Org PricingModel',
               isDefault: false,
               livemode: true,
             },
@@ -1333,13 +1339,13 @@ describe('RLS for selectCatalogs', () => {
     ).rejects.toThrow()
   })
 
-  it('can insert a catalog for the current organization', async () => {
+  it('can insert a pricingModel for the current organization', async () => {
     const created = await authenticatedTransaction(
       async ({ transaction }) =>
-        insertCatalog(
+        insertPricingModel(
           {
             organizationId: catOrg1.id,
-            name: 'New Org1 Catalog',
+            name: 'New Org1 PricingModel',
             isDefault: false,
             livemode: true,
           },
@@ -1350,20 +1356,20 @@ describe('RLS for selectCatalogs', () => {
     expect(created.organizationId).toBe(catOrg1.id)
   })
 
-  it('cannot delete a catalog from a different organization', () => {
+  it('cannot delete a pricingModel from a different organization', () => {
     // setup:
     // - focus on testOrg1
-    // - attempt delete of catalog2 (org2)
+    // - attempt delete of pricingModel2 (org2)
     // expects:
     // - denied or 0 rows affected
   })
 
-  it('cannot delete a catalog from a different organization', async () => {
+  it('cannot delete a pricingModel from a different organization', async () => {
     await expect(
       authenticatedTransaction(
         async ({ transaction }) => {
-          await updateCatalog(
-            { id: catalog2.id, isDefault: false, name: 'X' },
+          await updatePricingModel(
+            { id: pricingModel2.id, isDefault: false, name: 'X' },
             transaction
           )
         },
@@ -1372,38 +1378,42 @@ describe('RLS for selectCatalogs', () => {
     ).rejects.toThrow()
   })
 
-  it('respects livemode: live/test separation for catalogs', () => {
+  it('respects livemode: live/test separation for pricingModels', () => {
     // setup:
-    // - create catalogLive (livemode=true) and catalogTest (livemode=false) for the same org
-    // - use live API key -> only catalogLive visible
-    // - use test API key -> only catalogTest visible
+    // - create pricingModelLive (livemode=true) and pricingModelTest (livemode=false) for the same org
+    // - use live API key -> only pricingModelLive visible
+    // - use test API key -> only pricingModelTest visible
     // expects:
     // - correct isolation by livemode
   })
 
-  it('respects livemode: live/test separation for catalogs', async () => {
+  it('respects livemode: live/test separation for pricingModels', async () => {
     const liveKey = apiKeyCatAOrg1
     const testKey = await setupUserAndApiKey({
       organizationId: catOrg1.id,
       livemode: false,
     })
 
-    const liveCatalogs = await authenticatedTransaction(
-      async ({ transaction }) => selectCatalogs({}, transaction),
+    const livePricingModels = await authenticatedTransaction(
+      async ({ transaction }) => selectPricingModels({}, transaction),
       { apiKey: liveKey.token }
     )
-    expect(liveCatalogs.every((c) => c.livemode === true)).toBe(true)
+    expect(livePricingModels.every((c) => c.livemode === true)).toBe(
+      true
+    )
 
-    const testCatalogs = await authenticatedTransaction(
-      async ({ transaction }) => selectCatalogs({}, transaction),
+    const testPricingModels = await authenticatedTransaction(
+      async ({ transaction }) => selectPricingModels({}, transaction),
       { apiKey: testKey.apiKey.token }
     )
-    expect(testCatalogs.every((c) => c.livemode === false)).toBe(true)
+    expect(testPricingModels.every((c) => c.livemode === false)).toBe(
+      true
+    )
   })
 
   it('webapp session auth behaves the same as API key auth', async () => {
     const viaApiKey = await authenticatedTransaction(
-      async ({ transaction }) => selectCatalogs({}, transaction),
+      async ({ transaction }) => selectPricingModels({}, transaction),
       { apiKey: apiKeyCatAOrg1.token }
     )
     expect(
@@ -1411,7 +1421,7 @@ describe('RLS for selectCatalogs', () => {
     ).toBe(true)
   })
 
-  it("user with membership in only one organization cannot access other organizations' catalogs", async () => {
+  it("user with membership in only one organization cannot access other organizations' pricingModels", async () => {
     const onlyOrg2Key = (
       await setupUserAndApiKey({
         organizationId: catOrg2.id,
@@ -1420,13 +1430,16 @@ describe('RLS for selectCatalogs', () => {
     ).apiKey
     const result = await authenticatedTransaction(
       async ({ transaction }) =>
-        selectCatalogs({ organizationId: catOrg1.id }, transaction),
+        selectPricingModels(
+          { organizationId: catOrg1.id },
+          transaction
+        ),
       { apiKey: onlyOrg2Key.token }
     )
     expect(result).toHaveLength(0)
   })
 
-  it("user with membership in only one organization cannot access other organizations' catalogs", async () => {
+  it("user with membership in only one organization cannot access other organizations' pricingModels", async () => {
     const onlyOrg2Key = (
       await setupUserAndApiKey({
         organizationId: catOrg2.id,
@@ -1435,7 +1448,10 @@ describe('RLS for selectCatalogs', () => {
     ).apiKey
     const result = await authenticatedTransaction(
       async ({ transaction }) =>
-        selectCatalogs({ organizationId: catOrg1.id }, transaction),
+        selectPricingModels(
+          { organizationId: catOrg1.id },
+          transaction
+        ),
       { apiKey: onlyOrg2Key.token }
     )
     expect(result).toHaveLength(0)
@@ -1445,7 +1461,7 @@ describe('RLS for selectCatalogs', () => {
 describe('Second-order RLS defense in depth', () => {
   it('explicitly querying by ID from another organization still fails RLS', async () => {
     const { organization: o1 } = await setupOrg()
-    const { catalog: c2, product: p2 } = await setupOrg()
+    const { pricingModel: c2, product: p2 } = await setupOrg()
     const k1 = (
       await setupUserAndApiKey({
         organizationId: o1.id,
@@ -1460,7 +1476,7 @@ describe('Second-order RLS defense in depth', () => {
     expect(prods).toHaveLength(0)
     const cats = await authenticatedTransaction(
       async ({ transaction }) =>
-        selectCatalogs({ id: c2.id }, transaction),
+        selectPricingModels({ id: c2.id }, transaction),
       { apiKey: k1.token }
     )
     expect(cats).toHaveLength(0)
@@ -1521,7 +1537,7 @@ describe('Second-order RLS defense in depth', () => {
     await expect(
       authenticatedTransaction(
         async ({ transaction }) => {
-          await insertCatalog(
+          await insertPricingModel(
             {
               organizationId: organization.id,
               name: 'Wrong Mode',
@@ -1564,7 +1580,7 @@ describe('Second-order RLS defense in depth', () => {
               active: true,
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
-              catalogId: o2.catalog.id,
+              pricingModelId: o2.pricingModel.id,
               externalId: null,
               default: false,
               slug: null,

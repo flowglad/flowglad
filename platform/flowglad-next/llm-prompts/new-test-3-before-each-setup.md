@@ -61,7 +61,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { UsageMeter } from '@/db/schema/usageMeters'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingMeter } from '@/db/schema/pricingMeters'
 import { Product } from '@/db/schema/products'
 import {
   LedgerEntryStatus,
@@ -76,7 +76,7 @@ import { aggregateBalanceForLedgerAccountFromEntries } from './tableMethods/ledg
 
 describe('Ledger Management System', async () => {
   let organization: Organization.Record
-  let catalog: Catalog.Record
+  let pricingMeter: PricingMeter.Record
   let product: Product.Record
   let price: Price.Record
   let customer: Customer.Record
@@ -90,7 +90,7 @@ describe('Ledger Management System', async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
     price = orgData.price
-    catalog = orgData.catalog
+    pricingMeter = orgData.pricingMeter
     product = orgData.product
 
     customer = await setupCustomer({
@@ -109,7 +109,7 @@ describe('Ledger Management System', async () => {
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter',
-      catalogId: catalog.id,
+      pricingMeterId: pricingMeter.id,
       livemode: true,
     })
 
@@ -198,7 +198,7 @@ import { Customer } from '@/db/schema/customers'
 import { Subscription } from '@/db/schema/subscriptions'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingMeter } from '@/db/schema/pricingMeters'
 import { UsageEvent } from '@/db/schema/usageEvents'
 import {
   UsageCredit,
@@ -213,7 +213,7 @@ import { BillingRun } from '@/db/schema/billingRuns'
 describe('tabulateOutstandingUsageCosts', () => {
   let organization: Organization.Record
   let product: Product.Record
-  let catalog: Catalog.Record
+  let pricingMeter: PricingMeter.Record
   let price: Price.Record
   let usageBasedPrice: Price.Record
   let customer: Customer.Record
@@ -226,7 +226,7 @@ describe('tabulateOutstandingUsageCosts', () => {
     organization = orgData.organization
     product = orgData.product
     price = orgData.price
-    catalog = orgData.catalog
+    pricingMeter = orgData.pricingMeter
 
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -239,7 +239,7 @@ describe('tabulateOutstandingUsageCosts', () => {
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter For Tabulation',
-      catalogId: catalog.id,
+      pricingMeterId: pricingMeter.id,
     })
 
     usageBasedPrice = await setupPrice({
@@ -302,7 +302,7 @@ describe('priceMethods.ts', () => {
       organizationId: organization.id,
       name: 'Test Product',
       livemode: true,
-      catalogId: setup.catalog.id,
+      pricingMeterId: setup.pricingMeter.id,
     })
 
     // Setup price

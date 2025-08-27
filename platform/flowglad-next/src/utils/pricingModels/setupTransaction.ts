@@ -3,44 +3,44 @@ import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { DbTransaction } from '@/db/types'
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
-import { safelyInsertCatalog } from '@/db/tableMethods/catalogMethods'
-import { Catalog } from '@/db/schema/catalogs'
+import { safelyInsertPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId } from '@/db/tableMethods/productFeatureMethods'
 import {
-  SetupCatalogInput,
-  SetupCatalogProductInput,
-  validateSetupCatalogInput,
-} from '@/utils/catalogs/setupSchemas'
+  SetupPricingModelInput,
+  SetupPricingModelProductInput,
+  validateSetupPricingModelInput,
+} from '@/utils/pricingModels/setupSchemas'
 import { Feature } from '@/db/schema/features'
-import { bulkInsertOrDoNothingUsageMetersBySlugAndCatalogId } from '@/db/tableMethods/usageMeterMethods'
+import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
 import { FeatureType, PriceType } from '@/types'
-import { bulkInsertOrDoNothingFeaturesByCatalogIdAndSlug } from '@/db/tableMethods/featureMethods'
+import { bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug } from '@/db/tableMethods/featureMethods'
 import { hashData } from '@/utils/backendCore'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { ProductFeature } from '@/db/schema/productFeatures'
 
 export const externalIdFromProductData = (
-  product: SetupCatalogProductInput,
-  catalogId: string
+  product: SetupPricingModelProductInput,
+  pricingModelId: string
 ) => {
-  return hashData(JSON.stringify({ ...product, catalogId }))
+  return hashData(JSON.stringify({ ...product, pricingModelId }))
 }
 
-export const setupCatalogTransaction = async (
+export const setupPricingModelTransaction = async (
   {
     input: rawInput,
     organizationId,
     livemode,
   }: {
-    input: SetupCatalogInput
+    input: SetupPricingModelInput
     organizationId: string
     livemode: boolean
   },
   transaction: DbTransaction
 ) => {
-  const input = validateSetupCatalogInput(rawInput)
-  const catalogInsert: Catalog.Insert = {
+  const input = validateSetupPricingModelInput(rawInput)
+  const pricingModelInsert: PricingModel.Insert = {
     name: input.name,
     livemode,
     organizationId,
@@ -50,8 +50,8 @@ export const setupCatalogTransaction = async (
     organizationId,
     transaction
   )
-  const catalog = await safelyInsertCatalog(
-    catalogInsert,
+  const pricingModel = await safelyInsertPricingModel(
+    pricingModelInsert,
     transaction
   )
   const usageMeterInserts: UsageMeter.Insert[] =
@@ -60,10 +60,10 @@ export const setupCatalogTransaction = async (
       name: usageMeter.name,
       livemode,
       organizationId,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     }))
   const usageMeters =
-    await bulkInsertOrDoNothingUsageMetersBySlugAndCatalogId(
+    await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
       usageMeterInserts,
       transaction
     )
@@ -75,7 +75,7 @@ export const setupCatalogTransaction = async (
       const coreParams: Pick<
         Feature.Insert,
         | 'slug'
-        | 'catalogId'
+        | 'pricingModelId'
         | 'livemode'
         | 'organizationId'
         | 'name'
@@ -84,7 +84,7 @@ export const setupCatalogTransaction = async (
         slug: feature.slug,
         name: feature.name,
         description: feature.description,
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode,
         organizationId,
       }
@@ -115,7 +115,7 @@ export const setupCatalogTransaction = async (
     }
   )
   const features =
-    await bulkInsertOrDoNothingFeaturesByCatalogIdAndSlug(
+    await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
       featureInserts,
       transaction
     )
@@ -123,10 +123,13 @@ export const setupCatalogTransaction = async (
     (product) => {
       return {
         ...product.product,
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode,
         organizationId,
-        externalId: externalIdFromProductData(product, catalog.id),
+        externalId: externalIdFromProductData(
+          product,
+          pricingModel.id
+        ),
       }
     }
   )
@@ -141,7 +144,7 @@ export const setupCatalogTransaction = async (
   const priceInserts: Price.Insert[] = input.products.flatMap(
     (product) => {
       const productId = productsByExternalId.get(
-        externalIdFromProductData(product, catalog.id)
+        externalIdFromProductData(product, pricingModel.id)
       )?.id
       if (!productId) {
         throw new Error(`Product ${product.product.name} not found`)
@@ -189,7 +192,7 @@ export const setupCatalogTransaction = async (
           throw new Error(`Feature ${featureSlug} not found`)
         }
         const productId = productsByExternalId.get(
-          externalIdFromProductData(product, catalog.id)
+          externalIdFromProductData(product, pricingModel.id)
         )?.id
         if (!productId) {
           throw new Error(`Product ${product.product.name} not found`)
@@ -211,7 +214,7 @@ export const setupCatalogTransaction = async (
     )
 
   return {
-    catalog,
+    pricingModel,
     products,
     prices,
     features,

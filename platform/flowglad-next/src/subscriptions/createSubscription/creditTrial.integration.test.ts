@@ -43,20 +43,20 @@ import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 describe('Subscription Activation Workflow E2E', () => {
   it('should handle activating a credit trial subscription', async () => {
     // Setup:
-    const { organization, catalog } = await setupOrg()
+    const { organization, pricingModel } = await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'API Calls',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
     const toggleFeature = await setupToggleFeature({
       organizationId: organization.id,
       name: 'Cool Toggle',
       livemode: true,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
     const oneTimeCreditGrant = await setupUsageCreditGrantFeature({
       organizationId: organization.id,
@@ -65,7 +65,7 @@ describe('Subscription Activation Workflow E2E', () => {
       usageMeterId: usageMeter.id,
       amount: 1000,
       renewalFrequency: FeatureUsageGrantFrequency.Once,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
     const recurringCreditGrant = await setupUsageCreditGrantFeature({
       organizationId: organization.id,
@@ -74,13 +74,13 @@ describe('Subscription Activation Workflow E2E', () => {
       usageMeterId: usageMeter.id,
       amount: 100,
       renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
 
     const product = await setupProduct({
       organizationId: organization.id,
       name: 'Test API Product',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
     await setupProductFeature({
       productId: product.id,

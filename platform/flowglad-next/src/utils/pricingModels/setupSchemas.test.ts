@@ -1,8 +1,8 @@
 import { expect, it, describe } from 'vitest'
 import {
-  SetupCatalogInput,
-  setupCatalogSchema,
-  validateSetupCatalogInput,
+  SetupPricingModelInput,
+  setupPricingModelSchema,
+  validateSetupPricingModelInput,
 } from './setupSchemas'
 import {
   FeatureType,
@@ -12,10 +12,10 @@ import {
 } from '@/types'
 import { ZodError } from 'zod'
 
-describe('setupCatalogSchema', () => {
+describe('setupPricingModelSchema', () => {
   it('should be valid', () => {
-    const input: SetupCatalogInput = {
-      name: 'Test Catalog',
+    const input: SetupPricingModelInput = {
+      name: 'Test PricingModel',
       isDefault: false,
       features: [
         {
@@ -63,40 +63,40 @@ describe('setupCatalogSchema', () => {
       ],
       usageMeters: [],
     }
-    const schema = setupCatalogSchema.parse(input)
+    const schema = setupPricingModelSchema.parse(input)
     expect(schema).toBeDefined()
   })
 })
 
-describe('validateSetupCatalogInput', () => {
+describe('validateSetupPricingModelInput', () => {
   it('returns parsed input with default isDefault=false when given only required fields', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'Only Required',
       isDefault: false,
       features: [],
       usageMeters: [],
       products: [],
     }
-    const parsed = validateSetupCatalogInput(input)
+    const parsed = validateSetupPricingModelInput(input)
     expect(parsed.isDefault).toBe(false)
     expect(parsed.name).toBe('Only Required')
   })
 
   it('preserves isDefault=true when provided', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'With Default',
       isDefault: true,
       features: [],
       usageMeters: [],
       products: [],
     }
-    const parsed = validateSetupCatalogInput(input)
+    const parsed = validateSetupPricingModelInput(input)
     expect(parsed.isDefault).toBe(true)
   })
 
-  it('parses a valid catalog with complex combination of features, usageMeters, products, and prices', () => {
-    const input: SetupCatalogInput = {
-      name: 'Complex Catalog',
+  it('parses a valid pricingModel with complex combination of features, usageMeters, products, and prices', () => {
+    const input: SetupPricingModelInput = {
+      name: 'Complex PricingModel',
       isDefault: false,
       features: [
         {
@@ -171,13 +171,13 @@ describe('validateSetupCatalogInput', () => {
         },
       ],
     }
-    expect(() => validateSetupCatalogInput(input)).not.toThrow()
-    const parsed = validateSetupCatalogInput(input)
+    expect(() => validateSetupPricingModelInput(input)).not.toThrow()
+    const parsed = validateSetupPricingModelInput(input)
     expect(parsed).toBeDefined()
   })
 
   it('throws if two features share the same slug', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'DupFeat',
       isDefault: false,
       features: [
@@ -201,13 +201,13 @@ describe('validateSetupCatalogInput', () => {
       usageMeters: [],
       products: [],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       'Feature with slug dup already exists'
     )
   })
 
   it('throws if two usage meters share the same slug', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'DupMeter',
       isDefault: false,
       features: [],
@@ -217,13 +217,13 @@ describe('validateSetupCatalogInput', () => {
       ],
       products: [],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       'Usage meter with slug dup already exists'
     )
   })
 
   it('throws if a product.features entry refers to a nonexistent feature slug', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'NoFeat',
       isDefault: false,
       features: [
@@ -255,13 +255,13 @@ describe('validateSetupCatalogInput', () => {
         },
       ],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       'Feature with slug no_such does not exist'
     )
   })
 
   it("throws if a usageCreditGrant feature's usageMeterSlug is not defined in usageMeters", () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'NoMeter',
       isDefault: false,
       features: [
@@ -296,13 +296,13 @@ describe('validateSetupCatalogInput', () => {
         },
       ],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       'Usage meter with slug umX does not exist'
     )
   })
 
   it('throws if any price entry has no slug', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'NoPriceSlug',
       isDefault: false,
       features: [],
@@ -342,13 +342,13 @@ describe('validateSetupCatalogInput', () => {
         },
       ],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       /Price slug is required/
     )
   })
 
   it('throws if a usage price entry is missing usageMeterSlug', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'NoUsageSlug',
       isDefault: false,
       features: [],
@@ -388,13 +388,13 @@ describe('validateSetupCatalogInput', () => {
         },
       ],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       'Usage meter slug is required for usage price'
     )
   })
 
   it("throws if a usage price's usageMeterSlug is not defined", () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'BadUsage',
       isDefault: false,
       features: [],
@@ -434,13 +434,13 @@ describe('validateSetupCatalogInput', () => {
         },
       ],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       'Usage meter with slug nope does not exist'
     )
   })
 
   it('throws if two prices share the same slug anywhere in products', () => {
-    const input: SetupCatalogInput = {
+    const input: SetupPricingModelInput = {
       name: 'DupPrice',
       isDefault: false,
       features: [],
@@ -512,14 +512,14 @@ describe('validateSetupCatalogInput', () => {
         },
       ],
     }
-    expect(() => validateSetupCatalogInput(input)).toThrowError(
+    expect(() => validateSetupPricingModelInput(input)).toThrowError(
       'Price with slug dup already exists'
     )
   })
 
   it('throws a ZodError if required fields (name, features, products, usageMeters) are missing or invalid', () => {
-    expect(() => validateSetupCatalogInput({} as any)).toThrowError(
-      ZodError
-    )
+    expect(() =>
+      validateSetupPricingModelInput({} as any)
+    ).toThrowError(ZodError)
   })
 })

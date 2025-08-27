@@ -20,9 +20,12 @@ import {
   usageMetersTableRowDataSchema,
 } from '@/db/schema/usageMeters'
 import { DbTransaction } from '@/db/types'
-import { catalogs, catalogsSelectSchema } from '@/db/schema/catalogs'
+import {
+  pricingModels,
+  pricingModelsSelectSchema,
+} from '@/db/schema/pricingModels'
 import { eq } from 'drizzle-orm'
-import { selectCatalogs } from '@/db/tableMethods/catalogMethods'
+import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof usageMeters,
@@ -59,7 +62,7 @@ export const selectUsageMeters = createSelectFunction(
 export const bulkInsertOrDoNothingUsageMeters =
   createBulkInsertOrDoNothingFunction(usageMeters, config)
 
-export const bulkInsertOrDoNothingUsageMetersBySlugAndCatalogId =
+export const bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId =
   async (
     inserts: UsageMeter.Insert[],
     transaction: DbTransaction
@@ -68,7 +71,7 @@ export const bulkInsertOrDoNothingUsageMetersBySlugAndCatalogId =
       inserts,
       [
         usageMeters.slug,
-        usageMeters.catalogId,
+        usageMeters.pricingModelId,
         usageMeters.organizationId,
       ],
       transaction
@@ -84,27 +87,32 @@ export const selectUsageMetersCursorPaginated =
     config,
     usageMetersTableRowDataSchema,
     async (data, transaction) => {
-      const catalogIds = data.map((item) => item.catalogId)
-      const catalogs = await selectCatalogs(
-        { id: catalogIds },
+      const pricingModelIds = data.map((item) => item.pricingModelId)
+      const pricingModels = await selectPricingModels(
+        { id: pricingModelIds },
         transaction
       )
-      const catalogsById = new Map(
-        catalogs.map((catalog) => [catalog.id, catalog])
+      const pricingModelsById = new Map(
+        pricingModels.map((pricingModel) => [
+          pricingModel.id,
+          pricingModel,
+        ])
       )
 
       return data.map((item) => {
-        const catalog = catalogsById.get(item.catalogId)
-        if (!catalog) {
+        const pricingModel = pricingModelsById.get(
+          item.pricingModelId
+        )
+        if (!pricingModel) {
           throw new Error(
-            `Catalog not found for usage meter ${item.id}`
+            `PricingModel not found for usage meter ${item.id}`
           )
         }
         return {
           usageMeter: item,
-          catalog: {
-            id: catalog.id,
-            name: catalog.name,
+          pricingModel: {
+            id: pricingModel.id,
+            name: pricingModel.name,
           },
         }
       })

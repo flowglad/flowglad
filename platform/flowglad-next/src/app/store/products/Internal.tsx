@@ -8,7 +8,7 @@ import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import { ProductWithPrices } from '@/db/schema/prices'
 import { ProductsTable, ProductsTableFilters } from './ProductsTable'
 import { trpc } from '@/app/_trpc/client'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
@@ -22,15 +22,17 @@ export enum FocusedTab {
 }
 
 type Props = {
-  products: (ProductWithPrices & { catalog: Catalog.ClientRecord })[]
+  products: (ProductWithPrices & {
+    pricingModel: PricingModel.ClientRecord
+  })[]
 }
 
 function InternalProductsPage({ products: initialProducts }: Props) {
   const [isCreateProductOpen, setIsCreateProductOpen] =
     useState(false)
   const [activeTab, setActiveTab] = useState<string>('all')
-  const { data } = trpc.catalogs.getDefault.useQuery({})
-  const defaultCatalog = data?.catalog
+  const { data } = trpc.pricingModels.getDefault.useQuery({})
+  const defaultPricingModel = data?.pricingModel
 
   const getFilterForTab = (tab: string): ProductsTableFilters => {
     if (tab === 'all') {
@@ -71,11 +73,11 @@ function InternalProductsPage({ products: initialProducts }: Props) {
           </TabsContent>
         </Tabs>
       </div>
-      {defaultCatalog && (
+      {defaultPricingModel && (
         <CreateProductModal
           isOpen={isCreateProductOpen}
           setIsOpen={setIsCreateProductOpen}
-          defaultCatalogId={defaultCatalog.id}
+          defaultPricingModelId={defaultPricingModel.id}
         />
       )}
     </InternalPageContainer>

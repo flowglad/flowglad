@@ -29,7 +29,7 @@ describe('priceMethods.ts', () => {
       organizationId: organization.id,
       name: 'Test Product',
       livemode: true,
-      catalogId: setup.catalog.id,
+      pricingModelId: setup.pricingModel.id,
     })
 
     // Setup price
@@ -448,7 +448,7 @@ describe('priceMethods.ts', () => {
         const secondProduct = await setupProduct({
           organizationId: organization.id,
           name: 'Second Test Product',
-          catalogId: product.catalogId,
+          pricingModelId: product.pricingModelId,
         })
 
         // Create a default price for the second product
@@ -484,15 +484,15 @@ describe('priceMethods.ts', () => {
 
   // Slug uniqueness RLS policy tests
   describe('Slug uniqueness policies', () => {
-    it('throws an error when inserting a price with duplicate slug in same catalog across products', async () => {
+    it('throws an error when inserting a price with duplicate slug in same pricing model across products', async () => {
       const slug = 'duplicate-slug'
       await expect(
         adminTransaction(async ({ transaction }) => {
-          // Create a second product in the same catalog
+          // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
             organizationId: organization.id,
             name: 'Second Product',
-            catalogId: product.catalogId,
+            pricingModelId: product.pricingModelId,
           })
           // Insert first price with slug on the original product
           await insertPrice(
@@ -540,16 +540,16 @@ describe('priceMethods.ts', () => {
       ).rejects.toThrow(/duplicate slug/)
     })
 
-    it('throws an error when updating a price slug to one that already exists in the same catalog', async () => {
+    it('throws an error when updating a price slug to one that already exists in the same pricing model', async () => {
       const slug1 = 'slug-one'
       const slug2 = 'slug-two'
       await expect(
         adminTransaction(async ({ transaction }) => {
-          // Create a second product in the same catalog
+          // Create a second product in the same pricing model
           const secondProduct = await setupProduct({
             organizationId: organization.id,
             name: 'Second Product',
-            catalogId: product.catalogId,
+            pricingModelId: product.pricingModelId,
           })
           // Insert first price with slug1 on the original product
           const firstPrice = await insertPrice(

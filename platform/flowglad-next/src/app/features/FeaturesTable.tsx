@@ -16,12 +16,12 @@ import { PopoverMenuItem } from '@/components/PopoverMenu'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
 
 export interface FeaturesTableFilters {
-  catalogId?: string
+  pricingModelId?: string
 }
 
 interface FeatureRow {
   feature: Feature.ClientRecord
-  catalog: {
+  pricingModel: {
     id: string
     name: string
   }
@@ -132,11 +132,11 @@ const FeaturesTable = ({
           header: ({ column }) => (
             <ColumnHeaderCell title="Catalog" column={column} />
           ),
-          accessorKey: 'catalog.name',
+          accessorKey: 'pricingModel.name',
           cell: ({ row: { original: cellData } }) => {
-            const catalogName = cellData.catalog?.name
-            if (catalogName) {
-              return <div className="w-fit">{catalogName}</div>
+            const pricingModelName = cellData.pricingModel?.name
+            if (pricingModelName) {
+              return <div className="w-fit">{pricingModelName}</div>
             }
             return <div className="w-fit">-</div>
           },

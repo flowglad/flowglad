@@ -10,7 +10,7 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import CatalogSelect from './CatalogSelect'
+import PricingModelSelect from './PricingModelSelect'
 import {
   Select,
   SelectContent,
@@ -48,8 +48,8 @@ export default function UsageMeterFormFields({
         )}
       />
       <div className="w-full relative flex flex-col gap-3">
-        <CatalogSelect
-          name="usageMeter.catalogId"
+        <PricingModelSelect
+          name="usageMeter.pricingModelId"
           control={form.control}
         />
       </div>
