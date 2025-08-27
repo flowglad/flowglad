@@ -32,7 +32,7 @@ import {
 import { createInvoiceNumberBase } from '@/utils/core'
 import { z } from 'zod'
 import { users } from './users'
-import { catalogs } from './pricingModels'
+import { pricingModels } from './pricingModels'
 import { sql } from 'drizzle-orm'
 
 const TABLE_NAME = 'customers'
@@ -57,7 +57,10 @@ const columns = {
   billingAddress: jsonb('billing_address'),
   externalId: text('external_id').notNull(),
   userId: nullableStringForeignKey('user_id', users),
-  catalogId: nullableStringForeignKey('catalog_id', catalogs),
+  pricingModelId: nullableStringForeignKey(
+    'pricing_model_id',
+    pricingModels
+  ),
   stackAuthHostedBillingUserId: text(
     'stack_auth_hosted_billing_user_id'
   ),
@@ -82,7 +85,7 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
     //   table.email,
     //   table.livemode,
     // ]),
-    constructIndex(TABLE_NAME, [table.catalogId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,
       table.externalId,
@@ -248,7 +251,7 @@ export const customersPaginatedTableRowInputSchema =
     z.object({
       archived: z.boolean().optional(),
       organizationId: z.string().optional(),
-      catalogId: z.string().optional(),
+      pricingModelId: z.string().optional(),
     })
   )
 

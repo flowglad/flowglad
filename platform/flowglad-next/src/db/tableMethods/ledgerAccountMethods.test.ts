@@ -19,14 +19,14 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { Catalog } from '@/db/schema/pricingModels'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { core } from '@/utils/core'
 
 describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
   let organization: Organization.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
   let product: Product.Record
   let price: Price.Record
   let customer: Customer.Record
@@ -40,7 +40,7 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
     product = orgData.product
     price = orgData.price
 
@@ -67,21 +67,21 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
     usageMeter1 = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter 1',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       livemode: true,
     })
 
     usageMeter2 = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter 2',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       livemode: true,
     })
 
     usageMeter3 = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter 3',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       livemode: true,
     })
 

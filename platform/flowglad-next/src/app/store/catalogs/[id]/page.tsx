@@ -1,26 +1,31 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectCatalogs } from '@/db/tableMethods/pricingModelMethods'
-import InnerCatalogDetailsPage from './InnerCatalogDetailsPage'
+import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
+import InnerPricingModelDetailsPage from './InnerPricingModelDetailsPage'
 
-interface CatalogPageProps {
+interface PricingModelPageProps {
   params: Promise<{ id: string }>
 }
 
-const CatalogPage = async ({ params }: CatalogPageProps) => {
+const PricingModelPage = async ({
+  params,
+}: PricingModelPageProps) => {
   const { id } = await params
-  const catalog = await authenticatedTransaction(
+  const pricingModel = await authenticatedTransaction(
     async ({ transaction }) => {
-      const [catalog] = await selectCatalogs({ id }, transaction)
-      return catalog
+      const [pricingModel] = await selectPricingModels(
+        { id },
+        transaction
+      )
+      return pricingModel
     }
   )
 
-  if (!catalog) {
+  if (!pricingModel) {
     notFound()
   }
 
-  return <InnerCatalogDetailsPage catalog={catalog} />
+  return <InnerPricingModelDetailsPage pricingModel={pricingModel} />
 }
 
-export default CatalogPage
+export default PricingModelPage

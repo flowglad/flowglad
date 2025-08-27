@@ -99,7 +99,7 @@ const CustomerMoreMenuCell = ({
 export interface CustomersTableFilters {
   archived?: boolean
   organizationId?: string
-  catalogId?: string
+  pricingModelId?: string
 }
 
 const CustomersTable = ({

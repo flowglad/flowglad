@@ -13,8 +13,8 @@ const ChatFocusedActionView = () => {
     setFocusedActionId,
     setAction,
   } = useChatActionsContext()
-  const { data } = trpc.catalogs.getDefault.useQuery({})
-  const defaultCatalog = data?.catalog
+  const { data } = trpc.pricingModels.getDefault.useQuery({})
+  const defaultPricingModel = data?.pricingModel
   if (!focusedActionId) {
     return null
   }
@@ -26,7 +26,7 @@ const ChatFocusedActionView = () => {
   if (
     classification.noun === Nouns.Product &&
     classification.verb === Verbs.Create &&
-    defaultCatalog
+    defaultPricingModel
   ) {
     return (
       <CreateProductModal
@@ -36,7 +36,7 @@ const ChatFocusedActionView = () => {
             setFocusedActionId(null)
           }
         }}
-        defaultCatalogId={defaultCatalog?.id}
+        defaultPricingModelId={defaultPricingModel?.id}
         onSubmitStart={() => {
           setAction({
             ...action,

@@ -28,7 +28,7 @@ const defaultProduct: Product.ClientInsert = {
   displayFeatures: [],
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
-  pricingModelId: 'catalog_111____',
+  pricingModelId: 'pricing_model_111____',
   default: false,
   slug: '',
 }

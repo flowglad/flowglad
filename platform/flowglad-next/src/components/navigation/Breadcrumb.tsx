@@ -87,7 +87,7 @@ const BreadcrumbComponent = ({
  */
 const noCrumbList = [
   'finance',
-  'catalog',
+  'pricing-models',
   'store',
   'customers',
   'settings',

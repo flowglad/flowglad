@@ -1,6 +1,6 @@
-import { setupPricingModelSchema } from '@/utils/catalogs/setupSchemas'
+import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { ToolConstructor } from '../toolWrap'
-import { setupPricingModelTransaction } from '@/utils/catalogs/setupTransaction'
+import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 
@@ -35,7 +35,7 @@ Usage Meters: ${usageMeterSlugs}`
 
 export const setupPricingModel: ToolConstructor<typeof schema> = {
   name: 'setupPricingModel',
-  description: 'Setup a catalog',
+  description: 'Setup a pricing model',
   schema: {
     pricingModel: setupPricingModelSchema,
   },

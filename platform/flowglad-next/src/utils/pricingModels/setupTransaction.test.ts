@@ -4,12 +4,12 @@ import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupPricingModelTransaction,
   externalIdFromProductData,
-} from '@/utils/catalogs/setupTransaction'
+} from '@/utils/pricingModels/setupTransaction'
 import { hashData } from '@/utils/backendCore'
 import type {
   SetupPricingModelInput,
   SetupPricingModelProductInput,
-} from '@/utils/catalogs/setupSchemas'
+} from '@/utils/pricingModels/setupSchemas'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -49,11 +49,11 @@ describe('externalIdFromProductData', () => {
       features: [],
     }
     const expected = hashData(
-      JSON.stringify({ ...dummy, catalogId: 'catalogId' })
+      JSON.stringify({ ...dummy, pricingModelId: 'pricingModelId' })
     )
-    expect(externalIdFromProductData(dummy, 'catalogId')).toEqual(
-      expected
-    )
+    expect(
+      externalIdFromProductData(dummy, 'pricingModelId')
+    ).toEqual(expected)
   })
 
   it('returns a consistent hash for identical inputs', () => {
@@ -72,8 +72,8 @@ describe('externalIdFromProductData', () => {
       prices: [],
       features: [],
     }
-    const h1 = externalIdFromProductData(dummy, 'catalogId')
-    const h2 = externalIdFromProductData(dummy, 'catalogId')
+    const h1 = externalIdFromProductData(dummy, 'pricingModelId')
+    const h2 = externalIdFromProductData(dummy, 'pricingModelId')
     expect(h1).toEqual(h2)
   })
 })
@@ -141,7 +141,7 @@ describe('setupPricingModelTransaction (integration)', () => {
     ).rejects.toThrow('Usage meter with slug missing does not exist')
   })
 
-  it('creates catalog, features, products, prices, and productFeatures on happy path', async () => {
+  it('creates pricingModel, features, products, prices, and productFeatures on happy path', async () => {
     const input: SetupPricingModelInput = {
       name: 'MyPricingModel',
       isDefault: true,

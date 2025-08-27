@@ -10,7 +10,7 @@ import {
   SetupPricingModelInput,
   SetupPricingModelProductInput,
   validateSetupPricingModelInput,
-} from '@/utils/catalogs/setupSchemas'
+} from '@/utils/pricingModels/setupSchemas'
 import { Feature } from '@/db/schema/features'
 import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
 import { FeatureType, PriceType } from '@/types'

@@ -76,14 +76,14 @@ export const selectDefaultPricingModel = async (
   }: { organizationId: string; livemode: boolean },
   transaction: DbTransaction
 ): Promise<PricingModel.Record | null> => {
-  const [catalog] = await selectPricingModels(
+  const [pricingModel] = await selectPricingModels(
     { organizationId, livemode, isDefault: true },
     transaction
   )
-  if (!catalog) {
+  if (!pricingModel) {
     return null
   }
-  return catalog
+  return pricingModel
 }
 
 export const makePricingModelDefault = async (
@@ -129,15 +129,15 @@ const setPricingModelsForOrganizationToNonDefault = async (
 }
 
 export const safelyUpdatePricingModel = async (
-  catalog: PricingModel.Update,
+  pricingModel: PricingModel.Update,
   transaction: DbTransaction
 ) => {
   /**
    * If price is default
    */
-  if (catalog.isDefault) {
+  if (pricingModel.isDefault) {
     const existingPricingModel = await selectPricingModelById(
-      catalog.id,
+      pricingModel.id,
       transaction
     )
     await setPricingModelsForOrganizationToNonDefault(
@@ -145,23 +145,23 @@ export const safelyUpdatePricingModel = async (
       transaction
     )
   }
-  return updatePricingModel(catalog, transaction)
+  return updatePricingModel(pricingModel, transaction)
 }
 
 export const safelyInsertPricingModel = async (
-  catalog: PricingModel.Insert,
+  pricingModel: PricingModel.Insert,
   transaction: DbTransaction
 ) => {
-  if (catalog.isDefault) {
+  if (pricingModel.isDefault) {
     await setPricingModelsForOrganizationToNonDefault(
-      catalog.organizationId,
+      pricingModel.organizationId,
       transaction
     )
   }
-  return insertPricingModel(catalog, transaction)
+  return insertPricingModel(pricingModel, transaction)
 }
 
-const catalogTableRowSchema = z.object({
+const pricingModelTableRowSchema = z.object({
   pricingModel: pricingModelsClientSelectSchema,
   productsCount: z.number(),
 })
@@ -170,7 +170,7 @@ export const selectPricingModelsTableRows =
   createCursorPaginatedSelectFunction(
     pricingModels,
     config,
-    catalogTableRowSchema,
+    pricingModelTableRowSchema,
     async (pricingModels, transaction) => {
       const productsByPricingModelId = new Map<string, number>()
 
@@ -178,7 +178,7 @@ export const selectPricingModelsTableRows =
         const products = await selectProducts(
           {
             pricingModelId: pricingModels.map(
-              (catalog) => catalog.id
+              (pricingModel) => pricingModel.id
             ),
           },
           transaction
@@ -194,9 +194,10 @@ export const selectPricingModelsTableRows =
         })
       }
 
-      return pricingModels.map((catalog) => ({
-        pricingModel: catalog,
-        productsCount: productsByPricingModelId.get(catalog.id) || 0,
+      return pricingModels.map((pricingModel) => ({
+        pricingModel: pricingModel,
+        productsCount:
+          productsByPricingModelId.get(pricingModel.id) || 0,
       }))
     }
   )
@@ -212,11 +213,11 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
      * because pricingModels are one-to-many with products, so we couldn't
      * easily describe our desired "limit" result easily.
      * But in two steps, we can limit the pricingModels, and then get the
-     * products for each catalog.
+     * products for each pricingModel.
      * This COULD create a performance issue if there are a lot of products
      * to fetch, but in practice it should be fine.
      */
-    const catalogResults = await transaction
+    const pricingModelResults = await transaction
       .select({
         pricingModel: pricingModels,
         usageMeter: usageMeters,
@@ -238,7 +239,7 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       string,
       UsageMeter.ClientRecord[]
     >()
-    catalogResults.forEach(({ pricingModel, usageMeter }) => {
+    pricingModelResults.forEach(({ pricingModel, usageMeter }) => {
       uniquePricingModelsMap.set(
         pricingModel.id,
         pricingModelsClientSelectSchema.parse(pricingModel)
@@ -291,8 +292,8 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
   }
 
 /**
- * Gets the catalog for a customer. If no catalog explicitly associated,
- * returns the default catalog for the organization.
+ * Gets the pricingModel for a customer. If no pricingModel explicitly associated,
+ * returns the default pricingModel for the organization.
  * @param customer
  * @param transaction
  * @returns
@@ -301,23 +302,25 @@ export const selectPricingModelForCustomer = async (
   customer: Customer.Record,
   transaction: DbTransaction
 ): Promise<PricingModelWithProductsAndUsageMeters> => {
-  if (customer.catalogId) {
-    const [catalog] =
+  if (customer.pricingModelId) {
+    const [pricingModel] =
       await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: customer.catalogId },
+        { id: customer.pricingModelId },
         transaction
       )
-    if (catalog) {
-      return catalog
+    if (pricingModel) {
+      return pricingModel
     }
   }
-  const [catalog] =
+  const [pricingModel] =
     await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
       { isDefault: true, organizationId: customer.organizationId },
       transaction
     )
   return {
-    ...catalog,
-    products: catalog.products.filter((product) => product.active),
+    ...pricingModel,
+    products: pricingModel.products.filter(
+      (product) => product.active
+    ),
   }
 }

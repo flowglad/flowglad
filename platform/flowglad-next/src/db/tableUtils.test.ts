@@ -803,20 +803,20 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
         expect(createdPricingModel.organizationId).toBe(
           org1Data.organization.id
         )
-        const catalogId = createdPricingModel.id
+        const pricingModelId = createdPricingModel.id
         // SELECT
         const selectedPricingModels = await transaction
           .select()
           .from(pricingModels)
-          .where(eq(pricingModels.id, catalogId))
+          .where(eq(pricingModels.id, pricingModelId))
         expect(selectedPricingModels.length).toBe(1)
-        expect(selectedPricingModels[0].id).toBe(catalogId)
+        expect(selectedPricingModels[0].id).toBe(pricingModelId)
 
         // UPDATE
         const updatedPricingModelResult = await transaction
           .update(pricingModels)
           .set({ name: 'Updated Allowed RLS PricingModel' })
-          .where(eq(pricingModels.id, catalogId))
+          .where(eq(pricingModels.id, pricingModelId))
           .returning()
         expect(updatedPricingModelResult.length).toBe(1)
         expect(updatedPricingModelResult[0].name).toBe(
@@ -902,15 +902,15 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     )
   })
 
-  it('should DENY a user from creating a catalog for another organization due to RLS', async () => {
-    const catalogNameAttempt =
+  it('should DENY a user from creating a pricingModel for another organization due to RLS', async () => {
+    const pricingModelNameAttempt =
       'Test Denied RLS PricingModel - Other Org'
     try {
       await authenticatedTransaction(
         async ({ transaction, livemode }) => {
           expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode is true
           const newPricingModelInput: PricingModel.Insert = {
-            name: catalogNameAttempt,
+            name: pricingModelNameAttempt,
             organizationId: org2Data.organization.id, // Attempting to use other org's ID
             livemode, // PricingModel livemode matches session, but orgId is wrong
           }
@@ -931,7 +931,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
       )
     }
 
-    // Verify (using admin) that the catalog was not actually created
+    // Verify (using admin) that the pricingModel was not actually created
     const checkPricingModel = await adminTransaction(
       async ({ transaction }) => {
         return transaction
@@ -943,7 +943,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
                 pricingModels.organizationId,
                 org2Data.organization.id
               ),
-              eq(pricingModels.name, catalogNameAttempt)
+              eq(pricingModels.name, pricingModelNameAttempt)
             )
           )
       }

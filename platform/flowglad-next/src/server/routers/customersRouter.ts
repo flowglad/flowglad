@@ -36,7 +36,7 @@ import {
   RouteConfig,
 } from '@/utils/openapi'
 import { externalIdInputSchema } from '@/db/tableUtils'
-import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
+import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
@@ -225,7 +225,8 @@ export const getCustomerBilling = protectedProcedure
         .describe(
           'The current subscriptions for the customer. By default, customers can only have one active subscription at a time. This will only return multiple subscriptions if you have enabled multiple subscriptions per customer.'
         ),
-      catalog: catalogWithProductsAndUsageMetersSchema,
+      catalog: pricingModelWithProductsAndUsageMetersSchema,
+      pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
   )
   .query(async ({ input, ctx }) => {
@@ -235,7 +236,7 @@ export const getCustomerBilling = protectedProcedure
     }
     const {
       customer,
-      catalog,
+      pricingModel,
       invoices,
       paymentMethods,
       currentSubscriptions,
@@ -264,7 +265,8 @@ export const getCustomerBilling = protectedProcedure
       ),
       purchases,
       subscriptions,
-      catalog,
+      catalog: pricingModel,
+      pricingModel,
       experimental: {},
     }
   })

@@ -78,17 +78,17 @@ export type SetupPricingModelProductPriceInput = z.infer<
 
 const setupPricingModelProductInputSchema = z.object({
   product: productPricingModelSetupSchema.describe(
-    'The product to add to the catalog. Must be a subset of the products in the catalog.'
+    'The product to add to the pricingModel. Must be a subset of the products in the pricingModel.'
   ),
   prices: z
     .array(setupPricingModelProductPriceInputSchema)
     .describe(
-      'The prices to add to the product. Must be a subset of the prices in the catalog.'
+      'The prices to add to the product. Must be a subset of the prices in the pricingModel.'
     ),
   features: z
     .array(z.string())
     .describe(
-      'The slugs of the features that will granted when they purchase the product. Must be a subset of the slugs of the features in the catalog.'
+      'The slugs of the features that will granted when they purchase the product. Must be a subset of the slugs of the features in the pricingModel.'
     ),
 })
 
@@ -103,7 +103,7 @@ export const setupPricingModelSchema =
       .optional()
       .default(false)
       .describe(
-        'Whether the catalog to be created will be the default catalog for all customers moving forward.'
+        'Whether the pricingModel to be created will be the default pricingModel for all customers moving forward.'
       ),
     features: z.array(featurePricingModelSetupSchema),
     products: z.array(setupPricingModelProductInputSchema),
@@ -113,7 +113,7 @@ export const setupPricingModelSchema =
           pricingModelId: true,
         })
         .describe(
-          'The usage meters to add to the catalog. If the catalog has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
+          'The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
         )
     ),
   })

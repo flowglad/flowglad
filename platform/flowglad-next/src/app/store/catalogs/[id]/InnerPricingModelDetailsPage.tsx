@@ -68,11 +68,15 @@ function InnerPricingModelDetailsPage({
               setIsCreateProductModalOpen(true)
             }}
           />
-          <ProductsTable filters={{ catalogId: catalog.id }} />
+          <ProductsTable
+            filters={{ pricingModelId: pricingModel.id }}
+          />
         </div>
         <div className="flex flex-col gap-5">
           <TableTitle title="Customers" noButtons />
-          <CustomersTable filters={{ catalogId: catalog.id }} />
+          <CustomersTable
+            filters={{ pricingModelId: pricingModel.id }}
+          />
         </div>
         <div className="flex flex-col gap-5">
           <TableTitle

@@ -1,0 +1,70 @@
+---
+title: 'Pricing Models'
+description: 'Easily migrate between different pricing models'
+---
+
+Pricing Models are fundamental to managing your product offerings and pricing within Flowglad. They allow you to group products and their associated prices, enabling flexible segmentation and customization for different customer groups.
+
+## What is a Pricing Model?
+
+Think of a Pricing Model as a distinct price list or product offering. Key characteristics include:
+
+*   **Product Grouping:** Each Pricing Model contains a specific set of Products and their Prices.
+*   **Exclusive Association:**
+    *   Every Product must belong to exactly one Pricing Model.
+    *   Every Customer is associated with exactly one Pricing Model (either explicitly assigned or implicitly via the Default Pricing Model).
+
+This structure is the foundation for controlling which customers see which products and at what price points.
+
+## Why Use Pricing Models?
+
+Pricing Models are essential for implementing sophisticated pricing strategies:
+
+*   **Customer Segmentation:** Easily offer different pricing tiers or product bundles to distinct customer segments (e.g., regional pricing, tiered plans).
+*   **Bespoke Deals:** Create unique, customized pricing models for individual high-value customers with specific negotiated rates across multiple products.
+*   **Smooth Price Migrations:** Introduce new pricing structures gradually. New customers can be onboarded onto a new pricing model with updated prices, while existing customers remain grandfathered on their original pricing models.
+
+## Common Use Cases
+
+Here are practical examples of how Pricing Models can be applied:
+
+<CardGroup cols={2}>
+  <Card title="Cohort-Specific Offers">
+    Create a dedicated pricing model with special rates for a particular group, such as startups participating in an accelerator program (e.g., a "YC Discount Pricing Model").
+  </Card>
+  <Card title="Custom Enterprise Pricing">
+    Need to offer a unique deal to a large customer? Duplicate your standard pricing model, adjust the prices as needed for that specific deal, and assign this new, bespoke pricing model directly to that customer.
+  </Card>
+  <Card title="Phased Price Updates">
+    When updating your general pricing, create a new pricing model reflecting the changes. Set this new pricing model as the default. All *new* signups will receive the updated pricing, while existing customers continue uninterrupted on their current pricing models.
+  </Card>
+</CardGroup>
+
+## Managing Pricing Models
+
+You can create and manage your pricing models through the Flowglad dashboard (under `Store > Pricing Models`) or programmatically via the API.
+
+### Creating Pricing Models
+
+You have two options when creating a new pricing model:
+
+1.  **From Scratch:** Start with an empty pricing model and add products and prices as needed.
+2.  **Duplicate an Existing Pricing Model:** Create an exact copy of an existing pricing model, including all its products and prices. This is highly useful for creating variations or bespoke versions (like the enterprise example) without rebuilding everything. The duplicated pricing model is entirely independent, so modifications won't impact the original.
+
+### Default Pricing Models
+
+Every organization designates one pricing model as the **Default Pricing Model**.
+
+<Note>
+  When a new Customer is created *without* an explicitly specified `pricingModelId`, they are automatically assigned to the organization's current Default Pricing Model.
+</Note>
+
+You can change which pricing model serves as the default at any time. This is the key mechanism for the phased price update use case, ensuring all future customers automatically receive the latest standard pricing.
+
+## Assigning Pricing Models to Customers
+
+While new customers often receive the Default pricing model automatically, you can control pricing model assignments precisely:
+
+*   **At Creation:** Specify a `pricingModelId` when creating a customer to assign them to a non-default pricing model immediately.
+*   **Updating Existing Customers:** You can change a customer's associated pricing model at any point using the API. (Dashboard support for updating a customer's pricing model is planned). This allows you to migrate specific customers between different pricing tiers or offerings manually.
+

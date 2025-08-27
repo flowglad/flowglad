@@ -3,16 +3,16 @@ import { ToolConstructor } from '../toolWrap'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere } from '@/db/tableMethods/pricingModelMethods'
 
-const getDefaultCatalogSchema = {}
+const getDefaultPricingModelSchema = {}
 
-export const getDefaultCatalog: ToolConstructor<
-  typeof getDefaultCatalogSchema
+export const getDefaultPricingModel: ToolConstructor<
+  typeof getDefaultPricingModelSchema
 > = {
-  name: 'getDefaultCatalog',
-  description: 'Get the default catalog for the organization',
-  schema: getDefaultCatalogSchema,
+  name: 'getDefaultPricingModel',
+  description: 'Get the default pricingModel for the organization',
+  schema: getDefaultPricingModelSchema,
   callbackConstructor: (apiKey: string) => async () => {
-    const [catalog] = await authenticatedTransaction(
+    const [pricingModel] = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
           {
@@ -29,7 +29,7 @@ export const getDefaultCatalog: ToolConstructor<
       content: [
         {
           type: 'text',
-          text: `Default catalog: ${JSON.stringify(catalog ?? {})}`,
+          text: `Default pricingModel: ${JSON.stringify(pricingModel ?? {})}`,
         },
       ],
     }

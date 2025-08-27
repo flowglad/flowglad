@@ -10,13 +10,14 @@ import { trpc } from '@/app/_trpc/client'
 interface ClonePricingModelModalProps {
   isOpen: boolean
   setIsOpen: (open: boolean) => void
-  catalog: PricingModel.ClientRecord
+  pricingModel: PricingModel.ClientRecord
 }
 
 const ClonePricingModelModal: React.FC<
   ClonePricingModelModalProps
-> = ({ isOpen, setIsOpen, catalog }) => {
-  const clonePricingModelMutation = trpc.catalogs.clone.useMutation()
+> = ({ isOpen, setIsOpen, pricingModel }) => {
+  const clonePricingModelMutation =
+    trpc.pricingModels.clone.useMutation()
 
   return (
     <FormModal
@@ -25,8 +26,8 @@ const ClonePricingModelModal: React.FC<
       title="Clone PricingModel"
       formSchema={clonePricingModelInputSchema}
       defaultValues={{
-        id: catalog.id,
-        name: `${catalog.name} (Copy)`,
+        id: pricingModel.id,
+        name: `${pricingModel.name} (Copy)`,
       }}
       onSubmit={clonePricingModelMutation.mutateAsync}
       submitButtonText="Clone PricingModel"

@@ -215,7 +215,7 @@ export const clonePricingModelTransaction = async (
   // Bulk insert all new prices
   await bulkInsertPrices(allPriceInserts, transaction)
 
-  // Return the newly created catalog with products and prices
+  // Return the newly created pricing model with products and prices
   const [newPricingModelWithProducts] =
     await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
       { id: newPricingModel.id },

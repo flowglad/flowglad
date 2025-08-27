@@ -564,7 +564,7 @@ export const pricingModelWithProductsAndUsageMetersSchema =
     defaultProduct: productWithPricesSchema
       .optional()
       .describe(
-        'The default product for the catalog. If no product is explicitly set as default, will return undefined.'
+        'The default product for the pricing model. If no product is explicitly set as default, will return undefined.'
       ),
   })
 

@@ -16,7 +16,7 @@ import { CreateProductSchema } from '@/db/schema/prices'
 import { Switch } from '@/components/ui/switch'
 import StatusBadge from '../StatusBadge'
 import AIHoverModal from './AIHoverModal'
-import CatalogSelect from './CatalogSelect'
+import PricingModelSelect from './PricingModelSelect'
 import core from '@/utils/core'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 
@@ -73,8 +73,8 @@ export const ProductFormFields = ({
                       />
                     </FormControl>
                     <FormDescription className="text-xs text-subtle mt-1">
-                      Used to identify the product in its catalog.
-                      Must be unique per-catalog.
+                      Used to identify the product in its pricing
+                      model. Must be unique per-pricing model.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -114,15 +114,15 @@ export const ProductFormFields = ({
             />
             {!editProduct && (
               <div className="w-full relative flex flex-col gap-3">
-                <CatalogSelect
-                  name="product.catalogId"
+                <PricingModelSelect
+                  name="product.pricingModelId"
                   control={form.control}
                 />
               </div>
             )}
             <div className="w-full mt-4">
               <ProductFeatureMultiSelect
-                catalogId={product.catalogId}
+                pricingModelId={product.pricingModelId}
               />
             </div>
             {editProduct && (

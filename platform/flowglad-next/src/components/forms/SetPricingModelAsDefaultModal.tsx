@@ -14,17 +14,17 @@ interface SetPricingModelAsDefaultProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  catalog: PricingModel.ClientRecord
+  pricingModel: PricingModel.ClientRecord
 }
 
-export const catalogToSetPricingModelAsDefaultInput = (
-  catalog: Pick<PricingModel.ClientRecord, 'id' | 'name'>
+export const pricingModelToSetPricingModelAsDefaultInput = (
+  pricingModel: Pick<PricingModel.ClientRecord, 'id' | 'name'>
 ): EditPricingModelInput => {
   return {
-    id: catalog.id,
+    id: pricingModel.id,
     pricingModel: {
-      id: catalog.id,
-      name: catalog.name,
+      id: pricingModel.id,
+      name: pricingModel.name,
       isDefault: true,
     },
   }
@@ -32,12 +32,13 @@ export const catalogToSetPricingModelAsDefaultInput = (
 
 const SetPricingModelAsDefaultModal: React.FC<
   SetPricingModelAsDefaultProps
-> = ({ trigger, isOpen, setIsOpen, catalog }) => {
+> = ({ trigger, isOpen, setIsOpen, pricingModel }) => {
   const router = useRouter()
-  const editPricingModel = trpc.catalogs.update.useMutation()
+  const editPricingModel = trpc.pricingModels.update.useMutation()
 
   const handleMakeDefault = async () => {
-    const data = catalogToSetPricingModelAsDefaultInput(catalog)
+    const data =
+      pricingModelToSetPricingModelAsDefaultInput(pricingModel)
 
     const parsed = editPricingModelSchema.safeParse(data)
     if (!parsed.success) {
@@ -73,8 +74,8 @@ const SetPricingModelAsDefaultModal: React.FC<
     >
       <div className="text-secondary">
         <p>
-          Set {catalog.name} to default? This will be the default
-          catalog for new products.
+          Set {pricingModel.name} to default? This will be the default
+          pricingModel for new products.
         </p>
       </div>
     </Modal>

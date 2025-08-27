@@ -87,7 +87,7 @@ const PricingModelsTable = ({
     initialCurrentCursor: undefined,
     pageSize: 10,
     filters,
-    useQuery: trpc.catalogs.getTableRows.useQuery,
+    useQuery: trpc.pricingModels.getTableRows.useQuery,
   })
 
   const columns = useMemo(
@@ -97,7 +97,7 @@ const PricingModelsTable = ({
           header: ({ column }) => (
             <ColumnHeaderCell title="Name" column={column} />
           ),
-          accessorKey: 'catalog.name',
+          accessorKey: 'pricingModel.name',
           width: '20%',
           cell: ({ row: { original: cellData } }) => (
             <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ const PricingModelsTable = ({
           header: ({ column }) => (
             <ColumnHeaderCell title="ID" column={column} />
           ),
-          accessorKey: 'catalog.id',
+          accessorKey: 'pricingModel.id',
           width: '30%',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell

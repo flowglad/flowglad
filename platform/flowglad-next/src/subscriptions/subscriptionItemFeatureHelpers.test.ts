@@ -37,7 +37,7 @@ import { features as featuresTable } from '@/db/schema/features'
 const setupTestFeaturesAndProductFeatures = async (
   organizationId: string,
   productId: string,
-  catalogId: string,
+  pricingModelId: string,
   livemode: boolean,
   featureSpecs: Array<{
     name: string
@@ -67,7 +67,7 @@ const setupTestFeaturesAndProductFeatures = async (
           organizationId,
           name: spec.usageMeterName,
           livemode,
-          catalogId,
+          pricingModelId,
         })
         usageMeterId = usageMeter.id
       }
@@ -92,7 +92,7 @@ const setupTestFeaturesAndProductFeatures = async (
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           usageMeterId:
             usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
-          catalogId,
+          pricingModelId,
         }
       } else if (spec.type === FeatureType.Toggle) {
         featureInsertData = {
@@ -101,7 +101,7 @@ const setupTestFeaturesAndProductFeatures = async (
           amount: null,
           renewalFrequency: null,
           usageMeterId: null,
-          catalogId,
+          pricingModelId,
         }
       } else {
         throw new Error(
@@ -138,7 +138,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
-    orgData = await setupOrg() // Sets up org, default product, default price, default catalog
+    orgData = await setupOrg() // Sets up org, default product, default price, default pricingModel
     customer = await setupCustomer({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -154,7 +154,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
       organizationId: orgData.organization.id,
       name: 'Product For Feature Tests',
       livemode: true,
-      catalogId: orgData.catalog.id,
+      pricingModelId: orgData.pricingModel.id,
     })
 
     priceForFeatures = await setupPrice({
@@ -240,7 +240,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await setupTestFeaturesAndProductFeatures(
           orgData.organization.id,
           productForFeatures.id,
-          orgData.catalog.id,
+          orgData.pricingModel.id,
           true,
           [
             {
@@ -284,7 +284,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await setupTestFeaturesAndProductFeatures(
           orgData.organization.id,
           productForFeatures.id,
-          orgData.catalog.id,
+          orgData.pricingModel.id,
           true,
           [{ name: featureName, type: FeatureType.Toggle }]
         )
@@ -322,7 +322,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
       ] = await setupTestFeaturesAndProductFeatures(
         orgData.organization.id,
         productForFeatures.id,
-        orgData.catalog.id,
+        orgData.pricingModel.id,
         true,
         [
           {
@@ -381,7 +381,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await setupTestFeaturesAndProductFeatures(
           orgData.organization.id,
           productForFeatures.id,
-          orgData.catalog.id,
+          orgData.pricingModel.id,
           true,
           [{ name: 'Shared Feature', type: FeatureType.Toggle }]
         )
@@ -427,7 +427,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await setupTestFeaturesAndProductFeatures(
           orgData.organization.id,
           productForFeatures.id,
-          orgData.catalog.id,
+          orgData.pricingModel.id,
           true,
           [
             {

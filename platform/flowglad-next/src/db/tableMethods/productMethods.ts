@@ -139,7 +139,7 @@ export const getProductTableRows = async (
     transaction
   )
 
-  // Get products with prices and catalogs
+  // Get products with prices and pricingModels
   const productsResult =
     await selectPricesProductsAndCatalogsForOrganization(
       {},
@@ -180,7 +180,7 @@ export const getProductTableRows = async (
     pricingModelsByProductId.set(p.product.id, p.pricingModel)
   })
 
-  // Format products with prices and catalogs
+  // Format products with prices and pricingModels
   const products = uniqueProducts.map((product) => ({
     product,
     prices: pricesByProductId.get(product.id) ?? [],
@@ -231,7 +231,7 @@ export const selectProductsCursorPaginated =
         PricingModel.ClientRecord[]
       > = groupBy((c) => c.id, pricingModelsForProducts)
 
-      // Format products with prices and catalogs
+      // Format products with prices and pricingModels
       return data.map((product) => ({
         product,
         prices: pricesByProductId[product.id] ?? [],

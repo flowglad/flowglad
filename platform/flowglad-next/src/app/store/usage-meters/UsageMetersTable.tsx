@@ -106,7 +106,7 @@ const UsageMetersTable = ({
           ),
         },
       ] as ColumnDef<{
-        catalog: { id: string; name: string }
+        pricingModel: { id: string; name: string }
         usageMeter: UsageMeter.ClientRecord
       }>[],
     []

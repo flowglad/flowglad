@@ -78,8 +78,8 @@ export const SideNavigation = () => {
   )
   const storeChildItems = [
     {
-      label: 'Catalogs',
-      href: '/store/catalogs',
+      label: 'Pricing Models',
+      href: '/store/pricing-models',
     },
     {
       label: 'Products',

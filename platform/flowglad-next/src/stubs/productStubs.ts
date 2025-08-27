@@ -13,7 +13,7 @@ export const dummyProduct: Product.Record = {
   livemode: false,
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
-  catalogId: 'catalog_111____',
+  pricingModelId: 'pricingModel_111____',
   externalId: null,
   createdByCommit: 'test',
   updatedByCommit: 'test',

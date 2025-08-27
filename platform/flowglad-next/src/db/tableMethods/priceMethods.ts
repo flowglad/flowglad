@@ -97,45 +97,49 @@ export const selectPricesAndProductsForOrganization = async (
   }))
 }
 
-export const selectPricesProductsAndCatalogsForOrganization = async (
-  whereConditions: Partial<Price.Record>,
-  organizationId: string,
-  transaction: DbTransaction
-) => {
-  let query = transaction
-    .select({
-      price: prices,
-      product: products,
-      pricingModel: pricingModels,
-    })
-    .from(prices)
-    .innerJoin(products, eq(products.id, prices.productId))
-    .leftJoin(
-      pricingModels,
-      eq(products.pricingModelId, pricingModels.id)
-    )
-    .$dynamic()
+export const selectPricesProductsAndPricingModelsForOrganization =
+  async (
+    whereConditions: Partial<Price.Record>,
+    organizationId: string,
+    transaction: DbTransaction
+  ) => {
+    let query = transaction
+      .select({
+        price: prices,
+        product: products,
+        pricingModel: pricingModels,
+      })
+      .from(prices)
+      .innerJoin(products, eq(products.id, prices.productId))
+      .leftJoin(
+        pricingModels,
+        eq(products.pricingModelId, pricingModels.id)
+      )
+      .$dynamic()
 
-  const whereClauses: SQLWrapper[] = [
-    eq(products.organizationId, organizationId),
-  ]
-  if (Object.keys(whereConditions).length > 0) {
-    const whereClause = whereClauseFromObject(prices, whereConditions)
-    if (whereClause) {
-      whereClauses.push(whereClause)
+    const whereClauses: SQLWrapper[] = [
+      eq(products.organizationId, organizationId),
+    ]
+    if (Object.keys(whereConditions).length > 0) {
+      const whereClause = whereClauseFromObject(
+        prices,
+        whereConditions
+      )
+      if (whereClause) {
+        whereClauses.push(whereClause)
+      }
     }
-  }
-  query = query.where(and(...whereClauses))
+    query = query.where(and(...whereClauses))
 
-  const results = await query
-  return results.map((result) => ({
-    product: productsSelectSchema.parse(result.product),
-    price: pricesSelectSchema.parse(result.price),
-    pricingModel: pricingModelsSelectSchema.parse(
-      result.pricingModel
-    ),
-  }))
-}
+    const results = await query
+    return results.map((result) => ({
+      product: productsSelectSchema.parse(result.product),
+      price: pricesSelectSchema.parse(result.price),
+      pricingModel: pricingModelsSelectSchema.parse(
+        result.pricingModel
+      ),
+    }))
+  }
 
 const priceProductJoinResultToProductAndPrices = (
   result: {

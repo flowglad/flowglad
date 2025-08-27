@@ -7,7 +7,7 @@ import {
   isSubscriptionCurrent,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectCatalogForCustomer } from '@/db/tableMethods/pricingModelMethods'
+import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 
@@ -23,7 +23,7 @@ export const customerBillingTransaction = async (
     { customerId: customer.id },
     transaction
   )
-  const catalog = await selectCatalogForCustomer(
+  const pricingModel = await selectPricingModelForCustomer(
     customer,
     transaction
   )
@@ -58,7 +58,7 @@ export const customerBillingTransaction = async (
     purchases,
     invoices,
     paymentMethods,
-    catalog,
+    pricingModel,
     subscriptions: subscriptions.map(subscriptionWithCurrent),
     currentSubscriptions: currentSubscriptions.map(
       subscriptionWithCurrent

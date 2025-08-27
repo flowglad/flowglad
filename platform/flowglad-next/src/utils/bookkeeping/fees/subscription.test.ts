@@ -83,7 +83,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     usageMeterRec = await setupUsageMeter({
       organizationId: orgData.organization.id,
       name: 'Subscription Test Meter',
-      catalogId: orgData.catalog.id,
+      pricingModelId: orgData.pricingModel.id,
     })
     testDiscount = await setupDiscount({
       organizationId: orgData.organization.id,

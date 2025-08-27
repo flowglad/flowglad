@@ -220,7 +220,7 @@ describe('unexpireProductFeatures', () => {
     const otherProduct = await setupProduct({
       organizationId: organization.id,
       name: 'Other Product',
-      catalogId: product.catalogId,
+      pricingModelId: product.pricingModelId,
     })
 
     // - Call `unexpireProductFeatures` with the correct featureId but the `productId` of the second product.

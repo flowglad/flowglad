@@ -22,7 +22,7 @@ const TABLE_NAME = 'pricing_models'
 export const pricingModels = pgTable(
   TABLE_NAME,
   {
-    ...tableBase('catalog'),
+    ...tableBase('pricing_model'),
     organizationId: notNullStringForeignKey(
       'organization_id',
       organizations
@@ -87,7 +87,7 @@ export const pricingModelsPaginatedSelectSchema =
 export const pricingModelsPaginatedListSchema =
   createPaginatedListQuerySchema(pricingModelsClientSelectSchema)
 
-export const catalogIdSchema = z.object({
+export const pricingModelIdSchema = z.object({
   id: z.string(),
 })
 

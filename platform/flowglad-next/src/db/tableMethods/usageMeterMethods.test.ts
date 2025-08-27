@@ -181,7 +181,7 @@ describe('usageMeterMethods', () => {
   })
 
   describe('selectUsageMetersCursorPaginated', () => {
-    it('should return items enriched with catalog data', async () => {
+    it('should return items enriched with pricing model data', async () => {
       const meter = await setupUsageMeter({
         organizationId,
         name: 'E1',

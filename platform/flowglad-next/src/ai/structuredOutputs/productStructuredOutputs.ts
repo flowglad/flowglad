@@ -14,7 +14,7 @@ import { CoreMessage } from 'ai'
 
 export const generateCreateProductInput = createGenerateCreateInput(
   createProductSchema,
-  `You are helping a digital seller create a new product to add to their catalog.
+  `You are helping a digital seller create a new product to add to their pricing model.
 Remember the unitPrice is in Stripe prices for USD - so $1.00 => 100
 Also, never make up an imgURL - this will throw an ERROR!
 Only add an imageURL if it was provided by the user.
@@ -28,7 +28,7 @@ export const generateEditProductInput = createGenerateEditInput<
   typeof editProductSchema
 >(
   editProductSchema,
-  `You are helping a digital seller edit an existing product in their catalog`
+  `You are helping a digital seller edit an existing product in their pricing model`
 )
 
 interface StructuredOutputCreatorMap {

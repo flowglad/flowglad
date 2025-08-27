@@ -1,32 +1,31 @@
 'use client'
 
 import FormModal from '@/components/forms/FormModal'
-import { createCatalogSchema } from '@/db/schema/pricingModels'
-import CatalogFormFields from '@/components/forms/CatalogFormFields'
+import { createPricingModelSchema } from '@/db/schema/pricingModels'
+import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
 import { trpc } from '@/app/_trpc/client'
 
-interface CreateCatalogModalProps {
+interface CreatePricingModelModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
 }
 
-const CreateCatalogModal: React.FC<CreateCatalogModalProps> = ({
-  isOpen,
-  setIsOpen,
-}) => {
-  const createCatalog = trpc.catalogs.create.useMutation()
+const CreatePricingModelModal: React.FC<
+  CreatePricingModelModalProps
+> = ({ isOpen, setIsOpen }) => {
+  const createPricingModel = trpc.pricingModels.create.useMutation()
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Create Catalog"
-      formSchema={createCatalogSchema}
-      defaultValues={{ catalog: { name: '' } }}
-      onSubmit={createCatalog.mutateAsync}
+      title="Create PricingModel"
+      formSchema={createPricingModelSchema}
+      defaultValues={{ pricingModel: { name: '' } }}
+      onSubmit={createPricingModel.mutateAsync}
     >
-      <CatalogFormFields />
+      <PricingModelFormFields />
     </FormModal>
   )
 }
 
-export default CreateCatalogModal
+export default CreatePricingModelModal

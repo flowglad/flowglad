@@ -30,7 +30,7 @@ describe('selectInvoicesTableRowData', () => {
 
   beforeEach(async () => {
     // Set up organizations
-    const { organization: org1, catalog } = await setupOrg()
+    const { organization: org1, pricingModel } = await setupOrg()
     const { organization: org2 } = await setupOrg()
     org1Id = org1.id
     org2Id = org2.id
@@ -40,7 +40,7 @@ describe('selectInvoicesTableRowData', () => {
       organizationId: org1Id,
       name: 'Test Product',
       livemode: true,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
 
     // Set up price

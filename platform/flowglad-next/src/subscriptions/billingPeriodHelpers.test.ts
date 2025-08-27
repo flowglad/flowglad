@@ -72,7 +72,7 @@ import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
-import { Catalog } from '@/db/schema/pricingModels'
+import { PricingModel } from '@/db/schema/pricingModels'
 import {
   FeatureUsageGrantFrequency,
   LedgerTransactionType,
@@ -98,13 +98,14 @@ let ledgerAccount: LedgerAccount.Record
 let otherLedgerAccount: LedgerAccount.Record
 let subscriptionItem: SubscriptionItem.Record
 let organization: Organization.Record
-let catalog: Catalog.Record
+let pricingModel: PricingModel.Record
 let price: Price.Record
 let product: Product.Record
 let pastBillingPeriod: BillingPeriod.Record
 
 describe('Subscription Billing Period Transition', async () => {
-  const { organization, price, product, catalog } = await setupOrg()
+  const { organization, price, product, pricingModel } =
+    await setupOrg()
 
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -651,7 +652,7 @@ describe('Ledger Interactions', () => {
       },
     })
     organization = result.organization
-    catalog = result.catalog
+    pricingModel = result.pricingModel
     price = result.price
     product = result.product
     subscription = result.subscription
@@ -659,7 +660,7 @@ describe('Ledger Interactions', () => {
     subscriptionItem = result.subscriptionItem
     otherUsageMeter = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       name: 'Non-Entitled Test Meter',
     })
     ledgerAccount = result.ledgerAccount

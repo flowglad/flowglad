@@ -1,4 +1,4 @@
-import { Catalog } from '@/db/schema/pricingModels'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { Customer } from '@/db/schema/customers'
 import { nulledPriceColumns } from '@/db/schema/prices'
 import { BillingAddress } from '@/db/schema/organizations'
@@ -55,7 +55,7 @@ export const stripeCustomerToCustomerInsert = (
 
 export const stripeProductToProductInsert = (
   stripeProduct: Stripe.Product,
-  catalog: Catalog.Record,
+  pricingModel: PricingModel.Record,
   params: CoreMigrationParams
 ): Product.Insert => {
   return {
@@ -63,7 +63,7 @@ export const stripeProductToProductInsert = (
     livemode: stripeProduct.livemode,
     description: stripeProduct.description ?? '',
     organizationId: params.organizationId,
-    catalogId: catalog.id,
+    pricingModelId: pricingModel.id,
     externalId: stripeProduct.id,
     active: stripeProduct.active,
     imageURL: stripeProduct.images?.[0] ?? '',

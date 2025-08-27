@@ -8,10 +8,10 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { CloneCatalogInput } from '@/db/schema/pricingModels'
+import { ClonePricingModelInput } from '@/db/schema/pricingModels'
 
-const CloneCatalogFormFields: React.FC = () => {
-  const form = useFormContext<CloneCatalogInput>()
+const ClonePricingModelFormFields: React.FC = () => {
+  const form = useFormContext<ClonePricingModelInput>()
 
   return (
     <div className="flex flex-col gap-3">
@@ -22,7 +22,10 @@ const CloneCatalogFormFields: React.FC = () => {
           <FormItem>
             <FormLabel required>Catalog Name</FormLabel>
             <FormControl>
-              <Input placeholder="Enter catalog name" {...field} />
+              <Input
+                placeholder="Enter pricing model name"
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -32,4 +35,4 @@ const CloneCatalogFormFields: React.FC = () => {
   )
 }
 
-export default CloneCatalogFormFields
+export default ClonePricingModelFormFields

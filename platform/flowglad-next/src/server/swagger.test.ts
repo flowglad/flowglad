@@ -237,9 +237,9 @@ describe('Swagger Configuration', () => {
 
   describe('Route Structure Validation', () => {
     const expectedBaseRoutes = [
-      '/api/v1/catalogs',
-      '/api/v1/catalogs/default',
-      '/api/v1/catalogs/setup',
+      '/api/v1/pricing-models',
+      '/api/v1/pricing-models/default',
+      '/api/v1/pricing-models/setup',
       '/api/v1/checkout-sessions',
       '/api/v1/customers',
       '/api/v1/discounts',
@@ -425,8 +425,8 @@ describe('Swagger Configuration', () => {
       })
     })
 
-    describe('Catalogs Routes', () => {
-      const basePath = '/api/v1/catalogs'
+    describe('Pricing Models Routes', () => {
+      const basePath = '/api/v1/pricing-models'
 
       it('should have correct base route methods', () => {
         const route = paths[basePath]

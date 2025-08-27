@@ -50,7 +50,7 @@ import {
   selectLedgerEntries,
   aggregateBalanceForLedgerAccountFromEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
-import { Catalog } from '@/db/schema/pricingModels'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   insertDiscountRedemption,
@@ -317,7 +317,7 @@ describe('createSubscriptionWorkflow', async () => {
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Usage Meter',
-        catalogId: product.catalogId,
+        pricingModelId: product.pricingModelId,
       })
       const usagePrice = await setupPrice({
         productId: product.id,
@@ -753,7 +753,7 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       usageMeterId: (
         await setupUsageMeter({
           organizationId: organization.id,
-          catalogId: product.catalogId,
+          pricingModelId: product.pricingModelId,
           name: 'Temp Usage Meter',
         })
       ).id, // Requires a usage meter,
@@ -880,7 +880,8 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
 
 describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () => {
   it('should create SubscriptionItemFeatures when a subscription is created for a product with features', async () => {
-    const { organization, product, price, catalog } = await setupOrg()
+    const { organization, product, price, pricingModel } =
+      await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: true,
@@ -987,7 +988,8 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
   })
 
   it('should create SubscriptionItemFeatures with correct livemode (false) based on the subscription item', async () => {
-    const { organization, product, price, catalog } = await setupOrg() // Create org/product/price with livemode false
+    const { organization, product, price, pricingModel } =
+      await setupOrg() // Create org/product/price with livemode false
     const customer = await setupCustomer({
       organizationId: organization.id,
       livemode: false,
@@ -1059,7 +1061,8 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
 
   it('should associate the correct usageMeterId with usage credit grant SubscriptionItemFeatures', async () => {
     // Setup
-    const { organization, product, price, catalog } = await setupOrg()
+    const { organization, product, price, pricingModel } =
+      await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1069,7 +1072,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     })
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       name: 'Meter for explicit test',
     })
     const creditGrantFeature = await setupUsageCreditGrantFeature({
@@ -1079,7 +1082,7 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       renewalFrequency: FeatureUsageGrantFrequency.Once,
       amount: 123,
       livemode: true,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
     await setupProductFeature({
       organizationId: organization.id,
@@ -1183,7 +1186,8 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
 
   // New test for quantity-based usage credit grant amount
   it('should multiply usage credit grant amount by subscription item quantity for usage based product features', async () => {
-    const { organization, product, price, catalog } = await setupOrg()
+    const { organization, product, price, pricingModel } =
+      await setupOrg()
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1282,7 +1286,7 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
   it('creates ledger accounts when the price is a usage price', async () => {
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: defaultProduct.catalogId,
+      pricingModelId: defaultProduct.pricingModelId,
       name: 'Test Usage Meter for Ledger Account',
     })
 
@@ -1391,14 +1395,14 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
   let defaultPrice: Price.Record
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
     product = orgData.product
     defaultPrice = orgData.price
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
     customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -1413,7 +1417,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
     const grantAmount = 5000
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Meter for Once Grant',
     })
     const feature = await setupUsageCreditGrantFeature({
@@ -1502,7 +1506,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
     const grantAmount = 3000
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Meter for Recurring Grant',
     })
     const feature = await setupUsageCreditGrantFeature({
@@ -1512,7 +1516,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
       renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
       amount: grantAmount,
       livemode: true,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
     await setupProductFeature({
       organizationId: organization.id,
@@ -1580,7 +1584,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
     const startDate = new Date()
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Meter for Expiring Grant',
     })
     const feature = await setupUsageCreditGrantFeature({
@@ -1742,14 +1746,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
   let defaultPrice: Price.Record
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
 
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
     product = orgData.product
     defaultPrice = orgData.price
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
     customer = await setupCustomer({
       organizationId: organization.id,
     })

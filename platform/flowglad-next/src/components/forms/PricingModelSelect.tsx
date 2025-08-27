@@ -13,45 +13,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useListCatalogsQuery } from '@/app/hooks/useListCatalogsQuery'
+import { useListPricingModelsQuery } from '@/app/hooks/useListPricingModelsQuery'
 import { useEffect } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { Skeleton } from '../ui/skeleton'
 
-interface CatalogSelectProps {
+interface PricingModelSelectProps {
   name: string
   control: Control<any>
 }
 
-const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
-  const { data: catalogs, isLoading: isLoadingCatalogs } =
-    useListCatalogsQuery()
-  const { data: defaultCatalog } = trpc.catalogs.getDefault.useQuery(
-    {}
-  )
-  const defaultCatalogId = defaultCatalog?.catalog.id
+const PricingModelSelect = ({
+  name,
+  control,
+}: PricingModelSelectProps) => {
+  const { data: pricingModels, isLoading: isLoadingPricingModels } =
+    useListPricingModelsQuery()
+  const { data: defaultPricingModel } =
+    trpc.pricingModels.getDefault.useQuery({})
+  const defaultPricingModelId = defaultPricingModel?.pricingModel.id
   const form = useFormContext()
   const { watch, setValue } = form
-  const catalogId = watch(name)
-  // once the default catalog loads, set it if the catalog id has not been set
+  const pricingModelId = watch(name)
+  // once the default pricingModel loads, set it if the pricingModel id has not been set
   useEffect(() => {
-    if (!defaultCatalogId) {
+    if (!defaultPricingModelId) {
       return
     }
-    if (catalogId) {
+    if (pricingModelId) {
       return
     }
-    setValue(name, defaultCatalogId)
-  }, [name, catalogId, defaultCatalogId, setValue])
+    setValue(name, defaultPricingModelId)
+  }, [name, pricingModelId, defaultPricingModelId, setValue])
   return (
     <FormField
       control={control}
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>Catalog</FormLabel>
+          <FormLabel>PricingModel</FormLabel>
           <FormControl>
-            {isLoadingCatalogs ? (
+            {isLoadingPricingModels ? (
               <Skeleton className="h-9 w-full" />
             ) : (
               <Select
@@ -62,9 +64,12 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {catalogs?.data?.map((catalog) => (
-                    <SelectItem key={catalog.id} value={catalog.id}>
-                      {catalog.name}
+                  {pricingModels?.data?.map((pricingModel) => (
+                    <SelectItem
+                      key={pricingModel.id}
+                      value={pricingModel.id}
+                    >
+                      {pricingModel.name}
                     </SelectItem>
                   )) || []}
                 </SelectContent>
@@ -78,4 +83,4 @@ const CatalogSelect = ({ name, control }: CatalogSelectProps) => {
   )
 }
 
-export default CatalogSelect
+export default PricingModelSelect

@@ -24,7 +24,7 @@ import {
   Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
-import { insertCatalog } from '@/db/tableMethods/pricingModelMethods'
+import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { findOrCreateSvixApplication } from './svix'
 
 const generateSubdomainSlug = (name: string) => {
@@ -119,7 +119,7 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
-  await insertCatalog(
+  await insertPricingModel(
     {
       name: 'Default',
       livemode: true,
@@ -129,7 +129,7 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
-  const defaultTestmodeCatalog = await insertCatalog(
+  const defaultTestmodePricingModel = await insertPricingModel(
     {
       name: 'Default (testmode)',
       livemode: false,
@@ -143,7 +143,7 @@ export const createOrganizationTransaction = async (
     {
       product: {
         ...dummyProduct,
-        catalogId: defaultTestmodeCatalog.id,
+        pricingModelId: defaultTestmodePricingModel.id,
       },
       prices: [
         {

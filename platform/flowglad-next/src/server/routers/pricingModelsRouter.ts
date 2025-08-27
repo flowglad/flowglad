@@ -22,7 +22,7 @@ import {
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
-import { setupPricingModelTransaction } from '@/utils/catalogs/setupTransaction'
+import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
 import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
   createPaginatedTableRowInputSchema,

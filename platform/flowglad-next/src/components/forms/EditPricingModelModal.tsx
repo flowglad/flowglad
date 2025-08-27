@@ -19,12 +19,12 @@ const EditPricingModelModal: React.FC<EditPricingModelModalProps> = ({
   setIsOpen,
   pricingModel,
 }) => {
-  const editPricingModel = trpc.catalogs.update.useMutation()
+  const editPricingModel = trpc.pricingModels.update.useMutation()
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Edit PricingModel"
+      title="Edit Pricing Model"
       formSchema={editPricingModelSchema}
       defaultValues={{ pricingModel }}
       onSubmit={editPricingModel.mutateAsync}
