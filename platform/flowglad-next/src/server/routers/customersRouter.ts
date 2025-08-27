@@ -1,6 +1,7 @@
 import { router } from '../trpc'
 import { protectedProcedure } from '@/server/trpc'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -26,6 +27,7 @@ import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import {
+  CreateCustomerOutputSchema,
   createCustomerOutputSchema,
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
@@ -41,6 +43,7 @@ import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -75,7 +78,7 @@ const createCustomerProcedure = protectedProcedure
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({
         input,
         transaction,
@@ -83,7 +86,7 @@ const createCustomerProcedure = protectedProcedure
         livemode,
         ctx,
         organizationId,
-      }) => {
+      }): Promise<TransactionOutput<CreateCustomerOutputSchema>> => {
         if (!organizationId) {
           throw new Error('organizationId is required')
         }
@@ -108,10 +111,12 @@ const createCustomerProcedure = protectedProcedure
         }
 
         return {
-          data: {
-            customer: createdCustomerOutput.result.customer,
-            subscription: createdCustomerOutput.result.subscription,
-            subscriptionItems: createdCustomerOutput.result.subscriptionItems,
+          result: {
+            data: {
+              customer: createdCustomerOutput.result.customer,
+              subscription: createdCustomerOutput.result.subscription,
+              subscriptionItems: createdCustomerOutput.result.subscriptionItems,
+            }
           },
           eventsToLog: createdCustomerOutput.eventsToLog,
           ledgerCommand: createdCustomerOutput.ledgerCommand,

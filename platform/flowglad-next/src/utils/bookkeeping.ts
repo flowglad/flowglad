@@ -61,7 +61,7 @@ import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { Event } from '@/db/schema/events'
 import { FlowgladEventType, EventNoun } from '@/types'
-import { constructEventHash } from '@/utils/eventHelpers'
+import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -508,10 +508,7 @@ export const createCustomerBookkeeping = async (
       id: customer.id,
     },
     submittedAt: timestamp,
-    hash: constructEventHash({
-      type: FlowgladEventType.CustomerCreated,
-      id: customer.id,
-    }),
+    hash: constructCustomerCreatedEventHash(customer),
     metadata: {},
     processedAt: null,
   })
