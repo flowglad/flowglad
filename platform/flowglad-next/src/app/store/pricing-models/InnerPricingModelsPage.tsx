@@ -1,15 +1,15 @@
 'use client'
 import PageTitle from '@/components/ion/PageTitle'
-import CatalogsTable from './CatalogsTable'
+import PricingModelsTable from './PricingModelsTable'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import CreateCatalogModal from '@/components/forms/CreateCatalogModal'
+import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
-const InnerCatalogsPage = () => {
-  const [isCreateCatalogOpen, setIsCreateCatalogOpen] =
+const InnerPricingModelsPage = () => {
+  const [isCreatePricingModelOpen, setIsCreatePricingModelOpen] =
     useState(false)
 
   return (
@@ -17,22 +17,22 @@ const InnerCatalogsPage = () => {
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
         <div className="flex flex-row justify-between items-center mb-6 gap-8">
-          <PageTitle>Catalogs</PageTitle>
+          <PageTitle>Pricing Models</PageTitle>
           <Button
-            onClick={() => setIsCreateCatalogOpen(true)}
+            onClick={() => setIsCreatePricingModelOpen(true)}
             iconLeading={<Plus size={16} strokeWidth={2} />}
           >
-            Create Catalog
+            Create Pricing Model
           </Button>
         </div>
-        <CatalogsTable />
+        <PricingModelsTable />
       </div>
-      <CreateCatalogModal
-        isOpen={isCreateCatalogOpen}
-        setIsOpen={setIsCreateCatalogOpen}
+      <CreatePricingModelModal
+        isOpen={isCreatePricingModelOpen}
+        setIsOpen={setIsCreatePricingModelOpen}
       />
     </InternalPageContainer>
   )
 }
 
-export default InnerCatalogsPage
+export default InnerPricingModelsPage

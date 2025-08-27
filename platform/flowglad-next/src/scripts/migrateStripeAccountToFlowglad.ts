@@ -459,7 +459,7 @@ const migrateStripeCatalogDataToFlowglad = async (
   )
 
   await db.transaction(async (transaction) => {
-    const defaultCatalog = await selectDefaultCatalog(
+    const defaultCatalog = await selectDefaultPricingModel(
       {
         organizationId: migrationParams.flowgladOrganizationId,
         livemode: true,

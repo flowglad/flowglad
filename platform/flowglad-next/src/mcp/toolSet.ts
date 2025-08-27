@@ -1,14 +1,14 @@
 import { echoTest } from './tools/echoTest'
 import { McpServer, ToolConstructor, toolWrap } from './toolWrap'
-import { setupCatalog } from './tools/setupCatalog'
+import { setupPricingModel } from './tools/setupPricingModel'
 import { getSetupInstructions } from './tools/getSetupInstructions'
-import { getDefaultCatalog } from './tools/getDefaultCatalog'
+import { getDefaultPricingModel } from './tools/getDefaultPricingModel'
 
 const tools: ToolConstructor<any>[] = [
   echoTest,
-  setupCatalog,
+  setupPricingModel,
   getSetupInstructions,
-  getDefaultCatalog,
+  getDefaultPricingModel,
 ]
 
 export const toolSet = (server: McpServer, apiKey: string) =>
