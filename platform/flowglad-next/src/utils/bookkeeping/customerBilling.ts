@@ -59,9 +59,7 @@ export const customerBillingTransaction = async (
     invoices,
     paymentMethods,
     pricingModel,
-    subscriptions: subscriptions.map(subscriptionWithCurrent),
-    currentSubscriptions: currentSubscriptions.map(
-      subscriptionWithCurrent
-    ),
+    subscriptions,
+    currentSubscriptions,
   }
 }

@@ -17,17 +17,18 @@ import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { PricingMeter } from '@/db/schema/pricingMeters'
+import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
+import { selectCountries } from '@/db/tableMethods/countryMethods'
 
+const livemode = true
 describe('createCustomerBookkeeping', () => {
   let organization: Organization.Record
   let product: Product.Record
   let price: Price.Record
-  let pricingMeter: PricingMeter.Record
   let defaultPricingModel: PricingModel.Record
   let defaultProduct: Product.Record
   let defaultPrice: Price.Record
@@ -38,7 +39,6 @@ describe('createCustomerBookkeeping', () => {
     organization = orgData.organization
     product = orgData.product
     price = orgData.price
-    pricingMeter = orgData.pricingMeter
     
     // Get the default pricing model that was created
     defaultPricingModel = await adminTransaction(async ({ transaction }) => {
@@ -53,7 +53,6 @@ describe('createCustomerBookkeeping', () => {
       pricingModelId: defaultPricingModel.id,
       default: true,
       active: true,
-      livemode: organization.livemode,
     })
 
     // Create a default price for the default product
@@ -64,11 +63,11 @@ describe('createCustomerBookkeeping', () => {
       unitPrice: 1000,
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
-      livemode: organization.livemode,
       isDefault: true,
       setupFeeAmount: 0,
       trialPeriodDays: 14,
       currency: CurrencyCode.USD,
+      livemode,
     })
   })
 
@@ -86,15 +85,14 @@ describe('createCustomerBookkeeping', () => {
               email: `test+${core.nanoid()}@example.com`,
               name: 'Test Customer',
               organizationId: organization.id,
-              livemode: organization.livemode,
               externalId: `ext_${core.nanoid()}`,
             },
           },
-          { 
+          {
             transaction, 
             organizationId: organization.id,
             userId: 'user_test',
-            livemode: organization.livemode,
+            livemode,
           }
         )
         return output
@@ -143,7 +141,6 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Custom Pricing Model',
         isDefault: false,
-        livemode: organization.livemode,
       })
 
       // Create a default product for the custom pricing model
@@ -153,7 +150,6 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: customPricingModel.id,
         default: true,
         active: true,
-        livemode: organization.livemode,
       })
 
       // Create a default price for the custom product
@@ -164,10 +160,10 @@ describe('createCustomerBookkeeping', () => {
         unitPrice: 2000,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
-        livemode: organization.livemode,
         isDefault: true,
         setupFeeAmount: 0,
         currency: CurrencyCode.USD,
+        livemode: customProduct.livemode,
       })
 
       // Create customer with specified pricing model
@@ -178,7 +174,6 @@ describe('createCustomerBookkeeping', () => {
               email: `test+${core.nanoid()}@example.com`,
               name: 'Test Customer with Custom Pricing',
               organizationId: organization.id,
-              livemode: organization.livemode,
               externalId: `ext_${core.nanoid()}`,
               pricingModelId: customPricingModel.id,
             },
@@ -187,7 +182,7 @@ describe('createCustomerBookkeeping', () => {
             transaction, 
             organizationId: organization.id,
             userId: 'user_test',
-            livemode: organization.livemode,
+            livemode: customProduct.livemode,
           }
         )
         return output
@@ -227,7 +222,6 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Empty Pricing Model',
         isDefault: false,
-        livemode: organization.livemode,
       })
 
       // Create a non-default product (so there's no default product)
@@ -237,7 +231,6 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: emptyPricingModel.id,
         default: false, // Not default
         active: true,
-        livemode: organization.livemode,
       })
 
       // Create customer with the empty pricing model
@@ -248,7 +241,6 @@ describe('createCustomerBookkeeping', () => {
               email: `test+${core.nanoid()}@example.com`,
               name: 'Test Customer No Default Product',
               organizationId: organization.id,
-              livemode: organization.livemode,
               externalId: `ext_${core.nanoid()}`,
               pricingModelId: emptyPricingModel.id,
             },
@@ -257,7 +249,7 @@ describe('createCustomerBookkeeping', () => {
             transaction, 
             organizationId: organization.id,
             userId: 'user_test',
-            livemode: organization.livemode,
+            livemode,
           }
         )
         return output
@@ -299,7 +291,6 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Pricing Model No Default Price',
         isDefault: false,
-        livemode: organization.livemode,
       })
 
       // Create a default product
@@ -309,7 +300,6 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: pricingModelNoDefaultPrice.id,
         default: true,
         active: true,
-        livemode: organization.livemode,
       })
 
       // Create a non-default price
@@ -320,10 +310,10 @@ describe('createCustomerBookkeeping', () => {
         unitPrice: 3000,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
-        livemode: organization.livemode,
         isDefault: false, // Not default
         setupFeeAmount: 0,
         currency: CurrencyCode.USD,
+        livemode,
       })
 
       // Create customer
@@ -334,7 +324,6 @@ describe('createCustomerBookkeeping', () => {
               email: `test+${core.nanoid()}@example.com`,
               name: 'Test Customer No Default Price',
               organizationId: organization.id,
-              livemode: organization.livemode,
               externalId: `ext_${core.nanoid()}`,
               pricingModelId: pricingModelNoDefaultPrice.id,
             },
@@ -343,7 +332,7 @@ describe('createCustomerBookkeeping', () => {
             transaction, 
             organizationId: organization.id,
             userId: 'user_test',
-            livemode: organization.livemode,
+            livemode,
           }
         )
         return output
@@ -387,7 +376,6 @@ describe('createCustomerBookkeeping', () => {
               email: `test+${core.nanoid()}@example.com`,
               name: 'Test Customer with Trial',
               organizationId: organization.id,
-              livemode: organization.livemode,
               externalId: `ext_${core.nanoid()}`,
             },
           },
@@ -395,7 +383,7 @@ describe('createCustomerBookkeeping', () => {
             transaction, 
             organizationId: organization.id,
             userId: 'user_test',
-            livemode: organization.livemode,
+            livemode,
           }
         )
         return output
@@ -434,12 +422,12 @@ describe('createCustomerBookkeeping', () => {
 
       // Create a new org without default pricing model setup
       const minimalOrg = await adminTransaction(async ({ transaction }) => {
+        const [country] = await selectCountries( {code: 'US'}, transaction)
         const org = await insertOrganization(
           {
             name: `Minimal Org ${core.nanoid()}`,
-            slug: `minimal-org-${core.nanoid()}`,
-            livemode: true,
             defaultCurrency: CurrencyCode.USD,
+            countryId: country.id,
           },
           transaction
         )
@@ -454,7 +442,6 @@ describe('createCustomerBookkeeping', () => {
               email: `test+${core.nanoid()}@example.com`,
               name: 'Test Customer No Pricing Model',
               organizationId: minimalOrg.id,
-              livemode: minimalOrg.livemode,
               externalId: `ext_${core.nanoid()}`,
             },
           },
@@ -462,7 +449,7 @@ describe('createCustomerBookkeeping', () => {
             transaction, 
             organizationId: minimalOrg.id,
             userId: 'user_test',
-            livemode: minimalOrg.livemode,
+            livemode,
           }
         )
         return output
@@ -494,7 +481,6 @@ describe('createCustomerBookkeeping', () => {
               email: `test+${core.nanoid()}@example.com`,
               name: 'Test Customer Metadata',
               organizationId: organization.id,
-              livemode: organization.livemode,
               externalId: `ext_${core.nanoid()}`,
             },
           },
@@ -502,7 +488,7 @@ describe('createCustomerBookkeeping', () => {
             transaction, 
             organizationId: organization.id,
             userId: 'user_test',
-            livemode: organization.livemode,
+            livemode,
           }
         )
         return output

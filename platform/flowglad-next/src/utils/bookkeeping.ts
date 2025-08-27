@@ -62,6 +62,8 @@ import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { Event } from '@/db/schema/events'
 import { FlowgladEventType, EventNoun } from '@/types'
 import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
+import { Subscription } from '@/db/schema/subscriptions'
+import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -472,18 +474,18 @@ export const editOpenPurchase = async (
 
 export const createCustomerBookkeeping = async (
   payload: {
-    customer: Customer.Insert
+    customer: Omit<Customer.Insert, 'livemode'>
   },
-  { transaction, organizationId }: AuthenticatedTransactionParams
+  { transaction, organizationId, livemode }: AuthenticatedTransactionParams
 ): Promise<TransactionOutput<{
   customer: Customer.Record
-  subscription?: any // Will be properly typed based on subscription result
-  subscriptionItems?: any[]
+  subscription?: Subscription.Record
+  subscriptionItems?: SubscriptionItem.Record[]
 }>> => {
-  let customer = await insertCustomer(payload.customer, transaction)
+  let customer = await insertCustomer({...payload.customer, livemode}, transaction)
   if (!customer.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
-      payload.customer
+      customer
     )
     customer = await updateCustomer(
       {

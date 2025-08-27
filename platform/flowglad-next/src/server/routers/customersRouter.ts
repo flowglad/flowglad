@@ -44,6 +44,7 @@ import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -109,12 +110,12 @@ const createCustomerProcedure = protectedProcedure
         if (ctx.path) {
           await revalidatePath(ctx.path)
         }
-
+        const subscription = createdCustomerOutput.result.subscription ? subscriptionWithCurrent(createdCustomerOutput.result.subscription) : undefined
         return {
           result: {
             data: {
               customer: createdCustomerOutput.result.customer,
-              subscription: createdCustomerOutput.result.subscription,
+              subscription,
               subscriptionItems: createdCustomerOutput.result.subscriptionItems,
             }
           },
