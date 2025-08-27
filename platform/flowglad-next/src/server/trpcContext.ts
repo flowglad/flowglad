@@ -22,7 +22,6 @@ export const createContext = async (
   let user: UserRecord | undefined
 
   if (betterAuthUserId) {
-    console.log('====betterAuthUserId', betterAuthUserId)
     const [maybeMembership] = await adminTransaction(
       async ({ transaction }) => {
         return selectMembershipAndOrganizationsByBetterAuthUserId(

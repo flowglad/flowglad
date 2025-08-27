@@ -56,7 +56,7 @@ import {
   UsageCreditApplicationStatus,
   SubscriptionItemType,
 } from '@/types'
-import { core } from '@/utils/core'
+import { core, isNil } from '@/utils/core'
 import { sql } from 'drizzle-orm'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
@@ -361,48 +361,75 @@ export const setupSubscription = async (params: {
   currentBillingPeriodStart?: Date
   status?: SubscriptionStatus
   trialEnd?: Date
+  renews?: boolean
   startDate?: Date
-}): Promise<Subscription.StandardRecord> => {
+  cancelScheduledAt?: Date
+}): Promise<Subscription.Record> => {
   const status = params.status ?? SubscriptionStatus.Active
-  if (status === SubscriptionStatus.CreditTrial) {
-    throw new Error(
-      'Credit trial subscriptions are not supported in seedDatabase'
-    )
-  }
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(params.priceId, transaction)
-    const subscription = await insertSubscription(
-      {
-        organizationId: params.organizationId,
-        customerId: params.customerId,
-        defaultPaymentMethodId: params.paymentMethodId,
-        status: status ?? SubscriptionStatus.Active,
-        livemode: params.livemode ?? true,
-        billingCycleAnchorDate: new Date(),
-        currentBillingPeriodEnd:
-          params.currentBillingPeriodEnd ??
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        currentBillingPeriodStart:
-          params.currentBillingPeriodStart ?? new Date(),
-        canceledAt: null,
-        cancelScheduledAt: null,
-        trialEnd: params.trialEnd ?? null,
-        backupPaymentMethodId: null,
-        priceId: params.priceId,
-        interval: params.interval ?? IntervalUnit.Month,
-        intervalCount: params.intervalCount ?? 1,
-        metadata: {},
-        stripeSetupIntentId: `setupintent_${core.nanoid()}`,
-        name: null,
-        runBillingAtPeriodStart:
-          price.type === PriceType.Subscription ? true : false,
-        externalId: null,
-        startDate: params.startDate ?? new Date(),
-        renews: true,
-      },
-      transaction
-    )
-    return subscription as Subscription.StandardRecord
+    if (params.renews === false) {
+      return (await insertSubscription(
+        {
+          organizationId: params.organizationId,
+          customerId: params.customerId,
+          defaultPaymentMethodId: params.paymentMethodId,
+          status: status as SubscriptionStatus.CreditTrial | SubscriptionStatus.Active | SubscriptionStatus.Canceled,
+          livemode: params.livemode ?? true,
+          billingCycleAnchorDate: null,
+          currentBillingPeriodStart: null,
+          currentBillingPeriodEnd: null,
+          canceledAt: null,
+          cancelScheduledAt: params.cancelScheduledAt ?? null,
+          trialEnd: null,
+          backupPaymentMethodId: null,
+          priceId: params.priceId,
+          interval: null,
+          intervalCount: null,
+          metadata: {},
+          stripeSetupIntentId: `setupintent_${core.nanoid()}`,
+          name: null,
+          runBillingAtPeriodStart:
+            price.type === PriceType.Subscription ? true : false,
+          externalId: null,
+          startDate: new Date(),
+          renews: false,
+        } as Subscription.NonRenewingInsert,
+        transaction
+      )) as Subscription.NonRenewingRecord
+    } else {
+      return (await insertSubscription(
+        {
+          organizationId: params.organizationId,
+          customerId: params.customerId,
+          defaultPaymentMethodId: params.paymentMethodId,
+          status: status as SubscriptionStatus.Trialing | SubscriptionStatus.Active | SubscriptionStatus.PastDue | SubscriptionStatus.Unpaid | SubscriptionStatus.CancellationScheduled | SubscriptionStatus.Incomplete | SubscriptionStatus.IncompleteExpired | SubscriptionStatus.Canceled | SubscriptionStatus.Paused,
+          livemode: params.livemode ?? true,
+          billingCycleAnchorDate: new Date(),
+          currentBillingPeriodEnd:
+            params.currentBillingPeriodEnd ??
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          currentBillingPeriodStart:
+            params.currentBillingPeriodStart ?? new Date(),
+          canceledAt: null,
+          cancelScheduledAt: params.cancelScheduledAt ?? null,
+          trialEnd: params.trialEnd ?? null,
+          backupPaymentMethodId: null,
+          priceId: params.priceId,
+          interval: params.interval ?? IntervalUnit.Month,
+          intervalCount: params.intervalCount ?? 1,
+          metadata: {},
+          stripeSetupIntentId: `setupintent_${core.nanoid()}`,
+          name: null,
+          runBillingAtPeriodStart:
+            price.type === PriceType.Subscription ? true : false,
+          externalId: null,
+          startDate: params.startDate ?? new Date(),
+          renews: isNil(params.renews) ? true : params.renews,
+        },
+        transaction
+      )) as Subscription.StandardRecord
+    }
   })
 }
 
@@ -1477,7 +1504,6 @@ export const setupUsageEvent = async (
     usageMeterId: string
     amount: number
     priceId: string
-    billingPeriodId: string
     transactionId: string
     customerId: string
   }

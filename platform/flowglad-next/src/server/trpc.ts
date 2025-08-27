@@ -38,7 +38,6 @@ const isAuthed = t.middleware(({ next, ctx }) => {
       },
     })
   }
-  console.log('====ctx', ctx)
   const user = (ctx as TRPCContext).user
   if (!user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
