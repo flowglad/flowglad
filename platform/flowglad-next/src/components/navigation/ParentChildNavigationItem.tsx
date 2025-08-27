@@ -99,9 +99,9 @@ const ParentChildNavigationItem = ({
                   <Link
                     href={child.href}
                     aria-current={childActive ? 'page' : undefined}
-                    className="block w-full"
+                    className="block w-full min-w-0"
                   >
-                    {child.label}
+                    <span className="truncate">{child.label}</span>
                   </Link>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>

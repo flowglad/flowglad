@@ -120,7 +120,7 @@ export const SideNavigation = () => {
             'overflow-hidden',
             isCollapsed
               ? 'max-w-0 opacity-0'
-              : 'max-w-md opacity-100 flex-1'
+              : 'max-w-lg opacity-100 flex-1'
           )}
         >
           <div className="flex items-center gap-3 rounded-radius-sm">

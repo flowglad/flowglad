@@ -42,14 +42,14 @@ const OnboardingNavigationSection = ({
               ? 'page'
               : undefined
           }
-          className="w-full flex items-center"
+          className="w-full flex items-center min-w-0"
         >
           {/* Icon as direct child so [&>svg] styles apply */}
           <TriangleRight size={16} strokeWidth={2} color="orange" />
           {/* Label */}
           <span
             className={cn(
-              'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+              'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap truncate',
               isCollapsed
                 ? 'max-w-0 opacity-0 ml-0'
                 : 'max-w-xs opacity-100'

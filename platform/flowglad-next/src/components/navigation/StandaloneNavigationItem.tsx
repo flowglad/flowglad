@@ -41,7 +41,7 @@ const StandaloneNavigationItem = ({
           href={href}
           aria-current={isActive ? 'page' : undefined}
           className={cn(
-            'w-full h-full flex items-center',
+            'w-full h-full flex items-center min-w-0',
             isCollapsed ? 'gap-0' : 'gap-2'
           )}
         >
@@ -51,7 +51,7 @@ const StandaloneNavigationItem = ({
               'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
               isCollapsed
                 ? 'max-w-0 opacity-0 ml-0'
-                : 'max-w-xs opacity-100'
+                : 'max-w-xs opacity-100 truncate'
             )}
           >
             {isCollapsed ? null : title}
