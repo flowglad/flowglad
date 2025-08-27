@@ -18,7 +18,7 @@ const CreatePricingModelModal: React.FC<
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Create PricingModel"
+      title="Create Pricing Model"
       formSchema={createPricingModelSchema}
       defaultValues={{ pricingModel: { name: '' } }}
       onSubmit={createPricingModel.mutateAsync}

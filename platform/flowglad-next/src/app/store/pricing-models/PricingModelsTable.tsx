@@ -27,11 +27,11 @@ const MoreMenuCell = ({
   const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const menuItems: PopoverMenuItem[] = [
     {
-      label: 'Edit PricingModel',
+      label: 'Edit Pricing Model',
       handler: () => setIsEditOpen(true),
     },
     {
-      label: 'Clone PricingModel',
+      label: 'Clone Pricing Model',
       handler: () => setIsCloneOpen(true),
     },
   ]
