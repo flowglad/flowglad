@@ -50,7 +50,7 @@ import {
   selectLedgerEntries,
   aggregateBalanceForLedgerAccountFromEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   insertDiscountRedemption,

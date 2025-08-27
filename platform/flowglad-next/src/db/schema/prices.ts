@@ -35,7 +35,7 @@ import core from '@/utils/core'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { z } from 'zod'
 import { ColumnBaseConfig, ColumnDataType, sql } from 'drizzle-orm'
-import { catalogsClientSelectSchema } from './catalogs'
+import { pricingModelsClientSelectSchema } from './pricingModels'
 import {
   usageMeters,
   usageMetersClientSelectSchema,
@@ -557,8 +557,8 @@ export type ProductWithPrices = z.infer<
   typeof productWithPricesSchema
 >
 
-export const catalogWithProductsAndUsageMetersSchema =
-  catalogsClientSelectSchema.extend({
+export const pricingModelWithProductsAndUsageMetersSchema =
+  pricingModelsClientSelectSchema.extend({
     products: z.array(productWithPricesSchema),
     usageMeters: z.array(usageMetersClientSelectSchema),
     defaultProduct: productWithPricesSchema
@@ -568,8 +568,8 @@ export const catalogWithProductsAndUsageMetersSchema =
       ),
   })
 
-export type CatalogWithProductsAndUsageMeters = z.infer<
-  typeof catalogWithProductsAndUsageMetersSchema
+export type PricingModelWithProductsAndUsageMeters = z.infer<
+  typeof pricingModelWithProductsAndUsageMetersSchema
 >
 
 export const pricesTableRowDataSchema = z.object({
@@ -583,7 +583,7 @@ export const pricesTableRowDataSchema = z.object({
 export const productsTableRowDataSchema = z.object({
   product: productsClientSelectSchema,
   prices: z.array(pricesClientSelectSchema),
-  catalog: catalogsClientSelectSchema.optional(),
+  pricingModel: pricingModelsClientSelectSchema.optional(),
 })
 
 export type ProductsTableRowData = z.infer<

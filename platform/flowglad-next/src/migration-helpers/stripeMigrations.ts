@@ -1,4 +1,4 @@
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 import { Customer } from '@/db/schema/customers'
 import { nulledPriceColumns } from '@/db/schema/prices'
 import { BillingAddress } from '@/db/schema/organizations'

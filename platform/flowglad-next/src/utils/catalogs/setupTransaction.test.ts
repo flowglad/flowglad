@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  setupCatalogTransaction,
+  setupPricingModelTransaction,
   externalIdFromProductData,
 } from '@/utils/catalogs/setupTransaction'
 import { hashData } from '@/utils/backendCore'
 import type {
-  SetupCatalogInput,
-  SetupCatalogProductInput,
+  SetupPricingModelInput,
+  SetupPricingModelProductInput,
 } from '@/utils/catalogs/setupSchemas'
 import {
   FeatureType,
@@ -33,7 +33,7 @@ afterEach(async () => {
 
 describe('externalIdFromProductData', () => {
   it('returns the hashData value for a product input', () => {
-    const dummy: SetupCatalogProductInput = {
+    const dummy: SetupPricingModelProductInput = {
       product: {
         name: 'Test',
         default: false,
@@ -57,7 +57,7 @@ describe('externalIdFromProductData', () => {
   })
 
   it('returns a consistent hash for identical inputs', () => {
-    const dummy: SetupCatalogProductInput = {
+    const dummy: SetupPricingModelProductInput = {
       product: {
         name: 'Test',
         default: false,
@@ -78,11 +78,11 @@ describe('externalIdFromProductData', () => {
   })
 })
 
-describe('setupCatalogTransaction (integration)', () => {
+describe('setupPricingModelTransaction (integration)', () => {
   it('throws if input validation fails', async () => {
     await expect(
       adminTransaction(async ({ transaction }) =>
-        setupCatalogTransaction(
+        setupPricingModelTransaction(
           {
             input: {} as any,
             organizationId: organization.id,
@@ -95,8 +95,8 @@ describe('setupCatalogTransaction (integration)', () => {
   })
 
   it('throws when a UsageCreditGrant feature has no matching usage meter', async () => {
-    const input: SetupCatalogInput = {
-      name: 'Catalog',
+    const input: SetupPricingModelInput = {
+      name: 'PricingModel',
       isDefault: false,
       usageMeters: [],
       features: [
@@ -133,7 +133,7 @@ describe('setupCatalogTransaction (integration)', () => {
     }
     await expect(
       adminTransaction(async ({ transaction }) =>
-        setupCatalogTransaction(
+        setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
           transaction
         )
@@ -142,8 +142,8 @@ describe('setupCatalogTransaction (integration)', () => {
   })
 
   it('creates catalog, features, products, prices, and productFeatures on happy path', async () => {
-    const input: SetupCatalogInput = {
-      name: 'MyCatalog',
+    const input: SetupPricingModelInput = {
+      name: 'MyPricingModel',
       isDefault: true,
       usageMeters: [{ slug: 'um', name: 'UM' }],
       features: [
@@ -221,18 +221,20 @@ describe('setupCatalogTransaction (integration)', () => {
     }
 
     const result = await adminTransaction(async ({ transaction }) =>
-      setupCatalogTransaction(
+      setupPricingModelTransaction(
         { input, organizationId: organization.id, livemode: false },
         transaction
       )
     )
 
-    // Catalog
-    expect(result.catalog.id).toBeDefined()
-    expect(result.catalog.name).toEqual(input.name)
-    expect(result.catalog.livemode).toEqual(false)
-    expect(result.catalog.organizationId).toEqual(organization.id)
-    expect(result.catalog.isDefault).toEqual(input.isDefault)
+    // PricingModel
+    expect(result.pricingModel.id).toBeDefined()
+    expect(result.pricingModel.name).toEqual(input.name)
+    expect(result.pricingModel.livemode).toEqual(false)
+    expect(result.pricingModel.organizationId).toEqual(
+      organization.id
+    )
+    expect(result.pricingModel.isDefault).toEqual(input.isDefault)
 
     // Features
     expect(result.features).toHaveLength(input.features.length)

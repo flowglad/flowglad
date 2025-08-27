@@ -32,7 +32,7 @@ import {
 import { createInvoiceNumberBase } from '@/utils/core'
 import { z } from 'zod'
 import { users } from './users'
-import { catalogs } from './catalogs'
+import { catalogs } from './pricingModels'
 import { sql } from 'drizzle-orm'
 
 const TABLE_NAME = 'customers'

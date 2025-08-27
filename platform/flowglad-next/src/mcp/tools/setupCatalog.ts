@@ -1,15 +1,15 @@
-import { setupCatalogSchema } from '@/utils/catalogs/setupSchemas'
+import { setupPricingModelSchema } from '@/utils/catalogs/setupSchemas'
 import { ToolConstructor } from '../toolWrap'
-import { setupCatalogTransaction } from '@/utils/catalogs/setupTransaction'
+import { setupPricingModelTransaction } from '@/utils/catalogs/setupTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 
 const schema = {
-  catalog: setupCatalogSchema,
+  pricingModel: setupPricingModelSchema,
 }
 
-const constructCatalogSuccessContext = (
-  result: Awaited<ReturnType<typeof setupCatalogTransaction>>
+const constructPricingModelSuccessContext = (
+  result: Awaited<ReturnType<typeof setupPricingModelTransaction>>
 ): string => {
   const productSlugs = result.products
     .map((product) => product.slug!)
@@ -25,7 +25,7 @@ const constructCatalogSuccessContext = (
     .map((usageMeter) => usageMeter.slug!)
     .join(', ')
 
-  return `Catalog set up successfully: https://app.flowglad.com/store/catalogs/${result.catalog.id}
+  return `PricingModel set up successfully: https://app.flowglad.com/store/pricing-models/${result.pricingModel.id}
 Here are the slugs for the products, prices, features, and usage meters:
 Products: ${productSlugs}
 Prices: ${priceSlugs}
@@ -33,11 +33,11 @@ Features: ${featureSlugs}
 Usage Meters: ${usageMeterSlugs}`
 }
 
-export const setupCatalog: ToolConstructor<typeof schema> = {
-  name: 'setupCatalog',
+export const setupPricingModel: ToolConstructor<typeof schema> = {
+  name: 'setupPricingModel',
   description: 'Setup a catalog',
   schema: {
-    catalog: setupCatalogSchema,
+    pricingModel: setupPricingModelSchema,
   },
   callbackConstructor: (apiKey: string) => async (params) => {
     const result = await authenticatedTransaction(
@@ -50,9 +50,9 @@ export const setupCatalog: ToolConstructor<typeof schema> = {
         if (!organization) {
           throw new Error('No focused membership found')
         }
-        return await setupCatalogTransaction(
+        return await setupPricingModelTransaction(
           {
-            input: params.catalog,
+            input: params.pricingModel,
             organizationId: organization.id,
             livemode: livemode,
           },
@@ -67,7 +67,7 @@ export const setupCatalog: ToolConstructor<typeof schema> = {
       content: [
         {
           type: 'text',
-          text: constructCatalogSuccessContext(result),
+          text: constructPricingModelSuccessContext(result),
         },
       ],
     }

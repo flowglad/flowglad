@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ToolConstructor } from '../toolWrap'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectCatalogsWithProductsAndUsageMetersByCatalogWhere } from '@/db/tableMethods/catalogMethods'
+import { selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere } from '@/db/tableMethods/pricingModelMethods'
 
 const getDefaultCatalogSchema = {}
 
@@ -14,7 +14,7 @@ export const getDefaultCatalog: ToolConstructor<
   callbackConstructor: (apiKey: string) => async () => {
     const [catalog] = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
           {
             isDefault: true,
           },

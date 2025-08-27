@@ -59,7 +59,7 @@ import { Customer } from '@/db/schema/customers'
 import { Subscription } from '@/db/schema/subscriptions'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
@@ -81,7 +81,7 @@ import db from '@/db/client'
 
 describe('grantEntitlementUsageCredits', () => {
   let organization: Organization.Record
-  let catalog: Catalog.Record
+  let pricingModel: PricingModel.Record
   let product: Product.Record // Default product from setupOrg
   let basePrice: Price.Record // Default price from setupOrg
   let customer: Customer.Record
@@ -109,7 +109,7 @@ describe('grantEntitlementUsageCredits', () => {
     organization = orgData.organization
     product = orgData.product
     basePrice = orgData.price
-    catalog = orgData.catalog
+    pricingModel = orgData.pricingModel
 
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -139,7 +139,7 @@ describe('grantEntitlementUsageCredits', () => {
     usageMeter1 = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter 1 for Grants',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       livemode: true,
     })
 
@@ -311,7 +311,7 @@ describe('grantEntitlementUsageCredits', () => {
     const usageMeter2 = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter 2 for Grants',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       livemode: true,
     })
 
@@ -713,7 +713,7 @@ describe('grantEntitlementUsageCredits', () => {
     const usageMeter2 = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Test Usage Meter 2 for Auto Account Creation',
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
       livemode: true,
     })
 
@@ -725,7 +725,7 @@ describe('grantEntitlementUsageCredits', () => {
       amount: amountForNewSif, // Default amount for this feature
       renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
       livemode: true,
-      catalogId: catalog.id,
+      pricingModelId: pricingModel.id,
     })
 
     // 3. Create a product feature for feature2
@@ -887,7 +887,7 @@ describe('grantEntitlementUsageCredits', () => {
       const usageMeter2 = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Test Usage Meter 2 for Initial Grant',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode: true,
       })
       const featureOnce = await setupUsageCreditGrantFeature({
@@ -1014,7 +1014,7 @@ describe('grantEntitlementUsageCredits', () => {
       const usageMeter2 = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Test Usage Meter 2 for Subsequent Grant',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         livemode: true,
       })
       const featureOnce = await setupUsageCreditGrantFeature({

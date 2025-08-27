@@ -33,11 +33,11 @@ import {
   checkoutInfoForCheckoutSession,
 } from '@/utils/checkoutHelpers'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { createProductTransaction } from '@/utils/catalog'
+import { createProductTransaction } from '@/utils/pricingModel'
 import { setupUserAndApiKey } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Feature } from '@/db/schema/features'
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 import { Organization } from '@/db/schema/organizations'
 
 vi.mock('next/headers', () => ({

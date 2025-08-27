@@ -8,7 +8,7 @@ import {
 import { insertUser } from './userMethods'
 import {
   setupOrg,
-  setupCatalog,
+  setupPricingModel,
   setupMemberships,
   setupProduct,
   setupPrice,
@@ -24,7 +24,7 @@ describe('getProductTableRows', () => {
   let thirdProductId: string
   let secondPriceId: string
   let thirdPriceId: string
-  let catalogId: string
+  let pricingModelId: string
 
   beforeEach(async () => {
     // Set up organization
@@ -34,25 +34,25 @@ describe('getProductTableRows', () => {
     const membership = await setupMemberships({ organizationId })
     userId = membership.userId
 
-    // Set up catalog
-    const catalog = await setupCatalog({
+    // Set up pricingModel
+    const pricingModel = await setupPricingModel({
       organizationId,
-      name: 'Test Catalog',
+      name: 'Test PricingModel',
     })
-    catalogId = catalog.id
+    pricingModelId = pricingModel.id
 
     // Set up products
     const secondProduct = await setupProduct({
       organizationId,
       name: 'Product 1',
-      catalogId,
+      pricingModelId,
     })
     secondProductId = secondProduct.id
 
     const thirdProduct = await setupProduct({
       organizationId,
       name: 'Product 2',
-      catalogId,
+      pricingModelId,
     })
     thirdProductId = thirdProduct.id
 
@@ -92,7 +92,7 @@ describe('getProductTableRows', () => {
     thirdPriceId = thirdPrice.id
   })
 
-  it("should return products with prices and catalogs for the user's organization, sorted by creation date descending", async () => {
+  it("should return products with prices and pricingModels for the user's organization, sorted by creation date descending", async () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return getProductTableRows(
         {
@@ -114,7 +114,7 @@ describe('getProductTableRows', () => {
     expect(result.data[1].product.active).toBe(true)
     expect(result.data[1].prices.length).toBe(1)
     expect(result.data[1].prices[0].id).toBe(secondPriceId)
-    expect(result.data[1].catalog?.id).toBe(catalogId)
+    expect(result.data[1].pricingModel?.id).toBe(pricingModelId)
 
     // Check second product
     expect(result.data[0].product.id).toBe(thirdProductId)
@@ -122,7 +122,7 @@ describe('getProductTableRows', () => {
     expect(result.data[0].product.active).toBe(true)
     expect(result.data[0].prices.length).toBe(1)
     expect(result.data[0].prices[0].id).toBe(thirdPriceId)
-    expect(result.data[0].catalog?.id).toBe(catalogId)
+    expect(result.data[0].pricingModel?.id).toBe(pricingModelId)
   })
 
   it('should filter products by active status', async () => {
@@ -165,14 +165,14 @@ describe('getProductTableRows', () => {
     await setupMemberships({ organizationId: otherOrg.id })
 
     // Create a product in the other organization
-    const otherCatalog = await setupCatalog({
+    const otherPricingModel = await setupPricingModel({
       organizationId: otherOrg.id,
-      name: 'Other Catalog',
+      name: 'Other PricingModel',
     })
     const otherProduct = await setupProduct({
       organizationId: otherOrg.id,
       name: 'Other Product',
-      catalogId: otherCatalog.id,
+      pricingModelId: otherPricingModel.id,
     })
     await setupPrice({
       productId: otherProduct.id,
@@ -218,7 +218,7 @@ describe('getProductTableRows', () => {
       const product = await setupProduct({
         organizationId,
         name: `Product ${i}`,
-        catalogId,
+        pricingModelId,
       })
       await setupPrice({
         productId: product.id,
@@ -335,7 +335,7 @@ describe('getProductTableRows', () => {
     const newProduct = await setupProduct({
       organizationId,
       name: 'New Product',
-      catalogId,
+      pricingModelId,
     })
     await setupPrice({
       productId: newProduct.id,
@@ -371,30 +371,30 @@ describe('getProductTableRows', () => {
 
 describe('Database Constraints', () => {
   let organizationId: string
-  let catalogId: string
+  let pricingModelId: string
   let defaultProductId: string
 
   beforeEach(async () => {
     const { organization } = await setupOrg()
     organizationId = organization.id
 
-    const catalog = await setupCatalog({ organizationId })
-    catalogId = catalog.id
+    const pricingModel = await setupPricingModel({ organizationId })
+    pricingModelId = pricingModel.id
 
     const defaultProduct = await setupProduct({
       organizationId,
       name: 'Default Product',
-      catalogId,
+      pricingModelId,
       default: true,
     })
     defaultProductId = defaultProduct.id
   })
 
-  it('throws an error when inserting a second default product for the same catalog', async () => {
+  it('throws an error when inserting a second default product for the same pricingModel', async () => {
     const newProductInsert: Product.Insert = {
       name: 'Another Default Product',
       organizationId,
-      catalogId,
+      pricingModelId,
       livemode: true,
       active: true,
       default: true,
@@ -412,7 +412,7 @@ describe('Database Constraints', () => {
         await insertProduct(newProductInsert, transaction)
       })
     ).rejects.toThrow(
-      /duplicate key value violates unique constraint "products_catalog_id_default_unique_idx"/
+      /duplicate key value violates unique constraint "products_pricing_model_id_default_unique_idx"/
     )
   })
 
@@ -420,7 +420,7 @@ describe('Database Constraints', () => {
     const nonDefaultProduct = await setupProduct({
       organizationId,
       name: 'Non-Default Product',
-      catalogId,
+      pricingModelId,
       default: false,
     })
 
@@ -435,7 +435,7 @@ describe('Database Constraints', () => {
         )
       })
     ).rejects.toThrow(
-      /duplicate key value violates unique constraint "products_catalog_id_default_unique_idx"/
+      /duplicate key value violates unique constraint "products_pricing_model_id_default_unique_idx"/
     )
   })
 
@@ -445,7 +445,7 @@ describe('Database Constraints', () => {
         {
           name: 'Non-Default Product',
           organizationId,
-          catalogId,
+          pricingModelId,
           livemode: true,
           active: true,
           default: false,
@@ -463,18 +463,20 @@ describe('Database Constraints', () => {
     })
   })
 
-  it('allows multiple default products in different catalogs', async () => {
+  it('allows multiple default products in different pricingModels', async () => {
     await adminTransaction(async ({ transaction }) => {
-      // First default product is already created in the first catalog
-      // Create a second catalog
-      const secondCatalog = await setupCatalog({ organizationId })
+      // First default product is already created in the first pricingModel
+      // Create a second pricingModel
+      const secondPricingModel = await setupPricingModel({
+        organizationId,
+      })
 
-      // Create a default product in the second catalog
+      // Create a default product in the second pricing model
       const secondDefaultProduct = await insertProduct(
         {
-          name: 'Default Product in Second Catalog',
+          name: 'Default Product in Second PricingModel',
           organizationId,
-          catalogId: secondCatalog.id,
+          pricingModelId: secondPricingModel.id,
           livemode: true,
           active: true,
           default: true,
@@ -484,13 +486,15 @@ describe('Database Constraints', () => {
           externalId: null,
           description: null,
           imageURL: null,
-          slug: `default-product-in-second-catalog+${core.nanoid()}`,
+          slug: `default-product-in-second-pricingModel+${core.nanoid()}`,
         },
         transaction
       )
 
       expect(secondDefaultProduct.default).toBe(true)
-      expect(secondDefaultProduct.catalogId).toBe(secondCatalog.id)
+      expect(secondDefaultProduct.pricingModelId).toBe(
+        secondPricingModel.id
+      )
     })
   })
 })
@@ -498,13 +502,13 @@ describe('Database Constraints', () => {
 // Slug uniqueness tests using trigger enforcement
 describe('Slug uniqueness policies', () => {
   let organizationId: string
-  let catalogId: string
+  let pricingModelId: string
   beforeEach(async () => {
     const setup = await setupOrg()
     organizationId = setup.organization.id
-    catalogId = setup.catalog.id
+    pricingModelId = setup.pricingModel.id
   })
-  it('throws an error when inserting a product with duplicate slug in the same catalog', async () => {
+  it('throws an error when inserting a product with duplicate slug in the same pricingModel', async () => {
     const slug = 'duplicate-slug'
     await expect(
       adminTransaction(async ({ transaction }) => {
@@ -513,7 +517,7 @@ describe('Slug uniqueness policies', () => {
           {
             name: 'First Product',
             organizationId,
-            catalogId,
+            pricingModelId,
             livemode: true,
             active: true,
             default: false,
@@ -532,7 +536,7 @@ describe('Slug uniqueness policies', () => {
           {
             name: 'Second Product',
             organizationId,
-            catalogId,
+            pricingModelId,
             livemode: true,
             active: true,
             default: false,
@@ -547,9 +551,9 @@ describe('Slug uniqueness policies', () => {
           transaction
         )
       })
-    ).rejects.toThrow(/products_catalog_id_slug_unique_idx/)
+    ).rejects.toThrow(/products_pricing_model_id_slug_unique_idx/)
   })
-  it('throws an error when updating a product slug to one that already exists in the same catalog', async () => {
+  it('throws an error when updating a product slug to one that already exists in the same pricingModel', async () => {
     const slug1 = 'slug-one'
     const slug2 = 'slug-two'
     await expect(
@@ -559,7 +563,7 @@ describe('Slug uniqueness policies', () => {
           {
             name: 'First Product',
             organizationId,
-            catalogId,
+            pricingModelId,
             livemode: true,
             active: true,
             default: false,
@@ -578,7 +582,7 @@ describe('Slug uniqueness policies', () => {
           {
             name: 'Second Product',
             organizationId,
-            catalogId,
+            pricingModelId,
             livemode: true,
             active: true,
             default: false,
@@ -598,6 +602,6 @@ describe('Slug uniqueness policies', () => {
           transaction
         )
       })
-    ).rejects.toThrow(/products_catalog_id_slug_unique_idx/)
+    ).rejects.toThrow(/products_pricing_model_id_slug_unique_idx/)
   })
 })

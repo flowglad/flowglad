@@ -32,7 +32,10 @@ import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
-import { catalogs, catalogsSelectSchema } from '../schema/catalogs'
+import {
+  pricingModels,
+  pricingModelsSelectSchema,
+} from '../schema/pricingModels'
 import { PriceType } from '@/types'
 import { selectProducts } from './productMethods'
 import { z } from 'zod'
@@ -103,11 +106,14 @@ export const selectPricesProductsAndCatalogsForOrganization = async (
     .select({
       price: prices,
       product: products,
-      catalog: catalogs,
+      pricingModel: pricingModels,
     })
     .from(prices)
     .innerJoin(products, eq(products.id, prices.productId))
-    .leftJoin(catalogs, eq(products.catalogId, catalogs.id))
+    .leftJoin(
+      pricingModels,
+      eq(products.pricingModelId, pricingModels.id)
+    )
     .$dynamic()
 
   const whereClauses: SQLWrapper[] = [
@@ -125,7 +131,9 @@ export const selectPricesProductsAndCatalogsForOrganization = async (
   return results.map((result) => ({
     product: productsSelectSchema.parse(result.product),
     price: pricesSelectSchema.parse(result.price),
-    catalog: catalogsSelectSchema.parse(result.catalog),
+    pricingModel: pricingModelsSelectSchema.parse(
+      result.pricingModel
+    ),
   }))
 }
 

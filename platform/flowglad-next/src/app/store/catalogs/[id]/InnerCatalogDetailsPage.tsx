@@ -3,13 +3,13 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { ProductsTable } from '@/app/store/products/ProductsTable'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
 import { Pencil, Plus } from 'lucide-react'
-import EditCatalogModal from '@/components/forms/EditCatalogModal'
+import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import CustomersTable from '@/app/customers/CustomersTable'
 import TableTitle from '@/components/ion/TableTitle'
 import FeaturesTable from '@/app/features/FeaturesTable'
@@ -19,13 +19,13 @@ import DefaultBadge from '@/components/DefaultBadge'
 import UsageMetersTable from '@/app/store/usage-meters/UsageMetersTable'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 
-export type InnerCatalogDetailsPageProps = {
-  catalog: Catalog.ClientRecord
+export type InnerPricingModelDetailsPageProps = {
+  pricingModel: PricingModel.ClientRecord
 }
 
-function InnerCatalogDetailsPage({
-  catalog,
-}: InnerCatalogDetailsPageProps) {
+function InnerPricingModelDetailsPage({
+  pricingModel,
+}: InnerPricingModelDetailsPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
@@ -44,9 +44,9 @@ function InnerCatalogDetailsPage({
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden mr-4">
               <PageTitle className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                {catalog.name}
+                {pricingModel.name}
               </PageTitle>
-              {catalog.isDefault && <DefaultBadge />}
+              {pricingModel.isDefault && <DefaultBadge />}
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
               <Button
@@ -83,7 +83,9 @@ function InnerCatalogDetailsPage({
               setIsCreateFeatureModalOpen(true)
             }}
           />
-          <FeaturesTable filters={{ catalogId: catalog.id }} />
+          <FeaturesTable
+            filters={{ pricingModelId: pricingModel.id }}
+          />
         </div>
         <div className="flex flex-col gap-5">
           <TableTitle
@@ -94,23 +96,25 @@ function InnerCatalogDetailsPage({
               setIsCreateUsageMeterModalOpen(true)
             }}
           />
-          <UsageMetersTable filters={{ catalogId: catalog.id }} />
+          <UsageMetersTable
+            filters={{ pricingModelId: pricingModel.id }}
+          />
         </div>
       </div>
-      <EditCatalogModal
+      <EditPricingModelModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
-        catalog={catalog}
+        pricingModel={pricingModel}
       />
       <CreateProductModal
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
-        defaultCatalogId={catalog.id}
+        defaultPricingModelId={pricingModel.id}
       />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}
         setIsOpen={setIsCreateFeatureModalOpen}
-        defaultCatalogId={catalog.id}
+        defaultPricingModelId={pricingModel.id}
       />
       <CreateUsageMeterModal
         isOpen={isCreateUsageMeterModalOpen}
@@ -120,4 +124,4 @@ function InnerCatalogDetailsPage({
   )
 }
 
-export default InnerCatalogDetailsPage
+export default InnerPricingModelDetailsPage

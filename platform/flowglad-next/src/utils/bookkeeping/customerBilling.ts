@@ -7,7 +7,7 @@ import {
   isSubscriptionCurrent,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectCatalogForCustomer } from '@/db/tableMethods/catalogMethods'
+import { selectCatalogForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 

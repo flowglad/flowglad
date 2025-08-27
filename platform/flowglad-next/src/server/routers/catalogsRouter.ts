@@ -1,63 +1,63 @@
 import { protectedProcedure, router } from '@/server/trpc'
 import {
-  catalogsClientSelectSchema,
-  catalogsPaginatedListSchema,
-  catalogsPaginatedSelectSchema,
-  catalogIdSchema,
-  createCatalogSchema,
-  editCatalogSchema,
-  cloneCatalogInputSchema,
-} from '@/db/schema/catalogs'
+  pricingModelsClientSelectSchema,
+  pricingModelsPaginatedListSchema,
+  pricingModelsPaginatedSelectSchema,
+  createPricingModelSchema,
+  editPricingModelSchema,
+  clonePricingModelInputSchema,
+} from '@/db/schema/pricingModels'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  insertCatalog,
-  selectCatalogsPaginated,
-  selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
-  selectCatalogsTableRows,
-  safelyUpdateCatalog,
-} from '@/db/tableMethods/catalogMethods'
+  insertPricingModel,
+  selectPricingModelsPaginated,
+  selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
+  selectPricingModelsTableRows,
+  safelyUpdatePricingModel,
+} from '@/db/tableMethods/pricingModelMethods'
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
-import { cloneCatalogTransaction } from '@/utils/catalog'
-import { setupCatalogTransaction } from '@/utils/catalogs/setupTransaction'
-import { catalogWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
+import { clonePricingModelTransaction } from '@/utils/pricingModel'
+import { setupPricingModelTransaction } from '@/utils/catalogs/setupTransaction'
+import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
+  idInputSchema,
 } from '@/db/tableUtils'
-import { setupCatalogSchema } from '@/utils/catalogs/setupSchemas'
+import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
-  resource: 'catalog',
-  tags: ['Catalogs'],
+  resource: 'pricingModel',
+  tags: ['Pricing Models'],
 })
 
-export const catalogsRouteConfigs = routeConfigs
-export const getDefaultCatalogRouteConfig: Record<
+export const pricingModelsRouteConfigs = routeConfigs
+export const getDefaultPricingModelRouteConfig: Record<
   string,
   RouteConfig
 > = {
-  'GET /catalogs/default': {
-    procedure: 'catalogs.getDefault',
-    pattern: new RegExp(`^catalogs\/default$`),
+  'GET /pricing-models/default': {
+    procedure: 'pricingModels.getDefault',
+    pattern: new RegExp(`^pricing-models\/default$`),
     mapParams: (matches) => ({
       externalId: matches[0],
     }),
   },
 }
 
-const listCatalogsProcedure = protectedProcedure
+const listPricingModelsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
-  .input(catalogsPaginatedSelectSchema)
-  .output(catalogsPaginatedListSchema)
+  .input(pricingModelsPaginatedSelectSchema)
+  .output(pricingModelsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        return selectCatalogsPaginated(input, transaction)
+        return selectPricingModelsPaginated(input, transaction)
       },
       {
         apiKey: ctx.apiKey,
@@ -65,24 +65,26 @@ const listCatalogsProcedure = protectedProcedure
     )
   })
 
-const getCatalogProcedure = protectedProcedure
+const getPricingModelProcedure = protectedProcedure
   .meta(openApiMetas.GET)
-  .input(catalogIdSchema)
+  .input(idInputSchema)
   .output(
-    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+    z.object({
+      pricingModel: pricingModelWithProductsAndUsageMetersSchema,
+    })
   )
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const [catalog] =
-          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+        const [pricingModel] =
+          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
             { id: input.id },
             transaction
           )
-        if (!catalog) {
-          throw new Error(`Catalog ${input.id} not found`)
+        if (!pricingModel) {
+          throw new Error(`Pricing Model ${input.id} not found`)
         }
-        return { catalog }
+        return { pricingModel }
       },
       {
         apiKey: ctx.apiKey,
@@ -90,20 +92,20 @@ const getCatalogProcedure = protectedProcedure
     )
   })
 
-const createCatalogProcedure = protectedProcedure
+const createPricingModelProcedure = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(createCatalogSchema)
+  .input(createPricingModelSchema)
   .output(
     z.object({
-      catalog: catalogsClientSelectSchema,
+      pricingModel: pricingModelsClientSelectSchema,
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const catalog = await authenticatedTransaction(
+    const pricingModel = await authenticatedTransaction(
       async ({ transaction }) => {
-        return insertCatalog(
+        return insertPricingModel(
           {
-            ...input.catalog,
+            ...input.pricingModel,
             livemode: ctx.livemode,
             organizationId: ctx.organizationId!,
           },
@@ -114,51 +116,53 @@ const createCatalogProcedure = protectedProcedure
         apiKey: ctx.apiKey,
       }
     )
-    return { catalog }
+    return { pricingModel }
   })
 
-const editCatalogProcedure = protectedProcedure
+const editPricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
-  .input(editCatalogSchema)
+  .input(editPricingModelSchema)
   .output(
     z.object({
-      catalog: catalogsClientSelectSchema,
+      pricingModel: pricingModelsClientSelectSchema,
     })
   )
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction }) => {
-        const catalog = await safelyUpdateCatalog(
+        const pricingModel = await safelyUpdatePricingModel(
           {
-            ...input.catalog,
+            ...input.pricingModel,
             id: input.id,
           },
           transaction
         )
-        return { result: { catalog } }
+        return { result: { pricingModel } }
       }
     )
   )
 
-const getDefaultCatalogProcedure = protectedProcedure
+const getDefaultPricingModelProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'GET',
-      path: '/api/v1/catalogs/default',
-      summary: 'Get Default Catalog for Organization',
-      tags: ['Catalogs'],
+      path: '/api/v1/pricing-models/default',
+      summary: 'Get Default Pricing Model for Organization',
+      tags: ['Pricing Models'],
       protect: true,
     },
   })
   .input(z.object({}))
   .output(
-    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+    z.object({
+      pricingModel: pricingModelWithProductsAndUsageMetersSchema,
+    })
   )
   .query(async ({ ctx }) => {
-    const catalog = await authenticatedTransaction(
+    const pricingModel = await authenticatedTransaction(
       async ({ transaction }) => {
-        const [defaultCatalog] =
-          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
+        const [defaultPricingModel] =
+          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
             {
               organizationId: ctx.organizationId!,
               livemode: ctx.livemode,
@@ -166,40 +170,42 @@ const getDefaultCatalogProcedure = protectedProcedure
             },
             transaction
           )
-        if (!defaultCatalog) {
-          throw new Error('Default catalog not found')
+        if (!defaultPricingModel) {
+          throw new Error('Default pricing model not found')
         }
-        return defaultCatalog
+        return defaultPricingModel
       },
       {
         apiKey: ctx.apiKey,
       }
     )
-    return { catalog }
+    return { pricingModel }
   })
 
-const cloneCatalogProcedure = protectedProcedure
+const clonePricingModelProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'POST',
-      path: '/api/v1/catalogs/{id}/clone',
-      summary: 'Clone a Catalog',
-      tags: ['Catalogs'],
+      path: '/api/v1/pricing-models/{id}/clone',
+      summary: 'Clone a PricingModel',
+      tags: ['PricingModels'],
       protect: true,
     },
   })
-  .input(cloneCatalogInputSchema)
+  .input(clonePricingModelInputSchema)
   .output(
-    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+    z.object({
+      pricingModel: pricingModelWithProductsAndUsageMetersSchema,
+    })
   )
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const catalog = await cloneCatalogTransaction(
+        const pricingModel = await clonePricingModelTransaction(
           input,
           transaction
         )
-        return { catalog }
+        return { pricingModel }
       },
       {
         apiKey: ctx.apiKey,
@@ -212,31 +218,35 @@ const getTableRowsProcedure = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(
       z.object({
-        catalog: catalogsClientSelectSchema,
+        pricingModel: pricingModelsClientSelectSchema,
         productsCount: z.number(),
       })
     )
   )
-  .query(authenticatedProcedureTransaction(selectCatalogsTableRows))
+  .query(
+    authenticatedProcedureTransaction(selectPricingModelsTableRows)
+  )
 
-const setupCatalogProcedure = protectedProcedure
+const setupPricingModelProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'POST',
-      path: '/api/v1/catalogs/setup',
-      summary: 'Setup a Catalog',
-      tags: ['Catalogs'],
+      path: '/api/v1/pricing-models/setup',
+      summary: 'Setup a PricingModel',
+      tags: ['PricingModels'],
       protect: true,
     },
   })
-  .input(setupCatalogSchema)
+  .input(setupPricingModelSchema)
   .output(
-    z.object({ catalog: catalogWithProductsAndUsageMetersSchema })
+    z.object({
+      pricingModel: pricingModelWithProductsAndUsageMetersSchema,
+    })
   )
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction, ctx }) => {
-        const result = await setupCatalogTransaction(
+        const result = await setupPricingModelTransaction(
           {
             input,
             organizationId: ctx.organizationId!,
@@ -244,25 +254,27 @@ const setupCatalogProcedure = protectedProcedure
           },
           transaction
         )
-        const [catalogWithProductsAndUsageMeters] =
-          await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
-            { id: result.catalog.id },
+        const [pricingModelWithProductsAndUsageMeters] =
+          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+            { id: result.pricingModel.id },
             transaction
           )
         return {
-          result: { catalog: catalogWithProductsAndUsageMeters },
+          result: {
+            pricingModel: pricingModelWithProductsAndUsageMeters,
+          },
         }
       }
     )
   )
 
-export const catalogsRouter = router({
-  list: listCatalogsProcedure,
-  setup: setupCatalogProcedure,
-  get: getCatalogProcedure,
-  getDefault: getDefaultCatalogProcedure,
-  create: createCatalogProcedure,
-  update: editCatalogProcedure,
-  clone: cloneCatalogProcedure,
+export const pricingModelsRouter = router({
+  list: listPricingModelsProcedure,
+  setup: setupPricingModelProcedure,
+  get: getPricingModelProcedure,
+  getDefault: getDefaultPricingModelProcedure,
+  create: createPricingModelProcedure,
+  update: editPricingModelProcedure,
+  clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
 })

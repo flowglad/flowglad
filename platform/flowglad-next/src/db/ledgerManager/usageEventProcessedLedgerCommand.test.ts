@@ -28,7 +28,7 @@ import { DbTransaction } from '@/db/types'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
@@ -66,7 +66,7 @@ interface AvailableCreditBalance {
 
 // Moved let declarations to the top level for file-wide access
 let organization: Organization.Record
-let catalog: Catalog.Record
+let pricingModel: PricingModel.Record
 let product: Product.Record
 let price: Price.Record
 let customer: Customer.Record
@@ -83,7 +83,7 @@ beforeEach(async () => {
   const scenarioData = await setupUsageLedgerScenario({})
 
   organization = scenarioData.organization
-  catalog = scenarioData.catalog
+  pricingModel = scenarioData.pricingModel
   product = scenarioData.product
   price = scenarioData.price
   customer = scenarioData.customer
@@ -1052,7 +1052,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       // 1. Setup a new UsageMeter that doesn\\'t have a ledger account with the existing subscription
       const newUsageMeter = await setupUsageMeter({
         organizationId: organization.id,
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         name: 'New Meter for LA Creation Test',
         livemode: TEST_LIVEMODE,
       })

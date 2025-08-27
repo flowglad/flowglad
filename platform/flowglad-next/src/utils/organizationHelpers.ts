@@ -13,7 +13,7 @@ import {
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
-import { createProductTransaction } from '@/utils/catalog'
+import { createProductTransaction } from '@/utils/pricingModel'
 import { dummyProduct } from '@/stubs/productStubs'
 import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
@@ -24,7 +24,7 @@ import {
   Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
-import { insertCatalog } from '@/db/tableMethods/catalogMethods'
+import { insertCatalog } from '@/db/tableMethods/pricingModelMethods'
 import { findOrCreateSvixApplication } from './svix'
 
 const generateSubdomainSlug = (name: string) => {

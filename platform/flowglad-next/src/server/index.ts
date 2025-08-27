@@ -26,7 +26,7 @@ import { invoicesRouter } from './routers/invoicesRouter'
 import { countriesRouter } from './routers/countriesRouter'
 import { paymentMethodsRouter } from './routers/paymentMethodsRouter'
 import { organizationsRouter } from './routers/organizationsRouter'
-import { catalogsRouter } from './routers/catalogsRouter'
+import { pricingModelsRouter } from './routers/pricingModelsRouter'
 import { usageMetersRouter } from './routers/usageMetersRouter'
 import { usageEventsRouter } from './routers/usageEventsRouter'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
@@ -65,7 +65,7 @@ export const appRouter = router({
   invoiceLineItems: invoiceLineItemsRouter,
   invoices: invoicesRouter,
   countries: countriesRouter,
-  catalogs: catalogsRouter,
+  pricingModels: pricingModelsRouter,
   // Utility endpoints
   utils: router({
     ping,

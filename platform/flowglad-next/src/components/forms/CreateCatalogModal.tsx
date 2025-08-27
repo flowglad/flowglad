@@ -1,7 +1,7 @@
 'use client'
 
 import FormModal from '@/components/forms/FormModal'
-import { createCatalogSchema } from '@/db/schema/catalogs'
+import { createCatalogSchema } from '@/db/schema/pricingModels'
 import CatalogFormFields from '@/components/forms/CatalogFormFields'
 import { trpc } from '@/app/_trpc/client'
 

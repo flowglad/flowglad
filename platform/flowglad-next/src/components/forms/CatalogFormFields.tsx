@@ -1,7 +1,7 @@
 'use client'
 
 import { useFormContext, Controller } from 'react-hook-form'
-import { CreateCatalogInput } from '@/db/schema/catalogs'
+import { CreateCatalogInput } from '@/db/schema/pricingModels'
 import { Input } from '@/components/ui/input'
 import {
   FormField,

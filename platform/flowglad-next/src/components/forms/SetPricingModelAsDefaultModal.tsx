@@ -5,24 +5,24 @@ import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import {
-  editCatalogSchema,
-  Catalog,
-  EditCatalogInput,
-} from '@/db/schema/catalogs'
+  editPricingModelSchema,
+  PricingModel,
+  EditPricingModelInput,
+} from '@/db/schema/pricingModels'
 
-interface SetCatalogAsDefaultProps {
+interface SetPricingModelAsDefaultProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
-  catalog: Catalog.ClientRecord
+  catalog: PricingModel.ClientRecord
 }
 
-export const catalogToSetCatalogAsDefaultInput = (
-  catalog: Pick<Catalog.ClientRecord, 'id' | 'name'>
-): EditCatalogInput => {
+export const catalogToSetPricingModelAsDefaultInput = (
+  catalog: Pick<PricingModel.ClientRecord, 'id' | 'name'>
+): EditPricingModelInput => {
   return {
     id: catalog.id,
-    catalog: {
+    pricingModel: {
       id: catalog.id,
       name: catalog.name,
       isDefault: true,
@@ -30,22 +30,22 @@ export const catalogToSetCatalogAsDefaultInput = (
   }
 }
 
-const SetCatalogAsDefaultModal: React.FC<
-  SetCatalogAsDefaultProps
+const SetPricingModelAsDefaultModal: React.FC<
+  SetPricingModelAsDefaultProps
 > = ({ trigger, isOpen, setIsOpen, catalog }) => {
   const router = useRouter()
-  const editCatalog = trpc.catalogs.update.useMutation()
+  const editPricingModel = trpc.catalogs.update.useMutation()
 
   const handleMakeDefault = async () => {
-    const data = catalogToSetCatalogAsDefaultInput(catalog)
+    const data = catalogToSetPricingModelAsDefaultInput(catalog)
 
-    const parsed = editCatalogSchema.safeParse(data)
+    const parsed = editPricingModelSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
       return
     }
 
-    await editCatalog.mutateAsync(parsed.data)
+    await editPricingModel.mutateAsync(parsed.data)
     router.refresh()
     setIsOpen(false)
   }
@@ -53,20 +53,17 @@ const SetCatalogAsDefaultModal: React.FC<
   return (
     <Modal
       trigger={trigger}
-      title="Set Default Catalog"
+      title="Set Default PricingModel"
       open={isOpen}
       onOpenChange={setIsOpen}
       footer={
         <div className="flex justify-end gap-3 w-full">
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-          >
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
           <Button
             onClick={handleMakeDefault}
-            disabled={editCatalog.isPending}
+            disabled={editPricingModel.isPending}
           >
             Set as Default
           </Button>
@@ -84,4 +81,4 @@ const SetCatalogAsDefaultModal: React.FC<
   )
 }
 
-export default SetCatalogAsDefaultModal
+export default SetPricingModelAsDefaultModal

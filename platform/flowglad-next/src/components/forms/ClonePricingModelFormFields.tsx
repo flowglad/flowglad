@@ -8,7 +8,7 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { CloneCatalogInput } from '@/db/schema/catalogs'
+import { CloneCatalogInput } from '@/db/schema/pricingModels'
 
 const CloneCatalogFormFields: React.FC = () => {
   const form = useFormContext<CloneCatalogInput>()

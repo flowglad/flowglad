@@ -9,7 +9,7 @@ import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
   createProductTransaction,
   editProduct as editProductCatalog,
-} from '@/utils/catalog'
+} from '@/utils/pricingModel'
 import {
   createProductSchema,
   editProductSchema,
@@ -35,7 +35,7 @@ import {
 import { selectPricesProductsAndCatalogsForOrganization } from '@/db/tableMethods/priceMethods'
 import * as R from 'ramda'
 import { Price } from '@/db/schema/prices'
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,

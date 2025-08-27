@@ -25,7 +25,7 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
-import { catalogs } from './catalogs'
+import { pricingModels } from './pricingModels'
 
 const PRODUCTS_TABLE_NAME = 'products'
 
@@ -60,9 +60,9 @@ const columns = {
    * "10 bots" => "bots"
    */
   pluralQuantityLabel: text('plural_quantity_label'),
-  catalogId: nullableStringForeignKey(
-    'catalog_id',
-    catalogs
+  pricingModelId: nullableStringForeignKey(
+    'pricing_model_id',
+    pricingModels
   ).notNull(),
   /**
    * A hidden column, used primarily for managing migrations from
@@ -82,11 +82,11 @@ export const products = pgTable(
       constructIndex(PRODUCTS_TABLE_NAME, [table.active]),
       constructUniqueIndex(PRODUCTS_TABLE_NAME, [table.externalId]),
       constructUniqueIndex(PRODUCTS_TABLE_NAME, [
-        table.catalogId,
+        table.pricingModelId,
         table.slug,
       ]),
-      uniqueIndex('products_catalog_id_default_unique_idx')
-        .on(table.catalogId)
+      uniqueIndex('products_pricing_model_id_default_unique_idx')
+        .on(table.pricingModelId)
         .where(sql`${table.default}`),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
@@ -131,7 +131,7 @@ export const productsUpdateSchema = productsInsertSchema
   })
 
 const createOnlyColumns = {
-  catalogId: true,
+  pricingModelId: true,
 } as const
 
 const readOnlyColumns = {

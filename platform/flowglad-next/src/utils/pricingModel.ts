@@ -22,11 +22,11 @@ import {
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Product } from '@/db/schema/products'
 import {
-  insertCatalog,
-  selectCatalogById,
-  selectCatalogsWithProductsAndUsageMetersByCatalogWhere,
-} from '@/db/tableMethods/catalogMethods'
-import { CloneCatalogInput } from '@/db/schema/catalogs'
+  insertPricingModel,
+  selectPricingModelById,
+  selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
+} from '@/db/tableMethods/pricingModelMethods'
+import { ClonePricingModelInput } from '@/db/schema/pricingModels'
 import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 
 export const createPrice = async (
@@ -125,24 +125,27 @@ export const editProduct = async (
   return updatedProduct
 }
 
-export const cloneCatalogTransaction = async (
-  input: CloneCatalogInput,
+export const clonePricingModelTransaction = async (
+  input: ClonePricingModelInput,
   transaction: DbTransaction
 ) => {
-  const catalog = await selectCatalogById(input.id, transaction)
-  const newCatalog = await insertCatalog(
+  const pricingModel = await selectPricingModelById(
+    input.id,
+    transaction
+  )
+  const newPricingModel = await insertPricingModel(
     {
       name: input.name,
-      livemode: catalog.livemode,
+      livemode: pricingModel.livemode,
       isDefault: false,
-      organizationId: catalog.organizationId,
+      organizationId: pricingModel.organizationId,
     },
     transaction
   )
   const productsWithPrices =
     await selectPricesAndProductsByProductWhere(
       {
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
       },
       transaction
     )
@@ -153,7 +156,7 @@ export const cloneCatalogTransaction = async (
       product.id,
       omit(['id'], {
         ...product,
-        catalogId: newCatalog.id,
+        pricingModelId: newPricingModel.id,
         externalId: null,
       }),
     ])
@@ -213,11 +216,11 @@ export const cloneCatalogTransaction = async (
   await bulkInsertPrices(allPriceInserts, transaction)
 
   // Return the newly created catalog with products and prices
-  const [newCatalogWithProducts] =
-    await selectCatalogsWithProductsAndUsageMetersByCatalogWhere(
-      { id: newCatalog.id },
+  const [newPricingModelWithProducts] =
+    await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+      { id: newPricingModel.id },
       transaction
     )
 
-  return newCatalogWithProducts
+  return newPricingModelWithProducts
 }

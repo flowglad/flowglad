@@ -5,7 +5,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { Feature } from '@/db/schema/features'
 import { FeatureType } from '@/types'
 import { Organization } from '@/db/schema/organizations'
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 
 describe('insertFeature uniqueness constraints', () => {
   let organization1: Organization.Record

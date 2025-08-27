@@ -16,7 +16,7 @@ import {
   stripeSubscriptionItemToSubscriptionItemInsert,
   stripeSubscriptionToSubscriptionInsert,
 } from '@/migration-helpers/stripeMigrations'
-import { selectDefaultCatalog } from '@/db/tableMethods/catalogMethods'
+import { selectDefaultCatalog } from '@/db/tableMethods/pricingModelMethods'
 import {
   bulkInsertOrDoNothingProductsByExternalId,
   selectProducts,

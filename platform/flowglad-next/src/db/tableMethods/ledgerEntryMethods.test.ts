@@ -28,7 +28,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { UsageMeter } from '@/db/schema/usageMeters'
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 import { Product } from '@/db/schema/products'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {

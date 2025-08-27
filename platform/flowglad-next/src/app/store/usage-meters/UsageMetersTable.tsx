@@ -12,7 +12,7 @@ import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 export interface UsageMetersTableFilters {
-  catalogId?: string
+  pricingModelId?: string
 }
 
 const UsageMetersTable = ({
@@ -31,7 +31,7 @@ const UsageMetersTable = ({
     isFetching,
   } = usePaginatedTableState<
     {
-      catalog: { id: string; name: string }
+      pricingModel: { id: string; name: string }
       usageMeter: UsageMeter.ClientRecord
     },
     UsageMetersTableFilters
@@ -58,11 +58,13 @@ const UsageMetersTable = ({
         },
         {
           header: ({ column }) => (
-            <ColumnHeaderCell title="Catalog" column={column} />
+            <ColumnHeaderCell title="Pricing Model" column={column} />
           ),
-          accessorKey: 'catalog.name',
+          accessorKey: 'pricingModel.name',
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.catalog.name}</span>
+            <span className="text-sm">
+              {cellData.pricingModel.name}
+            </span>
           ),
         },
         {

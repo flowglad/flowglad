@@ -73,9 +73,10 @@ import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
 import { Payment } from '@/db/schema/payments'
 import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
 import {
-  insertCatalog,
-  selectDefaultCatalog,
-} from '@/db/tableMethods/catalogMethods'
+  selectPricingModelById,
+  insertPricingModel,
+  selectDefaultPricingModel,
+} from '@/db/tableMethods/pricingModelMethods'
 import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { BillingAddress } from '@/db/schema/organizations'
@@ -83,7 +84,6 @@ import { insertDiscount } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
-import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
 import { memberships } from '@/db/schema/memberships'
 import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
 import { Feature } from '@/db/schema/features'
@@ -173,9 +173,9 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
-    const catalog = await insertCatalog(
+    const pricingModel = await insertPricingModel(
       {
-        name: 'Flowglad Test Catalog',
+        name: 'Flowglad Test Pricing Model',
         organizationId: organization.id,
         livemode: true,
         isDefault: true,
@@ -194,7 +194,7 @@ export const setupOrg = async (params?: {
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        catalogId: catalog.id,
+        pricingModelId: pricingModel.id,
         externalId: null,
         default: false,
         slug: `flowglad-test-product-price+${core.nanoid()}`,
@@ -222,7 +222,7 @@ export const setupOrg = async (params?: {
       },
       transaction
     )) as Price.SubscriptionRecord
-    return { organization, product, price, catalog }
+    return { organization, product, price, pricingModel }
   })
 }
 
@@ -230,14 +230,14 @@ export const setupProduct = async ({
   organizationId,
   name,
   livemode,
-  catalogId,
+  pricingModelId,
   active = true,
   default: isDefault = false,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
-  catalogId: string
+  pricingModelId: string
   active?: boolean
   default?: boolean
 }) => {
@@ -253,7 +253,7 @@ export const setupProduct = async ({
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        catalogId,
+        pricingModelId,
         externalId: null,
         default: isDefault,
         slug: `flowglad-test-product-price+${core.nanoid()}`,
@@ -961,9 +961,9 @@ export const setupSubscriptionItem = async ({
   })
 }
 
-export const setupCatalog = async ({
+export const setupPricingModel = async ({
   organizationId,
-  name = 'Test Catalog',
+  name = 'Test Pricing Model',
   livemode = true,
   isDefault = false,
 }: {
@@ -973,7 +973,7 @@ export const setupCatalog = async ({
   isDefault?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertCatalog(
+    return insertPricingModel(
       {
         name,
         organizationId,
@@ -1252,42 +1252,45 @@ export const setupUsageMeter = async ({
   organizationId,
   name,
   livemode = true,
-  catalogId,
+  pricingModelId,
   slug,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
-  catalogId?: string
+  pricingModelId?: string
   slug?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    let catalogToUseId: string | null = null
-    if (catalogId) {
-      const catalog = await selectCatalogById(catalogId, transaction)
-      if (!catalog) {
-        throw new Error('Catalog not found')
+    let pricingModelToUseId: string | null = null
+    if (pricingModelId) {
+      const pricingModel = await selectPricingModelById(
+        pricingModelId,
+        transaction
+      )
+      if (!pricingModel) {
+        throw new Error('Pricing model not found')
       }
-      catalogToUseId = catalog.id
+      pricingModelToUseId = pricingModel.id
     } else {
-      const defaultCatalog = await selectDefaultCatalog(
+      const defaultPricingModel = await selectDefaultPricingModel(
         { organizationId, livemode },
         transaction
       )
-      if (!defaultCatalog) {
-        throw new Error('Default catalog not found')
+      if (!defaultPricingModel) {
+        throw new Error('Default pricing model not found')
       }
-      catalogToUseId = defaultCatalog.id
+      pricingModelToUseId = defaultPricingModel.id
     }
-    if (!catalogToUseId) {
-      throw new Error('setupUsageMeter: Catalog not found')
+    if (!pricingModelToUseId) {
+      throw new Error('setupUsageMeter: Pricing model not found')
     }
     return insertUsageMeter(
       {
         organizationId,
         name,
         livemode,
-        catalogId: catalogToUseId,
+        pricingModelId: pricingModelToUseId,
         slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
       },
       transaction
@@ -1404,7 +1407,7 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
           organizationId,
           name: spec.usageMeterName,
           livemode,
-          catalogId: product.catalogId,
+          pricingModelId: product.pricingModelId,
         })
         usageMeterId = usageMeter.id
       }
@@ -1429,7 +1432,7 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           usageMeterId:
             usageMeterId ?? `meter_dummy_${core.nanoid(4)}`,
-          catalogId: product.catalogId,
+          pricingModelId: product.pricingModelId,
           active: true,
         }
       } else if (spec.type === FeatureType.Toggle) {
@@ -1439,7 +1442,7 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
           amount: null,
           renewalFrequency: null,
           usageMeterId: null,
-          catalogId: product.catalogId,
+          pricingModelId: product.pricingModelId,
           active: true,
         }
       } else {
@@ -2068,10 +2071,10 @@ export const setupToggleFeature = async (
   }
 ) => {
   return adminTransaction(async ({ transaction }) => {
-    const catalogId =
-      params.catalogId ??
+    const pricingModelId =
+      params.pricingModelId ??
       (
-        await selectDefaultCatalog(
+        await selectDefaultPricingModel(
           {
             organizationId: params.organizationId,
             livemode: params.livemode,
@@ -2086,7 +2089,7 @@ export const setupToggleFeature = async (
       amount: null,
       usageMeterId: null,
       renewalFrequency: null,
-      catalogId: catalogId ?? '',
+      pricingModelId: pricingModelId ?? '',
       ...params,
     }
     return insertFeature(insert, transaction)
@@ -2103,10 +2106,10 @@ export const setupUsageCreditGrantFeature = async (
   }
 ): Promise<Feature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    const catalogId =
-      params.catalogId ??
+    const pricingModelId =
+      params.pricingModelId ??
       (
-        await selectDefaultCatalog(
+        await selectDefaultPricingModel(
           {
             organizationId: params.organizationId,
             livemode: params.livemode,
@@ -2119,7 +2122,7 @@ export const setupUsageCreditGrantFeature = async (
       description: params.description ?? '',
       slug: params.slug ?? `test-feature-${core.nanoid()}`,
       amount: params.amount ?? 1,
-      catalogId: catalogId ?? '',
+      pricingModelId: pricingModelId ?? '',
       ...params,
     }
     return insertFeature(
@@ -2225,7 +2228,7 @@ export const setupUsageLedgerScenario = async (params: {
   livemode?: boolean
 }) => {
   const livemode = params.livemode ?? true
-  const { organization, product, catalog } = await setupOrg()
+  const { organization, product, pricingModel } = await setupOrg()
   const customer = await setupCustomer({
     organizationId: organization.id,
     email: 'test@test.com',
@@ -2242,7 +2245,7 @@ export const setupUsageLedgerScenario = async (params: {
     organizationId: organization.id,
     name: 'Test Usage Meter',
     livemode,
-    catalogId: catalog.id,
+    pricingModelId: pricingModel.id,
   })
   const price = await setupPrice({
     productId: product.id,
@@ -2352,7 +2355,7 @@ export const setupUsageLedgerScenario = async (params: {
   return {
     organization,
     product,
-    catalog,
+    pricingModel,
     customer,
     paymentMethod,
     price,

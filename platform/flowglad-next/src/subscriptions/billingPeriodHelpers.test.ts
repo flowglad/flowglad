@@ -72,7 +72,7 @@ import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 import {
   FeatureUsageGrantFrequency,
   LedgerTransactionType,

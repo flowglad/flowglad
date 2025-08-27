@@ -18,7 +18,7 @@ import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Customer } from '@/db/schema/customers'
-import { Catalog } from '@/db/schema/catalogs'
+import { Catalog } from '@/db/schema/pricingModels'
 
 describe('insertSubscriptionAndItems', () => {
   let organization: Organization.Record

@@ -28,7 +28,7 @@ const defaultProduct: Product.ClientInsert = {
   displayFeatures: [],
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
-  catalogId: 'catalog_111____',
+  pricingModelId: 'catalog_111____',
   default: false,
   slug: '',
 }
@@ -40,7 +40,7 @@ export const CreateProductModal = ({
   chatPreview,
   onSubmitStart,
   onSubmitSuccess,
-  defaultCatalogId,
+  defaultPricingModelId,
 }: {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
@@ -49,7 +49,7 @@ export const CreateProductModal = ({
   onSubmitSuccess?: () => void
   onSubmitError?: (error: Error) => void
   chatPreview?: boolean
-  defaultCatalogId: string
+  defaultPricingModelId: string
 }) => {
   const { organization } = useAuthenticatedContext()
   const createProduct = trpc.products.create.useMutation()
@@ -60,7 +60,7 @@ export const CreateProductModal = ({
     defaultValues ?? {
       product: {
         ...defaultProduct,
-        catalogId: defaultCatalogId,
+        pricingModelId: defaultPricingModelId,
       },
       price: {
         ...defaultPrice,

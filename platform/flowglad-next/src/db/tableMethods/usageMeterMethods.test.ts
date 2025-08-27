@@ -10,22 +10,21 @@ import {
 } from './usageMeterMethods'
 import {
   setupOrg,
-  setupCatalog,
-  setupMemberships,
+  setupPricingModel,
   setupUsageMeter,
 } from '@/../seedDatabase'
 
 describe('usageMeterMethods', () => {
   let organizationId: string
-  let catalogId: string
-  let catalogName: string
+  let pricingModelId: string
+  let pricingModelName: string
 
   beforeEach(async () => {
     const { organization } = await setupOrg()
     organizationId = organization.id
-    const catalog = await setupCatalog({ organizationId })
-    catalogId = catalog.id
-    catalogName = catalog.name
+    const pricingModel = await setupPricingModel({ organizationId })
+    pricingModelId = pricingModel.id
+    pricingModelName = pricingModel.name
   })
 
   describe('selectUsageMeterById', () => {
@@ -33,7 +32,7 @@ describe('usageMeterMethods', () => {
       const meter = await setupUsageMeter({
         organizationId,
         name: 'Meter A',
-        catalogId,
+        pricingModelId,
       })
       await adminTransaction(async ({ transaction }) => {
         const result = await selectUsageMeterById(
@@ -42,7 +41,7 @@ describe('usageMeterMethods', () => {
         )
         expect(result.id).toBe(meter.id)
         expect(result.name).toBe('Meter A')
-        expect(result.catalogId).toBe(catalogId)
+        expect(result.pricingModelId).toBe(pricingModelId)
       })
     })
 
@@ -63,14 +62,14 @@ describe('usageMeterMethods', () => {
             organizationId,
             name: 'New Meter',
             livemode: true,
-            catalogId,
+            pricingModelId,
             slug: 'new-meter',
           },
           transaction
         )
         expect(newMeter.id).toBeDefined()
         expect(newMeter.name).toBe('New Meter')
-        expect(newMeter.catalogId).toBe(catalogId)
+        expect(newMeter.pricingModelId).toBe(pricingModelId)
         expect(newMeter.slug).toBe('new-meter')
       })
     })
@@ -81,7 +80,7 @@ describe('usageMeterMethods', () => {
       const meter = await setupUsageMeter({
         organizationId,
         name: 'Old Name',
-        catalogId,
+        pricingModelId,
       })
       await adminTransaction(async ({ transaction }) => {
         const updated = await updateUsageMeter(
@@ -110,19 +109,19 @@ describe('usageMeterMethods', () => {
       const m1 = await setupUsageMeter({
         organizationId,
         name: 'M1',
-        catalogId,
+        pricingModelId,
       })
       const m2 = await setupUsageMeter({
         organizationId,
         name: 'M2',
-        catalogId,
+        pricingModelId,
       })
       // other org
       const otherOrg = await setupOrg()
       await setupUsageMeter({
         organizationId: otherOrg.organization.id,
         name: 'Other',
-        catalogId: otherOrg.catalog.id,
+        pricingModelId: otherOrg.pricingModel.id,
       })
       await adminTransaction(async ({ transaction }) => {
         const result = await selectUsageMeters(
@@ -140,13 +139,13 @@ describe('usageMeterMethods', () => {
       const meterA = await setupUsageMeter({
         organizationId,
         name: 'A',
-        catalogId,
+        pricingModelId,
         slug: 'slug-a',
       })
       await setupUsageMeter({
         organizationId,
         name: 'B',
-        catalogId,
+        pricingModelId,
         slug: 'slug-b',
       })
       await adminTransaction(async ({ transaction }) => {
@@ -166,7 +165,7 @@ describe('usageMeterMethods', () => {
         await setupUsageMeter({
           organizationId,
           name: `P${i}`,
-          catalogId,
+          pricingModelId,
         })
       }
       await adminTransaction(async ({ transaction }) => {
@@ -186,7 +185,7 @@ describe('usageMeterMethods', () => {
       const meter = await setupUsageMeter({
         organizationId,
         name: 'E1',
-        catalogId,
+        pricingModelId,
       })
       await adminTransaction(async ({ transaction }) => {
         const result = await selectUsageMetersCursorPaginated({
@@ -201,21 +200,21 @@ describe('usageMeterMethods', () => {
         const item = result.items.find(
           (i) => i.usageMeter.id === meter.id
         )!
-        expect(item.catalog.id).toBe(catalogId)
-        expect(item.catalog.name).toBe(catalogName)
+        expect(item.pricingModel.id).toBe(pricingModelId)
+        expect(item.pricingModel.name).toBe(pricingModelName)
       })
     })
 
     it('should sort usage meters by creation date descending (newest first) by default', async () => {
       const old = await setupUsageMeter({
         organizationId,
-        name: 'Old', 
-        catalogId,
+        name: 'Old',
+        pricingModelId,
       })
       const neu = await setupUsageMeter({
         organizationId,
         name: 'New',
-        catalogId,
+        pricingModelId,
       })
       await adminTransaction(async ({ transaction }) => {
         const result = await selectUsageMetersCursorPaginated({
@@ -227,7 +226,7 @@ describe('usageMeterMethods', () => {
       })
     })
 
-    it('should throw an error when inserting a usage meter with a non-existent catalogId', async () => {
+    it('should throw an error when inserting a usage meter with a non-existent pricingModelId', async () => {
       await expect(
         adminTransaction(async ({ transaction }) => {
           await insertUsageMeter(
@@ -235,7 +234,7 @@ describe('usageMeterMethods', () => {
               organizationId,
               name: 'Bad',
               livemode: true,
-              catalogId: 'fake',
+              pricingModelId: 'fake',
               slug: 'bad',
             },
             transaction

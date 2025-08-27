@@ -30,7 +30,7 @@ import { Invoice } from '../schema/invoices'
 import { Customer } from '../schema/customers'
 import { Product } from '../schema/products'
 import { Price } from '../schema/prices'
-import { Catalog } from '../schema/catalogs'
+import { Catalog } from '../schema/pricingModels'
 
 describe('paymentMethods.ts', () => {
   let organization: Organization.Record

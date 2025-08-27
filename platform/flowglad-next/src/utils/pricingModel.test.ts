@@ -3,17 +3,17 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   setupOrg,
-  setupCatalog,
   setupUserAndApiKey,
+  setupPricingModel,
   setupToggleFeature,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import {
-  cloneCatalogTransaction,
+  clonePricingModelTransaction,
   createProductTransaction,
   editProduct,
-} from './catalog'
+} from './pricingModel'
 import { IntervalUnit, PriceType, CurrencyCode } from '@/types'
-import { selectCatalogById } from '@/db/tableMethods/catalogMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import {
   selectPricesAndProductsByProductWhere,
   insertPrice,
@@ -22,7 +22,7 @@ import { insertProduct } from '@/db/tableMethods/productMethods'
 import { Product } from '@/db/schema/products'
 import { nulledPriceColumns, Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
-import { Catalog } from '@/db/schema/catalogs'
+import { PricingModel } from '@/db/schema/pricingModels'
 import { Feature } from '@/db/schema/features'
 import {
   insertFeature,
@@ -32,9 +32,9 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from './core'
 
-describe('cloneCatalogTransaction', () => {
+describe('clonePricingModelTransaction', () => {
   let organization: Organization.Record
-  let sourceCatalog: Catalog.Record
+  let sourcePricingModel: PricingModel.Record
   let product: Product.Record
   let price: Price.Record
   let features: Feature.Record[]
@@ -46,7 +46,7 @@ describe('cloneCatalogTransaction', () => {
     organization = orgSetup.organization
     product = orgSetup.product
     price = orgSetup.price
-    sourceCatalog = orgSetup.catalog
+    sourcePricingModel = orgSetup.pricingModel
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: false,
@@ -60,43 +60,43 @@ describe('cloneCatalogTransaction', () => {
       name: 'Feature A',
       organizationId: organization.id,
       livemode: false,
-      catalogId: sourceCatalog.id,
+      pricingModelId: sourcePricingModel.id,
     })
     const featureB = await setupToggleFeature({
       name: 'Feature B',
       organizationId: organization.id,
       livemode: false,
-      catalogId: sourceCatalog.id,
+      pricingModelId: sourcePricingModel.id,
     })
     features = [featureA, featureB]
   })
 
   describe('Basic Functionality', () => {
-    it('should successfully clone a catalog with all its products and prices', async () => {
-      const clonedCatalog = await adminTransaction(
+    it('should successfully clone a pricing model with all its products and prices', async () => {
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned Pricing Model',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog).toBeDefined()
-      expect(clonedCatalog.products).toHaveLength(1)
-      expect(clonedCatalog.products[0].prices).toHaveLength(1)
+      expect(clonedPricingModel).toBeDefined()
+      expect(clonedPricingModel.products).toHaveLength(1)
+      expect(clonedPricingModel.products[0].prices).toHaveLength(1)
     })
 
-    it('should create a new catalog with the specified name', async () => {
-      const newName = 'New Catalog Name'
-      const clonedCatalog = await adminTransaction(
+    it('should create a new pricing model with the specified name', async () => {
+      const newName = 'New PricingModel Name'
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
+              id: sourcePricingModel.id,
               name: newName,
             },
             transaction
@@ -104,84 +104,86 @@ describe('cloneCatalogTransaction', () => {
         }
       )
 
-      expect(clonedCatalog.name).toBe(newName)
+      expect(clonedPricingModel.name).toBe(newName)
     })
 
-    it('should set isDefault to false on the cloned catalog', async () => {
-      const clonedCatalog = await adminTransaction(
+    it('should set isDefault to false on the cloned pricing model', async () => {
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog.isDefault).toBe(false)
+      expect(clonedPricingModel.isDefault).toBe(false)
     })
 
-    it('should preserve the livemode value from the source catalog', async () => {
-      const clonedCatalog = await adminTransaction(
+    it('should preserve the livemode value from the source pricing model', async () => {
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog.livemode).toBe(sourceCatalog.livemode)
+      expect(clonedPricingModel.livemode).toBe(
+        sourcePricingModel.livemode
+      )
     })
 
-    it('should maintain the same organizationId as the source catalog', async () => {
-      const clonedCatalog = await adminTransaction(
+    it('should maintain the same organizationId as the source pricing model', async () => {
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog.organizationId).toBe(
-        sourceCatalog.organizationId
+      expect(clonedPricingModel.organizationId).toBe(
+        sourcePricingModel.organizationId
       )
     })
   })
 
-  describe('Catalog Scenarios', () => {
-    it('should handle an empty catalog (no products)', async () => {
-      const emptyCatalog = await setupCatalog({
+  describe('PricingModel Scenarios', () => {
+    it('should handle an empty pricing model (no products)', async () => {
+      const emptyPricingModel = await setupPricingModel({
         organizationId: organization.id,
-        name: 'Empty Catalog',
+        name: 'Empty PricingModel',
       })
 
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: emptyCatalog.id,
-              name: 'Cloned Empty Catalog',
+              id: emptyPricingModel.id,
+              name: 'Cloned Empty PricingModel',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog.products).toHaveLength(0)
+      expect(clonedPricingModel.products).toHaveLength(0)
     })
 
-    it('should handle a catalog with multiple products correctly', async () => {
-      // Create additional products in source catalog
+    it('should handle a pricing model with multiple products correctly', async () => {
+      // Create additional products in source pricing model
       const product2 = await adminTransaction(
         async ({ transaction }) => {
           return insertProduct(
@@ -194,7 +196,7 @@ describe('cloneCatalogTransaction', () => {
               displayFeatures: null,
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
-              catalogId: sourceCatalog.id,
+              pricingModelId: sourcePricingModel.id,
               imageURL: null,
               externalId: null,
               default: false,
@@ -228,32 +230,32 @@ describe('cloneCatalogTransaction', () => {
         )
       })
 
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Multi-Product Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned Multi-Product PricingModel',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog.products).toHaveLength(2)
-      expect(clonedCatalog.products[0].prices).toHaveLength(1)
-      expect(clonedCatalog.products[1].prices).toHaveLength(1)
+      expect(clonedPricingModel.products).toHaveLength(2)
+      expect(clonedPricingModel.products[0].prices).toHaveLength(1)
+      expect(clonedPricingModel.products[1].prices).toHaveLength(1)
     })
   })
 
   describe('Product Cloning', () => {
-    it('should clone all products from the source catalog', async () => {
+    it('should clone all products from the source pricing model', async () => {
       const sourceProducts = await adminTransaction(
         async ({ transaction }) => {
           const productsWithPrices =
             await selectPricesAndProductsByProductWhere(
               {
-                catalogId: sourceCatalog.id,
+                pricingModelId: sourcePricingModel.id,
               },
               transaction
             )
@@ -261,48 +263,48 @@ describe('cloneCatalogTransaction', () => {
         }
       )
 
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog.products).toHaveLength(
+      expect(clonedPricingModel.products).toHaveLength(
         sourceProducts.length
       )
     })
 
     it('should assign new IDs to the cloned products', async () => {
       const sourceProductId = product.id
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      const clonedProductId = clonedCatalog.products[0].id
+      const clonedProductId = clonedPricingModel.products[0].id
       expect(clonedProductId).not.toBe(sourceProductId)
     })
 
-    it('should preserve all product attributes except ID and catalogId', async () => {
-      const clonedCatalog = await adminTransaction(
+    it('should preserve all product attributes except ID and pricingModelId', async () => {
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
@@ -310,7 +312,7 @@ describe('cloneCatalogTransaction', () => {
       )
 
       const sourceProduct = product
-      const clonedProduct = clonedCatalog.products[0]
+      const clonedProduct = clonedPricingModel.products[0]
 
       expect(clonedProduct.name).toBe(sourceProduct.name)
       expect(clonedProduct.description).toBe(
@@ -328,21 +330,21 @@ describe('cloneCatalogTransaction', () => {
       )
     })
 
-    it('should correctly set the catalogId on cloned products to the new catalog ID', async () => {
-      const clonedCatalog = await adminTransaction(
+    it('should correctly set the pricingModelId on cloned products to the new pricing model ID', async () => {
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      expect(clonedCatalog.products[0].catalogId).toBe(
-        clonedCatalog.id
+      expect(clonedPricingModel.products[0].pricingModelId).toBe(
+        clonedPricingModel.id
       )
     })
   })
@@ -354,7 +356,7 @@ describe('cloneCatalogTransaction', () => {
           const productsWithPrices =
             await selectPricesAndProductsByProductWhere(
               {
-                catalogId: sourceCatalog.id,
+                pricingModelId: sourcePricingModel.id,
               },
               transaction
             )
@@ -362,19 +364,19 @@ describe('cloneCatalogTransaction', () => {
         }
       )
 
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      const clonedPrices = clonedCatalog.products.flatMap(
+      const clonedPrices = clonedPricingModel.products.flatMap(
         (product: any) => product.prices
       )
       expect(clonedPrices).toHaveLength(sourcePrices.length)
@@ -382,29 +384,30 @@ describe('cloneCatalogTransaction', () => {
 
     it('should assign new IDs to the cloned prices', async () => {
       const sourcePriceId = price.id
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      const clonedPriceId = clonedCatalog.products[0].prices[0].id
+      const clonedPriceId =
+        clonedPricingModel.products[0].prices[0].id
       expect(clonedPriceId).not.toBe(sourcePriceId)
     })
 
     it('should preserve all price attributes except ID and productId', async () => {
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
@@ -412,7 +415,7 @@ describe('cloneCatalogTransaction', () => {
       )
 
       const sourcePrice = price
-      const clonedPrice = clonedCatalog.products[0].prices[0]
+      const clonedPrice = clonedPricingModel.products[0].prices[0]
 
       expect(clonedPrice.name).toBe(sourcePrice.name)
       expect(clonedPrice.type).toBe(sourcePrice.type)
@@ -431,19 +434,19 @@ describe('cloneCatalogTransaction', () => {
     })
 
     it('should associate prices with the correct new product IDs', async () => {
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
 
-      const clonedProduct = clonedCatalog.products[0]
+      const clonedProduct = clonedPricingModel.products[0]
       const clonedPrice = clonedProduct.prices[0]
 
       expect(clonedPrice.productId).toBe(clonedProduct.id)
@@ -451,10 +454,13 @@ describe('cloneCatalogTransaction', () => {
   })
 
   describe('Data Integrity', () => {
-    it('should not modify the original catalog, its products, or prices', async () => {
-      const originalCatalog = await adminTransaction(
+    it('should not modify the original pricing model, its products, or prices', async () => {
+      const originalPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return selectCatalogById(sourceCatalog.id, transaction)
+          return selectPricingModelById(
+            sourcePricingModel.id,
+            transaction
+          )
         }
       )
 
@@ -462,7 +468,7 @@ describe('cloneCatalogTransaction', () => {
         async ({ transaction }) => {
           return selectPricesAndProductsByProductWhere(
             {
-              catalogId: sourceCatalog.id,
+              pricingModelId: sourcePricingModel.id,
             },
             transaction
           )
@@ -470,18 +476,21 @@ describe('cloneCatalogTransaction', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        return cloneCatalogTransaction(
+        return clonePricingModelTransaction(
           {
-            id: sourceCatalog.id,
-            name: 'Cloned Catalog',
+            id: sourcePricingModel.id,
+            name: 'Cloned PricingModel',
           },
           transaction
         )
       })
 
-      const catalogAfterClone = await adminTransaction(
+      const pricingModelAfterClone = await adminTransaction(
         async ({ transaction }) => {
-          return selectCatalogById(sourceCatalog.id, transaction)
+          return selectPricingModelById(
+            sourcePricingModel.id,
+            transaction
+          )
         }
       )
 
@@ -489,49 +498,49 @@ describe('cloneCatalogTransaction', () => {
         async ({ transaction }) => {
           return selectPricesAndProductsByProductWhere(
             {
-              catalogId: sourceCatalog.id,
+              pricingModelId: sourcePricingModel.id,
             },
             transaction
           )
         }
       )
 
-      expect(catalogAfterClone).toEqual(originalCatalog)
+      expect(pricingModelAfterClone).toEqual(originalPricingModel)
       expect(productsAfterClone).toEqual(originalProducts)
     })
   })
 
   describe('Transaction Handling', () => {
     it('should execute all operations within the provided transaction', async () => {
-      const clonedCatalog = await adminTransaction(
+      const clonedPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          return cloneCatalogTransaction(
+          return clonePricingModelTransaction(
             {
-              id: sourceCatalog.id,
-              name: 'Cloned Catalog',
+              id: sourcePricingModel.id,
+              name: 'Cloned PricingModel',
             },
             transaction
           )
         }
       )
-      expect(clonedCatalog).toBeDefined()
+      expect(clonedPricingModel).toBeDefined()
       const clonedProducts = await adminTransaction(
         async ({ transaction }) => {
           return selectPricesAndProductsByProductWhere(
-            { catalogId: clonedCatalog.id },
+            { pricingModelId: clonedPricingModel.id },
             transaction
           )
         }
       )
       expect(clonedProducts).toHaveLength(1)
-      //   expect(clonedCatalog.products[0].prices).toHaveLength(1)
+      //   expect(clonedPricingModel.products[0].prices).toHaveLength(1)
     })
   })
 })
 
 describe('createProductTransaction', () => {
   let organization: Organization.Record
-  let sourceCatalog: Catalog.Record
+  let sourcePricingModel: PricingModel.Record
   let org1ApiKeyToken: string
   let userId: string
   let features: Feature.Record[]
@@ -539,9 +548,9 @@ describe('createProductTransaction', () => {
   beforeEach(async () => {
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
-    sourceCatalog = await setupCatalog({
+    sourcePricingModel = await setupPricingModel({
       organizationId: organization.id,
-      name: 'Test Catalog',
+      name: 'Test PricingModel',
       livemode: false,
     })
 
@@ -559,13 +568,13 @@ describe('createProductTransaction', () => {
       name: 'Feature A',
       organizationId: organization.id,
       livemode: false,
-      catalogId: sourceCatalog.id,
+      pricingModelId: sourcePricingModel.id,
     })
     const featureB = await setupToggleFeature({
       name: 'Feature B',
       organizationId: organization.id,
       livemode: false,
-      catalogId: sourceCatalog.id,
+      pricingModelId: sourcePricingModel.id,
     })
     features = [featureA, featureB]
   })
@@ -582,7 +591,7 @@ describe('createProductTransaction', () => {
               displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
-              catalogId: sourceCatalog.id,
+              pricingModelId: sourcePricingModel.id,
               default: false,
               slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
@@ -626,7 +635,7 @@ describe('createProductTransaction', () => {
     expect(product.displayFeatures).toEqual([])
     expect(product.singularQuantityLabel).toBe('singular')
     expect(product.pluralQuantityLabel).toBe('plural')
-    expect(product.catalogId).toBe(sourceCatalog.id)
+    expect(product.pricingModelId).toBe(sourcePricingModel.id)
     expect(prices).toHaveLength(1)
     expect(price.name).toBe('Test Price')
     expect(price.type).toBe(PriceType.Subscription)
@@ -657,7 +666,7 @@ describe('createProductTransaction', () => {
               displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
-              catalogId: sourceCatalog.id,
+              pricingModelId: sourcePricingModel.id,
               default: false,
               slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
@@ -723,7 +732,7 @@ describe('createProductTransaction', () => {
               displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
-              catalogId: sourceCatalog.id,
+              pricingModelId: sourcePricingModel.id,
               default: false,
               slug: `flowglad-test-product-price+${core.nanoid()}`,
             },
@@ -787,19 +796,19 @@ describe('editProduct', () => {
       name: 'Feature A',
       organizationId: organization.id,
       livemode: true,
-      catalogId: product.catalogId,
+      pricingModelId: product.pricingModelId,
     })
     const featureB = await setupToggleFeature({
       name: 'Feature B',
       organizationId: organization.id,
       livemode: true,
-      catalogId: product.catalogId,
+      pricingModelId: product.pricingModelId,
     })
     const featureC = await setupToggleFeature({
       name: 'Feature C',
       organizationId: organization.id,
       livemode: true,
-      catalogId: product.catalogId,
+      pricingModelId: product.pricingModelId,
     })
     features = [featureA, featureB, featureC]
   })

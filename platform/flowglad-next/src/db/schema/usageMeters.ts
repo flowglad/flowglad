@@ -18,7 +18,7 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema } from 'drizzle-zod'
 import { UsageMeterAggregationType } from '@/types'
-import { catalogs } from '@/db/schema/catalogs'
+import { pricingModels } from '@/db/schema/pricingModels'
 
 const TABLE_NAME = 'usage_meters'
 
@@ -31,7 +31,10 @@ export const usageMeters = pgTable(
       organizations
     ),
     name: text('name').notNull(),
-    catalogId: notNullStringForeignKey('catalog_id', catalogs),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
     slug: text('slug').notNull(),
     aggregationType: pgEnumColumn({
       enumName: 'UsageMeterAggregationType',
@@ -44,11 +47,11 @@ export const usageMeters = pgTable(
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.catalogId]),
+      constructIndex(TABLE_NAME, [table.pricingModelId]),
       constructUniqueIndex(TABLE_NAME, [
         table.organizationId,
         table.slug,
-        table.catalogId,
+        table.pricingModelId,
       ]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
@@ -93,7 +96,7 @@ const readOnlyColumns = {
 } as const
 
 const createOnlyColumns = {
-  catalogId: true,
+  pricingModelId: true,
 } as const
 
 const clientWriteOmits = R.omit(['position'], {
@@ -122,7 +125,7 @@ export const usageMeterPaginatedListSchema =
 
 export const usageMetersTableRowDataSchema = z.object({
   usageMeter: usageMetersClientSelectSchema,
-  catalog: z.object({
+  pricingModel: z.object({
     id: z.string(),
     name: z.string(),
   }),

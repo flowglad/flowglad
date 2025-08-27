@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectCatalogs } from '@/db/tableMethods/catalogMethods'
+import { selectCatalogs } from '@/db/tableMethods/pricingModelMethods'
 import InnerCatalogDetailsPage from './InnerCatalogDetailsPage'
 
 interface CatalogPageProps {

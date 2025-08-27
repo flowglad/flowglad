@@ -28,15 +28,15 @@ import {
   productsTableRowDataSchema,
 } from '@/db/schema/prices'
 import {
-  Catalog,
-  catalogsClientSelectSchema,
-} from '@/db/schema/catalogs'
+  PricingModel,
+  pricingModelsClientSelectSchema,
+} from '@/db/schema/pricingModels'
 import {
   selectPrices,
   selectPricesProductsAndCatalogsForOrganization,
 } from './priceMethods'
 import { selectMembershipAndOrganizations } from './membershipMethods'
-import { selectCatalogs } from './catalogMethods'
+import { selectPricingModels } from './pricingModelMethods'
 import { groupBy } from '@/utils/core'
 
 const config: ORMMethodCreatorConfig<
@@ -107,7 +107,7 @@ export const bulkInsertOrDoNothingProductsByExternalId = (
 export interface ProductRow {
   prices: Price.ClientRecord[]
   product: Product.ClientRecord
-  catalog?: Catalog.ClientRecord
+  pricingModel?: PricingModel.ClientRecord
 }
 
 export const getProductTableRows = async (
@@ -171,19 +171,20 @@ export const getProductTableRows = async (
     filteredProducts.map((p) => p.product)
   )
 
-  // Group catalogs by product ID
-  const catalogsByProductId = new Map<string, Catalog.ClientRecord>()
+  // Group pricingModels by product ID
+  const pricingModelsByProductId = new Map<
+    string,
+    PricingModel.ClientRecord
+  >()
   filteredProducts.forEach((p) => {
-    if (p.catalog) {
-      catalogsByProductId.set(p.product.id, p.catalog)
-    }
+    pricingModelsByProductId.set(p.product.id, p.pricingModel)
   })
 
   // Format products with prices and catalogs
   const products = uniqueProducts.map((product) => ({
     product,
     prices: pricesByProductId.get(product.id) ?? [],
-    catalog: catalogsByProductId.get(product.id),
+    pricingModel: pricingModelsByProductId.get(product.id),
   }))
 
   // Sort products by creation date
@@ -217,22 +218,24 @@ export const selectProductsCursorPaginated =
         },
         transaction
       )
-      const catalogsForProducts = await selectCatalogs(
+      const pricingModelsForProducts = await selectPricingModels(
         {
-          id: data.map((product) => product.catalogId),
+          id: data.map((product) => product.pricingModelId),
         },
         transaction
       )
       const pricesByProductId: Record<string, Price.ClientRecord[]> =
         groupBy((p) => p.productId, pricesForProducts)
-      const catalogsById: Record<string, Catalog.ClientRecord[]> =
-        groupBy((c) => c.id, catalogsForProducts)
+      const pricingModelsById: Record<
+        string,
+        PricingModel.ClientRecord[]
+      > = groupBy((c) => c.id, pricingModelsForProducts)
 
       // Format products with prices and catalogs
       return data.map((product) => ({
         product,
         prices: pricesByProductId[product.id] ?? [],
-        catalog: catalogsById[product.catalogId]?.[0],
+        pricingModel: pricingModelsById[product.pricingModelId]?.[0],
       }))
     }
   )
