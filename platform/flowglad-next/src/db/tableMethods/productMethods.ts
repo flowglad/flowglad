@@ -33,7 +33,7 @@ import {
 } from '@/db/schema/pricingModels'
 import {
   selectPrices,
-  selectPricesProductsAndCatalogsForOrganization,
+  selectPricesProductsAndPricingModelsForOrganization,
 } from './priceMethods'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import { selectPricingModels } from './pricingModelMethods'
@@ -141,7 +141,7 @@ export const getProductTableRows = async (
 
   // Get products with prices and pricingModels
   const productsResult =
-    await selectPricesProductsAndCatalogsForOrganization(
+    await selectPricesProductsAndPricingModelsForOrganization(
       {},
       membership.organization.id,
       transaction

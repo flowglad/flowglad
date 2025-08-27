@@ -170,6 +170,7 @@ const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
 
 export const productsSupabaseInsertPayloadSchema =
   supabaseInsertPayloadSchema
+
 export const productsSupabaseUpdatePayloadSchema =
   supabaseUpdatePayloadSchema
 

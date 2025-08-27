@@ -156,7 +156,7 @@ describe('Pricing Models RLS - Organization Policy', async () => {
           { apiKey: org1ApiKeyToken }
         ) // Authenticated as Org1 user
       ).rejects.toThrow(
-        `No pricingModels found with id: ${org2DefaultPricingModel.id}`
+        `No pricing models found with id: ${org2DefaultPricingModel.id}`
       )
     })
   })

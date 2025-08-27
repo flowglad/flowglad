@@ -1618,6 +1618,13 @@
       "when": 1756232764185,
       "tag": "0231_curly_toxin",
       "breakpoints": true
+    },
+    {
+      "idx": 232,
+      "version": "7",
+      "when": 1756305484577,
+      "tag": "0232_lovely_blob",
+      "breakpoints": true
     }
   ]
 }
