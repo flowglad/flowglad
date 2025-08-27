@@ -35,6 +35,8 @@ import {
 import core from '@/utils/core'
 import { z } from 'zod'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
+import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 
 export const PURCHASES_TABLE_NAME = 'purchases'
 
@@ -402,6 +404,8 @@ export const editPurchaseFormSchema = z.object({
 export const createCustomerOutputSchema = z.object({
   data: z.object({
     customer: customerClientSelectSchema,
+    subscription: subscriptionClientSelectSchema.optional(),
+    subscriptionItems: z.array(subscriptionItemClientSelectSchema).optional(),
   }),
 })
 

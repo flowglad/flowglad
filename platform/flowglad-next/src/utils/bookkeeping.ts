@@ -29,6 +29,7 @@ import {
   PriceType,
   PurchaseStatus,
   SubscriptionItemType,
+  IntervalUnit,
 } from '@/types'
 import {
   createPaymentIntentForInvoice,
@@ -53,6 +54,10 @@ import {
   selectOpenNonExpiredCheckoutSessions,
   updateCheckoutSessionsForOpenPurchase,
 } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { selectProducts } from '@/db/tableMethods/productMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -465,7 +470,7 @@ export const createCustomerBookkeeping = async (
   payload: {
     customer: Customer.Insert
   },
-  { transaction }: AuthenticatedTransactionParams
+  { transaction, organizationId }: AuthenticatedTransactionParams
 ) => {
   let customer = await insertCustomer(payload.customer, transaction)
   if (!customer.stripeCustomerId) {
@@ -480,5 +485,102 @@ export const createCustomerBookkeeping = async (
       transaction
     )
   }
+
+  // Create default subscription for the customer
+  if (organizationId) {
+    try {
+      // Determine which pricing model to use
+      let pricingModelId = customer.pricingModelId
+      
+      // If no pricing model specified, use the default one
+      if (!pricingModelId) {
+        const defaultPricingModel = await selectDefaultPricingModel(
+          {
+            organizationId,
+            livemode: customer.livemode,
+          },
+          transaction
+        )
+        if (defaultPricingModel) {
+          pricingModelId = defaultPricingModel.id
+        }
+      }
+
+      if (pricingModelId) {
+        // Get the default product for this pricing model
+        const products = await selectProducts(
+          {
+            pricingModelId,
+            default: true,
+            active: true,
+          },
+          transaction
+        )
+
+        if (products.length > 0) {
+          const defaultProduct = products[0]
+
+          // Get the default price for this product
+          const prices = await selectPrices(
+            {
+              productId: defaultProduct.id,
+              isDefault: true,
+              active: true,
+            },
+            transaction
+          )
+
+          if (prices.length > 0) {
+            const defaultPrice = prices[0]
+            
+            // Get the organization details
+            const organization = await selectOrganizationById(
+              organizationId,
+              transaction
+            )
+
+            // Create the subscription
+            const subscriptionResult = await createSubscriptionWorkflow(
+              {
+                organization,
+                customer: {
+                  id: customer.id,
+                  stripeCustomerId: customer.stripeCustomerId,
+                  livemode: customer.livemode,
+                  organizationId: customer.organizationId,
+                },
+                product: defaultProduct,
+                price: defaultPrice,
+                quantity: 1,
+                livemode: customer.livemode,
+                startDate: new Date(),
+                interval: defaultPrice.intervalUnit || IntervalUnit.Month,
+                intervalCount: defaultPrice.intervalCount || 1,
+                trialEnd: defaultPrice.trialPeriodDays
+                  ? new Date(
+                      Date.now() + defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
+                    )
+                  : undefined,
+                autoStart: true,
+                name: `${defaultProduct.name} Subscription`,
+              },
+              transaction
+            )
+
+            // Return both customer and subscription info
+            return { 
+              customer,
+              subscription: subscriptionResult.result.subscription,
+              subscriptionItems: subscriptionResult.result.subscriptionItems
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Log the error but don't fail customer creation
+      console.error('Failed to create default subscription for customer:', error)
+    }
+  }
+
   return { customer }
 }
