@@ -75,7 +75,7 @@ describe('insertSubscriptionAndItems', () => {
       ).rejects.toThrow('Price is not a subscription')
     })
 
-    it('should route to createCreditTrialSubscriptionAndItems when price.startsWithCreditTrial is true', async () => {
+    it('should route to createNonRenewingSubscriptionAndItems when price.startsWithCreditTrial is true', async () => {
       // setup:
       // - Create a usage meter.
       const usageMeter = await setupUsageMeter({
@@ -380,7 +380,7 @@ describe('insertSubscriptionAndItems', () => {
     })
   })
 
-  describe('createCreditTrialSubscriptionAndItems (indirectly tested)', () => {
+  describe('createNonRenewingSubscriptionAndItems (indirectly tested)', () => {
     it('should correctly create a credit trial subscription and items', async () => {
       // setup:
       // - Create a usage meter.

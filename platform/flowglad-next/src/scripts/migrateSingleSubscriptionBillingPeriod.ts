@@ -223,6 +223,12 @@ export const migrateSingleSubscriptionBillingPeriod = async (
     }
   }
 
+  if (subscription.renews === false) {
+    throw new Error(
+      `Subscription ${subscription.id} is a non-renewing subscription (this should never happen). All stripe subscriptions should renew when migrated to Flowglad`
+    )
+  }
+
   // Create the initial billing period
   const { billingPeriod, billingPeriodItems } =
     await createBillingPeriodAndItems(

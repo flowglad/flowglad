@@ -112,6 +112,7 @@ const createSubscription = (
 ): Subscription.StandardRecord => ({
   ...coreSubscriptionValues,
   ...values,
+  renews: true,
   position: 0,
 })
 

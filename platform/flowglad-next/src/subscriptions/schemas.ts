@@ -7,7 +7,7 @@ import {
   staticSubscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
 import {
-  creditTrialSubscriptionClientSelectSchema,
+  nonRenewingSubscriptionClientSelectSchema,
   standardSubscriptionClientSelectSchema,
   subscriptionClientSelectSchema,
 } from '@/db/schema/subscriptions'
@@ -74,8 +74,8 @@ const richSubscriptionExperimentalSchema = z
   .optional()
   .describe('Experimental fields. May change without notice.')
 
-const richCreditTrialSubscriptionClientSelectSchema =
-  creditTrialSubscriptionClientSelectSchema.extend({
+const richNonRenewingSubscriptionClientSelectSchema =
+  nonRenewingSubscriptionClientSelectSchema.extend({
     subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
     current: z.boolean(),
     experimental: richSubscriptionExperimentalSchema,
@@ -89,8 +89,8 @@ const richStandardSubscriptionClientSelectSchema =
   })
 
 export const richSubscriptionClientSelectSchema =
-  z.discriminatedUnion('status', [
-    richCreditTrialSubscriptionClientSelectSchema,
+  z.discriminatedUnion('renews', [
+    richNonRenewingSubscriptionClientSelectSchema,
     richStandardSubscriptionClientSelectSchema,
   ])
 

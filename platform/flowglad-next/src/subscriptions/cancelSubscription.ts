@@ -54,7 +54,13 @@ export const cancelSubscriptionImmediately = async (
   const cancelScheduledAt = null
 
   let updatedSubscription = await updateSubscription(
-    { id: subscription.id, canceledAt, cancelScheduledAt, status },
+    {
+      id: subscription.id,
+      canceledAt,
+      cancelScheduledAt,
+      status,
+      renews: subscription.renews,
+    },
     transaction
   )
 
@@ -168,13 +174,18 @@ export const scheduleSubscriptionCancellation = async (
     SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
       ? endDate
       : null
-
+  if (!subscription.renews) {
+    throw new Error(
+      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be cancelled (Should never hit this)`
+    )
+  }
   let updatedSubscription = await updateSubscription(
     {
       id: subscription.id,
       canceledAt,
       cancelScheduledAt,
       status,
+      renews: subscription.renews,
     },
     transaction
   )

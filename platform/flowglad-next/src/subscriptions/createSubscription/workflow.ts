@@ -1,7 +1,7 @@
 import { DbTransaction } from '@/db/types'
 import {
   CreateSubscriptionParams,
-  CreditTrialCreateSubscriptionResult,
+  NonRenewingCreateSubscriptionResult,
   StandardCreateSubscriptionResult,
 } from './types'
 import {
@@ -42,7 +42,7 @@ export const createSubscriptionWorkflow = async (
 ): Promise<
   TransactionOutput<
     | StandardCreateSubscriptionResult
-    | CreditTrialCreateSubscriptionResult
+    | NonRenewingCreateSubscriptionResult
   >
 > => {
   if (params.stripeSetupIntentId) {
@@ -108,32 +108,39 @@ export const createSubscriptionWorkflow = async (
     )
   }
 
-  const { billingPeriod, billingPeriodItems, billingRun } =
-    await maybeCreateInitialBillingPeriodAndRun(
-      {
-        subscription,
-        subscriptionItems,
-        defaultPaymentMethod,
-        autoStart: params.autoStart ?? false,
-      },
-      transaction
-    )
+  const {
+    subscription: updatedSubscription,
+    billingPeriod,
+    billingPeriodItems,
+    billingRun,
+  } = await maybeCreateInitialBillingPeriodAndRun(
+    {
+      subscription,
+      subscriptionItems,
+      defaultPaymentMethod,
+      autoStart: params.autoStart ?? false,
+    },
+    transaction
+  )
+
   await idempotentSendOrganizationSubscriptionCreatedNotification(
-    subscription
+    updatedSubscription
   )
   const timestamp = new Date()
   const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.SubscriptionCreated,
       occurredAt: timestamp,
-      organizationId: subscription.organizationId,
-      livemode: subscription.livemode,
+      organizationId: updatedSubscription.organizationId,
+      livemode: updatedSubscription.livemode,
       payload: {
         object: EventNoun.Subscription,
-        id: subscription.id,
+        id: updatedSubscription.id,
       },
       submittedAt: timestamp,
-      hash: constructSubscriptionCreatedEventHash(subscription),
+      hash: constructSubscriptionCreatedEventHash(
+        updatedSubscription
+      ),
       metadata: {},
       processedAt: null,
     },
@@ -142,15 +149,15 @@ export const createSubscriptionWorkflow = async (
   const ledgerCommand:
     | BillingPeriodTransitionLedgerCommand
     | undefined =
-    subscription.status === SubscriptionStatus.Incomplete
+    updatedSubscription.status === SubscriptionStatus.Incomplete
       ? undefined
       : {
-          organizationId: subscription.organizationId,
-          subscriptionId: subscription.id,
-          livemode: subscription.livemode,
+          organizationId: updatedSubscription.organizationId,
+          subscriptionId: updatedSubscription.id,
+          livemode: updatedSubscription.livemode,
           type: LedgerTransactionType.BillingPeriodTransition,
           payload: ledgerCommandPayload({
-            subscription,
+            subscription: updatedSubscription,
             subscriptionItemFeatures,
             billingPeriod,
             billingPeriodItems,
@@ -159,11 +166,11 @@ export const createSubscriptionWorkflow = async (
         }
   const transactionResult:
     | StandardCreateSubscriptionResult
-    | CreditTrialCreateSubscriptionResult =
-    subscription.status === SubscriptionStatus.CreditTrial
+    | NonRenewingCreateSubscriptionResult =
+    updatedSubscription.renews === false
       ? {
-          type: 'credit_trial',
-          subscription,
+          type: 'non_renewing',
+          subscription: updatedSubscription,
           subscriptionItems,
           billingPeriod: null,
           billingPeriodItems: null,
@@ -171,7 +178,7 @@ export const createSubscriptionWorkflow = async (
         }
       : {
           type: 'standard',
-          subscription,
+          subscription: updatedSubscription,
           subscriptionItems,
           billingPeriod,
           billingPeriodItems,

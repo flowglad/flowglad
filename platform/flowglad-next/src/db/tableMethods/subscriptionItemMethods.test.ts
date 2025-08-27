@@ -580,6 +580,7 @@ describe('subscriptionItemMethods', async () => {
           {
             id: subscription.id,
             status: SubscriptionStatus.Canceled,
+            renews: subscription.renews,
           },
           transaction
         )

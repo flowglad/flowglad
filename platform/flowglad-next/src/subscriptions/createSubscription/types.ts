@@ -43,8 +43,8 @@ export interface StandardCreateSubscriptionResult {
   billingRun: BillingRun.Record | null
 }
 
-export interface CreditTrialCreateSubscriptionResult {
-  type: 'credit_trial'
+export interface NonRenewingCreateSubscriptionResult {
+  type: 'non_renewing'
   subscription: Subscription.Record
   subscriptionItems: SubscriptionItem.Record[]
   billingPeriod: null

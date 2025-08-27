@@ -12,7 +12,7 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
   setupOrg,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import {

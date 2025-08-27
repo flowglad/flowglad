@@ -44,6 +44,11 @@ async function createNextBillingPeriodForSubscription(
         `Subscription ${subscriptionId} is a credit trial subscription. Credit trial subscriptions cannot have billing periods.`
       )
     }
+    if (!subscription.renews) {
+      throw new Error(
+        `Subscription ${subscriptionId} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
+      )
+    }
     const result =
       await attemptToCreateFutureBillingPeriodForSubscription(
         subscription,

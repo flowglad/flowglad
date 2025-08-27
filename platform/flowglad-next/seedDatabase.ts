@@ -398,6 +398,7 @@ export const setupSubscription = async (params: {
           price.type === PriceType.Subscription ? true : false,
         externalId: null,
         startDate: params.startDate ?? new Date(),
+        renews: true,
       },
       transaction
     )

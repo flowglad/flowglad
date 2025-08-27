@@ -492,6 +492,7 @@ export enum SubscriptionStatus {
   Trialing = 'trialing',
   /**
    * Used for usage based subscriptions
+   * @deprecated Use `Active` instead
    */
   CreditTrial = 'credit_trial',
   Active = 'active',
