@@ -84,8 +84,8 @@ describe('adjustSubscription Integration Tests', async () => {
     })
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
-      startDate: subscription.currentBillingPeriodStart,
-      endDate: subscription.currentBillingPeriodEnd,
+      startDate: subscription.currentBillingPeriodStart!,
+      endDate: subscription.currentBillingPeriodEnd!,
       status: BillingPeriodStatus.Active,
     })
     await setupBillingRun({
