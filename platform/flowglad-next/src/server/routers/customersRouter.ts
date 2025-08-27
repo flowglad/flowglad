@@ -101,7 +101,6 @@ const createCustomerProcedure = protectedProcedure
             customer: {
               ...customer,
               organizationId,
-              livemode: ctx.livemode,
             },
           },
           { transaction, userId, livemode, organizationId }

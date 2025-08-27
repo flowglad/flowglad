@@ -256,7 +256,7 @@ export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
 }
 
 export const subscriptionWithCurrent = <
-  T extends Subscription.Record,
+  T extends Omit<Subscription.ClientRecord, 'current'>,
 >(
   subscription: T
 ): T & { current: boolean } => {
