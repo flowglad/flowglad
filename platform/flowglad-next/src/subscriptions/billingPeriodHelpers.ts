@@ -229,6 +229,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       `Cannot transition subscription ${subscription.id} in credit trial status`
     )
   }
+  if (!subscription.renews) {
+    throw new Error(
+      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
+    )
+  }
   let billingRun: BillingRun.Record | null = null
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
@@ -245,6 +250,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         id: subscription.id,
         canceledAt: new Date(),
         status: SubscriptionStatus.Canceled,
+        renews: subscription.renews,
       },
       transaction
     )
@@ -253,6 +259,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       SubscriptionStatus.Canceled,
       transaction
     )
+    if (!subscription.renews) {
+      throw new Error(
+        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
+      )
+    }
     return {
       result: {
         subscription,
@@ -287,9 +298,14 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       SubscriptionStatus.PastDue,
       transaction
     )
+    if (!subscription.renews) {
+      throw new Error(
+        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
+      )
+    }
     return {
       result: {
-        subscription: subscription,
+        subscription,
         billingRun,
         updatedBillingPeriod,
       },
@@ -335,6 +351,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       status: paymentMethodId
         ? SubscriptionStatus.Active
         : SubscriptionStatus.PastDue,
+      renews: subscription.renews,
     },
     transaction
   )
@@ -344,6 +361,11 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   if (subscription.status === SubscriptionStatus.CreditTrial) {
     throw new Error(
       `Subscription ${subscription.id} was updated to credit trial status. Credit_trial status is a status that can only be created, not updated to.`
+    )
+  }
+  if (!subscription.renews) {
+    throw new Error(
+      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
     )
   }
   const activeSubscriptionFeatureItems =
@@ -494,6 +516,7 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
         currentBillingPeriodEnd: result.billingPeriod.endDate,
         currentBillingPeriodStart: result.billingPeriod.startDate,
         status: subscription.status,
+        renews: subscription.renews,
       },
       transaction
     )

@@ -10,6 +10,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
+  nonRenewingStatusSchema,
   standardSubscriptionSelectSchema,
   Subscription,
   subscriptions,
@@ -84,7 +85,7 @@ export const safelyUpdateSubscriptionStatus = async (
   subscription: Subscription.Record,
   status: SubscriptionStatus,
   transaction: DbTransaction
-): Promise<Subscription.StandardRecord> => {
+): Promise<Subscription.Record> => {
   if (status === SubscriptionStatus.CreditTrial) {
     throw new Error(
       `Cannot update subscription ${subscription.id} to credit trial status`
@@ -98,8 +99,26 @@ export const safelyUpdateSubscriptionStatus = async (
       `Subscription ${subscription.id} is in terminal state ${subscription.status} and cannot be updated to ${status}`
     )
   }
+  if (!subscription.renews) {
+    const safeStatus = nonRenewingStatusSchema.safeParse(status)
+    if (!safeStatus.success) {
+      throw new Error(
+        `Subscription ${subscription.id} is a non-renewing subscription and cannot be updated to ${status}`
+      )
+    }
+    const updatedSubscription = await updateSubscription(
+      {
+        id: subscription.id,
+        status: safeStatus.data,
+        renews: subscription.renews,
+      },
+      transaction
+    )
+    return updatedSubscription
+  }
+
   const updatedSubscription = await updateSubscription(
-    { id: subscription.id, status },
+    { id: subscription.id, status, renews: subscription.renews },
     transaction
   )
   if (updatedSubscription.status === SubscriptionStatus.CreditTrial) {

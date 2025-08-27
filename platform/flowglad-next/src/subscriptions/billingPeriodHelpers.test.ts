@@ -271,6 +271,7 @@ describe('Subscription Billing Period Transition', async () => {
           id: subscription.id,
           cancelScheduledAt: pastDate,
           status: SubscriptionStatus.Active,
+          renews: subscription.renews,
         },
         transaction
       )
@@ -342,6 +343,7 @@ describe('Subscription Billing Period Transition', async () => {
           defaultPaymentMethodId: null,
           backupPaymentMethodId: null,
           status: SubscriptionStatus.Active,
+          renews: subscription.renews,
         },
         transaction
       )
@@ -386,6 +388,7 @@ describe('Subscription Billing Period Transition', async () => {
           id: subscription.id,
           cancelScheduledAt: futureEnd,
           status: SubscriptionStatus.Active,
+          renews: subscription.renews,
         },
         transaction
       )
@@ -596,7 +599,7 @@ describe('Subscription Billing Period Transition', async () => {
   it('should not transition a subscription with CreditTrial status', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Set subscription status to CreditTrial
-      const creditTrialUpdate: Subscription.CreditTrialUpdate = {
+      const creditTrialUpdate: Subscription.NonRenewingUpdate = {
         id: subscription.id,
         currentBillingPeriodEnd: null,
         currentBillingPeriodStart: null,
@@ -605,6 +608,7 @@ describe('Subscription Billing Period Transition', async () => {
         billingCycleAnchorDate: null,
         defaultPaymentMethodId: null,
         status: SubscriptionStatus.CreditTrial,
+        renews: false,
       }
       await updateSubscription(
         {
@@ -852,6 +856,7 @@ describe('Ledger Interactions', () => {
             id: subscription.id,
             cancelScheduledAt: new Date(Date.now() - 1000),
             status: SubscriptionStatus.Active,
+            renews: subscription.renews,
           },
           transaction
         )
@@ -953,6 +958,7 @@ describe('Ledger Interactions', () => {
             defaultPaymentMethodId: null,
             backupPaymentMethodId: null,
             status: SubscriptionStatus.Active,
+            renews: subscription.renews,
           },
           transaction
         )

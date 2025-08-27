@@ -73,6 +73,7 @@ export const createStandardSubscriptionAndItems = async (
     stripeSetupIntentId: stripeSetupIntentId ?? null,
     externalId: null,
     startDate,
+    renews: true,
   }
 
   const subscription = await insertSubscription(
@@ -103,7 +104,7 @@ export const createStandardSubscriptionAndItems = async (
   return { subscription, subscriptionItems }
 }
 
-export const createCreditTrialSubscriptionAndItems = async (
+export const createNonRenewingSubscriptionAndItems = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
@@ -124,7 +125,7 @@ export const createCreditTrialSubscriptionAndItems = async (
       `Price ${price.id} is not a subscription price. Credit trial subscriptions must have a subscription price. Received price type: ${price.type}`
     )
   }
-  const subscriptionInsert: Subscription.CreditTrialInsert = {
+  const subscriptionInsert: Subscription.NonRenewingInsert = {
     organizationId: organization.id,
     customerId: customer.id,
     priceId: price.id,
@@ -151,6 +152,7 @@ export const createCreditTrialSubscriptionAndItems = async (
     stripeSetupIntentId: stripeSetupIntentId ?? null,
     externalId: null,
     startDate,
+    renews: false,
   }
 
   const subscription = await insertSubscription(
@@ -201,7 +203,7 @@ export const insertSubscriptionAndItems = async (
     throw new Error('Price is not a subscription')
   }
   if (price.startsWithCreditTrial) {
-    return await createCreditTrialSubscriptionAndItems(
+    return await createNonRenewingSubscriptionAndItems(
       params,
       transaction
     )

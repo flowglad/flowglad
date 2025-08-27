@@ -2,7 +2,6 @@ import { SubscriptionStatus, PriceType, IntervalUnit } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import {
-  safelyUpdateSubscriptionStatus,
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -11,7 +10,7 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import {
   CreateSubscriptionParams,
-  CreditTrialCreateSubscriptionResult,
+  NonRenewingCreateSubscriptionResult,
   StandardCreateSubscriptionResult,
 } from './types'
 import { Subscription } from '@/db/schema/subscriptions'
@@ -32,6 +31,7 @@ import { createBillingPeriodAndItems } from '../billingPeriodHelpers'
 import { BillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 import { FeatureType } from '@/types'
 import { generateNextBillingPeriod } from '../billingIntervalHelpers'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 export const deriveSubscriptionStatus = ({
   autoStart,
@@ -62,13 +62,13 @@ export const safelyProcessCreationForExistingSubscription = async (
 ): Promise<
   TransactionOutput<
     | StandardCreateSubscriptionResult
-    | CreditTrialCreateSubscriptionResult
+    | NonRenewingCreateSubscriptionResult
   >
 > => {
-  if (subscription.status === SubscriptionStatus.CreditTrial) {
+  if (subscription.renews === false) {
     return {
       result: {
-        type: 'credit_trial',
+        type: 'non_renewing',
         subscription,
         subscriptionItems,
         billingPeriod: null,
@@ -256,12 +256,16 @@ export const activateSubscription = async (
       subscription.billingCycleAnchorDate ?? new Date(),
     lastBillingPeriodEndDate: subscription.currentBillingPeriodEnd,
   })
-  const scheduledFor = subscription.runBillingAtPeriodStart
-    ? startDate
-    : endDate
 
-  const activatedSubscription = await updateSubscription(
-    {
+  const price = await selectPriceById(
+    subscription.priceId!,
+    transaction
+  )
+  const renews = price.type === PriceType.Subscription ? true : false
+  let subscriptionUpdate: Subscription.Update | null = null
+
+  if (renews) {
+    const renewingUpdate: Subscription.StandardUpdate = {
       id: subscription.id,
       status: SubscriptionStatus.Active,
       currentBillingPeriodStart: startDate,
@@ -270,14 +274,42 @@ export const activateSubscription = async (
       defaultPaymentMethodId: defaultPaymentMethod.id,
       interval: subscription.interval ?? IntervalUnit.Month,
       intervalCount: subscription.intervalCount ?? 1,
-    },
+      renews: true,
+    }
+    subscriptionUpdate = renewingUpdate
+  } else {
+    const nonRenewingUpdate: Subscription.NonRenewingUpdate = {
+      id: subscription.id,
+      status: SubscriptionStatus.Active,
+      currentBillingPeriodEnd: null,
+      currentBillingPeriodStart: null,
+      billingCycleAnchorDate: null,
+      interval: null,
+      intervalCount: null,
+      renews: false,
+    }
+    subscriptionUpdate = nonRenewingUpdate
+  }
+  const activatedSubscription = await updateSubscription(
+    subscriptionUpdate,
     transaction
   )
 
   if (
     activatedSubscription.status === SubscriptionStatus.CreditTrial
   ) {
-    throw Error('Should never hit this')
+    throw Error(
+      `Subscription ${activatedSubscription.id} is a credit trial subscription. Credit trial subscriptions cannot be activated (Should never hit this)`
+    )
+  }
+
+  if (!activatedSubscription.renews) {
+    return {
+      subscription: activatedSubscription,
+      billingPeriod: null,
+      billingPeriodItems: null,
+      billingRun: null,
+    }
   }
 
   const { billingPeriod, billingPeriodItems } =
@@ -290,12 +322,16 @@ export const activateSubscription = async (
       },
       transaction
     )
+  const scheduledFor = subscription.runBillingAtPeriodStart
+    ? startDate
+    : endDate
+
   const shouldCreateBillingRun =
     defaultPaymentMethod &&
     subscription.runBillingAtPeriodStart &&
     params.autoStart &&
     scheduledFor
-
+  console.log('===shouldCreateBillingRun', shouldCreateBillingRun)
   /**
    * create a billing run, set to to execute
    */
@@ -309,7 +345,12 @@ export const activateSubscription = async (
         transaction
       )
     : null
-  return { billingPeriod, billingPeriodItems, billingRun }
+  return {
+    subscription: activatedSubscription,
+    billingPeriod,
+    billingPeriodItems,
+    billingRun,
+  }
 }
 
 export const initiateSubscriptionTrialPeriod = async (
@@ -362,7 +403,12 @@ export const initiateSubscriptionTrialPeriod = async (
         transaction
       )
     : null
-  return { billingPeriod, billingPeriodItems, billingRun }
+  return {
+    subscription,
+    billingPeriod,
+    billingPeriodItems,
+    billingRun,
+  }
 }
 
 export const maybeCreateInitialBillingPeriodAndRun = async (
@@ -388,9 +434,11 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
   if (
     subscription.status === SubscriptionStatus.CreditTrial ||
     (subscription.status === SubscriptionStatus.Incomplete &&
-      !defaultPaymentMethod)
+      !defaultPaymentMethod) ||
+    !subscription.renews
   ) {
     return {
+      subscription,
       billingPeriod: null,
       billingPeriodItems: null,
       billingRun: null,
@@ -437,7 +485,12 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
       },
       transaction
     )
-    return { billingPeriod, billingPeriodItems, billingRun }
+    return {
+      subscription,
+      billingPeriod,
+      billingPeriodItems,
+      billingRun,
+    }
   }
   /**
    * If the subscription is in incomplete status and no default payment method is provided,
@@ -449,6 +502,17 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     throw new Error(
       'Default payment method is required if trial period is not set'
     )
+  }
+  /**
+   * If autoStart is false, do not activate yet. Leave subscription as incomplete.
+   */
+  if (!params.autoStart) {
+    return {
+      subscription,
+      billingPeriod: null,
+      billingPeriodItems: null,
+      billingRun: null,
+    }
   }
   /**
    * If we have a defaultPaymentMethod and no trial period,
@@ -472,9 +536,9 @@ export const ledgerCommandPayload = (params: {
 }): BillingPeriodTransitionPayload => {
   const { subscription, subscriptionItemFeatures, billingPeriod } =
     params
-  if (subscription.status === SubscriptionStatus.CreditTrial) {
+  if (subscription.renews === false) {
     return {
-      type: 'credit_trial',
+      type: 'non_renewing',
       subscription,
       subscriptionFeatureItems: subscriptionItemFeatures.filter(
         (item) => item.type === FeatureType.UsageCreditGrant
@@ -482,7 +546,9 @@ export const ledgerCommandPayload = (params: {
     }
   }
   if (!billingPeriod) {
-    throw new Error('Billing period not found')
+    throw new Error(
+      `ledgerCommandPayload: billingPeriod is null for a standard, renewing subscription. This should never happen. Subscription: ${subscription.id} ${JSON.stringify(subscription)}`
+    )
   }
   return {
     type: 'standard',

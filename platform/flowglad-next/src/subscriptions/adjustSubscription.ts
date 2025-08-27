@@ -86,6 +86,11 @@ export const adjustSubscription = async (
   if (subscription.status === SubscriptionStatus.CreditTrial) {
     throw new Error('Credit trial subscriptions cannot be adjusted.')
   }
+  if (!subscription.renews) {
+    throw new Error(
+      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
+    )
+  }
   let adjustmentDate: Date
   if (timing === SubscriptionAdjustmentTiming.Immediately) {
     adjustmentDate = new Date()

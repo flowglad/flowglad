@@ -1015,6 +1015,7 @@ describe('Process setup intent', async () => {
               {
                 id: localOldSubscription.id,
                 status: SubscriptionStatus.Canceled,
+                renews: localOldSubscription.renews,
               },
               transaction
             )

@@ -352,6 +352,11 @@ export const stripeSubscriptionToSubscriptionInsert = async (
       : null,
     runBillingAtPeriodStart: null,
     priceId: price.id,
+    /**
+     * Hard assume subscriptions renew, because
+     * Stripe subscriptions are always renewable.
+     */
+    renews: true,
   }
 }
 

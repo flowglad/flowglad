@@ -34,6 +34,7 @@ export const expireCreditsAtEndOfBillingPeriod = async (
   } = params
   const standardPayload =
     command.payload as StandardBillingPeriodTransitionPayload
+  const newBillingPeriod = standardPayload.newBillingPeriod
   /**
    * Expire outstanding usage credits for the previous billing period.
    */
@@ -53,7 +54,7 @@ export const expireCreditsAtEndOfBillingPeriod = async (
         balance.balance > 0 &&
         balance.expiresAt !== null &&
         new Date(balance.expiresAt) <=
-          new Date(standardPayload.newBillingPeriod.startDate)
+          new Date(newBillingPeriod.startDate)
     )
   const creditExpirationLedgerInserts: LedgerEntry.CreditGrantExpiredInsert[] =
     expiringCreditBalances.map((balance) => {

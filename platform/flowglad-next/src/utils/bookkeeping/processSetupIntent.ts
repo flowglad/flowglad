@@ -331,7 +331,7 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
       {
         id: checkoutSession.targetSubscriptionId,
         defaultPaymentMethodId: paymentMethod.id,
-        status: subscription.status,
+        renews: subscription.renews,
       },
       transaction
     )
@@ -397,7 +397,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       organization,
       customer,
       paymentMethod,
-      discountRedemption
+      discountRedemption,
     }: SetupIntentSucceededBookkeepingResult & {
       setupIntent: CoreSripeSetupIntent
     },
@@ -553,16 +553,15 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         customer,
         transaction
       )
-    const { billingRun, billingPeriod, billingPeriodItems } =
-      await activateSubscription(
-        {
-          subscription: result.subscription,
-          subscriptionItems: result.subscriptionItems,
-          defaultPaymentMethod: paymentMethod,
-          autoStart: true,
-        },
-        transaction
-      )
+    const { billingRun } = await activateSubscription(
+      {
+        subscription: result.subscription,
+        subscriptionItems: result.subscriptionItems,
+        defaultPaymentMethod: paymentMethod,
+        autoStart: true,
+      },
+      transaction
+    )
     return {
       type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,

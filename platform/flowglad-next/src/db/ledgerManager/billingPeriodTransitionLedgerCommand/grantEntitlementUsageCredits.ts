@@ -42,7 +42,7 @@ export const grantEntitlementUsageCredits = async (
     )
   const standardPayload = command.payload
   const isInitialGrant =
-    standardPayload.type === 'credit_trial' ||
+    standardPayload.type === 'non_renewing' ||
     !standardPayload.previousBillingPeriod
 
   const featureItemsToGrant = isInitialGrant

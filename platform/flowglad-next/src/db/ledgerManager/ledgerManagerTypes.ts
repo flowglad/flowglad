@@ -85,10 +85,10 @@ const standardBillingPeriodTransitionPayloadSchema = z.object({
   type: z.literal('standard'),
 })
 
-const creditTrialBillingPeriodTransitionPayloadSchema =
+const nonRenewingBillingPeriodTransitionPayloadSchema =
   standardBillingPeriodTransitionPayloadSchema
     .extend({
-      type: z.literal('credit_trial'),
+      type: z.literal('non_renewing'),
     })
     .omit({
       previousBillingPeriod: true,
@@ -99,15 +99,15 @@ export type StandardBillingPeriodTransitionPayload = z.infer<
   typeof standardBillingPeriodTransitionPayloadSchema
 >
 
-export type CreditTrialBillingPeriodTransitionPayload = z.infer<
-  typeof creditTrialBillingPeriodTransitionPayloadSchema
+export type NonRenewingBillingPeriodTransitionPayload = z.infer<
+  typeof nonRenewingBillingPeriodTransitionPayloadSchema
 >
 
 const billingPeriodTransitionPayloadSchema = z.discriminatedUnion(
   'type',
   [
     standardBillingPeriodTransitionPayloadSchema,
-    creditTrialBillingPeriodTransitionPayloadSchema,
+    nonRenewingBillingPeriodTransitionPayloadSchema,
   ]
 )
 

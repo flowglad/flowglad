@@ -201,7 +201,16 @@ export const createUpdateFunction = <
       }
       return selectSchema.parse(latestItem)
     }
-    return selectSchema.parse(result)
+
+    const parsed = selectSchema.safeParse(result)
+    if (!parsed.success) {
+      console.error(parsed.error.issues)
+      console.error(result)
+      throw Error(
+        `createUpdateFunction: Error parsing result: ${JSON.stringify(result)}`
+      )
+    }
+    return parsed.data
   }
 }
 

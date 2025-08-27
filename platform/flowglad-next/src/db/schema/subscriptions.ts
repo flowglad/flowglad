@@ -29,11 +29,7 @@ import {
   customers,
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
-import {
-  IntervalUnit,
-  SubscriptionCancellationArrangement,
-  SubscriptionStatus,
-} from '@/types'
+import { IntervalUnit, SubscriptionStatus } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
@@ -85,6 +81,7 @@ const columns = {
   intervalCount: integer('interval_count'),
   billingCycleAnchorDate: timestamp('billing_cycle_anchor_date'),
   name: text('name'),
+  renews: boolean('renews').notNull().default(true),
   /**
    * A hidden column, used primarily for managing migrations from
    * from external processors onto Flowglad
@@ -136,21 +133,25 @@ const standardColumnRefinements = {
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
   billingCycleAnchorDate: z.date(),
+  renews: z.literal(true),
 }
 
-export const creditTrialColumnRefinements = {
-  status: z.literal(SubscriptionStatus.CreditTrial),
+export const nonRenewingStatusSchema = z.enum([
+  SubscriptionStatus.Active,
+  SubscriptionStatus.Canceled,
+  SubscriptionStatus.CreditTrial,
+])
+
+export const nonRenewingColumnRefinements = {
+  status: nonRenewingStatusSchema,
   metadata: metadataSchema.nullable(),
   currentBillingPeriodStart: z.null(),
   currentBillingPeriodEnd: z.null(),
   trialEnd: z.null(),
-  canceledAt: z.null(),
-  cancelScheduledAt: z.null(),
   interval: z.null(),
   intervalCount: z.null(),
   billingCycleAnchorDate: z.null(),
-  defaultPaymentMethodId: z.null(),
-  backupPaymentMethodId: z.null(),
+  renews: z.literal(false),
 }
 
 /*
@@ -161,14 +162,14 @@ const baseSelectSchema = createSelectSchema(subscriptions)
 export const standardSubscriptionSelectSchema =
   baseSelectSchema.extend(standardColumnRefinements)
 
-export const creditTrialSubscriptionSelectSchema =
-  baseSelectSchema.extend(creditTrialColumnRefinements)
+export const nonRenewingSubscriptionSelectSchema =
+  baseSelectSchema.extend(nonRenewingColumnRefinements)
 
 export const subscriptionsSelectSchema = z.discriminatedUnion(
-  'status',
+  'renews',
   [
     standardSubscriptionSelectSchema,
-    creditTrialSubscriptionSelectSchema,
+    nonRenewingSubscriptionSelectSchema,
   ]
 )
 
@@ -176,34 +177,35 @@ const standardSubscriptionInsertSchema =
   standardSubscriptionSelectSchema.omit(
     ommittedColumnsForInsertSchema
   )
-const creditTrialSubscriptionInsertSchema =
-  creditTrialSubscriptionSelectSchema.omit(
+const nonRenewingSubscriptionInsertSchema =
+  nonRenewingSubscriptionSelectSchema.omit(
     ommittedColumnsForInsertSchema
   )
 export const subscriptionsInsertSchema = z.discriminatedUnion(
-  'status',
+  'renews',
   [
     standardSubscriptionInsertSchema,
-    creditTrialSubscriptionInsertSchema,
+    nonRenewingSubscriptionInsertSchema,
   ]
 )
 
 const standardSubscriptionUpdateSchema =
   standardSubscriptionInsertSchema.partial().extend({
     id: z.string(),
-    status: z.enum(standardSubscriptionStatuses),
+    renews: z.literal(true),
   })
 
-const creditTrialSubscriptionUpdateSchema =
-  creditTrialSubscriptionInsertSchema.partial().extend({
+const nonRenewingSubscriptionUpdateSchema =
+  nonRenewingSubscriptionInsertSchema.partial().extend({
     id: z.string(),
-    status: z.literal(SubscriptionStatus.CreditTrial),
+    renews: z.literal(false),
   })
+
 export const subscriptionsUpdateSchema = z.discriminatedUnion(
-  'status',
+  'renews',
   [
     standardSubscriptionUpdateSchema,
-    creditTrialSubscriptionUpdateSchema,
+    nonRenewingSubscriptionUpdateSchema,
   ]
 )
 
@@ -246,8 +248,8 @@ export const standardSubscriptionClientSelectSchema =
       ),
   })
 
-export const creditTrialSubscriptionClientSelectSchema =
-  creditTrialSubscriptionSelectSchema.omit(hiddenColumns).extend({
+export const nonRenewingSubscriptionClientSelectSchema =
+  nonRenewingSubscriptionSelectSchema.omit(hiddenColumns).extend({
     current: z
       .boolean()
       .describe(
@@ -256,34 +258,34 @@ export const creditTrialSubscriptionClientSelectSchema =
   })
 
 export const subscriptionClientSelectSchema = z.discriminatedUnion(
-  'status',
+  'renews',
   [
     standardSubscriptionClientSelectSchema,
-    creditTrialSubscriptionClientSelectSchema,
+    nonRenewingSubscriptionClientSelectSchema,
   ]
 )
 
 const standardSubscriptionClientInsertSchema =
   standardSubscriptionInsertSchema.omit(clientWriteOmits)
-const creditTrialSubscriptionClientInsertSchema =
-  creditTrialSubscriptionInsertSchema.omit(clientWriteOmits)
+const nonRenewingSubscriptionClientInsertSchema =
+  nonRenewingSubscriptionInsertSchema.omit(clientWriteOmits)
 export const subscriptionClientInsertSchema = z.discriminatedUnion(
-  'status',
+  'renews',
   [
     standardSubscriptionClientInsertSchema,
-    creditTrialSubscriptionClientInsertSchema,
+    nonRenewingSubscriptionClientInsertSchema,
   ]
 )
 
 const standardSubscriptionClientUpdateSchema =
   standardSubscriptionUpdateSchema.omit(clientWriteOmits)
-const creditTrialSubscriptionClientUpdateSchema =
-  creditTrialSubscriptionUpdateSchema.omit(clientWriteOmits)
+const nonRenewingSubscriptionClientUpdateSchema =
+  nonRenewingSubscriptionUpdateSchema.omit(clientWriteOmits)
 export const subscriptionClientUpdateSchema = z.discriminatedUnion(
-  'status',
+  'renews',
   [
     standardSubscriptionClientUpdateSchema,
-    creditTrialSubscriptionClientUpdateSchema,
+    nonRenewingSubscriptionClientUpdateSchema,
   ]
 )
 
@@ -331,39 +333,39 @@ export namespace Subscription {
   export type StandardRecord = z.infer<
     typeof standardSubscriptionSelectSchema
   >
-  export type CreditTrialRecord = z.infer<
-    typeof creditTrialSubscriptionSelectSchema
+  export type NonRenewingRecord = z.infer<
+    typeof nonRenewingSubscriptionSelectSchema
   >
   export type StandardInsert = z.infer<
     typeof standardSubscriptionInsertSchema
   >
-  export type CreditTrialInsert = z.infer<
-    typeof creditTrialSubscriptionInsertSchema
+  export type NonRenewingInsert = z.infer<
+    typeof nonRenewingSubscriptionInsertSchema
   >
   export type StandardUpdate = z.infer<
     typeof standardSubscriptionUpdateSchema
   >
-  export type CreditTrialUpdate = z.infer<
-    typeof creditTrialSubscriptionUpdateSchema
+  export type NonRenewingUpdate = z.infer<
+    typeof nonRenewingSubscriptionUpdateSchema
   >
 
   export type ClientStandardRecord = z.infer<
     typeof standardSubscriptionClientSelectSchema
   >
-  export type ClientCreditTrialRecord = z.infer<
-    typeof creditTrialSubscriptionClientSelectSchema
+  export type ClientNonRenewingRecord = z.infer<
+    typeof nonRenewingSubscriptionClientSelectSchema
   >
   export type ClientStandardInsert = z.infer<
     typeof standardSubscriptionClientInsertSchema
   >
-  export type ClientCreditTrialInsert = z.infer<
-    typeof creditTrialSubscriptionClientInsertSchema
+  export type ClientNonRenewingInsert = z.infer<
+    typeof nonRenewingSubscriptionClientInsertSchema
   >
   export type ClientStandardUpdate = z.infer<
     typeof standardSubscriptionClientUpdateSchema
   >
-  export type ClientCreditTrialUpdate = z.infer<
-    typeof creditTrialSubscriptionClientUpdateSchema
+  export type ClientNonRenewingUpdate = z.infer<
+    typeof nonRenewingSubscriptionClientUpdateSchema
   >
 }
 
