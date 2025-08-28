@@ -1,13 +1,13 @@
 'use client'
 import { PricingTable } from '@/registry/new-york/pricing-table'
-import type { PricingProduct } from '@/registry/new-york/pricing-table/types'
+import type { PricingProductGroup } from '@/registry/new-york/pricing-table/types'
 
 const InternalDemoPage = () => {
-  const products: PricingProduct[] = [
+  const productGroups: PricingProductGroup[] = [
     {
       name: 'Personal',
       slug: 'personal',
-      tiers: [
+      products: [
         {
           id: 'personal-free',
           name: 'Free',
@@ -63,7 +63,7 @@ const InternalDemoPage = () => {
     {
       name: 'Team',
       slug: 'team',
-      tiers: [
+      products: [
         {
           id: 'team-starter',
           name: 'Starter',
@@ -117,10 +117,10 @@ const InternalDemoPage = () => {
   ]
 
   return <PricingTable
-        products={products}
-        currentProductSlug="personal"
-        onTierSelect={() => {
-          // Handle tier selection
+        productGroups={productGroups}
+        currentGroupSlug="personal"
+        onProductSelect={() => {
+          // Handle product selection
         }}
         showToggle={true}
       />

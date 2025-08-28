@@ -1,11 +1,10 @@
 import { PricingTable } from '@/registry/new-york/pricing-table'
-import type { PricingProduct } from '@/registry/new-york/pricing-table'
+import type { PricingProductGroup } from '@/registry/new-york/pricing-table'
 
-const personalProducts: PricingProduct[] = [
-  {
-    name: 'Personal',
-    slug: 'personal',
-    tiers: [
+const personalProductGroup: PricingProductGroup = {
+  name: 'Personal',
+  slug: 'personal',
+  products: [
       {
         id: 'free',
         name: 'Free',
@@ -66,14 +65,12 @@ const personalProducts: PricingProduct[] = [
         footnote: 'Unlimited subject to abuse guardrails. Learn more'
       }
     ]
-  }
-]
+}
 
-const businessProducts: PricingProduct[] = [
-  {
-    name: 'Business',
-    slug: 'business',
-    tiers: [
+const businessProductGroup: PricingProductGroup = {
+  name: 'Business',
+  slug: 'business',
+  products: [
       {
         id: 'team',
         name: 'Team',
@@ -129,8 +126,7 @@ const businessProducts: PricingProduct[] = [
         footnote: 'Contact us for custom pricing'
       }
     ]
-  }
-]
+}
 
 export const registryComponents = [
   {
@@ -139,44 +135,44 @@ export const registryComponents = [
     description: 'A responsive pricing table component with product toggle and tier selection',
     component: PricingTable,
     defaultProps: {
-      products: [...personalProducts, ...businessProducts],
-      currentProductSlug: 'personal',
+      productGroups: [personalProductGroup, businessProductGroup],
+      currentGroupSlug: 'personal',
       showToggle: true,
-      onTierSelect: () => {
-        // Handle tier selection
+      onProductSelect: () => {
+        // Handle product selection
       }
     },
     variants: [
       {
         name: 'Personal Plans',
         props: {
-          products: personalProducts,
-          currentProductSlug: 'personal',
+          productGroups: [personalProductGroup],
+          currentGroupSlug: 'personal',
           showToggle: false,
-          onTierSelect: () => {
-            // Handle tier selection
+          onProductSelect: () => {
+            // Handle product selection
           }
         }
       },
       {
         name: 'Business Plans',
         props: {
-          products: businessProducts,
-          currentProductSlug: 'business',
+          productGroups: [businessProductGroup],
+          currentGroupSlug: 'business',
           showToggle: false,
-          onTierSelect: () => {
-            // Handle tier selection
+          onProductSelect: () => {
+            // Handle product selection
           }
         }
       },
       {
         name: 'All Plans with Toggle',
         props: {
-          products: [...personalProducts, ...businessProducts],
-          currentProductSlug: 'personal',
+          productGroups: [personalProductGroup, businessProductGroup],
+          currentGroupSlug: 'personal',
           showToggle: true,
-          onTierSelect: () => {
-            // Handle tier selection
+          onProductSelect: () => {
+            // Handle product selection
           }
         }
       }

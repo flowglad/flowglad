@@ -9,21 +9,21 @@ import { PricingColumn } from './components/pricing-column'
 import type { PricingTableProps } from './types'
 
 export function PricingTable({
-  products,
-  currentProductSlug = 'personal',
-  onTierSelect,
+  productGroups,
+  currentGroupSlug = 'personal',
+  onProductSelect,
   showToggle = true,
   className
 }: PricingTableProps) {
-  const [selectedProductSlug, setSelectedProductSlug] = React.useState(currentProductSlug)
+  const [selectedGroupSlug, setSelectedGroupSlug] = React.useState(currentGroupSlug)
   const [isOpen, setIsOpen] = React.useState(true)
 
-  const currentProduct = products.find(p => p.slug === selectedProductSlug) || products[0]
-  const productOptions = products.map(p => ({ name: p.name, slug: p.slug }))
+  const currentGroup = productGroups.find(g => g.slug === selectedGroupSlug) || productGroups[0]
+  const groupOptions = productGroups.map(g => ({ name: g.name, slug: g.slug }))
 
-  const handleTierSelect = (tierId: string) => {
-    if (onTierSelect) {
-      onTierSelect(tierId, selectedProductSlug)
+  const handleProductSelect = (productId: string) => {
+    if (onProductSelect) {
+      onProductSelect(productId, selectedGroupSlug)
     }
   }
 
@@ -40,13 +40,13 @@ export function PricingTable({
               Upgrade your plan
             </h2>
             
-            {showToggle && products.length > 1 && (
+            {showToggle && productGroups.length > 1 && (
               <PricingToggle
-                options={productOptions.map(p => p.name)}
-                selected={currentProduct?.name || ''}
+                options={groupOptions.map(g => g.name)}
+                selected={currentGroup?.name || ''}
                 onChange={(name) => {
-                  const product = productOptions.find(p => p.name === name)
-                  if (product) setSelectedProductSlug(product.slug)
+                  const group = groupOptions.find(g => g.name === name)
+                  if (group) setSelectedGroupSlug(group.slug)
                 }}
               />
             )}
@@ -69,11 +69,11 @@ export function PricingTable({
             "lg:grid-cols-3",
             "max-w-6xl mx-auto"
           )}>
-            {currentProduct?.tiers.map((tier) => (
+            {currentGroup?.products.map((product) => (
               <PricingColumn
-                key={tier.id}
-                tier={tier}
-                onSelect={handleTierSelect}
+                key={product.id}
+                product={product}
+                onSelect={handleProductSelect}
               />
             ))}
           </div>
@@ -94,26 +94,7 @@ export function PricingTable({
               ChatGPT Enterprise
             </a>
           </p>
-        </div>
-        
-        <div className="absolute bottom-4 right-4">
-          <Button variant="outline" size="sm" className="text-xs">
-            United States
-            <svg
-              className="ml-2 h-3 w-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </Button>
-        </div>
+        </div>        
       </div>
     </div>
   )

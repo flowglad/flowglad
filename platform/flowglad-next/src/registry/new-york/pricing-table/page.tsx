@@ -2,13 +2,13 @@
 
 import * as React from 'react'
 import { PricingTable } from './pricing-table'
-import type { PricingProduct } from './types'
+import type { PricingProductGroup } from './types'
 
-const sampleProducts: PricingProduct[] = [
+const sampleProductGroups: PricingProductGroup[] = [
   {
     name: 'Personal',
     slug: 'personal',
-    tiers: [
+    products: [
       {
         id: 'free',
         name: 'Free',
@@ -146,9 +146,9 @@ const sampleProducts: PricingProduct[] = [
 ]
 
 export default function PricingTableDemo() {
-  const handleTierSelect = (tierId: string, productSlug: string) => {
-    // console.log(`Selected tier: ${tierId} from product: ${productSlug}`)
-    // Handle tier selection (e.g., navigate to checkout, show modal, etc.)
+  const handleProductSelect = (productId: string, groupSlug: string) => {
+    // console.log(`Selected product: ${productId} from group: ${groupSlug}`)
+    // Handle product selection (e.g., navigate to checkout, show modal, etc.)
   }
 
   return (
@@ -162,9 +162,9 @@ export default function PricingTableDemo() {
         </div>
         
         <PricingTable
-          products={sampleProducts}
-          currentProductSlug="personal"
-          onTierSelect={handleTierSelect}
+          productGroups={sampleProductGroups}
+          currentGroupSlug="personal"
+          onProductSelect={handleProductSelect}
           showToggle={true}
         />
       </div>

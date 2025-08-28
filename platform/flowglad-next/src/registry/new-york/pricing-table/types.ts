@@ -4,7 +4,8 @@ export interface PricingFeature {
   tooltip?: string
 }
 
-export interface PricingTier {
+// Product represents a sellable item (what was previously called a "tier")
+export interface PricingProduct {
   id: string
   name: string
   price: number
@@ -22,16 +23,17 @@ export interface PricingTier {
   footnote?: string
 }
 
-export interface PricingProduct {
+// ProductGroup is a localized grouping concept (e.g., "Personal" vs "Business")
+export interface PricingProductGroup {
   name: string
   slug: string
-  tiers: PricingTier[]
+  products: PricingProduct[]
 }
 
 export interface PricingTableProps {
-  products: PricingProduct[]
-  currentProductSlug?: string
-  onTierSelect?: (tierId: string, productSlug: string) => void
+  productGroups: PricingProductGroup[]
+  currentGroupSlug?: string
+  onProductSelect?: (productId: string, groupSlug: string) => void
   showToggle?: boolean
   className?: string
 }
