@@ -142,8 +142,8 @@ export const registryComponents = [
       products: [...personalProducts, ...businessProducts],
       currentProductSlug: 'personal',
       showToggle: true,
-      onTierSelect: (tierId: string, productSlug: string) => {
-        console.log(`Selected tier: ${tierId} from product: ${productSlug}`)
+      onTierSelect: () => {
+        // Handle tier selection
       }
     },
     variants: [
@@ -153,8 +153,8 @@ export const registryComponents = [
           products: personalProducts,
           currentProductSlug: 'personal',
           showToggle: false,
-          onTierSelect: (tierId: string, productSlug: string) => {
-            console.log(`Selected tier: ${tierId} from product: ${productSlug}`)
+          onTierSelect: () => {
+            // Handle tier selection
           }
         }
       },
@@ -164,8 +164,8 @@ export const registryComponents = [
           products: businessProducts,
           currentProductSlug: 'business',
           showToggle: false,
-          onTierSelect: (tierId: string, productSlug: string) => {
-            console.log(`Selected tier: ${tierId} from product: ${productSlug}`)
+          onTierSelect: () => {
+            // Handle tier selection
           }
         }
       },
@@ -175,8 +175,8 @@ export const registryComponents = [
           products: [...personalProducts, ...businessProducts],
           currentProductSlug: 'personal',
           showToggle: true,
-          onTierSelect: (tierId: string, productSlug: string) => {
-            console.log(`Selected tier: ${tierId} from product: ${productSlug}`)
+          onTierSelect: () => {
+            // Handle tier selection
           }
         }
       }

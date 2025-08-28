@@ -119,8 +119,8 @@ const InternalDemoPage = () => {
   return <PricingTable
         products={products}
         currentProductSlug="personal"
-        onTierSelect={(tierId, productSlug) => {
-          console.log('Selected tier', { tierId, productSlug })
+        onTierSelect={() => {
+          // Handle tier selection
         }}
         showToggle={true}
       />

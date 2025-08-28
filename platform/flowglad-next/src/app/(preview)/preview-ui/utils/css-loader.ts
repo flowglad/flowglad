@@ -64,6 +64,7 @@ class PreviewCSSLoader {
       this.injectCSS(cssContent)
       
       this.isLoaded = true
+      // eslint-disable-next-line no-console
       console.log(`✅ Preview CSS loaded (${(manifest.size / 1024).toFixed(2)}kb)`)
       
     } catch (error) {
@@ -87,6 +88,7 @@ class PreviewCSSLoader {
       this.injectCSS(cssContent)
       this.isLoaded = true
       
+      // eslint-disable-next-line no-console
       console.log('✅ Preview CSS loaded (fallback)')
     } catch (error) {
       console.error('Failed to load fallback CSS:', error)
