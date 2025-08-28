@@ -1,14 +1,13 @@
 import * as R from 'ramda'
 import { boolean, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   notNullStringForeignKey,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   constructIndex,
   constructUniqueIndex,
   tableBase,
   newBaseZodSelectSchemaColumns,
-  createUpdateSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
@@ -56,24 +55,24 @@ export const memberships = pgTable(
   }
 ).enableRLS()
 
-const columnRefinements = {
+// Column refinements for SELECT schemas only
+const selectColumnRefinements = {
   ...newBaseZodSelectSchemaColumns,
+}
+
+// Column refinements for INSERT schemas (without auto-generated columns)
+const insertColumnRefinements = {
+  // No additional refinements needed for insert
 }
 
 export const membershipsSelectSchema = createSelectSchema(
   memberships,
-  columnRefinements
+  selectColumnRefinements
 )
 
-export const membershipsInsertSchema = enhancedCreateInsertSchema(
-  memberships,
-  columnRefinements
-)
+export const membershipsInsertSchema = createInsertSchema(memberships).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
 
-export const membershipsUpdateSchema = createUpdateSchema(
-  memberships,
-  columnRefinements
-)
+export const membershipsUpdateSchema = membershipsInsertSchema.partial().extend({ id: z.string() })
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
@@ -116,7 +115,7 @@ export namespace Membership {
 }
 
 export const inviteUserToOrganizationSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   name: z.string().optional(),
 })
 

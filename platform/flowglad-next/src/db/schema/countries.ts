@@ -1,9 +1,8 @@
 import * as R from 'ramda'
 import { pgTable, text } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
-  createUpdateSchema,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   newBaseZodSelectSchemaColumns,
   tableBase,
   constructUniqueIndex,
@@ -30,25 +29,30 @@ export const countries = pgTable(
   }
 )
 
-const columnRefinements = {
-  ...newBaseZodSelectSchemaColumns,
+// Common refinements for both SELECT and INSERT schemas
+const commonColumnRefinements = {
   code: core.createSafeZodEnum(CountryCode),
+}
+
+// Column refinements for SELECT schemas only
+const selectColumnRefinements = {
+  ...newBaseZodSelectSchemaColumns,
+  ...commonColumnRefinements,
+}
+
+// Column refinements for INSERT schemas (without auto-generated columns)
+const insertColumnRefinements = {
+  ...commonColumnRefinements,
 }
 
 export const countriesSelectSchema = createSelectSchema(
   countries,
-  columnRefinements
+  selectColumnRefinements
 )
 
-export const countriesInsertSchema = enhancedCreateInsertSchema(
-  countries,
-  columnRefinements
-)
+export const countriesInsertSchema = createInsertSchema(countries).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
 
-export const countriesUpdateSchema = createUpdateSchema(
-  countries,
-  columnRefinements
-)
+export const countriesUpdateSchema = countriesInsertSchema.extend({ id: z.string() })
 
 export namespace Country {
   export type Insert = z.infer<typeof countriesInsertSchema>

@@ -8,10 +8,10 @@ import {
   timestamp,
   boolean,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   tableBase,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructIndex,
   newBaseZodSelectSchemaColumns,
@@ -137,17 +137,28 @@ export const checkoutSessionOutputMetadataSchema = z
   .record(z.string(), z.any())
   .nullable()
 
-const refinement = {
-  ...newBaseZodSelectSchemaColumns,
-  billingAddress: billingAddressSchema.nullable(),
+// Common refinements for both SELECT and INSERT schemas (validation logic)
+const commonRefinement = {
+  billingAddress: billingAddressSchema.nullable().optional(),
   status: core.createSafeZodEnum(CheckoutSessionStatus),
-  successUrl: z.string().url().nullable(),
-  cancelUrl: z.string().url().nullable(),
+  successUrl: z.string().url().nullable().optional(),
+  cancelUrl: z.string().url().nullable().optional(),
   // outputMetadata: z.any().nullable(),
   paymentMethodType: core
     .createSafeZodEnum(PaymentMethodType)
-    .nullable(),
-  outputMetadata: checkoutSessionOutputMetadataSchema,
+    .nullable().optional(),
+  outputMetadata: checkoutSessionOutputMetadataSchema.optional(),
+}
+
+// Refinements for SELECT schemas only (includes auto-generated columns)
+const selectRefinement = {
+  ...newBaseZodSelectSchemaColumns,
+  ...commonRefinement,
+}
+
+// Refinements for INSERT schemas (without auto-generated columns)
+const insertRefinement = {
+  ...commonRefinement,
 }
 
 const purchaseCheckoutSessionRefinement = {
@@ -187,6 +198,7 @@ const addPaymentMethodCheckoutSessionRefinement = {
   targetSubscriptionId: z
     .string()
     .nullable()
+    .optional()
     .describe(
       'The subscription that the payment method will be added to as the default payment method.'
     ),
@@ -198,6 +210,7 @@ const addPaymentMethodCheckoutSessionRefinement = {
   type: z.literal(CheckoutSessionType.AddPaymentMethod),
   automaticallyUpdateSubscriptions: z
     .boolean()
+    .optional()
     .describe(
       'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
     ),
@@ -205,7 +218,7 @@ const addPaymentMethodCheckoutSessionRefinement = {
 
 export const coreCheckoutSessionsSelectSchema = createSelectSchema(
   checkoutSessions,
-  refinement
+  selectRefinement
 )
 
 const purchaseCheckoutSessionsSelectSchema =
@@ -242,8 +255,7 @@ export const checkoutSessionsSelectSchema = z
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
-export const coreCheckoutSessionsInsertSchema =
-  enhancedCreateInsertSchema(checkoutSessions, refinement)
+export const coreCheckoutSessionsInsertSchema = createInsertSchema(checkoutSessions).omit(ommittedColumnsForInsertSchema).extend(insertRefinement)
 
 export const purchaseCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(

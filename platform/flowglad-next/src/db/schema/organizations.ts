@@ -8,9 +8,9 @@ import {
   integer,
   pgPolicy,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructIndex,
   constructUniqueIndex,
@@ -126,28 +126,34 @@ export const billingAddressSchema = z.object(
 
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
-const columnRefinements = {
+// Column refinements for both SELECT and INSERT schemas
+const commonColumnRefinements = {
   onboardingStatus: core.createSafeZodEnum(BusinessOnboardingStatus),
   defaultCurrency: core.createSafeZodEnum(CurrencyCode),
   billingAddress: billingAddressSchema,
   contactEmail: z.string().email().nullable(),
   featureFlags: z.record(z.string(), z.boolean()),
   stripeConnectContractType: z.nativeEnum(StripeConnectContractType),
-  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger,
+  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger.optional(),
+}
+
+// Column refinements for SELECT schemas only
+const selectColumnRefinements = {
+  ...newBaseZodSelectSchemaColumns,
+  ...commonColumnRefinements,
+}
+
+// Column refinements for INSERT schemas (without auto-generated columns)
+const insertColumnRefinements = {
+  ...commonColumnRefinements,
 }
 
 export const organizationsSelectSchema = createSelectSchema(
   organizations,
-  {
-    ...newBaseZodSelectSchemaColumns,
-    ...columnRefinements,
-  }
+  selectColumnRefinements
 )
 
-export const organizationsInsertSchema = enhancedCreateInsertSchema(
-  organizations,
-  columnRefinements
-)
+export const organizationsInsertSchema = createInsertSchema(organizations).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
 
 export const organizationsUpdateSchema = organizationsInsertSchema
   .partial()
