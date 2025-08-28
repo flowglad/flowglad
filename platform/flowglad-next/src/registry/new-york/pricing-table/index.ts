@@ -4,7 +4,7 @@ export { PricingColumn } from './components/pricing-column'
 export { PricingHeader } from './components/pricing-header'
 export { PricingFeature } from './components/pricing-feature'
 export type { 
-  Price,
+  PricingTablePrice,
   PricingTableProduct, 
   PricingFeature as PricingFeatureType, 
   PricingProductGroup, 

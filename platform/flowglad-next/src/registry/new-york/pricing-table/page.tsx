@@ -164,8 +164,8 @@ const sampleProductGroups: PricingProductGroup[] = [
 ]
 
 export default function PricingTableDemo() {
-  const handleProductSelect = (productId: string, groupSlug: string) => {
-    // console.log(`Selected product: ${productId} from group: ${groupSlug}`)
+  const handleProductSelect = ({ productSlug, groupSlug }: { productSlug: string; groupSlug: string }) => {
+    // console.log(`Selected product: ${productSlug} from group: ${groupSlug}`)
     // Handle product selection (e.g., navigate to checkout, show modal, etc.)
   }
 

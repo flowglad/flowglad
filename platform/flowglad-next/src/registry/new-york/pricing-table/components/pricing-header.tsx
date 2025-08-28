@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { cn } from '@/utils/core'
 import { Badge } from '@/components/ui/badge'
-import type { Price } from '../types'
+import type { PricingTablePrice } from '../types'
+import { humanReadableCurrencyAmount } from '../utils/currency'
 
 interface PricingHeaderProps {
   name: string
-  price: Price
+  price: PricingTablePrice
   description: string
   popular?: boolean
   className?: string
@@ -18,7 +19,8 @@ export function PricingHeader({
   popular,
   className
 }: PricingHeaderProps) {
-  const currencySymbol = price.currency === 'USD' ? '$' : price.currency
+  // Use the currency utils to format the price properly
+  const formattedPrice = humanReadableCurrencyAmount(price.unitAmount, price.currency)
   
   // Format the interval display (e.g., "month", "3 months", "year")
   const intervalDisplay = price.intervalCount === 1 
@@ -40,11 +42,9 @@ export function PricingHeader({
       </div>
       
       <div className="flex items-baseline gap-1">
-        <span className="text-xl text-muted-foreground">{currencySymbol}</span>
-        <span className="text-5xl font-normal tracking-tight text-foreground">{price.unitAmount}</span>
+        <span className="text-5xl font-normal tracking-tight text-foreground">{formattedPrice}</span>
         <div className="ml-1 text-xs text-muted-foreground">
-          <div>{price.currency} /</div>
-          <div>{intervalDisplay}</div>
+          <div>/ {intervalDisplay}</div>
         </div>
       </div>
       

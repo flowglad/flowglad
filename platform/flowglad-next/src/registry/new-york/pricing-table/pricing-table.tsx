@@ -23,7 +23,7 @@ export function PricingTable({
 
   const handleProductSelect = (productSlug: string) => {
     if (onProductSelect) {
-      onProductSelect(productSlug, selectedGroupSlug)
+      onProductSelect({ productSlug, groupSlug: selectedGroupSlug })
     }
   }
 

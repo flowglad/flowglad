@@ -96,6 +96,10 @@
             "type": "registry:lib"
           },
           {
+            "path": "src/registry/new-york/pricing-table/utils/currency.ts",
+            "type": "registry:lib"
+          },
+          {
             "path": "src/registry/new-york/pricing-table/index.ts",
             "type": "registry:lib"
           },

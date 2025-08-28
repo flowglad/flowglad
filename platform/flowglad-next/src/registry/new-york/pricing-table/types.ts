@@ -5,7 +5,12 @@ export interface PricingFeature {
 }
 
 // Price object containing all pricing-related information
-export interface Price {
+export interface PricingTablePrice {
+  /**
+   * The price amount in the smallest countable integer for the currency.
+   * For example, cents for USD/EUR (100 = $1.00), or the whole amount for
+   * zero-decimal currencies like JPY (100 = ¥100).
+   */
   unitAmount: number
   currency: string
   intervalUnit: 'day' | 'week' | 'month' | 'year'
@@ -16,7 +21,7 @@ export interface Price {
 export interface PricingTableProduct {
   slug: string
   name: string
-  price: Price
+  price: PricingTablePrice
   description: string
   features: PricingFeature[]
   cta: {
@@ -39,7 +44,7 @@ export interface PricingProductGroup {
 export interface PricingTableProps {
   productGroups: PricingProductGroup[]
   currentGroupSlug?: string
-  onProductSelect?: (productSlug: string, groupSlug: string) => void
+  onProductSelect?: ({ productSlug, groupSlug }: { productSlug: string; groupSlug: string }) => void
   showToggle?: boolean
   className?: string
 }

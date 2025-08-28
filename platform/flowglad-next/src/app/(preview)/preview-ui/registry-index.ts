@@ -30,7 +30,7 @@ const personalProductGroup: PricingProductGroup = {
         slug: 'plus',
         name: 'Plus',
         price: {
-          unitAmount: 20,
+          unitAmount: 2000,  // $20.00 in cents
           currency: 'USD',
           intervalUnit: 'month',
           intervalCount: 1
@@ -53,7 +53,7 @@ const personalProductGroup: PricingProductGroup = {
         slug: 'pro',
         name: 'Pro',
         price: {
-          unitAmount: 200,
+          unitAmount: 20000,  // $200.00 in cents
           currency: 'USD',
           intervalUnit: 'month',
           intervalCount: 1
@@ -84,7 +84,7 @@ const businessProductGroup: PricingProductGroup = {
         slug: 'team',
         name: 'Team',
         price: {
-          unitAmount: 25,
+          unitAmount: 2500,  // $25.00 in cents
           currency: 'USD',
           intervalUnit: 'month',
           intervalCount: 1
@@ -103,7 +103,7 @@ const businessProductGroup: PricingProductGroup = {
         slug: 'enterprise',
         name: 'Enterprise',
         price: {
-          unitAmount: 60,
+          unitAmount: 6000,  // $60.00 in cents
           currency: 'USD',
           intervalUnit: 'month',
           intervalCount: 1
