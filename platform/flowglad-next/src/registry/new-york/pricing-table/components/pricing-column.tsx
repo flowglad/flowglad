@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card } from './card'
 import { PricingHeader } from './pricing-header'
 import { PricingFeature } from './pricing-feature'
-import type { PricingProduct } from '../types'
+import type { PricingTableProduct } from '../types'
 
 interface PricingColumnProps {
-  product: PricingProduct
-  onSelect?: (productId: string) => void
+  product: PricingTableProduct
+  onSelect?: (productSlug: string) => void
   className?: string
 }
 
@@ -21,7 +21,7 @@ export function PricingColumn({
 }: PricingColumnProps) {
   const handleSelect = () => {
     if (onSelect && !product.current) {
-      onSelect(product.id)
+      onSelect(product.slug)
     }
   }
 
@@ -36,8 +36,6 @@ export function PricingColumn({
       <PricingHeader
         name={product.name}
         price={product.price}
-        currency={product.currency}
-        period={product.period}
         description={product.description}
         popular={product.popular}
       />

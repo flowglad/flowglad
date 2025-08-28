@@ -4,13 +4,19 @@ export interface PricingFeature {
   tooltip?: string
 }
 
-// Product represents a sellable item (what was previously called a "tier")
-export interface PricingProduct {
-  id: string
-  name: string
-  price: number
+// Price object containing all pricing-related information
+export interface Price {
+  unitAmount: number
   currency: string
-  period: 'month' | 'year'
+  intervalUnit: 'day' | 'week' | 'month' | 'year'
+  intervalCount: number
+}
+
+// Product represents a sellable item (what was previously called a "tier")
+export interface PricingTableProduct {
+  slug: string
+  name: string
+  price: Price
   description: string
   features: PricingFeature[]
   cta: {
@@ -27,13 +33,13 @@ export interface PricingProduct {
 export interface PricingProductGroup {
   name: string
   slug: string
-  products: PricingProduct[]
+  products: PricingTableProduct[]
 }
 
 export interface PricingTableProps {
   productGroups: PricingProductGroup[]
   currentGroupSlug?: string
-  onProductSelect?: (productId: string, groupSlug: string) => void
+  onProductSelect?: (productSlug: string, groupSlug: string) => void
   showToggle?: boolean
   className?: string
 }

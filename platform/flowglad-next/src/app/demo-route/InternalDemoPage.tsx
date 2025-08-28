@@ -9,11 +9,14 @@ const InternalDemoPage = () => {
       slug: 'personal',
       products: [
         {
-          id: 'personal-free',
+          slug: 'personal-free',
           name: 'Free',
-          price: 0,
-          currency: 'USD',
-          period: 'month',
+          price: {
+            unitAmount: 0,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1
+          },
           description: 'Basic tools to explore the platform.',
           features: [
             { text: 'Single user', included: true },
@@ -26,11 +29,14 @@ const InternalDemoPage = () => {
           current: true,
         },
         {
-          id: 'personal-pro',
+          slug: 'personal-pro',
           name: 'Pro',
-          price: 20,
-          currency: 'USD',
-          period: 'month',
+          price: {
+            unitAmount: 20,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1
+          },
           description: 'For individuals who need more power and higher limits.',
           features: [
             { text: 'Single user', included: true },
@@ -43,11 +49,14 @@ const InternalDemoPage = () => {
           footnote: 'Billed monthly',
         },
         {
-          id: 'personal-max',
+          slug: 'personal-max',
           name: 'Max',
-          price: 40,
-          currency: 'USD',
-          period: 'month',
+          price: {
+            unitAmount: 40,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1
+          },
           description: 'All features for power users with maximum limits.',
           features: [
             { text: 'Single user', included: true },
@@ -65,11 +74,14 @@ const InternalDemoPage = () => {
       slug: 'team',
       products: [
         {
-          id: 'team-starter',
+          slug: 'team-starter',
           name: 'Starter',
-          price: 49,
-          currency: 'USD',
-          period: 'month',
+          price: {
+            unitAmount: 49,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1
+          },
           description: 'Everything you need to collaborate as a small team.',
           features: [
             { text: 'Up to 5 seats', included: true },
@@ -80,11 +92,14 @@ const InternalDemoPage = () => {
           cta: { text: 'Choose Starter', variant: 'default' },
         },
         {
-          id: 'team-growth',
+          slug: 'team-growth',
           name: 'Growth',
-          price: 99,
-          currency: 'USD',
-          period: 'month',
+          price: {
+            unitAmount: 99,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1
+          },
           description: 'For growing teams that need advanced controls and insights.',
           features: [
             { text: 'Up to 20 seats', included: true },
@@ -97,11 +112,14 @@ const InternalDemoPage = () => {
           footnote: 'Most teams choose this',
         },
         {
-          id: 'team-enterprise',
+          slug: 'team-enterprise',
           name: 'Enterprise',
-          price: 0,
-          currency: 'USD',
-          period: 'month',
+          price: {
+            unitAmount: 0,
+            currency: 'USD',
+            intervalUnit: 'month',
+            intervalCount: 1
+          },
           description: 'Custom pricing for large organizations with advanced needs.',
           features: [
             { text: 'Unlimited seats', included: true },

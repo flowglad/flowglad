@@ -6,11 +6,14 @@ const personalProductGroup: PricingProductGroup = {
   slug: 'personal',
   products: [
       {
-        id: 'free',
+        slug: 'free',
         name: 'Free',
-        price: 0,
-        currency: 'USD',
-        period: 'month',
+        price: {
+          unitAmount: 0,
+          currency: 'USD',
+          intervalUnit: 'month',
+          intervalCount: 1
+        },
         description: 'Intelligence for everyday tasks',
         current: true,
         cta: { text: 'Your current plan', disabled: true },
@@ -24,11 +27,14 @@ const personalProductGroup: PricingProductGroup = {
         footnote: 'Have an existing plan? See billing help'
       },
       {
-        id: 'plus',
+        slug: 'plus',
         name: 'Plus',
-        price: 20,
-        currency: 'USD',
-        period: 'month',
+        price: {
+          unitAmount: 20,
+          currency: 'USD',
+          intervalUnit: 'month',
+          intervalCount: 1
+        },
         description: 'More access to advanced intelligence',
         popular: true,
         cta: { text: 'Get Plus' },
@@ -44,11 +50,14 @@ const personalProductGroup: PricingProductGroup = {
         ]
       },
       {
-        id: 'pro',
+        slug: 'pro',
         name: 'Pro',
-        price: 200,
-        currency: 'USD',
-        period: 'month',
+        price: {
+          unitAmount: 200,
+          currency: 'USD',
+          intervalUnit: 'month',
+          intervalCount: 1
+        },
         description: 'Full access to the best of ChatGPT',
         cta: { text: 'Get Pro' },
         features: [
@@ -72,11 +81,14 @@ const businessProductGroup: PricingProductGroup = {
   slug: 'business',
   products: [
       {
-        id: 'team',
+        slug: 'team',
         name: 'Team',
-        price: 25,
-        currency: 'USD',
-        period: 'month',
+        price: {
+          unitAmount: 25,
+          currency: 'USD',
+          intervalUnit: 'month',
+          intervalCount: 1
+        },
         description: 'Collaborate with your team',
         cta: { text: 'Get Team' },
         features: [
@@ -88,11 +100,14 @@ const businessProductGroup: PricingProductGroup = {
         ]
       },
       {
-        id: 'enterprise',
+        slug: 'enterprise',
         name: 'Enterprise',
-        price: 60,
-        currency: 'USD',
-        period: 'month',
+        price: {
+          unitAmount: 60,
+          currency: 'USD',
+          intervalUnit: 'month',
+          intervalCount: 1
+        },
         description: 'Advanced security and controls',
         popular: true,
         cta: { text: 'Contact Sales' },
@@ -108,11 +123,14 @@ const businessProductGroup: PricingProductGroup = {
         ]
       },
       {
-        id: 'custom',
+        slug: 'custom',
         name: 'Custom',
-        price: 0,
-        currency: '',
-        period: 'month',
+        price: {
+          unitAmount: 0,
+          currency: 'USD',
+          intervalUnit: 'month',
+          intervalCount: 1
+        },
         description: 'Tailored for your organization',
         cta: { text: 'Contact Us' },
         features: [

@@ -21,9 +21,9 @@ export function PricingTable({
   const currentGroup = productGroups.find(g => g.slug === selectedGroupSlug) || productGroups[0]
   const groupOptions = productGroups.map(g => ({ name: g.name, slug: g.slug }))
 
-  const handleProductSelect = (productId: string) => {
+  const handleProductSelect = (productSlug: string) => {
     if (onProductSelect) {
-      onProductSelect(productId, selectedGroupSlug)
+      onProductSelect(productSlug, selectedGroupSlug)
     }
   }
 
@@ -71,7 +71,7 @@ export function PricingTable({
           )}>
             {currentGroup?.products.map((product) => (
               <PricingColumn
-                key={product.id}
+                key={product.slug}
                 product={product}
                 onSelect={handleProductSelect}
               />
