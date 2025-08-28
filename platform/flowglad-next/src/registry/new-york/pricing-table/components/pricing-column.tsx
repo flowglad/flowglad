@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { cn } from '@/utils/core'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card } from './card'
 import { PricingHeader } from './pricing-header'
 import { PricingFeature } from './pricing-feature'
 import type { PricingTier } from '../types'
@@ -29,7 +29,7 @@ export function PricingColumn({
     <Card 
       className={cn(
         "relative flex flex-col p-6 h-full",
-        tier.popular && "bg-blue-50 border-blue-300",
+        tier.popular && "bg-accent/20 border-accent",
         className
       )}
     >
@@ -46,9 +46,10 @@ export function PricingColumn({
         <Button
           className={cn(
             "w-full",
-            tier.popular && !tier.current && "bg-blue-600 hover:bg-blue-700",
-            tier.popular && tier.current && "bg-blue-600 opacity-50",
-            !tier.popular && !tier.current && "bg-zinc-900 hover:bg-zinc-800"
+            tier.popular && !tier.current && "bg-primary hover:bg-primary/90 text-primary-foreground",
+            tier.popular && tier.current && "bg-primary/50 text-primary-foreground",
+            !tier.popular && !tier.current && "",
+            tier.current && "opacity-50"
           )}
           variant={tier.current ? "outline" : tier.popular ? "default" : "default"}
           disabled={tier.current || tier.cta.disabled}

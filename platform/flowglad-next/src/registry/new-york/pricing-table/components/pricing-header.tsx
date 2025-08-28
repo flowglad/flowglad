@@ -26,11 +26,11 @@ export function PricingHeader({
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-semibold">{name}</h3>
+        <h3 className="text-2xl font-semibold text-foreground">{name}</h3>
         {popular && (
           <Badge 
             variant="secondary"
-            className="bg-blue-100 text-blue-600 hover:bg-blue-100"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             POPULAR
           </Badge>
@@ -39,14 +39,14 @@ export function PricingHeader({
       
       <div className="flex items-baseline gap-1">
         <span className="text-xl text-muted-foreground">{currencySymbol}</span>
-        <span className="text-5xl font-normal tracking-tight">{price}</span>
+        <span className="text-5xl font-normal tracking-tight text-foreground">{price}</span>
         <div className="ml-1 text-xs text-muted-foreground">
           <div>{currency} /</div>
           <div>{period}</div>
         </div>
       </div>
       
-      <p className="text-base font-medium min-h-[48px]">{description}</p>
+      <p className="text-base font-medium min-h-[48px] text-muted-foreground">{description}</p>
     </div>
   )
 }

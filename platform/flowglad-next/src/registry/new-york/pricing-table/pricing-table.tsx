@@ -33,10 +33,10 @@ export function PricingTable({
 
   return (
     <div className={cn("relative w-full", className)}>
-      <div className="bg-neutral-50 rounded-t-lg">
+      <div className="bg-muted/50 rounded-t-lg">
         <div className="relative px-6 py-4 sm:py-6 lg:py-8">
           <div className="flex flex-col items-center space-y-6">
-            <h2 className="text-2xl sm:text-3xl font-medium text-center">
+            <h2 className="text-2xl sm:text-3xl font-medium text-center text-foreground">
               Upgrade your plan
             </h2>
             
@@ -80,7 +80,7 @@ export function PricingTable({
         </div>
       </div>
 
-      <div className="bg-neutral-50 rounded-b-lg px-6 py-8 text-center border-t">
+      <div className="bg-muted/50 rounded-b-lg px-6 py-8 text-center border-t border-border">
         <div className="space-y-2">
           <div className="flex items-center justify-center gap-1">
             <span className="text-2xl">🏢</span>
