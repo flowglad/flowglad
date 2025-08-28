@@ -147,7 +147,7 @@ const sampleProducts: PricingProduct[] = [
 
 export default function PricingTableDemo() {
   const handleTierSelect = (tierId: string, productSlug: string) => {
-    console.log(`Selected tier: ${tierId} from product: ${productSlug}`)
+    // console.log(`Selected tier: ${tierId} from product: ${productSlug}`)
     // Handle tier selection (e.g., navigate to checkout, show modal, etc.)
   }
 

@@ -134,7 +134,7 @@ export function ComponentGallery({ components }: ComponentGalleryProps) {
 
       {filteredComponents.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          No components found matching "{searchTerm}"
+          No components found matching &quot;{searchTerm}&quot;
         </div>
       )}
     </div>

@@ -14,6 +14,7 @@ export default function PreviewLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Component Preview - Flowglad UI</title>
+        {/* eslint-disable-next-line @next/next/no-css-tags */}
         <link rel="stylesheet" href="/preview/preview.css" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
