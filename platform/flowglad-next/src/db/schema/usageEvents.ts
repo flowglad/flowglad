@@ -165,7 +165,7 @@ export const usageEventsInsertSchema = createInsertSchema(usageEvents).omit(ommi
 export const usageEventsSelectSchema =
   createSelectSchema(usageEvents).extend(columnRefinements)
 
-export const usageEventsUpdateSchema = usageEventsInsertSchema.partial().extend({ id: z.string() }).extend(columnRefinements)
+export const usageEventsUpdateSchema = usageEventsInsertSchema.partial().extend({ id: z.string() })
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
