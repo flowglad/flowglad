@@ -86,7 +86,7 @@ export const usageCreditBalanceAdjustmentsSelectSchema =
   )
 
 export const usageCreditBalanceAdjustmentsUpdateSchema =
-  usageCreditBalanceAdjustmentsInsertSchema.extend({ id: z.string() })
+  usageCreditBalanceAdjustmentsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 
