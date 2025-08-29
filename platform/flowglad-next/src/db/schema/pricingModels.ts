@@ -70,13 +70,13 @@ const hiddenColumns = {
 } as const
 
 export const pricingModelsClientSelectSchema =
-  pricingModelsSelectSchema.omit(hiddenColumns)
+  pricingModelsSelectSchema.omit(hiddenColumns).meta({ id: 'PricingModelsClientSelectSchema' })
 
 export const pricingModelsClientUpdateSchema =
-  pricingModelsUpdateSchema.omit(readOnlyColumns)
+  pricingModelsUpdateSchema.omit(readOnlyColumns).meta({ id: 'PricingModelsClientUpdateSchema' })
 
 export const pricingModelsClientInsertSchema =
-  pricingModelsInsertSchema.omit(readOnlyColumns)
+  pricingModelsInsertSchema.omit(readOnlyColumns).meta({ id: 'PricingModelsClientInsertSchema' })
 
 export const pricingModelsPaginatedSelectSchema =
   createPaginatedSelectSchema(pricingModelsClientSelectSchema)

@@ -71,7 +71,7 @@ export const ledgerTransactions = pgTable(
 
 const columnRefinements = {
   metadata: z.record(z.string(), z.any()).nullable(),
-  type: z.nativeEnum(LedgerTransactionType),
+  type: core.createSafeZodEnum(LedgerTransactionType),
 }
 
 export const ledgerTransactionsInsertSchema = createInsertSchema(ledgerTransactions).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
@@ -92,11 +92,17 @@ const clientWriteOmits = {
 } as const
 
 export const ledgerTransactionClientInsertSchema =
-  ledgerTransactionsInsertSchema.omit(clientWriteOmits)
+  ledgerTransactionsInsertSchema.omit(clientWriteOmits).meta({
+    id: 'LedgerTransactionInsert',
+  })
 export const ledgerTransactionClientUpdateSchema =
-  ledgerTransactionsUpdateSchema.omit({ ...clientWriteOmits })
+  ledgerTransactionsUpdateSchema.omit({ ...clientWriteOmits }).meta({
+    id: 'LedgerTransactionUpdate',
+  })
 export const ledgerTransactionClientSelectSchema =
-  ledgerTransactionsSelectSchema.omit(hiddenColumns)
+  ledgerTransactionsSelectSchema.omit(hiddenColumns).meta({
+    id: 'LedgerTransactionRecord',
+  })
 
 export namespace LedgerTransaction {
   export type Insert = z.infer<typeof ledgerTransactionsInsertSchema>

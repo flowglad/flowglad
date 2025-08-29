@@ -108,10 +108,10 @@ const clientWriteOmits = R.omit(['position'], {
 })
 
 export const messagesClientSelectSchema =
-  messagesSelectSchema.omit(hiddenColumns)
+  messagesSelectSchema.omit(hiddenColumns).meta({ id: 'MessagesClientSelectSchema' })
 
 export const messagesClientUpdateSchema =
-  messagesUpdateSchema.omit(clientWriteOmits)
+  messagesUpdateSchema.omit(clientWriteOmits).meta({ id: 'MessagesClientUpdateSchema' })
 
 export namespace Message {
   export type Insert = z.infer<typeof messagesInsertSchema>

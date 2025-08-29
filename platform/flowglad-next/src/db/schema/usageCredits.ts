@@ -159,7 +159,7 @@ export const usageCreditClientInsertSchema =
   usageCreditsInsertSchema.omit({
     organizationId: true,
     livemode: true,
-  })
+  }).meta({ id: 'UsageCreditClientInsertSchema' })
 
 export const usageCreditClientUpdateSchema =
   usageCreditsUpdateSchema.omit({
@@ -167,10 +167,10 @@ export const usageCreditClientUpdateSchema =
     ...createOnlyColumns,
     sourceReferenceId: true,
     subscriptionId: true,
-  })
+  }).meta({ id: 'UsageCreditClientUpdateSchema' })
 
 export const usageCreditClientSelectSchema =
-  usageCreditsSelectSchema.omit(hiddenColumns)
+  usageCreditsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditClientSelectSchema' })
 
 export namespace UsageCredit {
   export type Insert = z.infer<typeof usageCreditsInsertSchema>

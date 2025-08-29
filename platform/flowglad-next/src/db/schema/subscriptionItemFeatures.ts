@@ -208,11 +208,13 @@ export const toggleSubscriptionItemFeatureClientInsertSchema =
   toggleSubscriptionItemFeatureInsertSchema
     .omit(clientWriteOmitSpec)
     .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'ToggleSubscriptionItemFeatureInsert' })
 
 export const toggleSubscriptionItemFeatureClientSelectSchema =
   toggleSubscriptionItemFeatureSelectSchema
     .omit(clientSelectOmitSpec)
     .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'ToggleSubscriptionItemFeatureRecord' })
 
 export const toggleSubscriptionItemFeatureClientUpdateSchema =
   toggleSubscriptionItemFeatureUpdateSchema
@@ -221,6 +223,7 @@ export const toggleSubscriptionItemFeatureClientUpdateSchema =
       type: z.literal(FeatureType.Toggle),
     })
     .omit(clientWriteOmitSpec)
+    .meta({ id: 'ToggleSubscriptionItemFeatureUpdate' })
 
 /*
  * Client-facing Usage Credit Grant SubscriptionItemFeature schemas
@@ -228,12 +231,12 @@ export const toggleSubscriptionItemFeatureClientUpdateSchema =
 export const usageCreditGrantSubscriptionItemFeatureClientInsertSchema =
   usageCreditGrantSubscriptionItemFeatureInsertSchema.omit(
     clientWriteOmitSpec
-  )
+  ).meta({ id: 'UsageCreditGrantSubscriptionItemFeatureInsert' })
 
 export const usageCreditGrantSubscriptionItemFeatureClientSelectSchema =
   usageCreditGrantSubscriptionItemFeatureSelectSchema.omit(
     clientSelectOmitSpec
-  )
+  ).meta({ id: 'UsageCreditGrantSubscriptionItemFeatureRecord' })
 
 export const usageCreditGrantSubscriptionItemFeatureClientUpdateSchema =
   usageCreditGrantSubscriptionItemFeatureUpdateSchema
@@ -242,6 +245,7 @@ export const usageCreditGrantSubscriptionItemFeatureClientUpdateSchema =
       type: z.literal(FeatureType.UsageCreditGrant),
     })
     .omit(clientWriteOmitSpec)
+    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureUpdate' })
 
 /*
  * Combined client-facing discriminated union schemas
@@ -250,19 +254,19 @@ export const subscriptionItemFeaturesClientInsertSchema =
   z.discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientInsertSchema,
     usageCreditGrantSubscriptionItemFeatureClientInsertSchema,
-  ])
+  ]).meta({ id: 'SubscriptionItemFeaturesClientInsertSchema' })
 
 export const subscriptionItemFeaturesClientSelectSchema =
   z.discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientSelectSchema,
     usageCreditGrantSubscriptionItemFeatureClientSelectSchema,
-  ])
+  ]).meta({ id: 'SubscriptionItemFeaturesClientSelectSchema' })
 
 export const subscriptionItemFeaturesClientUpdateSchema =
   z.discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientUpdateSchema,
     usageCreditGrantSubscriptionItemFeatureClientUpdateSchema,
-  ])
+  ]).meta({ id: 'SubscriptionItemFeaturesClientUpdateSchema' })
 
 export namespace SubscriptionItemFeature {
   export type Insert = z.infer<

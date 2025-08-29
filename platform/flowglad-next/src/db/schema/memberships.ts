@@ -99,10 +99,10 @@ const clientWriteOmits = R.omit(['position'], {
 })
 
 export const membershipsClientSelectSchema =
-  membershipsSelectSchema.omit(hiddenColumns)
+  membershipsSelectSchema.omit(hiddenColumns).meta({ id: 'MembershipsClientSelectSchema' })
 
 export const membershipsClientUpdateSchema =
-  membershipsUpdateSchema.omit(clientWriteOmits)
+  membershipsUpdateSchema.omit(clientWriteOmits).meta({ id: 'MembershipsClientUpdateSchema' })
 
 export namespace Membership {
   export type Insert = z.infer<typeof membershipsInsertSchema>

@@ -207,16 +207,19 @@ export const defaultDiscountRedemptionsClientSelectSchema =
   defaultDiscountRedemptionsSelectSchema
     .omit(hiddenColumns)
     .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'DefaultDiscountRedemptionRecord' })
 
 export const numberOfPaymentsDiscountRedemptionsClientSelectSchema =
   numberOfPaymentsDiscountRedemptionsSelectSchema
     .omit(hiddenColumns)
     .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'NumberOfPaymentsDiscountRedemptionRecord' })
 
 export const foreverDiscountRedemptionsClientSelectSchema =
   foreverDiscountRedemptionsSelectSchema
     .omit(hiddenColumns)
     .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'ForeverDiscountRedemptionRecord' })
 
 // Combined client select schema
 export const discountRedemptionsClientSelectSchema = z
@@ -226,6 +229,7 @@ export const discountRedemptionsClientSelectSchema = z
     foreverDiscountRedemptionsClientSelectSchema,
   ])
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
+  .meta({ id: 'DiscountRedemptionsClientSelectSchema' })
 
 // Client insert schemas for each duration type
 const clientWriteOmits = R.omit(['position'], {
@@ -237,16 +241,19 @@ export const defaultDiscountRedemptionsClientInsertSchema =
   defaultDiscountRedemptionsInsertSchema
     .omit(clientWriteOmits)
     .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'DefaultDiscountRedemptionInsert' })
 
 export const numberOfPaymentsDiscountRedemptionsClientInsertSchema =
   numberOfPaymentsDiscountRedemptionsInsertSchema
     .omit(clientWriteOmits)
     .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'NumberOfPaymentsDiscountRedemptionInsert' })
 
 export const foreverDiscountRedemptionsClientInsertSchema =
   foreverDiscountRedemptionsInsertSchema
     .omit(clientWriteOmits)
     .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'ForeverDiscountRedemptionInsert' })
 
 // Combined client insert schema
 export const discountRedemptionsClientInsertSchema = z
@@ -256,6 +263,7 @@ export const discountRedemptionsClientInsertSchema = z
     foreverDiscountRedemptionsClientInsertSchema,
   ])
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
+  .meta({ id: 'DiscountRedemptionsClientInsertSchema' })
 
 // Client update schemas for each duration type
 export const defaultDiscountRedemptionsClientUpdateSchema =
@@ -263,18 +271,21 @@ export const defaultDiscountRedemptionsClientUpdateSchema =
     .omit(hiddenColumns)
     .omit(readOnlyColumns)
     .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'DefaultDiscountRedemptionUpdate' })
 
 export const numberOfPaymentsDiscountRedemptionsClientUpdateSchema =
   numberOfPaymentsDiscountRedemptionsUpdateSchema
     .omit(hiddenColumns)
     .omit(readOnlyColumns)
     .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'NumberOfPaymentsDiscountRedemptionUpdate' })
 
 export const foreverDiscountRedemptionsClientUpdateSchema =
   foreverDiscountRedemptionsUpdateSchema
     .omit(hiddenColumns)
     .omit(readOnlyColumns)
     .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
+    .meta({ id: 'ForeverDiscountRedemptionUpdate' })
 
 // Combined client update schema
 export const discountRedemptionsClientUpdateSchema = z
@@ -284,6 +295,7 @@ export const discountRedemptionsClientUpdateSchema = z
     foreverDiscountRedemptionsClientUpdateSchema,
   ])
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
+  .meta({ id: 'DiscountRedemptionsClientUpdateSchema' })
 
 // Update the namespace to include client types
 export namespace DiscountRedemption {

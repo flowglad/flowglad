@@ -123,7 +123,9 @@ const billingAddressSchemaColumns = {
 
 export const billingAddressSchema = z.object(
   billingAddressSchemaColumns
-)
+).meta({
+  id: 'BillingAddress',
+})
 
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
@@ -187,7 +189,9 @@ const readOnlyColumns = {
 } as const
 
 export const organizationsClientSelectSchema =
-  organizationsSelectSchema.omit(hiddenColumns)
+  organizationsSelectSchema.omit(hiddenColumns).meta({
+    id: 'OrganizationRecord',
+  })
 
 const clientWriteOmits = R.omit(
   ['position', 'createdByCommit', 'updatedByCommit'],
@@ -197,10 +201,14 @@ const clientWriteOmits = R.omit(
   }
 )
 export const organizationsClientUpdateSchema =
-  organizationsUpdateSchema.omit(clientWriteOmits)
+  organizationsUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'OrganizationUpdate',
+  })
 
 export const organizationsClientInsertSchema =
-  organizationsInsertSchema.omit(clientWriteOmits)
+  organizationsInsertSchema.omit(clientWriteOmits).meta({
+    id: 'OrganizationInsert',
+  })
 
 export namespace Organization {
   export type Insert = z.infer<typeof organizationsInsertSchema>

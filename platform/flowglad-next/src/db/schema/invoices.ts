@@ -37,6 +37,7 @@ import { billingPeriods } from './billingPeriods'
 import { memberships } from './memberships'
 import { subscriptions } from './subscriptions'
 import { billingRuns } from './billingRuns'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 
 export const TABLE_NAME = 'invoices'
 
@@ -129,9 +130,13 @@ export const invoices = pgTable(
 ).enableRLS()
 
 const refineColumns = {
-  status: core.createSafeZodEnum(InvoiceStatus),
-  type: core.createSafeZodEnum(InvoiceType),
-  currency: core.createSafeZodEnum(CurrencyCode),
+  status: core.createSafeZodEnum(InvoiceStatus).meta({
+    id: 'InvoiceStatus',
+  })  ,
+  type: core.createSafeZodEnum(InvoiceType).meta({
+    id: 'InvoiceType',
+  }),
+  currency: currencyCodeSchema,
   receiptPdfURL: z.url().nullable().optional(),
   pdfURL: z.url().nullable().optional(),
   invoiceDate: core.safeZodDate,
@@ -277,11 +282,17 @@ const readOnlyColumns = {
 } as const
 
 export const purchaseInvoiceClientSelectSchema =
-  purchaseInvoiceSelectSchema.omit(hiddenColumns)
+  purchaseInvoiceSelectSchema.omit(hiddenColumns).meta({
+    id: 'PurchaseInvoiceRecord',
+  })
 export const subscriptionInvoiceClientSelectSchema =
-  subscriptionInvoiceSelectSchema.omit(hiddenColumns)
+  subscriptionInvoiceSelectSchema.omit(hiddenColumns).meta({
+    id: 'SubscriptionInvoiceRecord',
+  })
 export const standaloneInvoiceClientSelectSchema =
-  standaloneInvoiceSelectSchema.omit(hiddenColumns)
+  standaloneInvoiceSelectSchema.omit(hiddenColumns).meta({
+    id: 'StandaloneInvoiceRecord',
+  })
 
 export const invoicesClientSelectSchema = z
   .discriminatedUnion('type', [
@@ -289,6 +300,9 @@ export const invoicesClientSelectSchema = z
     subscriptionInvoiceClientSelectSchema,
     standaloneInvoiceClientSelectSchema,
   ])
+  .meta({
+    id: 'InvoiceRecord',
+  })
   .describe(INVOICES_BASE_DESCRIPTION)
 
 const clientWriteOmits = R.omit(['position'], {
@@ -297,11 +311,17 @@ const clientWriteOmits = R.omit(['position'], {
 })
 
 export const purchaseInvoiceClientInsertSchema =
-  purchaseInvoiceInsertSchema.omit(clientWriteOmits)
+  purchaseInvoiceInsertSchema.omit(clientWriteOmits).meta({
+    id: 'PurchaseInvoiceInsert',
+  })
 export const subscriptionInvoiceClientInsertSchema =
-  subscriptionInvoiceInsertSchema.omit(clientWriteOmits)
+  subscriptionInvoiceInsertSchema.omit(clientWriteOmits).meta({
+    id: 'SubscriptionInvoiceInsert',
+  })
 export const standaloneInvoiceClientInsertSchema =
-  standaloneInvoiceInsertSchema.omit(clientWriteOmits)
+  standaloneInvoiceInsertSchema.omit(clientWriteOmits).meta({
+    id: 'StandaloneInvoiceInsert',
+  })
 
 export const invoicesClientInsertSchema = z
   .discriminatedUnion('type', [
@@ -309,14 +329,23 @@ export const invoicesClientInsertSchema = z
     subscriptionInvoiceClientInsertSchema,
     standaloneInvoiceClientInsertSchema,
   ])
+  .meta({
+    id: 'InvoiceInsert',
+  })
   .describe(INVOICES_BASE_DESCRIPTION)
 
 export const purchaseInvoiceClientUpdateSchema =
-  purchaseInvoiceUpdateSchema.omit(clientWriteOmits)
+  purchaseInvoiceUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'PurchaseInvoiceUpdate',
+  })
 export const subscriptionInvoiceClientUpdateSchema =
-  subscriptionInvoiceUpdateSchema.omit(clientWriteOmits)
+  subscriptionInvoiceUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'SubscriptionInvoiceUpdate',
+  })
 export const standaloneInvoiceClientUpdateSchema =
-  standaloneInvoiceUpdateSchema.omit(clientWriteOmits)
+  standaloneInvoiceUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'StandaloneInvoiceUpdate',
+  })
 
 export const invoicesClientUpdateSchema = z
   .discriminatedUnion('type', [
@@ -324,6 +353,9 @@ export const invoicesClientUpdateSchema = z
     subscriptionInvoiceClientUpdateSchema,
     standaloneInvoiceClientUpdateSchema,
   ])
+  .meta({
+    id: 'InvoiceUpdate',
+  })
   .describe(INVOICES_BASE_DESCRIPTION)
 
 export const invoicesPaginatedSelectSchema =

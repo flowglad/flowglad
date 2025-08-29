@@ -131,13 +131,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const paymentMethodClientInsertSchema =
-  paymentMethodsInsertSchema.omit(clientWriteOmits)
+  paymentMethodsInsertSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodClientInsertSchema' })
 
 export const paymentMethodClientUpdateSchema =
-  paymentMethodsUpdateSchema.omit(clientWriteOmits)
+  paymentMethodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodClientUpdateSchema' })
 
 export const paymentMethodClientSelectSchema =
-  paymentMethodsSelectSchema.omit(hiddenColumns)
+  paymentMethodsSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentMethodClientSelectSchema' })
 
 export const paymentMethodsPaginatedSelectSchema =
   createPaginatedSelectSchema(paymentMethodClientSelectSchema)

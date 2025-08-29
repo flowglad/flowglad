@@ -419,26 +419,26 @@ const hiddenColumns = {} as const
 
 // Client-specific individual select schemas
 export const usageCostClientSelectSchema =
-  usageCostSelectSchema.omit(hiddenColumns)
+  usageCostSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCostRecord' })
 export const creditGrantRecognizedClientSelectSchema =
-  creditGrantRecognizedSelectSchema.omit(hiddenColumns)
+  creditGrantRecognizedSelectSchema.omit(hiddenColumns).meta({ id: 'CreditGrantRecognizedRecord' })
 export const creditBalanceAdjustedClientSelectSchema =
-  creditBalanceAdjustedSelectSchema.omit(hiddenColumns)
+  creditBalanceAdjustedSelectSchema.omit(hiddenColumns).meta({ id: 'CreditBalanceAdjustedRecord' })
 export const creditGrantExpiredClientSelectSchema =
-  creditGrantExpiredSelectSchema.omit(hiddenColumns)
+  creditGrantExpiredSelectSchema.omit(hiddenColumns).meta({ id: 'CreditGrantExpiredRecord' })
 export const paymentRefundedClientSelectSchema =
-  paymentRefundedSelectSchema.omit(hiddenColumns)
+  paymentRefundedSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentRefundedRecord' })
 export const billingAdjustmentClientSelectSchema =
-  billingAdjustmentSelectSchema.omit(hiddenColumns)
+  billingAdjustmentSelectSchema.omit(hiddenColumns).meta({ id: 'BillingAdjustmentRecord' })
 
 export const usageCreditApplicationDebitFromCreditBalanceClientSelectSchema =
   usageCreditApplicationDebitFromCreditBalanceSelectSchema.omit(
     hiddenColumns
-  )
+  ).meta({ id: 'UsageCreditApplicationDebitFromCreditBalanceRecord' })
 export const usageCreditApplicationCreditTowardsUsageCostClientSelectSchema =
   usageCreditApplicationCreditTowardsUsageCostSelectSchema.omit(
     hiddenColumns
-  )
+  ).meta({ id: 'UsageCreditApplicationCreditTowardsUsageCostRecord' })
 
 export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
   'entryType',
@@ -452,7 +452,7 @@ export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
     usageCreditApplicationDebitFromCreditBalanceClientSelectSchema,
     usageCreditApplicationCreditTowardsUsageCostClientSelectSchema,
   ]
-)
+).meta({ id: 'LedgerEntriesClientSelectSchema' })
 
 export namespace LedgerEntry {
   export type Insert = z.infer<typeof ledgerEntriesInsertSchema>

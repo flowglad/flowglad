@@ -104,7 +104,7 @@ const clientWriteOmits = R.omit(['position'], {
 })
 
 export const usageMetersClientSelectSchema =
-  usageMetersSelectSchema.omit(hiddenColumns)
+  usageMetersSelectSchema.omit(hiddenColumns).meta({ id: 'UsageMetersClientSelectSchema' })
 
 export const usageMetersClientUpdateSchema = usageMetersUpdateSchema
   .omit({
@@ -112,9 +112,10 @@ export const usageMetersClientUpdateSchema = usageMetersUpdateSchema
     ...readOnlyColumns,
   })
   .omit(createOnlyColumns)
+  .meta({ id: 'UsageMetersClientUpdateSchema' })
 
 export const usageMetersClientInsertSchema =
-  usageMetersInsertSchema.omit(clientWriteOmits)
+  usageMetersInsertSchema.omit(clientWriteOmits).meta({ id: 'UsageMetersClientInsertSchema' })
 
 export const usageMeterPaginatedSelectSchema =
   createPaginatedSelectSchema(usageMetersClientSelectSchema)

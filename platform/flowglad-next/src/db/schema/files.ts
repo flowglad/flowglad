@@ -95,13 +95,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const fileClientInsertSchema =
-  filesInsertSchema.omit(clientWriteOmits)
+  filesInsertSchema.omit(clientWriteOmits).meta({ id: 'FileClientInsertSchema' })
 
 export const fileClientUpdateSchema =
-  filesUpdateSchema.omit(clientWriteOmits)
+  filesUpdateSchema.omit(clientWriteOmits).meta({ id: 'FileClientUpdateSchema' })
 
 export const fileClientSelectSchema =
-  filesSelectSchema.omit(hiddenColumns)
+  filesSelectSchema.omit(hiddenColumns).meta({ id: 'FileClientSelectSchema' })
 
 export namespace File {
   export type Insert = z.infer<typeof filesInsertSchema>

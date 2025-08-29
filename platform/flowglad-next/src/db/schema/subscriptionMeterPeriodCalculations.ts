@@ -159,7 +159,7 @@ const serverGeneratedKeys = {
 export const subscriptionMeterPeriodCalculationClientSelectSchema =
   subscriptionMeterPeriodCalculationSelectSchema.omit(
     baseHiddenClientKeys
-  )
+  ).meta({ id: 'SubscriptionMeterPeriodCalculationClientSelectSchema' })
 
 export namespace SubscriptionMeterPeriodCalculation {
   export type Insert = z.infer<

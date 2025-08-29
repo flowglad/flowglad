@@ -40,6 +40,7 @@ import {
   usageMeters,
   usageMetersClientSelectSchema,
 } from './usageMeters'
+import { currencyCodeSchema } from '../commonZodSchema'
 
 const readOnlyColumns = {
   livemode: true,
@@ -174,7 +175,7 @@ const basePriceColumns = {
   unitPrice: core.safeZodNonNegativeInteger.describe(
     'The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents. If'
   ),
-  currency: core.createSafeZodEnum(CurrencyCode),
+  currency: currencyCodeSchema,
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   startsWithCreditTrial: core.safeZodNullOrUndefined,
 }
@@ -321,14 +322,17 @@ export const usagePriceUpdateSchema = usagePriceInsertSchema
 export const usagePriceClientInsertSchema = usagePriceInsertSchema
   .omit(nonClientEditableColumns)
   .describe(USAGE_PRICE_DESCRIPTION)
+  .meta({ id: 'UsagePriceInsert' })
 
 export const usagePriceClientUpdateSchema = usagePriceUpdateSchema
   .omit(nonClientEditableColumns)
   .describe(USAGE_PRICE_DESCRIPTION)
+  .meta({ id: 'UsagePriceUpdate' })
 
 export const usagePriceClientSelectSchema = usagePriceSelectSchema
   .omit(hiddenColumns)
   .describe(USAGE_PRICE_DESCRIPTION)
+  .meta({ id: 'UsagePriceRecord' })
 
 export const pricesSelectSchema = z
   .discriminatedUnion('type', [
@@ -362,12 +366,21 @@ export const pricesSelectClauseSchema = basePriceSelectSchema
 
 export const subscriptionPriceClientInsertSchema =
   subscriptionPriceInsertSchema.omit(nonClientEditableColumns)
+  .meta({
+    id: 'SubscriptionPriceInsert',
+  })
 
 export const subscriptionPriceClientUpdateSchema =
   subscriptionPriceUpdateSchema.omit(nonClientEditableColumns)
+  .meta({
+    id: 'SubscriptionPriceUpdate',
+  })
 
 export const subscriptionPriceClientSelectSchema =
   subscriptionPriceSelectSchema.omit(hiddenColumns)
+  .meta({
+    id: 'SubscriptionPriceRecord',
+  })
 
 export const subscribablePriceSelectSchema = z.discriminatedUnion(
   'type',
@@ -382,33 +395,51 @@ export const subscribablePriceClientSelectSchema = z
   .describe(
     'A subscribable price, which can be used to create a subscription based on standard recurring subscription prices or usage-based subscriptions.'
   )
+  .meta({
+    id: 'SubscribablePriceRecord',
+  })
 
 export const singlePaymentPriceClientInsertSchema =
   singlePaymentPriceInsertSchema.omit(nonClientEditableColumns)
+  .meta({
+    id: 'SinglePaymentPriceInsert',
+  })
 
 export const singlePaymentPriceClientUpdateSchema =
   singlePaymentPriceUpdateSchema.omit(nonClientEditableColumns)
+  .meta({
+    id: 'SinglePaymentPriceUpdate',
+  })
 
 export const singlePaymentPriceClientSelectSchema =
   singlePaymentPriceSelectSchema.omit(hiddenColumns)
+  .meta({
+    id: 'SinglePaymentPriceRecord',
+  })
 
 export const pricesClientInsertSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientInsertSchema,
   singlePaymentPriceClientInsertSchema,
   usagePriceClientInsertSchema,
-])
+]).meta({
+  id: 'PricesInsert',
+})
 
 export const pricesClientUpdateSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientUpdateSchema,
   singlePaymentPriceClientUpdateSchema,
   usagePriceClientUpdateSchema,
-])
+]).meta({
+  id: 'PricesUpdate',
+})
 
 export const pricesClientSelectSchema = z.discriminatedUnion('type', [
   subscriptionPriceClientSelectSchema,
   singlePaymentPriceClientSelectSchema,
   usagePriceClientSelectSchema,
-])
+]).meta({
+  id: 'PriceRecord',
+})
 
 export const pricesPaginatedSelectSchema =
   createPaginatedSelectSchema(
@@ -417,10 +448,15 @@ export const pricesPaginatedSelectSchema =
       type: z.nativeEnum(PriceType).optional(),
       active: z.boolean().optional(),
     })
-  )
+  ).meta({
+    id: 'PricesPaginatedSelect',
+  })
 
 export const pricesPaginatedListSchema =
   createPaginatedListQuerySchema(pricesClientSelectSchema)
+    .meta({
+      id: 'PricesPaginatedList',
+    })
 
 export namespace Price {
   export type Insert = z.infer<typeof pricesInsertSchema>
@@ -507,6 +543,8 @@ export type EditPriceInput = z.infer<typeof editPriceSchema>
 
 export const createPriceSchema = z.object({
   price: pricesClientInsertSchema,
+}).meta({
+  id: 'CreatePriceInput',
 })
 
 export type CreatePriceInput = z.infer<typeof createPriceSchema>
@@ -518,11 +556,19 @@ const omitProductId = {
 export const createProductPriceInputSchema = z.discriminatedUnion(
   'type',
   [
-    subscriptionPriceClientInsertSchema.omit(omitProductId),
-    singlePaymentPriceClientInsertSchema.omit(omitProductId),
-    usagePriceClientInsertSchema.omit(omitProductId),
+    subscriptionPriceClientInsertSchema.omit(omitProductId).meta({
+      id: 'ProductSubscriptionPriceInsert',
+    }),
+    singlePaymentPriceClientInsertSchema.omit(omitProductId).meta({
+      id: 'ProductSinglePaymentPriceInsert',
+    }),
+    usagePriceClientInsertSchema.omit(omitProductId).meta({
+      id: 'ProductUsagePriceInsert',
+    }),
   ]
-)
+).meta({
+  id: 'CreateProductPriceInput',
+})
 
 export const createProductSchema = z.object({
   product: productsClientInsertSchema,
@@ -551,6 +597,8 @@ export const productWithPricesSchema =
     defaultPrice: pricesClientSelectSchema.describe(
       'The default price for the product. If no price is explicitly set as default, will return the first price created for the product..'
     ),
+  }).meta({
+    id: 'ProductWithPricesRecord',
   })
 
 export type ProductWithPrices = z.infer<

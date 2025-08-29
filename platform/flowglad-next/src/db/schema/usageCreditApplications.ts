@@ -104,11 +104,11 @@ const clientWriteOmits = {
 } as const
 
 export const usageCreditApplicationClientInsertSchema =
-  usageCreditApplicationsInsertSchema.omit(clientWriteOmits)
+  usageCreditApplicationsInsertSchema.omit(clientWriteOmits).meta({ id: 'UsageCreditApplicationClientInsertSchema' })
 export const usageCreditApplicationClientUpdateSchema =
-  usageCreditApplicationsUpdateSchema.omit({ ...clientWriteOmits })
+  usageCreditApplicationsUpdateSchema.omit({ ...clientWriteOmits }).meta({ id: 'UsageCreditApplicationClientUpdateSchema' })
 export const usageCreditApplicationClientSelectSchema =
-  usageCreditApplicationsSelectSchema.omit(hiddenColumns)
+  usageCreditApplicationsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditApplicationClientSelectSchema' })
 
 export namespace UsageCreditApplication {
   export type Insert = z.infer<

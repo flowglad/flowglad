@@ -174,30 +174,37 @@ const clientWriteOmitColumns = {
 export const toggleFeatureClientInsertSchema =
   toggleFeatureInsertSchema.omit({
     ...clientWriteOmitColumns,
-  })
+  }).meta({ id: 'ToggleFeatureInsert' })
 export const toggleFeatureClientSelectSchema =
   toggleFeatureSelectSchema.omit(
     sharedHiddenClientColumns // Only hide truly internal fields for select
-  )
+  ).meta({ id: 'ToggleFeatureRecord' })
 // For update, omit fields set by the backend. Retain 'type' and 'id' (id is in input schema).
 export const toggleFeatureClientUpdateSchema =
-  toggleFeatureUpdateSchema.omit(clientWriteOmitColumns)
+  toggleFeatureUpdateSchema.omit(clientWriteOmitColumns).meta({
+    id: 'ToggleFeatureUpdate',
+  })
 
 /*
  * Client-facing Usage Credit Grant Feature schemas
  */
 export const usageCreditGrantFeatureClientInsertSchema =
   usageCreditGrantFeatureInsertSchema.omit(clientWriteOmitColumns)
+  .meta({
+    id: 'UsageCreditGrantFeatureInsert',
+  })
 
 export const usageCreditGrantFeatureClientSelectSchema =
   usageCreditGrantFeatureSelectSchema.omit(
     sharedHiddenClientColumns // Only hide truly internal fields for select
-  )
+  ).meta({ id: 'UsageCreditGrantFeatureRecord' })
 
 export const usageCreditGrantFeatureClientUpdateSchema =
   usageCreditGrantFeatureUpdateSchema.omit({
     organizationId: true,
     livemode: true,
+  }).meta({
+    id: 'UsageCreditGrantFeatureUpdate',
   })
 
 /*
@@ -209,7 +216,9 @@ export const featuresClientInsertSchema = z.discriminatedUnion(
     toggleFeatureClientInsertSchema,
     usageCreditGrantFeatureClientInsertSchema,
   ]
-)
+).meta({
+  id: 'FeatureInsert',
+})
 
 export const featuresClientSelectSchema = z.discriminatedUnion(
   'type',
@@ -217,7 +226,9 @@ export const featuresClientSelectSchema = z.discriminatedUnion(
     toggleFeatureClientSelectSchema,
     usageCreditGrantFeatureClientSelectSchema,
   ]
-)
+).meta({
+  id: 'FeatureRecord',
+})
 
 export const featuresClientUpdateSchema = z.discriminatedUnion(
   'type',
@@ -225,7 +236,9 @@ export const featuresClientUpdateSchema = z.discriminatedUnion(
     toggleFeatureClientUpdateSchema,
     usageCreditGrantFeatureClientUpdateSchema,
   ]
-)
+).meta({
+  id: 'FeatureUpdate',
+})
 
 export namespace Feature {
   export type Insert = z.infer<typeof featuresInsertSchema>

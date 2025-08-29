@@ -151,12 +151,20 @@ const clientWriteOmits = R.omit(
 
 export const customerClientInsertSchema =
   customersInsertSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'CustomerInsert',
+  })
 
 export const customerClientUpdateSchema =
   customersUpdateSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'CustomerUpdate',
+  })
 
 export const customerClientSelectSchema =
-  customersSelectSchema.omit(hiddenColumns)
+  customersSelectSchema.omit(hiddenColumns).meta({
+    id: 'CustomerRecord',
+  })
 
 const supabaseSchemas = createSupabaseWebhookSchema({
   table: customers,

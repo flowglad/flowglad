@@ -93,13 +93,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const properNounClientInsertSchema =
-  properNounsInsertSchema.omit(clientWriteOmits)
+  properNounsInsertSchema.omit(clientWriteOmits).meta({ id: 'ProperNounClientInsertSchema' })
 
 export const properNounClientUpdateSchema =
-  properNounsUpdateSchema.omit(clientWriteOmits)
+  properNounsUpdateSchema.omit(clientWriteOmits).meta({ id: 'ProperNounClientUpdateSchema' })
 
 export const properNounClientSelectSchema =
-  properNounsSelectSchema.omit(hiddenColumns)
+  properNounsSelectSchema.omit(hiddenColumns).meta({ id: 'ProperNounClientSelectSchema' })
 
 export namespace ProperNoun {
   export type Insert = z.infer<typeof properNounsInsertSchema>

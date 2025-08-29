@@ -246,7 +246,7 @@ export const standardSubscriptionClientSelectSchema =
       .describe(
         'Whether the subscription is current (statuses "active", "trialing", "past_due", or "cancellation_scheduled")'
       ),
-  })
+  }).meta({ id: 'StandardSubscriptionRecord' })
 
 export const nonRenewingSubscriptionClientSelectSchema =
   nonRenewingSubscriptionSelectSchema.omit(hiddenColumns).extend({
@@ -255,7 +255,7 @@ export const nonRenewingSubscriptionClientSelectSchema =
       .describe(
         'Whether the subscription is current (statuses "active", "trialing", "past_due", "cancellation_scheduled", or "credit_trial")'
       ),
-  })
+  }).meta({ id: 'NonRenewingSubscriptionRecord' })
 
 export const subscriptionClientSelectSchema = z.discriminatedUnion(
   'renews',
@@ -263,31 +263,31 @@ export const subscriptionClientSelectSchema = z.discriminatedUnion(
     standardSubscriptionClientSelectSchema,
     nonRenewingSubscriptionClientSelectSchema,
   ]
-)
+).meta({ id: 'SubscriptionClientSelectSchema' })
 
 const standardSubscriptionClientInsertSchema =
-  standardSubscriptionInsertSchema.omit(clientWriteOmits)
+  standardSubscriptionInsertSchema.omit(clientWriteOmits).meta({ id: 'StandardSubscriptionInsert' })
 const nonRenewingSubscriptionClientInsertSchema =
-  nonRenewingSubscriptionInsertSchema.omit(clientWriteOmits)
+  nonRenewingSubscriptionInsertSchema.omit(clientWriteOmits).meta({ id: 'NonRenewingSubscriptionInsert' })
 export const subscriptionClientInsertSchema = z.discriminatedUnion(
   'renews',
   [
     standardSubscriptionClientInsertSchema,
     nonRenewingSubscriptionClientInsertSchema,
   ]
-)
+).meta({ id: 'SubscriptionClientInsertSchema' })
 
 const standardSubscriptionClientUpdateSchema =
-  standardSubscriptionUpdateSchema.omit(clientWriteOmits)
+  standardSubscriptionUpdateSchema.omit(clientWriteOmits).meta({ id: 'StandardSubscriptionUpdate' })
 const nonRenewingSubscriptionClientUpdateSchema =
-  nonRenewingSubscriptionUpdateSchema.omit(clientWriteOmits)
+  nonRenewingSubscriptionUpdateSchema.omit(clientWriteOmits).meta({ id: 'NonRenewingSubscriptionUpdate' })
 export const subscriptionClientUpdateSchema = z.discriminatedUnion(
   'renews',
   [
     standardSubscriptionClientUpdateSchema,
     nonRenewingSubscriptionClientUpdateSchema,
   ]
-)
+).meta({ id: 'SubscriptionClientUpdateSchema' })
 
 export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,

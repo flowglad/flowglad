@@ -190,7 +190,7 @@ const clientWriteOmits = R.omit(['position'], {
 })
 
 export const usageEventsClientSelectSchema =
-  usageEventsSelectSchema.omit(hiddenColumns)
+  usageEventsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageEventsClientSelectSchema' })
 
 export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
   .extend({
@@ -203,6 +203,7 @@ export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
   })
   .omit(R.omit(['position'], hiddenColumns))
   .omit(createOnlyColumns)
+  .meta({ id: 'UsageEventsClientUpdateSchema' })
 
 export const usageEventsClientInsertSchema = usageEventsInsertSchema
   .omit(clientWriteOmits)
@@ -214,6 +215,7 @@ export const usageEventsClientInsertSchema = usageEventsInsertSchema
         'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
       ),
   })
+  .meta({ id: 'UsageEventsClientInsertSchema' })
 
 export namespace UsageEvent {
   export type Insert = z.infer<typeof usageEventsInsertSchema>

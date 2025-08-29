@@ -151,14 +151,21 @@ const nonClientEditableColumns = {
 export const productsClientSelectSchema = productsSelectSchema
   .omit(hiddenColumns)
   .omit(hiddenColumnsForClientSchema)
+  .meta({
+    id: 'ProductRecord',
+  })
 
 export const productsClientInsertSchema = productsInsertSchema.omit(
   nonClientEditableColumns
-)
+).meta({
+  id: 'ProductInsert',
+})
 
 export const productsClientUpdateSchema = productsUpdateSchema.omit({
   ...nonClientEditableColumns,
   ...createOnlyColumns,
+}).meta({
+  id: 'ProductUpdate',
 })
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
@@ -176,9 +183,15 @@ export const productsSupabaseUpdatePayloadSchema =
 
 export const productsPaginatedSelectSchema =
   createPaginatedSelectSchema(productsClientSelectSchema)
+    .meta({
+      id: 'ProductsPaginatedSelect',
+    })
 
 export const productsPaginatedListSchema =
   createPaginatedListQuerySchema(productsClientSelectSchema)
+    .meta({
+      id: 'ProductsPaginatedList',
+    })
 
 export namespace Product {
   export type Insert = z.infer<typeof productsInsertSchema>

@@ -39,6 +39,7 @@ import { sql } from 'drizzle-orm'
 import { paymentMethods } from './paymentMethods'
 import { billingPeriods } from './billingPeriods'
 import { subscriptions } from './subscriptions'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 
 export const TABLE_NAME = 'payments'
 
@@ -129,7 +130,7 @@ export const payments = pgTable(
 const columnEnhancements = {
   amount: core.safeZodPositiveIntegerOrZero,
   status: core.createSafeZodEnum(PaymentStatus),
-  currency: core.createSafeZodEnum(CurrencyCode),
+  currency: currencyCodeSchema,
   chargeDate: core.safeZodDate,
   settlementDate: core.safeZodDate.nullable().optional(),
   refundedAt: core.safeZodDate.nullable().optional(),
@@ -164,7 +165,9 @@ const hiddenColumns = {
 
 export const paymentsClientSelectSchema = paymentsSelectSchema
   .omit(hiddenColumns)
-  .omit(readonlyColumns)
+  .omit(readonlyColumns).meta({
+    id: 'PaymentRecord',
+  })
 
 export const paymentsTableRowDataSchema = z.object({
   payment: paymentsClientSelectSchema,

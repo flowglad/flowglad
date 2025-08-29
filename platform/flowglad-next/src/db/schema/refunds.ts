@@ -23,6 +23,7 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { CurrencyCode, RefundStatus } from '@/types'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 
 const TABLE_NAME = 'refunds'
 
@@ -76,7 +77,7 @@ const columnRefinements = {
   amount: core.safeZodPositiveInteger,
   refundProcessedAt: core.safeZodDate.nullable(),
   status: core.createSafeZodEnum(RefundStatus),
-  currency: core.createSafeZodEnum(CurrencyCode),
+  currency: currencyCodeSchema
 }
 
 export const refundsInsertSchema = createInsertSchema(refunds).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
@@ -91,7 +92,9 @@ const readOnlyColumns = {
 const hiddenColumns = {} as const
 
 export const refundClientSelectSchema =
-  refundsSelectSchema.omit(hiddenColumns)
+  refundsSelectSchema.omit(hiddenColumns).meta({
+    id: 'RefundRecord',
+  })
 
 export namespace Refund {
   export type Insert = z.infer<typeof refundsInsertSchema>

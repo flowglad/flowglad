@@ -109,15 +109,15 @@ const clientWriteOmits = {
  * client schemas
  */
 export const usageCreditBalanceAdjustmentClientInsertSchema =
-  usageCreditBalanceAdjustmentsInsertSchema.omit(clientWriteOmits)
+  usageCreditBalanceAdjustmentsInsertSchema.omit(clientWriteOmits).meta({ id: 'UsageCreditBalanceAdjustmentClientInsertSchema' })
 
 export const usageCreditBalanceAdjustmentClientUpdateSchema =
   usageCreditBalanceAdjustmentsUpdateSchema.omit({
     ...clientWriteOmits,
-  })
+  }).meta({ id: 'UsageCreditBalanceAdjustmentClientUpdateSchema' })
 
 export const usageCreditBalanceAdjustmentClientSelectSchema =
-  usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns)
+  usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditBalanceAdjustmentClientSelectSchema' })
 
 export namespace UsageCreditBalanceAdjustment {
   export type Insert = z.infer<

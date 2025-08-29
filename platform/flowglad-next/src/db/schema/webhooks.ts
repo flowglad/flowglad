@@ -87,15 +87,15 @@ const nonClientEditableColumns = {
  */
 export const webhookClientInsertSchema = webhooksInsertSchema.omit(
   nonClientEditableColumns
-)
+).meta({ id: 'WebhookClientInsertSchema' })
 
 export const webhookClientUpdateSchema = webhooksUpdateSchema.omit(
   nonClientEditableColumns
-)
+).meta({ id: 'WebhookClientUpdateSchema' })
 
 export const webhookClientSelectSchema = webhooksSelectSchema.omit({
   position: true,
-})
+}).meta({ id: 'WebhookClientSelectSchema' })
 
 export namespace Webhook {
   export type Insert = z.infer<typeof webhooksInsertSchema>

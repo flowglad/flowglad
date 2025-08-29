@@ -88,9 +88,15 @@ const hiddenColumnsForSelect = {
 
 export const productFeatureClientInsertSchema =
   productFeaturesInsertSchema.omit(serverSetColumnsForInsert)
+  .meta({
+    id: 'ProductFeatureInsert',
+  })
 
 export const productFeatureClientSelectSchema =
   productFeaturesSelectSchema.omit(hiddenColumnsForSelect)
+  .meta({
+    id: 'ProductFeatureRecord',
+  })
 
 export namespace ProductFeature {
   export type Insert = z.infer<typeof productFeaturesInsertSchema>

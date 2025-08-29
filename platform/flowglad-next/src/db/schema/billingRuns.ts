@@ -117,13 +117,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const billingRunClientInsertSchema =
-  billingRunsInsertSchema.omit(clientWriteOmits)
+  billingRunsInsertSchema.omit(clientWriteOmits).meta({ id: 'BillingRunClientInsertSchema' })
 
 export const billingRunClientUpdateSchema =
-  billingRunsUpdateSchema.omit(clientWriteOmits)
+  billingRunsUpdateSchema.omit(clientWriteOmits).meta({ id: 'BillingRunClientUpdateSchema' })
 
 export const billingRunClientSelectSchema =
-  billingRunsSelectSchema.omit(hiddenColumns)
+  billingRunsSelectSchema.omit(hiddenColumns).meta({ id: 'BillingRunClientSelectSchema' })
 
 export namespace BillingRun {
   export type Insert = z.infer<typeof billingRunsInsertSchema>

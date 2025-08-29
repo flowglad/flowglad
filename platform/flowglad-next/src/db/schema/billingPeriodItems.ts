@@ -202,40 +202,52 @@ const clientWriteOmits = R.omit(['position'], {
 
 // Static Billing Period Item Client Schemas
 export const staticBillingPeriodItemClientInsertSchema =
-  staticBillingPeriodItemInsertSchema.omit(clientWriteOmits)
+  staticBillingPeriodItemInsertSchema.omit(clientWriteOmits).meta({
+    id: 'StaticBillingPeriodItemInsert',
+  })
 export const staticBillingPeriodItemClientUpdateSchema =
-  staticBillingPeriodItemUpdateSchema.omit(clientWriteOmits)
+  staticBillingPeriodItemUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'StaticBillingPeriodItemUpdate',
+  })
 
 export const staticBillingPeriodItemClientSelectSchema =
-  staticBillingPeriodItemSelectSchema.omit(hiddenColumns)
+  staticBillingPeriodItemSelectSchema.omit(hiddenColumns).meta({
+    id: 'StaticBillingPeriodItemRecord',
+  })
 
 // Usage Billing Period Item Client Schemas
 export const usageBillingPeriodItemClientInsertSchema =
-  usageBillingPeriodItemInsertSchema.omit(clientWriteOmits)
+  usageBillingPeriodItemInsertSchema.omit(clientWriteOmits).meta({
+    id: 'UsageBillingPeriodItemInsert',
+  })
 export const usageBillingPeriodItemClientUpdateSchema =
-  usageBillingPeriodItemUpdateSchema.omit(clientWriteOmits)
+  usageBillingPeriodItemUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'UsageBillingPeriodItemUpdate',
+  })
 
 export const usageBillingPeriodItemClientSelectSchema =
-  usageBillingPeriodItemSelectSchema.omit(hiddenColumns)
+  usageBillingPeriodItemSelectSchema.omit(hiddenColumns).meta({
+    id: 'UsageBillingPeriodItemRecord',
+  })
 
 // Client Discriminated Union Schemas
 export const billingPeriodItemClientInsertSchema =
   z.discriminatedUnion('type', [
     staticBillingPeriodItemClientInsertSchema,
     usageBillingPeriodItemClientInsertSchema,
-  ])
+  ]).meta({ id: 'BillingPeriodItemClientInsertSchema' })
 
 export const billingPeriodItemClientUpdateSchema =
   z.discriminatedUnion('type', [
     staticBillingPeriodItemClientUpdateSchema,
     usageBillingPeriodItemClientUpdateSchema,
-  ])
+  ]).meta({ id: 'BillingPeriodItemClientUpdateSchema' })
 
 export const billingPeriodItemClientSelectSchema =
   z.discriminatedUnion('type', [
     staticBillingPeriodItemClientSelectSchema,
     usageBillingPeriodItemClientSelectSchema,
-  ])
+  ]).meta({ id: 'BillingPeriodItemClientSelectSchema' })
 
 export namespace BillingPeriodItem {
   export type Insert = z.infer<typeof billingPeriodItemsInsertSchema>

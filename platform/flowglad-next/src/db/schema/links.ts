@@ -79,13 +79,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const linkClientInsertSchema =
-  linksInsertSchema.omit(clientWriteOmits)
+  linksInsertSchema.omit(clientWriteOmits).meta({ id: 'LinkClientInsertSchema' })
 
 export const linkClientUpdateSchema =
-  linksUpdateSchema.omit(clientWriteOmits)
+  linksUpdateSchema.omit(clientWriteOmits).meta({ id: 'LinkClientUpdateSchema' })
 
 export const linkClientSelectSchema =
-  linksSelectSchema.omit(hiddenColumns)
+  linksSelectSchema.omit(hiddenColumns).meta({ id: 'LinkClientSelectSchema' })
 
 export namespace Link {
   export type Insert = z.infer<typeof linksInsertSchema>
