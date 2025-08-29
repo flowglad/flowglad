@@ -131,7 +131,7 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const paymentMethodClientInsertSchema =
-  paymentMethodsInsertSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodClientInsertSchema' })
+  paymentMethodsInsertSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodInsert' })
 
 export const paymentMethodClientUpdateSchema =
   paymentMethodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodUpdate' })
