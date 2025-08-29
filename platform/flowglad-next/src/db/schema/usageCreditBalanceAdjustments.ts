@@ -117,7 +117,7 @@ export const usageCreditBalanceAdjustmentClientUpdateSchema =
   }).meta({ id: 'UsageCreditBalanceAdjustmentUpdate' })
 
 export const usageCreditBalanceAdjustmentClientSelectSchema =
-  usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditBalanceAdjustmentClientSelectSchema' })
+  usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditBalanceAdjustmentRecord' })
 
 export namespace UsageCreditBalanceAdjustment {
   export type Insert = z.infer<
