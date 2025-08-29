@@ -482,6 +482,11 @@ export const createCustomerBookkeeping = async (
   subscription?: Subscription.Record
   subscriptionItems?: SubscriptionItem.Record[]
 }>> => {
+  // Security: Validate that customer organizationId matches auth context
+  if (payload.customer.organizationId && payload.customer.organizationId !== organizationId) {
+    throw new Error('Customer organizationId must match authenticated organizationId')
+  }
+  
   let customer = await insertCustomer({...payload.customer, livemode}, transaction)
   if (!customer.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
@@ -516,7 +521,8 @@ export const createCustomerBookkeeping = async (
   })
 
   // Create default subscription for the customer
-  if (organizationId) {
+  // Use customer's organizationId to ensure consistency
+  if (customer.organizationId) {
     try {
       // Determine which pricing model to use
       let pricingModelId = customer.pricingModelId
@@ -525,7 +531,7 @@ export const createCustomerBookkeeping = async (
       if (!pricingModelId) {
         const defaultPricingModel = await selectDefaultPricingModel(
           {
-            organizationId,
+            organizationId: customer.organizationId,
             livemode: customer.livemode,
           },
           transaction
@@ -562,9 +568,9 @@ export const createCustomerBookkeeping = async (
           if (prices.length > 0) {
             const defaultPrice = prices[0]
             
-            // Get the organization details
+            // Get the organization details - use customer's organizationId for consistency
             const organization = await selectOrganizationById(
-              organizationId,
+              customer.organizationId,
               transaction
             )
 

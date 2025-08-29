@@ -470,6 +470,42 @@ describe('createCustomerBookkeeping', () => {
       expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.SubscriptionCreated)).toBe(false)
     })
 
+    it('should prevent cross-organization customer creation', async () => {
+      // Setup: Create a second organization
+      const otherOrganization = await adminTransaction(async ({ transaction }) => {
+        const { organization: otherOrg } = await setupOrg(
+          {
+            name: 'Other Organization',
+            livemode,
+          },
+          transaction
+        )
+        return otherOrg
+      })
+
+      // Attempt to create a customer with mismatched organizationId
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Cross Org Customer',
+                organizationId: otherOrganization.id, // Different from auth context
+                externalId: `ext_${core.nanoid()}`,
+              },
+            },
+            { 
+              transaction, 
+              organizationId: organization.id, // Auth context org
+              userId: 'user_test',
+              livemode,
+            }
+          )
+        })
+      ).rejects.toThrow('Customer organizationId must match authenticated organizationId')
+    })
+
     it('should properly set subscription metadata and name', async () => {
       // setup:
       // - create a customer and verify the subscription has proper metadata
