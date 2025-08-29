@@ -1,6 +1,6 @@
 import core from '@/utils/core'
 import { notFound } from 'next/navigation'
-import { HelloWorld } from '@/registry/new-york/hello-world/hello-world'
+import { PricingTable } from '@/registry/new-york/pricing-table'
 
 const DemoPage = () => {
   if (core.IS_PROD) {
@@ -9,7 +9,15 @@ const DemoPage = () => {
   return (
     <div>
       <h1>Demo Page</h1>
-      <HelloWorld />
+
+<PricingTable
+  plans={pricingPlans}
+  defaultPlan="Personal"
+  onTierSelect={(tierId, planName) => {
+    // Handle tier selection
+  }}
+  showToggle={true}
+/>
     </div>
   )
 }
