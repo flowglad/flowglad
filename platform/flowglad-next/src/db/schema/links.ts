@@ -85,7 +85,7 @@ export const linkClientUpdateSchema =
   linksUpdateSchema.omit(clientWriteOmits).meta({ id: 'LinkClientUpdateSchema' })
 
 export const linkClientSelectSchema =
-  linksSelectSchema.omit(hiddenColumns).meta({ id: 'LinkClientSelectSchema' })
+  linksSelectSchema.omit(hiddenColumns).meta({ id: 'LinkRecord' })
 
 export namespace Link {
   export type Insert = z.infer<typeof linksInsertSchema>
