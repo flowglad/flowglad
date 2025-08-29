@@ -111,7 +111,7 @@ export const coreSubscriptionItemFeaturesSelectSchema =
   )
 
 export const coreSubscriptionItemFeaturesUpdateSchema =
-  coreSubscriptionItemFeaturesInsertSchema.extend({ id: z.string() })
+  coreSubscriptionItemFeaturesInsertSchema.partial().extend({ id: z.string() })
 
 /*
  * Toggle SubscriptionItemFeature schemas
