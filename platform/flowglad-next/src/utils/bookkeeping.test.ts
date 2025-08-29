@@ -12,6 +12,8 @@ import {
   PriceType, 
   FlowgladEventType,
   CurrencyCode,
+  BusinessOnboardingStatus,
+  StripeConnectContractType,
 } from '@/types'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -428,6 +430,9 @@ describe('createCustomerBookkeeping', () => {
             name: `Minimal Org ${core.nanoid()}`,
             defaultCurrency: CurrencyCode.USD,
             countryId: country.id,
+            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+            stripeConnectContractType: StripeConnectContractType.Platform,
+            featureFlags: {},
           },
           transaction
         )
@@ -472,16 +477,7 @@ describe('createCustomerBookkeeping', () => {
 
     it('should prevent cross-organization customer creation', async () => {
       // Setup: Create a second organization
-      const otherOrganization = await adminTransaction(async ({ transaction }) => {
-        const { organization: otherOrg } = await setupOrg(
-          {
-            name: 'Other Organization',
-            livemode,
-          },
-          transaction
-        )
-        return otherOrg
-      })
+      const { organization: otherOrganization } = await setupOrg()
 
       // Attempt to create a customer with mismatched organizationId
       await expect(
