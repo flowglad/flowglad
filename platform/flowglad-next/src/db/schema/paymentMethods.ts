@@ -137,7 +137,7 @@ export const paymentMethodClientUpdateSchema =
   paymentMethodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodClientUpdateSchema' })
 
 export const paymentMethodClientSelectSchema =
-  paymentMethodsSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentMethodClientSelectSchema' })
+  paymentMethodsSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentMethodRecord' })
 
 export const paymentMethodsPaginatedSelectSchema =
   createPaginatedSelectSchema(paymentMethodClientSelectSchema)
