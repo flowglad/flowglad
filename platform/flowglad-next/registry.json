@@ -59,6 +59,55 @@
             "type": "registry:hook"
           }
         ]
+      },
+      {
+        "name": "pricing-table",
+        "type": "registry:component",
+        "title": "Pricing Table",
+        "description": "A responsive pricing table component with product toggle and tier selection.",
+        "registryDependencies": ["button", "badge"],
+        "files": [
+          {
+            "path": "src/registry/new-york/pricing-table/pricing-table.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/components/pricing-toggle.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/components/pricing-column.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/components/pricing-header.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/components/pricing-feature.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/components/card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/utils/currency.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/new-york/pricing-table/page.tsx",
+            "type": "registry:page"
+          }
+        ]
       }
     ]
   }

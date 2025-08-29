@@ -32,6 +32,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Check if we're in a preview route - if so, just return children
+  // The preview routes will handle their own complete HTML structure
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') || ''
+  
+  // For preview routes, skip the root layout entirely
+  if (pathname.includes('/preview-ui')) {
+    return children
+  }
+  
   const session = await getSession()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
