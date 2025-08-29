@@ -1,12 +1,12 @@
 import * as R from 'ramda'
 import { pgTable, text } from 'drizzle-orm/pg-core'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   constructIndex,
   tableBase,
   SelectConditions,
 } from '@/db/tableUtils'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
 const USERS_TABLE_NAME = 'users'
@@ -44,10 +44,7 @@ export const usersSelectSchema = createSelectSchema(
  * that is part of its insert, as we create the User record based on the id
  * provided by Clerk
  */
-export const usersInsertSchema = enhancedCreateInsertSchema(
-  users,
-  insertAndSelectSchema
-).extend({
+export const usersInsertSchema = createInsertSchema(users).omit(ommittedColumnsForInsertSchema).extend(insertAndSelectSchema).extend({
   id: z.string(),
 })
 

@@ -6,14 +6,13 @@ import {
   notNullStringForeignKey,
   constructIndex,
   constructUniqueIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 
 const TABLE_NAME = 'proper_nouns'
@@ -65,14 +64,11 @@ const columnRefinements = {}
 /*
  * database schemas
  */
-export const properNounsInsertSchema = enhancedCreateInsertSchema(
-  properNouns,
-  columnRefinements
-)
+export const properNounsInsertSchema = createInsertSchema(properNouns).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const properNounsSelectSchema = createSelectSchema(properNouns)
 
-export const properNounsUpdateSchema = createUpdateSchema(properNouns)
+export const properNounsUpdateSchema = properNounsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 
@@ -97,13 +93,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const properNounClientInsertSchema =
-  properNounsInsertSchema.omit(clientWriteOmits)
+  properNounsInsertSchema.omit(clientWriteOmits).meta({ id: 'ProperNounClientInsertSchema' })
 
 export const properNounClientUpdateSchema =
-  properNounsUpdateSchema.omit(clientWriteOmits)
+  properNounsUpdateSchema.omit(clientWriteOmits).meta({ id: 'ProperNounClientUpdateSchema' })
 
 export const properNounClientSelectSchema =
-  properNounsSelectSchema.omit(hiddenColumns)
+  properNounsSelectSchema.omit(hiddenColumns).meta({ id: 'ProperNounClientSelectSchema' })
 
 export namespace ProperNoun {
   export type Insert = z.infer<typeof properNounsInsertSchema>

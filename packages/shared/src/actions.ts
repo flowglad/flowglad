@@ -1,18 +1,17 @@
-import { z, ZodSchema } from 'zod'
+import { z, ZodType } from 'zod'
 import { FlowgladActionKey, HTTPMethod } from './types'
 import { Flowglad } from '@flowglad/node'
 
-export type FlowgladActionValidatorMap = Record<
-  FlowgladActionKey,
-  {
+export type FlowgladActionValidatorMap = {
+  [K in FlowgladActionKey]: {
     method: HTTPMethod
-    inputValidator: ZodSchema
+    inputValidator: ZodType<any, any, any>
   }
->
+}
 
 const createCoreCheckoutSessionSchema = z.object({
-  successUrl: z.string().url(),
-  cancelUrl: z.string().url(),
+  successUrl: z.url(),
+  cancelUrl: z.url(),
   outputMetadata: z.record(z.string(), z.any()).optional(),
   outputName: z.string().optional(),
 })
@@ -162,7 +161,7 @@ export const updateCustomerSchema = z.object({
   externalId: z.string(),
 })
 
-export const flowgladActionValidators: FlowgladActionValidatorMap = {
+export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
     inputValidator: z.object({
@@ -191,4 +190,4 @@ export const flowgladActionValidators: FlowgladActionValidatorMap = {
     method: HTTPMethod.POST,
     inputValidator: updateCustomerSchema,
   },
-}
+} as const satisfies FlowgladActionValidatorMap

@@ -55,6 +55,8 @@ import {
   RefundStatus,
   UsageCreditApplicationStatus,
   SubscriptionItemType,
+  StripeConnectContractType,
+  BusinessOnboardingStatus,
 } from '@/types'
 import { core, isNil } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -170,6 +172,20 @@ export const setupOrg = async (params?: {
         monthlyBillingVolumeFreeTier:
           params?.monthlyBillingVolumeFreeTier ?? undefined,
         feePercentage: params?.feePercentage ?? undefined,
+        onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+        stripeConnectContractType: StripeConnectContractType.Platform,
+        featureFlags: {},
+        contactEmail: 'test@test.com',
+        billingAddress: {
+          address: {
+            line1: '123 Test St',
+            line2: 'Apt 1',
+            city: 'Test City',
+            state: 'Test State',
+            postal_code: '12345',
+            country: 'US',
+          },
+        },
       },
       transaction
     )
@@ -591,18 +607,48 @@ export const setupPurchase = async ({
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(priceId, transaction)
     const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
-    return insertPurchase(
+    const coreFields = { customerId,
+    organizationId,
+    livemode: livemode ?? price.livemode,
+    name: 'Test Purchase',
+    priceId: price.id,
+    priceType: price.type,
+    totalPurchaseValue: price.unitPrice,
+    quantity: 1,
+    firstInvoiceValue: price.unitPrice,
+    status
+  } as const
+    if (price.type === PriceType.Usage) {
+      return await insertPurchase(
+        {
+          ...coreFields,
+          trialPeriodDays: null,
+          pricePerBillingCycle: null,
+          intervalUnit: null,
+          intervalCount: null,
+        } as Purchase.Insert,
+        transaction
+      )
+    } else if (price.type === PriceType.Subscription) {
+      return await insertPurchase(
+        {
+          ...coreFields,
+          ...purchaseFields,
+        } as Purchase.Insert,
+        transaction
+      )
+    } else if (price.type === PriceType.SinglePayment) {
+      return await insertPurchase(
+        {
+          ...coreFields,
+          ...purchaseFields,
+        } as Purchase.Insert,
+        transaction
+      )
+    }
+    return await insertPurchase(
       {
-        customerId,
-        organizationId,
-        livemode: livemode ?? price.livemode,
-        name: 'Test Purchase',
-        priceId: price.id,
-        priceType: price.type,
-        totalPurchaseValue: price.unitPrice,
-        quantity: 1,
-        firstInvoiceValue: price.unitPrice,
-        status,
+        ...coreFields,
         ...purchaseFields,
       } as Purchase.Insert,
       transaction
@@ -1512,7 +1558,7 @@ export const setupUsageEvent = async (
     return insertUsageEvent(
       {
         livemode: true,
-        usageDate: params.usageDate,
+        usageDate: params.usageDate ?? new Date(),
         properties: params.properties ?? {},
         ...params,
       },

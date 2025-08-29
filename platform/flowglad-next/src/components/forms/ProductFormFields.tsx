@@ -15,7 +15,6 @@ import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import { Switch } from '@/components/ui/switch'
 import StatusBadge from '../StatusBadge'
-import AIHoverModal from './AIHoverModal'
 import PricingModelSelect from './PricingModelSelect'
 import core from '@/utils/core'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
@@ -88,13 +87,6 @@ export const ProductFormFields = ({
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel>Description</FormLabel>
-                    <AIHoverModal
-                      productName={product.name}
-                      triggerLabel="Generate"
-                      onGenerateComplete={(result) => {
-                        form.setValue('product.description', result)
-                      }}
-                    />
                   </div>
                   <FormControl>
                     <Textarea

@@ -12,18 +12,18 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   livemodePolicy,
-  createUpdateSchema,
   pgEnumColumn,
   nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { CurrencyCode, RefundStatus } from '@/types'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 
 const TABLE_NAME = 'refunds'
 
@@ -77,19 +77,13 @@ const columnRefinements = {
   amount: core.safeZodPositiveInteger,
   refundProcessedAt: core.safeZodDate.nullable(),
   status: core.createSafeZodEnum(RefundStatus),
-  currency: core.createSafeZodEnum(CurrencyCode),
+  currency: currencyCodeSchema
 }
 
-export const refundsInsertSchema = enhancedCreateInsertSchema(
-  refunds,
-  columnRefinements
-)
+export const refundsInsertSchema = createInsertSchema(refunds).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 export const refundsSelectSchema =
   createSelectSchema(refunds).extend(columnRefinements)
-export const refundsUpdateSchema = createUpdateSchema(
-  refunds,
-  columnRefinements
-)
+export const refundsUpdateSchema = refundsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {
@@ -98,7 +92,9 @@ const readOnlyColumns = {
 const hiddenColumns = {} as const
 
 export const refundClientSelectSchema =
-  refundsSelectSchema.omit(hiddenColumns)
+  refundsSelectSchema.omit(hiddenColumns).meta({
+    id: 'RefundRecord',
+  })
 
 export namespace Refund {
   export type Insert = z.infer<typeof refundsInsertSchema>

@@ -8,6 +8,7 @@ import {
   LedgerEntryDirection,
   LedgerEntryType,
   LedgerTransactionInitiatingSourceType,
+  UsageCreditApplicationStatus,
 } from '@/types'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
@@ -63,7 +64,7 @@ export const createUsageCreditApplicationsForUsageEvent = async (
       targetUsageMeterId: usageEvent.usageMeterId,
       usageCreditId: creditBalance.usageCreditId,
       usageEventId: usageEvent.id,
-      status: LedgerEntryStatus.Posted,
+      status: UsageCreditApplicationStatus.Posted,
     })
 
     outstandingBalance -= applicationAmount

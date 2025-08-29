@@ -5,8 +5,7 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructUniqueIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
@@ -19,7 +18,7 @@ import {
 } from '@/db/tableUtils'
 import { products } from '@/db/schema/products'
 import { features } from '@/db/schema/features'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { organizations } from '@/db/schema/organizations'
 const TABLE_NAME = 'product_features'
 
@@ -64,19 +63,13 @@ const columnRefinements = {} // No special column refinements for this table
 /*
  * Core database schemas
  */
-export const productFeaturesInsertSchema = enhancedCreateInsertSchema(
-  productFeatures,
-  columnRefinements
-)
+export const productFeaturesInsertSchema = createInsertSchema(productFeatures).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const productFeaturesSelectSchema =
   createSelectSchema(productFeatures).extend(columnRefinements)
 
 // Update schema is kept for potential server-side use, but not exposed to client for this table type.
-export const productFeaturesUpdateSchema = createUpdateSchema(
-  productFeatures,
-  columnRefinements
-)
+export const productFeaturesUpdateSchema = productFeaturesInsertSchema.partial().extend({ id: z.string() })
 
 /*
  * Client-facing schemas
@@ -95,9 +88,15 @@ const hiddenColumnsForSelect = {
 
 export const productFeatureClientInsertSchema =
   productFeaturesInsertSchema.omit(serverSetColumnsForInsert)
+  .meta({
+    id: 'ProductFeatureInsert',
+  })
 
 export const productFeatureClientSelectSchema =
   productFeaturesSelectSchema.omit(hiddenColumnsForSelect)
+  .meta({
+    id: 'ProductFeatureRecord',
+  })
 
 export namespace ProductFeature {
   export type Insert = z.infer<typeof productFeaturesInsertSchema>

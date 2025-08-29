@@ -13,7 +13,6 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  createUpdateSchema,
   livemodePolicy,
   idInputSchema,
   pgEnumColumn,
@@ -84,10 +83,7 @@ export const coreApiKeysSelectSchema = createSelectSchema(
   columnRefinements
 ).extend(columnRefinements)
 
-export const coreApiKeysUpdateSchema = createUpdateSchema(
-  apiKeys,
-  columnRefinements
-)
+export const coreApiKeysUpdateSchema = coreApiKeysInsertSchema.partial().extend({ id: z.string() })
 
 const hostedBillingApiKeyColumns = {
   type: z.literal(FlowgladApiKeyType.BillingPortalToken),
@@ -167,34 +163,34 @@ const clientWriteOmits = R.omit(['position'], {
 
 // Client schemas
 export const secretApiKeysClientInsertSchema =
-  secretApiKeysInsertSchema.omit(clientWriteOmits)
+  secretApiKeysInsertSchema.omit(clientWriteOmits).meta({ id: 'SecretApiKeyInsert' })
 export const secretApiKeysClientSelectSchema =
-  secretApiKeysSelectSchema.omit(hiddenColumns)
+  secretApiKeysSelectSchema.omit(hiddenColumns).meta({ id: 'SecretApiKeyRecord' })
 export const secretApiKeysClientUpdateSchema =
   secretApiKeysUpdateSchema.omit({
     ...clientWriteOmits,
     expiresAt: true,
-  })
+  }).meta({ id: 'SecretApiKeyUpdate' })
 
 export const publishableApiKeysClientInsertSchema =
-  publishableApiKeysInsertSchema.omit(clientWriteOmits)
+  publishableApiKeysInsertSchema.omit(clientWriteOmits).meta({ id: 'PublishableApiKeyInsert' })
 export const publishableApiKeysClientSelectSchema =
-  publishableApiKeysSelectSchema.omit(hiddenColumns)
+  publishableApiKeysSelectSchema.omit(hiddenColumns).meta({ id: 'PublishableApiKeyRecord' })
 export const publishableApiKeysClientUpdateSchema =
   publishableApiKeysUpdateSchema.omit({
     ...clientWriteOmits,
     expiresAt: true,
-  })
+  }).meta({ id: 'PublishableApiKeyUpdate' })
 
 export const hostedBillingPortalApiKeysClientInsertSchema =
-  hostedBillingPortalApiKeysInsertSchema.omit(clientWriteOmits)
+  hostedBillingPortalApiKeysInsertSchema.omit(clientWriteOmits).meta({ id: 'HostedBillingPortalApiKeyInsert' })
 export const hostedBillingPortalApiKeysClientSelectSchema =
-  hostedBillingPortalApiKeysSelectSchema.omit(hiddenColumns)
+  hostedBillingPortalApiKeysSelectSchema.omit(hiddenColumns).meta({ id: 'HostedBillingPortalApiKeyRecord' })
 export const hostedBillingPortalApiKeysClientUpdateSchema =
   hostedBillingPortalApiKeysUpdateSchema.omit({
     ...clientWriteOmits,
     expiresAt: true,
-  })
+  }).meta({ id: 'HostedBillingPortalApiKeyUpdate' })
 
 /*
  * client schemas
@@ -206,7 +202,7 @@ export const apiKeysClientInsertSchema = z.discriminatedUnion(
     secretApiKeysClientInsertSchema,
     hostedBillingPortalApiKeysClientInsertSchema,
   ]
-)
+).meta({ id: 'ApiKeysClientInsertSchema' })
 
 export const apiKeysClientSelectSchema = z.discriminatedUnion(
   'type',
@@ -215,7 +211,7 @@ export const apiKeysClientSelectSchema = z.discriminatedUnion(
     publishableApiKeysClientSelectSchema,
     hostedBillingPortalApiKeysClientSelectSchema,
   ]
-)
+).meta({ id: 'ApiKeysClientSelectSchema' })
 
 export const apiKeysClientUpdateSchema = z.discriminatedUnion(
   'type',
@@ -224,7 +220,7 @@ export const apiKeysClientUpdateSchema = z.discriminatedUnion(
     publishableApiKeysClientUpdateSchema,
     hostedBillingPortalApiKeysClientUpdateSchema,
   ]
-)
+).meta({ id: 'ApiKeysClientUpdateSchema' })
 
 export const apiKeyClientWhereClauseSchema =
   coreApiKeysSelectSchema.partial()

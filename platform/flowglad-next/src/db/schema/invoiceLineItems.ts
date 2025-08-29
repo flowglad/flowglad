@@ -3,10 +3,8 @@ import { pgTable, integer, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
-  enhancedCreateInsertSchema,
   tableBase,
   constructIndex,
-  createUpdateSchema,
   nullableStringForeignKey,
   notNullStringForeignKey,
   livemodePolicy,
@@ -204,19 +202,31 @@ const clientNonEditableColumns = R.omit(['position'], {
 
 // Static Invoice Line Item Client Schemas
 export const staticInvoiceLineItemClientInsertSchema =
-  staticInvoiceLineItemInsertSchema.omit(clientNonEditableColumns)
+  staticInvoiceLineItemInsertSchema.omit(clientNonEditableColumns).meta({
+    id: 'StaticInvoiceLineItemInsert',
+  })
 export const staticInvoiceLineItemClientUpdateSchema =
-  staticInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns)
+  staticInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns).meta({
+    id: 'StaticInvoiceLineItemUpdate',
+  })
 export const staticInvoiceLineItemClientSelectSchema =
-  staticInvoiceLineItemSelectSchema.omit(hiddenColumns)
+  staticInvoiceLineItemSelectSchema.omit(hiddenColumns).meta({
+    id: 'StaticInvoiceLineItemRecord',
+  })
 
 // Usage Invoice Line Item Client Schemas
 export const usageInvoiceLineItemClientInsertSchema =
-  usageInvoiceLineItemInsertSchema.omit(clientNonEditableColumns)
+  usageInvoiceLineItemInsertSchema.omit(clientNonEditableColumns).meta({
+    id: 'UsageInvoiceLineItemInsert',
+  })
 export const usageInvoiceLineItemClientUpdateSchema =
-  usageInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns)
+  usageInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns).meta({
+    id: 'UsageInvoiceLineItemUpdate',
+  })
 export const usageInvoiceLineItemClientSelectSchema =
-  usageInvoiceLineItemSelectSchema.omit(hiddenColumns)
+  usageInvoiceLineItemSelectSchema.omit(hiddenColumns).meta({
+    id: 'UsageInvoiceLineItemRecord',
+  })
 
 // Client Discriminated Union Schemas
 export const invoiceLineItemsClientInsertSchema =
@@ -224,18 +234,27 @@ export const invoiceLineItemsClientInsertSchema =
     staticInvoiceLineItemClientInsertSchema,
     usageInvoiceLineItemClientInsertSchema,
   ])
+  .meta({
+    id: 'InvoiceLineItemInsert',
+  })
 
 export const invoiceLineItemsClientUpdateSchema =
   z.discriminatedUnion('type', [
     staticInvoiceLineItemClientUpdateSchema,
     usageInvoiceLineItemClientUpdateSchema,
   ])
+  .meta({
+    id: 'InvoiceLineItemUpdate',
+  })
 
 export const invoiceLineItemsClientSelectSchema =
   z.discriminatedUnion('type', [
     staticInvoiceLineItemClientSelectSchema,
     usageInvoiceLineItemClientSelectSchema,
   ])
+  .meta({
+    id: 'InvoiceLineItemRecord',
+  })
 
 export const invoiceLineItemsPaginatedSelectSchema =
   createPaginatedSelectSchema(invoiceLineItemsClientSelectSchema)

@@ -126,10 +126,10 @@ const standardColumnRefinements = {
   status: z.enum(standardSubscriptionStatuses),
   currentBillingPeriodStart: z.date(),
   currentBillingPeriodEnd: z.date(),
-  trialEnd: z.date().nullable(),
-  canceledAt: z.date().nullable(),
-  cancelScheduledAt: z.date().nullable(),
-  metadata: metadataSchema.nullable(),
+  trialEnd: z.date().nullable().optional(),
+  canceledAt: z.date().nullable().optional(),
+  cancelScheduledAt: z.date().nullable().optional(),
+  metadata: metadataSchema.nullable().optional(),
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
   billingCycleAnchorDate: z.date(),
@@ -144,13 +144,13 @@ export const nonRenewingStatusSchema = z.enum([
 
 export const nonRenewingColumnRefinements = {
   status: nonRenewingStatusSchema,
-  metadata: metadataSchema.nullable(),
-  currentBillingPeriodStart: z.null(),
-  currentBillingPeriodEnd: z.null(),
-  trialEnd: z.null(),
-  interval: z.null(),
-  intervalCount: z.null(),
-  billingCycleAnchorDate: z.null(),
+  metadata: metadataSchema.nullable().optional(),
+  currentBillingPeriodStart: core.safeZodNullOrUndefined,
+  currentBillingPeriodEnd: core.safeZodNullOrUndefined,
+  trialEnd: core.safeZodNullOrUndefined,
+  interval: core.safeZodNullOrUndefined,
+  intervalCount: core.safeZodNullOrUndefined,
+  billingCycleAnchorDate: core.safeZodNullOrUndefined,
   renews: z.literal(false),
 }
 
@@ -246,7 +246,7 @@ export const standardSubscriptionClientSelectSchema =
       .describe(
         'Whether the subscription is current (statuses "active", "trialing", "past_due", or "cancellation_scheduled")'
       ),
-  })
+  }).meta({ id: 'StandardSubscriptionRecord' })
 
 export const nonRenewingSubscriptionClientSelectSchema =
   nonRenewingSubscriptionSelectSchema.omit(hiddenColumns).extend({
@@ -255,7 +255,7 @@ export const nonRenewingSubscriptionClientSelectSchema =
       .describe(
         'Whether the subscription is current (statuses "active", "trialing", "past_due", "cancellation_scheduled", or "credit_trial")'
       ),
-  })
+  }).meta({ id: 'NonRenewingSubscriptionRecord' })
 
 export const subscriptionClientSelectSchema = z.discriminatedUnion(
   'renews',
@@ -263,31 +263,31 @@ export const subscriptionClientSelectSchema = z.discriminatedUnion(
     standardSubscriptionClientSelectSchema,
     nonRenewingSubscriptionClientSelectSchema,
   ]
-)
+).meta({ id: 'SubscriptionClientSelectSchema' })
 
 const standardSubscriptionClientInsertSchema =
-  standardSubscriptionInsertSchema.omit(clientWriteOmits)
+  standardSubscriptionInsertSchema.omit(clientWriteOmits).meta({ id: 'StandardSubscriptionInsert' })
 const nonRenewingSubscriptionClientInsertSchema =
-  nonRenewingSubscriptionInsertSchema.omit(clientWriteOmits)
+  nonRenewingSubscriptionInsertSchema.omit(clientWriteOmits).meta({ id: 'NonRenewingSubscriptionInsert' })
 export const subscriptionClientInsertSchema = z.discriminatedUnion(
   'renews',
   [
     standardSubscriptionClientInsertSchema,
     nonRenewingSubscriptionClientInsertSchema,
   ]
-)
+).meta({ id: 'SubscriptionClientInsertSchema' })
 
 const standardSubscriptionClientUpdateSchema =
-  standardSubscriptionUpdateSchema.omit(clientWriteOmits)
+  standardSubscriptionUpdateSchema.omit(clientWriteOmits).meta({ id: 'StandardSubscriptionUpdate' })
 const nonRenewingSubscriptionClientUpdateSchema =
-  nonRenewingSubscriptionUpdateSchema.omit(clientWriteOmits)
+  nonRenewingSubscriptionUpdateSchema.omit(clientWriteOmits).meta({ id: 'NonRenewingSubscriptionUpdate' })
 export const subscriptionClientUpdateSchema = z.discriminatedUnion(
   'renews',
   [
     standardSubscriptionClientUpdateSchema,
     nonRenewingSubscriptionClientUpdateSchema,
   ]
-)
+).meta({ id: 'SubscriptionClientUpdateSchema' })
 
 export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,

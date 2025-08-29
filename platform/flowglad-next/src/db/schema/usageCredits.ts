@@ -15,17 +15,16 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   livemodePolicy,
   pgEnumColumn,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { payments } from '@/db/schema/payments'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   UsageCreditType,
   UsageCreditStatus,
@@ -122,20 +121,14 @@ const columnRefinements = {
 /*
  * database schema
  */
-export const usageCreditsInsertSchema = enhancedCreateInsertSchema(
-  usageCredits,
-  columnRefinements
-).extend(columnRefinements)
+export const usageCreditsInsertSchema = createInsertSchema(usageCredits).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const usageCreditsSelectSchema = createSelectSchema(
   usageCredits,
   columnRefinements
 ).extend(columnRefinements)
 
-export const usageCreditsUpdateSchema = createUpdateSchema(
-  usageCredits,
-  columnRefinements
-)
+export const usageCreditsUpdateSchema = usageCreditsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {
   issuedAmount: true,
@@ -166,7 +159,7 @@ export const usageCreditClientInsertSchema =
   usageCreditsInsertSchema.omit({
     organizationId: true,
     livemode: true,
-  })
+  }).meta({ id: 'UsageCreditClientInsertSchema' })
 
 export const usageCreditClientUpdateSchema =
   usageCreditsUpdateSchema.omit({
@@ -174,10 +167,10 @@ export const usageCreditClientUpdateSchema =
     ...createOnlyColumns,
     sourceReferenceId: true,
     subscriptionId: true,
-  })
+  }).meta({ id: 'UsageCreditClientUpdateSchema' })
 
 export const usageCreditClientSelectSchema =
-  usageCreditsSelectSchema.omit(hiddenColumns)
+  usageCreditsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditClientSelectSchema' })
 
 export namespace UsageCredit {
   export type Insert = z.infer<typeof usageCreditsInsertSchema>

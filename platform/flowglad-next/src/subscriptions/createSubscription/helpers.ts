@@ -331,7 +331,6 @@ export const activateSubscription = async (
     subscription.runBillingAtPeriodStart &&
     params.autoStart &&
     scheduledFor
-  // console.log('===shouldCreateBillingRun', shouldCreateBillingRun)
   /**
    * create a billing run, set to to execute
    */

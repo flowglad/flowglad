@@ -11,13 +11,11 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   livemodePolicy,
   ommittedColumnsForInsertSchema,
-  createUpdateSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { FlowgladEventType } from '@/types'
 
 const TABLE_NAME = 'webhooks'
@@ -65,18 +63,12 @@ const columnRefinements = {
 /*
  * database schema
  */
-export const webhooksInsertSchema = enhancedCreateInsertSchema(
-  webhooks,
-  columnRefinements
-).extend(columnRefinements)
+export const webhooksInsertSchema = createInsertSchema(webhooks).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const webhooksSelectSchema =
   createSelectSchema(webhooks).extend(columnRefinements)
 
-export const webhooksUpdateSchema = createUpdateSchema(
-  webhooks,
-  columnRefinements
-).extend(columnRefinements)
+export const webhooksUpdateSchema = webhooksInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   livemode: true,
@@ -95,15 +87,15 @@ const nonClientEditableColumns = {
  */
 export const webhookClientInsertSchema = webhooksInsertSchema.omit(
   nonClientEditableColumns
-)
+).meta({ id: 'WebhookClientInsertSchema' })
 
 export const webhookClientUpdateSchema = webhooksUpdateSchema.omit(
   nonClientEditableColumns
-)
+).meta({ id: 'WebhookClientUpdateSchema' })
 
 export const webhookClientSelectSchema = webhooksSelectSchema.omit({
   position: true,
-})
+}).meta({ id: 'WebhookClientSelectSchema' })
 
 export namespace Webhook {
   export type Insert = z.infer<typeof webhooksInsertSchema>

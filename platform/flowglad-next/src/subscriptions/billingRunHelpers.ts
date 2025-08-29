@@ -181,6 +181,7 @@ export const createInvoiceInsertForBillingRun = async (
       customer.invoiceNumberBase!,
       invoicesForCustomer.length
     ),
+    taxCountry: customer.billingAddress?.address.country as CountryCode,
     currency: params.currency,
     livemode: billingPeriod.livemode,
     invoiceDate: new Date(),
@@ -485,6 +486,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     )
     invoice = await insertInvoice(invoiceInsert, transaction)
   }
+
   /**
    * If the invoice is in a terminal state, we can skip the rest of the steps
    */
@@ -603,7 +605,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
      * othertimes it is not. Try nested first, then fallback to non-nested.
      */
     taxCountry:
-      paymentMethod.billingDetails.address.address?.country ??
+      (paymentMethod.billingDetails.address.address?.country as CountryCode) ??
       (paymentMethod.billingDetails.address.country as CountryCode),
     paymentMethod: paymentMethod.type,
     stripePaymentIntentId: `placeholder____${core.nanoid()}`,

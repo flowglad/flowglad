@@ -371,7 +371,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
   if (!purchase) {
     const purchasePriceFields =
       projectPriceFieldsOntoPurchaseFields(price)
-    const purchaseInsert = {
+    const purchaseInsert: Purchase.Insert = {
       ...purchasePriceFields,
       name: checkoutSession.outputName ?? product.name,
       organizationId: product.organizationId,
@@ -381,6 +381,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       billingAddress: checkoutSession.billingAddress,
       livemode: checkoutSession.livemode,
       metadata: checkoutSession.outputMetadata,
+      status: PurchaseStatus.Open,
     } as Purchase.Insert
 
     const results = await upsertPurchaseById(

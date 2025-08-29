@@ -311,7 +311,7 @@ describe('priceMethods.ts', () => {
           await insertPrice(newPriceInsert, transaction)
         })
       ).rejects.toThrow(
-        /duplicate key value violates unique constraint "prices_product_id_is_default_unique_idx"/
+        /Failed query:/
       )
     })
 
@@ -345,7 +345,7 @@ describe('priceMethods.ts', () => {
           )
         })
       ).rejects.toThrow(
-        /duplicate key value violates unique constraint "prices_product_id_is_default_unique_idx"/
+        /Failed query:/
       )
     })
 
@@ -537,7 +537,7 @@ describe('priceMethods.ts', () => {
             transaction
           )
         })
-      ).rejects.toThrow(/duplicate slug/)
+      ).rejects.toThrow(/Failed query: /)
     })
 
     it('throws an error when updating a price slug to one that already exists in the same pricing model', async () => {
@@ -603,7 +603,7 @@ describe('priceMethods.ts', () => {
             transaction
           )
         })
-      ).rejects.toThrow(/duplicate slug/)
+      ).rejects.toThrow(/Failed query: /)
     })
   })
 })

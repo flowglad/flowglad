@@ -308,9 +308,7 @@ describe('updateInvoiceTransaction', () => {
               invoice: {
                 id: invoice.id,
                 type: InvoiceType.Purchase,
-                billingPeriodId: null,
                 purchaseId: invoice.purchaseId!,
-                subscriptionId: null,
               },
               invoiceLineItems: [
                 {

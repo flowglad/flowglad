@@ -14,17 +14,16 @@ import {
   nullableStringForeignKey,
   constructIndex,
   constructUniqueIndex,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   livemodePolicy,
   pgEnumColumn,
-  createUpdateSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { NormalBalanceType } from '@/types'
 import core from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 
 const TABLE_NAME = 'ledger_accounts'
 
@@ -93,18 +92,15 @@ const columnRefinements = {
   version: core.safeZodPositiveIntegerOrZero,
 }
 
-export const ledgerAccountsInsertSchema = enhancedCreateInsertSchema(
-  ledgerAccounts,
-  columnRefinements
-)
+export const ledgerAccountsInsertSchema = createInsertSchema(ledgerAccounts).omit(ommittedColumnsForInsertSchema).extend(columnRefinements).extend({
+  version: columnRefinements.version.optional(),
+  normalBalance: columnRefinements.normalBalance.optional(),
+})
 
 export const ledgerAccountsSelectSchema =
   createSelectSchema(ledgerAccounts).extend(columnRefinements)
 
-export const ledgerAccountsUpdateSchema = createUpdateSchema(
-  ledgerAccounts,
-  columnRefinements
-)
+export const ledgerAccountsUpdateSchema = ledgerAccountsInsertSchema.partial().extend({ id: z.string() })
 
 export namespace LedgerAccount {
   export type Insert = z.infer<typeof ledgerAccountsInsertSchema>

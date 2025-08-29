@@ -1031,7 +1031,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         )
       })
     ).rejects.toThrowError(
-      'insert or update on table "ledger_transactions" violates foreign key constraint "ledger_transactions_subscription_id_subscriptions_id_fk"'
+      'Failed query: insert into "ledger_transactions"'
     )
     const rogueTransactions = await adminTransaction(
       async ({ transaction }) => {

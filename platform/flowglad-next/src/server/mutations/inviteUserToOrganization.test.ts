@@ -12,9 +12,9 @@ import {
   setupUserAndApiKey,
   teardownOrg,
 } from '../../../seedDatabase'
-import { organizations } from '@/db/schema/organizations'
-import { users } from '@/db/schema/users'
-import { memberships } from '@/db/schema/memberships'
+import { Organization, organizations } from '@/db/schema/organizations'
+import { UserRecord, users } from '@/db/schema/users'
+import { Membership, memberships } from '@/db/schema/memberships'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
@@ -24,16 +24,13 @@ vi.mock('@/utils/email', () => ({
   sendOrganizationInvitationEmail: vi.fn(),
 }))
 
-type Organization = typeof organizations.$inferSelect
-type User = typeof users.$inferSelect
-type Membership = typeof memberships.$inferSelect
 
 describe('innerInviteUserToOrganizationHandler', () => {
-  let organization: Organization
-  let inviterUser: User
+  let organization: Organization.Record
+  let inviterUser: UserRecord
   let focusedMembership: {
-    organization: Pick<Organization, 'id' | 'name'>
-    membership: Pick<Membership, 'livemode' | 'userId'>
+    organization: Pick<Organization.Record, 'id' | 'name'>
+    membership: Pick<Membership.Record, 'livemode' | 'userId'>
   }
 
   beforeEach(async () => {
