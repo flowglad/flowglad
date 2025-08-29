@@ -8,10 +8,9 @@ import { createCheckoutSession } from './checkoutSessionHandlers'
 import { SubRouteHandler } from './types'
 import { cancelSubscription } from './subscriptionHandlers'
 
-export const routeToHandlerMap: Record<
-  FlowgladActionKey,
-  SubRouteHandler<FlowgladActionKey>
-> = {
+export const routeToHandlerMap: {
+  [K in FlowgladActionKey]: SubRouteHandler<K>
+} = {
   [FlowgladActionKey.GetCustomerBilling]: getCustomerBilling,
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,
   [FlowgladActionKey.UpdateCustomer]: updateCustomer,
