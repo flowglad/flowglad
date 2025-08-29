@@ -114,7 +114,7 @@ export const usageCreditBalanceAdjustmentClientInsertSchema =
 export const usageCreditBalanceAdjustmentClientUpdateSchema =
   usageCreditBalanceAdjustmentsUpdateSchema.omit({
     ...clientWriteOmits,
-  }).meta({ id: 'UsageCreditBalanceAdjustmentClientUpdateSchema' })
+  }).meta({ id: 'UsageCreditBalanceAdjustmentUpdate' })
 
 export const usageCreditBalanceAdjustmentClientSelectSchema =
   usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditBalanceAdjustmentClientSelectSchema' })
