@@ -44,3 +44,7 @@ next-env.d.ts
 # data
 src/scripts/data/*.csv
 src/scripts/data/*.json
+
+# preview CSS build artifacts
+public/preview/preview.css
+public/preview/preview.*.css
