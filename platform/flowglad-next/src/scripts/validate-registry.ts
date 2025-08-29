@@ -45,18 +45,18 @@ const itemSchema = z.object({
   tailwind: z.object({
     config: z.object({
       content: z.array(z.string()).optional(),
-      theme: z.record(z.any()).optional(),
+      theme: z.record(z.string(), z.any()).optional(),
       plugins: z.array(z.string()).optional()
     }).optional()
   }).optional(),
   cssVars: z.object({
-    theme: z.record(z.string()).optional(),
-    light: z.record(z.string()).optional(),
-    dark: z.record(z.string()).optional()
+    theme: z.record(z.string(), z.string()).optional(),
+    light: z.record(z.string(), z.string()).optional(),
+    dark: z.record(z.string(), z.string()).optional()
   }).optional(),
-  css: z.record(z.any()).optional(),
-  envVars: z.record(z.string()).optional(),
-  meta: z.record(z.any()).optional(),
+  css: z.record(z.string(), z.any()).optional(),
+  envVars: z.record(z.string(), z.string()).optional(),
+  meta: z.record(z.string(), z.any()).optional(),
   docs: z.string().optional(),
   categories: z.array(z.string()).optional(),
   extends: z.string().optional()
