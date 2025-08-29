@@ -2,9 +2,22 @@
 
 # Script to install git hooks for registry validation
 
-HOOKS_DIR="../../.git/hooks"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
+# Use git rev-parse to reliably find the .git directory
+GIT_DIR="$(git -C "$PROJECT_DIR" rev-parse --git-dir 2>/dev/null)"
+if [ -z "$GIT_DIR" ]; then
+    echo "Error: Not in a git repository"
+    exit 1
+fi
+# Convert to absolute path if it's relative
+if [[ "$GIT_DIR" != /* ]]; then
+    GIT_DIR="$PROJECT_DIR/$GIT_DIR"
+fi
+HOOKS_DIR="$GIT_DIR/hooks"
+
+# Create hooks directory if it doesn't exist
+mkdir -p "$HOOKS_DIR"
 
 echo "Installing git hooks for shadcn registry validation..."
 

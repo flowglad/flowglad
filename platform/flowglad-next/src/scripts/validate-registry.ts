@@ -45,18 +45,18 @@ const itemSchema = z.object({
   tailwind: z.object({
     config: z.object({
       content: z.array(z.string()).optional(),
-      theme: z.record(z.any()).optional(),
+      theme: z.record(z.string(), z.any()).optional(),
       plugins: z.array(z.string()).optional()
     }).optional()
   }).optional(),
   cssVars: z.object({
-    theme: z.record(z.string()).optional(),
-    light: z.record(z.string()).optional(),
-    dark: z.record(z.string()).optional()
+    theme: z.record(z.string(), z.string()).optional(),
+    light: z.record(z.string(), z.string()).optional(),
+    dark: z.record(z.string(), z.string()).optional()
   }).optional(),
-  css: z.record(z.any()).optional(),
-  envVars: z.record(z.string()).optional(),
-  meta: z.record(z.any()).optional(),
+  css: z.record(z.string(), z.any()).optional(),
+  envVars: z.record(z.string(), z.string()).optional(),
+  meta: z.record(z.string(), z.any()).optional(),
   docs: z.string().optional(),
   categories: z.array(z.string()).optional(),
   extends: z.string().optional()
@@ -186,7 +186,7 @@ class RegistryValidator {
 
         // Rule: Check for missing imports
         if (content.includes('import') && content.includes('from')) {
-          this.validateImports(content, item.name, file.path);
+          this.validateImports(content, item.name, file.path, item.registryDependencies);
         }
       }
     }
@@ -221,15 +221,21 @@ class RegistryValidator {
     if (item.dependencies) {
       this.validateDependencies(item.dependencies, item.name);
     }
+
+    // Rule: Check devDependencies exist in package.json
+    if (item.devDependencies) {
+      this.validateDependencies(item.devDependencies, item.name, true);
+    }
   }
 
-  private validateImports(content: string, itemName: string, filePath: string) {
+  private validateImports(content: string, itemName: string, filePath: string, registryDependencies?: string[]) {
     // Check for common shadcn/ui imports that should be in registryDependencies
     const shadcnImports = content.match(/from\s+["']@\/components\/ui\/([\w-]+)["']/g);
     if (shadcnImports) {
+      const existingDeps = new Set(registryDependencies || []);
       shadcnImports.forEach(imp => {
         const componentName = imp.match(/ui\/([\w-]+)/)?.[1];
-        if (componentName) {
+        if (componentName && !existingDeps.has(componentName)) {
           this.errors.push({
             type: 'warning',
             message: `Consider adding '${componentName}' to registryDependencies`,
@@ -241,20 +247,21 @@ class RegistryValidator {
     }
   }
 
-  private validateDependencies(deps: string[], itemName: string) {
+  private validateDependencies(deps: string[], itemName: string, isDevDep: boolean = false) {
     const packageJsonPath = path.join(this.registryDir, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
       const allDeps = {
-        ...packageJson.dependencies,
-        ...packageJson.devDependencies
+        ...(packageJson.dependencies || {}),
+        ...(packageJson.devDependencies || {})
       };
 
       for (const dep of deps) {
         if (!allDeps[dep]) {
+          const depType = isDevDep ? 'DevDependency' : 'Dependency';
           this.errors.push({
             type: 'error',
-            message: `Dependency '${dep}' not found in package.json`,
+            message: `${depType} '${dep}' not found in package.json`,
             item: itemName
           });
         }
