@@ -109,7 +109,7 @@ const clientWriteOmits = {
  * client schemas
  */
 export const usageCreditBalanceAdjustmentClientInsertSchema =
-  usageCreditBalanceAdjustmentsInsertSchema.omit(clientWriteOmits).meta({ id: 'UsageCreditBalanceAdjustmentClientInsertSchema' })
+  usageCreditBalanceAdjustmentsInsertSchema.omit(clientWriteOmits).meta({ id: 'UsageCreditBalanceAdjustmentInsert' })
 
 export const usageCreditBalanceAdjustmentClientUpdateSchema =
   usageCreditBalanceAdjustmentsUpdateSchema.omit({
