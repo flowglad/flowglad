@@ -138,7 +138,7 @@ export const subscriptionMeterPeriodCalculationSelectSchema =
   )
 
 export const subscriptionMeterPeriodCalculationUpdateSchema =
-  subscriptionMeterPeriodCalculationInsertSchema.extend({ id: z.string() })
+  subscriptionMeterPeriodCalculationInsertSchema.partial().extend({ id: z.string() })
 
 // Simplified omit logic for client schemas
 const baseHiddenClientKeys = {
