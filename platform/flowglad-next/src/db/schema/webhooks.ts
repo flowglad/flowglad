@@ -68,7 +68,7 @@ export const webhooksInsertSchema = createInsertSchema(webhooks).omit(ommittedCo
 export const webhooksSelectSchema =
   createSelectSchema(webhooks).extend(columnRefinements)
 
-export const webhooksUpdateSchema = webhooksInsertSchema.partial().extend({ id: z.string() }).extend(columnRefinements)
+export const webhooksUpdateSchema = webhooksInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   livemode: true,
