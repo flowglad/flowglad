@@ -134,7 +134,7 @@ export const paymentMethodClientInsertSchema =
   paymentMethodsInsertSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodClientInsertSchema' })
 
 export const paymentMethodClientUpdateSchema =
-  paymentMethodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodClientUpdateSchema' })
+  paymentMethodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodUpdate' })
 
 export const paymentMethodClientSelectSchema =
   paymentMethodsSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentMethodRecord' })
