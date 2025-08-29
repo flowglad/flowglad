@@ -105,7 +105,8 @@
           },
           {
             "path": "src/registry/new-york/pricing-table/page.tsx",
-            "type": "registry:page"
+            "type": "registry:page",
+            "target": "app/pricing/page.tsx"
           }
         ]
       }

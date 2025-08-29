@@ -26,3 +26,5 @@ generated/styles.ts
 .dev-routes-backup
 .ion-target
 .vercel
+
+flowglad-next/public/ui/*.json
