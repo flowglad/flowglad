@@ -48,3 +48,6 @@ src/scripts/data/*.json
 # preview CSS build artifacts
 public/preview/preview.css
 public/preview/preview.*.css
+
+# shadcn registry build artifacts
+public/ui/*.json
