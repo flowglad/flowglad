@@ -6,16 +6,15 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   pgEnumColumn,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   taxColumns,
   taxSchemaColumns,
   tableBase,
   constructIndex,
   constructUniqueIndex,
-  createUpdateSchema,
   notNullStringForeignKey,
   livemodePolicy,
   nullableStringForeignKey,
@@ -31,7 +30,7 @@ import {
   InvoiceType,
   CurrencyCode,
 } from '@/types'
-import core from '@/utils/core'
+import core, { safeZodNullOrUndefined } from '@/utils/core'
 import { customers } from './customers'
 import { organizations } from './organizations'
 import { billingPeriods } from './billingPeriods'
@@ -133,39 +132,45 @@ const refineColumns = {
   status: core.createSafeZodEnum(InvoiceStatus),
   type: core.createSafeZodEnum(InvoiceType),
   currency: core.createSafeZodEnum(CurrencyCode),
-  receiptPdfURL: z.string().url().nullable(),
-  pdfURL: z.string().url().nullable(),
+  receiptPdfURL: z.url().nullable().optional(),
+  pdfURL: z.url().nullable().optional(),
   invoiceDate: core.safeZodDate,
   dueDate: core.safeZodDate,
   billingPeriodStartDate: core.safeZodDate,
   billingPeriodEndDate: core.safeZodDate,
   ...taxSchemaColumns,
+  taxType: taxSchemaColumns.taxType.nullable().optional(),
+  taxCountry: taxSchemaColumns.taxCountry.nullable().optional(),
 }
 
-const coreInvoicesInsertSchema = enhancedCreateInsertSchema(
-  invoices,
-  refineColumns
-)
+const coreInvoicesInsertSchema = createInsertSchema(invoices).omit(ommittedColumnsForInsertSchema).extend(refineColumns).extend({
+  invoiceDate: refineColumns.invoiceDate.optional(),
+  dueDate: refineColumns.dueDate.optional(),
+})
 
 const purchaseInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Purchase),
   purchaseId: z.string(),
-  billingPeriodId: z.null(),
-  subscriptionId: z.null(),
+  billingPeriodId: safeZodNullOrUndefined.optional(),
+  subscriptionId: safeZodNullOrUndefined.optional(),
+  billingPeriodStartDate: safeZodNullOrUndefined.optional(),
+  billingPeriodEndDate: safeZodNullOrUndefined.optional(),
 }
 
 const subscriptionInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Subscription),
-  purchaseId: z.null(),
+  purchaseId: safeZodNullOrUndefined,
   billingPeriodId: z.string(),
   subscriptionId: z.string(),
 }
 
 const standaloneInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Standalone),
-  purchaseId: z.null(),
-  billingPeriodId: z.null(),
-  subscriptionId: z.null(),
+  purchaseId: safeZodNullOrUndefined,
+  billingPeriodId: safeZodNullOrUndefined,
+  subscriptionId: safeZodNullOrUndefined,
+  billingPeriodStartDate: safeZodNullOrUndefined.optional(),
+  billingPeriodEndDate: safeZodNullOrUndefined.optional(),
 }
 
 const purchaseInvoiceInsertSchema = coreInvoicesInsertSchema
@@ -191,7 +196,9 @@ export const invoicesInsertSchema = z
 const coreInvoicesSelectSchema = createSelectSchema(
   invoices,
   refineColumns
-)
+).extend({
+  taxCountry: taxSchemaColumns.taxCountry.nullable().optional(),
+})
 
 export const purchaseInvoiceSelectSchema = coreInvoicesSelectSchema
   .extend(purchaseInvoiceColumnExtensions)
@@ -214,21 +221,30 @@ export const invoicesSelectSchema = z
   ])
   .describe(INVOICES_BASE_DESCRIPTION)
 
-const coreInvoicesUpdateSchema = createUpdateSchema(
-  invoices,
-  refineColumns
-)
+const coreInvoicesUpdateSchema = coreInvoicesInsertSchema.partial().extend({ id: z.string() })
 
 export const purchaseInvoiceUpdateSchema = coreInvoicesUpdateSchema
+  .partial()
   .extend(purchaseInvoiceColumnExtensions)
+  .extend({
+    id: z.string(),
+  })
   .describe(PURCHASE_INVOICE_DESCRIPTION)
 
 export const subscriptionInvoiceUpdateSchema =
   coreInvoicesUpdateSchema
+    .partial()
     .extend(subscriptionInvoiceColumnExtensions)
+    .extend({
+      id: z.string(),
+    })
     .describe(SUBSCRIPTION_INVOICE_DESCRIPTION)
 
 export const standaloneInvoiceUpdateSchema = coreInvoicesUpdateSchema
+  .partial()
+  .extend({
+    id: z.string(),
+  })
   .extend(standaloneInvoiceColumnExtensions)
   .describe(STANDALONE_INVOICE_DESCRIPTION)
 

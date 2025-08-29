@@ -8,10 +8,9 @@ import {
 import { z } from 'zod'
 import {
   constructIndex,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructUniqueIndex,
-  createUpdateSchema,
   tableBase,
   nullableStringForeignKey,
   livemodePolicy,
@@ -24,7 +23,7 @@ import {
   EventNoun,
 } from '@/types'
 import core from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { integer } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
@@ -109,7 +108,7 @@ export const events = pgTable(
 
 export const eventPayloadSchema = z.object({
   id: z.string(),
-  object: z.nativeEnum(EventNoun),
+  object: core.createSafeZodEnum(EventNoun),
 })
 
 const columnRefinements = {
@@ -124,18 +123,12 @@ const columnRefinements = {
   // objectId: core.safeZodPositiveInteger.nullable(),
 }
 
-export const eventsInsertSchema = enhancedCreateInsertSchema(
-  events,
-  columnRefinements
-).extend(columnRefinements)
+export const eventsInsertSchema = createInsertSchema(events).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const eventsSelectSchema =
   createSelectSchema(events).extend(columnRefinements)
 
-export const eventsUpdateSchema = createUpdateSchema(
-  events,
-  columnRefinements
-)
+export const eventsUpdateSchema = eventsInsertSchema.partial().extend({ id: z.string() })
 
 export namespace Event {
   export type Insert = z.infer<typeof eventsInsertSchema>

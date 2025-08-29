@@ -119,7 +119,7 @@ const zodSchemaEnhancementColumns = {
   quantity: core.safeZodPositiveInteger,
   status: core.createSafeZodEnum(PurchaseStatus),
   priceType: core.createSafeZodEnum(PriceType),
-  metadata: metadataSchema.nullable(),
+  metadata: metadataSchema.nullable().optional(),
 }
 
 const baseSelectSchema = createSelectSchema(purchases, {

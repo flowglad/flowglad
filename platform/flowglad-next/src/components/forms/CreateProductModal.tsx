@@ -37,7 +37,6 @@ export const CreateProductModal = ({
   isOpen,
   setIsOpen,
   defaultValues,
-  chatPreview,
   onSubmitStart,
   onSubmitSuccess,
   defaultPricingModelId,
@@ -48,7 +47,6 @@ export const CreateProductModal = ({
   onSubmitStart?: () => void
   onSubmitSuccess?: () => void
   onSubmitError?: (error: Error) => void
-  chatPreview?: boolean
   defaultPricingModelId: string
 }) => {
   const { organization } = useAuthenticatedContext()
@@ -87,7 +85,6 @@ export const CreateProductModal = ({
           onSubmitSuccess()
         }
       }}
-      chatPreview={chatPreview}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       mode="drawer"

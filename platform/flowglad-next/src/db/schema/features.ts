@@ -14,8 +14,7 @@ import {
   nullableStringForeignKey,
   constructIndex,
   constructUniqueIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
   livemodePolicy,
   pgEnumColumn,
   SelectConditions,
@@ -23,7 +22,7 @@ import {
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { pricingModels } from './pricingModels'
@@ -93,18 +92,12 @@ const columnRefinements = {
 /*
  * Core database schemas
  */
-export const coreFeaturesInsertSchema = enhancedCreateInsertSchema(
-  features,
-  columnRefinements
-)
+export const coreFeaturesInsertSchema = createInsertSchema(features).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const coreFeaturesSelectSchema =
   createSelectSchema(features).extend(columnRefinements)
 
-export const coreFeaturesUpdateSchema = createUpdateSchema(
-  features,
-  columnRefinements
-)
+export const coreFeaturesUpdateSchema = coreFeaturesInsertSchema.partial().extend({ id: z.string() })
 
 /*
  * Toggle Feature schemas

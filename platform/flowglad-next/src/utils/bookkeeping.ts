@@ -23,6 +23,7 @@ import {
   DbTransaction,
 } from '@/db/types'
 import {
+  CountryCode,
   InvoiceStatus,
   InvoiceType,
   PaymentStatus,
@@ -233,8 +234,10 @@ export const createInitialInvoiceForPurchase = async (
     bankPaymentOnly,
     organizationId,
     taxCountry: billingAddress
-      ? billingAddressSchema.parse(billingAddress).address.country
+      ? (billingAddressSchema.parse(billingAddress).address.country as CountryCode)
       : null,
+    invoiceDate: new Date(),
+    dueDate: new Date(),
   }
   const invoice: Invoice.Record = await insertInvoice(
     invoiceInsert,
@@ -317,6 +320,7 @@ export const createOpenPurchase = async (
         {
           id: customer.id,
           stripeCustomerId: stripeCustomer.id,
+          billingAddress: customer.billingAddress,
         },
         transaction
       )

@@ -6,14 +6,13 @@ import {
   notNullStringForeignKey,
   constructIndex,
   constructUniqueIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 
 const TABLE_NAME = 'proper_nouns'
@@ -65,14 +64,11 @@ const columnRefinements = {}
 /*
  * database schemas
  */
-export const properNounsInsertSchema = enhancedCreateInsertSchema(
-  properNouns,
-  columnRefinements
-)
+export const properNounsInsertSchema = createInsertSchema(properNouns).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const properNounsSelectSchema = createSelectSchema(properNouns)
 
-export const properNounsUpdateSchema = createUpdateSchema(properNouns)
+export const properNounsUpdateSchema = properNounsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 

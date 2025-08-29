@@ -12,16 +12,15 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   livemodePolicy,
-  createUpdateSchema,
   pgEnumColumn,
   nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { CurrencyCode, RefundStatus } from '@/types'
 
@@ -80,16 +79,10 @@ const columnRefinements = {
   currency: core.createSafeZodEnum(CurrencyCode),
 }
 
-export const refundsInsertSchema = enhancedCreateInsertSchema(
-  refunds,
-  columnRefinements
-)
+export const refundsInsertSchema = createInsertSchema(refunds).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 export const refundsSelectSchema =
   createSelectSchema(refunds).extend(columnRefinements)
-export const refundsUpdateSchema = createUpdateSchema(
-  refunds,
-  columnRefinements
-)
+export const refundsUpdateSchema = refundsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {

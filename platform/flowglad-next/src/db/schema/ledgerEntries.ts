@@ -14,9 +14,8 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   livemodePolicy,
-  createUpdateSchema,
   pgEnumColumn,
   timestampWithTimezoneColumn,
   SelectConditions,
@@ -31,7 +30,7 @@ import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
 import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import {
   LedgerEntryStatus,
@@ -179,7 +178,7 @@ const columnRefinements = {
   amount: core.safeZodPositiveIntegerOrZero,
   entryTimestamp: core.safeZodDate,
   discardedAt: core.safeZodDate.nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: z.record(z.string(), z.any()).nullable().optional(),
 }
 
 const nulledSourceColumnRefinements = {
@@ -269,10 +268,7 @@ export const usageCreditApplicationCreditTowardsUsageCostEntryRefinements =
     sourceUsageEventId: z.string(),
   }
 
-const coreLedgerEntryInsertSchema = enhancedCreateInsertSchema(
-  ledgerEntries,
-  columnRefinements
-).extend(columnRefinements)
+const coreLedgerEntryInsertSchema = createInsertSchema(ledgerEntries).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const usageCostInsertSchema =
   coreLedgerEntryInsertSchema.extend(usageCostEntryRefinements)
@@ -370,10 +366,7 @@ export const ledgerEntriesSelectSchema = z.discriminatedUnion(
   ]
 )
 
-export const coreLedgerEntriesUpdateSchema = createUpdateSchema(
-  ledgerEntries,
-  columnRefinements
-)
+export const coreLedgerEntriesUpdateSchema = coreLedgerEntryInsertSchema.partial().extend({ id: z.string() })
 
 export const usageCostUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(usageCostEntryRefinements)

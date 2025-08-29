@@ -11,7 +11,7 @@ import { z } from 'zod'
 import {
   constructIndex,
   pgEnumColumn,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   tableBase,
   notNullStringForeignKey,
   constructUniqueIndex,
@@ -22,7 +22,7 @@ import {
 } from '@/db/tableUtils'
 import { discounts } from '@/db/schema/discounts'
 import { purchases } from '@/db/schema/purchases'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -141,10 +141,7 @@ export const discountRedemptionsSelectSchema = z
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
 // Base insert schema
-const baseInsertSchema = enhancedCreateInsertSchema(
-  discountRedemptions,
-  columnRefinements
-)
+const baseInsertSchema = createInsertSchema(discountRedemptions).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 // Duration-specific insert schemas
 export const defaultDiscountRedemptionsInsertSchema =

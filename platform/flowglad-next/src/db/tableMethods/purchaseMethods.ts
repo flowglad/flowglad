@@ -79,7 +79,6 @@ export const selectPurchases = createSelectFunction(purchases, config)
 
 export const insertPurchase = createInsertFunction(
   purchases,
-  // @ts-expect-error
   config
 ) as (
   payload: Purchase.Insert,

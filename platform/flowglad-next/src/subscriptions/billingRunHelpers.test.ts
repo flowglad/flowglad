@@ -51,6 +51,7 @@ import {
   FeatureType,
   FeatureUsageGrantFrequency,
   PaymentStatus,
+  CountryCode,
 } from '@/types'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -1353,8 +1354,8 @@ describe('billingRunHelpers', async () => {
         await insertPayment(
           {
             amount: 50,
-            currency: 'USD',
-            status: 'succeeded',
+            currency: CurrencyCode.USD,
+            status: PaymentStatus.Succeeded,
             organizationId: organization.id,
             chargeDate: new Date(),
             customerId: customer.id,
@@ -1370,7 +1371,7 @@ describe('billingRunHelpers', async () => {
             refunded: false,
             refundedAmount: 0,
             refundedAt: null,
-            taxCountry: 'US',
+            taxCountry: CountryCode.US,
             paymentMethod: paymentMethod.type,
             stripePaymentIntentId: 'pi_test',
             livemode: billingPeriod.livemode,
@@ -1515,7 +1516,7 @@ describe('billingRunHelpers', async () => {
         await insertPayment(
           {
             amount: 1000000, // Overpayment
-            currency: 'USD',
+            currency: CurrencyCode.USD,
             status: PaymentStatus.Succeeded,
             organizationId: organization.id,
             chargeDate: new Date(),
@@ -1532,7 +1533,7 @@ describe('billingRunHelpers', async () => {
             refunded: false,
             refundedAmount: 0,
             refundedAt: null,
-            taxCountry: 'US',
+            taxCountry: CountryCode.US,
             paymentMethod: paymentMethod.type,
             stripePaymentIntentId: 'pi_overpayment_test',
             livemode: billingPeriod.livemode,

@@ -19,7 +19,7 @@ export const supabaseInsertPayloadSchema = <T extends z.ZodTypeAny>(
   supabasePayloadBaseSchema.extend({
     type: z.literal('INSERT'),
     record: recordSchema,
-  }) as z.ZodType<SupabaseInsertPayload<z.infer<T>>>
+  })
 
 export const supabaseUpdatePayloadSchema = <T extends z.ZodTypeAny>(
   recordSchema: T
@@ -28,4 +28,4 @@ export const supabaseUpdatePayloadSchema = <T extends z.ZodTypeAny>(
     type: z.literal('UPDATE'),
     record: recordSchema,
     old_record: recordSchema,
-  }) as z.ZodType<SupabaseUpdatePayload<z.infer<T>>>
+  })

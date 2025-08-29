@@ -66,7 +66,7 @@ export const ingestAndProcessUsageEvent = async (
       properties: usageEventInput.properties ?? {},
       usageDate: usageEventInput.usageDate
         ? new Date(usageEventInput.usageDate)
-        : undefined,
+        : new Date(),
     },
     transaction
   )

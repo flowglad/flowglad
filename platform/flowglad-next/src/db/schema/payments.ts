@@ -6,10 +6,10 @@ import {
   timestamp,
   pgPolicy,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   taxColumns,
   taxSchemaColumns,
@@ -17,7 +17,6 @@ import {
   notNullStringForeignKey,
   constructIndex,
   constructUniqueIndex,
-  createUpdateSchema,
   nullableStringForeignKey,
   livemodePolicy,
   createPaginatedSelectSchema,
@@ -33,7 +32,7 @@ import {
   CurrencyCode,
   RevenueChartIntervalUnit,
 } from '@/types'
-import core from '@/utils/core'
+import core, { zodOptionalNullableString } from '@/utils/core'
 import { purchases } from './purchases'
 import { customerClientSelectSchema, customers } from './customers'
 import { sql } from 'drizzle-orm'
@@ -132,27 +131,23 @@ const columnEnhancements = {
   status: core.createSafeZodEnum(PaymentStatus),
   currency: core.createSafeZodEnum(CurrencyCode),
   chargeDate: core.safeZodDate,
-  settlementDate: core.safeZodDate.nullable(),
-  refundedAt: core.safeZodDate.nullable(),
+  settlementDate: core.safeZodDate.nullable().optional(),
+  refundedAt: core.safeZodDate.nullable().optional(),
   paymentMethod: core.createSafeZodEnum(PaymentMethodType),
-  receiptNumber: z.string().nullable(),
-  receiptURL: z.string().url().nullable(),
+  receiptNumber: zodOptionalNullableString,
+  receiptURL: z.url().nullable().optional(),
   ...taxSchemaColumns,
+  taxType: taxSchemaColumns.taxType.nullable().optional(),
+  taxCountry: taxSchemaColumns.taxCountry.nullable().optional(),
 }
 
 export const paymentsSelectSchema = createSelectSchema(
   payments
 ).extend(columnEnhancements)
 
-export const paymentsInsertSchema = enhancedCreateInsertSchema(
-  payments,
-  columnEnhancements
-)
+export const paymentsInsertSchema = createInsertSchema(payments).omit(ommittedColumnsForInsertSchema).extend(columnEnhancements)
 
-export const paymentsUpdateSchema = createUpdateSchema(
-  payments,
-  columnEnhancements
-)
+export const paymentsUpdateSchema = paymentsInsertSchema.partial().extend({ id: z.string() })
 
 const readonlyColumns = {
   organizationId: true,

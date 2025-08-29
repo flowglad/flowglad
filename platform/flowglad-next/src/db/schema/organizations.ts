@@ -21,7 +21,7 @@ import {
   hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
-import core from '@/utils/core'
+import core, { zodOptionalNullableString } from '@/utils/core'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -103,21 +103,22 @@ export const organizations = pgTable(
   }
 ).enableRLS()
 
+
 const billingAddressSchemaColumns = {
-  name: z.string().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  email: z.string().email().optional(),
+  name: zodOptionalNullableString,
+  firstName: zodOptionalNullableString,
+  lastName: zodOptionalNullableString,
+  email: z.email().nullable().optional(),
   address: z.object({
-    name: z.string().optional(),
-    line1: z.string().nullable(),
-    line2: z.string().nullable(),
-    city: z.string().nullable(),
-    state: z.string().nullable(),
-    postal_code: z.string().nullable(),
+    name: zodOptionalNullableString,
+    line1: zodOptionalNullableString,
+    line2: zodOptionalNullableString,
+    city: zodOptionalNullableString,
+    state: zodOptionalNullableString,
+    postal_code: zodOptionalNullableString,
     country: z.string(),
   }),
-  phone: z.string().optional(),
+  phone: zodOptionalNullableString,
 }
 
 export const billingAddressSchema = z.object(
@@ -130,11 +131,11 @@ export type BillingAddress = z.infer<typeof billingAddressSchema>
 const commonColumnRefinements = {
   onboardingStatus: core.createSafeZodEnum(BusinessOnboardingStatus),
   defaultCurrency: core.createSafeZodEnum(CurrencyCode),
-  billingAddress: billingAddressSchema,
-  contactEmail: z.string().email().nullable(),
+  billingAddress: billingAddressSchema.nullable().optional(),
+  contactEmail: z.email().nullable().optional(),
   featureFlags: z.record(z.string(), z.boolean()),
   stripeConnectContractType: z.nativeEnum(StripeConnectContractType),
-  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger.optional(),
+  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger,
 }
 
 // Column refinements for SELECT schemas only
@@ -146,6 +147,7 @@ const selectColumnRefinements = {
 // Column refinements for INSERT schemas (without auto-generated columns)
 const insertColumnRefinements = {
   ...commonColumnRefinements,
+  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger.optional(),
 }
 
 export const organizationsSelectSchema = createSelectSchema(

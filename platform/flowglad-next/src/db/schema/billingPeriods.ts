@@ -10,8 +10,7 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   livemodePolicy,
   SelectConditions,
@@ -19,7 +18,7 @@ import {
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { BillingPeriodStatus } from '@/types'
 import { sql } from 'drizzle-orm'
 
@@ -64,18 +63,12 @@ const columnRefinements = {
 /*
  * database schemas
  */
-export const billingPeriodsInsertSchema = enhancedCreateInsertSchema(
-  billingPeriods,
-  columnRefinements
-)
+export const billingPeriodsInsertSchema = createInsertSchema(billingPeriods).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const billingPeriodsSelectSchema =
   createSelectSchema(billingPeriods).extend(columnRefinements)
 
-export const billingPeriodsUpdateSchema = createUpdateSchema(
-  billingPeriods,
-  columnRefinements
-)
+export const billingPeriodsUpdateSchema = billingPeriodsInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   subscriptionId: true,

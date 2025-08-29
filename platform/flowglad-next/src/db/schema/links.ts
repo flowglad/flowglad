@@ -5,9 +5,8 @@ import { z } from 'zod'
 import {
   tableBase,
   constructIndex,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   nullableStringForeignKey,
-  createUpdateSchema,
   notNullStringForeignKey,
   livemodePolicy,
   SelectConditions,
@@ -15,7 +14,7 @@ import {
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { products } from '@/db/schema/products'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { fileClientInsertSchema } from './files'
 
 const TABLE_NAME = 'links'
@@ -55,18 +54,12 @@ const columnRefinements = {
 /*
  * database schemas
  */
-export const linksInsertSchema = enhancedCreateInsertSchema(
-  links,
-  columnRefinements
-).extend(columnRefinements)
+export const linksInsertSchema = createInsertSchema(links).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const linksSelectSchema =
   createSelectSchema(links).extend(columnRefinements)
 
-export const linksUpdateSchema = createUpdateSchema(
-  links,
-  columnRefinements
-)
+export const linksUpdateSchema = linksInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   organizationId: true,

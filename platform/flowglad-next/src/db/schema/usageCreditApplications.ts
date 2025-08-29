@@ -13,15 +13,14 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   livemodePolicy,
-  createUpdateSchema,
   pgEnumColumn,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { usageEvents } from './usageEvents'
 import { UsageCreditApplicationStatus } from '@/types'
@@ -77,24 +76,18 @@ export const usageCreditApplications = pgTable(
 const columnRefinements = {
   amountApplied: core.safeZodPositiveInteger,
   appliedAt: core.safeZodDate,
-  status: z.nativeEnum(UsageCreditApplicationStatus),
-  targetUsageMeterId: z.string().nullable(),
+  status: core.createSafeZodEnum(UsageCreditApplicationStatus),
+  targetUsageMeterId: z.string().nullable().optional(),
 }
 
 export const usageCreditApplicationsInsertSchema =
-  enhancedCreateInsertSchema(
-    usageCreditApplications,
-    columnRefinements
-  )
+  createInsertSchema(usageCreditApplications).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const usageCreditApplicationsSelectSchema = createSelectSchema(
   usageCreditApplications
 ).extend(columnRefinements)
 
-export const usageCreditApplicationsUpdateSchema = createUpdateSchema(
-  usageCreditApplications,
-  columnRefinements
-)
+export const usageCreditApplicationsUpdateSchema = usageCreditApplicationsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {

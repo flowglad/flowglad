@@ -6,8 +6,6 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
   livemodePolicy,
   createSupabaseWebhookSchema,
   ommittedColumnsForInsertSchema,

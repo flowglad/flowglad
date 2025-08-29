@@ -335,14 +335,15 @@ export const safeZodPositiveInteger = z
   )
   .describe('safeZodPositiveInteger')
 
+export const zodOptionalNullableString = z.string().nullable().optional()
+
 export const safeZodPositiveIntegerOrZero = safeZodPositiveInteger.or(
   z.literal(0)
 )
 
 export const safeZodNullOrUndefined = z
   .null()
-  .or(z.undefined())
-  .nullish()
+  .optional()
   .transform(() => {
     return null
   })
@@ -361,24 +362,15 @@ export const nanoid = customAlphabet(
   21
 )
 
-export const createSafeZodEnum = <T extends z.EnumLike>(
+type EnumValues<T> = T extends Record<string, infer U> ? U : never
+
+export const createSafeZodEnum = <
+  T extends Record<string, string>
+>(
   enumType: T
 ) => {
-  return z.nativeEnum(enumType)
-  // .or(z.string())
-  // .transform((value) => {
-  //   let enumValue: T[keyof T] = value as T[keyof T]
-  //   if (typeof value === 'string') {
-  //     const enumValues = Object.values(enumType) as string[]
-  //     const enumKeys = Object.keys(enumType)
-  //     const index = enumValues.indexOf(value)
-  //     if (index !== -1) {
-  //       enumValue =
-  //         enumType[enumKeys[index] as keyof typeof enumType]
-  //     }
-  //   }
-  //   return enumValue as T[keyof T]
-  // })
+  const values = Object.values(enumType) as [EnumValues<T>, ...EnumValues<T>[]]
+  return z.enum(values as [EnumValues<T>, ...EnumValues<T>[]])
 }
 
 /**

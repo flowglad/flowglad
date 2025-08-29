@@ -82,7 +82,7 @@ export const messagesSelectSchema = createSelectSchema(
 
 export const messagesInsertSchema = createInsertSchema(messages).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
 
-export const messagesUpdateSchema = messagesInsertSchema.extend({ id: z.string() })
+export const messagesUpdateSchema = messagesInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   customerId: true,

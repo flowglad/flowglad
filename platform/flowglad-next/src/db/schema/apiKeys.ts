@@ -13,7 +13,6 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  createUpdateSchema,
   livemodePolicy,
   idInputSchema,
   pgEnumColumn,
@@ -84,10 +83,7 @@ export const coreApiKeysSelectSchema = createSelectSchema(
   columnRefinements
 ).extend(columnRefinements)
 
-export const coreApiKeysUpdateSchema = createUpdateSchema(
-  apiKeys,
-  columnRefinements
-)
+export const coreApiKeysUpdateSchema = coreApiKeysInsertSchema.partial().extend({ id: z.string() })
 
 const hostedBillingApiKeyColumns = {
   type: z.literal(FlowgladApiKeyType.BillingPortalToken),

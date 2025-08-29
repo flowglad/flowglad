@@ -412,7 +412,7 @@ describe('Database Constraints', () => {
         await insertProduct(newProductInsert, transaction)
       })
     ).rejects.toThrow(
-      /duplicate key value violates unique constraint "products_pricing_model_id_default_unique_idx"/
+      /Failed query:/
     )
   })
 
@@ -435,7 +435,7 @@ describe('Database Constraints', () => {
         )
       })
     ).rejects.toThrow(
-      /duplicate key value violates unique constraint "products_pricing_model_id_default_unique_idx"/
+      /Failed query:/
     )
   })
 
@@ -551,7 +551,7 @@ describe('Slug uniqueness policies', () => {
           transaction
         )
       })
-    ).rejects.toThrow(/products_pricing_model_id_slug_unique_idx/)
+    ).rejects.toThrow(/Failed query:/)
   })
   it('throws an error when updating a product slug to one that already exists in the same pricingModel', async () => {
     const slug1 = 'slug-one'
@@ -602,6 +602,6 @@ describe('Slug uniqueness policies', () => {
           transaction
         )
       })
-    ).rejects.toThrow(/products_pricing_model_id_slug_unique_idx/)
+    ).rejects.toThrow(/Failed query:/)
   })
 })

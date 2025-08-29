@@ -13,18 +13,17 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
   livemodePolicy,
   constructUniqueIndex,
   SelectConditions,
   hiddenColumnsForClientSchema,
   nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { billingPeriods } from '@/db/schema/billingPeriods'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
 
@@ -144,6 +143,7 @@ const columnRefinements = {
   billingPeriodId: z
     .string()
     .nullable()
+    .optional()
     .describe(
       'The billing period the usage belongs to. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing peirod.'
     ),
@@ -154,23 +154,18 @@ const columnRefinements = {
     ),
   properties: z
     .record(z.string(), z.unknown())
+    .optional()
     .describe(
       'Properties for the usage event. Only required when using the "count_distinct_properties" aggregation type.'
     ),
 }
 
-export const usageEventsInsertSchema = enhancedCreateInsertSchema(
-  usageEvents,
-  columnRefinements
-)
+export const usageEventsInsertSchema = createInsertSchema(usageEvents).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const usageEventsSelectSchema =
   createSelectSchema(usageEvents).extend(columnRefinements)
 
-export const usageEventsUpdateSchema = createUpdateSchema(
-  usageEvents,
-  columnRefinements
-)
+export const usageEventsUpdateSchema = usageEventsInsertSchema.partial().extend({ id: z.string() }).extend(columnRefinements)
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,

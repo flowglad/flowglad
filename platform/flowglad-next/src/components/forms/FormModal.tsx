@@ -16,7 +16,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import core from '@/utils/core'
 import { useEffect, useId, useState } from 'react'
 import ErrorLabel from '@/components/ErrorLabel'
-import ChatPreviewDetails from '../ChatPreviewDetails'
 import {
   Drawer,
   DrawerContent,
@@ -70,10 +69,6 @@ interface FormModalProps<T extends FieldValues>
   wide?: boolean
   extraWide?: boolean
   /**
-   * If true, the modal will be rendered as a chat preview
-   */
-  chatPreview?: boolean
-  /**
    * Override the default submit button text, which is "Submit"
    */
   submitButtonText?: string
@@ -104,7 +99,6 @@ export const NestedFormModal = <T extends FieldValues>({
   children,
   wide,
   extraWide,
-  chatPreview,
   submitButtonText,
   autoClose = true,
   form,
@@ -170,17 +164,7 @@ export const NestedFormModal = <T extends FieldValues>({
     </div>
   )
 
-  if (chatPreview) {
-    return (
-      <ChatPreviewDetails
-        onClose={() => setIsOpen(false)}
-        footer={footer}
-        title={title}
-      >
-        {innerContent}
-      </ChatPreviewDetails>
-    )
-  }
+  
 
   return (
     <Modal
@@ -212,7 +196,6 @@ const FormModal = <T extends FieldValues>({
   children,
   wide,
   extraWide,
-  chatPreview,
   submitButtonText,
   autoClose = true,
   hideFooter = false,
@@ -313,17 +296,7 @@ const FormModal = <T extends FieldValues>({
     </Modal>
   )
 
-  if (chatPreview) {
-    content = (
-      <ChatPreviewDetails
-        onClose={() => setIsOpen(false)}
-        footer={footer}
-        title={title}
-      >
-        {innerContent}
-      </ChatPreviewDetails>
-    )
-  } else if (mode === 'drawer') {
+  if (mode === 'drawer') {
     content = (
       <Drawer
         open={isOpen}
@@ -352,7 +325,9 @@ const FormModal = <T extends FieldValues>({
           const parsed = formSchema.safeParse(data)
           if (!parsed.success) {
             reset(data, { keepIsSubmitted: false })
-            return form.setError('root', parsed.error)
+            return form.setError('root', {
+              message: parsed.error.message,
+            })
           }
           try {
             await onSubmit(data)

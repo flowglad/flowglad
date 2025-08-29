@@ -55,6 +55,8 @@ import {
   RefundStatus,
   UsageCreditApplicationStatus,
   SubscriptionItemType,
+  StripeConnectContractType,
+  BusinessOnboardingStatus,
 } from '@/types'
 import { core, isNil } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -170,6 +172,20 @@ export const setupOrg = async (params?: {
         monthlyBillingVolumeFreeTier:
           params?.monthlyBillingVolumeFreeTier ?? undefined,
         feePercentage: params?.feePercentage ?? undefined,
+        onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+        stripeConnectContractType: StripeConnectContractType.Platform,
+        featureFlags: {},
+        contactEmail: 'test@test.com',
+        billingAddress: {
+          address: {
+            line1: '123 Test St',
+            line2: 'Apt 1',
+            city: 'Test City',
+            state: 'Test State',
+            postal_code: '12345',
+            country: 'US',
+          },
+        },
       },
       transaction
     )
@@ -1512,7 +1528,7 @@ export const setupUsageEvent = async (
     return insertUsageEvent(
       {
         livemode: true,
-        usageDate: params.usageDate,
+        usageDate: params.usageDate ?? new Date(),
         properties: params.properties ?? {},
         ...params,
       },

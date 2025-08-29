@@ -5,14 +5,13 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   livemodePolicy,
-  createUpdateSchema,
   constructUniqueIndex,
   pgEnumColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { subscriptions } from './subscriptions'
 import { LedgerTransactionType } from '@/types'
@@ -75,20 +74,13 @@ const columnRefinements = {
   type: z.nativeEnum(LedgerTransactionType),
 }
 
-export const ledgerTransactionsInsertSchema =
-  enhancedCreateInsertSchema(
-    ledgerTransactions,
-    columnRefinements
-  ).extend(columnRefinements)
+export const ledgerTransactionsInsertSchema = createInsertSchema(ledgerTransactions).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const ledgerTransactionsSelectSchema = createSelectSchema(
   ledgerTransactions
 ).extend(columnRefinements)
 
-export const ledgerTransactionsUpdateSchema = createUpdateSchema(
-  ledgerTransactions,
-  columnRefinements
-)
+export const ledgerTransactionsUpdateSchema = ledgerTransactionsInsertSchema.partial().extend({ id: z.string() })
 
 const hiddenColumns = {
   createdByCommit: true,

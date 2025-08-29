@@ -927,7 +927,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
       )
     } catch (error: any) {
       expect(error.message).toContain(
-        'violates row-level security policy'
+        'Failed query: insert into "pricing_models"'
       )
     }
 

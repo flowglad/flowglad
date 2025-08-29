@@ -52,7 +52,7 @@ export const countriesSelectSchema = createSelectSchema(
 
 export const countriesInsertSchema = createInsertSchema(countries).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
 
-export const countriesUpdateSchema = countriesInsertSchema.extend({ id: z.string() })
+export const countriesUpdateSchema = countriesInsertSchema.partial().extend({ id: z.string() })
 
 export namespace Country {
   export type Insert = z.infer<typeof countriesInsertSchema>

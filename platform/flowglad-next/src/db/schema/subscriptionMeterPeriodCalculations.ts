@@ -12,18 +12,17 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   livemodePolicy,
   pgEnumColumn,
-  createUpdateSchema,
   nullableStringForeignKey,
   timestampWithTimezoneColumn,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { billingPeriods } from '@/db/schema/billingPeriods'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
 import core from '@/utils/core'
 import { invoices } from './invoices'
@@ -131,10 +130,7 @@ const columnRefinements = {
  * Database Schemas
  */
 export const subscriptionMeterPeriodCalculationInsertSchema =
-  enhancedCreateInsertSchema(
-    subscriptionMeterPeriodCalculations,
-    columnRefinements
-  )
+  createInsertSchema(subscriptionMeterPeriodCalculations).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const subscriptionMeterPeriodCalculationSelectSchema =
   createSelectSchema(subscriptionMeterPeriodCalculations).extend(
@@ -142,10 +138,7 @@ export const subscriptionMeterPeriodCalculationSelectSchema =
   )
 
 export const subscriptionMeterPeriodCalculationUpdateSchema =
-  createUpdateSchema(
-    subscriptionMeterPeriodCalculations,
-    columnRefinements
-  )
+  subscriptionMeterPeriodCalculationInsertSchema.extend({ id: z.string() })
 
 // Simplified omit logic for client schemas
 const baseHiddenClientKeys = {

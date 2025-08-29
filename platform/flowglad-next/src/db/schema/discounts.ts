@@ -8,7 +8,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructIndex,
   constructUniqueIndex,
@@ -23,7 +23,7 @@ import {
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 
@@ -99,10 +99,7 @@ const columnRefinements = {
     .transform((code) => code.toUpperCase()),
 }
 
-const baseDiscountSchema = enhancedCreateInsertSchema(
-  discounts,
-  columnRefinements
-)
+const baseDiscountSchema = createInsertSchema(discounts).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 const supabaseSchemas = createSupabaseWebhookSchema({
   table: discounts,

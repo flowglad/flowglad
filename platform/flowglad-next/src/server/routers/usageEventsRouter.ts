@@ -144,7 +144,7 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
               ?.usageMeterId!,
             usageDate: usageEvent.usageDate
               ? new Date(usageEvent.usageDate)
-              : undefined,
+              : new Date(),
           }))
         return await bulkInsertOrDoNothingUsageEventsByTransactionId(
           usageInsertsWithBillingPeriodId,

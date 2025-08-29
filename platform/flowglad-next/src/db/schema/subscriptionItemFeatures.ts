@@ -7,8 +7,6 @@ import {
   nullableStringForeignKey,
   constructIndex,
   constructUniqueIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
   livemodePolicy,
   pgEnumColumn,
   SelectConditions,
@@ -21,8 +19,8 @@ import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { features } from '@/db/schema/features'
 import { productFeatures } from '@/db/schema/productFeatures'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema } from 'drizzle-zod'
-import core from '@/utils/core'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import core, { zodOptionalNullableString } from '@/utils/core'
 import { FeatureUsageGrantFrequency, FeatureType } from '@/types'
 
 const TABLE_NAME = 'subscription_item_features'
@@ -94,21 +92,18 @@ const columnRefinements = {
   renewalFrequency: core
     .createSafeZodEnum(FeatureUsageGrantFrequency)
     .nullable(),
-  amount: z.number().int().nullable(),
-  usageMeterId: z.string().nullable(),
-  productFeatureId: z.string().nullable(),
-  detachedAt: z.date().nullable(),
-  detachedReason: z.string().nullable(),
+  amount: z.number().int().nullable().optional(),
+  usageMeterId: zodOptionalNullableString,
+  productFeatureId: zodOptionalNullableString,
+  detachedAt: z.date().nullable().optional(),
+  detachedReason: zodOptionalNullableString,
 }
 
 /*
  * Core database schemas
  */
 export const coreSubscriptionItemFeaturesInsertSchema =
-  enhancedCreateInsertSchema(
-    subscriptionItemFeatures,
-    columnRefinements
-  )
+  createInsertSchema(subscriptionItemFeatures).omit(baseOmittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const coreSubscriptionItemFeaturesSelectSchema =
   createSelectSchema(subscriptionItemFeatures).extend(
@@ -116,16 +111,16 @@ export const coreSubscriptionItemFeaturesSelectSchema =
   )
 
 export const coreSubscriptionItemFeaturesUpdateSchema =
-  createUpdateSchema(subscriptionItemFeatures, columnRefinements)
+  coreSubscriptionItemFeaturesInsertSchema.extend({ id: z.string() })
 
 /*
  * Toggle SubscriptionItemFeature schemas
  */
 const toggleSubscriptionItemFeatureSharedColumns = {
   type: z.literal(FeatureType.Toggle),
-  amount: z.literal(null).nullable(),
-  usageMeterId: z.literal(null).nullable(),
-  renewalFrequency: z.literal(null).nullable(),
+  amount: z.literal(null).optional(),
+  usageMeterId: z.literal(null).optional(),
+  renewalFrequency: z.literal(null).optional(),
 }
 
 export const toggleSubscriptionItemFeatureInsertSchema =

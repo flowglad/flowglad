@@ -14,6 +14,7 @@ import {
   SQL,
   ilike,
   or,
+  SQLWrapper,
 } from 'drizzle-orm'
 import core, { gitCommitId } from '@/utils/core'
 import {
@@ -42,7 +43,6 @@ import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
 import { z } from 'zod'
 import {
   createSelectSchema,
-  createInsertSchema as zodCreateInsertSchema,
 } from 'drizzle-zod'
 import { noCase, sentenceCase, snakeCase } from 'change-case'
 
@@ -53,10 +53,7 @@ type ZodTableUnionOrType<
 > =
   | z.ZodType<T, any, any>
   | z.ZodUnion<[z.ZodType<T, any, any>, ...z.ZodType<T, any, any>[]]>
-  | z.ZodDiscriminatedUnion<
-      string,
-      z.ZodDiscriminatedUnionOption<string>[]
-    >
+  | z.ZodDiscriminatedUnion
 
 export interface ORMMethodCreatorConfig<
   T extends PgTableWithId,
@@ -91,7 +88,7 @@ export const createSelectById = <
      */
     const results = await transaction
       .select()
-      .from(table)
+      .from(table as SelectTable)
       .where(eq(table.id, id))
     if (results.length === 0) {
       throw Error(
@@ -161,6 +158,8 @@ export const createInsertFunction = <
   }
 }
 
+type SelectTable = Parameters<ReturnType<DbTransaction['select']>['from']>[0]
+
 export const createUpdateFunction = <
   T extends PgTableWithId,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
@@ -191,7 +190,7 @@ export const createUpdateFunction = <
     if (!result) {
       const [latestItem] = await transaction
         .select()
-        .from(table)
+        .from(table as SelectTable)
         .where(eq(table.id, update.id))
         .limit(1)
       if (!latestItem) {
@@ -266,7 +265,7 @@ export const createSelectFunction = <
     selectConditions: SelectConditions<T>,
     transaction: DbTransaction
   ): Promise<DBMethodReturn<T, S>> => {
-    let query = transaction.select().from(table).$dynamic()
+    let query = transaction.select().from(table as SelectTable).$dynamic()
     if (!R.isEmpty(selectConditions)) {
       query = query.where(
         whereClauseFromObject(table, selectConditions)
@@ -285,7 +284,7 @@ export const createSelectFunction = <
         )
       }
       return parsed.data
-    }) as InferSelectModel<T>[]
+    }) as DBMethodReturn<T, S>
   }
 }
 
@@ -296,7 +295,7 @@ export const selectByIds = <TTable extends PgTableWithId>(
 ) => {
   return transaction
     .select()
-    .from(table)
+    .from(table as SelectTable)
     .where(inArray(table.id, ids))
 }
 
@@ -604,19 +603,6 @@ export const hiddenColumnsForClientSchema = {
   position: true,
 } as const
 
-type SchemaRefinements<T extends PgTableWithId> = Parameters<
-  typeof zodCreateInsertSchema<T>
->[1]
-
-export const enhancedCreateInsertSchema = <T extends PgTableWithId>(
-  table: T,
-  refine: SchemaRefinements<T>
-) => {
-  return zodCreateInsertSchema(table, refine).omit(
-    ommittedColumnsForInsertSchema
-  )
-}
-
 export const createPaginatedSelectSchema = <T extends {}>(
   parameters: ZodTableUnionOrType<T>
 ) => {
@@ -629,13 +615,6 @@ export const createPaginatedSelectSchema = <T extends {}>(
   }>
 }
 
-export const createFlowgladSelectSchema = <T extends PgTableWithId>(
-  table: T,
-  refine?: Parameters<typeof createSelectSchema<T>>[1]
-) => {
-  return createSelectSchema(table, refine)
-}
-
 export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
   table,
   tableName,
@@ -643,9 +622,7 @@ export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
 }: {
   table: T
   tableName: string
-  refine?: Parameters<
-    ReturnType<typeof createSelectSchema<T>>['extend']
-  >[0]
+  refine: { [K in keyof T['$inferSelect']]?: z.ZodType<T['$inferSelect'][K]> }
 }) => {
   const selectSchema = refine
     ? createSelectSchema(table).extend(refine)
@@ -669,15 +646,6 @@ export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
     supabaseInsertPayloadSchema,
     supabaseUpdatePayloadSchema,
   }
-}
-
-export const createUpdateSchema = <T extends PgTableWithId>(
-  table: T,
-  refine?: SchemaRefinements<T>
-) => {
-  return enhancedCreateInsertSchema(table, refine).partial().extend({
-    id: z.string(),
-  })
 }
 
 export const createBulkInsertFunction = <
@@ -868,7 +836,7 @@ export const createPaginatedSelectFunction = <
           createdAt: new Date(),
           direction: 'forward',
         }
-    let query = transaction.select().from(table).$dynamic()
+    let query = transaction.select().from(table as SelectTable).$dynamic()
     if (Object.keys(parameters).length > 0) {
       query = query.where(
         and(
@@ -892,10 +860,10 @@ export const createPaginatedSelectFunction = <
     // Check if we got an extra item
     const hasMore = result.length > limit
     // Remove the extra item if it exists
-    const data = result.slice(0, limit)
+    const data = result.slice(0, limit) as InferSelectModel<T>[]
     let totalQuery = transaction
       .select({ count: count() })
-      .from(table)
+      .from(table as SelectTable)
       .$dynamic()
     if (Object.keys(parameters).length > 0) {
       totalQuery = totalQuery.where(
@@ -985,7 +953,7 @@ export const testEnumColumn = async <T extends PgTableWithId>(
 ) => {
   const result = await transaction
     .select()
-    .from(table)
+    .from(table as SelectTable)
     .where(inArray(column, Object.values(enumValues)))
     .limit(1)
   return result
@@ -1031,12 +999,12 @@ const cursorComparison = async <T extends PgTableWithPosition>(
   }
   const results = await transaction
     .select()
-    .from(table)
+    .from(table as SelectTable)
     .where(eq(table.id, cursor))
   if (results.length === 0) {
     return undefined
   }
-  const result = results[0]
+  const result = results[0] as InferSelectModel<T>
   const comparisonOperator = isForward ? lt : gt
   /**
    * When we're paginating forward, we want to include the item at the cursor
@@ -1120,14 +1088,14 @@ export const createCursorPaginatedSelectFunction = <
 
       const queryResult = await transaction
         .select()
-        .from(table)
+        .from(table as SelectTable)
         .where(whereClauses)
         .orderBy(...orderBy)
         .limit(pageSize + 1)
 
       const total = await transaction
         .select({ count: count() })
-        .from(table)
+        .from(table as SelectTable)
         .$dynamic()
         .where(and(filterClause, searchQueryClause))
 
@@ -1136,7 +1104,7 @@ export const createCursorPaginatedSelectFunction = <
         .slice(0, pageSize)
       const enrichedData: z.infer<D>[] = await (enrichmentFunction
         ? enrichmentFunction(data, transaction)
-        : Promise.resolve(data))
+        : Promise.resolve(data as unknown as z.infer<D>[]))
 
       const items: z.infer<D>[] = enrichedData.map((item) =>
         dataSchema.parse(item)
@@ -1177,7 +1145,7 @@ export const createCursorPaginatedSelectFunction = <
       // Get total count first to calculate if we need a partial last page
       const total = await transaction
         .select({ count: count() })
-        .from(table)
+        .from(table as SelectTable)
         .$dynamic()
         .where(and(filterClause, searchQueryClause))
 
@@ -1191,7 +1159,7 @@ export const createCursorPaginatedSelectFunction = <
 
       const queryResult = await transaction
         .select()
-        .from(table)
+        .from(table as SelectTable)
         .where(whereClauses)
         .orderBy(...orderBy) // Already in desc order
         .offset(offset)
@@ -1202,7 +1170,7 @@ export const createCursorPaginatedSelectFunction = <
         .slice(0, lastPageSize)
       const enrichedData: z.infer<D>[] = await (enrichmentFunction
         ? enrichmentFunction(data, transaction)
-        : Promise.resolve(data))
+        : Promise.resolve(data as unknown as z.infer<D>[]))
 
       const items: z.infer<D>[] = enrichedData.map((item) =>
         dataSchema.parse(item)
@@ -1255,7 +1223,7 @@ export const createCursorPaginatedSelectFunction = <
     // Query for items
     let queryResult = await transaction
       .select()
-      .from(table)
+      .from(table as SelectTable)
       .where(whereClauses)
       .orderBy(...orderBy)
       .limit(pageSize + 1)
@@ -1269,7 +1237,7 @@ export const createCursorPaginatedSelectFunction = <
 
     const total = await transaction
       .select({ count: count() })
-      .from(table)
+      .from(table as SelectTable)
       .$dynamic()
       .where(filterClause)
 
@@ -1278,7 +1246,7 @@ export const createCursorPaginatedSelectFunction = <
       .slice(0, pageSize)
     const enrichedData: z.infer<D>[] = await (enrichmentFunction
       ? enrichmentFunction(data, transaction)
-      : Promise.resolve(data))
+      : Promise.resolve(data as unknown as z.infer<D>[]))
 
     // Slice to pageSize and get cursors
     const items: z.infer<D>[] = enrichedData.map((item) =>

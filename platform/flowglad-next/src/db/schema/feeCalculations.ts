@@ -12,7 +12,6 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   pgEnumColumn,
   livemodePolicy,
   idInputSchema,
@@ -35,7 +34,7 @@ import {
   PaymentMethodType,
 } from '@/types'
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { prices } from './prices'
 import { billingPeriods } from './billingPeriods'
@@ -127,8 +126,7 @@ const columnRefinements = {
   currency: core.createSafeZodEnum(CurrencyCode),
 }
 
-export const coreFeeCalculationsInsertSchema =
-  enhancedCreateInsertSchema(feeCalculations, columnRefinements)
+export const coreFeeCalculationsInsertSchema = createInsertSchema(feeCalculations).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const coreFeeCalculationsSelectSchema =
   createSelectSchema(feeCalculations).extend(columnRefinements)

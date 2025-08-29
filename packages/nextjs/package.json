@@ -22,7 +22,7 @@
     "@flowglad/server": "workspace:*",
     "@flowglad/node": "0.21.0",
     "@vercel/mcp-adapter": "0.11.1",
-    "zod": "3.25.76"
+    "zod": "4.1.5"
   },
   "devDependencies": {
     "@types/react": "18.3.12",

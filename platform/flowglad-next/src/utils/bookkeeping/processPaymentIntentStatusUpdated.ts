@@ -2,6 +2,7 @@ import {
   CurrencyCode,
   PaymentStatus,
   CheckoutSessionType,
+  Nullish,
 } from '@/types'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { CountryCode } from '@/types'
@@ -71,15 +72,15 @@ export const upsertPaymentForStripeCharge = async (
       `No metadata found on payment intent ${paymentIntentId}`
     )
   }
-  let organizationId: string | null = null
-  let invoiceId: string | null = null
-  let purchaseId: string | null = null
-  let purchase: Purchase.Record | null = null
-  let taxCountry: CountryCode | null = null
-  let livemode: boolean | null = null
-  let customerId: string | null = null
-  let currency: CurrencyCode | null = null
-  let subscriptionId: string | null = null
+  let organizationId: Nullish<string> = null
+  let invoiceId: Nullish<string> = null
+  let purchaseId: Nullish<string> = null
+  let purchase: Nullish<Purchase.Record> = null
+  let taxCountry: Nullish<CountryCode> = null
+  let livemode: Nullish<boolean> = null
+  let customerId: Nullish<string> = null
+  let currency: Nullish<CurrencyCode> = null
+  let subscriptionId: Nullish<string> = null
   if ('billingRunId' in paymentIntentMetadata) {
     const billingRun = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,

@@ -191,6 +191,7 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
       usageEventId: usageCost.sourceUsageEventId,
       amountApplied: usageCost.amount,
       targetUsageMeterId: usageCredit.usageMeterId,
+      appliedAt: usageCost.createdAt,
     })
   })
   return await bulkInsertUsageCreditApplications(

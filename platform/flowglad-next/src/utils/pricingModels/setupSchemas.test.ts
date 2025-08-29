@@ -9,6 +9,7 @@ import {
   PriceType,
   IntervalUnit,
   FeatureUsageGrantFrequency,
+  UsageMeterAggregationType,
 } from '@/types'
 import { ZodError } from 'zod'
 
@@ -119,7 +120,7 @@ describe('validateSetupPricingModelInput', () => {
           active: true,
         },
       ],
-      usageMeters: [{ slug: 'm1', name: 'Meter One' }],
+      usageMeters: [{ slug: 'm1', name: 'Meter One', aggregationType: UsageMeterAggregationType.Sum }],
       products: [
         {
           product: {

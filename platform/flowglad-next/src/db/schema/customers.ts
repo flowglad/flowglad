@@ -6,12 +6,11 @@ import {
   pgTable,
   text,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   constructIndex,
   constructUniqueIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
   notNullStringForeignKey,
   tableBase,
   createSupabaseWebhookSchema,
@@ -133,7 +132,7 @@ const nonClientEditableColumns = {
 } as const
 
 const zodSchemaEnhancementColumns = {
-  billingAddress: billingAddressSchema.nullable(),
+  billingAddress: billingAddressSchema.nullable().optional(),
 }
 
 export const customersSelectSchema = createSelectSchema(
@@ -141,15 +140,9 @@ export const customersSelectSchema = createSelectSchema(
   zodSchemaEnhancementColumns
 )
 
-export const customersInsertSchema = enhancedCreateInsertSchema(
-  customers,
-  zodSchemaEnhancementColumns
-)
+export const customersInsertSchema = createInsertSchema(customers).omit(ommittedColumnsForInsertSchema).extend(zodSchemaEnhancementColumns)
 
-export const customersUpdateSchema = createUpdateSchema(
-  customers,
-  zodSchemaEnhancementColumns
-)
+export const customersUpdateSchema = customersInsertSchema.partial().extend({ id: z.string() })
 
 const clientWriteOmits = R.omit(
   ['position'],

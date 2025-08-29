@@ -3,8 +3,7 @@ import { integer, text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   constructIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
   constructUniqueIndex,
   nullableStringForeignKey,
   tableBase,
@@ -14,7 +13,7 @@ import {
   hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { products } from './products'
 import { sql } from 'drizzle-orm'
 
@@ -61,18 +60,12 @@ const columnRefinements = {
 /*
  * database schema
  */
-export const filesInsertSchema = enhancedCreateInsertSchema(
-  files,
-  columnRefinements
-).extend(columnRefinements)
+export const filesInsertSchema = createInsertSchema(files).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const filesSelectSchema =
   createSelectSchema(files).extend(columnRefinements)
 
-export const filesUpdateSchema = createUpdateSchema(
-  files,
-  columnRefinements
-)
+export const filesUpdateSchema = filesInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   organizationId: true,
