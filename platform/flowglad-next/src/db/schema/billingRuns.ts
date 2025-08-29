@@ -12,8 +12,7 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   livemodePolicy,
   SelectConditions,
@@ -21,7 +20,7 @@ import {
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import core from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { BillingRunStatus } from '@/types'
 import { sql } from 'drizzle-orm'
 import { subscriptions } from './subscriptions'
@@ -80,24 +79,18 @@ export const billingRuns = pgTable(
 
 const columnRefinements = {
   status: core.createSafeZodEnum(BillingRunStatus),
-  errorDetails: z.record(z.unknown()).nullable(),
+  errorDetails: z.record(z.string(), z.unknown()).nullable().optional(),
 }
 
 /*
  * database schemas
  */
-export const billingRunsInsertSchema = enhancedCreateInsertSchema(
-  billingRuns,
-  columnRefinements
-)
+export const billingRunsInsertSchema = createInsertSchema(billingRuns).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const billingRunsSelectSchema =
   createSelectSchema(billingRuns).extend(columnRefinements)
 
-export const billingRunsUpdateSchema = createUpdateSchema(
-  billingRuns,
-  columnRefinements
-)
+export const billingRunsUpdateSchema = billingRunsInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   billingPeriodId: true,
@@ -124,13 +117,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const billingRunClientInsertSchema =
-  billingRunsInsertSchema.omit(clientWriteOmits)
+  billingRunsInsertSchema.omit(clientWriteOmits).meta({ id: 'BillingRunClientInsertSchema' })
 
 export const billingRunClientUpdateSchema =
-  billingRunsUpdateSchema.omit(clientWriteOmits)
+  billingRunsUpdateSchema.omit(clientWriteOmits).meta({ id: 'BillingRunClientUpdateSchema' })
 
 export const billingRunClientSelectSchema =
-  billingRunsSelectSchema.omit(hiddenColumns)
+  billingRunsSelectSchema.omit(hiddenColumns).meta({ id: 'BillingRunClientSelectSchema' })
 
 export namespace BillingRun {
   export type Insert = z.infer<typeof billingRunsInsertSchema>

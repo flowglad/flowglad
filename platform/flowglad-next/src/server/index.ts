@@ -7,7 +7,6 @@ import { createLink } from '@/server/mutations/createLink'
 import { editLink } from '@/server/mutations/editLink'
 import { deleteLinkProcedure } from '@/server/mutations/deleteLink'
 import { deleteFileProcedure } from '@/server/mutations/deleteFile'
-import { sendAIChat } from '@/server/mutations/sendAIChat'
 import { getProperNouns } from '@/server/queries/getProperNouns'
 import { ping } from './queries/ping'
 import { createFile } from './mutations/createFile'
@@ -71,7 +70,6 @@ export const appRouter = router({
     ping,
     pong,
     generateDescription,
-    sendAIChat,
     getProperNouns,
     getPresignedURL,
     toggleTestMode,

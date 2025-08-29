@@ -1,4 +1,5 @@
 import { routeToHandlerMap } from './subrouteHandlers'
+import type { SubRouteHandler } from './subrouteHandlers/types'
 import { FlowgladServer } from './FlowgladServer'
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
 
@@ -96,10 +97,13 @@ export const createRequestHandler = (
 
       const data = input.method === 'GET' ? input.query : input.body
 
-      const result = await handler(
+      // We need to use a type assertion here because TypeScript cannot narrow the type
+      // of joinedPath to a specific FlowgladActionKey at compile time, even though
+      // we've validated it at runtime
+      const result = await (handler as SubRouteHandler<typeof joinedPath>)(
         {
-          method: input.method,
-          data,
+          method: input.method as any,
+          data: data as any,
         },
         flowgladServer
       )

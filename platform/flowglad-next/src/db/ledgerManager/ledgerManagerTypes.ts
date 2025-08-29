@@ -27,7 +27,7 @@ const baseLedgerCommandFields = {
     .optional()
     .describe('Optional description for the LedgerTransaction'),
   transactionMetadata: z
-    .record(z.any())
+    .record(z.string(), z.unknown())
     .optional()
     .describe('Optional metadata for the LedgerTransaction'),
   subscriptionId: z

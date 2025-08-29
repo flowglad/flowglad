@@ -214,7 +214,10 @@ const clonePricingModelProcedure = protectedProcedure
   })
 
 const getTableRowsProcedure = protectedProcedure
-  .input(createPaginatedTableRowInputSchema(z.object({})))
+  .input(createPaginatedTableRowInputSchema(z.object({
+    organizationId: z.string().optional(),
+    isDefault: z.boolean().optional(),
+  })))
   .output(
     createPaginatedTableRowOutputSchema(
       z.object({

@@ -8,9 +8,9 @@ import {
   integer,
   pgPolicy,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructIndex,
   constructUniqueIndex,
@@ -21,7 +21,7 @@ import {
   hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
-import core from '@/utils/core'
+import core, { zodOptionalNullableString } from '@/utils/core'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -103,51 +103,61 @@ export const organizations = pgTable(
   }
 ).enableRLS()
 
+
 const billingAddressSchemaColumns = {
-  name: z.string().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  email: z.string().email().optional(),
+  name: zodOptionalNullableString,
+  firstName: zodOptionalNullableString,
+  lastName: zodOptionalNullableString,
+  email: z.email().nullable().optional(),
   address: z.object({
-    name: z.string().optional(),
-    line1: z.string().nullable(),
-    line2: z.string().nullable(),
-    city: z.string().nullable(),
-    state: z.string().nullable(),
-    postal_code: z.string().nullable(),
+    name: zodOptionalNullableString,
+    line1: zodOptionalNullableString,
+    line2: zodOptionalNullableString,
+    city: zodOptionalNullableString,
+    state: zodOptionalNullableString,
+    postal_code: zodOptionalNullableString,
     country: z.string(),
   }),
-  phone: z.string().optional(),
+  phone: zodOptionalNullableString,
 }
 
 export const billingAddressSchema = z.object(
   billingAddressSchemaColumns
-)
+).meta({
+  id: 'BillingAddress',
+})
 
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
-const columnRefinements = {
+// Column refinements for both SELECT and INSERT schemas
+const commonColumnRefinements = {
   onboardingStatus: core.createSafeZodEnum(BusinessOnboardingStatus),
   defaultCurrency: core.createSafeZodEnum(CurrencyCode),
-  billingAddress: billingAddressSchema,
-  contactEmail: z.string().email().nullable(),
+  billingAddress: billingAddressSchema.nullable().optional(),
+  contactEmail: z.email().nullable().optional(),
   featureFlags: z.record(z.string(), z.boolean()),
   stripeConnectContractType: z.nativeEnum(StripeConnectContractType),
   monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger,
 }
 
+// Column refinements for SELECT schemas only
+const selectColumnRefinements = {
+  ...newBaseZodSelectSchemaColumns,
+  ...commonColumnRefinements,
+}
+
+// Column refinements for INSERT schemas (without auto-generated columns)
+const insertColumnRefinements = {
+  ...commonColumnRefinements,
+  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger.optional(),
+}
+
 export const organizationsSelectSchema = createSelectSchema(
   organizations,
-  {
-    ...newBaseZodSelectSchemaColumns,
-    ...columnRefinements,
-  }
+  selectColumnRefinements
 )
 
-export const organizationsInsertSchema = enhancedCreateInsertSchema(
-  organizations,
-  columnRefinements
-)
+export const organizationsInsertSchema = createInsertSchema(organizations).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
 
 export const organizationsUpdateSchema = organizationsInsertSchema
   .partial()
@@ -179,7 +189,9 @@ const readOnlyColumns = {
 } as const
 
 export const organizationsClientSelectSchema =
-  organizationsSelectSchema.omit(hiddenColumns)
+  organizationsSelectSchema.omit(hiddenColumns).meta({
+    id: 'OrganizationRecord',
+  })
 
 const clientWriteOmits = R.omit(
   ['position', 'createdByCommit', 'updatedByCommit'],
@@ -189,10 +201,14 @@ const clientWriteOmits = R.omit(
   }
 )
 export const organizationsClientUpdateSchema =
-  organizationsUpdateSchema.omit(clientWriteOmits)
+  organizationsUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'OrganizationUpdate',
+  })
 
 export const organizationsClientInsertSchema =
-  organizationsInsertSchema.omit(clientWriteOmits)
+  organizationsInsertSchema.omit(clientWriteOmits).meta({
+    id: 'OrganizationInsert',
+  })
 
 export namespace Organization {
   export type Insert = z.infer<typeof organizationsInsertSchema>

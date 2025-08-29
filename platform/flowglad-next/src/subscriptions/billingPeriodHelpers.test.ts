@@ -125,7 +125,8 @@ describe('Subscription Billing Period Transition', async () => {
       currentBillingPeriodStart: new Date(
         Date.now() - 30 * 24 * 60 * 60 * 1000
       ),
-    })
+      renews: true,
+    }) as Subscription.StandardRecord
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart,
@@ -655,7 +656,7 @@ describe('Ledger Interactions', () => {
     pricingModel = result.pricingModel
     price = result.price
     product = result.product
-    subscription = result.subscription
+    subscription = result.subscription as Subscription.StandardRecord
     usageMeter = result.usageMeter
     subscriptionItem = result.subscriptionItem
     otherUsageMeter = await setupUsageMeter({

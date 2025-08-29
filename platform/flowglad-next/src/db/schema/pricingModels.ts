@@ -1,8 +1,8 @@
 import { text, pgTable, boolean } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   constructIndex,
   tableBase,
   newBaseZodSelectSchemaColumns,
@@ -52,10 +52,7 @@ export const pricingModelsSelectSchema = createSelectSchema(
   }
 )
 
-export const pricingModelsInsertSchema = enhancedCreateInsertSchema(
-  pricingModels,
-  {}
-)
+export const pricingModelsInsertSchema = createInsertSchema(pricingModels).omit(ommittedColumnsForInsertSchema)
 
 export const pricingModelsUpdateSchema = pricingModelsInsertSchema
   .partial()
@@ -73,13 +70,13 @@ const hiddenColumns = {
 } as const
 
 export const pricingModelsClientSelectSchema =
-  pricingModelsSelectSchema.omit(hiddenColumns)
+  pricingModelsSelectSchema.omit(hiddenColumns).meta({ id: 'PricingModelsClientSelectSchema' })
 
 export const pricingModelsClientUpdateSchema =
-  pricingModelsUpdateSchema.omit(readOnlyColumns)
+  pricingModelsUpdateSchema.omit(readOnlyColumns).meta({ id: 'PricingModelsClientUpdateSchema' })
 
 export const pricingModelsClientInsertSchema =
-  pricingModelsInsertSchema.omit(readOnlyColumns)
+  pricingModelsInsertSchema.omit(readOnlyColumns).meta({ id: 'PricingModelsClientInsertSchema' })
 
 export const pricingModelsPaginatedSelectSchema =
   createPaginatedSelectSchema(pricingModelsClientSelectSchema)

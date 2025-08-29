@@ -12,7 +12,6 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   pgEnumColumn,
   livemodePolicy,
   idInputSchema,
@@ -35,10 +34,11 @@ import {
   PaymentMethodType,
 } from '@/types'
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { prices } from './prices'
 import { billingPeriods } from './billingPeriods'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 
 const TABLE_NAME = 'fee_calculations'
 
@@ -124,11 +124,10 @@ const columnRefinements = {
   discountAmountFixed: safeZodNonNegativeInteger,
   billingAddress: billingAddressSchema.nullable(),
   type: core.createSafeZodEnum(FeeCalculationType),
-  currency: core.createSafeZodEnum(CurrencyCode),
+  currency: currencyCodeSchema
 }
 
-export const coreFeeCalculationsInsertSchema =
-  enhancedCreateInsertSchema(feeCalculations, columnRefinements)
+export const coreFeeCalculationsInsertSchema = createInsertSchema(feeCalculations).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const coreFeeCalculationsSelectSchema =
   createSelectSchema(feeCalculations).extend(columnRefinements)
@@ -222,16 +221,23 @@ const hiddenColumns = {
 } as const
 
 export const subscriptionFeeCalculationClientSelectSchema =
-  subscriptionPaymentFeeCalculationSelectSchema.omit(hiddenColumns)
+  subscriptionPaymentFeeCalculationSelectSchema.omit(hiddenColumns).meta({
+    id: 'SubscriptionFeeCalculationRecord',
+  })
 
 export const checkoutSessionFeeCalculationClientSelectSchema =
-  checkoutSessionPaymentFeeCalculationSelectSchema.omit(hiddenColumns)
+  checkoutSessionPaymentFeeCalculationSelectSchema.omit(hiddenColumns).meta({
+    id: 'CheckoutSessionFeeCalculationRecord',
+  })
 
 export const feeCalculationClientSelectSchema = z
   .discriminatedUnion('type', [
-    subscriptionPaymentFeeCalculationSelectSchema,
-    checkoutSessionPaymentFeeCalculationSelectSchema,
+    subscriptionFeeCalculationClientSelectSchema,
+    checkoutSessionFeeCalculationClientSelectSchema,
   ])
+  .meta({
+    id: 'FeeCalculationRecord',
+  })
   .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
 const customerHiddenColumns = {
@@ -242,18 +248,24 @@ const customerHiddenColumns = {
 export const customerFacingCheckoutSessionFeeCalculationSelectSchema =
   checkoutSessionFeeCalculationClientSelectSchema.omit(
     customerHiddenColumns
-  )
+  ).meta({
+    id: 'CustomerCheckoutSessionFeeCalculationRecord',
+  })
 
 export const customerFacingSubscriptionFeeCalculationSelectSchema =
   subscriptionFeeCalculationClientSelectSchema.omit(
     customerHiddenColumns
-  )
+  ).meta({
+    id: 'CustomerSubscriptionFeeCalculationRecord',
+  })
 
 export const customerFacingFeeCalculationSelectSchema =
   z.discriminatedUnion('type', [
     customerFacingSubscriptionFeeCalculationSelectSchema,
     customerFacingCheckoutSessionFeeCalculationSelectSchema,
-  ])
+  ]).meta({
+    id: 'CustomerFeeCalculationRecord',
+  })
 
 export namespace FeeCalculation {
   export type Insert = z.infer<typeof feeCalculationsInsertSchema>

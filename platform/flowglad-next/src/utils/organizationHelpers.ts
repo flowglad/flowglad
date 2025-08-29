@@ -101,6 +101,7 @@ export const createOrganizationTransaction = async (
          * Use this hash to prevent a race condition where a user may accidentally double-submit createOrganization
          */
         externalId: `${user.id}-${organization.name}-${currentEpochHour}`,
+        featureFlags: {},
       },
       transaction
     )

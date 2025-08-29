@@ -1,5 +1,5 @@
 import { Organization } from '@/db/schema/organizations'
-import { CurrencyCode, StripeConnectContractType } from '@/types'
+import { BusinessOnboardingStatus, CurrencyCode, StripeConnectContractType } from '@/types'
 
 export const dummyOrganization: Organization.Record = {
   id: '1',
@@ -13,7 +13,7 @@ export const dummyOrganization: Organization.Record = {
   logoURL: null,
   tagline: null,
   payoutsEnabled: false,
-  onboardingStatus: null,
+  onboardingStatus: BusinessOnboardingStatus.PartiallyOnboarded,
   feePercentage: '0',
   stripeConnectContractType:
     StripeConnectContractType.MerchantOfRecord,

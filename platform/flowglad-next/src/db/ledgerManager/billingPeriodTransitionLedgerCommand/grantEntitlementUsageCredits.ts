@@ -76,18 +76,9 @@ export const grantEntitlementUsageCredits = async (
     })
   }
   /**
-   * Do not grant recurring credits for credit trials
+   * Create usage credit inserts from the already-filtered feature items
    */
   const usageCreditInserts: UsageCredit.Insert[] = featureItemsToGrant
-    .filter((item) => {
-      if (
-        item.renewalFrequency ===
-        FeatureUsageGrantFrequency.EveryBillingPeriod
-      ) {
-        return standardPayload.type === 'standard'
-      }
-      return true
-    })
     .map((featureItem) => {
       return {
         organizationId: command.organizationId,

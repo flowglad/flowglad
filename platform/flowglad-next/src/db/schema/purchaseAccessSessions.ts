@@ -6,14 +6,12 @@ import {
   jsonb,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   pgEnumColumn,
-  enhancedCreateInsertSchema,
   constructUniqueIndex,
   constructIndex,
   tableBase,
-  createUpdateSchema,
   notNullStringForeignKey,
   livemodePolicy,
   createSupabaseWebhookSchema,
@@ -59,16 +57,13 @@ const columnEnhancers = {
 }
 
 export const purchaseAccessSessionsInsertSchema =
-  enhancedCreateInsertSchema(purchaseAccessSessions, columnEnhancers)
+  createInsertSchema(purchaseAccessSessions).omit(ommittedColumnsForInsertSchema).extend(columnEnhancers)
 
 export const purchaseAccessSessionsSelectSchema = createSelectSchema(
   purchaseAccessSessions
 ).extend(columnEnhancers)
 
-export const purchaseAccessSessionsUpdateSchema = createUpdateSchema(
-  purchaseAccessSessions,
-  columnEnhancers
-)
+export const purchaseAccessSessionsUpdateSchema = purchaseAccessSessionsInsertSchema.partial().extend({ id: z.string() })
 
 const readonlyColumns = {
   purchaseId: true,

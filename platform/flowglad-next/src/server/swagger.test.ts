@@ -45,7 +45,7 @@ describe('Swagger Configuration', () => {
 
     it('should not have forbidden fields in any input schemas', () => {
       // TODO: stronger types
-      Object.values(paths).forEach((path: any) => {
+      Object.values(paths || {}).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
           if (
             (method.operationId as string).endsWith('-create') &&
@@ -91,7 +91,7 @@ describe('Swagger Configuration', () => {
     }
 
     it('should not have "stripe*" or "position" fields in any output schemas', () => {
-      Object.values(paths).forEach((path: any) => {
+      Object.values(paths || {}).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
           if (method.responses) {
             Object.values(method.responses).forEach(
@@ -146,7 +146,7 @@ describe('Swagger Configuration', () => {
     }
 
     it('should not have "organizationId" in any POST request body schemas', () => {
-      Object.entries(paths).forEach(
+      Object.entries(paths || {}).forEach(
         ([pathKey, pathValue]: [string, any]) => {
           Object.entries(pathValue).forEach(
             ([methodKey, methodValue]: [string, any]) => {
@@ -169,7 +169,7 @@ describe('Swagger Configuration', () => {
     })
 
     it('should not have "organizationId" in any PUT request body schemas', () => {
-      Object.entries(paths).forEach(
+      Object.entries(paths || {}).forEach(
         ([pathKey, pathValue]: [string, any]) => {
           Object.entries(pathValue).forEach(
             ([methodKey, methodValue]: [string, any]) => {
@@ -194,7 +194,7 @@ describe('Swagger Configuration', () => {
 
   describe('Customer Route Parameters', () => {
     it('should have {externalId} as the parameter for customer routes', () => {
-      const customerPaths = Object.entries(paths).filter(([path]) =>
+      const customerPaths = Object.entries(paths || {}).filter(([path]) =>
         path.includes('/customer/')
       )
 
@@ -259,7 +259,7 @@ describe('Swagger Configuration', () => {
     ]
 
     it('should only have the expected base routes', () => {
-      const actualBaseRoutes = Object.keys(paths)
+      const actualBaseRoutes = Object.keys(paths || {})
         .filter(
           (path) =>
             !path.includes('/{') && path.startsWith('/api/v1/')
@@ -272,7 +272,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/payments'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         // payments only supports GET for now
         expect(Object.keys(route || {}).sort()).toEqual(
@@ -281,7 +281,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -289,7 +289,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct refund route methods', () => {
-        const route = paths[`${basePath}/{id}/refund`]
+        const route = paths?.[`${basePath}/{id}/refund`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
@@ -301,7 +301,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/checkout-sessions'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -309,7 +309,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -321,7 +321,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/products'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -329,7 +329,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -341,7 +341,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/prices'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -349,7 +349,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['put'].sort()
@@ -361,7 +361,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/discounts'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -369,7 +369,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -381,7 +381,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/invoice-line-items'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -389,7 +389,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -401,7 +401,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/invoices'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -409,7 +409,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -417,7 +417,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct send-reminder route methods', () => {
-        const route = paths[`${basePath}/{id}/send-reminder`]
+        const route = paths?.[`${basePath}/{id}/send-reminder`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
@@ -429,7 +429,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/pricing-models'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -437,7 +437,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -445,7 +445,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct default route methods', () => {
-        const route = paths[`${basePath}/default`]
+        const route = paths?.[`${basePath}/default`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -453,7 +453,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct clone route methods', () => {
-        const route = paths[`${basePath}/{id}/clone`]
+        const route = paths?.[`${basePath}/{id}/clone`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
@@ -465,7 +465,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/api-keys'
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -477,7 +477,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/subscriptions'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -485,7 +485,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -493,7 +493,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct adjust route methods', () => {
-        const route = paths[`${basePath}/{id}/adjust`]
+        const route = paths?.[`${basePath}/{id}/adjust`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
@@ -501,7 +501,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct cancel route methods', () => {
-        const route = paths[`${basePath}/{id}/cancel`]
+        const route = paths?.[`${basePath}/{id}/cancel`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
@@ -513,7 +513,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/payment-methods'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -521,7 +521,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -533,7 +533,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/usage-meters'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'post'].sort()
@@ -541,7 +541,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -553,7 +553,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/usage-events'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
@@ -561,7 +561,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get'].sort()
@@ -573,7 +573,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/features'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         // Assuming GET (list) and POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
@@ -582,7 +582,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         // Assuming GET (by id) and PUT (update)
         expect(Object.keys(route || {}).sort()).toEqual(
@@ -595,7 +595,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/product-features'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         // GET (list), POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
@@ -604,7 +604,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         // GET (by id),  No PUT or DELETE for product-features as per our router
         expect(Object.keys(route || {}).sort()).toEqual(
@@ -617,7 +617,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/subscription-item-features'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           /**
@@ -628,7 +628,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['get', 'put'].sort()
@@ -636,10 +636,10 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id}/expire route methods', () => {
-        const routes = Object.keys(paths).filter((key) =>
+        const routes = Object.keys(paths || {}).filter((key) =>
           key.startsWith(basePath)
         )
-        const route = paths[`${basePath}/{id}/expire`]
+        const route = paths?.[`${basePath}/{id}/expire`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
           ['post'].sort()
@@ -651,7 +651,7 @@ describe('Swagger Configuration', () => {
       const basePath = '/api/v1/webhooks'
 
       it('should have correct base route methods', () => {
-        const route = paths[basePath]
+        const route = paths?.[basePath]
         expect(route).toBeDefined()
         // Assuming GET (list) and POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
@@ -661,7 +661,7 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have correct {id} route methods', () => {
-        const route = paths[`${basePath}/{id}`]
+        const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         // Assuming GET (by id), PUT (update), and DELETE (by id)
         expect(Object.keys(route || {}).sort()).toEqual(

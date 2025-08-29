@@ -14,15 +14,14 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
   livemodePolicy,
   pgEnumColumn,
-  createUpdateSchema,
+  ommittedColumnsForInsertSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { users } from '@/db/schema/users'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'usage_credit_balance_adjustments'
@@ -79,10 +78,7 @@ const columnRefinements = {
 }
 
 export const usageCreditBalanceAdjustmentsInsertSchema =
-  enhancedCreateInsertSchema(
-    usageCreditBalanceAdjustments,
-    columnRefinements
-  )
+  createInsertSchema(usageCreditBalanceAdjustments).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const usageCreditBalanceAdjustmentsSelectSchema =
   createSelectSchema(usageCreditBalanceAdjustments).extend(
@@ -90,7 +86,7 @@ export const usageCreditBalanceAdjustmentsSelectSchema =
   )
 
 export const usageCreditBalanceAdjustmentsUpdateSchema =
-  createUpdateSchema(usageCreditBalanceAdjustments, columnRefinements)
+  usageCreditBalanceAdjustmentsInsertSchema.partial().extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 
@@ -113,15 +109,15 @@ const clientWriteOmits = {
  * client schemas
  */
 export const usageCreditBalanceAdjustmentClientInsertSchema =
-  usageCreditBalanceAdjustmentsInsertSchema.omit(clientWriteOmits)
+  usageCreditBalanceAdjustmentsInsertSchema.omit(clientWriteOmits).meta({ id: 'UsageCreditBalanceAdjustmentInsert' })
 
 export const usageCreditBalanceAdjustmentClientUpdateSchema =
   usageCreditBalanceAdjustmentsUpdateSchema.omit({
     ...clientWriteOmits,
-  })
+  }).meta({ id: 'UsageCreditBalanceAdjustmentUpdate' })
 
 export const usageCreditBalanceAdjustmentClientSelectSchema =
-  usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns)
+  usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditBalanceAdjustmentRecord' })
 
 export namespace UsageCreditBalanceAdjustment {
   export type Insert = z.infer<

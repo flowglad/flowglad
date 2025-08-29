@@ -155,9 +155,16 @@ describe('Subscription Activation Workflow E2E', () => {
         },
         transaction
       )
-      expect(usageCredits).toHaveLength(1)
+      // For non-renewing subscriptions, both Once and EveryBillingPeriod credits are granted initially
+      expect(usageCredits).toHaveLength(2)
       expect(usageCredits[0].usageMeterId).toBe(usageMeter.id)
       expect(usageCredits[0].status).toBe('posted')
+      expect(usageCredits[1].usageMeterId).toBe(usageMeter.id)
+      expect(usageCredits[1].status).toBe('posted')
+      
+      // Total should be 1000 (Once) + 100 (EveryBillingPeriod) = 1100
+      const totalIssuedAmount = usageCredits.reduce((sum, credit) => sum + credit.issuedAmount, 0)
+      expect(totalIssuedAmount).toBe(1100)
 
       // call @customerBillingTransaction and check state
       const billingState1 = await customerBillingTransaction(
@@ -173,7 +180,7 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(sub1.experimental?.usageMeterBalances).toHaveLength(1)
       expect(
         sub1.experimental?.usageMeterBalances?.[0].availableBalance
-      ).toBe(1000)
+      ).toBe(1100) // 1000 (Once) + 100 (EveryBillingPeriod)
     })
 
     // 2. Create a usage event for the subscription
@@ -212,7 +219,7 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(sub2.experimental?.usageMeterBalances).toHaveLength(1)
       expect(
         sub2.experimental?.usageMeterBalances?.[0].availableBalance
-      ).toBe(900)
+      ).toBe(1000) // 1100 - 100 (usage)
     })
 
     // 4. Create a usage event for the subscription
@@ -251,12 +258,13 @@ describe('Subscription Activation Workflow E2E', () => {
         1
       )
       /**
-       * Expect the available balance to be 900 because the usage event was actually redundant
+       * Expect the available balance to be 1000 because the usage event was actually redundant
+       * (Started with 1100, used 100 once, redundant usage doesn't consume more)
        */
       expect(
         sub2Prime.experimental?.usageMeterBalances?.[0]
           .availableBalance
-      ).toBe(900)
+      ).toBe(1000)
     })
 
     // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
@@ -357,7 +365,7 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(
         activatedSubscription?.experimental?.usageMeterBalances?.[0]
           .availableBalance
-      ).toBe(900)
+      ).toBe(1000) // 1100 - 100 (usage) = 1000
     })
 
     // 6. Create a usage event after activation
@@ -397,7 +405,7 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(
         activatedSubscriptionAfterUsage?.experimental
           ?.usageMeterBalances?.[0].availableBalance
-      ).toBe(800)
+      ).toBe(900) // 1000 - 100 (new usage) = 900
     })
   })
 })

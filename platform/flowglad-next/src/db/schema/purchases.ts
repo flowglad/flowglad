@@ -9,7 +9,6 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import {
   pgEnumColumn,
-  makeSchemaPropNull,
   ommittedColumnsForInsertSchema,
   constructIndex,
   notNullStringForeignKey,
@@ -121,7 +120,7 @@ const zodSchemaEnhancementColumns = {
   quantity: core.safeZodPositiveInteger,
   status: core.createSafeZodEnum(PurchaseStatus),
   priceType: core.createSafeZodEnum(PriceType),
-  metadata: metadataSchema.nullable(),
+  metadata: metadataSchema.nullable().optional(),
 }
 
 const baseSelectSchema = createSelectSchema(purchases, {
@@ -134,7 +133,7 @@ const baseInsertSchema = createInsertSchema(purchases, {
 }).omit(ommittedColumnsForInsertSchema)
 
 const nulledInstallmentColumns = {
-  totalPurchaseValue: makeSchemaPropNull(z.any()),
+  totalPurchaseValue: core.safeZodNullOrUndefined,
 }
 
 const subscriptionColumns = {
@@ -147,10 +146,10 @@ const subscriptionColumns = {
 }
 
 const nulledSubscriptionColumns = {
-  pricePerBillingCycle: makeSchemaPropNull(z.any()),
-  intervalUnit: makeSchemaPropNull(z.any()),
-  intervalCount: makeSchemaPropNull(z.any()),
-  trialPeriodDays: makeSchemaPropNull(z.any()),
+  pricePerBillingCycle: core.safeZodNullOrUndefined,
+  intervalUnit: core.safeZodNullOrUndefined,
+  intervalCount: core.safeZodNullOrUndefined,
+  trialPeriodDays: core.safeZodNullOrUndefined,
 }
 
 export const subscriptionPurchaseInsertSchema = baseInsertSchema
@@ -243,6 +242,8 @@ export const purchasesSelectSchema = z
 export const subscriptionPurchaseClientInsertSchema =
   subscriptionPurchaseInsertSchema.omit({
     billingAddress: true,
+  }).meta({
+    id: 'SubscriptionPurchaseInsert',
   })
 
 const hiddenColumns = {
@@ -256,28 +257,48 @@ const clientWriteOmits = {
 } as const
 
 export const subscriptionPurchaseClientUpdateSchema =
-  subscriptionPurchaseUpdateSchema.omit(clientWriteOmits)
+  subscriptionPurchaseUpdateSchema.omit(clientWriteOmits).meta({
+    id: 'SubscriptionPurchaseUpdate',
+  })
 
 export const subscriptionPurchaseClientSelectSchema =
   subscriptionPurchaseSelectSchema.omit(hiddenColumns)
+  .meta({
+    id: 'SubscriptionPurchaseRecord',
+  })
 
 // Client Single Payment Schemas
 export const singlePaymentPurchaseClientInsertSchema =
   singlePaymentPurchaseInsertSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'SinglePaymentPurchaseInsert',
+  })
 
 export const usagePurchaseClientInsertSchema =
   usagePurchaseInsertSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'UsagePurchaseInsert',
+  })
 
 export const singlePaymentPurchaseClientUpdateSchema =
   singlePaymentPurchaseUpdateSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'SinglePaymentPurchaseUpdate',
+  })
 
 export const usagePurchaseClientUpdateSchema =
   usagePurchaseUpdateSchema
     .omit(clientWriteOmits)
+    .meta({
+      id: 'UsagePurchaseUpdate',
+    })
     .describe(USAGE_PURCHASE_DESCRIPTION)
 
 export const singlePaymentPurchaseClientSelectSchema =
   singlePaymentPurchaseSelectSchema.omit(hiddenColumns)
+  .meta({
+    id: 'SinglePaymentPurchaseRecord',
+  })
 
 export const usagePurchaseClientSelectSchema =
   singlePaymentPurchaseSelectSchema
@@ -285,6 +306,9 @@ export const usagePurchaseClientSelectSchema =
       priceType: z.literal(PriceType.Usage),
     })
     .omit(hiddenColumns)
+    .meta({
+      id: 'UsagePurchaseRecord',
+    })
     .describe(USAGE_PURCHASE_DESCRIPTION)
 
 // Combined Client Schemas
@@ -295,6 +319,9 @@ export const purchaseClientInsertSchema = z
     usagePurchaseClientInsertSchema,
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
+  .meta({
+    id: 'PurchaseInsert',
+  })
 
 export const purchaseClientUpdateSchema = z
   .discriminatedUnion('priceType', [
@@ -302,6 +329,9 @@ export const purchaseClientUpdateSchema = z
     singlePaymentPurchaseClientUpdateSchema,
     usagePurchaseClientUpdateSchema,
   ])
+  .meta({
+    id: 'PurchaseUpdate',
+  })
   .describe(PURCHASES_BASE_DESCRIPTION)
 
 export const purchaseClientSelectSchema = z
@@ -310,6 +340,9 @@ export const purchaseClientSelectSchema = z
     singlePaymentPurchaseClientSelectSchema,
     usagePurchaseClientSelectSchema,
   ])
+  .meta({
+    id: 'PurchaseRecord',
+  })
   .describe(PURCHASES_BASE_DESCRIPTION)
 
 export const purchasesTableRowDataSchema = z.object({

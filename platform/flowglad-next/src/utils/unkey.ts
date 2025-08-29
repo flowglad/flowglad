@@ -267,7 +267,7 @@ export const parseUnkeyMeta =
       !firstUnkeyMetaResult.success &&
       firstUnkeyMetaResult.error.issues.some(
         (issue) =>
-          issue.code === 'invalid_union_discriminator' &&
+          issue.code === 'invalid_union' &&
           issue.path[0] === 'type' &&
           issue.path.length === 1
       )

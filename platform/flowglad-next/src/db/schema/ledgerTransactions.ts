@@ -5,14 +5,13 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   livemodePolicy,
-  createUpdateSchema,
   constructUniqueIndex,
   pgEnumColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { subscriptions } from './subscriptions'
 import { LedgerTransactionType } from '@/types'
@@ -72,23 +71,16 @@ export const ledgerTransactions = pgTable(
 
 const columnRefinements = {
   metadata: z.record(z.string(), z.any()).nullable(),
-  type: z.nativeEnum(LedgerTransactionType),
+  type: core.createSafeZodEnum(LedgerTransactionType),
 }
 
-export const ledgerTransactionsInsertSchema =
-  enhancedCreateInsertSchema(
-    ledgerTransactions,
-    columnRefinements
-  ).extend(columnRefinements)
+export const ledgerTransactionsInsertSchema = createInsertSchema(ledgerTransactions).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 export const ledgerTransactionsSelectSchema = createSelectSchema(
   ledgerTransactions
 ).extend(columnRefinements)
 
-export const ledgerTransactionsUpdateSchema = createUpdateSchema(
-  ledgerTransactions,
-  columnRefinements
-)
+export const ledgerTransactionsUpdateSchema = ledgerTransactionsInsertSchema.partial().extend({ id: z.string() })
 
 const hiddenColumns = {
   createdByCommit: true,
@@ -100,11 +92,17 @@ const clientWriteOmits = {
 } as const
 
 export const ledgerTransactionClientInsertSchema =
-  ledgerTransactionsInsertSchema.omit(clientWriteOmits)
+  ledgerTransactionsInsertSchema.omit(clientWriteOmits).meta({
+    id: 'LedgerTransactionInsert',
+  })
 export const ledgerTransactionClientUpdateSchema =
-  ledgerTransactionsUpdateSchema.omit({ ...clientWriteOmits })
+  ledgerTransactionsUpdateSchema.omit({ ...clientWriteOmits }).meta({
+    id: 'LedgerTransactionUpdate',
+  })
 export const ledgerTransactionClientSelectSchema =
-  ledgerTransactionsSelectSchema.omit(hiddenColumns)
+  ledgerTransactionsSelectSchema.omit(hiddenColumns).meta({
+    id: 'LedgerTransactionRecord',
+  })
 
 export namespace LedgerTransaction {
   export type Insert = z.infer<typeof ledgerTransactionsInsertSchema>

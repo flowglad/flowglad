@@ -98,7 +98,7 @@ export const subscriptionItems = pgTable(
 const baseColumnRefinements = {
   unitPrice: core.safeZodPositiveIntegerOrZero,
   quantity: core.safeZodPositiveInteger,
-  metadata: metadataSchema.nullable(),
+  metadata: metadataSchema.nullable().optional(),
   // Accept ISO datetime strings or Date objects
   addedDate: z.coerce.date(),
   expiredAt: z.coerce
@@ -225,25 +225,27 @@ const clientNonEditableColumns = R.omit(['position'], {
 
 // Static Subscription Item Client Schemas
 export const staticSubscriptionItemClientInsertSchema =
-  staticSubscriptionItemInsertSchema.omit(clientNonEditableColumns)
+  staticSubscriptionItemInsertSchema.omit(clientNonEditableColumns).meta({ id: 'StaticSubscriptionItemInsert' })
 export const staticSubscriptionItemClientUpdateSchema =
   staticSubscriptionItemUpdateSchema
     .omit(clientNonEditableColumns)
     .omit(createOnlyColumns)
+    .meta({ id: 'StaticSubscriptionItemUpdate' })
 
 export const staticSubscriptionItemClientSelectSchema =
-  staticSubscriptionItemSelectSchema.omit(hiddenColumns)
+  staticSubscriptionItemSelectSchema.omit(hiddenColumns).meta({ id: 'StaticSubscriptionItemRecord' })
 
 // Usage Subscription Item Client Schemas
 export const usageSubscriptionItemClientInsertSchema =
-  usageSubscriptionItemInsertSchema.omit(clientNonEditableColumns)
+  usageSubscriptionItemInsertSchema.omit(clientNonEditableColumns).meta({ id: 'UsageSubscriptionItemInsert' })
 export const usageSubscriptionItemClientUpdateSchema =
   usageSubscriptionItemUpdateSchema
     .omit(clientNonEditableColumns)
     .omit(createOnlyColumns)
+    .meta({ id: 'UsageSubscriptionItemUpdate' })
 
 export const usageSubscriptionItemClientSelectSchema =
-  usageSubscriptionItemSelectSchema.omit(hiddenColumns)
+  usageSubscriptionItemSelectSchema.omit(hiddenColumns).meta({ id: 'UsageSubscriptionItemRecord' })
 
 // Client Discriminated Union Schemas
 export const subscriptionItemClientInsertSchema =
@@ -251,18 +253,26 @@ export const subscriptionItemClientInsertSchema =
     staticSubscriptionItemClientInsertSchema,
     usageSubscriptionItemClientInsertSchema,
   ])
+  .meta({
+    id: 'SubscriptionItemInsert',
+  })
 
 export const subscriptionItemClientUpdateSchema =
   z.discriminatedUnion('type', [
     staticSubscriptionItemClientUpdateSchema,
     usageSubscriptionItemClientUpdateSchema,
-  ])
+  ]).meta({
+    id: 'SubscriptionItemUpdate',
+  })
 
 export const subscriptionItemClientSelectSchema =
   z.discriminatedUnion('type', [
     staticSubscriptionItemClientSelectSchema,
     usageSubscriptionItemClientSelectSchema,
   ])
+  .meta({
+    id: 'SubscriptionItemRecord',
+  })
 
 export namespace SubscriptionItem {
   export type Insert = z.infer<typeof subscriptionItemsInsertSchema>

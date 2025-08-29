@@ -48,6 +48,10 @@ const publicRoutes = [
    * Better Auth URLS
    */
   '/api/auth/(.*)',
+  /**
+   * Preview UI routes are public
+   */
+  '/preview-ui(.*)',
 ]
 
 if (core.IS_DEV) {
@@ -86,7 +90,16 @@ export default async function middleware(req: NextRequest) {
     }
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
-  return NextResponse.next()
+  
+  // Add pathname to headers for layout detection
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set('x-pathname', req.nextUrl.pathname)
+  
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
 }
 
 export const config = {

@@ -1,6 +1,6 @@
 import core from '@/utils/core'
 import { notFound } from 'next/navigation'
-import { PricingTable } from '@/registry/new-york/pricing-table'
+import InternalDemoPage from './InternalDemoPage'
 
 const DemoPage = () => {
   if (core.IS_PROD) {
@@ -9,15 +9,7 @@ const DemoPage = () => {
   return (
     <div>
       <h1>Demo Page</h1>
-
-<PricingTable
-  plans={pricingPlans}
-  defaultPlan="Personal"
-  onTierSelect={(tierId, planName) => {
-    // Handle tier selection
-  }}
-  showToggle={true}
-/>
+      <InternalDemoPage />
     </div>
   )
 }

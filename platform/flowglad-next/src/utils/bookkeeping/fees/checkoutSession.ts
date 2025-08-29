@@ -8,7 +8,7 @@ import { Purchase } from '@/db/schema/purchases'
 import { DbTransaction } from '@/db/types'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { calculateInvoiceBaseAmount, calculatePriceBaseAmount, calculateDiscountAmount, calculateFlowgladFeePercentage, calculateInternationalFeePercentage, calculatePaymentMethodFeeAmount, calculateTaxes } from './common'
-import { CountryCode, FeeCalculationType, PaymentMethodType, StripeConnectContractType} from '@/types'
+import { CountryCode, CurrencyCode, FeeCalculationType, PaymentMethodType, StripeConnectContractType} from '@/types'
 import { Country } from '@/db/schema/countries'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
@@ -29,7 +29,7 @@ const createBaseFeeCalculationInsert = ({
   paymentMethodType: PaymentMethodType
   baseAmount: number
   discountAmount?: number
-  currency: string
+  currency: CurrencyCode
   livemode: boolean
   checkoutSessionId: string
   organizationCountry: Country.Record

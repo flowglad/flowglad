@@ -12,8 +12,6 @@ import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
 import { Product } from '@/db/schema/products'
 import { Event } from '@/db/schema/events'
-import { upsertProperNounTask } from '@/trigger/upsert-proper-noun'
-import { databaseTablesForNoun } from '@/utils/properNounHelpers'
 import { subscribeToNewsletter } from '@/utils/newsletter'
 import { UserRecord } from '@/db/schema/users'
 
@@ -32,9 +30,6 @@ export async function POST(request: Request) {
   }
 
   const payload = await request.json()
-  if (payload.table in Object.values(databaseTablesForNoun)) {
-    await upsertProperNounTask.trigger(payload)
-  }
 
   const event = `${payload.table}:${payload.type}`
   switch (event) {

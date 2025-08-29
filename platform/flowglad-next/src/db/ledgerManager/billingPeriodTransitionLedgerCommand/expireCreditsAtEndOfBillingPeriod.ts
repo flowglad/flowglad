@@ -32,6 +32,15 @@ export const expireCreditsAtEndOfBillingPeriod = async (
     ledgerTransaction,
     command,
   } = params
+  
+  // Non-renewing subscriptions don't have billing periods and their credits never expire
+  if (command.payload.type === 'non_renewing') {
+    return {
+      ledgerTransaction,
+      ledgerEntries: [],
+    }
+  }
+  
   const standardPayload =
     command.payload as StandardBillingPeriodTransitionPayload
   const newBillingPeriod = standardPayload.newBillingPeriod

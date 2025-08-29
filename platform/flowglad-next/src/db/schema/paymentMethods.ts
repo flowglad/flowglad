@@ -26,6 +26,7 @@ import { PaymentMethodType } from '@/types'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { billingAddressSchema } from './organizations'
+import core, { zodOptionalNullableString } from '@/utils/core'
 
 const TABLE_NAME = 'payment_methods'
 
@@ -65,8 +66,8 @@ export const paymentMethods = pgTable(
 ).enableRLS()
 
 export const paymentMethodBillingDetailsSchema = z.object({
-  name: z.string().nullable(),
-  email: z.string().nullable(),
+  name: zodOptionalNullableString,
+  email: zodOptionalNullableString,
   address: z.object({
     ...billingAddressSchema.shape.address.shape,
     // TODO: remove this
@@ -75,10 +76,10 @@ export const paymentMethodBillingDetailsSchema = z.object({
 })
 
 const columnRefinements = {
-  type: z.nativeEnum(PaymentMethodType),
+  type: core.createSafeZodEnum(PaymentMethodType),
   billingDetails: paymentMethodBillingDetailsSchema,
-  paymentMethodData: z.record(z.unknown()),
-  metadata: metadataSchema.nullable(),
+  paymentMethodData: z.record(z.string(), z.unknown()),
+  metadata: metadataSchema.nullable().optional(),
 }
 
 /*
@@ -130,13 +131,13 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const paymentMethodClientInsertSchema =
-  paymentMethodsInsertSchema.omit(clientWriteOmits)
+  paymentMethodsInsertSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodInsert' })
 
 export const paymentMethodClientUpdateSchema =
-  paymentMethodsUpdateSchema.omit(clientWriteOmits)
+  paymentMethodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodUpdate' })
 
 export const paymentMethodClientSelectSchema =
-  paymentMethodsSelectSchema.omit(hiddenColumns)
+  paymentMethodsSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentMethodRecord' })
 
 export const paymentMethodsPaginatedSelectSchema =
   createPaginatedSelectSchema(paymentMethodClientSelectSchema)

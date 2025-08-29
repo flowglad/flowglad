@@ -1,13 +1,12 @@
 import * as R from 'ramda'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   newBaseZodSelectSchemaColumns,
   constructIndex,
   constructUniqueIndex,
   tableBase,
   nullableStringForeignKey,
-  createUpdateSchema,
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
@@ -59,26 +58,31 @@ export const messages = pgTable(
   }
 ).enableRLS()
 
-const columnRefinements = {
-  ...newBaseZodSelectSchemaColumns,
+// Common refinements for both SELECT and INSERT schemas
+const commonColumnRefinements = {
   messageSentAt: core.safeZodDate,
   payload: z.unknown(),
 }
 
+// Column refinements for SELECT schemas only
+const selectColumnRefinements = {
+  ...newBaseZodSelectSchemaColumns,
+  ...commonColumnRefinements,
+}
+
+// Column refinements for INSERT schemas (without auto-generated columns)
+const insertColumnRefinements = {
+  ...commonColumnRefinements,
+}
+
 export const messagesSelectSchema = createSelectSchema(
   messages,
-  columnRefinements
+  selectColumnRefinements
 )
 
-export const messagesInsertSchema = enhancedCreateInsertSchema(
-  messages,
-  columnRefinements
-)
+export const messagesInsertSchema = createInsertSchema(messages).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
 
-export const messagesUpdateSchema = createUpdateSchema(
-  messages,
-  columnRefinements
-)
+export const messagesUpdateSchema = messagesInsertSchema.partial().extend({ id: z.string() })
 
 const readOnlyColumns = {
   customerId: true,
@@ -104,10 +108,10 @@ const clientWriteOmits = R.omit(['position'], {
 })
 
 export const messagesClientSelectSchema =
-  messagesSelectSchema.omit(hiddenColumns)
+  messagesSelectSchema.omit(hiddenColumns).meta({ id: 'MessagesClientSelectSchema' })
 
 export const messagesClientUpdateSchema =
-  messagesUpdateSchema.omit(clientWriteOmits)
+  messagesUpdateSchema.omit(clientWriteOmits).meta({ id: 'MessagesClientUpdateSchema' })
 
 export namespace Message {
   export type Insert = z.infer<typeof messagesInsertSchema>

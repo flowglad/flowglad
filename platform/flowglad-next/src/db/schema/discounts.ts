@@ -8,7 +8,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
-  enhancedCreateInsertSchema,
+  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructIndex,
   constructUniqueIndex,
@@ -23,7 +23,7 @@ import {
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
-import { createSelectSchema } from 'drizzle-zod'
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 
@@ -96,13 +96,13 @@ const columnRefinements = {
     .string()
     .min(3)
     .max(20)
-    .transform((code) => code.toUpperCase()),
+    .transform((code) => code.toUpperCase())
+    .meta({
+      description: 'The discount code, must be unique and between 3 and 20 characters.',
+    }),
 }
 
-const baseDiscountSchema = enhancedCreateInsertSchema(
-  discounts,
-  columnRefinements
-)
+const baseDiscountSchema = createInsertSchema(discounts).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
 
 const supabaseSchemas = createSupabaseWebhookSchema({
   table: discounts,
@@ -228,12 +228,21 @@ const clientWriteOmits = R.omit(['position'], {
 
 export const defaultDiscountClientInsertSchema =
   defaultDiscountsInsertSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'DefaultDiscountInsert',
+  })
 
 export const numberOfPaymentsDiscountClientInsertSchema =
   numberOfPaymentsDiscountsInsertSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'NumberOfPaymentsDiscountInsert',
+  })
 
 export const foreverDiscountClientInsertSchema =
   foreverDiscountsInsertSchema.omit(clientWriteOmits)
+  .meta({
+    id: 'ForeverDiscountInsert',
+  })
 
 export const discountClientInsertSchema = z
   .discriminatedUnion('duration', [
@@ -241,16 +250,25 @@ export const discountClientInsertSchema = z
     numberOfPaymentsDiscountClientInsertSchema,
     foreverDiscountClientInsertSchema,
   ])
+  .meta({
+    id: 'DiscountInsert',
+  })
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 export const defaultDiscountClientUpdateSchema =
-  defaultDiscountsUpdateSchema.omit(nonClientEditableColumns)
+  defaultDiscountsUpdateSchema.omit(nonClientEditableColumns).meta({
+    id: 'DefaultDiscountUpdate',
+  })
 
 export const numberOfPaymentsDiscountClientUpdateSchema =
-  numberOfPaymentsDiscountsUpdateSchema.omit(nonClientEditableColumns)
+  numberOfPaymentsDiscountsUpdateSchema.omit(nonClientEditableColumns).meta({
+    id: 'NumberOfPaymentsDiscountUpdate',
+  })
 
 export const foreverDiscountClientUpdateSchema =
-  foreverDiscountsUpdateSchema.omit(nonClientEditableColumns)
+  foreverDiscountsUpdateSchema.omit(nonClientEditableColumns).meta({
+    id: 'ForeverDiscountUpdate',
+  })
 
 export const discountClientUpdateSchema = z
   .discriminatedUnion('duration', [
@@ -258,16 +276,25 @@ export const discountClientUpdateSchema = z
     numberOfPaymentsDiscountClientUpdateSchema,
     foreverDiscountClientUpdateSchema,
   ])
+  .meta({
+    id: 'DiscountUpdate',
+  })
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 export const defaultDiscountClientSelectSchema =
-  defaultDiscountsSelectSchema.omit(hiddenColumns)
+  defaultDiscountsSelectSchema.omit(hiddenColumns).meta({
+    id: 'DefaultDiscountRecord',
+  })
 
 export const numberOfPaymentsDiscountClientSelectSchema =
-  numberOfPaymentsDiscountsSelectSchema.omit(hiddenColumns)
+  numberOfPaymentsDiscountsSelectSchema.omit(hiddenColumns).meta({
+    id: 'NumberOfPaymentsDiscountRecord',
+  })
 
 export const foreverDiscountClientSelectSchema =
-  foreverDiscountsSelectSchema.omit(hiddenColumns)
+  foreverDiscountsSelectSchema.omit(hiddenColumns).meta({
+    id: 'ForeverDiscountRecord',
+  })
 
 export const discountClientSelectSchema = z
   .discriminatedUnion('duration', [
@@ -275,6 +302,9 @@ export const discountClientSelectSchema = z
     numberOfPaymentsDiscountClientSelectSchema,
     defaultDiscountClientSelectSchema,
   ])
+  .meta({
+    id: 'DiscountRecord',
+  })
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
 export const discountsPaginatedSelectSchema =
