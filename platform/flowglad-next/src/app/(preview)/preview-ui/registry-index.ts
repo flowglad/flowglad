@@ -1,5 +1,5 @@
-import { PricingTable } from '@/registry/new-york/pricing-table'
-import type { PricingProductGroup } from '@/registry/new-york/pricing-table'
+import { PricingTable } from '@/registry/base/pricing-table'
+import type { PricingProductGroup } from '@/registry/base/pricing-table'
 
 const personalProductGroup: PricingProductGroup = {
   name: 'Personal',
