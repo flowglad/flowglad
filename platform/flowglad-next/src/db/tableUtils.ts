@@ -742,7 +742,9 @@ export const createBulkUpsertFunction = <
 export const makeSchemaPropNull = <T extends z.ZodType<any, any>>(
   schema: T
 ) => {
-  return schema.transform(() => null).nullish()
+  return schema.transform(() => null).nullish().optional().meta({
+    description: 'Null or undefined',
+  })
 }
 
 export const createDeleteFunction = <T extends PgTableWithId>(

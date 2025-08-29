@@ -607,18 +607,48 @@ export const setupPurchase = async ({
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(priceId, transaction)
     const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
-    return insertPurchase(
+    const coreFields = { customerId,
+    organizationId,
+    livemode: livemode ?? price.livemode,
+    name: 'Test Purchase',
+    priceId: price.id,
+    priceType: price.type,
+    totalPurchaseValue: price.unitPrice,
+    quantity: 1,
+    firstInvoiceValue: price.unitPrice,
+    status
+  } as const
+    if (price.type === PriceType.Usage) {
+      return await insertPurchase(
+        {
+          ...coreFields,
+          trialPeriodDays: null,
+          pricePerBillingCycle: null,
+          intervalUnit: null,
+          intervalCount: null,
+        } as Purchase.Insert,
+        transaction
+      )
+    } else if (price.type === PriceType.Subscription) {
+      return await insertPurchase(
+        {
+          ...coreFields,
+          ...purchaseFields,
+        } as Purchase.Insert,
+        transaction
+      )
+    } else if (price.type === PriceType.SinglePayment) {
+      return await insertPurchase(
+        {
+          ...coreFields,
+          ...purchaseFields,
+        } as Purchase.Insert,
+        transaction
+      )
+    }
+    return await insertPurchase(
       {
-        customerId,
-        organizationId,
-        livemode: livemode ?? price.livemode,
-        name: 'Test Purchase',
-        priceId: price.id,
-        priceType: price.type,
-        totalPurchaseValue: price.unitPrice,
-        quantity: 1,
-        firstInvoiceValue: price.unitPrice,
-        status,
+        ...coreFields,
         ...purchaseFields,
       } as Purchase.Insert,
       transaction

@@ -396,6 +396,9 @@ importers:
       trpc-swagger:
         specifier: 1.2.6
         version: 1.2.6(patch_hash=xew2ftdoz2o2gk5nfua7y3a4yy)(@trpc/client@11.5.0(@trpc/server@11.5.0(typescript@5.5.4))(typescript@5.5.4))(@trpc/server@11.5.0(typescript@5.5.4))(@types/express@4.17.21)(@types/node@20.17.5)(zod@4.1.5)
+      trpc-to-openapi:
+        specifier: 3.0.1
+        version: 3.0.1(@trpc/server@11.5.0(typescript@5.5.4))(zod-openapi@5.4.0(zod@4.1.5))(zod@4.1.5)
       tsx:
         specifier: ^4.17.0
         version: 4.19.2
@@ -406,8 +409,8 @@ importers:
         specifier: 4.1.5
         version: 4.1.5
       zod-openapi:
-        specifier: ^4.2.4
-        version: 4.2.4(zod@4.1.5)
+        specifier: 5.4.0
+        version: 5.4.0(zod@4.1.5)
     devDependencies:
       '@babel/core':
         specifier: ^7.24.0
@@ -3971,6 +3974,11 @@ packages:
     cpu: [x64]
     os: [linux]
 
+  '@rollup/rollup-linux-x64-gnu@4.6.1':
+    resolution: {integrity: sha512-DNGZvZDO5YF7jN5fX8ZqmGLjZEXIJRdJEdTFMhiyXqyXubBa0WVLDWSNlQ5JR2PNgDbEV1VQowhVRUh+74D+RA==}
+    cpu: [x64]
+    os: [linux]
+
   '@rollup/rollup-linux-x64-musl@4.24.3':
     resolution: {integrity: sha512-rMTzawBPimBQkG9NKpNHvquIUTQPzrnPxPbCY1Xt+mFkW7pshvyIS5kYgcf74goxXOQk0CP3EoOC1zcEezKXhw==}
     cpu: [x64]
@@ -5734,6 +5742,9 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
+  cookie-es@1.2.2:
+    resolution: {integrity: sha512-+W7VmiVINB+ywl1HGXJXmrqkOhpKrIiVZV6tQuV54ZyQC7MMuBt81Vc336GMLoHBq5hV/F9eXgt5Mnx0Rha5Fg==}
+
   cookie-signature@1.2.2:
     resolution: {integrity: sha512-D76uU73ulSXrD1UXF4KE2TMxVVwhsnCgfAyTg9k8P6KGZjlXKrOLe4dJQKI3Bxi5wjesZoFXJWElNWBjPZMbhg==}
     engines: {node: '>=6.6.0'}
@@ -5819,6 +5830,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  crossws@0.3.5:
+    resolution: {integrity: sha512-ojKiDvcmByhwa8YYqbQI/hg7MEU0NC03+pSdEq4ZUnZR9xXpwk7E43SMNGkn+JxJGPFtNvQ48+vV2p+P1ml5PA==}
 
   crypto-js@4.2.0:
     resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
@@ -6044,6 +6058,9 @@ packages:
   dequal@2.0.3:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
+
+  destr@2.0.5:
+    resolution: {integrity: sha512-ugFTXCtDZunbzasqBxrK93Ik/DRYsO6S/fedkWEMKqt04xZ4csmnmwGDBAb07QWNaGMAmnTIemsYZCksjATwsA==}
 
   destroy@1.2.0:
     resolution: {integrity: sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==}
@@ -6846,6 +6863,9 @@ packages:
     resolution: {integrity: sha512-AjqGKbDGUFRKIRCP9tCKiIGHyriz2oHEbPIbEtcSLSs4YjReZOIPQQWek4+6hjw62H9QShXHyaGivGiYVLeYFQ==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
 
+  h3@1.15.1:
+    resolution: {integrity: sha512-+ORaOBttdUm1E2Uu/obAyCguiI7MbBvsLTndc3gyK3zU+SYLoZXlyCP9Xgy0gikkGufFLTZXCXD6+4BsufnmHA==}
+
   has-bigints@1.0.2:
     resolution: {integrity: sha512-tSvCKtBr9lkF0Ex0aQiP9N+OpV4zi2r/Nee5VkRDbaqv35RLYMzbwQfFSZZH0kR+Rd6302UJZ2p/bJCEoR3VoQ==}
 
@@ -7031,6 +7051,9 @@ packages:
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
+
+  iron-webcrypto@1.2.1:
+    resolution: {integrity: sha512-feOM6FaSr6rEABp/eDfVseKyTMDt+KGpeB35SkVn9Tyn0CqvVsY3EwI0v5i8nMHyJnzCIQf7nsy3p41TPkJZhg==}
 
   is-alphabetical@2.0.1:
     resolution: {integrity: sha512-FWyyY60MeTNyeSRpkM2Iry0G9hpr7/9kD40mD/cGQEuilcZYS4okz8SN2Q6rLCJ8gbCt6fN+rC+6tMGS99LaxQ==}
@@ -7895,6 +7918,9 @@ packages:
     peerDependencies:
       webpack: ^5.0.0
 
+  node-mock-http@1.0.2:
+    resolution: {integrity: sha512-zWaamgDUdo9SSLw47we78+zYw/bDr5gH8pH7oRRs8V3KmBtu8GLgGIbV2p/gRPd3LWpEOpjQj7X1FOU3VFMJ8g==}
+
   node-mocks-http@1.16.2:
     resolution: {integrity: sha512-2Sh6YItRp1oqewZNlck3LaFp5vbyW2u51HX2p1VLxQ9U/bG90XV8JY9O7Nk+HDd6OOn/oV3nA5Tx5k4Rki0qlg==}
     engines: {node: '>=14'}
@@ -8477,6 +8503,9 @@ packages:
 
   queue-tick@1.0.1:
     resolution: {integrity: sha512-kJt5qhMxoszgU/62PLP1CJytzd2NKetjSRnyuj31fDd3Rlcz3fzlFdFLD1SItunPwyqEOkca6GbV612BWfaBag==}
+
+  radix3@1.1.2:
+    resolution: {integrity: sha512-b484I/7b8rDEdSDKckSSBA8knMpcdsXudlE/LNL639wFoHKwLbEkQFZHWEYwDC0wa0FKUcCY+GAF73Z7wxNVFA==}
 
   ramda@0.30.1:
     resolution: {integrity: sha512-tEF5I22zJnuclswcZMc8bDIrwRHRzf+NqVEmqg50ShAZMP7MWeR/RGDthfM/p+BlqvF2fXAzpn8i+SJcYD3alw==}
@@ -9365,6 +9394,13 @@ packages:
       '@trpc/server': ^10.45.2
       zod: ^3.14.4
 
+  trpc-to-openapi@3.0.1:
+    resolution: {integrity: sha512-XxQl/DvjrtSUkdkixyv403p+JAi/rKSqjfjQb30gR8hbIR4z2ixD+y3Sl0TJVRrx5dLPNJjt+UU/dfMQeTdfiQ==}
+    peerDependencies:
+      '@trpc/server': ^11.1.0
+      zod: ^4.0.0
+      zod-openapi: ^5.0.1
+
   ts-api-utils@1.4.0:
     resolution: {integrity: sha512-032cPxaEKwM+GT3vA5JXNzIaizx388rhsSW79vGRNGXfRRAdEAn2mvk36PvK5HnOchyWZ7afLEXqYCvPCrzuzQ==}
     engines: {node: '>=16'}
@@ -9951,11 +9987,11 @@ packages:
   zod-error@1.5.0:
     resolution: {integrity: sha512-zzopKZ/skI9iXpqCEPj+iLCKl9b88E43ehcU+sbRoHuwGd9F1IDVGQ70TyO6kmfiRL1g4IXkjsXK+g1gLYl4WQ==}
 
-  zod-openapi@4.2.4:
-    resolution: {integrity: sha512-tsrQpbpqFCXqVXUzi3TPwFhuMtLN3oNZobOtYnK6/5VkXsNdnIgyNr4r8no4wmYluaxzN3F7iS+8xCW8BmMQ8g==}
-    engines: {node: '>=18'}
+  zod-openapi@5.4.0:
+    resolution: {integrity: sha512-5FdEnJmeNFmSEzfoH10GGF0OQFtSkJCnoXBZR618/Aozv2NF7dhS6y4dj+88rwAgNezbUH+9GJC3QsEiyu3rUQ==}
+    engines: {node: '>=20'}
     peerDependencies:
-      zod: ^3.21.4
+      zod: ^3.25.74 || ^4.0.0
 
   zod-to-json-schema@3.24.1:
     resolution: {integrity: sha512-3h08nf3Vw3Wl3PK+q3ow/lIil81IT2Oa7YpQyUUDsEWbXveMesdfK1xBd2RhCkynwZndAxixji/7SYJJowr62w==}
@@ -14010,6 +14046,9 @@ snapshots:
   '@rollup/rollup-linux-x64-gnu@4.24.3':
     optional: true
 
+  '@rollup/rollup-linux-x64-gnu@4.6.1':
+    optional: true
+
   '@rollup/rollup-linux-x64-musl@4.24.3':
     optional: true
 
@@ -16321,6 +16360,8 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
+  cookie-es@1.2.2: {}
+
   cookie-signature@1.2.2: {}
 
   cookie@0.4.2: {}
@@ -16391,6 +16432,10 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  crossws@0.3.5:
+    dependencies:
+      uncrypto: 0.1.3
 
   crypto-js@4.2.0: {}
 
@@ -16561,6 +16606,8 @@ snapshots:
   depd@2.0.0: {}
 
   dequal@2.0.3: {}
+
+  destr@2.0.5: {}
 
   destroy@1.2.0: {}
 
@@ -17525,6 +17572,18 @@ snapshots:
 
   graphql@16.10.0: {}
 
+  h3@1.15.1:
+    dependencies:
+      cookie-es: 1.2.2
+      crossws: 0.3.5
+      defu: 6.1.4
+      destr: 2.0.5
+      iron-webcrypto: 1.2.1
+      node-mock-http: 1.0.2
+      radix3: 1.1.2
+      ufo: 1.5.4
+      uncrypto: 0.1.3
+
   has-bigints@1.0.2: {}
 
   has-flag@4.0.0: {}
@@ -17734,6 +17793,8 @@ snapshots:
   ip-regex@5.0.0: {}
 
   ipaddr.js@1.9.1: {}
+
+  iron-webcrypto@1.2.1: {}
 
   is-alphabetical@2.0.1: {}
 
@@ -18682,6 +18743,8 @@ snapshots:
       loader-utils: 2.0.4
       webpack: 5.95.0(esbuild@0.25.0)
 
+  node-mock-http@1.0.2: {}
+
   node-mocks-http@1.16.2(@types/express@4.17.21)(@types/node@20.17.5):
     dependencies:
       accepts: 1.3.8
@@ -19351,6 +19414,8 @@ snapshots:
   queue-microtask@1.2.3: {}
 
   queue-tick@1.0.1: {}
+
+  radix3@1.1.2: {}
 
   ramda@0.30.1: {}
 
@@ -20496,6 +20561,17 @@ snapshots:
       - '@types/express'
       - '@types/node'
 
+  trpc-to-openapi@3.0.1(@trpc/server@11.5.0(typescript@5.5.4))(zod-openapi@5.4.0(zod@4.1.5))(zod@4.1.5):
+    dependencies:
+      '@trpc/server': 11.5.0(typescript@5.5.4)
+      co-body: 6.2.0
+      h3: 1.15.1
+      openapi3-ts: 4.4.0
+      zod: 4.1.5
+      zod-openapi: 5.4.0(zod@4.1.5)
+    optionalDependencies:
+      '@rollup/rollup-linux-x64-gnu': 4.6.1
+
   ts-api-utils@1.4.0(typescript@5.5.4):
     dependencies:
       typescript: 5.5.4
@@ -21108,7 +21184,7 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  zod-openapi@4.2.4(zod@4.1.5):
+  zod-openapi@5.4.0(zod@4.1.5):
     dependencies:
       zod: 4.1.5
 

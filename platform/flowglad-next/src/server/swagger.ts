@@ -1,4 +1,4 @@
-import { generateOpenApiDocument } from 'trpc-swagger'
+import { generateOpenApiDocument } from 'trpc-to-openapi'
 import { appRouter } from './index'
 import { FlowgladEventType } from '@/types'
 import { eventPayloadSchema } from '@/db/schema/events'

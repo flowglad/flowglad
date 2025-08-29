@@ -334,6 +334,9 @@ export const safeZodPositiveInteger = z
     { message: 'Value must be a positive integer' }
   )
   .describe('safeZodPositiveInteger')
+  .meta({
+    description: 'A positive integer',
+  })
 
 export const zodOptionalNullableString = z.string().nullable().optional()
 

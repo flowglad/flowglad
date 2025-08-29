@@ -9,7 +9,6 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import {
   pgEnumColumn,
-  makeSchemaPropNull,
   ommittedColumnsForInsertSchema,
   constructIndex,
   notNullStringForeignKey,
@@ -132,7 +131,7 @@ const baseInsertSchema = createInsertSchema(purchases, {
 }).omit(ommittedColumnsForInsertSchema)
 
 const nulledInstallmentColumns = {
-  totalPurchaseValue: makeSchemaPropNull(z.any()),
+  totalPurchaseValue: core.safeZodNullOrUndefined,
 }
 
 const subscriptionColumns = {
@@ -145,10 +144,10 @@ const subscriptionColumns = {
 }
 
 const nulledSubscriptionColumns = {
-  pricePerBillingCycle: makeSchemaPropNull(z.any()),
-  intervalUnit: makeSchemaPropNull(z.any()),
-  intervalCount: makeSchemaPropNull(z.any()),
-  trialPeriodDays: makeSchemaPropNull(z.any()),
+  pricePerBillingCycle: core.safeZodNullOrUndefined,
+  intervalUnit: core.safeZodNullOrUndefined,
+  intervalCount: core.safeZodNullOrUndefined,
+  trialPeriodDays: core.safeZodNullOrUndefined,
 }
 
 export const subscriptionPurchaseInsertSchema = baseInsertSchema

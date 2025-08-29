@@ -96,7 +96,10 @@ const columnRefinements = {
     .string()
     .min(3)
     .max(20)
-    .transform((code) => code.toUpperCase()),
+    .transform((code) => code.toUpperCase())
+    .meta({
+      description: 'The discount code, must be unique and between 3 and 20 characters.',
+    }),
 }
 
 const baseDiscountSchema = createInsertSchema(discounts).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
