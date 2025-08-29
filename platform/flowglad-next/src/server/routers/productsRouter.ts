@@ -6,6 +6,10 @@ import {
 } from '@/db/tableMethods/productMethods'
 import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
+  validateProductCreation,
+  validateDefaultProductUpdate,
+} from '@/utils/defaultProductValidation'
+import {
   createProductTransaction,
   editProduct as editProductPricingModel,
 } from '@/utils/pricingModel'
@@ -58,6 +62,9 @@ export const createProduct = protectedProcedure
   .input(createProductSchema)
   .output(singleProductOutputSchema)
   .mutation(async ({ input, ctx }) => {
+    // Validate that default products cannot be created manually
+    validateProductCreation(input.product)
+    
     const result = await authenticatedTransaction(
       async ({ transaction, userId, livemode, organizationId }) => {
         const { product, price, featureIds } = input
@@ -93,13 +100,22 @@ export const editProduct = protectedProcedure
       async ({ transaction, input }) => {
         const { product, featureIds } = input
 
+        // Fetch the existing product to check if it's a default product
+        const existingProduct = await selectProductById(product.id, transaction)
+        if (!existingProduct) {
+          throw new Error('Product not found')
+        }
+
+        // Validate that default products can only have certain fields updated
+        validateDefaultProductUpdate(product, existingProduct)
+
         const updatedProduct = await editProductPricingModel(
           { product, featureIds },
           transaction
         )
 
         if (!updatedProduct) {
-          throw new Error('Product not found or update failed')
+          throw new Error('Product update failed')
         }
 
         if (input.price) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createCustomerBookkeeping } from './bookkeeping'
+import { createCustomerBookkeeping, createPricingModelBookkeeping } from './bookkeeping'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupOrg,
@@ -22,6 +22,8 @@ import { PricingModel } from '@/db/schema/pricingModels'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectProducts } from '@/db/tableMethods/productMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
@@ -544,6 +546,122 @@ describe('createCustomerBookkeeping', () => {
       expect(subscriptionInDb).toBeDefined()
       expect(subscriptionInDb?.subscription.name).toContain('Default Product')
       expect(subscriptionInDb?.subscription.name).toContain('Subscription')
+    })
+  })
+})
+
+describe('createPricingModelBookkeeping', () => {
+  let organizationId: string
+  const livemode = true
+  
+  beforeEach(async () => {
+    // Set up a basic organization
+    const { organization } = await setupOrg()
+    organizationId = organization.id
+  })
+  
+  describe('pricing model creation with automatic default product', () => {
+    it('should create a pricing model with a default product and price', async () => {
+      const result = await adminTransaction(async ({ transaction }) => {
+        const output = await createPricingModelBookkeeping(
+          {
+            pricingModel: {
+              name: 'New Pricing Model',
+              isDefault: false,
+            },
+          },
+          {
+            transaction,
+            organizationId,
+            livemode,
+          }
+        )
+        return output
+      })
+      
+      // Verify the pricing model was created
+      expect(result.result.pricingModel).toBeDefined()
+      expect(result.result.pricingModel.name).toBe('New Pricing Model')
+      expect(result.result.pricingModel.isDefault).toBe(false)
+      expect(result.result.pricingModel.organizationId).toBe(organizationId)
+      expect(result.result.pricingModel.livemode).toBe(livemode)
+      
+      // Verify the default product was created
+      expect(result.result.defaultProduct).toBeDefined()
+      expect(result.result.defaultProduct.name).toBe('Base Plan')
+      expect(result.result.defaultProduct.slug).toBe('base-plan')
+      expect(result.result.defaultProduct.default).toBe(true)
+      expect(result.result.defaultProduct.pricingModelId).toBe(result.result.pricingModel.id)
+      expect(result.result.defaultProduct.organizationId).toBe(organizationId)
+      expect(result.result.defaultProduct.livemode).toBe(livemode)
+      expect(result.result.defaultProduct.active).toBe(true)
+      
+      // Verify the default price was created
+      expect(result.result.defaultPrice).toBeDefined()
+      expect(result.result.defaultPrice.productId).toBe(result.result.defaultProduct.id)
+      expect(result.result.defaultPrice.unitPrice).toBe(0)
+      expect(result.result.defaultPrice.isDefault).toBe(true)
+      expect(result.result.defaultPrice.type).toBe(PriceType.Subscription)
+      expect(result.result.defaultPrice.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.result.defaultPrice.intervalCount).toBe(1)
+      expect(result.result.defaultPrice.livemode).toBe(livemode)
+      expect(result.result.defaultPrice.active).toBe(true)
+      expect(result.result.defaultPrice.name).toBe('Base Plan Price')
+      
+      // Verify events were created
+      expect(result.eventsToLog).toBeDefined()
+      expect(result.eventsToLog).toHaveLength(3)
+      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.PricingModelCreated)).toBe(true)
+      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.ProductCreated)).toBe(true)
+      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.PriceCreated)).toBe(true)
+    })
+    
+    it('should create a non-default pricing model with default product', async () => {
+      const result = await adminTransaction(async ({ transaction }) => {
+        const output = await createPricingModelBookkeeping(
+          {
+            pricingModel: {
+              name: 'Another Pricing Model',
+              isDefault: false, // Can't create another default, setupOrg already created one
+            },
+          },
+          {
+            transaction,
+            organizationId,
+            livemode,
+          }
+        )
+        return output
+      })
+      
+      // Verify the pricing model is not marked as default (since one already exists)
+      expect(result.result.pricingModel.isDefault).toBe(false)
+      
+      // Verify the default product and price were still created
+      expect(result.result.defaultProduct.default).toBe(true)
+      expect(result.result.defaultPrice.unitPrice).toBe(0)
+    })
+    
+    it('should use organization default currency for the default price', async () => {
+      const result = await adminTransaction(async ({ transaction }) => {
+        const output = await createPricingModelBookkeeping(
+          {
+            pricingModel: {
+              name: 'Currency Test Pricing Model',
+              isDefault: false,
+            },
+          },
+          {
+            transaction,
+            organizationId,
+            livemode,
+          }
+        )
+        return output
+      })
+      
+      // Verify the price uses the organization's default currency
+      expect(result.result.defaultPrice.currency).toBe(CurrencyCode.USD)
     })
   })
 })

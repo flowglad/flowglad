@@ -55,9 +55,9 @@ import {
   selectOpenNonExpiredCheckoutSessions,
   updateCheckoutSessionsForOpenPurchase,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
-import { selectProducts } from '@/db/tableMethods/productMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectDefaultPricingModel, insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { selectProducts, insertProduct } from '@/db/tableMethods/productMethods'
+import { selectPrices, insertPrice } from '@/db/tableMethods/priceMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { Event } from '@/db/schema/events'
@@ -65,6 +65,9 @@ import { FlowgladEventType, EventNoun } from '@/types'
 import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
 import { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import { PricingModel } from '@/db/schema/pricingModels'
+import { Product } from '@/db/schema/products'
+import { Price } from '@/db/schema/prices'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -634,5 +637,134 @@ export const createCustomerBookkeeping = async (
   return {
     result: { customer },
     eventsToLog
+  }
+}
+
+/**
+ * Creates a pricing model with a default "Base Plan" product and a default price of 0
+ */
+export const createPricingModelBookkeeping = async (
+  payload: {
+    pricingModel: Omit<PricingModel.Insert, 'livemode' | 'organizationId'>
+  },
+  { transaction, organizationId, livemode }: AuthenticatedTransactionParams
+): Promise<TransactionOutput<{
+  pricingModel: PricingModel.Record
+  defaultProduct: Product.Record
+  defaultPrice: Price.Record
+}>> => {
+  // 1. Create the pricing model
+  const pricingModel = await insertPricingModel(
+    {
+      ...payload.pricingModel,
+      organizationId,
+      livemode,
+    },
+    transaction
+  )
+
+  // 2. Create the default "Base Plan" product
+  const defaultProduct = await insertProduct(
+    {
+      name: 'Base Plan',
+      slug: 'base-plan',
+      default: true,
+      description: 'Default subscription plan',
+      pricingModelId: pricingModel.id,
+      organizationId,
+      livemode,
+      active: true,
+      displayFeatures: null,
+      singularQuantityLabel: 'subscription',
+      pluralQuantityLabel: 'subscriptions',
+      imageURL: null,
+      externalId: null,
+    },
+    transaction
+  )
+
+  // 3. Get organization for default currency
+  const organization = await selectOrganizationById(organizationId, transaction)
+
+  // 4. Create the default price with unitPrice of 0
+  const defaultPrice = await insertPrice(
+    {
+      productId: defaultProduct.id,
+      unitPrice: 0,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      currency: organization.defaultCurrency,
+      livemode,
+      active: true,
+      name: 'Base Plan Price',
+      trialPeriodDays: null,
+      setupFeeAmount: null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      externalId: null,
+      slug: null,
+    },
+    transaction
+  )
+
+  // 5. Create events
+  const timestamp = new Date()
+  const eventsToLog: Event.Insert[] = [
+    {
+      type: FlowgladEventType.PricingModelCreated,
+      occurredAt: timestamp,
+      organizationId,
+      livemode,
+      payload: {
+        object: EventNoun.PricingModel,
+        id: pricingModel.id,
+      },
+      submittedAt: timestamp,
+      hash: core.nanoid(),
+      metadata: {},
+      processedAt: null,
+    },
+    {
+      type: FlowgladEventType.ProductCreated,
+      occurredAt: timestamp,
+      organizationId,
+      livemode,
+      payload: {
+        object: EventNoun.Product,
+        id: defaultProduct.id,
+        isDefault: true,
+      },
+      submittedAt: timestamp,
+      hash: core.nanoid(),
+      metadata: {},
+      processedAt: null,
+    },
+    {
+      type: FlowgladEventType.PriceCreated,
+      occurredAt: timestamp,
+      organizationId,
+      livemode,
+      payload: {
+        object: EventNoun.Price,
+        id: defaultPrice.id,
+        productId: defaultProduct.id,
+        unitPrice: 0,
+      },
+      submittedAt: timestamp,
+      hash: core.nanoid(),
+      metadata: {},
+      processedAt: null,
+    },
+  ]
+
+  return {
+    result: {
+      pricingModel,
+      defaultProduct,
+      defaultPrice,
+    },
+    eventsToLog,
   }
 }

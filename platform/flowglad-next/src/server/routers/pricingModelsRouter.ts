@@ -23,6 +23,7 @@ import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
+import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
   createPaginatedTableRowInputSchema,
@@ -101,22 +102,24 @@ const createPricingModelProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const pricingModel = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertPricingModel(
+    const result = await authenticatedTransaction(
+      async ({ transaction, organizationId, livemode }) => {
+        return createPricingModelBookkeeping(
           {
-            ...input.pricingModel,
-            livemode: ctx.livemode,
-            organizationId: ctx.organizationId!,
+            pricingModel: input.pricingModel,
           },
-          transaction
+          { transaction, organizationId, livemode }
         )
       },
       {
         apiKey: ctx.apiKey,
       }
     )
-    return { pricingModel }
+    return { 
+      pricingModel: result.result.pricingModel,
+      // Note: We're not returning the default product/price in the API response
+      // to maintain backward compatibility, but they are created
+    }
   })
 
 const editPricingModelProcedure = protectedProcedure
