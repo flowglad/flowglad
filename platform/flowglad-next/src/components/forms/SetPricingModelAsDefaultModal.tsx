@@ -54,7 +54,7 @@ const SetPricingModelAsDefaultModal: React.FC<
   return (
     <Modal
       trigger={trigger}
-      title="Set Default PricingModel"
+      title="Set Default Pricing Model"
       open={isOpen}
       onOpenChange={setIsOpen}
       footer={
@@ -75,7 +75,7 @@ const SetPricingModelAsDefaultModal: React.FC<
       <div className="text-secondary">
         <p>
           Set {pricingModel.name} to default? This will be the default
-          pricingModel for new products.
+          pricing model for new products.
         </p>
       </div>
     </Modal>

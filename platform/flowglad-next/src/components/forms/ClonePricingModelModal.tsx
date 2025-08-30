@@ -23,14 +23,14 @@ const ClonePricingModelModal: React.FC<
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Clone PricingModel"
+      title="Clone Pricing Model"
       formSchema={clonePricingModelInputSchema}
       defaultValues={{
         id: pricingModel.id,
         name: `${pricingModel.name} (Copy)`,
       }}
       onSubmit={clonePricingModelMutation.mutateAsync}
-      submitButtonText="Clone PricingModel"
+      submitButtonText="Clone Pricing Model"
     >
       <ClonePricingModelFormFields />
     </FormModal>
