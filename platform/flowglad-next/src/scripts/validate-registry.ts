@@ -348,6 +348,11 @@ class RegistryValidator {
       if (entry.isDirectory()) {
         this.checkDirectoryForOrphans(fullPath, referencedFiles, relPath);
       } else if (entry.isFile() && (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts'))) {
+        // Skip layout files as they are legitimate Next.js layout files
+        if (entry.name === 'layout.tsx' || entry.name === 'layout.ts') {
+          continue;
+        }
+        
         if (!referencedFiles.has(relPath)) {
           this.errors.push({
             type: 'warning',
