@@ -4,63 +4,6 @@
     "homepage": "https://flowglad.com",
     "items": [
       {
-        "name": "hello-world",
-        "type": "registry:component",
-        "title": "Hello World",
-        "description": "A simple hello world component",
-        "registryDependencies": ["button"],
-        "files": [
-          {
-            "path": "src/registry/new-york/hello-world/hello-world.tsx",
-            "type": "registry:component"
-          }
-        ]
-      },
-      {
-        "name": "example-form",
-        "type": "registry:component",
-        "title": "Example Form",
-        "description": "A contact form with Zod validation.",
-        "dependencies": ["zod"],
-        "registryDependencies": ["button", "input", "label", "textarea", "card"],
-        "files": [
-          {
-            "path": "src/registry/new-york/example-form/example-form.tsx",
-            "type": "registry:component"
-          }
-        ]
-      },
-      {
-        "name": "complex-component",
-        "type": "registry:component",
-        "title": "Complex Component",
-        "description": "A complex component showing hooks, libs and components.",
-        "registryDependencies": ["card"],
-        "files": [
-          {
-            "path": "src/registry/new-york/complex-component/page.tsx",
-            "type": "registry:page",
-            "target": "app/pokemon/page.tsx"
-          },
-          {
-            "path": "src/registry/new-york/complex-component/components/pokemon-card.tsx",
-            "type": "registry:component"
-          },
-          {
-            "path": "src/registry/new-york/complex-component/components/pokemon-image.tsx",
-            "type": "registry:component"
-          },
-          {
-            "path": "src/registry/new-york/complex-component/lib/pokemon.ts",
-            "type": "registry:lib"
-          },
-          {
-            "path": "src/registry/new-york/complex-component/hooks/use-pokemon.ts",
-            "type": "registry:hook"
-          }
-        ]
-      },
-      {
         "name": "pricing-table",
         "type": "registry:component",
         "title": "Pricing Table",
@@ -68,44 +11,45 @@
         "registryDependencies": ["button", "badge"],
         "files": [
           {
-            "path": "src/registry/new-york/pricing-table/pricing-table.tsx",
+            "path": "src/registry/base/pricing-table/pricing-table.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/new-york/pricing-table/components/pricing-toggle.tsx",
+            "path": "src/registry/base/pricing-table/components/pricing-toggle.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/new-york/pricing-table/components/pricing-column.tsx",
+            "path": "src/registry/base/pricing-table/components/pricing-column.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/new-york/pricing-table/components/pricing-header.tsx",
+            "path": "src/registry/base/pricing-table/components/pricing-header.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/new-york/pricing-table/components/pricing-feature.tsx",
+            "path": "src/registry/base/pricing-table/components/pricing-feature.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/new-york/pricing-table/components/card.tsx",
+            "path": "src/registry/base/pricing-table/components/card.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/new-york/pricing-table/types.ts",
+            "path": "src/registry/base/pricing-table/types.ts",
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/new-york/pricing-table/utils/currency.ts",
+            "path": "src/registry/base/pricing-table/utils/currency.ts",
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/new-york/pricing-table/index.ts",
+            "path": "src/registry/base/pricing-table/index.ts",
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/new-york/pricing-table/page.tsx",
-            "type": "registry:page"
+            "path": "src/registry/base/pricing-table/page.tsx",
+            "type": "registry:page",
+            "target": "app/pricing/page.tsx"
           }
         ]
       }

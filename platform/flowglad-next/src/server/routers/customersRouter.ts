@@ -1,5 +1,6 @@
 import { router } from '../trpc'
 import { protectedProcedure } from '@/server/trpc'
+import { errorHandlers } from '../trpcErrorHandler'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
@@ -88,38 +89,47 @@ const createCustomerProcedure = protectedProcedure
         ctx,
         organizationId,
       }): Promise<TransactionOutput<CreateCustomerOutputSchema>> => {
-        if (!organizationId) {
-          throw new Error('organizationId is required')
-        }
+        try {
+          if (!organizationId) {
+            throw new Error('organizationId is required')
+          }
 
-        const { customer } = input
-        /**
-         * We have to parse the customer record here because of the billingAddress json
-         */
-        const createdCustomerOutput = await createCustomerBookkeeping(
-          {
-            customer: {
-              ...customer,
-              organizationId,
+          const { customer } = input
+          /**
+           * We have to parse the customer record here because of the billingAddress json
+           */
+          const createdCustomerOutput = await createCustomerBookkeeping(
+            {
+              customer: {
+                ...customer,
+                organizationId,
+              },
             },
-          },
-          { transaction, userId, livemode, organizationId }
-        )
+            { transaction, userId, livemode, organizationId }
+          )
 
-        if (ctx.path) {
-          await revalidatePath(ctx.path)
-        }
-        const subscription = createdCustomerOutput.result.subscription ? subscriptionWithCurrent(createdCustomerOutput.result.subscription) : undefined
-        return {
-          result: {
-            data: {
-              customer: createdCustomerOutput.result.customer,
-              subscription,
-              subscriptionItems: createdCustomerOutput.result.subscriptionItems,
-            }
-          },
-          eventsToLog: createdCustomerOutput.eventsToLog,
-          ledgerCommand: createdCustomerOutput.ledgerCommand,
+          if (ctx.path) {
+            await revalidatePath(ctx.path)
+          }
+          
+          const subscription = createdCustomerOutput.result.subscription ? subscriptionWithCurrent(createdCustomerOutput.result.subscription) : undefined
+          return {
+            result: {
+              data: {
+                customer: createdCustomerOutput.result.customer,
+                subscription,
+                subscriptionItems: createdCustomerOutput.result.subscriptionItems,
+              }
+            },
+            eventsToLog: createdCustomerOutput.eventsToLog,
+            ledgerCommand: createdCustomerOutput.ledgerCommand,
+          }
+        } catch (error) {
+          errorHandlers.customer.handle(error, {
+            operation: 'create',
+            details: { customerData: input.customer },
+          })
+          throw error
         }
       }
     )
@@ -132,14 +142,23 @@ export const editCustomer = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const { customer } = input
+        try {
+          const { customer } = input
 
-        const updatedCustomer = await updateCustomer(
-          customer,
-          transaction
-        )
-        return {
-          customer: updatedCustomer,
+          const updatedCustomer = await updateCustomer(
+            customer,
+            transaction
+          )
+          return {
+            customer: updatedCustomer,
+          }
+        } catch (error) {
+          errorHandlers.customer.handle(error, {
+            operation: 'update',
+            id: input.customer.id,
+            details: { customerData: input.customer },
+          })
+          throw error
         }
       }
     )
@@ -151,11 +170,19 @@ export const getCustomerById = protectedProcedure
   .query(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const customer = await selectCustomerById(
-          input.id,
-          transaction
-        )
-        return { customer }
+        try {
+          const customer = await selectCustomerById(
+            input.id,
+            transaction
+          )
+          return { customer }
+        } catch (error) {
+          errorHandlers.customer.handle(error, {
+            operation: 'get',
+            id: input.id,
+          })
+          throw error
+        }
       }
     )
   )

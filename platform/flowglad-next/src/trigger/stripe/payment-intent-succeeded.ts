@@ -103,7 +103,7 @@ export const stripePaymentIntentSucceededTask = task({
       const timestamp = new Date()
       const eventInserts: Event.Insert[] = [
         {
-          type: FlowgladEventType.SubscriptionCreated,
+          type: FlowgladEventType.PaymentSucceeded,
           occurredAt: timestamp,
           organizationId: payment.organizationId,
           livemode: payment.livemode,

@@ -86,17 +86,25 @@ export const createSelectById = <
      * NOTE we don't simply use selectByIds here
      * because a simple equality check is generally more performant
      */
-    const results = await transaction
-      .select()
-      .from(table as SelectTable)
-      .where(eq(table.id, id))
-    if (results.length === 0) {
-      throw Error(
-        `No ${noCase(config.tableName)} found with id: ${id}`
+    try {
+      const results = await transaction
+        .select()
+        .from(table as SelectTable)
+        .where(eq(table.id, id))
+      if (results.length === 0) {
+        throw Error(
+          `No ${noCase(config.tableName)} found with id: ${id}`
+        )
+      }
+      const result = results[0]
+      return selectSchema.parse(result)
+    } catch (error) {
+      console.error(`[selectById] Error selecting ${config.tableName} with id ${id}:`, error)
+      throw new Error(
+        `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       )
     }
-    const result = results[0]
-    return selectSchema.parse(result)
   }
 }
 
@@ -116,26 +124,40 @@ export const createInsertManyFunction = <
     insert: z.infer<I>[],
     transaction: DbTransaction
   ): Promise<z.infer<S>[]> => {
-    const parsedInsert = insert.map((insert) =>
-      insertSchema.parse(insert)
-    ) as InferInsertModel<T>[]
-    const result = await transaction
-      .insert(table)
-      .values(parsedInsert)
-      .returning()
-    return result.map((item) => {
-      const parsed = selectSchema.safeParse(item)
-      if (!parsed.success) {
-        console.error(parsed.error.issues)
-        console.error(item)
-        throw Error(
-          `createInsertManyFunction: Error parsing result: ${JSON.stringify(
-            item
-          )}`
+    try {
+      const parsedInsert = insert.map((insert) =>
+        insertSchema.parse(insert)
+      ) as InferInsertModel<T>[]
+      const result = await transaction
+        .insert(table)
+        .values(parsedInsert)
+        .returning()
+      return result.map((item) => {
+        const parsed = selectSchema.safeParse(item)
+        if (!parsed.success) {
+          console.error('[createInsertManyFunction] Zod parsing error:', parsed.error.issues)
+          console.error('[createInsertManyFunction] Failed item:', item)
+          throw Error(
+            `createInsertManyFunction: Error parsing result: ${JSON.stringify(
+              item
+            )}. Issues: ${JSON.stringify(parsed.error.issues)}`
+          )
+        }
+        return parsed.data
+      })
+    } catch (error) {
+      console.error(`[createInsertManyFunction] Error inserting into ${config.tableName}:`, error)
+      if (error instanceof Error && error.message.includes('duplicate key')) {
+        throw new Error(
+          `Duplicate key error when inserting into ${config.tableName}: ${error.message}`,
+          { cause: error }
         )
       }
-      return parsed.data
-    })
+      throw new Error(
+        `Failed to insert items into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
+    }
   }
 }
 
@@ -153,8 +175,16 @@ export const createInsertFunction = <
     insert: z.infer<I>,
     transaction: DbTransaction
   ): Promise<z.infer<S>> => {
-    const [result] = await insertMany([insert], transaction)
-    return result
+    try {
+      const [result] = await insertMany([insert], transaction)
+      return result
+    } catch (error) {
+      console.error(`[createInsertFunction] Error inserting single item into ${config.tableName}:`, error)
+      throw new Error(
+        `Failed to insert item into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
+    }
   }
 }
 
@@ -176,40 +206,51 @@ export const createUpdateFunction = <
     update: z.infer<typeof updateSchema> & { id: string },
     transaction: DbTransaction
   ): Promise<z.infer<S>> => {
-    const parsedUpdate = updateSchema.parse(
-      update
-    ) as InferInsertModel<T>
-    const [result] = await transaction
-      .update(table)
-      .set({
-        ...parsedUpdate,
-        updatedAt: new Date(),
-      })
-      .where(eq(table.id, update.id))
-      .returning()
-    if (!result) {
-      const [latestItem] = await transaction
-        .select()
-        .from(table as SelectTable)
+    try {
+      const parsedUpdate = updateSchema.parse(
+        update
+      ) as InferInsertModel<T>
+      const [result] = await transaction
+        .update(table)
+        .set({
+          ...parsedUpdate,
+          updatedAt: new Date(),
+        })
         .where(eq(table.id, update.id))
-        .limit(1)
-      if (!latestItem) {
+        .returning()
+      if (!result) {
+        const [latestItem] = await transaction
+          .select()
+          .from(table as SelectTable)
+          .where(eq(table.id, update.id))
+          .limit(1)
+        if (!latestItem) {
+          throw Error(
+            `No ${noCase(config.tableName)} found with id: ${update.id}`
+          )
+        }
+        return selectSchema.parse(latestItem)
+      }
+
+      const parsed = selectSchema.safeParse(result)
+      if (!parsed.success) {
+        console.error('[createUpdateFunction] Zod parsing error:', parsed.error.issues)
+        console.error('[createUpdateFunction] Failed result:', result)
         throw Error(
-          `No ${noCase(config.tableName)} found with id: ${update.id}`
+          `createUpdateFunction: Error parsing result: ${JSON.stringify(result)}. Issues: ${JSON.stringify(parsed.error.issues)}`
         )
       }
-      return selectSchema.parse(latestItem)
-    }
-
-    const parsed = selectSchema.safeParse(result)
-    if (!parsed.success) {
-      console.error(parsed.error.issues)
-      console.error(result)
-      throw Error(
-        `createUpdateFunction: Error parsing result: ${JSON.stringify(result)}`
+      return parsed.data
+    } catch (error) {
+      console.error(`[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`, error)
+      if (error instanceof Error && error.message.includes('No ')) {
+        throw error
+      }
+      throw new Error(
+        `Failed to update ${config.tableName} with id ${update.id}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       )
     }
-    return parsed.data
   }
 }
 
@@ -265,38 +306,57 @@ export const createSelectFunction = <
     selectConditions: SelectConditions<T>,
     transaction: DbTransaction
   ): Promise<DBMethodReturn<T, S>> => {
-    let query = transaction.select().from(table as SelectTable).$dynamic()
-    if (!R.isEmpty(selectConditions)) {
-      query = query.where(
-        whereClauseFromObject(table, selectConditions)
-      )
-    }
-    const result = await query
-    return result.map((item) => {
-      const parsed = selectSchema.safeParse(item)
-      if (!parsed.success) {
-        console.error(parsed.error.issues)
-        console.error(item)
-        throw Error(
-          `createSelectFunction: Error parsing result: ${JSON.stringify(
-            item
-          )}`
+    try {
+      let query = transaction.select().from(table as SelectTable).$dynamic()
+      if (!R.isEmpty(selectConditions)) {
+        query = query.where(
+          whereClauseFromObject(table, selectConditions)
         )
       }
-      return parsed.data
-    }) as DBMethodReturn<T, S>
+      const result = await query
+      return result.map((item) => {
+        const parsed = selectSchema.safeParse(item)
+        if (!parsed.success) {
+          console.error('[createSelectFunction] Zod parsing error:', parsed.error.issues)
+          console.error('[createSelectFunction] Failed item:', item)
+          throw Error(
+            `createSelectFunction: Error parsing result: ${JSON.stringify(
+              item
+            )}. Issues: ${JSON.stringify(parsed.error.issues)}`
+          )
+        }
+        return parsed.data
+      }) as DBMethodReturn<T, S>
+    } catch (error) {
+      console.error(`[createSelectFunction] Error selecting from ${config.tableName}:`, error)
+      console.error('[createSelectFunction] Select conditions:', selectConditions)
+      throw new Error(
+        `Failed to select from ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
+    }
   }
 }
 
-export const selectByIds = <TTable extends PgTableWithId>(
+export const selectByIds = async <TTable extends PgTableWithId>(
   table: TTable,
   ids: number[],
   transaction: DbTransaction
 ) => {
-  return transaction
-    .select()
-    .from(table as SelectTable)
-    .where(inArray(table.id, ids))
+  try {
+    return await transaction
+      .select()
+      .from(table as SelectTable)
+      .where(inArray(table.id, ids))
+  } catch (error) {
+    console.error('[selectByIds] Error selecting by ids:', error)
+    console.error('[selectByIds] Table:', table)
+    console.error('[selectByIds] IDs:', ids)
+    throw new Error(
+      `Failed to select by ids: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    )
+  }
 }
 
 export const activeColumn = () =>
@@ -555,20 +615,28 @@ export const createUpsertFunction = <
     data: z.infer<I> | z.infer<I>[],
     transaction: DbTransaction
   ): Promise<z.infer<S>[]> => {
-    const dataArray = Array.isArray(data) ? data : [data]
-    const insertData = dataArray.map(
-      (data) => insertSchema.parse(data) as InferInsertModel<T>
-    )
-    const result = await transaction
-      .insert(table)
-      .values(insertData)
-      .onConflictDoNothing({
-        target,
-      })
-      .returning()
-    return result.map((data) => selectSchema.parse(data)) as z.infer<
-      typeof selectSchema
-    >[]
+    try {
+      const dataArray = Array.isArray(data) ? data : [data]
+      const insertData = dataArray.map(
+        (data) => insertSchema.parse(data) as InferInsertModel<T>
+      )
+      const result = await transaction
+        .insert(table)
+        .values(insertData)
+        .onConflictDoNothing({
+          target,
+        })
+        .returning()
+      return result.map((data) => selectSchema.parse(data)) as z.infer<
+        typeof selectSchema
+      >[]
+    } catch (error) {
+      console.error(`[createUpsertFunction] Error upserting into ${config.tableName}:`, error)
+      throw new Error(
+        `Failed to upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
+    }
   }
 
   return upsertFunction
@@ -662,18 +730,27 @@ export const createBulkInsertFunction = <
     data: z.infer<I>[],
     transaction: DbTransaction
   ): Promise<z.infer<S>[]> => {
-    const dataArray = Array.isArray(data) ? data : [data]
-    const parsedData = dataArray.map((data) =>
-      insertSchema.parse(data)
-    ) as InferInsertModel<T>[]
-    if (dataArray.length === 0) {
-      return []
+    try {
+      const dataArray = Array.isArray(data) ? data : [data]
+      const parsedData = dataArray.map((data) =>
+        insertSchema.parse(data)
+      ) as InferInsertModel<T>[]
+      if (dataArray.length === 0) {
+        return []
+      }
+      const result = await transaction
+        .insert(table)
+        .values(parsedData)
+        .returning()
+      return result.map((data) => config.selectSchema.parse(data))
+    } catch (error) {
+      console.error(`[createBulkInsertFunction] Error bulk inserting into ${config.tableName}:`, error)
+      console.error('[createBulkInsertFunction] Data count:', data.length)
+      throw new Error(
+        `Failed to bulk insert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
     }
-    const result = await transaction
-      .insert(table)
-      .values(parsedData)
-      .returning()
-    return result.map((data) => config.selectSchema.parse(data))
   }
 }
 
@@ -691,21 +768,31 @@ export const createBulkInsertOrDoNothingFunction = <
     target: IndexColumn | IndexColumn[],
     transaction: DbTransaction
   ): Promise<z.infer<S>[]> => {
-    const dataArray = Array.isArray(data) ? data : [data]
-    const parsedData = dataArray.map((data) =>
-      config.insertSchema.parse(data)
-    ) as InferInsertModel<T>[]
-    if (parsedData.length === 0) {
-      return []
+    try {
+      const dataArray = Array.isArray(data) ? data : [data]
+      const parsedData = dataArray.map((data) =>
+        config.insertSchema.parse(data)
+      ) as InferInsertModel<T>[]
+      if (parsedData.length === 0) {
+        return []
+      }
+      const result = await transaction
+        .insert(table)
+        .values(parsedData)
+        .onConflictDoNothing({
+          target,
+        })
+        .returning()
+      return result.map((data) => config.selectSchema.parse(data))
+    } catch (error) {
+      console.error(`[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`, error)
+      console.error('[createBulkInsertOrDoNothingFunction] Data count:', data.length)
+      console.error('[createBulkInsertOrDoNothingFunction] Target:', target)
+      throw new Error(
+        `Failed to bulk insert with conflict handling into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
     }
-    const result = await transaction
-      .insert(table)
-      .values(parsedData)
-      .onConflictDoNothing({
-        target,
-      })
-      .returning()
-    return result.map((data) => config.selectSchema.parse(data))
   }
 }
 
@@ -723,19 +810,29 @@ export const createBulkUpsertFunction = <
     target: IndexColumn | IndexColumn[],
     transaction: DbTransaction
   ): Promise<z.infer<S>[]> => {
-    const dataArray = Array.isArray(data) ? data : [data]
-    const parsedData = dataArray.map((data) =>
-      config.insertSchema.parse(data)
-    ) as InferInsertModel<T>[]
-    const result = await transaction
-      .insert(table)
-      .values(parsedData)
-      .onConflictDoUpdate({
-        target,
-        set: onConflictDoUpdateSetValues(table, ['id', 'created_at']),
-      })
-      .returning()
-    return result.map((data) => config.selectSchema.parse(data))
+    try {
+      const dataArray = Array.isArray(data) ? data : [data]
+      const parsedData = dataArray.map((data) =>
+        config.insertSchema.parse(data)
+      ) as InferInsertModel<T>[]
+      const result = await transaction
+        .insert(table)
+        .values(parsedData)
+        .onConflictDoUpdate({
+          target,
+          set: onConflictDoUpdateSetValues(table, ['id', 'created_at']),
+        })
+        .returning()
+      return result.map((data) => config.selectSchema.parse(data))
+    } catch (error) {
+      console.error(`[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`, error)
+      console.error('[createBulkUpsertFunction] Data count:', data.length)
+      console.error('[createBulkUpsertFunction] Target:', target)
+      throw new Error(
+        `Failed to bulk upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
+    }
   }
 }
 
@@ -754,7 +851,16 @@ export const createDeleteFunction = <T extends PgTableWithId>(
     id: number | string,
     transaction: DbTransaction
   ): Promise<void> => {
-    await transaction.delete(table).where(eq(table.id, id))
+    try {
+      await transaction.delete(table).where(eq(table.id, id))
+    } catch (error) {
+      console.error(`[createDeleteFunction] Error deleting from table with id ${id}:`, error)
+      console.error('[createDeleteFunction] Table:', table)
+      throw new Error(
+        `Failed to delete record with id ${id}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
+    }
   }
 }
 
@@ -825,66 +931,76 @@ export const createPaginatedSelectFunction = <
     hasMore: boolean
     total: number
   }> => {
-    if (limit > 100) {
-      throw new Error(
-        'Paginated Select Function limit must be less than or equal to 100. Received: ' +
-          limit
-      )
-    }
-    const { parameters, createdAt, direction } = cursor
-      ? decodeCursor(cursor)
-      : {
-          parameters: {},
-          createdAt: new Date(),
-          direction: 'forward',
-        }
-    let query = transaction.select().from(table as SelectTable).$dynamic()
-    if (Object.keys(parameters).length > 0) {
-      query = query.where(
-        and(
-          whereClauseFromObject(table, parameters),
-          direction === 'forward'
-            ? gt(table.createdAt, createdAt)
-            : lt(table.createdAt, createdAt)
+    try {
+      if (limit > 100) {
+        throw new Error(
+          'Paginated Select Function limit must be less than or equal to 100. Received: ' +
+            limit
         )
-      )
-    }
-    const queryLimit = limit + 1
-    query = query
-      .orderBy(
-        direction === 'forward'
-          ? asc(table.createdAt)
-          : desc(table.createdAt)
-      )
-      .limit(queryLimit)
-    const result = await query
+      }
+      const { parameters, createdAt, direction } = cursor
+        ? decodeCursor(cursor)
+        : {
+            parameters: {},
+            createdAt: new Date(),
+            direction: 'forward',
+          }
+      let query = transaction.select().from(table as SelectTable).$dynamic()
+      if (Object.keys(parameters).length > 0) {
+        query = query.where(
+          and(
+            whereClauseFromObject(table, parameters),
+            direction === 'forward'
+              ? gt(table.createdAt, createdAt)
+              : lt(table.createdAt, createdAt)
+          )
+        )
+      }
+      const queryLimit = limit + 1
+      query = query
+        .orderBy(
+          direction === 'forward'
+            ? asc(table.createdAt)
+            : desc(table.createdAt)
+        )
+        .limit(queryLimit)
+      const result = await query
 
-    // Check if we got an extra item
-    const hasMore = result.length > limit
-    // Remove the extra item if it exists
-    const data = result.slice(0, limit) as InferSelectModel<T>[]
-    let totalQuery = transaction
-      .select({ count: count() })
-      .from(table as SelectTable)
-      .$dynamic()
-    if (Object.keys(parameters).length > 0) {
-      totalQuery = totalQuery.where(
-        whereClauseFromObject(table, parameters)
+      // Check if we got an extra item
+      const hasMore = result.length > limit
+      // Remove the extra item if it exists
+      const data = result.slice(0, limit) as InferSelectModel<T>[]
+      let totalQuery = transaction
+        .select({ count: count() })
+        .from(table as SelectTable)
+        .$dynamic()
+      if (Object.keys(parameters).length > 0) {
+        totalQuery = totalQuery.where(
+          whereClauseFromObject(table, parameters)
+        )
+      }
+      const total = await totalQuery
+      return {
+        data: data.map((item) => selectSchema.parse(item)),
+        currentCursor: cursor,
+        nextCursor: hasMore
+          ? encodeCursor({
+              parameters,
+              createdAt: data[data.length - 1].createdAt as Date,
+              direction,
+            })
+          : undefined,
+        hasMore,
+        total: total[0].count,
+      }
+    } catch (error) {
+      console.error(`[createPaginatedSelectFunction] Error in paginated select for ${config.tableName}:`, error)
+      console.error('[createPaginatedSelectFunction] Cursor:', cursor)
+      console.error('[createPaginatedSelectFunction] Limit:', limit)
+      throw new Error(
+        `Failed to paginate ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       )
-    }
-    const total = await totalQuery
-    return {
-      data: data.map((item) => selectSchema.parse(item)),
-      currentCursor: cursor,
-      nextCursor: hasMore
-        ? encodeCursor({
-            parameters,
-            createdAt: data[data.length - 1].createdAt as Date,
-            direction,
-          })
-        : undefined,
-      hasMore,
-      total: total[0].count,
     }
   }
 }
@@ -953,12 +1069,23 @@ export const testEnumColumn = async <T extends PgTableWithId>(
   enumValues: Record<string, string>,
   transaction: DbTransaction
 ) => {
-  const result = await transaction
-    .select()
-    .from(table as SelectTable)
-    .where(inArray(column, Object.values(enumValues)))
-    .limit(1)
-  return result
+  try {
+    const result = await transaction
+      .select()
+      .from(table as SelectTable)
+      .where(inArray(column, Object.values(enumValues)))
+      .limit(1)
+    return result
+  } catch (error) {
+    console.error('[testEnumColumn] Error testing enum column:', error)
+    console.error('[testEnumColumn] Table:', table)
+    console.error('[testEnumColumn] Column:', column)
+    console.error('[testEnumColumn] Enum values:', enumValues)
+    throw new Error(
+      `Failed to test enum column: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    )
+  }
 }
 
 interface TableSearchParams<T extends PgTableWithId> {
@@ -995,31 +1122,40 @@ const cursorComparison = async <T extends PgTableWithPosition>(
   },
   transaction: DbTransaction
 ) => {
-  const cursor = pageAfter || pageBefore
-  if (!cursor) {
-    return undefined
+  try {
+    const cursor = pageAfter || pageBefore
+    if (!cursor) {
+      return undefined
+    }
+    const results = await transaction
+      .select()
+      .from(table as SelectTable)
+      .where(eq(table.id, cursor))
+    if (results.length === 0) {
+      return undefined
+    }
+    const result = results[0] as InferSelectModel<T>
+    const comparisonOperator = isForward ? lt : gt
+    /**
+     * When we're paginating forward, we want to include the item at the cursor
+     * in the results. When we're paginating backward, we don't want to include
+     * the item at the cursor in the results.
+     *
+     * Postgres records time in microseconds (1/1,000,000th) while JS stores
+     * in milliseconds. So we need to adjust the time by 1 millisecond,
+     * otherwise we get "last item in next" behavior because the cursor
+     * isn't the same across languages. Eventually we will want to track each table
+     * on an iterator
+     */
+    return comparisonOperator(table.position, result.position)
+  } catch (error) {
+    console.error('[cursorComparison] Error fetching cursor position:', error)
+    console.error('[cursorComparison] Cursor:', pageAfter || pageBefore)
+    throw new Error(
+      `Failed to fetch cursor position: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    )
   }
-  const results = await transaction
-    .select()
-    .from(table as SelectTable)
-    .where(eq(table.id, cursor))
-  if (results.length === 0) {
-    return undefined
-  }
-  const result = results[0] as InferSelectModel<T>
-  const comparisonOperator = isForward ? lt : gt
-  /**
-   * When we're paginating forward, we want to include the item at the cursor
-   * in the results. When we're paginating backward, we don't want to include
-   * the item at the cursor in the results.
-   *
-   * Postgres records time in microseconds (1/1,000,000th) while JS stores
-   * in milliseconds. So we need to adjust the time by 1 millisecond,
-   * otherwise we get "last item in next" behavior because the cursor
-   * isn't the same across languages. Eventually we will want to track each table
-   * on an iterator
-   */
-  return comparisonOperator(table.position, result.position)
 }
 
 const constructSearchQueryClause = <T extends PgTableWithId>(
@@ -1061,19 +1197,142 @@ export const createCursorPaginatedSelectFunction = <
     hasPreviousPage: boolean
     total: number
   }> {
-    const {
-      pageAfter,
-      pageBefore,
-      pageSize = 10,
-      goToFirst,
-      goToLast,
-    } = params.input
-    const transaction = params.transaction
+    try {
+      const {
+        pageAfter,
+        pageBefore,
+        pageSize = 10,
+        goToFirst,
+        goToLast,
+      } = params.input
+      const transaction = params.transaction
 
-    // Handle special navigation cases
-    if (goToFirst) {
-      // Clear cursors and start from beginning
-      const orderBy = [desc(table.createdAt), desc(table.position)]
+      // Handle special navigation cases
+      if (goToFirst) {
+        // Clear cursors and start from beginning
+        const orderBy = [desc(table.createdAt), desc(table.position)]
+        const filterClause = params.input.filters
+          ? whereClauseFromObject(table, params.input.filters)
+          : undefined
+        const searchQuery = params.input.searchQuery
+        const searchQueryClause =
+          searchQuery && searchableColumns
+            ? constructSearchQueryClause(
+                table,
+                searchQuery,
+                searchableColumns
+              )
+            : undefined
+        const whereClauses = and(filterClause, searchQueryClause)
+
+        const queryResult = await transaction
+          .select()
+          .from(table as SelectTable)
+          .where(whereClauses)
+          .orderBy(...orderBy)
+          .limit(pageSize + 1)
+
+        const total = await transaction
+          .select({ count: count() })
+          .from(table as SelectTable)
+          .$dynamic()
+          .where(and(filterClause, searchQueryClause))
+
+        const data: z.infer<S>[] = queryResult
+          .map((item) => selectSchema.parse(item))
+          .slice(0, pageSize)
+        const enrichedData: z.infer<D>[] = await (enrichmentFunction
+          ? enrichmentFunction(data, transaction)
+          : Promise.resolve(data as unknown as z.infer<D>[]))
+
+        const items: z.infer<D>[] = enrichedData.map((item) =>
+          dataSchema.parse(item)
+        )
+        const startCursor = data.length > 0 ? data[0].id : null
+        const endCursor =
+          data.length > 0 ? data[data.length - 1].id : null
+        const totalCount = total[0].count
+        const hasMore = queryResult.length > pageSize
+
+        return {
+          items,
+          startCursor,
+          endCursor,
+          hasNextPage: hasMore,
+          hasPreviousPage: false,
+          total: totalCount,
+        }
+      }
+
+      if (goToLast) {
+        // Fetch the last page by ordering desc and taking the first pageSize items
+        const orderBy = [desc(table.createdAt), desc(table.position)]
+        const filterClause = params.input.filters
+          ? whereClauseFromObject(table, params.input.filters)
+          : undefined
+        const searchQuery = params.input.searchQuery
+        const searchQueryClause =
+          searchQuery && searchableColumns
+            ? constructSearchQueryClause(
+                table,
+                searchQuery,
+                searchableColumns
+              )
+            : undefined
+        const whereClauses = and(filterClause, searchQueryClause)
+
+        // Get total count first to calculate if we need a partial last page
+        const total = await transaction
+          .select({ count: count() })
+          .from(table as SelectTable)
+          .$dynamic()
+          .where(and(filterClause, searchQueryClause))
+
+        const totalCount = total[0].count
+        const lastPageSize = totalCount % pageSize || pageSize
+
+        // For goToLast, we need to:
+        // 1. Get the last N items in descending order (newest first)
+        // 2. Calculate the correct offset to get the last page
+        const offset = Math.max(0, totalCount - lastPageSize)
+
+        const queryResult = await transaction
+          .select()
+          .from(table as SelectTable)
+          .where(whereClauses)
+          .orderBy(...orderBy) // Already in desc order
+          .offset(offset)
+          .limit(lastPageSize + 1)
+
+        const data: z.infer<S>[] = queryResult
+          .map((item) => selectSchema.parse(item))
+          .slice(0, lastPageSize)
+        const enrichedData: z.infer<D>[] = await (enrichmentFunction
+          ? enrichmentFunction(data, transaction)
+          : Promise.resolve(data as unknown as z.infer<D>[]))
+
+        const items: z.infer<D>[] = enrichedData.map((item) =>
+          dataSchema.parse(item)
+        )
+        const startCursor = data.length > 0 ? data[0].id : null
+        const endCursor =
+          data.length > 0 ? data[data.length - 1].id : null
+
+        return {
+          items,
+          startCursor,
+          endCursor,
+          hasNextPage: false,
+          hasPreviousPage: totalCount > pageSize,
+          total: totalCount,
+        }
+      }
+
+      // Determine pagination direction and cursor
+      const isForward = !!pageAfter || (!pageBefore && !pageAfter)
+      const orderBy = isForward
+        ? [desc(table.createdAt), desc(table.position)]
+        : [asc(table.createdAt), asc(table.position)]
       const filterClause = params.input.filters
         ? whereClauseFromObject(table, params.input.filters)
         : undefined
@@ -1086,20 +1345,40 @@ export const createCursorPaginatedSelectFunction = <
               searchableColumns
             )
           : undefined
-      const whereClauses = and(filterClause, searchQueryClause)
+      const whereClauses = and(
+        await cursorComparison(
+          table,
+          {
+            isForward,
+            pageAfter,
+            pageBefore,
+          },
+          transaction
+        ),
+        filterClause,
+        searchQueryClause
+      )
 
-      const queryResult = await transaction
+      // Query for items
+      let queryResult = await transaction
         .select()
         .from(table as SelectTable)
         .where(whereClauses)
         .orderBy(...orderBy)
         .limit(pageSize + 1)
 
+      // For backward pagination, we need to:
+      // 1. Get the items in ascending order
+      // 2. Reverse them to get back to descending order
+      if (!isForward) {
+        queryResult = queryResult.reverse()
+      }
+
       const total = await transaction
         .select({ count: count() })
         .from(table as SelectTable)
         .$dynamic()
-        .where(and(filterClause, searchQueryClause))
+        .where(filterClause)
 
       const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))
@@ -1108,6 +1387,7 @@ export const createCursorPaginatedSelectFunction = <
         ? enrichmentFunction(data, transaction)
         : Promise.resolve(data as unknown as z.infer<D>[]))
 
+      // Slice to pageSize and get cursors
       const items: z.infer<D>[] = enrichedData.map((item) =>
         dataSchema.parse(item)
       )
@@ -1115,161 +1395,26 @@ export const createCursorPaginatedSelectFunction = <
       const endCursor =
         data.length > 0 ? data[data.length - 1].id : null
       const totalCount = total[0].count
+      const moreThanOnePage = totalCount > pageSize
+      // Check for next/previous pages
       const hasMore = queryResult.length > pageSize
-
+      const hasNextPage = isForward ? hasMore : moreThanOnePage // If paginating backward, we can't determine hasNextPage
+      const hasPreviousPage = isForward ? moreThanOnePage : hasMore // If paginating forward, we can't determine hasPreviousPage
       return {
         items,
         startCursor,
         endCursor,
-        hasNextPage: hasMore,
-        hasPreviousPage: false,
+        hasNextPage,
+        hasPreviousPage,
         total: totalCount,
       }
-    }
-
-    if (goToLast) {
-      // Fetch the last page by ordering desc and taking the first pageSize items
-      const orderBy = [desc(table.createdAt), desc(table.position)]
-      const filterClause = params.input.filters
-        ? whereClauseFromObject(table, params.input.filters)
-        : undefined
-      const searchQuery = params.input.searchQuery
-      const searchQueryClause =
-        searchQuery && searchableColumns
-          ? constructSearchQueryClause(
-              table,
-              searchQuery,
-              searchableColumns
-            )
-          : undefined
-      const whereClauses = and(filterClause, searchQueryClause)
-
-      // Get total count first to calculate if we need a partial last page
-      const total = await transaction
-        .select({ count: count() })
-        .from(table as SelectTable)
-        .$dynamic()
-        .where(and(filterClause, searchQueryClause))
-
-      const totalCount = total[0].count
-      const lastPageSize = totalCount % pageSize || pageSize
-
-      // For goToLast, we need to:
-      // 1. Get the last N items in descending order (newest first)
-      // 2. Calculate the correct offset to get the last page
-      const offset = Math.max(0, totalCount - lastPageSize)
-
-      const queryResult = await transaction
-        .select()
-        .from(table as SelectTable)
-        .where(whereClauses)
-        .orderBy(...orderBy) // Already in desc order
-        .offset(offset)
-        .limit(lastPageSize + 1)
-
-      const data: z.infer<S>[] = queryResult
-        .map((item) => selectSchema.parse(item))
-        .slice(0, lastPageSize)
-      const enrichedData: z.infer<D>[] = await (enrichmentFunction
-        ? enrichmentFunction(data, transaction)
-        : Promise.resolve(data as unknown as z.infer<D>[]))
-
-      const items: z.infer<D>[] = enrichedData.map((item) =>
-        dataSchema.parse(item)
+    } catch (error) {
+      console.error(`[createCursorPaginatedSelectFunction] Error in cursor paginated select for ${config.tableName}:`, error)
+      console.error('[createCursorPaginatedSelectFunction] Params:', params.input)
+      throw new Error(
+        `Failed to cursor paginate ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
       )
-      const startCursor = data.length > 0 ? data[0].id : null
-      const endCursor =
-        data.length > 0 ? data[data.length - 1].id : null
-
-      return {
-        items,
-        startCursor,
-        endCursor,
-        hasNextPage: false,
-        hasPreviousPage: totalCount > pageSize,
-        total: totalCount,
-      }
-    }
-
-    // Determine pagination direction and cursor
-    const isForward = !!pageAfter || (!pageBefore && !pageAfter)
-    const orderBy = isForward
-      ? [desc(table.createdAt), desc(table.position)]
-      : [asc(table.createdAt), asc(table.position)]
-    const filterClause = params.input.filters
-      ? whereClauseFromObject(table, params.input.filters)
-      : undefined
-    const searchQuery = params.input.searchQuery
-    const searchQueryClause =
-      searchQuery && searchableColumns
-        ? constructSearchQueryClause(
-            table,
-            searchQuery,
-            searchableColumns
-          )
-        : undefined
-    const whereClauses = and(
-      await cursorComparison(
-        table,
-        {
-          isForward,
-          pageAfter,
-          pageBefore,
-        },
-        transaction
-      ),
-      filterClause,
-      searchQueryClause
-    )
-
-    // Query for items
-    let queryResult = await transaction
-      .select()
-      .from(table as SelectTable)
-      .where(whereClauses)
-      .orderBy(...orderBy)
-      .limit(pageSize + 1)
-
-    // For backward pagination, we need to:
-    // 1. Get the items in ascending order
-    // 2. Reverse them to get back to descending order
-    if (!isForward) {
-      queryResult = queryResult.reverse()
-    }
-
-    const total = await transaction
-      .select({ count: count() })
-      .from(table as SelectTable)
-      .$dynamic()
-      .where(filterClause)
-
-    const data: z.infer<S>[] = queryResult
-      .map((item) => selectSchema.parse(item))
-      .slice(0, pageSize)
-    const enrichedData: z.infer<D>[] = await (enrichmentFunction
-      ? enrichmentFunction(data, transaction)
-      : Promise.resolve(data as unknown as z.infer<D>[]))
-
-    // Slice to pageSize and get cursors
-    const items: z.infer<D>[] = enrichedData.map((item) =>
-      dataSchema.parse(item)
-    )
-    const startCursor = data.length > 0 ? data[0].id : null
-    const endCursor =
-      data.length > 0 ? data[data.length - 1].id : null
-    const totalCount = total[0].count
-    const moreThanOnePage = totalCount > pageSize
-    // Check for next/previous pages
-    const hasMore = queryResult.length > pageSize
-    const hasNextPage = isForward ? hasMore : moreThanOnePage // If paginating backward, we can't determine hasNextPage
-    const hasPreviousPage = isForward ? moreThanOnePage : hasMore // If paginating forward, we can't determine hasPreviousPage
-    return {
-      items,
-      startCursor,
-      endCursor,
-      hasNextPage,
-      hasPreviousPage,
-      total: totalCount,
     }
   }
 }

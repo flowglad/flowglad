@@ -1,6 +1,6 @@
 'use client'
-import { PricingTable } from '@/registry/new-york/pricing-table'
-import type { PricingProductGroup } from '@/registry/new-york/pricing-table/types'
+import { PricingTable } from '@/registry/base/pricing-table'
+import type { PricingProductGroup } from '@/registry/base/pricing-table/types'
 
 const InternalDemoPage = () => {
   const productGroups: PricingProductGroup[] = [

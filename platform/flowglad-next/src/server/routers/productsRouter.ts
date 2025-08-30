@@ -13,6 +13,7 @@ import {
   createProductTransaction,
   editProduct as editProductPricingModel,
 } from '@/utils/pricingModel'
+import { errorHandlers } from '../trpcErrorHandler'
 import {
   createProductSchema,
   editProductSchema,
@@ -62,32 +63,44 @@ export const createProduct = protectedProcedure
   .input(createProductSchema)
   .output(singleProductOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    // Validate that default products cannot be created manually
-    validateProductCreation(input.product)
-    
-    const result = await authenticatedTransaction(
-      async ({ transaction, userId, livemode, organizationId }) => {
-        const { product, price, featureIds } = input
-        return createProductTransaction(
-          {
-            product,
-            prices: [
-              {
-                ...price,
-                isDefault: true,
-              },
-            ],
-            featureIds,
-          },
-          { transaction, userId, livemode, organizationId }
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
+    try {
+      // Validate that default products cannot be created manually
+      validateProductCreation(input.product)
+      
+      const result = await authenticatedTransaction(
+        async ({ transaction, userId, livemode, organizationId }) => {
+          const { product, price, featureIds } = input
+          return createProductTransaction(
+            {
+              product,
+              prices: [
+                {
+                  ...price,
+                  isDefault: true,
+                },
+              ],
+              featureIds,
+            },
+            { transaction, userId, livemode, organizationId }
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+      return {
+        product: result.product,
       }
-    )
-    return {
-      product: result.product,
+    } catch (error) {
+      errorHandlers.product.handle(error, {
+        operation: 'create',
+        details: {
+          productName: input.product.name,
+          hasPrice: !!input.price,
+          hasFeatures: !!input.featureIds,
+        },
+      })
+      throw error
     }
   })
 
@@ -98,31 +111,48 @@ export const editProduct = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ transaction, input }) => {
-        const { product, featureIds } = input
+        try {
+          const { product, featureIds } = input
 
-        // Fetch the existing product to check if it's a default product
-        const existingProduct = await selectProductById(product.id, transaction)
-        if (!existingProduct) {
-          throw new Error('Product not found')
-        }
+          // Fetch the existing product to check if it's a default product
+          const existingProduct = await selectProductById(product.id, transaction)
+          if (!existingProduct) {
+            throw new Error('Product not found')
+          }
 
-        // Validate that default products can only have certain fields updated
-        validateDefaultProductUpdate(product, existingProduct)
+          // Validate that default products can only have certain fields updated
+          validateDefaultProductUpdate(product, existingProduct)
 
-        const updatedProduct = await editProductPricingModel(
-          { product, featureIds },
-          transaction
-        )
+          const updatedProduct = await editProductPricingModel(
+            { product, featureIds },
+            transaction
+          )
 
-        if (!updatedProduct) {
-          throw new Error('Product update failed')
-        }
+          if (!updatedProduct) {
+            errorHandlers.product.handle(
+              new Error('Product not found or update failed'),
+              { operation: 'update', id: product.id }
+            )
+          }
 
-        if (input.price) {
-          await safelyUpdatePrice(input.price, transaction)
-        }
-        return {
-          product: updatedProduct,
+          if (input.price) {
+            await safelyUpdatePrice(input.price, transaction)
+          }
+          return {
+            product: updatedProduct,
+          }
+        } catch (error) {
+          // Re-throw with enhanced error handling
+          errorHandlers.product.handle(error, {
+            operation: 'update',
+            id: input.product.id,
+            details: {
+              productData: input.product,
+              hasPrice: !!input.price,
+              hasFeatures: !!input.featureIds,
+            },
+          })
+          throw error
         }
       }
     )
@@ -148,29 +178,43 @@ export const getProduct = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(productWithPricesSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const product = await selectProductById(input.id, transaction)
-        if (!product) {
-          throw new Error('Product not found')
+    try {
+      return await authenticatedTransaction(
+        async ({ transaction }) => {
+          const product = await selectProductById(
+            input.id,
+            transaction
+          )
+          if (!product) {
+            errorHandlers.product.handle(
+              new Error('Product not found'),
+              { operation: 'get', id: input.id }
+            )
+          }
+          const prices = await selectPrices(
+            {
+              productId: product.id,
+            },
+            transaction
+          )
+          return {
+            ...product,
+            prices,
+            defaultPrice:
+              prices.find((price) => price.isDefault) ?? prices[0],
+          }
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-        const prices = await selectPrices(
-          {
-            productId: product.id,
-          },
-          transaction
-        )
-        return {
-          ...product,
-          prices,
-          defaultPrice:
-            prices.find((price) => price.isDefault) ?? prices[0],
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    } catch (error) {
+      errorHandlers.product.handle(error, {
+        operation: 'get',
+        id: input.id,
+      })
+      throw error
+    }
   })
 
 export const getTableRows = protectedProcedure
