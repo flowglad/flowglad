@@ -888,11 +888,6 @@ describe('Edge Cases', () => {
         expect(result.memberships).toBeGreaterThanOrEqual(0)
         expect(result.organizations).toBeGreaterThanOrEqual(0)
       } else {
-        // If RLS policies fail due to missing functions, document the error
-        console.log(
-          'RLS Policy Error (expected with missing current_organization_id):',
-          result.error
-        )
         expect(result.error).toBeDefined()
       }
     })
