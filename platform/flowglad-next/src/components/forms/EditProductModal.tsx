@@ -23,6 +23,8 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   const editProduct = trpc.products.edit.useMutation()
 
   // Fetch current product features for this product via paginated list with filter in cursor
+  // Note: Using limit 100 (max allowed by pagination system). If a product has >100 features,
+  // only the first 100 will be pre-selected. This seems unlikely in practice.
   const { data: productFeaturesData } =
     trpc.productFeatures.list.useQuery(
       {
