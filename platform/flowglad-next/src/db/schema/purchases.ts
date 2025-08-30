@@ -238,11 +238,13 @@ export const purchasesSelectSchema = z
 
 // Client Subscription Schemas
 export const subscriptionPurchaseClientInsertSchema =
-  subscriptionPurchaseInsertSchema.omit({
-    billingAddress: true,
-  }).meta({
-    id: 'SubscriptionPurchaseInsert',
-  })
+  subscriptionPurchaseInsertSchema
+    .omit({
+      billingAddress: true,
+    })
+    .meta({
+      id: 'SubscriptionPurchaseInsert',
+    })
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
@@ -260,27 +262,23 @@ export const subscriptionPurchaseClientUpdateSchema =
   })
 
 export const subscriptionPurchaseClientSelectSchema =
-  subscriptionPurchaseSelectSchema.omit(hiddenColumns)
-  .meta({
+  subscriptionPurchaseSelectSchema.omit(hiddenColumns).meta({
     id: 'SubscriptionPurchaseRecord',
   })
 
 // Client Single Payment Schemas
 export const singlePaymentPurchaseClientInsertSchema =
-  singlePaymentPurchaseInsertSchema.omit(clientWriteOmits)
-  .meta({
+  singlePaymentPurchaseInsertSchema.omit(clientWriteOmits).meta({
     id: 'SinglePaymentPurchaseInsert',
   })
 
 export const usagePurchaseClientInsertSchema =
-  usagePurchaseInsertSchema.omit(clientWriteOmits)
-  .meta({
+  usagePurchaseInsertSchema.omit(clientWriteOmits).meta({
     id: 'UsagePurchaseInsert',
   })
 
 export const singlePaymentPurchaseClientUpdateSchema =
-  singlePaymentPurchaseUpdateSchema.omit(clientWriteOmits)
-  .meta({
+  singlePaymentPurchaseUpdateSchema.omit(clientWriteOmits).meta({
     id: 'SinglePaymentPurchaseUpdate',
   })
 
@@ -293,8 +291,7 @@ export const usagePurchaseClientUpdateSchema =
     .describe(USAGE_PURCHASE_DESCRIPTION)
 
 export const singlePaymentPurchaseClientSelectSchema =
-  singlePaymentPurchaseSelectSchema.omit(hiddenColumns)
-  .meta({
+  singlePaymentPurchaseSelectSchema.omit(hiddenColumns).meta({
     id: 'SinglePaymentPurchaseRecord',
   })
 
@@ -351,6 +348,10 @@ export const purchasesTableRowDataSchema = z.object({
 })
 
 export namespace Purchase {
+  export type UsagePurchaseInsert = z.infer<
+    typeof usagePurchaseInsertSchema
+  >
+
   export type SubscriptionPurchaseInsert = z.infer<
     typeof subscriptionPurchaseInsertSchema
   >
@@ -377,6 +378,10 @@ export namespace Purchase {
 
   export type SinglePaymentPurchaseRecord = z.infer<
     typeof singlePaymentPurchaseSelectSchema
+  >
+
+  export type UsagePurchaseRecord = z.infer<
+    typeof usagePurchaseSelectSchema
   >
 
   export type Record = z.infer<typeof purchasesSelectSchema>
@@ -406,6 +411,15 @@ export namespace Purchase {
   >
 
   // Client Types
+  export type UsagePurchaseClientRecord = z.infer<
+    typeof usagePurchaseClientSelectSchema
+  >
+  export type UsagePurchaseClientInsert = z.infer<
+    typeof usagePurchaseClientInsertSchema
+  >
+  export type UsagePurchaseClientUpdate = z.infer<
+    typeof usagePurchaseClientUpdateSchema
+  >
   export type ClientInsert = z.infer<
     typeof purchaseClientInsertSchema
   >
