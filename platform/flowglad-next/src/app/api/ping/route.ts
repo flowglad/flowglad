@@ -1,11 +1,9 @@
-import { helloWorldTask } from '@/trigger/example'
 import { core } from '@/utils/core'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
 export const GET = async () => {
-  await helloWorldTask.trigger({})
   return NextResponse.json({
     message: 'pong',
     gitCommit: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown',
