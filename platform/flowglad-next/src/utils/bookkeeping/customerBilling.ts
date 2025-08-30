@@ -58,7 +58,12 @@ export const customerBillingTransaction = async (
     purchases,
     invoices,
     paymentMethods,
-    pricingModel,
+    pricingModel: {
+      ...pricingModel,
+      products: pricingModel.products.filter(
+        (product) => product.active
+      ),
+    },
     subscriptions,
     currentSubscriptions,
   }
