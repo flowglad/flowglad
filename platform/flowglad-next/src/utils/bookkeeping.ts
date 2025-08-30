@@ -31,6 +31,7 @@ import {
   PurchaseStatus,
   SubscriptionItemType,
   IntervalUnit,
+  CurrencyCode,
 } from '@/types'
 import {
   createPaymentIntentForInvoice,
@@ -479,6 +480,46 @@ export const editOpenPurchase = async (
   )
 }
 
+export const createFreePlanProductInsert = (pricingModel: PricingModel.Record): Product.Insert => {
+  return {
+    name: 'Free Plan',
+  slug: 'free',
+  default: true,
+  description: 'Default plan',
+  pricingModelId: pricingModel.id,
+  organizationId: pricingModel.organizationId,
+  livemode: pricingModel.livemode,
+  active: true,
+  displayFeatures: null,
+  singularQuantityLabel: null,
+  pluralQuantityLabel: null,
+  imageURL: null,
+  externalId: null,
+}
+}
+
+export const createFreePlanPriceInsert = (defaultProduct: Product.Record, defaultCurrency: CurrencyCode): Price.Insert => {
+  return {
+    productId: defaultProduct.id,
+    unitPrice: 0,
+    isDefault: true,
+    type: PriceType.Subscription,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    currency: defaultCurrency,
+    livemode: defaultProduct.livemode,
+    active: true,
+    name: 'Free Plan',
+    trialPeriodDays: null,
+    setupFeeAmount: null,
+    usageEventsPerUnit: null,
+    usageMeterId: null,
+    externalId: null,
+    slug: null,
+    startsWithCreditTrial: false,
+    overagePriceId: null,
+  }
+}
 export const createCustomerBookkeeping = async (
   payload: {
     customer: Omit<Customer.Insert, 'livemode'>
@@ -665,21 +706,7 @@ export const createPricingModelBookkeeping = async (
 
   // 2. Create the default "Base Plan" product
   const defaultProduct = await insertProduct(
-    {
-      name: 'Free Plan',
-      slug: 'free',
-      default: true,
-      description: 'Default plan',
-      pricingModelId: pricingModel.id,
-      organizationId,
-      livemode,
-      active: true,
-      displayFeatures: null,
-      singularQuantityLabel: null,
-      pluralQuantityLabel: null,
-      imageURL: null,
-      externalId: null,
-    },
+    createFreePlanProductInsert(pricingModel),
     transaction
   )
 
@@ -688,26 +715,7 @@ export const createPricingModelBookkeeping = async (
 
   // 4. Create the default price with unitPrice of 0
   const defaultPrice = await insertPrice(
-    {
-      productId: defaultProduct.id,
-      unitPrice: 0,
-      isDefault: true,
-      type: PriceType.Subscription,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      currency: organization.defaultCurrency,
-      livemode,
-      active: true,
-      name: 'Free Plan',
-      trialPeriodDays: null,
-      setupFeeAmount: null,
-      usageEventsPerUnit: null,
-      usageMeterId: null,
-      externalId: null,
-      slug: null,
-      startsWithCreditTrial: false,
-      overagePriceId: null,
-    },
+    createFreePlanPriceInsert(defaultProduct, organization.defaultCurrency),
     transaction
   )
 

@@ -40,6 +40,7 @@ import {
 } from '@/db/schema/feeCalculations'
 import {
   createCheckoutSessionFeeCalculation,
+  createFeeCalculationForCheckoutSession,
   createInvoiceFeeCalculationForCheckoutSession,
 } from '@/utils/bookkeeping/fees/checkoutSession'
 import { calculateTotalDueAmount, calculateTotalFeeAmount } from '@/utils/bookkeeping/fees/common'
@@ -73,74 +74,6 @@ import {
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-
-export const createFeeCalculationForCheckoutSession = async (
-  checkoutSession: CheckoutSession.FeeReadyRecord,
-  transaction: DbTransaction
-): Promise<FeeCalculation.Record> => {
-  const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
-    : undefined
-  if (checkoutSession.type === CheckoutSessionType.Invoice) {
-    const organization = await selectOrganizationById(
-      checkoutSession.organizationId,
-      transaction
-    )
-    const organizationCountry = await selectCountryById(
-      organization.countryId,
-      transaction
-    )
-    const [{
-      invoice,
-      invoiceLineItems,
-    }] = await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-      { id: checkoutSession.invoiceId },
-      transaction
-    )
-    return createInvoiceFeeCalculationForCheckoutSession({
-      organization,
-      organizationCountry,
-      invoice,
-      checkoutSessionId: checkoutSession.id,
-      invoiceLineItems,
-      billingAddress: checkoutSession.billingAddress,
-      paymentMethodType: checkoutSession.paymentMethodType,
-    }, transaction)
-  }
-
-  const [{ price, product, organization }] =
-    await selectPriceProductAndOrganizationByPriceWhere(
-      { id: checkoutSession.priceId! },
-      transaction
-    )
-  const organizationCountryId = organization.countryId
-  if (!organizationCountryId) {
-    throw new Error('Organization country id is required')
-  }
-  const organizationCountry = await selectCountryById(
-    organizationCountryId,
-    transaction
-  )
-  return createCheckoutSessionFeeCalculation(
-    {
-      organization,
-      product,
-      price,
-      discount,
-      checkoutSessionId: checkoutSession.id,
-      billingAddress: checkoutSession.billingAddress,
-      paymentMethodType: checkoutSession.paymentMethodType,
-      organizationCountry,
-    },
-    transaction
-  )
-}
 
 export const editCheckoutSession = async (
   input: EditCheckoutSessionInput,
@@ -369,10 +302,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
   }
   if (!purchase) {
-    const purchasePriceFields =
-      projectPriceFieldsOntoPurchaseFields(price)
-    const purchaseInsert: Purchase.Insert = {
-      ...purchasePriceFields,
+    const corePurchaseFields = {
       name: checkoutSession.outputName ?? product.name,
       organizationId: product.organizationId,
       customerId: customer.id,
@@ -382,8 +312,47 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       livemode: checkoutSession.livemode,
       metadata: checkoutSession.outputMetadata,
       status: PurchaseStatus.Open,
-    } as Purchase.Insert
-
+    } as const
+    let purchaseInsert: Purchase.Insert
+    if (price.type === PriceType.Subscription) {
+      const subscriptionPurchaseInsert: Purchase.SubscriptionPurchaseInsert = {
+        ...corePurchaseFields,
+        intervalUnit: price.intervalUnit,
+        intervalCount: price.intervalCount,
+        firstInvoiceValue: 0,
+        totalPurchaseValue: null,
+        trialPeriodDays: price.trialPeriodDays ?? 0,
+        priceType: PriceType.Subscription,
+        pricePerBillingCycle: price.unitPrice,
+      }
+      purchaseInsert = subscriptionPurchaseInsert
+    } else if (price.type === PriceType.SinglePayment) {
+      const singlePaymentPurchaseInsert: Purchase.SinglePaymentPurchaseInsert = {
+        ...corePurchaseFields,
+        trialPeriodDays: null,
+        intervalUnit: null,
+        intervalCount: null,
+        pricePerBillingCycle: null,
+        firstInvoiceValue: price.unitPrice ?? 0,
+        totalPurchaseValue: price.unitPrice,
+        priceType: PriceType.SinglePayment,
+      }
+      purchaseInsert = singlePaymentPurchaseInsert
+    } else if (price.type === PriceType.Usage) {
+      const usagePurchaseInsert: Purchase.UsagePurchaseInsert = {
+        ...corePurchaseFields,
+        trialPeriodDays: null,
+        intervalUnit: null,
+        intervalCount: null,
+        pricePerBillingCycle: null,
+        firstInvoiceValue: price.unitPrice ?? 0,
+        totalPurchaseValue: price.unitPrice,
+        priceType: PriceType.Usage,
+      }
+      purchaseInsert = usagePurchaseInsert
+    } else {
+      throw new Error(`Unsupported price type for checkout session ${checkoutSession.id}`)
+    }
     const results = await upsertPurchaseById(
       purchaseInsert,
       transaction

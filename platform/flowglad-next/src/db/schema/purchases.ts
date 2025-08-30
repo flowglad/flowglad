@@ -381,6 +381,18 @@ export namespace Purchase {
     typeof singlePaymentPurchaseSelectSchema
   >
 
+  export type UsagePurchaseRecord = z.infer<
+    typeof usagePurchaseSelectSchema
+  >
+
+  export type UsagePurchaseInsert = z.infer<
+    typeof usagePurchaseInsertSchema
+  >
+
+  export type UsagePurchaseUpdate = z.infer<
+    typeof usagePurchaseUpdateSchema
+  >
+
   export type Record = z.infer<typeof purchasesSelectSchema>
 
   export type SubscriptionPurchaseClientInsert = z.infer<
@@ -406,7 +418,15 @@ export namespace Purchase {
   export type SinglePaymentPurchaseClientRecord = z.infer<
     typeof singlePaymentPurchaseClientSelectSchema
   >
-
+  export type UsagePurchaseClientRecord = z.infer<
+    typeof usagePurchaseClientSelectSchema
+  >
+  export type UsagePurchaseClientInsert = z.infer<
+    typeof usagePurchaseClientInsertSchema
+  >
+  export type UsagePurchaseClientUpdate = z.infer<
+    typeof usagePurchaseClientUpdateSchema
+  >
   // Client Types
   export type ClientInsert = z.infer<
     typeof purchaseClientInsertSchema

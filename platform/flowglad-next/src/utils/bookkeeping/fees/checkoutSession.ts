@@ -12,6 +12,13 @@ import { CountryCode, CurrencyCode, FeeCalculationType, PaymentMethodType, Strip
 import { Country } from '@/db/schema/countries'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { selectCountryById } from '@/db/tableMethods/countryMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectDiscountById } from '@/db/tableMethods/discountMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { CheckoutSessionType } from '@/types'
 
 const createBaseFeeCalculationInsert = ({
   organization,
@@ -120,4 +127,69 @@ export const createCheckoutSessionFeeCalculation = async (
 ): Promise<FeeCalculation.Record> => {
   const insert = await createCheckoutSessionFeeCalculationInsertForPrice(params)
   return insertFeeCalculation(insert, transaction)
+}
+
+export const createFeeCalculationForCheckoutSession = async (
+  checkoutSession: CheckoutSession.FeeReadyRecord,
+  transaction: DbTransaction
+): Promise<FeeCalculation.Record> => {
+  const discount = checkoutSession.discountId
+    ? await selectDiscountById(
+        checkoutSession.discountId,
+        transaction
+      )
+    : undefined
+  if (checkoutSession.type === CheckoutSessionType.Invoice) {
+    const organization = await selectOrganizationById(
+      checkoutSession.organizationId,
+      transaction
+    )
+    const organizationCountry = await selectCountryById(
+      organization.countryId,
+      transaction
+    )
+    const [{
+      invoice,
+      invoiceLineItems,
+    }] = await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+      { id: checkoutSession.invoiceId },
+      transaction
+    )
+    return createInvoiceFeeCalculationForCheckoutSession({
+      organization,
+      organizationCountry,
+      invoice,
+      checkoutSessionId: checkoutSession.id,
+      invoiceLineItems,
+      billingAddress: checkoutSession.billingAddress,
+      paymentMethodType: checkoutSession.paymentMethodType,
+    }, transaction)
+  }
+
+  const [{ price, product, organization }] =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      { id: checkoutSession.priceId! },
+      transaction
+    )
+  const organizationCountryId = organization.countryId
+  if (!organizationCountryId) {
+    throw new Error('Organization country id is required')
+  }
+  const organizationCountry = await selectCountryById(
+    organizationCountryId,
+    transaction
+  )
+  return createCheckoutSessionFeeCalculation(
+    {
+      organization,
+      product,
+      price,
+      discount,
+      checkoutSessionId: checkoutSession.id,
+      billingAddress: checkoutSession.billingAddress,
+      paymentMethodType: checkoutSession.paymentMethodType,
+      organizationCountry,
+    },
+    transaction
+  )
 }

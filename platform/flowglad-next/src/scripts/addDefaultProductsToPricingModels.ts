@@ -20,6 +20,7 @@ import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { PriceType, IntervalUnit } from '@/types'
 import core from '@/utils/core'
+import { createFreePlanPriceInsert, createFreePlanProductInsert } from '@/utils/bookkeeping'
 
 async function addDefaultProductsToPricingModels(db: PostgresJsDatabase) {
   console.log('🚀 Starting migration to add default products to all pricing models...')
@@ -68,57 +69,23 @@ async function addDefaultProductsToPricingModels(db: PostgresJsDatabase) {
         }
         
         // Create product insert data
-        const productId = core.nanoid()
-        const product: Product.Insert = {
-          name: 'Free Plan',
-          slug: 'free-plan',
-          default: true,
-          description: 'Default plan',
-          pricingModelId: pricingModel.id,
-          organizationId: org.id,
-          livemode: pricingModel.livemode,
-          active: true,
-          displayFeatures: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          imageURL: null,
-          externalId: null,
-        }
+        const product: Product.Insert = createFreePlanProductInsert(pricingModel)
         
         productsToInsert.push(product)
         
-        // Create price insert data
-        const price: Price.Insert = {
-          productId: productId,
-          unitPrice: 0,
-          isDefault: true,
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: org.defaultCurrency,
-          livemode: pricingModel.livemode,
-          active: true,
-          name: 'Base Plan Price',
-          trialPeriodDays: null,
-          setupFeeAmount: null,
-          usageEventsPerUnit: null,
-          usageMeterId: null,
-          externalId: null,
-          slug: null,
-          startsWithCreditTrial: false,
-          overagePriceId: null,
-        }
-        
-        pricesToInsert.push(price)
         
         console.log(`  ✅ Prepared default product for pricing model: "${pricingModel.name}"`)
       }
-      
+      let products: Product.Record[]
       // Bulk insert products for this organization
       if (productsToInsert.length > 0) {
-        await bulkInsertProducts(productsToInsert, tx)
+        products = await bulkInsertProducts(productsToInsert, tx)
         totalProductsCreated += productsToInsert.length
         console.log(`  📦 Created ${productsToInsert.length} default products`)
+        for (const product of products) {
+          const price: Price.Insert = createFreePlanPriceInsert(product, org.defaultCurrency)
+          pricesToInsert.push(price)
+        }
       }
       
       // Bulk insert prices for this organization
