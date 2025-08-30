@@ -14,13 +14,13 @@ const nextConfig = {
     'chromium-bidi',
   ],
   images: {
-    remotePatterns: [
+    remotePatterns: process.env.NEXT_PUBLIC_CDN_URL ? [
       {
         protocol: 'https',
         hostname: process.env.NEXT_PUBLIC_CDN_URL,
         port: '',
       },
-    ],
+    ] : [],
   },
   async headers() {
     return [
