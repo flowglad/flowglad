@@ -12,6 +12,7 @@ import {
   updateCustomer,
   selectCustomersCursorPaginatedWithTableRowData,
 } from '@/db/tableMethods/customerMethods'
+import { errorHandlers } from '../trpcErrorHandler'
 import {
   customerClientSelectSchema,
   editCustomerOutputSchema,
@@ -84,33 +85,41 @@ const createCustomerProcedure = protectedProcedure
         ctx,
         organizationId,
       }) => {
-        if (!organizationId) {
-          throw new Error('organizationId is required')
-        }
+        try {
+          if (!organizationId) {
+            throw new Error('organizationId is required')
+          }
 
-        const { customer } = input
-        /**
-         * We have to parse the customer record here because of the billingAddress json
-         */
-        const createdCustomer = await createCustomerBookkeeping(
-          {
-            customer: {
-              ...customer,
-              organizationId,
-              livemode: ctx.livemode,
+          const { customer } = input
+          /**
+           * We have to parse the customer record here because of the billingAddress json
+           */
+          const createdCustomer = await createCustomerBookkeeping(
+            {
+              customer: {
+                ...customer,
+                organizationId,
+                livemode: ctx.livemode,
+              },
             },
-          },
-          { transaction, userId, livemode, organizationId }
-        )
+            { transaction, userId, livemode, organizationId }
+          )
 
-        if (ctx.path) {
-          await revalidatePath(ctx.path)
-        }
+          if (ctx.path) {
+            await revalidatePath(ctx.path)
+          }
 
-        return {
-          data: {
-            customer: createdCustomer.customer,
-          },
+          return {
+            data: {
+              customer: createdCustomer.customer,
+            },
+          }
+        } catch (error) {
+          errorHandlers.customer.handle(error, {
+            operation: 'create',
+            details: { customerData: input.customer },
+          })
+          throw error
         }
       }
     )
@@ -123,14 +132,23 @@ export const editCustomer = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const { customer } = input
+        try {
+          const { customer } = input
 
-        const updatedCustomer = await updateCustomer(
-          customer,
-          transaction
-        )
-        return {
-          customer: updatedCustomer,
+          const updatedCustomer = await updateCustomer(
+            customer,
+            transaction
+          )
+          return {
+            customer: updatedCustomer,
+          }
+        } catch (error) {
+          errorHandlers.customer.handle(error, {
+            operation: 'update',
+            id: input.customer.id,
+            details: { customerData: input.customer },
+          })
+          throw error
         }
       }
     )
@@ -142,11 +160,19 @@ export const getCustomerById = protectedProcedure
   .query(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const customer = await selectCustomerById(
-          input.id,
-          transaction
-        )
-        return { customer }
+        try {
+          const customer = await selectCustomerById(
+            input.id,
+            transaction
+          )
+          return { customer }
+        } catch (error) {
+          errorHandlers.customer.handle(error, {
+            operation: 'get',
+            id: input.id,
+          })
+          throw error
+        }
       }
     )
   )
