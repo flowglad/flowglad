@@ -20,7 +20,8 @@
     "build:declarations": "pnpm -r build:declarations",
     "packages:changeset": "changeset",
     "packages:version": "changeset version",
-    "packages:publish": "pnpm build:declarations && pnpm build && changeset publish"
+    "packages:publish": "pnpm build:declarations && pnpm build && changeset publish",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@changesets/cli": "^2.26.0",
@@ -31,6 +32,7 @@
     "chokidar": "^4.0.3",
     "conventional-changelog-cli": "^5.0.0",
     "debounce": "^2.2.0",
+    "husky": "^9.1.7",
     "prettier": "3.5.1",
     "prettier-plugin-packagejson": "2.5.8",
     "prettier-plugin-tailwindcss": "0.6.11",

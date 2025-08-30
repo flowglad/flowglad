@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Store the root directory
+ROOT_DIR=$(pwd)
+
+# Run lint in parallel for all packages
+pnpm --parallel --filter "./packages/**" lint &
+PID1=$!
+
+# Run lint for platform/flowglad-next
+cd "$ROOT_DIR/platform/flowglad-next" && pnpm lint &
+PID2=$!
+
+# Run lint for platform/hosted-billing  
+cd "$ROOT_DIR/platform/hosted-billing" && pnpm lint &
+PID3=$!
+
+# Wait for all linting tasks to complete
+wait $PID1 $PID2 $PID3
