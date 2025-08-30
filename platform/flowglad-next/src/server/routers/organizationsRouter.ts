@@ -9,6 +9,8 @@ import {
   selectMembershipsAndUsersByMembershipWhere,
   selectFocusedMembershipAndOrganization,
   selectMembershipsTableRowData,
+  selectMembershipAndOrganizationsByBetterAuthUserId,
+  unfocusMembershipsForUser,
 } from '@/db/tableMethods/membershipMethods'
 import {
   membershipsClientSelectSchema,
@@ -107,6 +109,7 @@ const getFocusedMembership = protectedProcedure
             userId,
             transaction
           )
+        console.log('====focusedMembership', focusedMembership)
         return focusedMembership
       }
     )
@@ -340,50 +343,39 @@ const updateFocusedMembershipSchema = z.object({
 
 const updateFocusedMembership = protectedProcedure
   .input(updateFocusedMembershipSchema)
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transaction, userId }) => {
-        // First, get all memberships for this user
-        const userMemberships =
-          await selectMembershipsAndOrganizationsByMembershipWhere(
-            { userId },
-            transaction
-          )
-
-        // Set all memberships to not focused
-        for (const membership of userMemberships) {
-          await updateMembership(
-            {
-              id: membership.membership.id,
-              focused: false,
-            },
-            transaction
-          )
-        }
-
-        // Find the membership to focus
-        const membershipToFocus = userMemberships.find(
-          (m) => m.membership.organizationId === input.organizationId
-        )
-
-        if (!membershipToFocus) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Membership not found',
-          })
-        }
-
-        // Set the selected membership to focused
-        return updateMembership(
-          {
-            id: membershipToFocus.membership.id,
-            focused: true,
-          },
+  .mutation(async ({ input, ctx }) => {
+    const memberships = await adminTransaction(
+      async ({ transaction }) => {
+        return selectMembershipAndOrganizationsByBetterAuthUserId(
+          ctx.user!.id,
           transaction
         )
       }
     )
-  )
+    const membershipToFocus = memberships.find(
+      (m) => m.membership.organizationId === input.organizationId
+    )
+    console.log('====membershipToFocus', membershipToFocus)
+    if (!membershipToFocus) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Membership not found',
+      })
+    }
+    return adminTransaction(async ({ transaction }) => {
+      await unfocusMembershipsForUser(
+        membershipToFocus.membership.userId,
+        transaction
+      )
+      return updateMembership(
+        {
+          id: membershipToFocus.membership.id,
+          focused: true,
+        },
+        transaction
+      )
+    })
+  })
 
 const getMembersTableRowData = protectedProcedure
   .input(createPaginatedTableRowInputSchema(z.object({})))

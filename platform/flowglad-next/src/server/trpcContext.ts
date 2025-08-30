@@ -22,13 +22,16 @@ export const createContext = async (
   let user: UserRecord | undefined
 
   if (betterAuthUserId) {
-    const [maybeMembership] = await adminTransaction(
+    const memberships = await adminTransaction(
       async ({ transaction }) => {
         return selectMembershipAndOrganizationsByBetterAuthUserId(
           betterAuthUserId,
           transaction
         )
       }
+    )
+    const maybeMembership = memberships.find(
+      (membership) => membership.membership.focused
     )
     if (maybeMembership) {
       const { membership } = maybeMembership

@@ -184,6 +184,16 @@ export const updateMembership = createUpdateFunction(
   config
 )
 
+export const unfocusMembershipsForUser = async (
+  userId: string,
+  transaction: DbTransaction
+) => {
+  return transaction
+    .update(memberships)
+    .set({ focused: false })
+    .where(eq(memberships.userId, userId))
+}
+
 export const selectMembershipsTableRowData =
   createCursorPaginatedSelectFunction(
     memberships,
