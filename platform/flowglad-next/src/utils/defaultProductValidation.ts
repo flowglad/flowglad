@@ -21,6 +21,15 @@ export const validateDefaultProductUpdate = (
   update: Partial<Product.Update>,
   existingProduct: Product.Record
 ): void => {
+  // Prevent changing the default status on any product
+  if ('default' in update && update.default !== existingProduct.default) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Cannot change the default status of a product',
+    })
+  }
+
+  // If not a default product, no further validation needed
   if (!existingProduct.default) return
 
   const attemptedFields = Object.keys(update).filter(k => k !== 'id')
@@ -32,14 +41,6 @@ export const validateDefaultProductUpdate = (
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: `Cannot update the following fields on default products: ${disallowedFields.join(', ')}. Only ${DEFAULT_PRODUCT_ALLOWED_FIELDS.join(', ')} can be modified.`,
-    })
-  }
-
-  // Prevent changing the default status
-  if ('default' in update && update.default !== existingProduct.default) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Cannot change the default status of a product',
     })
   }
 }
