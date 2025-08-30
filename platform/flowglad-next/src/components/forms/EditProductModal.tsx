@@ -21,6 +21,25 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   product,
 }) => {
   const editProduct = trpc.products.edit.useMutation()
+
+  // Fetch current product features for this product via paginated list with filter in cursor
+  const { data: productFeaturesData } =
+    trpc.productFeatures.list.useQuery(
+      {
+        cursor: encodeCursor({
+          parameters: {
+            productId: product.id,
+          },
+          createdAt: new Date(0),
+          direction: 'forward',
+        }),
+        limit: 100,
+      },
+      {
+        enabled: isOpen, // Only fetch when modal is open
+      }
+    )
+
   const { data: pricesData, isLoading: pricesLoading } =
     trpc.prices.list.useQuery({
       cursor: encodeCursor({
@@ -32,6 +51,13 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }),
     })
   const prices = pricesData?.data
+
+  // Extract feature IDs from product features
+  const currentFeatureIds =
+    productFeaturesData?.data
+      ?.filter((pf) => !pf.expiredAt)
+      .map((pf) => pf.featureId) || []
+
   return (
     <FormModal
       isOpen={isOpen}
@@ -42,6 +68,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         product,
         price: prices?.[0],
         id: product.id,
+        featureIds: currentFeatureIds,
       }}
       onSubmit={async (item) => {
         await editProduct.mutateAsync(item)
