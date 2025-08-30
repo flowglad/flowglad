@@ -521,7 +521,7 @@ const ERROR_CODE_MESSAGES: Record<string, string | ((error: PostgresError) => st
     for (const [key, rlsPattern] of Object.entries(RLS_ERROR_PATTERNS)) {
       if (rlsPattern.pattern.test(fullError)) {
         // Log the internal note for debugging but return user-friendly message
-        console.log(`[RLS Error] ${rlsPattern.internalNote}`)
+        // console.log(`[RLS Error] ${rlsPattern.internalNote}`)
         return rlsPattern.userMessage
       }
     }

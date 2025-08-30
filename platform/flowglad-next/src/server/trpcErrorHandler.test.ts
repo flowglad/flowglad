@@ -71,7 +71,7 @@ describe('trpcErrorHandler', () => {
       expect(result.developerMessage).toBe(
         'RLS violation'
       )
-      expect(result.context.code).toBe('42501')
+      expect(result.context?.code).toBe('42501')
     })
 
     it('should handle regular Error objects', () => {

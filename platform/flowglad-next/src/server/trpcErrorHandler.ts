@@ -130,7 +130,6 @@ export function extractErrorDetails(error: unknown): {
         const constraintMatch = error.message.match(
           /constraint[:\s]+"?([^"\s]+)"?/
         )
-        console.log('====constraintMatch', constraintMatch)
         if (constraintMatch) {
           context.constraint = constraintMatch[1]
           // Try to get a better message based on constraint name
