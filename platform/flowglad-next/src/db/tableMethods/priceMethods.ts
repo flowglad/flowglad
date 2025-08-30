@@ -212,6 +212,8 @@ export const selectPricesAndProductsByProductWhere = async (
     .where(whereClauseFromObject(products, whereConditions))
     .orderBy(asc(products.createdAt))
 
+  console.log('====results', results)
+
   const parsedResults: {
     product: Product.Record
     price: Price.Record
