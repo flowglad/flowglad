@@ -70,29 +70,25 @@ async function addDefaultProductsToPricingModels(db: PostgresJsDatabase) {
         // Create product insert data
         const productId = core.nanoid()
         const product: Product.Insert = {
-          id: productId,
-          name: 'Base Plan',
-          slug: 'base-plan',
+          name: 'Free Plan',
+          slug: 'free-plan',
           default: true,
-          description: 'Default subscription plan',
+          description: 'Default plan',
           pricingModelId: pricingModel.id,
           organizationId: org.id,
           livemode: pricingModel.livemode,
           active: true,
           displayFeatures: null,
-          singularQuantityLabel: 'subscription',
-          pluralQuantityLabel: 'subscriptions',
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
           imageURL: null,
           externalId: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         }
         
         productsToInsert.push(product)
         
         // Create price insert data
         const price: Price.Insert = {
-          id: core.nanoid(),
           productId: productId,
           unitPrice: 0,
           isDefault: true,
@@ -109,9 +105,8 @@ async function addDefaultProductsToPricingModels(db: PostgresJsDatabase) {
           usageMeterId: null,
           externalId: null,
           slug: null,
-          position: 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          startsWithCreditTrial: false,
+          overagePriceId: null,
         }
         
         pricesToInsert.push(price)

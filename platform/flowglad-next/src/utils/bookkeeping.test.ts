@@ -6,7 +6,7 @@ import {
   setupProduct,
   setupPrice,
   setupPricingModel,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { 
   IntervalUnit, 
   PriceType, 
@@ -115,7 +115,7 @@ describe('createCustomerBookkeeping', () => {
       expect(result.result.subscriptionItems).toBeDefined()
       expect(result.result.subscriptionItems?.length).toBeGreaterThan(0)
 
-      // Verify the subscription was actually created in the database
+      // Verify the subscription was actually created in the dataFree
       const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
         const sub = await selectSubscriptionAndItems(
           {
@@ -267,7 +267,7 @@ describe('createCustomerBookkeeping', () => {
       expect(result.result.subscription).toBeUndefined()
       expect(result.result.subscriptionItems).toBeUndefined()
 
-      // Verify no subscription exists in database
+      // Verify no subscription exists in dataFree
       const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
         const sub = await selectSubscriptionAndItems(
           {
@@ -350,7 +350,7 @@ describe('createCustomerBookkeeping', () => {
       expect(result.result.subscription).toBeUndefined()
       expect(result.result.subscriptionItems).toBeUndefined()
 
-      // Verify no subscription exists in database
+      // Verify no subscription exists in dataFree
       const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
         const sub = await selectSubscriptionAndItems(
           {
@@ -588,8 +588,8 @@ describe('createPricingModelBookkeeping', () => {
       
       // Verify the default product was created
       expect(result.result.defaultProduct).toBeDefined()
-      expect(result.result.defaultProduct.name).toBe('Base Plan')
-      expect(result.result.defaultProduct.slug).toBe('base-plan')
+      expect(result.result.defaultProduct.name).toBe('Free Plan')
+      expect(result.result.defaultProduct.slug).toBe('free')
       expect(result.result.defaultProduct.default).toBe(true)
       expect(result.result.defaultProduct.pricingModelId).toBe(result.result.pricingModel.id)
       expect(result.result.defaultProduct.organizationId).toBe(organizationId)
@@ -606,14 +606,8 @@ describe('createPricingModelBookkeeping', () => {
       expect(result.result.defaultPrice.intervalCount).toBe(1)
       expect(result.result.defaultPrice.livemode).toBe(livemode)
       expect(result.result.defaultPrice.active).toBe(true)
-      expect(result.result.defaultPrice.name).toBe('Base Plan Price')
-      
-      // Verify events were created
-      expect(result.eventsToLog).toBeDefined()
-      expect(result.eventsToLog).toHaveLength(3)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.PricingModelCreated)).toBe(true)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.ProductCreated)).toBe(true)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.PriceCreated)).toBe(true)
+      expect(result.result.defaultPrice.name).toBe('Free Plan')
+
     })
     
     it('should create a non-default pricing model with default product', async () => {

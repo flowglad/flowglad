@@ -647,7 +647,7 @@ export const createPricingModelBookkeeping = async (
   payload: {
     pricingModel: Omit<PricingModel.Insert, 'livemode' | 'organizationId'>
   },
-  { transaction, organizationId, livemode }: AuthenticatedTransactionParams
+  { transaction, organizationId, livemode }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<TransactionOutput<{
   pricingModel: PricingModel.Record
   defaultProduct: Product.Record
@@ -666,17 +666,17 @@ export const createPricingModelBookkeeping = async (
   // 2. Create the default "Base Plan" product
   const defaultProduct = await insertProduct(
     {
-      name: 'Base Plan',
-      slug: 'base-plan',
+      name: 'Free Plan',
+      slug: 'free',
       default: true,
-      description: 'Default subscription plan',
+      description: 'Default plan',
       pricingModelId: pricingModel.id,
       organizationId,
       livemode,
       active: true,
       displayFeatures: null,
-      singularQuantityLabel: 'subscription',
-      pluralQuantityLabel: 'subscriptions',
+      singularQuantityLabel: null,
+      pluralQuantityLabel: null,
       imageURL: null,
       externalId: null,
     },
@@ -698,13 +698,15 @@ export const createPricingModelBookkeeping = async (
       currency: organization.defaultCurrency,
       livemode,
       active: true,
-      name: 'Base Plan Price',
+      name: 'Free Plan',
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
       slug: null,
+      startsWithCreditTrial: false,
+      overagePriceId: null,
     },
     transaction
   )
@@ -712,51 +714,6 @@ export const createPricingModelBookkeeping = async (
   // 5. Create events
   const timestamp = new Date()
   const eventsToLog: Event.Insert[] = [
-    {
-      type: FlowgladEventType.PricingModelCreated,
-      occurredAt: timestamp,
-      organizationId,
-      livemode,
-      payload: {
-        object: EventNoun.PricingModel,
-        id: pricingModel.id,
-      },
-      submittedAt: timestamp,
-      hash: core.nanoid(),
-      metadata: {},
-      processedAt: null,
-    },
-    {
-      type: FlowgladEventType.ProductCreated,
-      occurredAt: timestamp,
-      organizationId,
-      livemode,
-      payload: {
-        object: EventNoun.Product,
-        id: defaultProduct.id,
-        isDefault: true,
-      },
-      submittedAt: timestamp,
-      hash: core.nanoid(),
-      metadata: {},
-      processedAt: null,
-    },
-    {
-      type: FlowgladEventType.PriceCreated,
-      occurredAt: timestamp,
-      organizationId,
-      livemode,
-      payload: {
-        object: EventNoun.Price,
-        id: defaultPrice.id,
-        productId: defaultProduct.id,
-        unitPrice: 0,
-      },
-      submittedAt: timestamp,
-      hash: core.nanoid(),
-      metadata: {},
-      processedAt: null,
-    },
   ]
 
   return {

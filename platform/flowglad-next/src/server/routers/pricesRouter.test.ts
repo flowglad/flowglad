@@ -36,7 +36,6 @@ describe('pricesRouter - Default Price Constraints', () => {
           transaction,
           organizationId: organization.id,
           livemode,
-          userId: '123',
         }
       )
 
