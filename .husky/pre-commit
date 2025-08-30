@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# Store the root directory
+ROOT_DIR=$(pwd)
+
+# Run lint in parallel for all packages
+pnpm --parallel --filter "./packages/**" lint &
+PID1=$!
+
+# Run lint for platform/flowglad-next
+cd "$ROOT_DIR/platform/flowglad-next" && pnpm lint &
+PID2=$!
+
+# Run lint for platform/hosted-billing  
+cd "$ROOT_DIR/platform/hosted-billing" && pnpm lint &
+PID3=$!
+
+# Wait for each process and capture exit status
+wait $PID1
+STATUS1=$?
+
+wait $PID2
+STATUS2=$?
+
+wait $PID3
+STATUS3=$?
+
+# Check if any lint task failed
+if [ $STATUS1 -ne 0 ] || [ $STATUS2 -ne 0 ] || [ $STATUS3 -ne 0 ]; then
+  echo "❌ Lint checks failed. Please fix errors before committing."
+  exit 1
+fi
+
+echo "✅ All lint checks passed!"

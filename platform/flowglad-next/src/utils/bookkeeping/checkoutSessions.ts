@@ -43,7 +43,10 @@ import {
   createFeeCalculationForCheckoutSession,
   createInvoiceFeeCalculationForCheckoutSession,
 } from '@/utils/bookkeeping/fees/checkoutSession'
-import { calculateTotalDueAmount, calculateTotalFeeAmount } from '@/utils/bookkeeping/fees/common'
+import {
+  calculateTotalDueAmount,
+  calculateTotalFeeAmount,
+} from '@/utils/bookkeeping/fees/common'
 import {
   selectDiscountRedemptions,
   upsertDiscountRedemptionForPurchaseAndDiscount,
@@ -315,28 +318,30 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     } as const
     let purchaseInsert: Purchase.Insert
     if (price.type === PriceType.Subscription) {
-      const subscriptionPurchaseInsert: Purchase.SubscriptionPurchaseInsert = {
-        ...corePurchaseFields,
-        intervalUnit: price.intervalUnit,
-        intervalCount: price.intervalCount,
-        firstInvoiceValue: 0,
-        totalPurchaseValue: null,
-        trialPeriodDays: price.trialPeriodDays ?? 0,
-        priceType: PriceType.Subscription,
-        pricePerBillingCycle: price.unitPrice,
-      }
+      const subscriptionPurchaseInsert: Purchase.SubscriptionPurchaseInsert =
+        {
+          ...corePurchaseFields,
+          intervalUnit: price.intervalUnit,
+          intervalCount: price.intervalCount,
+          firstInvoiceValue: 0,
+          totalPurchaseValue: null,
+          trialPeriodDays: price.trialPeriodDays ?? 0,
+          priceType: PriceType.Subscription,
+          pricePerBillingCycle: price.unitPrice,
+        }
       purchaseInsert = subscriptionPurchaseInsert
     } else if (price.type === PriceType.SinglePayment) {
-      const singlePaymentPurchaseInsert: Purchase.SinglePaymentPurchaseInsert = {
-        ...corePurchaseFields,
-        trialPeriodDays: null,
-        intervalUnit: null,
-        intervalCount: null,
-        pricePerBillingCycle: null,
-        firstInvoiceValue: price.unitPrice ?? 0,
-        totalPurchaseValue: price.unitPrice,
-        priceType: PriceType.SinglePayment,
-      }
+      const singlePaymentPurchaseInsert: Purchase.SinglePaymentPurchaseInsert =
+        {
+          ...corePurchaseFields,
+          trialPeriodDays: null,
+          intervalUnit: null,
+          intervalCount: null,
+          pricePerBillingCycle: null,
+          firstInvoiceValue: price.unitPrice ?? 0,
+          totalPurchaseValue: price.unitPrice,
+          priceType: PriceType.SinglePayment,
+        }
       purchaseInsert = singlePaymentPurchaseInsert
     } else if (price.type === PriceType.Usage) {
       const usagePurchaseInsert: Purchase.UsagePurchaseInsert = {
@@ -351,7 +356,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       }
       purchaseInsert = usagePurchaseInsert
     } else {
-      throw new Error(`Unsupported price type for checkout session ${checkoutSession.id}`)
+      throw new Error(
+        `Unsupported price type for checkout session ${checkoutSession.id}`
+      )
     }
     const results = await upsertPurchaseById(
       purchaseInsert,
