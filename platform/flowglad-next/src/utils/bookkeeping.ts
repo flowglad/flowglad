@@ -30,6 +30,8 @@ import {
   PriceType,
   PurchaseStatus,
   SubscriptionItemType,
+  IntervalUnit,
+  CurrencyCode,
 } from '@/types'
 import {
   createPaymentIntentForInvoice,
@@ -54,6 +56,19 @@ import {
   selectOpenNonExpiredCheckoutSessions,
   updateCheckoutSessionsForOpenPurchase,
 } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectDefaultPricingModel, insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { selectProducts, insertProduct } from '@/db/tableMethods/productMethods'
+import { selectPrices, insertPrice } from '@/db/tableMethods/priceMethods'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { Event } from '@/db/schema/events'
+import { FlowgladEventType, EventNoun } from '@/types'
+import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
+import { Subscription } from '@/db/schema/subscriptions'
+import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import { PricingModel } from '@/db/schema/pricingModels'
+import { Product } from '@/db/schema/products'
+import { Price } from '@/db/schema/prices'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -465,16 +480,65 @@ export const editOpenPurchase = async (
   )
 }
 
+export const createFreePlanProductInsert = (pricingModel: PricingModel.Record): Product.Insert => {
+  return {
+    name: 'Free Plan',
+  slug: 'free',
+  default: true,
+  description: 'Default plan',
+  pricingModelId: pricingModel.id,
+  organizationId: pricingModel.organizationId,
+  livemode: pricingModel.livemode,
+  active: true,
+  displayFeatures: null,
+  singularQuantityLabel: null,
+  pluralQuantityLabel: null,
+  imageURL: null,
+  externalId: null,
+}
+}
+
+export const createFreePlanPriceInsert = (defaultProduct: Product.Record, defaultCurrency: CurrencyCode): Price.Insert => {
+  return {
+    productId: defaultProduct.id,
+    unitPrice: 0,
+    isDefault: true,
+    type: PriceType.Subscription,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    currency: defaultCurrency,
+    livemode: defaultProduct.livemode,
+    active: true,
+    name: 'Free Plan',
+    trialPeriodDays: null,
+    setupFeeAmount: null,
+    usageEventsPerUnit: null,
+    usageMeterId: null,
+    externalId: null,
+    slug: null,
+    startsWithCreditTrial: false,
+    overagePriceId: null,
+  }
+}
 export const createCustomerBookkeeping = async (
   payload: {
-    customer: Customer.Insert
+    customer: Omit<Customer.Insert, 'livemode'>
   },
-  { transaction }: AuthenticatedTransactionParams
-) => {
-  let customer = await insertCustomer(payload.customer, transaction)
+  { transaction, organizationId, livemode }: AuthenticatedTransactionParams
+): Promise<TransactionOutput<{
+  customer: Customer.Record
+  subscription?: Subscription.Record
+  subscriptionItems?: SubscriptionItem.Record[]
+}>> => {
+  // Security: Validate that customer organizationId matches auth context
+  if (payload.customer.organizationId && payload.customer.organizationId !== organizationId) {
+    throw new Error('Customer organizationId must match authenticated organizationId')
+  }
+  
+  let customer = await insertCustomer({...payload.customer, livemode}, transaction)
   if (!customer.stripeCustomerId) {
     const stripeCustomer = await createStripeCustomer(
-      payload.customer
+      customer
     )
     customer = await updateCustomer(
       {
@@ -484,5 +548,188 @@ export const createCustomerBookkeeping = async (
       transaction
     )
   }
-  return { customer }
+
+  const timestamp = new Date()
+  const eventsToLog: Event.Insert[] = []
+  
+  // Create customer created event
+  eventsToLog.push({
+    type: FlowgladEventType.CustomerCreated,
+    occurredAt: timestamp,
+    organizationId: customer.organizationId,
+    livemode: customer.livemode,
+    payload: {
+      object: EventNoun.Customer,
+      id: customer.id,
+    },
+    submittedAt: timestamp,
+    hash: constructCustomerCreatedEventHash(customer),
+    metadata: {},
+    processedAt: null,
+  })
+
+  // Create default subscription for the customer
+  // Use customer's organizationId to ensure consistency
+  if (customer.organizationId) {
+    try {
+      // Determine which pricing model to use
+      let pricingModelId = customer.pricingModelId
+      
+      // If no pricing model specified, use the default one
+      if (!pricingModelId) {
+        const defaultPricingModel = await selectDefaultPricingModel(
+          {
+            organizationId: customer.organizationId,
+            livemode: customer.livemode,
+          },
+          transaction
+        )
+        if (defaultPricingModel) {
+          pricingModelId = defaultPricingModel.id
+        }
+      }
+
+      if (pricingModelId) {
+        // Get the default product for this pricing model
+        const products = await selectProducts(
+          {
+            pricingModelId,
+            default: true,
+            active: true,
+          },
+          transaction
+        )
+
+        if (products.length > 0) {
+          const defaultProduct = products[0]
+
+          // Get the default price for this product
+          const prices = await selectPrices(
+            {
+              productId: defaultProduct.id,
+              isDefault: true,
+              active: true,
+            },
+            transaction
+          )
+
+          if (prices.length > 0) {
+            const defaultPrice = prices[0]
+            
+            // Get the organization details - use customer's organizationId for consistency
+            const organization = await selectOrganizationById(
+              customer.organizationId,
+              transaction
+            )
+
+            // Create the subscription
+            const subscriptionResult = await createSubscriptionWorkflow(
+              {
+                organization,
+                customer: {
+                  id: customer.id,
+                  stripeCustomerId: customer.stripeCustomerId,
+                  livemode: customer.livemode,
+                  organizationId: customer.organizationId,
+                },
+                product: defaultProduct,
+                price: defaultPrice,
+                quantity: 1,
+                livemode: customer.livemode,
+                startDate: new Date(),
+                interval: defaultPrice.intervalUnit || IntervalUnit.Month,
+                intervalCount: defaultPrice.intervalCount || 1,
+                trialEnd: defaultPrice.trialPeriodDays
+                  ? new Date(
+                      Date.now() + defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
+                    )
+                  : undefined,
+                autoStart: true,
+                name: `${defaultProduct.name} Subscription`,
+              },
+              transaction
+            )
+
+            // Merge events from subscription creation
+            if (subscriptionResult.eventsToLog) {
+              eventsToLog.push(...subscriptionResult.eventsToLog)
+            }
+
+            // Return combined result with all events and ledger commands
+            return {
+              result: {
+                customer,
+                subscription: subscriptionResult.result.subscription,
+                subscriptionItems: subscriptionResult.result.subscriptionItems
+              },
+              eventsToLog,
+              ledgerCommand: subscriptionResult.ledgerCommand
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Log the error but don't fail customer creation
+      console.error('Failed to create default subscription for customer:', error)
+    }
+  }
+
+  // Return just the customer with events
+  return {
+    result: { customer },
+    eventsToLog
+  }
+}
+
+/**
+ * Creates a pricing model with a default "Base Plan" product and a default price of 0
+ */
+export const createPricingModelBookkeeping = async (
+  payload: {
+    pricingModel: Omit<PricingModel.Insert, 'livemode' | 'organizationId'>
+  },
+  { transaction, organizationId, livemode }: Omit<AuthenticatedTransactionParams, 'userId'>
+): Promise<TransactionOutput<{
+  pricingModel: PricingModel.Record
+  defaultProduct: Product.Record
+  defaultPrice: Price.Record
+}>> => {
+  // 1. Create the pricing model
+  const pricingModel = await insertPricingModel(
+    {
+      ...payload.pricingModel,
+      organizationId,
+      livemode,
+    },
+    transaction
+  )
+
+  // 2. Create the default "Base Plan" product
+  const defaultProduct = await insertProduct(
+    createFreePlanProductInsert(pricingModel),
+    transaction
+  )
+
+  // 3. Get organization for default currency
+  const organization = await selectOrganizationById(organizationId, transaction)
+
+  // 4. Create the default price with unitPrice of 0
+  const defaultPrice = await insertPrice(
+    createFreePlanPriceInsert(defaultProduct, organization.defaultCurrency),
+    transaction
+  )
+
+  // 5. Create events
+  const timestamp = new Date()
+  const eventsToLog: Event.Insert[] = [
+  ]
+
+  return {
+    result: {
+      pricingModel,
+      defaultProduct,
+      defaultPrice,
+    },
+    eventsToLog,
+  }
 }

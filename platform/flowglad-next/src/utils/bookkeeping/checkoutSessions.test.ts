@@ -9,8 +9,8 @@ import {
   PaymentStatus,
   PurchaseStatus,
 } from '@/types'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import {
-  createFeeCalculationForCheckoutSession,
   editCheckoutSession,
   processPurchaseBookkeepingForCheckoutSession,
   checkoutSessionStatusFromStripeCharge,

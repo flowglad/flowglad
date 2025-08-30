@@ -19,7 +19,7 @@ import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/pur
 import core from '@/utils/core'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
 import {
   calculateTotalDueAmount,
@@ -56,7 +56,8 @@ export const confirmCheckoutSessionTransaction = async (
       !finalFeeCalculation &&
       checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
     ) {
-      const feeReadySession =
+      console.log('Creating fee calculation for checkout session: ', createFeeCalculationForCheckoutSession)
+        const feeReadySession =
         feeReadyCheckoutSessionSelectSchema.parse(checkoutSession)
       finalFeeCalculation =
         await createFeeCalculationForCheckoutSession(

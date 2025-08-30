@@ -34,6 +34,8 @@ import {
 import core from '@/utils/core'
 import { z } from 'zod'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
+import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 
 export const PURCHASES_TABLE_NAME = 'purchases'
 
@@ -409,8 +411,6 @@ export namespace Purchase {
   export type SinglePaymentPurchaseClientRecord = z.infer<
     typeof singlePaymentPurchaseClientSelectSchema
   >
-
-  // Client Types
   export type UsagePurchaseClientRecord = z.infer<
     typeof usagePurchaseClientSelectSchema
   >
@@ -420,6 +420,7 @@ export namespace Purchase {
   export type UsagePurchaseClientUpdate = z.infer<
     typeof usagePurchaseClientUpdateSchema
   >
+  // Client Types
   export type ClientInsert = z.infer<
     typeof purchaseClientInsertSchema
   >
@@ -449,6 +450,8 @@ export const editPurchaseFormSchema = z.object({
 export const createCustomerOutputSchema = z.object({
   data: z.object({
     customer: customerClientSelectSchema,
+    subscription: subscriptionClientSelectSchema.optional(),
+    subscriptionItems: z.array(subscriptionItemClientSelectSchema).optional(),
   }),
 })
 

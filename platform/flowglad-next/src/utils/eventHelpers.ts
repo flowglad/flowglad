@@ -1,3 +1,4 @@
+import { Customer } from '@/db/schema/customers'
 import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
 import { Subscription } from '@/db/schema/subscriptions'
@@ -25,5 +26,14 @@ export function constructPaymentSucceededEventHash(
   return constructEventHash({
     type: FlowgladEventType.PaymentSucceeded,
     id: payment.id,
+  })
+}
+
+export function constructCustomerCreatedEventHash(
+  customer: Pick<Customer.Record, 'id'>
+) {
+  return constructEventHash({
+    type: FlowgladEventType.CustomerCreated,
+    id: customer.id,
   })
 }

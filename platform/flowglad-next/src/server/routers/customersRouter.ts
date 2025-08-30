@@ -1,6 +1,8 @@
 import { router } from '../trpc'
 import { protectedProcedure } from '@/server/trpc'
+import { errorHandlers } from '../trpcErrorHandler'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -12,7 +14,6 @@ import {
   updateCustomer,
   selectCustomersCursorPaginatedWithTableRowData,
 } from '@/db/tableMethods/customerMethods'
-import { errorHandlers } from '../trpcErrorHandler'
 import {
   customerClientSelectSchema,
   editCustomerOutputSchema,
@@ -27,6 +28,7 @@ import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { revalidatePath } from 'next/cache'
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import {
+  CreateCustomerOutputSchema,
   createCustomerOutputSchema,
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
@@ -42,6 +44,8 @@ import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'customer',
@@ -76,7 +80,7 @@ const createCustomerProcedure = protectedProcedure
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({
         input,
         transaction,
@@ -84,7 +88,7 @@ const createCustomerProcedure = protectedProcedure
         livemode,
         ctx,
         organizationId,
-      }) => {
+      }): Promise<TransactionOutput<CreateCustomerOutputSchema>> => {
         try {
           if (!organizationId) {
             throw new Error('organizationId is required')
@@ -94,12 +98,11 @@ const createCustomerProcedure = protectedProcedure
           /**
            * We have to parse the customer record here because of the billingAddress json
            */
-          const createdCustomer = await createCustomerBookkeeping(
+          const createdCustomerOutput = await createCustomerBookkeeping(
             {
               customer: {
                 ...customer,
                 organizationId,
-                livemode: ctx.livemode,
               },
             },
             { transaction, userId, livemode, organizationId }
@@ -108,11 +111,18 @@ const createCustomerProcedure = protectedProcedure
           if (ctx.path) {
             await revalidatePath(ctx.path)
           }
-
+          
+          const subscription = createdCustomerOutput.result.subscription ? subscriptionWithCurrent(createdCustomerOutput.result.subscription) : undefined
           return {
-            data: {
-              customer: createdCustomer.customer,
+            result: {
+              data: {
+                customer: createdCustomerOutput.result.customer,
+                subscription,
+                subscriptionItems: createdCustomerOutput.result.subscriptionItems,
+              }
             },
+            eventsToLog: createdCustomerOutput.eventsToLog,
+            ledgerCommand: createdCustomerOutput.ledgerCommand,
           }
         } catch (error) {
           errorHandlers.customer.handle(error, {
