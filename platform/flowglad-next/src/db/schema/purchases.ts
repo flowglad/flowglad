@@ -421,15 +421,6 @@ export namespace Purchase {
     typeof usagePurchaseClientUpdateSchema
   >
   // Client Types
-  export type UsagePurchaseClientRecord = z.infer<
-    typeof usagePurchaseClientSelectSchema
-  >
-  export type UsagePurchaseClientInsert = z.infer<
-    typeof usagePurchaseClientInsertSchema
-  >
-  export type UsagePurchaseClientUpdate = z.infer<
-    typeof usagePurchaseClientUpdateSchema
-  >
   export type ClientInsert = z.infer<
     typeof purchaseClientInsertSchema
   >

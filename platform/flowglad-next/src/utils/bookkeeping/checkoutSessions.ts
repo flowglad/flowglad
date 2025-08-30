@@ -635,3 +635,6 @@ export const processStripeChargeForCheckoutSession = async (
     checkoutSession,
   }
 }
+
+// Re-export for backwards compatibility
+export { createFeeCalculationForCheckoutSession }
