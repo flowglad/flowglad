@@ -73,7 +73,7 @@ export const discountRedemptions = pgTable(
       livemodePolicy(),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"discountId" in (select "discountId" from "Discounts" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
@@ -141,7 +141,9 @@ export const discountRedemptionsSelectSchema = z
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
 // Base insert schema
-const baseInsertSchema = createInsertSchema(discountRedemptions).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+const baseInsertSchema = createInsertSchema(discountRedemptions)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 // Duration-specific insert schemas
 export const defaultDiscountRedemptionsInsertSchema =

@@ -37,7 +37,7 @@ export const links = pgTable(
       constructIndex(TABLE_NAME, [table.productId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
@@ -54,12 +54,16 @@ const columnRefinements = {
 /*
  * database schemas
  */
-export const linksInsertSchema = createInsertSchema(links).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const linksInsertSchema = createInsertSchema(links)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const linksSelectSchema =
   createSelectSchema(links).extend(columnRefinements)
 
-export const linksUpdateSchema = linksInsertSchema.partial().extend({ id: z.string() })
+export const linksUpdateSchema = linksInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const readOnlyColumns = {
   organizationId: true,
@@ -78,14 +82,17 @@ const clientWriteOmits = R.omit(['position'], {
 /*
  * client schemas
  */
-export const linkClientInsertSchema =
-  linksInsertSchema.omit(clientWriteOmits).meta({ id: 'LinkClientInsertSchema' })
+export const linkClientInsertSchema = linksInsertSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'LinkClientInsertSchema' })
 
-export const linkClientUpdateSchema =
-  linksUpdateSchema.omit(clientWriteOmits).meta({ id: 'LinkClientUpdateSchema' })
+export const linkClientUpdateSchema = linksUpdateSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'LinkClientUpdateSchema' })
 
-export const linkClientSelectSchema =
-  linksSelectSchema.omit(hiddenColumns).meta({ id: 'LinkRecord' })
+export const linkClientSelectSchema = linksSelectSchema
+  .omit(hiddenColumns)
+  .meta({ id: 'LinkRecord' })
 
 export namespace Link {
   export type Insert = z.infer<typeof linksInsertSchema>

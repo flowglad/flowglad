@@ -1625,6 +1625,13 @@
       "when": 1756305484577,
       "tag": "0232_lovely_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 233,
+      "version": "7",
+      "when": 1756610773884,
+      "tag": "0233_eager_karnak",
+      "breakpoints": true
     }
   ]
 }

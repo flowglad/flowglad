@@ -46,7 +46,7 @@ export const webhooks = pgTable(
       constructIndex(TABLE_NAME, [table.active]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -63,12 +63,16 @@ const columnRefinements = {
 /*
  * database schema
  */
-export const webhooksInsertSchema = createInsertSchema(webhooks).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const webhooksInsertSchema = createInsertSchema(webhooks)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const webhooksSelectSchema =
   createSelectSchema(webhooks).extend(columnRefinements)
 
-export const webhooksUpdateSchema = webhooksInsertSchema.partial().extend({ id: z.string() })
+export const webhooksUpdateSchema = webhooksInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const readOnlyColumns = {
   livemode: true,
@@ -85,17 +89,19 @@ const nonClientEditableColumns = {
 /*
  * client schemas
  */
-export const webhookClientInsertSchema = webhooksInsertSchema.omit(
-  nonClientEditableColumns
-).meta({ id: 'WebhookClientInsertSchema' })
+export const webhookClientInsertSchema = webhooksInsertSchema
+  .omit(nonClientEditableColumns)
+  .meta({ id: 'WebhookClientInsertSchema' })
 
-export const webhookClientUpdateSchema = webhooksUpdateSchema.omit(
-  nonClientEditableColumns
-).meta({ id: 'WebhookClientUpdateSchema' })
+export const webhookClientUpdateSchema = webhooksUpdateSchema
+  .omit(nonClientEditableColumns)
+  .meta({ id: 'WebhookClientUpdateSchema' })
 
-export const webhookClientSelectSchema = webhooksSelectSchema.omit({
-  position: true,
-}).meta({ id: 'WebhookClientSelectSchema' })
+export const webhookClientSelectSchema = webhooksSelectSchema
+  .omit({
+    position: true,
+  })
+  .meta({ id: 'WebhookClientSelectSchema' })
 
 export namespace Webhook {
   export type Insert = z.infer<typeof webhooksInsertSchema>

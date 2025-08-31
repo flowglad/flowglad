@@ -43,7 +43,7 @@ export const memberships = pgTable(
         'Enable read for own organizations where focused is true',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'select',
           using: sql`"user_id" = requesting_user_id() and "focused" = true and "organization_id" = current_organization_id()`,
         }
@@ -70,9 +70,13 @@ export const membershipsSelectSchema = createSelectSchema(
   selectColumnRefinements
 )
 
-export const membershipsInsertSchema = createInsertSchema(memberships).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
+export const membershipsInsertSchema = createInsertSchema(memberships)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(insertColumnRefinements)
 
-export const membershipsUpdateSchema = membershipsInsertSchema.partial().extend({ id: z.string() })
+export const membershipsUpdateSchema = membershipsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
@@ -98,11 +102,13 @@ const clientWriteOmits = R.omit(['position'], {
   ...createOnlyColumns,
 })
 
-export const membershipsClientSelectSchema =
-  membershipsSelectSchema.omit(hiddenColumns).meta({ id: 'MembershipsClientSelectSchema' })
+export const membershipsClientSelectSchema = membershipsSelectSchema
+  .omit(hiddenColumns)
+  .meta({ id: 'MembershipsClientSelectSchema' })
 
-export const membershipsClientUpdateSchema =
-  membershipsUpdateSchema.omit(clientWriteOmits).meta({ id: 'MembershipsClientUpdateSchema' })
+export const membershipsClientUpdateSchema = membershipsUpdateSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'MembershipsClientUpdateSchema' })
 
 export namespace Membership {
   export type Insert = z.infer<typeof membershipsInsertSchema>

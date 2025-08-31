@@ -137,7 +137,7 @@ export const prices = pgTable(
         'On update, ensure usage meter belongs to same organization as product',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'update',
           withCheck: usageMeterBelongsToSameOrganization,
         }
@@ -365,20 +365,17 @@ export const pricesSelectClauseSchema = basePriceSelectSchema
   .partial()
 
 export const subscriptionPriceClientInsertSchema =
-  subscriptionPriceInsertSchema.omit(nonClientEditableColumns)
-  .meta({
+  subscriptionPriceInsertSchema.omit(nonClientEditableColumns).meta({
     id: 'SubscriptionPriceInsert',
   })
 
 export const subscriptionPriceClientUpdateSchema =
-  subscriptionPriceUpdateSchema.omit(nonClientEditableColumns)
-  .meta({
+  subscriptionPriceUpdateSchema.omit(nonClientEditableColumns).meta({
     id: 'SubscriptionPriceUpdate',
   })
 
 export const subscriptionPriceClientSelectSchema =
-  subscriptionPriceSelectSchema.omit(hiddenColumns)
-  .meta({
+  subscriptionPriceSelectSchema.omit(hiddenColumns).meta({
     id: 'SubscriptionPriceRecord',
   })
 
@@ -400,46 +397,49 @@ export const subscribablePriceClientSelectSchema = z
   })
 
 export const singlePaymentPriceClientInsertSchema =
-  singlePaymentPriceInsertSchema.omit(nonClientEditableColumns)
-  .meta({
+  singlePaymentPriceInsertSchema.omit(nonClientEditableColumns).meta({
     id: 'SinglePaymentPriceInsert',
   })
 
 export const singlePaymentPriceClientUpdateSchema =
-  singlePaymentPriceUpdateSchema.omit(nonClientEditableColumns)
-  .meta({
+  singlePaymentPriceUpdateSchema.omit(nonClientEditableColumns).meta({
     id: 'SinglePaymentPriceUpdate',
   })
 
 export const singlePaymentPriceClientSelectSchema =
-  singlePaymentPriceSelectSchema.omit(hiddenColumns)
-  .meta({
+  singlePaymentPriceSelectSchema.omit(hiddenColumns).meta({
     id: 'SinglePaymentPriceRecord',
   })
 
-export const pricesClientInsertSchema = z.discriminatedUnion('type', [
-  subscriptionPriceClientInsertSchema,
-  singlePaymentPriceClientInsertSchema,
-  usagePriceClientInsertSchema,
-]).meta({
-  id: 'PricesInsert',
-})
+export const pricesClientInsertSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPriceClientInsertSchema,
+    singlePaymentPriceClientInsertSchema,
+    usagePriceClientInsertSchema,
+  ])
+  .meta({
+    id: 'PricesInsert',
+  })
 
-export const pricesClientUpdateSchema = z.discriminatedUnion('type', [
-  subscriptionPriceClientUpdateSchema,
-  singlePaymentPriceClientUpdateSchema,
-  usagePriceClientUpdateSchema,
-]).meta({
-  id: 'PricesUpdate',
-})
+export const pricesClientUpdateSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPriceClientUpdateSchema,
+    singlePaymentPriceClientUpdateSchema,
+    usagePriceClientUpdateSchema,
+  ])
+  .meta({
+    id: 'PricesUpdate',
+  })
 
-export const pricesClientSelectSchema = z.discriminatedUnion('type', [
-  subscriptionPriceClientSelectSchema,
-  singlePaymentPriceClientSelectSchema,
-  usagePriceClientSelectSchema,
-]).meta({
-  id: 'PriceRecord',
-})
+export const pricesClientSelectSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPriceClientSelectSchema,
+    singlePaymentPriceClientSelectSchema,
+    usagePriceClientSelectSchema,
+  ])
+  .meta({
+    id: 'PriceRecord',
+  })
 
 export const pricesPaginatedSelectSchema =
   createPaginatedSelectSchema(
@@ -453,10 +453,9 @@ export const pricesPaginatedSelectSchema =
   })
 
 export const pricesPaginatedListSchema =
-  createPaginatedListQuerySchema(pricesClientSelectSchema)
-    .meta({
-      id: 'PricesPaginatedList',
-    })
+  createPaginatedListQuerySchema(pricesClientSelectSchema).meta({
+    id: 'PricesPaginatedList',
+  })
 
 export namespace Price {
   export type Insert = z.infer<typeof pricesInsertSchema>
@@ -541,11 +540,13 @@ export const editPriceSchema = z.object({
 
 export type EditPriceInput = z.infer<typeof editPriceSchema>
 
-export const createPriceSchema = z.object({
-  price: pricesClientInsertSchema,
-}).meta({
-  id: 'CreatePriceInput',
-})
+export const createPriceSchema = z
+  .object({
+    price: pricesClientInsertSchema,
+  })
+  .meta({
+    id: 'CreatePriceInput',
+  })
 
 export type CreatePriceInput = z.infer<typeof createPriceSchema>
 
@@ -553,9 +554,8 @@ const omitProductId = {
   productId: true,
 } as const
 
-export const createProductPriceInputSchema = z.discriminatedUnion(
-  'type',
-  [
+export const createProductPriceInputSchema = z
+  .discriminatedUnion('type', [
     subscriptionPriceClientInsertSchema.omit(omitProductId).meta({
       id: 'ProductSubscriptionPriceInsert',
     }),
@@ -565,10 +565,10 @@ export const createProductPriceInputSchema = z.discriminatedUnion(
     usagePriceClientInsertSchema.omit(omitProductId).meta({
       id: 'ProductUsagePriceInsert',
     }),
-  ]
-).meta({
-  id: 'CreateProductPriceInput',
-})
+  ])
+  .meta({
+    id: 'CreateProductPriceInput',
+  })
 
 export const createProductSchema = z.object({
   product: productsClientInsertSchema,
@@ -591,13 +591,14 @@ export const editProductSchema = z.object({
 
 export type EditProductInput = z.infer<typeof editProductSchema>
 
-export const productWithPricesSchema =
-  productsClientSelectSchema.extend({
+export const productWithPricesSchema = productsClientSelectSchema
+  .extend({
     prices: z.array(pricesClientSelectSchema),
     defaultPrice: pricesClientSelectSchema.describe(
       'The default price for the product. If no price is explicitly set as default, will return the first price created for the product..'
     ),
-  }).meta({
+  })
+  .meta({
     id: 'ProductWithPricesRecord',
   })
 

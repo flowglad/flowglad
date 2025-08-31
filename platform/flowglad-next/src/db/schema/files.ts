@@ -43,7 +43,7 @@ export const files = pgTable(
       livemodePolicy(),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
@@ -60,12 +60,16 @@ const columnRefinements = {
 /*
  * database schema
  */
-export const filesInsertSchema = createInsertSchema(files).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const filesInsertSchema = createInsertSchema(files)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const filesSelectSchema =
   createSelectSchema(files).extend(columnRefinements)
 
-export const filesUpdateSchema = filesInsertSchema.partial().extend({ id: z.string() })
+export const filesUpdateSchema = filesInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const readOnlyColumns = {
   organizationId: true,
@@ -94,14 +98,17 @@ const clientWriteOmits = R.omit(['position'], {
 /*
  * client schemas
  */
-export const fileClientInsertSchema =
-  filesInsertSchema.omit(clientWriteOmits).meta({ id: 'FileClientInsertSchema' })
+export const fileClientInsertSchema = filesInsertSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'FileClientInsertSchema' })
 
-export const fileClientUpdateSchema =
-  filesUpdateSchema.omit(clientWriteOmits).meta({ id: 'FileClientUpdateSchema' })
+export const fileClientUpdateSchema = filesUpdateSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'FileClientUpdateSchema' })
 
-export const fileClientSelectSchema =
-  filesSelectSchema.omit(hiddenColumns).meta({ id: 'FileClientSelectSchema' })
+export const fileClientSelectSchema = filesSelectSchema
+  .omit(hiddenColumns)
+  .meta({ id: 'FileClientSelectSchema' })
 
 export namespace File {
   export type Insert = z.infer<typeof filesInsertSchema>

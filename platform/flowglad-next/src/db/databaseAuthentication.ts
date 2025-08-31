@@ -146,7 +146,7 @@ export async function dbAuthInfoForSecretApiKeyResult(
     `${verifyKeyResult.userId}`
   const livemode = verifyKeyResult.environment === 'live'
   const jwtClaim: JWTClaim = {
-    role: 'authenticated',
+    role: 'merchant',
     sub: userId,
     email: 'apiKey@example.com',
     session_id: 'mock_session_123',
@@ -158,7 +158,7 @@ export async function dbAuthInfoForSecretApiKeyResult(
       email: 'apiKey@example.com',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      role: 'authenticated',
+      role: 'merchant',
       app_metadata: {
         provider: 'apiKey',
       },
@@ -234,7 +234,7 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   const userId = membershipsForOrganization[0].users.id
   // TODO: scope this
   const jwtClaim: JWTClaim = {
-    role: 'authenticated',
+    role: 'merchant',
     sub: userId,
     email: 'apiKey@example.com',
     user_metadata: {
@@ -244,7 +244,7 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
       email: 'apiKey@example.com',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      role: 'authenticated',
+      role: 'merchant',
       app_metadata: {
         provider: 'apiKey',
       },
@@ -275,7 +275,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
   const userId = focusedMembership?.memberships.userId
   const livemode = focusedMembership?.memberships.livemode ?? false
   const jwtClaim = {
-    role: 'authenticated',
+    role: 'merchant',
     sub: userId,
     email: user.email,
     user_metadata: {
@@ -285,7 +285,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
       email: user.email,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      role: 'authenticated',
+      role: 'merchant',
       app_metadata: {
         provider: '',
       },

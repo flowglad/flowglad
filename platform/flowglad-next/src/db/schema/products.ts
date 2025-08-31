@@ -90,7 +90,7 @@ export const products = pgTable(
         .where(sql`${table.default}`),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -155,18 +155,20 @@ export const productsClientSelectSchema = productsSelectSchema
     id: 'ProductRecord',
   })
 
-export const productsClientInsertSchema = productsInsertSchema.omit(
-  nonClientEditableColumns
-).meta({
-  id: 'ProductInsert',
-})
+export const productsClientInsertSchema = productsInsertSchema
+  .omit(nonClientEditableColumns)
+  .meta({
+    id: 'ProductInsert',
+  })
 
-export const productsClientUpdateSchema = productsUpdateSchema.omit({
-  ...nonClientEditableColumns,
-  ...createOnlyColumns,
-}).meta({
-  id: 'ProductUpdate',
-})
+export const productsClientUpdateSchema = productsUpdateSchema
+  .omit({
+    ...nonClientEditableColumns,
+    ...createOnlyColumns,
+  })
+  .meta({
+    id: 'ProductUpdate',
+  })
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({
@@ -182,16 +184,14 @@ export const productsSupabaseUpdatePayloadSchema =
   supabaseUpdatePayloadSchema
 
 export const productsPaginatedSelectSchema =
-  createPaginatedSelectSchema(productsClientSelectSchema)
-    .meta({
-      id: 'ProductsPaginatedSelect',
-    })
+  createPaginatedSelectSchema(productsClientSelectSchema).meta({
+    id: 'ProductsPaginatedSelect',
+  })
 
 export const productsPaginatedListSchema =
-  createPaginatedListQuerySchema(productsClientSelectSchema)
-    .meta({
-      id: 'ProductsPaginatedList',
-    })
+  createPaginatedListQuerySchema(productsClientSelectSchema).meta({
+    id: 'ProductsPaginatedList',
+  })
 
 export namespace Product {
   export type Insert = z.infer<typeof productsInsertSchema>

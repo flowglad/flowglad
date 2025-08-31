@@ -65,7 +65,7 @@ export const refunds = pgTable(
     constructIndex(TABLE_NAME, [table.status]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
-      to: 'authenticated',
+      to: 'merchant',
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
@@ -77,13 +77,17 @@ const columnRefinements = {
   amount: core.safeZodPositiveInteger,
   refundProcessedAt: core.safeZodDate.nullable(),
   status: core.createSafeZodEnum(RefundStatus),
-  currency: currencyCodeSchema
+  currency: currencyCodeSchema,
 }
 
-export const refundsInsertSchema = createInsertSchema(refunds).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const refundsInsertSchema = createInsertSchema(refunds)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 export const refundsSelectSchema =
   createSelectSchema(refunds).extend(columnRefinements)
-export const refundsUpdateSchema = refundsInsertSchema.partial().extend({ id: z.string() })
+export const refundsUpdateSchema = refundsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {
@@ -91,8 +95,9 @@ const readOnlyColumns = {
 } as const
 const hiddenColumns = {} as const
 
-export const refundClientSelectSchema =
-  refundsSelectSchema.omit(hiddenColumns).meta({
+export const refundClientSelectSchema = refundsSelectSchema
+  .omit(hiddenColumns)
+  .meta({
     id: 'RefundRecord',
   })
 

@@ -61,7 +61,7 @@ export const ledgerTransactions = pgTable(
     ]),
     pgPolicy('Enable read for own organizations', {
       as: 'permissive',
-      to: 'authenticated',
+      to: 'merchant',
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
@@ -74,13 +74,18 @@ const columnRefinements = {
   type: core.createSafeZodEnum(LedgerTransactionType),
 }
 
-export const ledgerTransactionsInsertSchema = createInsertSchema(ledgerTransactions).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const ledgerTransactionsInsertSchema = createInsertSchema(
+  ledgerTransactions
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const ledgerTransactionsSelectSchema = createSelectSchema(
   ledgerTransactions
 ).extend(columnRefinements)
 
-export const ledgerTransactionsUpdateSchema = ledgerTransactionsInsertSchema.partial().extend({ id: z.string() })
+export const ledgerTransactionsUpdateSchema =
+  ledgerTransactionsInsertSchema.partial().extend({ id: z.string() })
 
 const hiddenColumns = {
   createdByCommit: true,

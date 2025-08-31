@@ -70,7 +70,7 @@ export const usageEvents = pgTable(
       ]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
@@ -78,7 +78,7 @@ export const usageEvents = pgTable(
         'On insert, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'insert',
           withCheck: usageEventPriceMustMatchUsageMeter,
         }
@@ -87,7 +87,7 @@ export const usageEvents = pgTable(
         'On update, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'update',
           using: usageEventPriceMustMatchUsageMeter,
         }
@@ -96,7 +96,7 @@ export const usageEvents = pgTable(
         'On insert, only allow usage events for subscriptions with matching customer',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'insert',
           withCheck: usageEventSubscriptionMustMatchCustomer,
         }
@@ -105,7 +105,7 @@ export const usageEvents = pgTable(
         'On update, only allow usage events for subscriptions with matching customer',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'update',
           withCheck: usageEventSubscriptionMustMatchCustomer,
         }
@@ -114,7 +114,7 @@ export const usageEvents = pgTable(
         'On insert, only allow usage events for billing periods with matching subscription',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'insert',
           withCheck: usageEventBillingPeriodMustMatchSubscription,
         }
@@ -123,7 +123,7 @@ export const usageEvents = pgTable(
         'On update, only allow usage events for billing periods with matching subscription',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'update',
           withCheck: usageEventBillingPeriodMustMatchSubscription,
         }
@@ -160,12 +160,16 @@ const columnRefinements = {
     ),
 }
 
-export const usageEventsInsertSchema = createInsertSchema(usageEvents).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const usageEventsInsertSchema = createInsertSchema(usageEvents)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const usageEventsSelectSchema =
   createSelectSchema(usageEvents).extend(columnRefinements)
 
-export const usageEventsUpdateSchema = usageEventsInsertSchema.partial().extend({ id: z.string() })
+export const usageEventsUpdateSchema = usageEventsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
@@ -189,8 +193,9 @@ const clientWriteOmits = R.omit(['position'], {
   ...readOnlyColumns,
 })
 
-export const usageEventsClientSelectSchema =
-  usageEventsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageEventsClientSelectSchema' })
+export const usageEventsClientSelectSchema = usageEventsSelectSchema
+  .omit(hiddenColumns)
+  .meta({ id: 'UsageEventsClientSelectSchema' })
 
 export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
   .extend({

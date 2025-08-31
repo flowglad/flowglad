@@ -68,7 +68,7 @@ export const billingRuns = pgTable(
       constructIndex(TABLE_NAME, [table.status]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
       }),
@@ -79,18 +79,25 @@ export const billingRuns = pgTable(
 
 const columnRefinements = {
   status: core.createSafeZodEnum(BillingRunStatus),
-  errorDetails: z.record(z.string(), z.unknown()).nullable().optional(),
+  errorDetails: z
+    .record(z.string(), z.unknown())
+    .nullable()
+    .optional(),
 }
 
 /*
  * database schemas
  */
-export const billingRunsInsertSchema = createInsertSchema(billingRuns).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const billingRunsInsertSchema = createInsertSchema(billingRuns)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const billingRunsSelectSchema =
   createSelectSchema(billingRuns).extend(columnRefinements)
 
-export const billingRunsUpdateSchema = billingRunsInsertSchema.partial().extend({ id: z.string() })
+export const billingRunsUpdateSchema = billingRunsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const readOnlyColumns = {
   billingPeriodId: true,
@@ -116,14 +123,17 @@ const clientWriteOmits = R.omit(['position'], {
 /*
  * client schemas
  */
-export const billingRunClientInsertSchema =
-  billingRunsInsertSchema.omit(clientWriteOmits).meta({ id: 'BillingRunClientInsertSchema' })
+export const billingRunClientInsertSchema = billingRunsInsertSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'BillingRunClientInsertSchema' })
 
-export const billingRunClientUpdateSchema =
-  billingRunsUpdateSchema.omit(clientWriteOmits).meta({ id: 'BillingRunClientUpdateSchema' })
+export const billingRunClientUpdateSchema = billingRunsUpdateSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'BillingRunClientUpdateSchema' })
 
-export const billingRunClientSelectSchema =
-  billingRunsSelectSchema.omit(hiddenColumns).meta({ id: 'BillingRunClientSelectSchema' })
+export const billingRunClientSelectSchema = billingRunsSelectSchema
+  .omit(hiddenColumns)
+  .meta({ id: 'BillingRunClientSelectSchema' })
 
 export namespace BillingRun {
   export type Insert = z.infer<typeof billingRunsInsertSchema>

@@ -92,13 +92,13 @@ export const events = pgTable(
       livemodePolicy(),
       pgPolicy('Enable insert for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'insert',
         withCheck: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       pgPolicy('Enable all actions for own organization', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -123,12 +123,16 @@ const columnRefinements = {
   // objectId: core.safeZodPositiveInteger.nullable(),
 }
 
-export const eventsInsertSchema = createInsertSchema(events).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const eventsInsertSchema = createInsertSchema(events)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const eventsSelectSchema =
   createSelectSchema(events).extend(columnRefinements)
 
-export const eventsUpdateSchema = eventsInsertSchema.partial().extend({ id: z.string() })
+export const eventsUpdateSchema = eventsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 export namespace Event {
   export type Insert = z.infer<typeof eventsInsertSchema>

@@ -36,7 +36,7 @@ export const pricingModels = pgTable(
       constructIndex(TABLE_NAME, [table.name]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -52,7 +52,9 @@ export const pricingModelsSelectSchema = createSelectSchema(
   }
 )
 
-export const pricingModelsInsertSchema = createInsertSchema(pricingModels).omit(ommittedColumnsForInsertSchema)
+export const pricingModelsInsertSchema = createInsertSchema(
+  pricingModels
+).omit(ommittedColumnsForInsertSchema)
 
 export const pricingModelsUpdateSchema = pricingModelsInsertSchema
   .partial()
@@ -70,13 +72,19 @@ const hiddenColumns = {
 } as const
 
 export const pricingModelsClientSelectSchema =
-  pricingModelsSelectSchema.omit(hiddenColumns).meta({ id: 'PricingModelsClientSelectSchema' })
+  pricingModelsSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'PricingModelsClientSelectSchema' })
 
 export const pricingModelsClientUpdateSchema =
-  pricingModelsUpdateSchema.omit(readOnlyColumns).meta({ id: 'PricingModelsClientUpdateSchema' })
+  pricingModelsUpdateSchema
+    .omit(readOnlyColumns)
+    .meta({ id: 'PricingModelsClientUpdateSchema' })
 
 export const pricingModelsClientInsertSchema =
-  pricingModelsInsertSchema.omit(readOnlyColumns).meta({ id: 'PricingModelsClientInsertSchema' })
+  pricingModelsInsertSchema
+    .omit(readOnlyColumns)
+    .meta({ id: 'PricingModelsClientInsertSchema' })
 
 export const pricingModelsPaginatedSelectSchema =
   createPaginatedSelectSchema(pricingModelsClientSelectSchema)

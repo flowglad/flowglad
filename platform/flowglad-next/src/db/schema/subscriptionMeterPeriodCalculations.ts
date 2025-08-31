@@ -110,7 +110,7 @@ export const subscriptionMeterPeriodCalculations = pgTable(
         ),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -130,7 +130,9 @@ const columnRefinements = {
  * Database Schemas
  */
 export const subscriptionMeterPeriodCalculationInsertSchema =
-  createInsertSchema(subscriptionMeterPeriodCalculations).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+  createInsertSchema(subscriptionMeterPeriodCalculations)
+    .omit(ommittedColumnsForInsertSchema)
+    .extend(columnRefinements)
 
 export const subscriptionMeterPeriodCalculationSelectSchema =
   createSelectSchema(subscriptionMeterPeriodCalculations).extend(
@@ -138,7 +140,9 @@ export const subscriptionMeterPeriodCalculationSelectSchema =
   )
 
 export const subscriptionMeterPeriodCalculationUpdateSchema =
-  subscriptionMeterPeriodCalculationInsertSchema.partial().extend({ id: z.string() })
+  subscriptionMeterPeriodCalculationInsertSchema
+    .partial()
+    .extend({ id: z.string() })
 
 // Simplified omit logic for client schemas
 const baseHiddenClientKeys = {
@@ -157,9 +161,11 @@ const serverGeneratedKeys = {
  * Client Schemas
  */
 export const subscriptionMeterPeriodCalculationClientSelectSchema =
-  subscriptionMeterPeriodCalculationSelectSchema.omit(
-    baseHiddenClientKeys
-  ).meta({ id: 'SubscriptionMeterPeriodCalculationClientSelectSchema' })
+  subscriptionMeterPeriodCalculationSelectSchema
+    .omit(baseHiddenClientKeys)
+    .meta({
+      id: 'SubscriptionMeterPeriodCalculationClientSelectSchema',
+    })
 
 export namespace SubscriptionMeterPeriodCalculation {
   export type Insert = z.infer<

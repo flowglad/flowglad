@@ -93,7 +93,7 @@ export const organizations = pgTable(
       constructIndex(TABLE_NAME, [table.countryId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'select',
         using: sql`id IN ( SELECT memberships.organization_id
    FROM memberships
@@ -102,7 +102,6 @@ export const organizations = pgTable(
     ]
   }
 ).enableRLS()
-
 
 const billingAddressSchemaColumns = {
   name: zodOptionalNullableString,
@@ -121,11 +120,11 @@ const billingAddressSchemaColumns = {
   phone: zodOptionalNullableString,
 }
 
-export const billingAddressSchema = z.object(
-  billingAddressSchemaColumns
-).meta({
-  id: 'BillingAddress',
-})
+export const billingAddressSchema = z
+  .object(billingAddressSchemaColumns)
+  .meta({
+    id: 'BillingAddress',
+  })
 
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
@@ -149,7 +148,8 @@ const selectColumnRefinements = {
 // Column refinements for INSERT schemas (without auto-generated columns)
 const insertColumnRefinements = {
   ...commonColumnRefinements,
-  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger.optional(),
+  monthlyBillingVolumeFreeTier:
+    core.safeZodNonNegativeInteger.optional(),
 }
 
 export const organizationsSelectSchema = createSelectSchema(
@@ -157,7 +157,11 @@ export const organizationsSelectSchema = createSelectSchema(
   selectColumnRefinements
 )
 
-export const organizationsInsertSchema = createInsertSchema(organizations).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
+export const organizationsInsertSchema = createInsertSchema(
+  organizations
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(insertColumnRefinements)
 
 export const organizationsUpdateSchema = organizationsInsertSchema
   .partial()

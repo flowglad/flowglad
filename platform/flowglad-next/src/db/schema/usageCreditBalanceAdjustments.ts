@@ -60,7 +60,7 @@ export const usageCreditBalanceAdjustments = pgTable(
       constructIndex(TABLE_NAME, [table.adjustedByUserId]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -78,7 +78,9 @@ const columnRefinements = {
 }
 
 export const usageCreditBalanceAdjustmentsInsertSchema =
-  createInsertSchema(usageCreditBalanceAdjustments).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+  createInsertSchema(usageCreditBalanceAdjustments)
+    .omit(ommittedColumnsForInsertSchema)
+    .extend(columnRefinements)
 
 export const usageCreditBalanceAdjustmentsSelectSchema =
   createSelectSchema(usageCreditBalanceAdjustments).extend(
@@ -86,7 +88,9 @@ export const usageCreditBalanceAdjustmentsSelectSchema =
   )
 
 export const usageCreditBalanceAdjustmentsUpdateSchema =
-  usageCreditBalanceAdjustmentsInsertSchema.partial().extend({ id: z.string() })
+  usageCreditBalanceAdjustmentsInsertSchema
+    .partial()
+    .extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 
@@ -109,15 +113,21 @@ const clientWriteOmits = {
  * client schemas
  */
 export const usageCreditBalanceAdjustmentClientInsertSchema =
-  usageCreditBalanceAdjustmentsInsertSchema.omit(clientWriteOmits).meta({ id: 'UsageCreditBalanceAdjustmentInsert' })
+  usageCreditBalanceAdjustmentsInsertSchema
+    .omit(clientWriteOmits)
+    .meta({ id: 'UsageCreditBalanceAdjustmentInsert' })
 
 export const usageCreditBalanceAdjustmentClientUpdateSchema =
-  usageCreditBalanceAdjustmentsUpdateSchema.omit({
-    ...clientWriteOmits,
-  }).meta({ id: 'UsageCreditBalanceAdjustmentUpdate' })
+  usageCreditBalanceAdjustmentsUpdateSchema
+    .omit({
+      ...clientWriteOmits,
+    })
+    .meta({ id: 'UsageCreditBalanceAdjustmentUpdate' })
 
 export const usageCreditBalanceAdjustmentClientSelectSchema =
-  usageCreditBalanceAdjustmentsSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCreditBalanceAdjustmentRecord' })
+  usageCreditBalanceAdjustmentsSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'UsageCreditBalanceAdjustmentRecord' })
 
 export namespace UsageCreditBalanceAdjustment {
   export type Insert = z.infer<

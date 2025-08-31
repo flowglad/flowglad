@@ -78,7 +78,7 @@ export const ledgerAccounts = pgTable(
       ]),
       pgPolicy('Enable read for own organizations', {
         as: 'permissive',
-        to: 'authenticated',
+        to: 'merchant',
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -92,15 +92,22 @@ const columnRefinements = {
   version: core.safeZodPositiveIntegerOrZero,
 }
 
-export const ledgerAccountsInsertSchema = createInsertSchema(ledgerAccounts).omit(ommittedColumnsForInsertSchema).extend(columnRefinements).extend({
-  version: columnRefinements.version.optional(),
-  normalBalance: columnRefinements.normalBalance.optional(),
-})
+export const ledgerAccountsInsertSchema = createInsertSchema(
+  ledgerAccounts
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
+  .extend({
+    version: columnRefinements.version.optional(),
+    normalBalance: columnRefinements.normalBalance.optional(),
+  })
 
 export const ledgerAccountsSelectSchema =
   createSelectSchema(ledgerAccounts).extend(columnRefinements)
 
-export const ledgerAccountsUpdateSchema = ledgerAccountsInsertSchema.partial().extend({ id: z.string() })
+export const ledgerAccountsUpdateSchema = ledgerAccountsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 export namespace LedgerAccount {
   export type Insert = z.infer<typeof ledgerAccountsInsertSchema>

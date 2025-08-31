@@ -124,7 +124,7 @@ export const checkoutSessions = pgTable(
         'Enable all actions for discounts in own organization',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'all',
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
@@ -146,7 +146,8 @@ const commonRefinement = {
   // outputMetadata: z.any().nullable(),
   paymentMethodType: core
     .createSafeZodEnum(PaymentMethodType)
-    .nullable().optional(),
+    .nullable()
+    .optional(),
   outputMetadata: checkoutSessionOutputMetadataSchema.optional(),
 }
 
@@ -255,7 +256,11 @@ export const checkoutSessionsSelectSchema = z
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
-export const coreCheckoutSessionsInsertSchema = createInsertSchema(checkoutSessions).omit(ommittedColumnsForInsertSchema).extend(insertRefinement)
+export const coreCheckoutSessionsInsertSchema = createInsertSchema(
+  checkoutSessions
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(insertRefinement)
 
 export const purchaseCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
@@ -327,11 +332,13 @@ export const checkoutSessionsUpdateSchema = z
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
-export const createCheckoutSessionInputSchema = z.object({
-  checkoutSession: checkoutSessionsInsertSchema,
-}).meta({
-  id: 'CreateCheckoutSessionInput',
-})
+export const createCheckoutSessionInputSchema = z
+  .object({
+    checkoutSession: checkoutSessionsInsertSchema,
+  })
+  .meta({
+    id: 'CreateCheckoutSessionInput',
+  })
 
 const readOnlyColumns = {
   expires: true,
@@ -342,29 +349,39 @@ const readOnlyColumns = {
 } as const
 
 const purchaseCheckoutSessionClientUpdateSchema =
-  purchaseCheckoutSessionUpdateSchema.omit(readOnlyColumns).extend({
-    id: z.string(),
-  }).meta({
-    id: 'PurchaseCheckoutSessionUpdate',
-  })
+  purchaseCheckoutSessionUpdateSchema
+    .omit(readOnlyColumns)
+    .extend({
+      id: z.string(),
+    })
+    .meta({
+      id: 'PurchaseCheckoutSessionUpdate',
+    })
 const invoiceCheckoutSessionClientUpdateSchema =
-  invoiceCheckoutSessionUpdateSchema.omit(readOnlyColumns).extend({
-    id: z.string(),
-  }).meta({
-    id: 'InvoiceCheckoutSessionUpdate',
-  })
+  invoiceCheckoutSessionUpdateSchema
+    .omit(readOnlyColumns)
+    .extend({
+      id: z.string(),
+    })
+    .meta({
+      id: 'InvoiceCheckoutSessionUpdate',
+    })
 const productCheckoutSessionClientUpdateSchema =
-  productCheckoutSessionUpdateSchema.omit(readOnlyColumns).extend({
-    id: z.string(),
-  }).meta({
-    id: 'ProductCheckoutSessionUpdate',
-  })
+  productCheckoutSessionUpdateSchema
+    .omit(readOnlyColumns)
+    .extend({
+      id: z.string(),
+    })
+    .meta({
+      id: 'ProductCheckoutSessionUpdate',
+    })
 const addPaymentMethodCheckoutSessionClientUpdateSchema =
   addPaymentMethodCheckoutSessionUpdateSchema
     .omit(readOnlyColumns)
     .extend({
       id: z.string(),
-    }).meta({
+    })
+    .meta({
       id: 'AddPaymentMethodCheckoutSessionUpdate',
     })
 
@@ -373,7 +390,8 @@ const activateSubscriptionCheckoutSessionClientUpdateSchema =
     .omit(readOnlyColumns)
     .extend({
       id: z.string(),
-    }).meta({
+    })
+    .meta({
       id: 'ActivateSubscriptionCheckoutSessionUpdate',
     })
 
@@ -423,13 +441,17 @@ export const productCheckoutSessionClientSelectSchema =
     id: 'ProductCheckoutSessionRecord',
   })
 export const addPaymentMethodCheckoutSessionClientSelectSchema =
-  addPaymentMethodCheckoutSessionsSelectSchema.omit(hiddenColumns).meta({
-    id: 'AddPaymentMethodCheckoutSessionRecord',
-  })
+  addPaymentMethodCheckoutSessionsSelectSchema
+    .omit(hiddenColumns)
+    .meta({
+      id: 'AddPaymentMethodCheckoutSessionRecord',
+    })
 export const activateSubscriptionCheckoutSessionClientSelectSchema =
-  activateSubscriptionCheckoutSessionsSelectSchema.omit(hiddenColumns).meta({
-    id: 'ActivateSubscriptionCheckoutSessionRecord',
-  })
+  activateSubscriptionCheckoutSessionsSelectSchema
+    .omit(hiddenColumns)
+    .meta({
+      id: 'ActivateSubscriptionCheckoutSessionRecord',
+    })
 
 export const checkoutSessionClientSelectSchema = z
   .discriminatedUnion('type', [

@@ -85,7 +85,7 @@ export const subscriptionItems = pgTable(
         'Enable actions for own organizations via subscriptions',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: 'merchant',
           for: 'all',
           using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
         }
@@ -225,7 +225,9 @@ const clientNonEditableColumns = R.omit(['position'], {
 
 // Static Subscription Item Client Schemas
 export const staticSubscriptionItemClientInsertSchema =
-  staticSubscriptionItemInsertSchema.omit(clientNonEditableColumns).meta({ id: 'StaticSubscriptionItemInsert' })
+  staticSubscriptionItemInsertSchema
+    .omit(clientNonEditableColumns)
+    .meta({ id: 'StaticSubscriptionItemInsert' })
 export const staticSubscriptionItemClientUpdateSchema =
   staticSubscriptionItemUpdateSchema
     .omit(clientNonEditableColumns)
@@ -233,11 +235,15 @@ export const staticSubscriptionItemClientUpdateSchema =
     .meta({ id: 'StaticSubscriptionItemUpdate' })
 
 export const staticSubscriptionItemClientSelectSchema =
-  staticSubscriptionItemSelectSchema.omit(hiddenColumns).meta({ id: 'StaticSubscriptionItemRecord' })
+  staticSubscriptionItemSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'StaticSubscriptionItemRecord' })
 
 // Usage Subscription Item Client Schemas
 export const usageSubscriptionItemClientInsertSchema =
-  usageSubscriptionItemInsertSchema.omit(clientNonEditableColumns).meta({ id: 'UsageSubscriptionItemInsert' })
+  usageSubscriptionItemInsertSchema
+    .omit(clientNonEditableColumns)
+    .meta({ id: 'UsageSubscriptionItemInsert' })
 export const usageSubscriptionItemClientUpdateSchema =
   usageSubscriptionItemUpdateSchema
     .omit(clientNonEditableColumns)
@@ -245,11 +251,13 @@ export const usageSubscriptionItemClientUpdateSchema =
     .meta({ id: 'UsageSubscriptionItemUpdate' })
 
 export const usageSubscriptionItemClientSelectSchema =
-  usageSubscriptionItemSelectSchema.omit(hiddenColumns).meta({ id: 'UsageSubscriptionItemRecord' })
+  usageSubscriptionItemSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'UsageSubscriptionItemRecord' })
 
 // Client Discriminated Union Schemas
-export const subscriptionItemClientInsertSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemClientInsertSchema = z
+  .discriminatedUnion('type', [
     staticSubscriptionItemClientInsertSchema,
     usageSubscriptionItemClientInsertSchema,
   ])
@@ -257,16 +265,17 @@ export const subscriptionItemClientInsertSchema =
     id: 'SubscriptionItemInsert',
   })
 
-export const subscriptionItemClientUpdateSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemClientUpdateSchema = z
+  .discriminatedUnion('type', [
     staticSubscriptionItemClientUpdateSchema,
     usageSubscriptionItemClientUpdateSchema,
-  ]).meta({
+  ])
+  .meta({
     id: 'SubscriptionItemUpdate',
   })
 
-export const subscriptionItemClientSelectSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemClientSelectSchema = z
+  .discriminatedUnion('type', [
     staticSubscriptionItemClientSelectSchema,
     usageSubscriptionItemClientSelectSchema,
   ])

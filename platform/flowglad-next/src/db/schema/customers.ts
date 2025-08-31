@@ -98,13 +98,13 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
     constructGinIndex(TABLE_NAME, table.name),
     pgPolicy('Enable all actions for own organizations', {
       as: 'permissive',
-      to: 'authenticated',
+      to: 'merchant',
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
     pgPolicy('Disallow deletion', {
       as: 'restrictive',
-      to: 'authenticated',
+      to: 'merchant',
       for: 'delete',
       using: sql`false`,
     }),
@@ -140,29 +140,34 @@ export const customersSelectSchema = createSelectSchema(
   zodSchemaEnhancementColumns
 )
 
-export const customersInsertSchema = createInsertSchema(customers).omit(ommittedColumnsForInsertSchema).extend(zodSchemaEnhancementColumns)
+export const customersInsertSchema = createInsertSchema(customers)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(zodSchemaEnhancementColumns)
 
-export const customersUpdateSchema = customersInsertSchema.partial().extend({ id: z.string() })
+export const customersUpdateSchema = customersInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const clientWriteOmits = R.omit(
   ['position'],
   nonClientEditableColumns
 )
 
-export const customerClientInsertSchema =
-  customersInsertSchema.omit(clientWriteOmits)
+export const customerClientInsertSchema = customersInsertSchema
+  .omit(clientWriteOmits)
   .meta({
     id: 'CustomerInsert',
   })
 
-export const customerClientUpdateSchema =
-  customersUpdateSchema.omit(clientWriteOmits)
+export const customerClientUpdateSchema = customersUpdateSchema
+  .omit(clientWriteOmits)
   .meta({
     id: 'CustomerUpdate',
   })
 
-export const customerClientSelectSchema =
-  customersSelectSchema.omit(hiddenColumns).meta({
+export const customerClientSelectSchema = customersSelectSchema
+  .omit(hiddenColumns)
+  .meta({
     id: 'CustomerRecord',
   })
 
