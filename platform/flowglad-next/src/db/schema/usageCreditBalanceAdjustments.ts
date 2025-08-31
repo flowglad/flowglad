@@ -17,7 +17,8 @@ import {
   livemodePolicy,
   pgEnumColumn,
   ommittedColumnsForInsertSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
@@ -59,12 +60,17 @@ export const usageCreditBalanceAdjustments = pgTable(
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.adjustedUsageCreditId]),
       constructIndex(TABLE_NAME, [table.adjustedByUserId]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      enableCustomerReadPolicy('Enable read for customers', {
+        using: sql`"adjusted_usage_credit_id" in (select "id" from "usage_credits")`,
       }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'all',
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

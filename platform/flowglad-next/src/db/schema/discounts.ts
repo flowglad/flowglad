@@ -1,11 +1,5 @@
 import * as R from 'ramda'
-import {
-  pgTable,
-  pgPolicy,
-  text,
-  boolean,
-  integer,
-} from 'drizzle-orm/pg-core'
+import { pgTable, text, boolean, integer } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   ommittedColumnsForInsertSchema,
@@ -20,7 +14,8 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -75,11 +70,14 @@ export const discounts = pgTable(
         table.livemode,
       ]),
       livemodePolicy(),
-      pgPolicy(
+      enableCustomerReadPolicy('Enable read for customers', {
+        using: sql`"organization_id" in (select "id" from "organizations") and "active" = true`,
+      }),
+      merchantPolicy(
         'Enable all actions for discounts in own organization',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'all',
           for: 'all',
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }

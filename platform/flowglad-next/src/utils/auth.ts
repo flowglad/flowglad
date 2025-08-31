@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth'
-import { admin, emailOTP } from 'better-auth/plugins'
+import { admin, customSession } from 'better-auth/plugins'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/db/client'
 import {
@@ -9,8 +9,12 @@ import {
   verification,
 } from '@/db/schema/betterAuthSchema'
 import { betterAuthUserToApplicationUser } from './authHelpers'
+import { createAuthMiddleware, APIError } from "better-auth/api";
+
 import { sendForgotPasswordEmail } from './email'
 import { headers } from 'next/headers'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -22,7 +26,62 @@ export const auth = betterAuth({
       verification,
     },
   }),
-  plugins: [admin()],
+  plugins: [admin(),         customSession(async ({ user, session }) => {
+    return {
+        focusedRole: [],
+        user: {
+            ...user,
+        },
+        session
+    };
+}),
+],
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (!ctx.body.callbackURL.startsWith('/billing/')) {
+        return ctx
+      }
+      if (ctx.body.callbackURL.startsWith('/billing/')) {
+        const [maybeCustomer] = await adminTransaction(async ({ transaction }) => {
+          return selectCustomers({
+            email: ctx.body.user.email,
+            organizationId: ctx.body.callbackURL.split('/')[2],
+          }, transaction)
+        })
+        /**
+         * TODO: quiet throw and just return the ctx
+         */
+        if (!maybeCustomer) {
+          throw new APIError('BAD_REQUEST')
+        }
+        if (maybeCustomer) {
+          // TODO: also check if the customer is already a user
+          // also check if they're already a merchant
+          return {
+            ...ctx,
+            body: {
+              ...ctx.body,
+              context: {
+                ...ctx.body.context,
+                role: 'customer',
+              },
+            },
+          }
+        }
+        return {
+          ...ctx,
+          body: {
+            ...ctx.body,
+            context: {
+              ...ctx.body.context,
+              role: 'merchant',
+            },
+          },
+        }
+      }
+      return ctx
+    }),
+  },
   databaseHooks: {
     user: {
       create: {
@@ -37,7 +96,7 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         required: false,
-        defaultValue: 'user',
+        defaultValue: 'merchant',
         input: false, // don't allow user to set role
       },
     },
@@ -63,5 +122,6 @@ export const getSession = async () => {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
+  
   return session
 }

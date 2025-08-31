@@ -16,7 +16,8 @@ import {
   pgEnumColumn,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
@@ -64,12 +65,18 @@ export const refunds = pgTable(
     constructIndex(TABLE_NAME, [table.paymentId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.status]),
-    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-      as: 'permissive',
-      to: merchantRole,
-      for: 'all',
-      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+    enableCustomerReadPolicy('Enable read for customers', {
+      using: sql`"payment_id" in (select "id" from "payments")`,
     }),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'all',
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }
+    ),
     livemodePolicy(),
   ]
 ).enableRLS()

@@ -14,7 +14,8 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   constructUniqueIndex,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -55,12 +56,18 @@ export const usageMeters = pgTable(
         table.slug,
         table.pricingModelId,
       ]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      enableCustomerReadPolicy('Enable read for customers', {
+        using: sql`"pricing_model_id" in (select "pricing_model_id" from "customers")`,
       }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'permissive',
+          for: 'all',
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

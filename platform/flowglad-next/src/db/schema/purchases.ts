@@ -19,7 +19,8 @@ import {
   metadataSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import {
   Customer,
@@ -106,12 +107,17 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     livemodePolicy(),
-    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-      as: 'permissive',
-      to: merchantRole,
-      for: 'select',
-      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+    enableCustomerReadPolicy('Enable read for customers', {
+      using: sql`"customer_id" in (select "id" from "customers")`,
     }),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        for: 'select',
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }
+    ),
     // constructIndex(TABLE_NAME, [
     //   table.stripeSetupIntentId,
     // ]),

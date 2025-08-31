@@ -24,7 +24,8 @@ import {
   ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
   parentForeignKeyIntegrityCheckPolicy,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import {
   products,
@@ -134,11 +135,14 @@ export const prices = pgTable(
         .on(table.productId)
         .where(sql`${table.isDefault}`),
       constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
-      pgPolicy(
+      enableCustomerReadPolicy('Enable read for customers', {
+        using: sql`"product_id" in (select "id" from "products") and "active" = true`,
+      }),
+      merchantPolicy(
         'On update, ensure usage meter belongs to same organization as product',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'merchant',
           for: 'update',
           withCheck: usageMeterBelongsToSameOrganization,
         }

@@ -23,7 +23,8 @@ import {
   createPaginatedSelectSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
@@ -128,12 +129,18 @@ export const invoices = pgTable(
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.billingRunId]),
       livemodePolicy(),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      enableCustomerReadPolicy('Enable read for customers', {
+        using: sql`"customer_id" in (select "id" from "customers")`,
       }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'all',
+          for: 'all',
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        }
+      ),
     ]
   }
 ).enableRLS()

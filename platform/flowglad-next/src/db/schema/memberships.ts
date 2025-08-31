@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { boolean, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
+import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   notNullStringForeignKey,
@@ -10,7 +10,7 @@ import {
   newBaseZodSelectSchemaColumns,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { users, usersSelectSchema } from '@/db/schema/users'
 import { organizations } from '@/db/schema/organizations'
@@ -40,11 +40,11 @@ export const memberships = pgTable(
         table.userId,
         table.organizationId,
       ]),
-      pgPolicy(
+      merchantPolicy(
         'Enable read for own organizations where focused is true',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'merchant',
           for: 'select',
           using: sql`"user_id" = requesting_user_id() and "focused" = true and "organization_id" = current_organization_id()`,
         }

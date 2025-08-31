@@ -1,13 +1,7 @@
 import * as R from 'ramda'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
-import {
-  text,
-  pgTable,
-  pgPolicy,
-  integer,
-  boolean,
-} from 'drizzle-orm/pg-core'
+import { text, pgTable, integer, boolean } from 'drizzle-orm/pg-core'
 import {
   tableBase,
   notNullStringForeignKey,
@@ -19,7 +13,8 @@ import {
   pgEnumColumn,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -71,11 +66,16 @@ export const features = pgTable(
       table.pricingModelId,
     ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
-    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-      as: 'permissive',
-      to: merchantRole,
-      for: 'all',
-      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        for: 'all',
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }
+    ),
+    enableCustomerReadPolicy('Enable read for customers', {
+      using: sql`"organization_id" in (select "id" from "organizations") and "active" = true`,
     }),
     livemodePolicy(),
   ]

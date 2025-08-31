@@ -19,7 +19,7 @@ import {
   ommittedColumnsForInsertSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
@@ -56,9 +56,8 @@ export const apiKeys = pgTable(
   (table) => {
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
-      pgPolicy('Enable all actions for own organizations', {
+      merchantPolicy('Enable all actions for own organizations', {
         as: 'permissive',
-        to: merchantRole,
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),

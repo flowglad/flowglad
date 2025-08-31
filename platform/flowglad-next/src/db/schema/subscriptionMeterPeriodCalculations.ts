@@ -17,7 +17,8 @@ import {
   nullableStringForeignKey,
   timestampWithTimezoneColumn,
   ommittedColumnsForInsertSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -109,12 +110,14 @@ export const subscriptionMeterPeriodCalculations = pgTable(
         .where(
           sql`${table.status} = ${SubscriptionMeterPeriodCalculationStatus.Active}`
         ),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
-      }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'all',
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

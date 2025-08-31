@@ -51,6 +51,44 @@ export const merchantRole = pgRole('merchant', {
   inherit: true,
 })
 
+export const customerRole = pgRole('customer', {
+  createRole: true,
+  createDb: true,
+  inherit: true,
+})
+
+export const merchantPolicy = (
+  name: string,
+  Params: Omit<Parameters<typeof pgPolicy>[1], 'to'>
+) => {
+  return pgPolicy(name, {
+    ...Params,
+    to: merchantRole,
+  })
+}
+
+export const customerPolicy = (
+  name: string,
+  Params: Omit<Parameters<typeof pgPolicy>[1], 'to'>
+) => {
+  return pgPolicy(name, {
+    ...Params,
+    to: customerRole,
+  })
+}
+
+export const enableCustomerReadPolicy = (
+  name: string,
+  params: Omit<Parameters<typeof pgPolicy>[1], 'to' | 'for' | 'as'>
+) => {
+  return pgPolicy(name, {
+    ...params,
+    as: 'permissive',
+    to: customerRole,
+    for: 'select',
+  })
+}
+
 type ZodTableUnionOrType<
   T extends
     | InferSelectModel<PgTableWithId>

@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
+import { pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   ommittedColumnsForInsertSchema,
@@ -7,7 +7,8 @@ import {
   tableBase,
   constructUniqueIndex,
   SelectConditions,
-  merchantRole,
+  merchantPolicy,
+  customerRole,
 } from '@/db/tableUtils'
 import { z } from 'zod'
 import { CountryCode } from '@/types'
@@ -27,9 +28,15 @@ export const countries = pgTable(
     return [
       constructUniqueIndex(COUNTRIES_TABLE_NAME, [table.name]),
       constructUniqueIndex(COUNTRIES_TABLE_NAME, [table.code]),
-      pgPolicy('Enable read', {
+      merchantPolicy('Enable read', {
         as: 'permissive',
-        to: merchantRole,
+        to: 'merchant',
+        for: 'select',
+        using: sql`true`,
+      }),
+      merchantPolicy('Enable read for customers', {
+        as: 'permissive',
+        to: customerRole,
         for: 'select',
         using: sql`true`,
       }),

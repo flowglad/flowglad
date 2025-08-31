@@ -14,7 +14,8 @@ import {
   timestampWithTimezoneColumn,
   ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
   parentForeignKeyIntegrityCheckPolicy,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { features } from '@/db/schema/features'
@@ -85,12 +86,18 @@ export const subscriptionItemFeatures = pgTable(
       parentIdColumnInCurrentTable: 'usage_meter_id',
       currentTableName: TABLE_NAME,
     }),
-    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-      as: 'permissive',
-      to: merchantRole,
-      for: 'select',
-      using: sql`"subscription_item_id" in (select "id" from "subscription_items")`,
+    enableCustomerReadPolicy('Enable read for customers', {
+      using: sql`"subscription_item_id" in (select "id" from "subscription_items") and "feature_id" in (select "id" from "features")`,
     }),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'select',
+        using: sql`"subscription_item_id" in (select "id" from "subscription_items")`,
+      }
+    ),
     livemodePolicy(),
   ]
 ).enableRLS()

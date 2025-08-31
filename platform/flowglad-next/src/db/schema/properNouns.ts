@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { text, pgTable, pgPolicy, index } from 'drizzle-orm/pg-core'
+import { text, pgTable, index } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   tableBase,
@@ -7,7 +7,7 @@ import {
   constructIndex,
   constructUniqueIndex,
   livemodePolicy,
-  merchantRole,
+  merchantPolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema,
@@ -48,12 +48,15 @@ export const properNouns = pgTable(
         sql`to_tsvector('english', ${table.name})`
       ),
       constructIndex(TABLE_NAME, [table.entityId]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'select',
-        using: sql`"organizationId" in (select "organizationId" from "Memberships" where "UserId" = requesting_user_id())`,
-      }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'merchant',
+          for: 'select',
+          using: sql`"organizationId" in (select "organizationId" from "Memberships" where "UserId" = requesting_user_id())`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

@@ -15,7 +15,7 @@ import {
   nullableStringForeignKey,
   livemodePolicy,
   SelectConditions,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import {
   FlowgladEventType,
@@ -91,15 +91,15 @@ export const events = pgTable(
       ]),
       constructUniqueIndex(TABLE_NAME, [table.hash]),
       livemodePolicy(),
-      pgPolicy('Enable insert for own organizations', {
+      merchantPolicy('Enable insert for own organizations', {
         as: 'permissive',
-        to: merchantRole,
+        to: 'merchant',
         for: 'insert',
         withCheck: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
-      pgPolicy('Enable all actions for own organization', {
+      merchantPolicy('Enable all actions for own organization', {
         as: 'permissive',
-        to: merchantRole,
+        to: 'merchant',
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
