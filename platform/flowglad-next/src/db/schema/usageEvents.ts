@@ -19,6 +19,7 @@ import {
   hiddenColumnsForClientSchema,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -68,9 +69,9 @@ export const usageEvents = pgTable(
         table.transactionId,
         table.usageMeterId,
       ]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'all',
         using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
@@ -78,7 +79,7 @@ export const usageEvents = pgTable(
         'On insert, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'insert',
           withCheck: usageEventPriceMustMatchUsageMeter,
         }
@@ -87,7 +88,7 @@ export const usageEvents = pgTable(
         'On update, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'update',
           using: usageEventPriceMustMatchUsageMeter,
         }
@@ -96,7 +97,7 @@ export const usageEvents = pgTable(
         'On insert, only allow usage events for subscriptions with matching customer',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'insert',
           withCheck: usageEventSubscriptionMustMatchCustomer,
         }
@@ -105,7 +106,7 @@ export const usageEvents = pgTable(
         'On update, only allow usage events for subscriptions with matching customer',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'update',
           withCheck: usageEventSubscriptionMustMatchCustomer,
         }
@@ -114,7 +115,7 @@ export const usageEvents = pgTable(
         'On insert, only allow usage events for billing periods with matching subscription',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'insert',
           withCheck: usageEventBillingPeriodMustMatchSubscription,
         }
@@ -123,7 +124,7 @@ export const usageEvents = pgTable(
         'On update, only allow usage events for billing periods with matching subscription',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'update',
           withCheck: usageEventBillingPeriodMustMatchSubscription,
         }

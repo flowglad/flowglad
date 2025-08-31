@@ -20,6 +20,7 @@ import {
   hiddenColumnsForClientSchema,
   nullableStringForeignKey,
   pgEnumColumn,
+  merchantRole,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -85,7 +86,7 @@ export const subscriptionItems = pgTable(
         'Enable actions for own organizations via subscriptions',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'all',
           using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
         }

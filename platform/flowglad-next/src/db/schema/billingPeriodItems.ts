@@ -12,6 +12,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   pgEnumColumn,
+  merchantRole,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
@@ -67,9 +68,9 @@ export const billingPeriodItems = pgTable(
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.discountRedemptionId]),
       constructIndex(TABLE_NAME, [table.usageMeterId]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'all',
         using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
       }),

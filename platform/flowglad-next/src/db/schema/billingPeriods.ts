@@ -15,6 +15,7 @@ import {
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
@@ -45,9 +46,9 @@ export const billingPeriods = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.status]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'all',
         using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),

@@ -23,6 +23,7 @@ import {
   createPaginatedTableRowOutputSchema,
   hiddenColumnsForClientSchema,
   constructGinIndex,
+  merchantRole,
 } from '@/db/tableUtils'
 import {
   organizations,
@@ -98,13 +99,13 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
     constructGinIndex(TABLE_NAME, table.name),
     pgPolicy('Enable all actions for own organizations', {
       as: 'permissive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
     pgPolicy('Disallow deletion', {
       as: 'restrictive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'delete',
       using: sql`false`,
     }),

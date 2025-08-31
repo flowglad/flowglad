@@ -23,6 +23,7 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -112,13 +113,13 @@ export const payments = pgTable(
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       pgPolicy('Enable update for own organization', {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'update',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),

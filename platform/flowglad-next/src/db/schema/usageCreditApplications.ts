@@ -16,6 +16,7 @@ import {
   livemodePolicy,
   pgEnumColumn,
   ommittedColumnsForInsertSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
@@ -63,9 +64,9 @@ export const usageCreditApplications = pgTable(
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
-    pgPolicy('Enable read for own organizations', {
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
       as: 'permissive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),

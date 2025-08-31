@@ -19,6 +19,7 @@ import {
   notNullStringForeignKey,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
 import core, { zodOptionalNullableString } from '@/utils/core'
@@ -91,9 +92,9 @@ export const organizations = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.domain]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       constructIndex(TABLE_NAME, [table.countryId]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'select',
         using: sql`id IN ( SELECT memberships.organization_id
    FROM memberships

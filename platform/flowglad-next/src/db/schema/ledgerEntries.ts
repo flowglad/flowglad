@@ -19,6 +19,7 @@ import {
   pgEnumColumn,
   timestampWithTimezoneColumn,
   SelectConditions,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -162,9 +163,9 @@ export const ledgerEntries = pgTable(
     constructIndex(TABLE_NAME, [table.billingPeriodId]),
     constructIndex(TABLE_NAME, [table.usageMeterId]),
     constructIndex(TABLE_NAME, [table.claimedByBillingRunId]),
-    pgPolicy('Enable read for own organizations', {
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
       as: 'permissive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),

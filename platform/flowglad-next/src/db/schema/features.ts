@@ -19,6 +19,7 @@ import {
   pgEnumColumn,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -70,9 +71,9 @@ export const features = pgTable(
       table.pricingModelId,
     ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
-    pgPolicy('Enable read for own organizations', {
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
       as: 'permissive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),

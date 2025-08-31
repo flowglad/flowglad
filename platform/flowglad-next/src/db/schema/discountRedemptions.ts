@@ -19,6 +19,7 @@ import {
   nullableStringForeignKey,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { discounts } from '@/db/schema/discounts'
 import { purchases } from '@/db/schema/purchases'
@@ -71,9 +72,9 @@ export const discountRedemptions = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       livemodePolicy(),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'all',
         using: sql`"discountId" in (select "discountId" from "Discounts" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),

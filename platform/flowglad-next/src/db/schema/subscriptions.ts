@@ -23,6 +23,7 @@ import {
   SelectConditions,
   ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -101,13 +102,13 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
     ]),
     pgPolicy('Enable actions for own organizations via customer', {
       as: 'permissive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'all',
       using: sql`"customer_id" in (select "id" from "customers")`,
     }),
     pgPolicy('Forbid deletion', {
       as: 'restrictive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'delete',
       using: sql`false`,
     }),

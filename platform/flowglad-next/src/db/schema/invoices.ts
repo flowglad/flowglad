@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import {
   boolean,
+  pgPolicy,
   pgTable,
   text,
   timestamp,
@@ -22,6 +23,7 @@ import {
   createPaginatedSelectSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
@@ -38,6 +40,7 @@ import { memberships } from './memberships'
 import { subscriptions } from './subscriptions'
 import { billingRuns } from './billingRuns'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
+import { sql } from 'drizzle-orm'
 
 export const TABLE_NAME = 'invoices'
 
@@ -125,6 +128,12 @@ export const invoices = pgTable(
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.billingRunId]),
       livemodePolicy(),
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
+        as: 'permissive',
+        to: merchantRole,
+        for: 'all',
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }),
     ]
   }
 ).enableRLS()
@@ -132,7 +141,7 @@ export const invoices = pgTable(
 const refineColumns = {
   status: core.createSafeZodEnum(InvoiceStatus).meta({
     id: 'InvoiceStatus',
-  })  ,
+  }),
   type: core.createSafeZodEnum(InvoiceType).meta({
     id: 'InvoiceType',
   }),
@@ -148,10 +157,13 @@ const refineColumns = {
   taxCountry: taxSchemaColumns.taxCountry.nullable().optional(),
 }
 
-const coreInvoicesInsertSchema = createInsertSchema(invoices).omit(ommittedColumnsForInsertSchema).extend(refineColumns).extend({
-  invoiceDate: refineColumns.invoiceDate.optional(),
-  dueDate: refineColumns.dueDate.optional(),
-})
+const coreInvoicesInsertSchema = createInsertSchema(invoices)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(refineColumns)
+  .extend({
+    invoiceDate: refineColumns.invoiceDate.optional(),
+    dueDate: refineColumns.dueDate.optional(),
+  })
 
 const purchaseInvoiceColumnExtensions = {
   type: z.literal(InvoiceType.Purchase),
@@ -226,7 +238,9 @@ export const invoicesSelectSchema = z
   ])
   .describe(INVOICES_BASE_DESCRIPTION)
 
-const coreInvoicesUpdateSchema = coreInvoicesInsertSchema.partial().extend({ id: z.string() })
+const coreInvoicesUpdateSchema = coreInvoicesInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 export const purchaseInvoiceUpdateSchema = coreInvoicesUpdateSchema
   .partial()

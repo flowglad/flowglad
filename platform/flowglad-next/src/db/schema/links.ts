@@ -11,6 +11,7 @@ import {
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { products } from '@/db/schema/products'
@@ -35,9 +36,9 @@ export const links = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.productId]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,

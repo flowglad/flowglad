@@ -24,6 +24,7 @@ import {
   ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
   parentForeignKeyIntegrityCheckPolicy,
+  merchantRole,
 } from '@/db/tableUtils'
 import {
   products,
@@ -137,7 +138,7 @@ export const prices = pgTable(
         'On update, ensure usage meter belongs to same organization as product',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'update',
           withCheck: usageMeterBelongsToSameOrganization,
         }

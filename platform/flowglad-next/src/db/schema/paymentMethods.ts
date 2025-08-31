@@ -20,6 +20,7 @@ import {
   SelectConditions,
   ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -56,7 +57,7 @@ export const paymentMethods = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       pgPolicy('Enable read for own organizations via customer', {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'all',
         using: sql`"customerId" in (select "id" from "customers")`,
       }),

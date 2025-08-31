@@ -19,6 +19,7 @@ import {
   ommittedColumnsForInsertSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import {
   CheckoutSession,
@@ -108,7 +109,7 @@ export const feeCalculations = pgTable(
       livemodePolicy(),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),

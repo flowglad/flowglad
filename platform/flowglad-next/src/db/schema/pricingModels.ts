@@ -12,6 +12,7 @@ import {
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
@@ -34,9 +35,9 @@ export const pricingModels = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.name]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),

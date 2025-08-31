@@ -61,7 +61,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
         constructUniqueIndex(TABLE_NAME, [table.email]),
         pgPolicy('Enable read for own organizations', {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,,
           for: 'all',
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }),

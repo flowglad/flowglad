@@ -10,6 +10,7 @@ import {
   newBaseZodSelectSchemaColumns,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { users, usersSelectSchema } from '@/db/schema/users'
 import { organizations } from '@/db/schema/organizations'
@@ -43,7 +44,7 @@ export const memberships = pgTable(
         'Enable read for own organizations where focused is true',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'select',
           using: sql`"user_id" = requesting_user_id() and "focused" = true and "organization_id" = current_organization_id()`,
         }

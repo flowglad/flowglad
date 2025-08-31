@@ -7,6 +7,7 @@ import {
   constructIndex,
   constructUniqueIndex,
   livemodePolicy,
+  merchantRole,
   SelectConditions,
   hiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema,
@@ -47,9 +48,9 @@ export const properNouns = pgTable(
         sql`to_tsvector('english', ${table.name})`
       ),
       constructIndex(TABLE_NAME, [table.entityId]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'merchant',
+        to: merchantRole,
         for: 'select',
         using: sql`"organizationId" in (select "organizationId" from "Memberships" where "UserId" = requesting_user_id())`,
       }),

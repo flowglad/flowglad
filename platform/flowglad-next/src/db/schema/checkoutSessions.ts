@@ -22,6 +22,7 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -124,7 +125,7 @@ export const checkoutSessions = pgTable(
         'Enable all actions for discounts in own organization',
         {
           as: 'permissive',
-          to: 'merchant',
+          to: merchantRole,
           for: 'all',
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }

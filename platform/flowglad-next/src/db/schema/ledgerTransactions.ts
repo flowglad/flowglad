@@ -9,6 +9,7 @@ import {
   livemodePolicy,
   constructUniqueIndex,
   pgEnumColumn,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -59,9 +60,9 @@ export const ledgerTransactions = pgTable(
       table.livemode,
       table.organizationId,
     ]),
-    pgPolicy('Enable read for own organizations', {
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
       as: 'permissive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),

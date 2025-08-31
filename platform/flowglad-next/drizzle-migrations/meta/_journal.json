@@ -1632,6 +1632,13 @@
       "when": 1756610773884,
       "tag": "0233_eager_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 234,
+      "version": "7",
+      "when": 1756614540634,
+      "tag": "0234_parched_lady_ursula",
+      "breakpoints": true
     }
   ]
 }

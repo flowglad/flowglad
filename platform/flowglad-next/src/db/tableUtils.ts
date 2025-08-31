@@ -31,6 +31,7 @@ import {
   PgColumn,
   pgPolicy,
   bigserial,
+  pgRole,
 } from 'drizzle-orm/pg-core'
 import {
   type DbTransaction,
@@ -43,6 +44,12 @@ import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
 import { z } from 'zod'
 import { createSelectSchema } from 'drizzle-zod'
 import { noCase, sentenceCase, snakeCase } from 'change-case'
+
+export const merchantRole = pgRole('merchant', {
+  createRole: true,
+  createDb: true,
+  inherit: true,
+})
 
 type ZodTableUnionOrType<
   T extends
@@ -467,7 +474,7 @@ export const taxSchemaColumns = {
 export const livemodePolicy = () =>
   pgPolicy('Check mode', {
     as: 'restrictive',
-    to: 'merchant',
+    to: merchantRole,
     for: 'all',
     using: sql`current_setting('app.livemode')::boolean = livemode`,
   })
@@ -495,7 +502,7 @@ export const parentForeignKeyIntegrityCheckPolicy = ({
     `Ensure organization integrity with ${parentTableName} parent table`,
     {
       as: 'permissive',
-      to: 'merchant',
+      to: merchantRole,
       for: 'all',
       using: sql`${sql.identifier(parentIdColumnInCurrentTable)} in (select ${sql.identifier('id')} from ${sql.identifier(parentTableName)})`,
     }
@@ -505,7 +512,7 @@ export const parentForeignKeyIntegrityCheckPolicy = ({
 export const membershipOrganizationIdIntegrityCheckPolicy = () => {
   return pgPolicy('Enable read for own organizations', {
     as: 'permissive',
-    to: 'merchant',
+    to: merchantRole,
     for: 'all',
     using: sql`"organization_id" in (select "organization_id" from "memberships")`,
   })

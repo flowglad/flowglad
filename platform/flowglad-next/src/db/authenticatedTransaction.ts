@@ -50,7 +50,7 @@ export async function authenticatedTransaction<T>(
     )
 
     await transaction.execute(
-      sql`set role '${sql.raw(jwtClaim.role)}'`
+      sql`set role ${sql.raw(jwtClaim.role)}`
     )
     await transaction.execute(
       sql`SELECT set_config('app.livemode', '${sql.raw(
@@ -109,7 +109,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
       )}', TRUE)`
     )
     await transaction.execute(
-      sql`SET LOCAL ROLE '${sql.raw(jwtClaim.role)}';`
+      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
     )
     await transaction.execute(
       sql`SELECT set_config('app.livemode', '${sql.raw(

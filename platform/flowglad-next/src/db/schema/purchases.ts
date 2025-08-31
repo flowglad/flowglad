@@ -2,6 +2,7 @@ import {
   boolean,
   integer,
   jsonb,
+  pgPolicy,
   pgTable,
   text,
   timestamp,
@@ -18,6 +19,7 @@ import {
   metadataSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import {
   Customer,
@@ -36,8 +38,9 @@ import { z } from 'zod'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
+import { sql } from 'drizzle-orm'
 
-export const PURCHASES_TABLE_NAME = 'purchases'
+export const TABLE_NAME = 'purchases'
 
 // Schema descriptions
 const PURCHASES_BASE_DESCRIPTION =
@@ -97,24 +100,26 @@ const columns = {
   metadata: jsonb('metadata'),
 }
 
-export const purchases = pgTable(
-  PURCHASES_TABLE_NAME,
-  columns,
-  (table) => {
-    return [
-      constructIndex(PURCHASES_TABLE_NAME, [table.customerId]),
-      constructIndex(PURCHASES_TABLE_NAME, [table.organizationId]),
-      constructIndex(PURCHASES_TABLE_NAME, [table.priceId]),
-      livemodePolicy(),
-      // constructIndex(PURCHASES_TABLE_NAME, [
-      //   table.stripeSetupIntentId,
-      // ]),
-      // constructUniqueIndex(PURCHASES_TABLE_NAME, [
-      //   table.stripePaymentIntentId,
-      // ]),
-    ]
-  }
-).enableRLS()
+export const purchases = pgTable(TABLE_NAME, columns, (table) => {
+  return [
+    constructIndex(TABLE_NAME, [table.customerId]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.priceId]),
+    livemodePolicy(),
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
+      as: 'permissive',
+      to: merchantRole,
+      for: 'select',
+      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+    }),
+    // constructIndex(TABLE_NAME, [
+    //   table.stripeSetupIntentId,
+    // ]),
+    // constructUniqueIndex(TABLE_NAME, [
+    //   table.stripePaymentIntentId,
+    // ]),
+  ]
+}).enableRLS()
 
 const zodSchemaEnhancementColumns = {
   quantity: core.safeZodPositiveInteger,
@@ -451,7 +456,9 @@ export const createCustomerOutputSchema = z.object({
   data: z.object({
     customer: customerClientSelectSchema,
     subscription: subscriptionClientSelectSchema.optional(),
-    subscriptionItems: z.array(subscriptionItemClientSelectSchema).optional(),
+    subscriptionItems: z
+      .array(subscriptionItemClientSelectSchema)
+      .optional(),
   }),
 })
 
