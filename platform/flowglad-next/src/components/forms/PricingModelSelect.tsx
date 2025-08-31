@@ -51,7 +51,7 @@ const PricingModelSelect = ({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>PricingModel</FormLabel>
+          <FormLabel>Pricing model</FormLabel>
           <FormControl>
             {isLoadingPricingModels ? (
               <Skeleton className="h-9 w-full" />
