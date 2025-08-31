@@ -274,6 +274,7 @@ const OnboardingStatusTable = ({
           <a
             href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://cursor.com/deeplink/mcp-install-light.svg"
               alt="Add flowglad MCP server to Cursor"

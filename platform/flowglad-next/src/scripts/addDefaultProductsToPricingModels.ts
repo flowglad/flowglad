@@ -2,7 +2,7 @@
 Run the following in the terminal to add default products to all pricing models:
 NODE_ENV=production pnpm tsx src/scripts/addDefaultProductsToPricingModels.ts
 */
-/** eslint-disable no-console */
+
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
@@ -21,6 +21,7 @@ import {
   createFreePlanProductInsert,
 } from '@/utils/bookkeeping'
 
+/* eslint-disable no-console */
 async function addDefaultProductsToPricingModels(
   db: PostgresJsDatabase
 ) {
