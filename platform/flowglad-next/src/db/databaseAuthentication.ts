@@ -16,6 +16,7 @@ import { ApiKey } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
 import { auth, getSession } from '@/utils/auth'
 import { User } from 'better-auth'
+import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 
 type SessionUser = Session['user']
 
@@ -261,22 +262,56 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   }
 }
 
+const dbInfoForCustomerBillingPortal = async ({ betterAuthId, organizationId }: {betterAuthId: string, organizationId: string}): Promise<DatabaseAuthenticationInfo> => {
+  
+  const [result] = await db
+  .select({
+    customer: customers,
+    user: users,
+  })
+  .from(customers)
+  .innerJoin(users, eq(customers.userId, users.id))
+  .where(
+    and(eq(users.betterAuthId, betterAuthId), eq(customers.organizationId, organizationId)))
+  if (!result) {
+    throw new Error('Customer not found')
+  }
+  const { customer, user } = result
+  return {
+    userId: user.id,
+    livemode: customer.livemode,
+    jwtClaim: {
+      role: 'customer',
+      sub: user.id,
+      email: user.email!,
+      organization_id: customer.organizationId,
+      user_metadata: {
+        id: user.id,
+        user_metadata: {},
+        aud: 'stub',
+        email: user.email!,
+        role: 'customer',
+        created_at: user.createdAt.toISOString(),
+        updated_at: user.updatedAt?.toISOString() || new Date().toISOString(),
+        app_metadata: {
+          provider: 'customerBillingPortal',
+        },
+      },
+      app_metadata: { provider: 'customerBillingPortal' },
+    },
+  }
+}
+
 export async function databaseAuthenticationInfoForWebappRequest(
-  user: User & { role: string }
+  user: User
 ): Promise<DatabaseAuthenticationInfo> {
   const betterAuthId = user.id
-  if (!user.role) {
-    throw new Error('User role is required')
+  const customerOrganizationId = await getCustomerBillingPortalOrganizationId()
+
+  if (customerOrganizationId) {
+    return await dbInfoForCustomerBillingPortal({ betterAuthId: user.id, organizationId: customerOrganizationId })
   }
-  if (user.role === 'customer') {
-    const [customer] = await db
-      .select()
-      .from(customers)
-      .where(eq(customers.userId, betterAuthId))
-    if (!customer) {
-      throw new Error('Customer not found')
-    }
-  }
+
   const [focusedMembership] = await db
     .select()
     .from(memberships)

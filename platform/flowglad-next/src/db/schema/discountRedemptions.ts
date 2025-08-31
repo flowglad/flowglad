@@ -73,7 +73,7 @@ export const discountRedemptions = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       livemodePolicy(),
-      enableCustomerReadPolicy('Enable read for customers', {
+      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
         using: sql`"subscription_id" in (select "id" from "subscriptions")`,
       }),
       merchantPolicy(

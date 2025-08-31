@@ -104,7 +104,7 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
-    enableCustomerReadPolicy('Enable read for customers', {
+    enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
       using: sql`"user_id" = requesting_user_id()`,
     }),
     merchantPolicy('Disallow deletion', {

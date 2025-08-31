@@ -86,7 +86,7 @@ export const subscriptionItemFeatures = pgTable(
       parentIdColumnInCurrentTable: 'usage_meter_id',
       currentTableName: TABLE_NAME,
     }),
-    enableCustomerReadPolicy('Enable read for customers', {
+    enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
       using: sql`"subscription_item_id" in (select "id" from "subscription_items") and "feature_id" in (select "id" from "features")`,
     }),
     merchantPolicy(

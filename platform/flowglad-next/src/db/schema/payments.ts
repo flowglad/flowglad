@@ -112,7 +112,7 @@ export const payments = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
-      enableCustomerReadPolicy('Enable read for customers', {
+      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
         using: sql`"customer_id" in (select "id" from "customers")`,
       }),
       merchantPolicy('Enable select for own organization', {

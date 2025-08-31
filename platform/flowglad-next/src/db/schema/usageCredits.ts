@@ -96,7 +96,7 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.creditType]),
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.paymentId]),
-      enableCustomerReadPolicy('Enable read for customers', {
+      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
         using: sql`"subscription_id" in (select "id" from "subscriptions")`,
       }),
       merchantPolicy(

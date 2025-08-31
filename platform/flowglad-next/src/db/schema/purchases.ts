@@ -107,7 +107,7 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     livemodePolicy(),
-    enableCustomerReadPolicy('Enable read for customers', {
+    enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
       using: sql`"customer_id" in (select "id" from "customers")`,
     }),
     merchantPolicy(

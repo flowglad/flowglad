@@ -65,7 +65,7 @@ export const refunds = pgTable(
     constructIndex(TABLE_NAME, [table.paymentId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.status]),
-    enableCustomerReadPolicy('Enable read for customers', {
+    enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
       using: sql`"payment_id" in (select "id" from "payments")`,
     }),
     merchantPolicy(

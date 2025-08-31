@@ -15,8 +15,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { getCustomerBillingPortalOrganizationId } from './customerBillingPortalState'
-import { sendMagicLinkToExistingUserAndUpdateAssociatedCustomerRecords } from '@/app/api/hosted-billing/request-magic-link/sendMagicLinkHandlers'
-
 
 const handleCustomerBillingPortalEmailOTP = async (params: { email: string, url: string, token: string, organizationId: string }) => {
   const { email, url, token, organizationId } = params
@@ -106,7 +104,6 @@ magicLink({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url, token }, request) => {
-      console.log("====sendResetPassword====", { user, url, token })
       await sendForgotPasswordEmail({
         to: [user.email],
         url,

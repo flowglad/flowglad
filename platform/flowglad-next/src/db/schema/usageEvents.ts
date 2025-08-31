@@ -124,9 +124,6 @@ export const usageEvents = pgTable(
           withCheck: usageEventBillingPeriodMustMatchSubscription,
         }
       ),
-      enableCustomerReadPolicy('Enable read for customers', {
-        using: sql`"customer_id" in (select "id" from "customers")`,
-      }),
       merchantPolicy(
         'On update, only allow usage events for billing periods with matching subscription',
         {
@@ -136,7 +133,7 @@ export const usageEvents = pgTable(
           withCheck: usageEventBillingPeriodMustMatchSubscription,
         }
       ),
-      enableCustomerReadPolicy('Enable read for customers', {
+      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
         using: sql`"customer_id" in (select "id" from "customers")`,
       }),
       livemodePolicy(),

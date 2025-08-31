@@ -59,7 +59,7 @@ const nonClientEditableColumns = {
   ...R.omit(['position'], hiddenColumns),
 } as const
 
-const PRICES_TABLE_NAME = 'prices'
+const TABLE_NAME = 'prices'
 
 const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL OR "usage_meter_id" IN (
   SELECT "id" FROM "usage_meters"
@@ -70,7 +70,7 @@ const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL OR "usa
 )`
 
 export const prices = pgTable(
-  PRICES_TABLE_NAME,
+  TABLE_NAME,
   {
     ...tableBase('price'),
     intervalUnit: pgEnumColumn({
@@ -125,17 +125,17 @@ export const prices = pgTable(
   },
   (table) => {
     return [
-      constructIndex(PRICES_TABLE_NAME, [table.type]),
-      constructIndex(PRICES_TABLE_NAME, [table.productId]),
-      constructUniqueIndex(PRICES_TABLE_NAME, [
+      constructIndex(TABLE_NAME, [table.type]),
+      constructIndex(TABLE_NAME, [table.productId]),
+      constructUniqueIndex(TABLE_NAME, [
         table.externalId,
         table.productId,
       ]),
       uniqueIndex('prices_product_id_is_default_unique_idx')
         .on(table.productId)
         .where(sql`${table.isDefault}`),
-      constructIndex(PRICES_TABLE_NAME, [table.usageMeterId]),
-      enableCustomerReadPolicy('Enable read for customers', {
+      constructIndex(TABLE_NAME, [table.usageMeterId]),
+      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
         using: sql`"product_id" in (select "id" from "products") and "active" = true`,
       }),
       merchantPolicy(
@@ -150,7 +150,7 @@ export const prices = pgTable(
       parentForeignKeyIntegrityCheckPolicy({
         parentTableName: 'products',
         parentIdColumnInCurrentTable: 'product_id',
-        currentTableName: PRICES_TABLE_NAME,
+        currentTableName: TABLE_NAME,
       }),
       livemodePolicy(),
     ]
@@ -193,7 +193,7 @@ export const basePriceSelectSchema = createSelectSchema(
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({
     table: prices,
-    tableName: PRICES_TABLE_NAME,
+    tableName: TABLE_NAME,
     refine: basePriceColumns,
   })
 

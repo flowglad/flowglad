@@ -83,7 +83,7 @@ export const subscriptionItems = pgTable(
       constructIndex(TABLE_NAME, [table.priceId]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       constructIndex(TABLE_NAME, [table.usageMeterId]),
-      enableCustomerReadPolicy('Enable read for customers', {
+      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
         using: sql`"subscription_id" in (select "id" from "subscriptions")`,
       }),
       merchantPolicy(
