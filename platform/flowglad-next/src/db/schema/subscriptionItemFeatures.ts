@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import { z } from 'zod'
-import { pgTable, integer, text } from 'drizzle-orm/pg-core'
+import { pgTable, integer, text, pgPolicy } from 'drizzle-orm/pg-core'
 import {
   tableBase,
   notNullStringForeignKey,
@@ -14,6 +14,7 @@ import {
   timestampWithTimezoneColumn,
   ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
   parentForeignKeyIntegrityCheckPolicy,
+  merchantRole,
 } from '@/db/tableUtils'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { features } from '@/db/schema/features'
@@ -22,6 +23,7 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core, { zodOptionalNullableString } from '@/utils/core'
 import { FeatureUsageGrantFrequency, FeatureType } from '@/types'
+import { sql } from 'drizzle-orm'
 
 const TABLE_NAME = 'subscription_item_features'
 
@@ -83,6 +85,12 @@ export const subscriptionItemFeatures = pgTable(
       parentIdColumnInCurrentTable: 'usage_meter_id',
       currentTableName: TABLE_NAME,
     }),
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
+      as: 'permissive',
+      to: merchantRole,
+      for: 'select',
+      using: sql`"subscription_item_id" in (select "id" from "subscription_items")`,
+    }),
     livemodePolicy(),
   ]
 ).enableRLS()
@@ -103,7 +111,9 @@ const columnRefinements = {
  * Core database schemas
  */
 export const coreSubscriptionItemFeaturesInsertSchema =
-  createInsertSchema(subscriptionItemFeatures).omit(baseOmittedColumnsForInsertSchema).extend(columnRefinements)
+  createInsertSchema(subscriptionItemFeatures)
+    .omit(baseOmittedColumnsForInsertSchema)
+    .extend(columnRefinements)
 
 export const coreSubscriptionItemFeaturesSelectSchema =
   createSelectSchema(subscriptionItemFeatures).extend(
@@ -111,7 +121,9 @@ export const coreSubscriptionItemFeaturesSelectSchema =
   )
 
 export const coreSubscriptionItemFeaturesUpdateSchema =
-  coreSubscriptionItemFeaturesInsertSchema.partial().extend({ id: z.string() })
+  coreSubscriptionItemFeaturesInsertSchema
+    .partial()
+    .extend({ id: z.string() })
 
 /*
  * Toggle SubscriptionItemFeature schemas
@@ -229,14 +241,14 @@ export const toggleSubscriptionItemFeatureClientUpdateSchema =
  * Client-facing Usage Credit Grant SubscriptionItemFeature schemas
  */
 export const usageCreditGrantSubscriptionItemFeatureClientInsertSchema =
-  usageCreditGrantSubscriptionItemFeatureInsertSchema.omit(
-    clientWriteOmitSpec
-  ).meta({ id: 'UsageCreditGrantSubscriptionItemFeatureInsert' })
+  usageCreditGrantSubscriptionItemFeatureInsertSchema
+    .omit(clientWriteOmitSpec)
+    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureInsert' })
 
 export const usageCreditGrantSubscriptionItemFeatureClientSelectSchema =
-  usageCreditGrantSubscriptionItemFeatureSelectSchema.omit(
-    clientSelectOmitSpec
-  ).meta({ id: 'UsageCreditGrantSubscriptionItemFeatureRecord' })
+  usageCreditGrantSubscriptionItemFeatureSelectSchema
+    .omit(clientSelectOmitSpec)
+    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureRecord' })
 
 export const usageCreditGrantSubscriptionItemFeatureClientUpdateSchema =
   usageCreditGrantSubscriptionItemFeatureUpdateSchema
@@ -250,23 +262,26 @@ export const usageCreditGrantSubscriptionItemFeatureClientUpdateSchema =
 /*
  * Combined client-facing discriminated union schemas
  */
-export const subscriptionItemFeaturesClientInsertSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemFeaturesClientInsertSchema = z
+  .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientInsertSchema,
     usageCreditGrantSubscriptionItemFeatureClientInsertSchema,
-  ]).meta({ id: 'SubscriptionItemFeaturesClientInsertSchema' })
+  ])
+  .meta({ id: 'SubscriptionItemFeaturesClientInsertSchema' })
 
-export const subscriptionItemFeaturesClientSelectSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemFeaturesClientSelectSchema = z
+  .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientSelectSchema,
     usageCreditGrantSubscriptionItemFeatureClientSelectSchema,
-  ]).meta({ id: 'SubscriptionItemFeaturesClientSelectSchema' })
+  ])
+  .meta({ id: 'SubscriptionItemFeaturesClientSelectSchema' })
 
-export const subscriptionItemFeaturesClientUpdateSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemFeaturesClientUpdateSchema = z
+  .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureClientUpdateSchema,
     usageCreditGrantSubscriptionItemFeatureClientUpdateSchema,
-  ]).meta({ id: 'SubscriptionItemFeaturesClientUpdateSchema' })
+  ])
+  .meta({ id: 'SubscriptionItemFeaturesClientUpdateSchema' })
 
 export namespace SubscriptionItemFeature {
   export type Insert = z.infer<

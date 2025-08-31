@@ -21,13 +21,14 @@ import {
   constructUniqueIndex,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { pricingModels } from './pricingModels'
 
-const PRODUCTS_TABLE_NAME = 'products'
+const TABLE_NAME = 'products'
 
 const columns = {
   ...tableBase('prod'),
@@ -73,31 +74,27 @@ const columns = {
   slug: text('slug'),
 }
 
-export const products = pgTable(
-  PRODUCTS_TABLE_NAME,
-  columns,
-  (table) => {
-    return [
-      constructIndex(PRODUCTS_TABLE_NAME, [table.organizationId]),
-      constructIndex(PRODUCTS_TABLE_NAME, [table.active]),
-      constructUniqueIndex(PRODUCTS_TABLE_NAME, [table.externalId]),
-      constructUniqueIndex(PRODUCTS_TABLE_NAME, [
-        table.pricingModelId,
-        table.slug,
-      ]),
-      uniqueIndex('products_pricing_model_id_default_unique_idx')
-        .on(table.pricingModelId)
-        .where(sql`${table.default}`),
-      pgPolicy('Enable read for own organizations', {
-        as: 'permissive',
-        to: 'authenticated',
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
-      }),
-      livemodePolicy(),
-    ]
-  }
-).enableRLS()
+export const products = pgTable(TABLE_NAME, columns, (table) => {
+  return [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.active]),
+    constructUniqueIndex(TABLE_NAME, [table.externalId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.pricingModelId,
+      table.slug,
+    ]),
+    uniqueIndex('products_pricing_model_id_default_unique_idx')
+      .on(table.pricingModelId)
+      .where(sql`${table.default}`),
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
+      as: 'permissive',
+      to: merchantRole,
+      for: 'all',
+      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+    }),
+    livemodePolicy(),
+  ]
+}).enableRLS()
 
 const displayFeatureSchema = z.object({
   enabled: z.boolean(),
@@ -155,23 +152,25 @@ export const productsClientSelectSchema = productsSelectSchema
     id: 'ProductRecord',
   })
 
-export const productsClientInsertSchema = productsInsertSchema.omit(
-  nonClientEditableColumns
-).meta({
-  id: 'ProductInsert',
-})
+export const productsClientInsertSchema = productsInsertSchema
+  .omit(nonClientEditableColumns)
+  .meta({
+    id: 'ProductInsert',
+  })
 
-export const productsClientUpdateSchema = productsUpdateSchema.omit({
-  ...nonClientEditableColumns,
-  ...createOnlyColumns,
-}).meta({
-  id: 'ProductUpdate',
-})
+export const productsClientUpdateSchema = productsUpdateSchema
+  .omit({
+    ...nonClientEditableColumns,
+    ...createOnlyColumns,
+  })
+  .meta({
+    id: 'ProductUpdate',
+  })
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({
     table: products,
-    tableName: PRODUCTS_TABLE_NAME,
+    tableName: TABLE_NAME,
     refine: refinement,
   })
 
@@ -182,16 +181,14 @@ export const productsSupabaseUpdatePayloadSchema =
   supabaseUpdatePayloadSchema
 
 export const productsPaginatedSelectSchema =
-  createPaginatedSelectSchema(productsClientSelectSchema)
-    .meta({
-      id: 'ProductsPaginatedSelect',
-    })
+  createPaginatedSelectSchema(productsClientSelectSchema).meta({
+    id: 'ProductsPaginatedSelect',
+  })
 
 export const productsPaginatedListSchema =
-  createPaginatedListQuerySchema(productsClientSelectSchema)
-    .meta({
-      id: 'ProductsPaginatedList',
-    })
+  createPaginatedListQuerySchema(productsClientSelectSchema).meta({
+    id: 'ProductsPaginatedList',
+  })
 
 export namespace Product {
   export type Insert = z.infer<typeof productsInsertSchema>

@@ -20,6 +20,7 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -78,7 +79,7 @@ export const discounts = pgTable(
         'Enable all actions for discounts in own organization',
         {
           as: 'permissive',
-          to: 'authenticated',
+          to: merchantRole,
           for: 'all',
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
@@ -98,11 +99,14 @@ const columnRefinements = {
     .max(20)
     .transform((code) => code.toUpperCase())
     .meta({
-      description: 'The discount code, must be unique and between 3 and 20 characters.',
+      description:
+        'The discount code, must be unique and between 3 and 20 characters.',
     }),
 }
 
-const baseDiscountSchema = createInsertSchema(discounts).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+const baseDiscountSchema = createInsertSchema(discounts)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 const supabaseSchemas = createSupabaseWebhookSchema({
   table: discounts,
@@ -227,20 +231,17 @@ const clientWriteOmits = R.omit(['position'], {
 })
 
 export const defaultDiscountClientInsertSchema =
-  defaultDiscountsInsertSchema.omit(clientWriteOmits)
-  .meta({
+  defaultDiscountsInsertSchema.omit(clientWriteOmits).meta({
     id: 'DefaultDiscountInsert',
   })
 
 export const numberOfPaymentsDiscountClientInsertSchema =
-  numberOfPaymentsDiscountsInsertSchema.omit(clientWriteOmits)
-  .meta({
+  numberOfPaymentsDiscountsInsertSchema.omit(clientWriteOmits).meta({
     id: 'NumberOfPaymentsDiscountInsert',
   })
 
 export const foreverDiscountClientInsertSchema =
-  foreverDiscountsInsertSchema.omit(clientWriteOmits)
-  .meta({
+  foreverDiscountsInsertSchema.omit(clientWriteOmits).meta({
     id: 'ForeverDiscountInsert',
   })
 
@@ -261,9 +262,11 @@ export const defaultDiscountClientUpdateSchema =
   })
 
 export const numberOfPaymentsDiscountClientUpdateSchema =
-  numberOfPaymentsDiscountsUpdateSchema.omit(nonClientEditableColumns).meta({
-    id: 'NumberOfPaymentsDiscountUpdate',
-  })
+  numberOfPaymentsDiscountsUpdateSchema
+    .omit(nonClientEditableColumns)
+    .meta({
+      id: 'NumberOfPaymentsDiscountUpdate',
+    })
 
 export const foreverDiscountClientUpdateSchema =
   foreverDiscountsUpdateSchema.omit(nonClientEditableColumns).meta({

@@ -15,6 +15,7 @@ import {
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
@@ -45,9 +46,9 @@ export const billingPeriods = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.status]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'all',
         using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
       }),
@@ -63,12 +64,18 @@ const columnRefinements = {
 /*
  * database schemas
  */
-export const billingPeriodsInsertSchema = createInsertSchema(billingPeriods).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const billingPeriodsInsertSchema = createInsertSchema(
+  billingPeriods
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const billingPeriodsSelectSchema =
   createSelectSchema(billingPeriods).extend(columnRefinements)
 
-export const billingPeriodsUpdateSchema = billingPeriodsInsertSchema.partial().extend({ id: z.string() })
+export const billingPeriodsUpdateSchema = billingPeriodsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const readOnlyColumns = {
   subscriptionId: true,
@@ -94,13 +101,19 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const billingPeriodClientInsertSchema =
-  billingPeriodsInsertSchema.omit(clientWriteOmits).meta({ id: 'BillingPeriodClientInsertSchema' })
+  billingPeriodsInsertSchema
+    .omit(clientWriteOmits)
+    .meta({ id: 'BillingPeriodClientInsertSchema' })
 
 export const billingPeriodClientUpdateSchema =
-  billingPeriodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'BillingPeriodClientUpdateSchema' })
+  billingPeriodsUpdateSchema
+    .omit(clientWriteOmits)
+    .meta({ id: 'BillingPeriodClientUpdateSchema' })
 
 export const billingPeriodClientSelectSchema =
-  billingPeriodsSelectSchema.omit(hiddenColumns).meta({ id: 'BillingPeriodClientSelectSchema' })
+  billingPeriodsSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'BillingPeriodClientSelectSchema' })
 
 export namespace BillingPeriod {
   export type Insert = z.infer<typeof billingPeriodsInsertSchema>

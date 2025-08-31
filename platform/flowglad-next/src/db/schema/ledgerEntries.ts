@@ -19,6 +19,7 @@ import {
   pgEnumColumn,
   timestampWithTimezoneColumn,
   SelectConditions,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -162,9 +163,9 @@ export const ledgerEntries = pgTable(
     constructIndex(TABLE_NAME, [table.billingPeriodId]),
     constructIndex(TABLE_NAME, [table.usageMeterId]),
     constructIndex(TABLE_NAME, [table.claimedByBillingRunId]),
-    pgPolicy('Enable read for own organizations', {
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
       as: 'permissive',
-      to: 'authenticated',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
@@ -268,7 +269,9 @@ export const usageCreditApplicationCreditTowardsUsageCostEntryRefinements =
     sourceUsageEventId: z.string(),
   }
 
-const coreLedgerEntryInsertSchema = createInsertSchema(ledgerEntries).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+const coreLedgerEntryInsertSchema = createInsertSchema(ledgerEntries)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const usageCostInsertSchema =
   coreLedgerEntryInsertSchema.extend(usageCostEntryRefinements)
@@ -366,7 +369,8 @@ export const ledgerEntriesSelectSchema = z.discriminatedUnion(
   ]
 )
 
-export const coreLedgerEntriesUpdateSchema = coreLedgerEntryInsertSchema.partial().extend({ id: z.string() })
+export const coreLedgerEntriesUpdateSchema =
+  coreLedgerEntryInsertSchema.partial().extend({ id: z.string() })
 
 export const usageCostUpdateSchema =
   coreLedgerEntriesUpdateSchema.extend(usageCostEntryRefinements)
@@ -418,31 +422,45 @@ export const ledgerEntriesUpdateSchema = z.discriminatedUnion(
 const hiddenColumns = {} as const
 
 // Client-specific individual select schemas
-export const usageCostClientSelectSchema =
-  usageCostSelectSchema.omit(hiddenColumns).meta({ id: 'UsageCostRecord' })
+export const usageCostClientSelectSchema = usageCostSelectSchema
+  .omit(hiddenColumns)
+  .meta({ id: 'UsageCostRecord' })
 export const creditGrantRecognizedClientSelectSchema =
-  creditGrantRecognizedSelectSchema.omit(hiddenColumns).meta({ id: 'CreditGrantRecognizedRecord' })
+  creditGrantRecognizedSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'CreditGrantRecognizedRecord' })
 export const creditBalanceAdjustedClientSelectSchema =
-  creditBalanceAdjustedSelectSchema.omit(hiddenColumns).meta({ id: 'CreditBalanceAdjustedRecord' })
+  creditBalanceAdjustedSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'CreditBalanceAdjustedRecord' })
 export const creditGrantExpiredClientSelectSchema =
-  creditGrantExpiredSelectSchema.omit(hiddenColumns).meta({ id: 'CreditGrantExpiredRecord' })
+  creditGrantExpiredSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'CreditGrantExpiredRecord' })
 export const paymentRefundedClientSelectSchema =
-  paymentRefundedSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentRefundedRecord' })
+  paymentRefundedSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'PaymentRefundedRecord' })
 export const billingAdjustmentClientSelectSchema =
-  billingAdjustmentSelectSchema.omit(hiddenColumns).meta({ id: 'BillingAdjustmentRecord' })
+  billingAdjustmentSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'BillingAdjustmentRecord' })
 
 export const usageCreditApplicationDebitFromCreditBalanceClientSelectSchema =
-  usageCreditApplicationDebitFromCreditBalanceSelectSchema.omit(
-    hiddenColumns
-  ).meta({ id: 'UsageCreditApplicationDebitFromCreditBalanceRecord' })
+  usageCreditApplicationDebitFromCreditBalanceSelectSchema
+    .omit(hiddenColumns)
+    .meta({
+      id: 'UsageCreditApplicationDebitFromCreditBalanceRecord',
+    })
 export const usageCreditApplicationCreditTowardsUsageCostClientSelectSchema =
-  usageCreditApplicationCreditTowardsUsageCostSelectSchema.omit(
-    hiddenColumns
-  ).meta({ id: 'UsageCreditApplicationCreditTowardsUsageCostRecord' })
+  usageCreditApplicationCreditTowardsUsageCostSelectSchema
+    .omit(hiddenColumns)
+    .meta({
+      id: 'UsageCreditApplicationCreditTowardsUsageCostRecord',
+    })
 
-export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
-  'entryType',
-  [
+export const ledgerEntriesClientSelectSchema = z
+  .discriminatedUnion('entryType', [
     usageCostClientSelectSchema,
     creditGrantRecognizedClientSelectSchema,
     creditBalanceAdjustedClientSelectSchema,
@@ -451,8 +469,8 @@ export const ledgerEntriesClientSelectSchema = z.discriminatedUnion(
     billingAdjustmentClientSelectSchema,
     usageCreditApplicationDebitFromCreditBalanceClientSelectSchema,
     usageCreditApplicationCreditTowardsUsageCostClientSelectSchema,
-  ]
-).meta({ id: 'LedgerEntriesClientSelectSchema' })
+  ])
+  .meta({ id: 'LedgerEntriesClientSelectSchema' })
 
 export namespace LedgerEntry {
   export type Insert = z.infer<typeof ledgerEntriesInsertSchema>

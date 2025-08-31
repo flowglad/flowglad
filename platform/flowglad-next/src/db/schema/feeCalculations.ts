@@ -19,6 +19,7 @@ import {
   ommittedColumnsForInsertSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import {
   CheckoutSession,
@@ -108,7 +109,7 @@ export const feeCalculations = pgTable(
       livemodePolicy(),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -124,10 +125,14 @@ const columnRefinements = {
   discountAmountFixed: safeZodNonNegativeInteger,
   billingAddress: billingAddressSchema.nullable(),
   type: core.createSafeZodEnum(FeeCalculationType),
-  currency: currencyCodeSchema
+  currency: currencyCodeSchema,
 }
 
-export const coreFeeCalculationsInsertSchema = createInsertSchema(feeCalculations).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const coreFeeCalculationsInsertSchema = createInsertSchema(
+  feeCalculations
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const coreFeeCalculationsSelectSchema =
   createSelectSchema(feeCalculations).extend(columnRefinements)
@@ -221,14 +226,18 @@ const hiddenColumns = {
 } as const
 
 export const subscriptionFeeCalculationClientSelectSchema =
-  subscriptionPaymentFeeCalculationSelectSchema.omit(hiddenColumns).meta({
-    id: 'SubscriptionFeeCalculationRecord',
-  })
+  subscriptionPaymentFeeCalculationSelectSchema
+    .omit(hiddenColumns)
+    .meta({
+      id: 'SubscriptionFeeCalculationRecord',
+    })
 
 export const checkoutSessionFeeCalculationClientSelectSchema =
-  checkoutSessionPaymentFeeCalculationSelectSchema.omit(hiddenColumns).meta({
-    id: 'CheckoutSessionFeeCalculationRecord',
-  })
+  checkoutSessionPaymentFeeCalculationSelectSchema
+    .omit(hiddenColumns)
+    .meta({
+      id: 'CheckoutSessionFeeCalculationRecord',
+    })
 
 export const feeCalculationClientSelectSchema = z
   .discriminatedUnion('type', [
@@ -246,24 +255,25 @@ const customerHiddenColumns = {
 } as const
 
 export const customerFacingCheckoutSessionFeeCalculationSelectSchema =
-  checkoutSessionFeeCalculationClientSelectSchema.omit(
-    customerHiddenColumns
-  ).meta({
-    id: 'CustomerCheckoutSessionFeeCalculationRecord',
-  })
+  checkoutSessionFeeCalculationClientSelectSchema
+    .omit(customerHiddenColumns)
+    .meta({
+      id: 'CustomerCheckoutSessionFeeCalculationRecord',
+    })
 
 export const customerFacingSubscriptionFeeCalculationSelectSchema =
-  subscriptionFeeCalculationClientSelectSchema.omit(
-    customerHiddenColumns
-  ).meta({
-    id: 'CustomerSubscriptionFeeCalculationRecord',
-  })
+  subscriptionFeeCalculationClientSelectSchema
+    .omit(customerHiddenColumns)
+    .meta({
+      id: 'CustomerSubscriptionFeeCalculationRecord',
+    })
 
-export const customerFacingFeeCalculationSelectSchema =
-  z.discriminatedUnion('type', [
+export const customerFacingFeeCalculationSelectSchema = z
+  .discriminatedUnion('type', [
     customerFacingSubscriptionFeeCalculationSelectSchema,
     customerFacingCheckoutSessionFeeCalculationSelectSchema,
-  ]).meta({
+  ])
+  .meta({
     id: 'CustomerFeeCalculationRecord',
   })
 
@@ -281,24 +291,44 @@ export namespace FeeCalculation {
 
   // --- Specific subtypes ---
   /** Insert types for discriminated schemas */
-  export type SubscriptionInsert = z.infer<typeof subscriptionPaymentFeeCalculationInsertSchema>
-  export type CheckoutSessionInsert = z.infer<typeof checkoutSessionPaymentFeeCalculationInsertSchema>
+  export type SubscriptionInsert = z.infer<
+    typeof subscriptionPaymentFeeCalculationInsertSchema
+  >
+  export type CheckoutSessionInsert = z.infer<
+    typeof checkoutSessionPaymentFeeCalculationInsertSchema
+  >
 
   /** Update types for each fee calculation kind */
-  export type SubscriptionUpdate = z.infer<typeof subscriptionPaymentFeeCalculationUpdateSchema>
-  export type CheckoutSessionUpdate = z.infer<typeof checkoutSessionPaymentFeeCalculationUpdateSchema>
+  export type SubscriptionUpdate = z.infer<
+    typeof subscriptionPaymentFeeCalculationUpdateSchema
+  >
+  export type CheckoutSessionUpdate = z.infer<
+    typeof checkoutSessionPaymentFeeCalculationUpdateSchema
+  >
 
   /** Record types as selected by schemas */
-  export type SubscriptionRecord = z.infer<typeof subscriptionPaymentFeeCalculationSelectSchema>
-  export type CheckoutSessionRecord = z.infer<typeof checkoutSessionPaymentFeeCalculationSelectSchema>
+  export type SubscriptionRecord = z.infer<
+    typeof subscriptionPaymentFeeCalculationSelectSchema
+  >
+  export type CheckoutSessionRecord = z.infer<
+    typeof checkoutSessionPaymentFeeCalculationSelectSchema
+  >
 
   /** ClientRecord types omitting hidden fields */
-  export type SubscriptionClientRecord = z.infer<typeof subscriptionFeeCalculationClientSelectSchema>
-  export type CheckoutSessionClientRecord = z.infer<typeof checkoutSessionFeeCalculationClientSelectSchema>
+  export type SubscriptionClientRecord = z.infer<
+    typeof subscriptionFeeCalculationClientSelectSchema
+  >
+  export type CheckoutSessionClientRecord = z.infer<
+    typeof checkoutSessionFeeCalculationClientSelectSchema
+  >
 
   /** Customer-facing records with sensitive fields omitted */
-  export type SubscriptionCustomerRecord = z.infer<typeof customerFacingSubscriptionFeeCalculationSelectSchema>
-  export type CheckoutSessionCustomerRecord = z.infer<typeof customerFacingCheckoutSessionFeeCalculationSelectSchema>
+  export type SubscriptionCustomerRecord = z.infer<
+    typeof customerFacingSubscriptionFeeCalculationSelectSchema
+  >
+  export type CheckoutSessionCustomerRecord = z.infer<
+    typeof customerFacingCheckoutSessionFeeCalculationSelectSchema
+  >
 }
 
 export const checkoutSessionFeeCalculationParametersChanged = ({

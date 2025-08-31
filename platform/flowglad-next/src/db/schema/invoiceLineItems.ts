@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { pgTable, integer, text } from 'drizzle-orm/pg-core'
+import { pgTable, integer, text, pgPolicy } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
@@ -14,6 +14,7 @@ import {
   hiddenColumnsForClientSchema,
   pgEnumColumn,
   ommittedColumnsForInsertSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import {
   Invoice,
@@ -29,6 +30,7 @@ import { customerClientSelectSchema } from './customers'
 import { billingRuns } from './billingRuns'
 import { ledgerAccounts } from './ledgerAccounts'
 import { SubscriptionItemType } from '@/types'
+import { sql } from 'drizzle-orm'
 
 export const TABLE_NAME = 'invoice_line_items'
 
@@ -202,13 +204,17 @@ const clientNonEditableColumns = R.omit(['position'], {
 
 // Static Invoice Line Item Client Schemas
 export const staticInvoiceLineItemClientInsertSchema =
-  staticInvoiceLineItemInsertSchema.omit(clientNonEditableColumns).meta({
-    id: 'StaticInvoiceLineItemInsert',
-  })
+  staticInvoiceLineItemInsertSchema
+    .omit(clientNonEditableColumns)
+    .meta({
+      id: 'StaticInvoiceLineItemInsert',
+    })
 export const staticInvoiceLineItemClientUpdateSchema =
-  staticInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns).meta({
-    id: 'StaticInvoiceLineItemUpdate',
-  })
+  staticInvoiceLineItemUpdateSchema
+    .omit(clientNonEditableColumns)
+    .meta({
+      id: 'StaticInvoiceLineItemUpdate',
+    })
 export const staticInvoiceLineItemClientSelectSchema =
   staticInvoiceLineItemSelectSchema.omit(hiddenColumns).meta({
     id: 'StaticInvoiceLineItemRecord',
@@ -216,21 +222,25 @@ export const staticInvoiceLineItemClientSelectSchema =
 
 // Usage Invoice Line Item Client Schemas
 export const usageInvoiceLineItemClientInsertSchema =
-  usageInvoiceLineItemInsertSchema.omit(clientNonEditableColumns).meta({
-    id: 'UsageInvoiceLineItemInsert',
-  })
+  usageInvoiceLineItemInsertSchema
+    .omit(clientNonEditableColumns)
+    .meta({
+      id: 'UsageInvoiceLineItemInsert',
+    })
 export const usageInvoiceLineItemClientUpdateSchema =
-  usageInvoiceLineItemUpdateSchema.omit(clientNonEditableColumns).meta({
-    id: 'UsageInvoiceLineItemUpdate',
-  })
+  usageInvoiceLineItemUpdateSchema
+    .omit(clientNonEditableColumns)
+    .meta({
+      id: 'UsageInvoiceLineItemUpdate',
+    })
 export const usageInvoiceLineItemClientSelectSchema =
   usageInvoiceLineItemSelectSchema.omit(hiddenColumns).meta({
     id: 'UsageInvoiceLineItemRecord',
   })
 
 // Client Discriminated Union Schemas
-export const invoiceLineItemsClientInsertSchema =
-  z.discriminatedUnion('type', [
+export const invoiceLineItemsClientInsertSchema = z
+  .discriminatedUnion('type', [
     staticInvoiceLineItemClientInsertSchema,
     usageInvoiceLineItemClientInsertSchema,
   ])
@@ -238,8 +248,8 @@ export const invoiceLineItemsClientInsertSchema =
     id: 'InvoiceLineItemInsert',
   })
 
-export const invoiceLineItemsClientUpdateSchema =
-  z.discriminatedUnion('type', [
+export const invoiceLineItemsClientUpdateSchema = z
+  .discriminatedUnion('type', [
     staticInvoiceLineItemClientUpdateSchema,
     usageInvoiceLineItemClientUpdateSchema,
   ])
@@ -247,8 +257,8 @@ export const invoiceLineItemsClientUpdateSchema =
     id: 'InvoiceLineItemUpdate',
   })
 
-export const invoiceLineItemsClientSelectSchema =
-  z.discriminatedUnion('type', [
+export const invoiceLineItemsClientSelectSchema = z
+  .discriminatedUnion('type', [
     staticInvoiceLineItemClientSelectSchema,
     usageInvoiceLineItemClientSelectSchema,
   ])

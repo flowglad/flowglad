@@ -23,6 +23,7 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -112,13 +113,13 @@ export const payments = pgTable(
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       pgPolicy('Enable select for own organization', {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
       pgPolicy('Enable update for own organization', {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'update',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -146,9 +147,13 @@ export const paymentsSelectSchema = createSelectSchema(
   payments
 ).extend(columnEnhancements)
 
-export const paymentsInsertSchema = createInsertSchema(payments).omit(ommittedColumnsForInsertSchema).extend(columnEnhancements)
+export const paymentsInsertSchema = createInsertSchema(payments)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnEnhancements)
 
-export const paymentsUpdateSchema = paymentsInsertSchema.partial().extend({ id: z.string() })
+export const paymentsUpdateSchema = paymentsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const readonlyColumns = {
   organizationId: true,
@@ -165,7 +170,8 @@ const hiddenColumns = {
 
 export const paymentsClientSelectSchema = paymentsSelectSchema
   .omit(hiddenColumns)
-  .omit(readonlyColumns).meta({
+  .omit(readonlyColumns)
+  .meta({
     id: 'PaymentRecord',
   })
 

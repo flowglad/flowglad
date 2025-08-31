@@ -16,6 +16,7 @@ import {
   pgEnumColumn,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
@@ -63,9 +64,9 @@ export const refunds = pgTable(
     constructIndex(TABLE_NAME, [table.paymentId]),
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.status]),
-    pgPolicy('Enable read for own organizations', {
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
       as: 'permissive',
-      to: 'authenticated',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
@@ -77,13 +78,17 @@ const columnRefinements = {
   amount: core.safeZodPositiveInteger,
   refundProcessedAt: core.safeZodDate.nullable(),
   status: core.createSafeZodEnum(RefundStatus),
-  currency: currencyCodeSchema
+  currency: currencyCodeSchema,
 }
 
-export const refundsInsertSchema = createInsertSchema(refunds).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const refundsInsertSchema = createInsertSchema(refunds)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 export const refundsSelectSchema =
   createSelectSchema(refunds).extend(columnRefinements)
-export const refundsUpdateSchema = refundsInsertSchema.partial().extend({ id: z.string() })
+export const refundsUpdateSchema = refundsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {
@@ -91,8 +96,9 @@ const readOnlyColumns = {
 } as const
 const hiddenColumns = {} as const
 
-export const refundClientSelectSchema =
-  refundsSelectSchema.omit(hiddenColumns).meta({
+export const refundClientSelectSchema = refundsSelectSchema
+  .omit(hiddenColumns)
+  .meta({
     id: 'RefundRecord',
   })
 

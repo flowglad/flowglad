@@ -7,6 +7,7 @@ import {
   constructIndex,
   constructUniqueIndex,
   livemodePolicy,
+  merchantRole,
   SelectConditions,
   hiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema,
@@ -47,9 +48,9 @@ export const properNouns = pgTable(
         sql`to_tsvector('english', ${table.name})`
       ),
       constructIndex(TABLE_NAME, [table.entityId]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'select',
         using: sql`"organizationId" in (select "organizationId" from "Memberships" where "UserId" = requesting_user_id())`,
       }),
@@ -64,11 +65,15 @@ const columnRefinements = {}
 /*
  * database schemas
  */
-export const properNounsInsertSchema = createInsertSchema(properNouns).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const properNounsInsertSchema = createInsertSchema(properNouns)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const properNounsSelectSchema = createSelectSchema(properNouns)
 
-export const properNounsUpdateSchema = properNounsInsertSchema.partial().extend({ id: z.string() })
+export const properNounsUpdateSchema = properNounsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 
@@ -92,14 +97,17 @@ const clientWriteOmits = R.omit(['position'], {
 /*
  * client schemas
  */
-export const properNounClientInsertSchema =
-  properNounsInsertSchema.omit(clientWriteOmits).meta({ id: 'ProperNounClientInsertSchema' })
+export const properNounClientInsertSchema = properNounsInsertSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'ProperNounClientInsertSchema' })
 
-export const properNounClientUpdateSchema =
-  properNounsUpdateSchema.omit(clientWriteOmits).meta({ id: 'ProperNounClientUpdateSchema' })
+export const properNounClientUpdateSchema = properNounsUpdateSchema
+  .omit(clientWriteOmits)
+  .meta({ id: 'ProperNounClientUpdateSchema' })
 
-export const properNounClientSelectSchema =
-  properNounsSelectSchema.omit(hiddenColumns).meta({ id: 'ProperNounClientSelectSchema' })
+export const properNounClientSelectSchema = properNounsSelectSchema
+  .omit(hiddenColumns)
+  .meta({ id: 'ProperNounClientSelectSchema' })
 
 export namespace ProperNoun {
   export type Insert = z.infer<typeof properNounsInsertSchema>

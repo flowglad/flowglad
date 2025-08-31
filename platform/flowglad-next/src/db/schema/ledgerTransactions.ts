@@ -9,6 +9,7 @@ import {
   livemodePolicy,
   constructUniqueIndex,
   pgEnumColumn,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -59,9 +60,9 @@ export const ledgerTransactions = pgTable(
       table.livemode,
       table.organizationId,
     ]),
-    pgPolicy('Enable read for own organizations', {
+    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
       as: 'permissive',
-      to: 'authenticated',
+      to: merchantRole,
       for: 'all',
       using: sql`"organization_id" in (select "organization_id" from "memberships")`,
     }),
@@ -74,13 +75,18 @@ const columnRefinements = {
   type: core.createSafeZodEnum(LedgerTransactionType),
 }
 
-export const ledgerTransactionsInsertSchema = createInsertSchema(ledgerTransactions).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const ledgerTransactionsInsertSchema = createInsertSchema(
+  ledgerTransactions
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const ledgerTransactionsSelectSchema = createSelectSchema(
   ledgerTransactions
 ).extend(columnRefinements)
 
-export const ledgerTransactionsUpdateSchema = ledgerTransactionsInsertSchema.partial().extend({ id: z.string() })
+export const ledgerTransactionsUpdateSchema =
+  ledgerTransactionsInsertSchema.partial().extend({ id: z.string() })
 
 const hiddenColumns = {
   createdByCommit: true,

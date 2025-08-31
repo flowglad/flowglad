@@ -17,6 +17,7 @@ import {
   ommittedColumnsForInsertSchema,
   livemodePolicy,
   pgEnumColumn,
+  merchantRole,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -76,9 +77,9 @@ export const ledgerAccounts = pgTable(
         table.usageMeterId,
         //   table.currency,
       ]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'all',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -92,15 +93,22 @@ const columnRefinements = {
   version: core.safeZodPositiveIntegerOrZero,
 }
 
-export const ledgerAccountsInsertSchema = createInsertSchema(ledgerAccounts).omit(ommittedColumnsForInsertSchema).extend(columnRefinements).extend({
-  version: columnRefinements.version.optional(),
-  normalBalance: columnRefinements.normalBalance.optional(),
-})
+export const ledgerAccountsInsertSchema = createInsertSchema(
+  ledgerAccounts
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
+  .extend({
+    version: columnRefinements.version.optional(),
+    normalBalance: columnRefinements.normalBalance.optional(),
+  })
 
 export const ledgerAccountsSelectSchema =
   createSelectSchema(ledgerAccounts).extend(columnRefinements)
 
-export const ledgerAccountsUpdateSchema = ledgerAccountsInsertSchema.partial().extend({ id: z.string() })
+export const ledgerAccountsUpdateSchema = ledgerAccountsInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 export namespace LedgerAccount {
   export type Insert = z.infer<typeof ledgerAccountsInsertSchema>

@@ -19,6 +19,7 @@ import {
   notNullStringForeignKey,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
 import core, { zodOptionalNullableString } from '@/utils/core'
@@ -91,9 +92,9 @@ export const organizations = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.domain]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       constructIndex(TABLE_NAME, [table.countryId]),
-      pgPolicy('Enable read for own organizations', {
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'select',
         using: sql`id IN ( SELECT memberships.organization_id
    FROM memberships
@@ -102,7 +103,6 @@ export const organizations = pgTable(
     ]
   }
 ).enableRLS()
-
 
 const billingAddressSchemaColumns = {
   name: zodOptionalNullableString,
@@ -121,11 +121,11 @@ const billingAddressSchemaColumns = {
   phone: zodOptionalNullableString,
 }
 
-export const billingAddressSchema = z.object(
-  billingAddressSchemaColumns
-).meta({
-  id: 'BillingAddress',
-})
+export const billingAddressSchema = z
+  .object(billingAddressSchemaColumns)
+  .meta({
+    id: 'BillingAddress',
+  })
 
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
@@ -149,7 +149,8 @@ const selectColumnRefinements = {
 // Column refinements for INSERT schemas (without auto-generated columns)
 const insertColumnRefinements = {
   ...commonColumnRefinements,
-  monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger.optional(),
+  monthlyBillingVolumeFreeTier:
+    core.safeZodNonNegativeInteger.optional(),
 }
 
 export const organizationsSelectSchema = createSelectSchema(
@@ -157,7 +158,11 @@ export const organizationsSelectSchema = createSelectSchema(
   selectColumnRefinements
 )
 
-export const organizationsInsertSchema = createInsertSchema(organizations).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
+export const organizationsInsertSchema = createInsertSchema(
+  organizations
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(insertColumnRefinements)
 
 export const organizationsUpdateSchema = organizationsInsertSchema
   .partial()

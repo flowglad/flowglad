@@ -20,6 +20,7 @@ import {
   SelectConditions,
   ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
+  merchantRole,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -56,7 +57,7 @@ export const paymentMethods = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       pgPolicy('Enable read for own organizations via customer', {
         as: 'permissive',
-        to: 'authenticated',
+        to: merchantRole,
         for: 'all',
         using: sql`"customerId" in (select "id" from "customers")`,
       }),
@@ -131,13 +132,19 @@ const clientWriteOmits = R.omit(['position'], {
  * client schemas
  */
 export const paymentMethodClientInsertSchema =
-  paymentMethodsInsertSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodInsert' })
+  paymentMethodsInsertSchema
+    .omit(clientWriteOmits)
+    .meta({ id: 'PaymentMethodInsert' })
 
 export const paymentMethodClientUpdateSchema =
-  paymentMethodsUpdateSchema.omit(clientWriteOmits).meta({ id: 'PaymentMethodUpdate' })
+  paymentMethodsUpdateSchema
+    .omit(clientWriteOmits)
+    .meta({ id: 'PaymentMethodUpdate' })
 
 export const paymentMethodClientSelectSchema =
-  paymentMethodsSelectSchema.omit(hiddenColumns).meta({ id: 'PaymentMethodRecord' })
+  paymentMethodsSelectSchema
+    .omit(hiddenColumns)
+    .meta({ id: 'PaymentMethodRecord' })
 
 export const paymentMethodsPaginatedSelectSchema =
   createPaginatedSelectSchema(paymentMethodClientSelectSchema)

@@ -31,6 +31,7 @@ import {
   PgColumn,
   pgPolicy,
   bigserial,
+  pgRole,
 } from 'drizzle-orm/pg-core'
 import {
   type DbTransaction,
@@ -41,10 +42,14 @@ import {
 } from '@/db/types'
 import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
 import { z } from 'zod'
-import {
-  createSelectSchema,
-} from 'drizzle-zod'
+import { createSelectSchema } from 'drizzle-zod'
 import { noCase, sentenceCase, snakeCase } from 'change-case'
+
+export const merchantRole = pgRole('merchant', {
+  createRole: true,
+  createDb: true,
+  inherit: true,
+})
 
 type ZodTableUnionOrType<
   T extends
@@ -99,7 +104,10 @@ export const createSelectById = <
       const result = results[0]
       return selectSchema.parse(result)
     } catch (error) {
-      console.error(`[selectById] Error selecting ${config.tableName} with id ${id}:`, error)
+      console.error(
+        `[selectById] Error selecting ${config.tableName} with id ${id}:`,
+        error
+      )
       throw new Error(
         `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -135,8 +143,14 @@ export const createInsertManyFunction = <
       return result.map((item) => {
         const parsed = selectSchema.safeParse(item)
         if (!parsed.success) {
-          console.error('[createInsertManyFunction] Zod parsing error:', parsed.error.issues)
-          console.error('[createInsertManyFunction] Failed item:', item)
+          console.error(
+            '[createInsertManyFunction] Zod parsing error:',
+            parsed.error.issues
+          )
+          console.error(
+            '[createInsertManyFunction] Failed item:',
+            item
+          )
           throw Error(
             `createInsertManyFunction: Error parsing result: ${JSON.stringify(
               item
@@ -146,8 +160,14 @@ export const createInsertManyFunction = <
         return parsed.data
       })
     } catch (error) {
-      console.error(`[createInsertManyFunction] Error inserting into ${config.tableName}:`, error)
-      if (error instanceof Error && error.message.includes('duplicate key')) {
+      console.error(
+        `[createInsertManyFunction] Error inserting into ${config.tableName}:`,
+        error
+      )
+      if (
+        error instanceof Error &&
+        error.message.includes('duplicate key')
+      ) {
         throw new Error(
           `Duplicate key error when inserting into ${config.tableName}: ${error.message}`,
           { cause: error }
@@ -179,7 +199,10 @@ export const createInsertFunction = <
       const [result] = await insertMany([insert], transaction)
       return result
     } catch (error) {
-      console.error(`[createInsertFunction] Error inserting single item into ${config.tableName}:`, error)
+      console.error(
+        `[createInsertFunction] Error inserting single item into ${config.tableName}:`,
+        error
+      )
       throw new Error(
         `Failed to insert item into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -188,7 +211,9 @@ export const createInsertFunction = <
   }
 }
 
-type SelectTable = Parameters<ReturnType<DbTransaction['select']>['from']>[0]
+type SelectTable = Parameters<
+  ReturnType<DbTransaction['select']>['from']
+>[0]
 
 export const createUpdateFunction = <
   T extends PgTableWithId,
@@ -234,7 +259,10 @@ export const createUpdateFunction = <
 
       const parsed = selectSchema.safeParse(result)
       if (!parsed.success) {
-        console.error('[createUpdateFunction] Zod parsing error:', parsed.error.issues)
+        console.error(
+          '[createUpdateFunction] Zod parsing error:',
+          parsed.error.issues
+        )
         console.error('[createUpdateFunction] Failed result:', result)
         throw Error(
           `createUpdateFunction: Error parsing result: ${JSON.stringify(result)}. Issues: ${JSON.stringify(parsed.error.issues)}`
@@ -242,7 +270,10 @@ export const createUpdateFunction = <
       }
       return parsed.data
     } catch (error) {
-      console.error(`[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`, error)
+      console.error(
+        `[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`,
+        error
+      )
       if (error instanceof Error && error.message.includes('No ')) {
         throw error
       }
@@ -307,7 +338,10 @@ export const createSelectFunction = <
     transaction: DbTransaction
   ): Promise<DBMethodReturn<T, S>> => {
     try {
-      let query = transaction.select().from(table as SelectTable).$dynamic()
+      let query = transaction
+        .select()
+        .from(table as SelectTable)
+        .$dynamic()
       if (!R.isEmpty(selectConditions)) {
         query = query.where(
           whereClauseFromObject(table, selectConditions)
@@ -317,7 +351,10 @@ export const createSelectFunction = <
       return result.map((item) => {
         const parsed = selectSchema.safeParse(item)
         if (!parsed.success) {
-          console.error('[createSelectFunction] Zod parsing error:', parsed.error.issues)
+          console.error(
+            '[createSelectFunction] Zod parsing error:',
+            parsed.error.issues
+          )
           console.error('[createSelectFunction] Failed item:', item)
           throw Error(
             `createSelectFunction: Error parsing result: ${JSON.stringify(
@@ -328,8 +365,14 @@ export const createSelectFunction = <
         return parsed.data
       }) as DBMethodReturn<T, S>
     } catch (error) {
-      console.error(`[createSelectFunction] Error selecting from ${config.tableName}:`, error)
-      console.error('[createSelectFunction] Select conditions:', selectConditions)
+      console.error(
+        `[createSelectFunction] Error selecting from ${config.tableName}:`,
+        error
+      )
+      console.error(
+        '[createSelectFunction] Select conditions:',
+        selectConditions
+      )
       throw new Error(
         `Failed to select from ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -431,7 +474,7 @@ export const taxSchemaColumns = {
 export const livemodePolicy = () =>
   pgPolicy('Check mode', {
     as: 'restrictive',
-    to: 'authenticated',
+    to: merchantRole,
     for: 'all',
     using: sql`current_setting('app.livemode')::boolean = livemode`,
   })
@@ -459,7 +502,7 @@ export const parentForeignKeyIntegrityCheckPolicy = ({
     `Ensure organization integrity with ${parentTableName} parent table`,
     {
       as: 'permissive',
-      to: 'authenticated',
+      to: merchantRole,
       for: 'all',
       using: sql`${sql.identifier(parentIdColumnInCurrentTable)} in (select ${sql.identifier('id')} from ${sql.identifier(parentTableName)})`,
     }
@@ -469,7 +512,7 @@ export const parentForeignKeyIntegrityCheckPolicy = ({
 export const membershipOrganizationIdIntegrityCheckPolicy = () => {
   return pgPolicy('Enable read for own organizations', {
     as: 'permissive',
-    to: 'authenticated',
+    to: merchantRole,
     for: 'all',
     using: sql`"organization_id" in (select "organization_id" from "memberships")`,
   })
@@ -627,11 +670,14 @@ export const createUpsertFunction = <
           target,
         })
         .returning()
-      return result.map((data) => selectSchema.parse(data)) as z.infer<
-        typeof selectSchema
-      >[]
+      return result.map((data) =>
+        selectSchema.parse(data)
+      ) as z.infer<typeof selectSchema>[]
     } catch (error) {
-      console.error(`[createUpsertFunction] Error upserting into ${config.tableName}:`, error)
+      console.error(
+        `[createUpsertFunction] Error upserting into ${config.tableName}:`,
+        error
+      )
       throw new Error(
         `Failed to upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -690,7 +736,9 @@ export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
 }: {
   table: T
   tableName: string
-  refine: { [K in keyof T['$inferSelect']]?: z.ZodType<T['$inferSelect'][K]> }
+  refine: {
+    [K in keyof T['$inferSelect']]?: z.ZodType<T['$inferSelect'][K]>
+  }
 }) => {
   const selectSchema = refine
     ? createSelectSchema(table).extend(refine)
@@ -744,8 +792,14 @@ export const createBulkInsertFunction = <
         .returning()
       return result.map((data) => config.selectSchema.parse(data))
     } catch (error) {
-      console.error(`[createBulkInsertFunction] Error bulk inserting into ${config.tableName}:`, error)
-      console.error('[createBulkInsertFunction] Data count:', data.length)
+      console.error(
+        `[createBulkInsertFunction] Error bulk inserting into ${config.tableName}:`,
+        error
+      )
+      console.error(
+        '[createBulkInsertFunction] Data count:',
+        data.length
+      )
       throw new Error(
         `Failed to bulk insert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -785,9 +839,18 @@ export const createBulkInsertOrDoNothingFunction = <
         .returning()
       return result.map((data) => config.selectSchema.parse(data))
     } catch (error) {
-      console.error(`[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`, error)
-      console.error('[createBulkInsertOrDoNothingFunction] Data count:', data.length)
-      console.error('[createBulkInsertOrDoNothingFunction] Target:', target)
+      console.error(
+        `[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`,
+        error
+      )
+      console.error(
+        '[createBulkInsertOrDoNothingFunction] Data count:',
+        data.length
+      )
+      console.error(
+        '[createBulkInsertOrDoNothingFunction] Target:',
+        target
+      )
       throw new Error(
         `Failed to bulk insert with conflict handling into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -820,13 +883,22 @@ export const createBulkUpsertFunction = <
         .values(parsedData)
         .onConflictDoUpdate({
           target,
-          set: onConflictDoUpdateSetValues(table, ['id', 'created_at']),
+          set: onConflictDoUpdateSetValues(table, [
+            'id',
+            'created_at',
+          ]),
         })
         .returning()
       return result.map((data) => config.selectSchema.parse(data))
     } catch (error) {
-      console.error(`[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`, error)
-      console.error('[createBulkUpsertFunction] Data count:', data.length)
+      console.error(
+        `[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`,
+        error
+      )
+      console.error(
+        '[createBulkUpsertFunction] Data count:',
+        data.length
+      )
       console.error('[createBulkUpsertFunction] Target:', target)
       throw new Error(
         `Failed to bulk upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
@@ -839,9 +911,13 @@ export const createBulkUpsertFunction = <
 export const makeSchemaPropNull = <T extends z.ZodType<any, any>>(
   schema: T
 ) => {
-  return schema.transform(() => null).nullish().optional().meta({
-    description: 'Null or undefined',
-  })
+  return schema
+    .transform(() => null)
+    .nullish()
+    .optional()
+    .meta({
+      description: 'Null or undefined',
+    })
 }
 
 export const createDeleteFunction = <T extends PgTableWithId>(
@@ -854,7 +930,10 @@ export const createDeleteFunction = <T extends PgTableWithId>(
     try {
       await transaction.delete(table).where(eq(table.id, id))
     } catch (error) {
-      console.error(`[createDeleteFunction] Error deleting from table with id ${id}:`, error)
+      console.error(
+        `[createDeleteFunction] Error deleting from table with id ${id}:`,
+        error
+      )
       console.error('[createDeleteFunction] Table:', table)
       throw new Error(
         `Failed to delete record with id ${id}: ${error instanceof Error ? error.message : String(error)}`,
@@ -945,7 +1024,10 @@ export const createPaginatedSelectFunction = <
             createdAt: new Date(),
             direction: 'forward',
           }
-      let query = transaction.select().from(table as SelectTable).$dynamic()
+      let query = transaction
+        .select()
+        .from(table as SelectTable)
+        .$dynamic()
       if (Object.keys(parameters).length > 0) {
         query = query.where(
           and(
@@ -994,7 +1076,10 @@ export const createPaginatedSelectFunction = <
         total: total[0].count,
       }
     } catch (error) {
-      console.error(`[createPaginatedSelectFunction] Error in paginated select for ${config.tableName}:`, error)
+      console.error(
+        `[createPaginatedSelectFunction] Error in paginated select for ${config.tableName}:`,
+        error
+      )
       console.error('[createPaginatedSelectFunction] Cursor:', cursor)
       console.error('[createPaginatedSelectFunction] Limit:', limit)
       throw new Error(
@@ -1077,7 +1162,10 @@ export const testEnumColumn = async <T extends PgTableWithId>(
       .limit(1)
     return result
   } catch (error) {
-    console.error('[testEnumColumn] Error testing enum column:', error)
+    console.error(
+      '[testEnumColumn] Error testing enum column:',
+      error
+    )
     console.error('[testEnumColumn] Table:', table)
     console.error('[testEnumColumn] Column:', column)
     console.error('[testEnumColumn] Enum values:', enumValues)
@@ -1149,8 +1237,14 @@ const cursorComparison = async <T extends PgTableWithPosition>(
      */
     return comparisonOperator(table.position, result.position)
   } catch (error) {
-    console.error('[cursorComparison] Error fetching cursor position:', error)
-    console.error('[cursorComparison] Cursor:', pageAfter || pageBefore)
+    console.error(
+      '[cursorComparison] Error fetching cursor position:',
+      error
+    )
+    console.error(
+      '[cursorComparison] Cursor:',
+      pageAfter || pageBefore
+    )
     throw new Error(
       `Failed to fetch cursor position: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error }
@@ -1409,8 +1503,14 @@ export const createCursorPaginatedSelectFunction = <
         total: totalCount,
       }
     } catch (error) {
-      console.error(`[createCursorPaginatedSelectFunction] Error in cursor paginated select for ${config.tableName}:`, error)
-      console.error('[createCursorPaginatedSelectFunction] Params:', params.input)
+      console.error(
+        `[createCursorPaginatedSelectFunction] Error in cursor paginated select for ${config.tableName}:`,
+        error
+      )
+      console.error(
+        '[createCursorPaginatedSelectFunction] Params:',
+        params.input
+      )
       throw new Error(
         `Failed to cursor paginate ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }

@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { pgTable, text } from 'drizzle-orm/pg-core'
+import { pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   ommittedColumnsForInsertSchema,
@@ -7,10 +7,12 @@ import {
   tableBase,
   constructUniqueIndex,
   SelectConditions,
+  merchantRole,
 } from '@/db/tableUtils'
 import { z } from 'zod'
 import { CountryCode } from '@/types'
 import core from '@/utils/core'
+import { sql } from 'drizzle-orm'
 
 const COUNTRIES_TABLE_NAME = 'countries'
 
@@ -25,6 +27,12 @@ export const countries = pgTable(
     return [
       constructUniqueIndex(COUNTRIES_TABLE_NAME, [table.name]),
       constructUniqueIndex(COUNTRIES_TABLE_NAME, [table.code]),
+      pgPolicy('Enable read', {
+        as: 'permissive',
+        to: merchantRole,
+        for: 'select',
+        using: sql`true`,
+      }),
     ]
   }
 )
@@ -50,9 +58,13 @@ export const countriesSelectSchema = createSelectSchema(
   selectColumnRefinements
 )
 
-export const countriesInsertSchema = createInsertSchema(countries).omit(ommittedColumnsForInsertSchema).extend(insertColumnRefinements)
+export const countriesInsertSchema = createInsertSchema(countries)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(insertColumnRefinements)
 
-export const countriesUpdateSchema = countriesInsertSchema.partial().extend({ id: z.string() })
+export const countriesUpdateSchema = countriesInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 export namespace Country {
   export type Insert = z.infer<typeof countriesInsertSchema>

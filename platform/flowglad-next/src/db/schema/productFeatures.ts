@@ -15,6 +15,7 @@ import {
   constructIndex,
   membershipOrganizationIdIntegrityCheckPolicy,
   parentForeignKeyIntegrityCheckPolicy,
+  merchantRole,
 } from '@/db/tableUtils'
 import { products } from '@/db/schema/products'
 import { features } from '@/db/schema/features'
@@ -48,6 +49,12 @@ export const productFeatures = pgTable(
         parentIdColumnInCurrentTable: 'product_id',
         currentTableName: TABLE_NAME,
       }),
+      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
+        as: 'permissive',
+        to: merchantRole,
+        for: 'all',
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }),
       parentForeignKeyIntegrityCheckPolicy({
         parentTableName: 'features',
         parentIdColumnInCurrentTable: 'feature_id',
@@ -63,13 +70,19 @@ const columnRefinements = {} // No special column refinements for this table
 /*
  * Core database schemas
  */
-export const productFeaturesInsertSchema = createInsertSchema(productFeatures).omit(ommittedColumnsForInsertSchema).extend(columnRefinements)
+export const productFeaturesInsertSchema = createInsertSchema(
+  productFeatures
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnRefinements)
 
 export const productFeaturesSelectSchema =
   createSelectSchema(productFeatures).extend(columnRefinements)
 
 // Update schema is kept for potential server-side use, but not exposed to client for this table type.
-export const productFeaturesUpdateSchema = productFeaturesInsertSchema.partial().extend({ id: z.string() })
+export const productFeaturesUpdateSchema = productFeaturesInsertSchema
+  .partial()
+  .extend({ id: z.string() })
 
 /*
  * Client-facing schemas
@@ -87,14 +100,12 @@ const hiddenColumnsForSelect = {
 } as const
 
 export const productFeatureClientInsertSchema =
-  productFeaturesInsertSchema.omit(serverSetColumnsForInsert)
-  .meta({
+  productFeaturesInsertSchema.omit(serverSetColumnsForInsert).meta({
     id: 'ProductFeatureInsert',
   })
 
 export const productFeatureClientSelectSchema =
-  productFeaturesSelectSchema.omit(hiddenColumnsForSelect)
-  .meta({
+  productFeaturesSelectSchema.omit(hiddenColumnsForSelect).meta({
     id: 'ProductFeatureRecord',
   })
 
