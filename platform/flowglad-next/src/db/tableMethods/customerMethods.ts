@@ -7,6 +7,7 @@ import {
   InferredCustomerStatus,
   type CustomerTableRowData,
   customersPaginatedTableRowDataSchema,
+  customers,
 } from '@/db/schema/customers'
 import {
   createUpsertFunction,
@@ -26,6 +27,8 @@ import { DbTransaction } from '@/db/types'
 import { invoices } from '../schema/invoices'
 import { payments } from '../schema/payments'
 import { purchases } from '../schema/purchases'
+import { organizations, organizationsSelectSchema } from '../schema/organizations'
+import { z } from 'zod'
 
 const config: ORMMethodCreatorConfig<
   typeof customersTable,
@@ -407,3 +410,28 @@ export const selectCustomersCursorPaginatedWithTableRowData =
     },
     [customersTable.email, customersTable.name]
   )
+
+  export const selectCustomerAndOrganizationByCustomerWhere = async (
+    whereConditions: Partial<Customer.Record>,
+    transaction: DbTransaction
+  ) => {
+    const result = await transaction
+      .select({
+        customer: customers,
+        organization: organizations,
+      })
+      .from(customers)
+      .innerJoin(organizations, eq(customers.organizationId, organizations.id))
+      .where(whereClauseFromObject(customers, whereConditions))
+    return z.object({
+      customer: customersSelectSchema,
+      organization: organizationsSelectSchema,
+    }).array().parse(result)
+  }
+
+  export const setUserIdForCustomerRecords = async (
+    { customerEmail, userId }: { customerEmail: string, userId: string },
+    transaction: DbTransaction
+  ) => {
+    await transaction.update(customersTable).set({ userId }).where(eq(customersTable.email, customerEmail))
+  }

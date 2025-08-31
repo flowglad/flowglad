@@ -760,7 +760,7 @@ export const createPaginatedSelectSchema = <T extends {}>(
 ) => {
   return z.object({
     cursor: z.string().optional(),
-    limit: z.number().min(1).max(100).optional(),
+    limit: z.string().transform((str) => Number(str)).refine((num) => num >= 1 && num <= 100, { message: 'Limit must be between 1 and 100' }).optional(),
   }) as z.ZodType<{
     cursor?: string
     limit?: number

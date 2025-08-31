@@ -21,6 +21,8 @@ import type { User as BetterAuthUser } from 'better-auth'
 import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 
+type BetterAuthUserWithRole = BetterAuthUser & { role: string }
+
 let webUser: UserRecord
 let webOrgA: Organization.Record
 let webOrgB: Organization.Record
@@ -228,7 +230,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id, // ensure we pass the betterAuthId used in beforeEach
       email: (webUser as any).email,
-    } as unknown as BetterAuthUser
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
     const result = await databaseAuthenticationInfoForWebappRequest(
       mockBetterAuthUser
     )
@@ -259,7 +262,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
-    } as unknown as BetterAuthUser
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
     // flip focused=false for the previously focused membership
     await adminTransaction(async ({ transaction }) => {
       await transaction
@@ -306,7 +310,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     const mockBetterAuthUser = {
       id: lonelyBetterAuthId,
       email: lonelyEmail,
-    } as unknown as BetterAuthUser
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
     const result = await databaseAuthenticationInfoForWebappRequest(
       mockBetterAuthUser
     )
@@ -769,7 +774,8 @@ describe('subtleties and invariants across flows', () => {
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
-    } as unknown as BetterAuthUser
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
     const webappRes =
       await databaseAuthenticationInfoForWebappRequest(
         mockBetterAuthUser
@@ -839,7 +845,8 @@ describe('subtleties and invariants across flows', () => {
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
-    } as unknown as BetterAuthUser
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
     const webappRes =
       await databaseAuthenticationInfoForWebappRequest(
         mockBetterAuthUser
@@ -880,7 +887,8 @@ describe('subtleties and invariants across flows', () => {
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
-    } as unknown as BetterAuthUser
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
     const webappRes =
       await databaseAuthenticationInfoForWebappRequest(
         mockBetterAuthUser

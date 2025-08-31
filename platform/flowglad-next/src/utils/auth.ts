@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth'
-import { admin, customSession } from 'better-auth/plugins'
+import { admin, customSession, magicLink } from 'better-auth/plugins'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/db/client'
 import {
@@ -9,12 +9,40 @@ import {
   verification,
 } from '@/db/schema/betterAuthSchema'
 import { betterAuthUserToApplicationUser } from './authHelpers'
-import { createAuthMiddleware, APIError } from "better-auth/api";
-
-import { sendForgotPasswordEmail } from './email'
+import { sendForgotPasswordEmail, sendCustomerBillingPortalMagicLink } from './email'
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { getCustomerBillingPortalOrganizationId } from './customerBillingPortalState'
+import { sendMagicLinkToExistingUserAndUpdateAssociatedCustomerRecords } from '@/app/api/hosted-billing/request-magic-link/sendMagicLinkHandlers'
+
+
+const handleCustomerBillingPortalEmailOTP = async (params: { email: string, url: string, token: string, organizationId: string }) => {
+  const { email, url, token, organizationId } = params
+      // Get organization and customer info for the email
+      const { organization, customer } = await adminTransaction(async ({ transaction }) => {
+        const org = await selectOrganizationById(organizationId, transaction)
+        const customers = await selectCustomers({ email, organizationId }, transaction)
+        return {
+          organization: org,
+          customer: customers[0] || null
+        }
+      })
+      
+      // Build the magic link URL with OTP
+      // Send the magic link email
+      await sendCustomerBillingPortalMagicLink({
+        to: [email],
+        url,
+        customerName: customer?.name || undefined,
+        organizationName: organization?.name || undefined,
+      })
+}
+
+const handleMerchantEmailOTP = async ({ email, url, token }: { email: string, url: string, token: string }) => {
+  throw new Error('Not implemented')
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -26,7 +54,7 @@ export const auth = betterAuth({
       verification,
     },
   }),
-  plugins: [admin(),         customSession(async ({ user, session }) => {
+  plugins: [admin(), customSession(async ({ user, session }) => {
     return {
         focusedRole: [],
         user: {
@@ -35,53 +63,17 @@ export const auth = betterAuth({
         session
     };
 }),
+magicLink({ 
+  async sendMagicLink({ email, url, token }) {
+      const customerBillingPortalOrganizationId = await getCustomerBillingPortalOrganizationId()
+      if (customerBillingPortalOrganizationId) {
+        await handleCustomerBillingPortalEmailOTP({ email, url, token, organizationId: customerBillingPortalOrganizationId })
+      } else {
+        await handleMerchantEmailOTP({ email, url, token })
+      }
+  }, 
+})
 ],
-  hooks: {
-    before: createAuthMiddleware(async (ctx) => {
-      if (!ctx.body.callbackURL.startsWith('/billing/')) {
-        return ctx
-      }
-      if (ctx.body.callbackURL.startsWith('/billing/')) {
-        const [maybeCustomer] = await adminTransaction(async ({ transaction }) => {
-          return selectCustomers({
-            email: ctx.body.user.email,
-            organizationId: ctx.body.callbackURL.split('/')[2],
-          }, transaction)
-        })
-        /**
-         * TODO: quiet throw and just return the ctx
-         */
-        if (!maybeCustomer) {
-          throw new APIError('BAD_REQUEST')
-        }
-        if (maybeCustomer) {
-          // TODO: also check if the customer is already a user
-          // also check if they're already a merchant
-          return {
-            ...ctx,
-            body: {
-              ...ctx.body,
-              context: {
-                ...ctx.body.context,
-                role: 'customer',
-              },
-            },
-          }
-        }
-        return {
-          ...ctx,
-          body: {
-            ...ctx.body,
-            context: {
-              ...ctx.body.context,
-              role: 'merchant',
-            },
-          },
-        }
-      }
-      return ctx
-    }),
-  },
   databaseHooks: {
     user: {
       create: {
@@ -101,9 +93,20 @@ export const auth = betterAuth({
       },
     },
   },
+  session: {
+    additionalFields: {
+      contextOrganizationId: {
+        type: 'string',
+        required: false,
+        defaultValue: undefined,
+        input: false, // don't allow user to set contextOrganizationId
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url, token }, request) => {
+      console.log("====sendResetPassword====", { user, url, token })
       await sendForgotPasswordEmail({
         to: [user.email],
         url,

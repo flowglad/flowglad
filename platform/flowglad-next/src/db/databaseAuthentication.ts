@@ -262,9 +262,21 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
 }
 
 export async function databaseAuthenticationInfoForWebappRequest(
-  user: User
+  user: User & { role: string }
 ): Promise<DatabaseAuthenticationInfo> {
   const betterAuthId = user.id
+  if (!user.role) {
+    throw new Error('User role is required')
+  }
+  if (user.role === 'customer') {
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.userId, betterAuthId))
+    if (!customer) {
+      throw new Error('Customer not found')
+    }
+  }
   const [focusedMembership] = await db
     .select()
     .from(memberships)
@@ -331,11 +343,12 @@ export async function getDatabaseAuthenticationInfo(
       verifyKeyResult
     )
   }
+
   const sessionResult = await getSession()
   if (!sessionResult) {
     throw new Error('No user found for a non-API key transaction')
   }
   return await databaseAuthenticationInfoForWebappRequest(
-    sessionResult.user
+    sessionResult.user as User & { role: string }
   )
 }

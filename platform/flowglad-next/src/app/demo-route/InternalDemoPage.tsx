@@ -1,6 +1,8 @@
 'use client'
+import { useEffect } from 'react'
 import { PricingTable } from '@/registry/base/pricing-table'
 import type { PricingProductGroup } from '@/registry/base/pricing-table/types'
+import { trpc } from '../_trpc/client'
 
 const InternalDemoPage = () => {
   const productGroups: PricingProductGroup[] = [
@@ -133,7 +135,13 @@ const InternalDemoPage = () => {
       ],
     },
   ]
-
+  const { mutate: requestMagicLink } = trpc.customerBillingPortal.requestMagicLink.useMutation()
+  useEffect(() => {
+    requestMagicLink({
+      organizationId: '123',
+      email: 'test@test.com',
+    })
+  }, [])
   return <PricingTable
         productGroups={productGroups}
         currentGroupSlug="personal"
