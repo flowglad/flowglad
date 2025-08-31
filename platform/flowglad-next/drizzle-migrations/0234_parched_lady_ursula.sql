@@ -1,4 +1,4 @@
-GRANT merchant TO "postgres";
+GRANT merchant TO current_user;
 ALTER TABLE "countries" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER POLICY "Enable read for own organizations" ON "billing_period_items" RENAME TO "Enable read for own organizations (billing_period_items)";--> statement-breakpoint
 ALTER POLICY "Enable read for own organizations" ON "billing_periods" RENAME TO "Enable read for own organizations (billing_periods)";--> statement-breakpoint
