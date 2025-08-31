@@ -303,10 +303,11 @@ const dbInfoForCustomerBillingPortal = async ({ betterAuthId, organizationId }: 
 }
 
 export async function databaseAuthenticationInfoForWebappRequest(
-  user: User
+  user: User,
+  __testOnlyOrganizationId: string | undefined
 ): Promise<DatabaseAuthenticationInfo> {
   const betterAuthId = user.id
-  const customerOrganizationId = await getCustomerBillingPortalOrganizationId()
+  const customerOrganizationId = await getCustomerBillingPortalOrganizationId({ __testOrganizationId: __testOnlyOrganizationId })
 
   if (customerOrganizationId) {
     return await dbInfoForCustomerBillingPortal({ betterAuthId: user.id, organizationId: customerOrganizationId })
@@ -369,9 +370,11 @@ export async function databaseAuthenticationInfoForApiKeyResult(
   }
 }
 
-export async function getDatabaseAuthenticationInfo(
+export async function getDatabaseAuthenticationInfo(params: {
   apiKey: string | undefined
-): Promise<DatabaseAuthenticationInfo> {
+  __testOnlyOrganizationId: string | undefined
+}): Promise<DatabaseAuthenticationInfo> {
+  const { apiKey, __testOnlyOrganizationId } = params
   if (apiKey) {
     const verifyKeyResult = await keyVerify(apiKey)
     return await databaseAuthenticationInfoForApiKeyResult(
@@ -384,6 +387,7 @@ export async function getDatabaseAuthenticationInfo(
     throw new Error('No user found for a non-API key transaction')
   }
   return await databaseAuthenticationInfoForWebappRequest(
-    sessionResult.user as User & { role: string }
+    sessionResult.user as User,
+    __testOnlyOrganizationId
   )
 }
