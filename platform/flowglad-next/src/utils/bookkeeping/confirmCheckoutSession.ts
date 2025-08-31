@@ -56,8 +56,7 @@ export const confirmCheckoutSessionTransaction = async (
       !finalFeeCalculation &&
       checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
     ) {
-      console.log('Creating fee calculation for checkout session: ', createFeeCalculationForCheckoutSession)
-        const feeReadySession =
+      const feeReadySession =
         feeReadyCheckoutSessionSelectSchema.parse(checkoutSession)
       finalFeeCalculation =
         await createFeeCalculationForCheckoutSession(

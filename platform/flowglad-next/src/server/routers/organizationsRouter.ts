@@ -109,7 +109,6 @@ const getFocusedMembership = protectedProcedure
             userId,
             transaction
           )
-        console.log('====focusedMembership', focusedMembership)
         return focusedMembership
       }
     )
@@ -355,7 +354,6 @@ const updateFocusedMembership = protectedProcedure
     const membershipToFocus = memberships.find(
       (m) => m.membership.organizationId === input.organizationId
     )
-    console.log('====membershipToFocus', membershipToFocus)
     if (!membershipToFocus) {
       throw new TRPCError({
         code: 'NOT_FOUND',
