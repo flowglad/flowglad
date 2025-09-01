@@ -52,6 +52,48 @@
             "target": "app/pricing/page.tsx"
           }
         ]
+      },
+      {
+        "name": "invoices-list",
+        "type": "registry:component",
+        "title": "Invoices List",
+        "description": "A comprehensive invoice list component with sorting, pagination, and status badges.",
+        "registryDependencies": ["button", "badge"],
+        "files": [
+          {
+            "path": "src/registry/base/invoices-list/invoices-list.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/components/invoice-row.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/components/invoice-status-badge.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/components/invoice-amount.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/invoices-list/utils.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/invoices-list/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/invoices-list/page.tsx",
+            "type": "registry:page",
+            "target": "app/billing/invoices/page.tsx"
+          }
+        ]
       }
     ]
   }
