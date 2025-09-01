@@ -37,6 +37,17 @@ By the end of this migration, we will:
 - Hosted billing project can be safely removed
 - Improved developer experience with customizable components
 
+### Architectural Decisions
+
+#### URL-Based Customer Selection
+We're using URL-based customer selection (`/billing-portal/[organizationId]/[customerId]`) rather than session storage. This provides:
+- **Simplicity**: No session management complexity
+- **Shareability**: URLs can be bookmarked or shared
+- **Clarity**: Customer context is always explicit in the URL
+- **Stateless**: Each request is self-contained with all necessary context
+
+When a user has multiple customer profiles, they'll select one and navigate to the customer-specific URL. The customer ID remains in the URL for the entire session.
+
 ---
 
 ## Overview
@@ -250,24 +261,23 @@ getCustomersByEmail: customerProtectedProcedure
     organizationId: z.string()
   }))
   .query(async ({ input, ctx }) => {
-    // Return all customer profiles
+    // Return all customer profiles for this email
+    // Used by customer selector page
   })
 
-// Select a customer for the session
-selectCustomer: customerProtectedProcedure
+// Validate customer access (used by portal pages)
+validateCustomerAccess: customerProtectedProcedure
   .input(z.object({
-    customerId: z.string()
+    customerId: z.string(),
+    organizationId: z.string()
   }))
-  .mutation(async ({ input, ctx }) => {
-    // Store in session/cookie
-  })
-
-// Get selected customer from session
-getSelectedCustomer: customerProtectedProcedure
-  .query(async ({ ctx }) => {
-    // Return selected customer
+  .query(async ({ input, ctx }) => {
+    // Verify user has access to this customer
+    // Return customer if valid, throw if not
   })
 ```
+
+**Note:** We're using URL-based customer selection (`/billing-portal/[organizationId]/[customerId]`), so no session storage is needed. The customer ID is always explicit in the URL.
 
 **Test Coverage Required:**
 ```typescript
@@ -275,11 +285,10 @@ describe('Customer Management Procedures', () => {
   test('getCustomersByEmail returns all customer profiles for email')
   test('getCustomersByEmail filters by organizationId correctly')
   test('getCustomersByEmail returns empty array for non-existent email')
-  test('selectCustomer stores customer in session')
-  test('selectCustomer validates customer belongs to user')
-  test('selectCustomer throws error for invalid customerId')
-  test('getSelectedCustomer returns stored customer')
-  test('getSelectedCustomer returns null when no selection')
+  test('validateCustomerAccess returns customer for valid access')
+  test('validateCustomerAccess throws error for wrong user')
+  test('validateCustomerAccess throws error for wrong organization')
+  test('validateCustomerAccess throws error for non-existent customer')
 })
 ```
 
@@ -454,19 +463,11 @@ ALTER TABLE customers ADD COLUMN IF NOT EXISTS
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS
   portal_preferences JSONB DEFAULT '{}';
 
--- Add index for email lookup
+-- Add index for email lookup (performance optimization)
 CREATE INDEX IF NOT EXISTS idx_customers_email_org 
   ON customers(email, organization_id);
 
--- Session table for customer selection
-CREATE TABLE IF NOT EXISTS customer_portal_sessions (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  selected_customer_id TEXT,
-  organization_id TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  expires_at TIMESTAMP NOT NULL
-);
+-- No session table needed - using URL-based customer selection
 ```
 
 ---
@@ -493,19 +494,22 @@ export default function SelectCustomerPage({
   params: { organizationId: string } 
 }) {
   // Fetch customers for logged-in user
-  // If only one customer, redirect immediately
+  // If only one customer, redirect immediately to:
+  //   /billing-portal/[organizationId]/[customerId]
   // Otherwise show customer selector
-  // On selection, store and redirect to portal
+  // On selection, redirect to:
+  //   /billing-portal/[organizationId]/[customerId]
 }
 ```
 
 **Manual Test Cases:**
-1. Navigate to billing portal with single customer profile → Auto-redirects
+1. Navigate to billing portal with single customer profile → Auto-redirects to /[organizationId]/[customerId]
 2. Navigate with multiple customer profiles → Shows selector
-3. Select a customer → Redirects to main portal
-4. Refresh after selection → Maintains selection
+3. Select a customer → Redirects to /[organizationId]/[customerId]
+4. Direct access to /[organizationId]/[customerId] → Validates access and shows portal
 5. Invalid organization ID → Shows error
 6. No customers found → Shows appropriate message
+7. Invalid customer ID in URL → Redirects to selector or shows error
 
 ---
 
@@ -653,7 +657,7 @@ graph TD
 ### Integration Quality
 - [ ] Components integrate smoothly
 - [ ] Data flows correctly through system
-- [ ] Session management works properly
+- [ ] URL-based customer selection works properly
 - [ ] Stripe integration functions correctly
 - [ ] Multi-customer scenario handled
 
@@ -664,7 +668,7 @@ graph TD
 ### Technical Risks
 1. **Stripe API changes** - Use latest SDK, implement retry logic
 2. **RLS policy conflicts** - Thorough testing, staged rollout
-3. **Session management issues** - Use proven session libraries
+3. **Customer selection state** - URL-based, no session complexity
 4. **Performance with large datasets** - Implement pagination early
 
 ### Process Risks
