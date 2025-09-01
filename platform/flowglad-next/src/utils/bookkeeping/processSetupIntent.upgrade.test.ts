@@ -179,6 +179,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         status: CheckoutSessionStatus.Pending,
         purchaseId: purchase.id,
         livemode: true,
+        quantity: 1,
       })
 
       // Create fee calculation for the checkout session
@@ -268,6 +269,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         purchaseId: purchase.id,
         outputMetadata: checkoutMetadata,
         livemode: true,
+        quantity: 1,
       })
 
       // Create fee calculation for the checkout session
@@ -347,6 +349,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         status: CheckoutSessionStatus.Pending,
         purchaseId: purchase.id,
         livemode: true,
+        quantity: 1,
       })
 
       // Create fee calculation for the checkout session
@@ -453,6 +456,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         status: CheckoutSessionStatus.Pending,
         purchaseId: purchase.id,
         livemode: true,
+        quantity: 1,
       })
 
       // Create fee calculation for the checkout session
@@ -566,6 +570,8 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         type: CheckoutSessionType.AddPaymentMethod,
         status: CheckoutSessionStatus.Pending,
         livemode: true,
+        quantity: 1,
+        priceId: freePrice.id,
       })
 
       const setupIntent = mockSucceededSetupIntent({
