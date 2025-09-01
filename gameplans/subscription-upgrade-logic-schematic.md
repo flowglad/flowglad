@@ -227,7 +227,7 @@ subscriptions table:
 ├─────────────────────────────────────┤   │
 │ id: uuid-2                          │───┘
 │ status: active                      │
-│ metadata.upgraded_from: uuid-1      │
+│ metadata.upgraded_from_subscription_id: uuid-1      │
 └─────────────────────────────────────┘
 ```
 
