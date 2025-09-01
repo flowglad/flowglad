@@ -10,10 +10,9 @@ export default function Logout() {
   useEffect(() => {
     const performLogout = async () => {
       await logoutMutation.mutateAsync()
-      await authClient.signOut()
       redirect('/sign-in')
     }
     performLogout()
-  }, [logoutMutation])
+  }, [])
   return null
 }
