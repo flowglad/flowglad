@@ -58,7 +58,7 @@
         "type": "registry:component",
         "title": "Invoices List",
         "description": "A comprehensive invoice list component with sorting, pagination, and status badges.",
-        "registryDependencies": ["button", "badge"],
+        "registryDependencies": ["button", "badge", "skeleton"],
         "files": [
           {
             "path": "src/registry/base/invoices-list/invoices-list.tsx",
