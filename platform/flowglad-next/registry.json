@@ -52,6 +52,40 @@
             "target": "app/pricing/page.tsx"
           }
         ]
+      },
+      {
+        "name": "customer-selector",
+        "type": "registry:component",
+        "title": "Customer Selector",
+        "description": "A component for selecting customer profiles with search functionality and responsive grid layout.",
+        "registryDependencies": ["input", "card", "skeleton"],
+        "files": [
+          {
+            "path": "src/registry/base/customer-selector/customer-selector.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/components/customer-card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/components/customer-avatar.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/customer-selector/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/customer-selector/page.tsx",
+            "type": "registry:page",
+            "target": "app/customer-selector/page.tsx"
+          }
+        ]
       }
     ]
   }
