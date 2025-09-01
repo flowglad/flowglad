@@ -46,10 +46,48 @@ import { createSelectSchema } from 'drizzle-zod'
 import { noCase, sentenceCase, snakeCase } from 'change-case'
 
 export const merchantRole = pgRole('merchant', {
-  createRole: true,
-  createDb: true,
+  createRole: false,
+  createDb: false,
   inherit: true,
 })
+
+export const customerRole = pgRole('customer', {
+  createRole: false,
+  createDb: false,
+  inherit: true,
+})
+
+export const merchantPolicy = (
+  name: string,
+  Params: Omit<Parameters<typeof pgPolicy>[1], 'to'>
+) => {
+  return pgPolicy(name, {
+    ...Params,
+    to: merchantRole,
+  })
+}
+
+export const customerPolicy = (
+  name: string,
+  Params: Omit<Parameters<typeof pgPolicy>[1], 'to'>
+) => {
+  return pgPolicy(name, {
+    ...Params,
+    to: customerRole,
+  })
+}
+
+export const enableCustomerReadPolicy = (
+  name: string,
+  params: Omit<Parameters<typeof pgPolicy>[1], 'to' | 'for' | 'as'>
+) => {
+  return pgPolicy(name, {
+    ...params,
+    as: 'permissive',
+    to: customerRole,
+    for: 'select',
+  })
+}
 
 type ZodTableUnionOrType<
   T extends
@@ -722,7 +760,13 @@ export const createPaginatedSelectSchema = <T extends {}>(
 ) => {
   return z.object({
     cursor: z.string().optional(),
-    limit: z.number().min(1).max(100).optional(),
+    limit: z
+      .string()
+      .transform((str) => Number(str))
+      .refine((num) => num >= 1 && num <= 100, {
+        message: 'Limit must be between 1 and 100',
+      })
+      .optional(),
   }) as z.ZodType<{
     cursor?: string
     limit?: number

@@ -1,6 +1,8 @@
 'use client'
+import { useEffect } from 'react'
 import { PricingTable } from '@/registry/base/pricing-table'
 import type { PricingProductGroup } from '@/registry/base/pricing-table/types'
+import { trpc } from '../_trpc/client'
 
 const InternalDemoPage = () => {
   const productGroups: PricingProductGroup[] = [
@@ -15,13 +17,17 @@ const InternalDemoPage = () => {
             unitAmount: 0,
             currency: 'USD',
             intervalUnit: 'month',
-            intervalCount: 1
+            intervalCount: 1,
           },
           description: 'Basic tools to explore the platform.',
           features: [
             { text: 'Single user', included: true },
             { text: 'Community support', included: true },
-            { text: 'Usage limits apply', included: true, tooltip: 'Reasonable monthly limits for evaluation' },
+            {
+              text: 'Usage limits apply',
+              included: true,
+              tooltip: 'Reasonable monthly limits for evaluation',
+            },
             { text: 'Advanced analytics', included: false },
           ],
           cta: { text: 'Get started', variant: 'default' },
@@ -35,9 +41,10 @@ const InternalDemoPage = () => {
             unitAmount: 20,
             currency: 'USD',
             intervalUnit: 'month',
-            intervalCount: 1
+            intervalCount: 1,
           },
-          description: 'For individuals who need more power and higher limits.',
+          description:
+            'For individuals who need more power and higher limits.',
           features: [
             { text: 'Single user', included: true },
             { text: 'Priority email support', included: true },
@@ -55,9 +62,10 @@ const InternalDemoPage = () => {
             unitAmount: 40,
             currency: 'USD',
             intervalUnit: 'month',
-            intervalCount: 1
+            intervalCount: 1,
           },
-          description: 'All features for power users with maximum limits.',
+          description:
+            'All features for power users with maximum limits.',
           features: [
             { text: 'Single user', included: true },
             { text: 'Priority support', included: true },
@@ -80,9 +88,10 @@ const InternalDemoPage = () => {
             unitAmount: 49,
             currency: 'USD',
             intervalUnit: 'month',
-            intervalCount: 1
+            intervalCount: 1,
           },
-          description: 'Everything you need to collaborate as a small team.',
+          description:
+            'Everything you need to collaborate as a small team.',
           features: [
             { text: 'Up to 5 seats', included: true },
             { text: 'Role-based access', included: true },
@@ -98,9 +107,10 @@ const InternalDemoPage = () => {
             unitAmount: 99,
             currency: 'USD',
             intervalUnit: 'month',
-            intervalCount: 1
+            intervalCount: 1,
           },
-          description: 'For growing teams that need advanced controls and insights.',
+          description:
+            'For growing teams that need advanced controls and insights.',
           features: [
             { text: 'Up to 20 seats', included: true },
             { text: 'SSO (SAML)', included: true },
@@ -118,9 +128,10 @@ const InternalDemoPage = () => {
             unitAmount: 0,
             currency: 'USD',
             intervalUnit: 'month',
-            intervalCount: 1
+            intervalCount: 1,
           },
-          description: 'Custom pricing for large organizations with advanced needs.',
+          description:
+            'Custom pricing for large organizations with advanced needs.',
           features: [
             { text: 'Unlimited seats', included: true },
             { text: 'Dedicated support & SLA', included: true },
@@ -133,15 +144,24 @@ const InternalDemoPage = () => {
       ],
     },
   ]
-
-  return <PricingTable
-        productGroups={productGroups}
-        currentGroupSlug="personal"
-        onProductSelect={() => {
-          // Handle product selection
-        }}
-        showToggle={true}
-      />
+  const { mutate: requestMagicLink } =
+    trpc.customerBillingPortal.requestMagicLink.useMutation()
+  useEffect(() => {
+    requestMagicLink({
+      organizationId: '123',
+      email: 'test@test.com',
+    })
+  }, [])
+  return (
+    <PricingTable
+      productGroups={productGroups}
+      currentGroupSlug="personal"
+      onProductSelect={() => {
+        // Handle product selection
+      }}
+      showToggle={true}
+    />
+  )
 }
 
 export default InternalDemoPage

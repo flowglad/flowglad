@@ -23,7 +23,8 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -111,15 +112,21 @@ export const payments = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.stripeChargeId]),
       constructIndex(TABLE_NAME, [table.subscriptionId]),
-      pgPolicy('Enable select for own organization', {
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"customer_id" in (select "id" from "customers")`,
+        }
+      ),
+      merchantPolicy('Enable select for own organization', {
         as: 'permissive',
-        to: merchantRole,
+        to: 'merchant',
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
-      pgPolicy('Enable update for own organization', {
+      merchantPolicy('Enable update for own organization', {
         as: 'permissive',
-        to: merchantRole,
+        to: 'merchant',
         for: 'update',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),

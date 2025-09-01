@@ -17,7 +17,7 @@ interface PricingColumnProps {
 export function PricingColumn({
   product,
   onSelect,
-  className
+  className,
 }: PricingColumnProps) {
   const handleSelect = () => {
     if (onSelect && !product.current) {
@@ -26,10 +26,10 @@ export function PricingColumn({
   }
 
   return (
-    <Card 
+    <Card
       className={cn(
-        "relative flex flex-col p-6 h-full",
-        product.popular && "bg-accent/20 border-accent",
+        'relative flex flex-col p-6 h-full',
+        product.popular && 'bg-accent/20 border-accent',
         className
       )}
     >
@@ -43,17 +43,27 @@ export function PricingColumn({
       <div className="mt-6 mb-8">
         <Button
           className={cn(
-            "w-full",
-            product.popular && !product.current && "bg-primary hover:bg-primary/90 text-primary-foreground",
-            product.popular && product.current && "bg-primary/50 text-primary-foreground",
-            !product.popular && !product.current && "",
-            product.current && "opacity-50"
+            'w-full',
+            product.popular &&
+              !product.current &&
+              'bg-primary hover:bg-primary/90 text-primary-foreground',
+            product.popular &&
+              product.current &&
+              'bg-primary/50 text-primary-foreground',
+            !product.popular && !product.current && '',
+            product.current && 'opacity-50'
           )}
-          variant={product.current ? "outline" : product.popular ? "default" : "default"}
+          variant={
+            product.current
+              ? 'outline'
+              : product.popular
+                ? 'default'
+                : 'default'
+          }
           disabled={product.current || product.cta.disabled}
           onClick={handleSelect}
         >
-          {product.current ? "Your current plan" : product.cta.text}
+          {product.current ? 'Your current plan' : product.cta.text}
         </Button>
       </div>
 

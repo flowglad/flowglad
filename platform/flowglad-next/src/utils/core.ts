@@ -338,7 +338,10 @@ export const safeZodPositiveInteger = z
     description: 'A positive integer',
   })
 
-export const zodOptionalNullableString = z.string().nullable().optional()
+export const zodOptionalNullableString = z
+  .string()
+  .nullable()
+  .optional()
 
 export const safeZodPositiveIntegerOrZero = safeZodPositiveInteger.or(
   z.literal(0)
@@ -367,12 +370,13 @@ export const nanoid = customAlphabet(
 
 type EnumValues<T> = T extends Record<string, infer U> ? U : never
 
-export const createSafeZodEnum = <
-  T extends Record<string, string>
->(
+export const createSafeZodEnum = <T extends Record<string, string>>(
   enumType: T
 ) => {
-  const values = Object.values(enumType) as [EnumValues<T>, ...EnumValues<T>[]]
+  const values = Object.values(enumType) as [
+    EnumValues<T>,
+    ...EnumValues<T>[],
+  ]
   return z.enum(values as [EnumValues<T>, ...EnumValues<T>[]])
 }
 

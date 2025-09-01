@@ -11,9 +11,15 @@ import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 // New imports for ledger and transaction output types
 import { TransactionOutput } from './transactionEnhacementTypes'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
+import core from '@/utils/core'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
+  /**
+   * Only used in test environment to set the organization id for the transaction
+   * Used in testing customer billing portal RLS functionality
+   */
+  __testOnlyOrganizationId?: string
 }
 
 /**
@@ -23,9 +29,17 @@ export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
   options?: AuthenticatedTransactionOptions
 ) {
-  const { apiKey } = options ?? {}
+  const { apiKey, __testOnlyOrganizationId } = options ?? {}
+  if (!core.IS_TEST && __testOnlyOrganizationId) {
+    throw new Error(
+      'Attempted to use test organization id in a non-test environment'
+    )
+  }
   const { userId, livemode, jwtClaim } =
-    await getDatabaseAuthenticationInfo(apiKey)
+    await getDatabaseAuthenticationInfo({
+      apiKey,
+      __testOnlyOrganizationId,
+    })
   return await db.transaction(async (transaction) => {
     if (!jwtClaim) {
       throw new Error('No jwtClaim found')
@@ -49,9 +63,7 @@ export async function authenticatedTransaction<T>(
       )}', TRUE)`
     )
 
-    await transaction.execute(
-      sql`set role ${sql.raw(jwtClaim.role)}`
-    )
+    await transaction.execute(sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)}`)
     await transaction.execute(
       sql`SELECT set_config('app.livemode', '${sql.raw(
         Boolean(livemode).toString()
@@ -83,9 +95,12 @@ export async function comprehensiveAuthenticatedTransaction<T>(
   ) => Promise<TransactionOutput<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
-  const { apiKey } = options ?? {}
+  const { apiKey, __testOnlyOrganizationId } = options ?? {}
   const { userId, livemode, jwtClaim } =
-    await getDatabaseAuthenticationInfo(apiKey)
+    await getDatabaseAuthenticationInfo({
+      apiKey,
+      __testOnlyOrganizationId,
+    })
 
   return db.transaction(async (transaction) => {
     if (!jwtClaim) {

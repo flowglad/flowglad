@@ -19,7 +19,8 @@ import {
   hiddenColumnsForClientSchema,
   nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -69,64 +70,73 @@ export const usageEvents = pgTable(
         table.transactionId,
         table.usageMeterId,
       ]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
-      }),
-      pgPolicy(
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'permissive',
+          for: 'all',
+          using: sql`"customer_id" in (select "id" from "customers" where "organization_id" in (select "organization_id" from "memberships"))`,
+        }
+      ),
+      merchantPolicy(
         'On insert, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'permissive',
           for: 'insert',
           withCheck: usageEventPriceMustMatchUsageMeter,
         }
       ),
-      pgPolicy(
+      merchantPolicy(
         'On update, only allow usage events for prices with matching usage meter',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'permissive',
           for: 'update',
           using: usageEventPriceMustMatchUsageMeter,
         }
       ),
-      pgPolicy(
+      merchantPolicy(
         'On insert, only allow usage events for subscriptions with matching customer',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'permissive',
           for: 'insert',
           withCheck: usageEventSubscriptionMustMatchCustomer,
         }
       ),
-      pgPolicy(
+      merchantPolicy(
         'On update, only allow usage events for subscriptions with matching customer',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'permissive',
           for: 'update',
           withCheck: usageEventSubscriptionMustMatchCustomer,
         }
       ),
-      pgPolicy(
+      merchantPolicy(
         'On insert, only allow usage events for billing periods with matching subscription',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'permissive',
           for: 'insert',
           withCheck: usageEventBillingPeriodMustMatchSubscription,
         }
       ),
-      pgPolicy(
+      merchantPolicy(
         'On update, only allow usage events for billing periods with matching subscription',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'permissive',
           for: 'update',
           withCheck: usageEventBillingPeriodMustMatchSubscription,
+        }
+      ),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"customer_id" in (select "id" from "customers")`,
         }
       ),
       livemodePolicy(),

@@ -15,7 +15,12 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
-import { FlowgladEventType, EventNoun, InvoiceStatus, LedgerTransactionType } from '@/types'
+import {
+  FlowgladEventType,
+  EventNoun,
+  InvoiceStatus,
+  LedgerTransactionType,
+} from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
@@ -117,7 +122,7 @@ export const stripePaymentIntentSucceededTask = task({
           processedAt: null,
         },
       ]
-    
+
       return [result, eventInserts]
     }, {})
 

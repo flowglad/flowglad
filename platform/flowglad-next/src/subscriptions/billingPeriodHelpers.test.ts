@@ -116,7 +116,7 @@ describe('Subscription Billing Period Transition', async () => {
       customerId: customer.id,
     })
 
-    subscription = await setupSubscription({
+    subscription = (await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
       priceId: price.id,
@@ -126,7 +126,7 @@ describe('Subscription Billing Period Transition', async () => {
         Date.now() - 30 * 24 * 60 * 60 * 1000
       ),
       renews: true,
-    }) as Subscription.StandardRecord
+    })) as Subscription.StandardRecord
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
       startDate: subscription.currentBillingPeriodStart,

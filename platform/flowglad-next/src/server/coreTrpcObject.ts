@@ -10,7 +10,7 @@ export const t = initTRPC.meta<OpenApiMeta>().create({
   errorFormatter({ shape, error }) {
     // Extract better error details from our enhanced errors
     const errorDetails = extractErrorDetails(error)
-    
+
     return {
       ...shape,
       data: {
@@ -20,7 +20,9 @@ export const t = initTRPC.meta<OpenApiMeta>().create({
         developerMessage: errorDetails.developerMessage,
         context: errorDetails.context,
         // Keep the original for backward compatibility if it exists
-        ...(shape.data && 'zodError' in shape.data ? { zodError: (shape.data as any).zodError } : {}),
+        ...(shape.data && 'zodError' in shape.data
+          ? { zodError: (shape.data as any).zodError }
+          : {}),
       },
     }
   },

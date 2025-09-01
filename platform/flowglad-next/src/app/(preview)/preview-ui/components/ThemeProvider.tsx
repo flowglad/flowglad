@@ -16,7 +16,9 @@ type ThemeProviderState = {
   actualTheme: 'light' | 'dark'
 }
 
-const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
+const ThemeProviderContext = createContext<
+  ThemeProviderState | undefined
+>(undefined)
 
 export function ThemeProvider({
   children,
@@ -25,7 +27,9 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(defaultTheme)
-  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light')
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(
+    'light'
+  )
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -40,7 +44,9 @@ export function ThemeProvider({
     if (!mounted) return
 
     const root = document.documentElement
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const mediaQuery = window.matchMedia(
+      '(prefers-color-scheme: dark)'
+    )
 
     const applyTheme = () => {
       let effectiveTheme: 'light' | 'dark' = 'light'
@@ -70,13 +76,14 @@ export function ThemeProvider({
     }
 
     mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
+    return () =>
+      mediaQuery.removeEventListener('change', handleChange)
   }, [theme, storageKey, mounted])
 
   const value = {
     theme,
     setTheme: (newTheme: Theme) => setTheme(newTheme),
-    actualTheme
+    actualTheme,
   }
 
   return (

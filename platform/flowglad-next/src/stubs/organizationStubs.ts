@@ -1,5 +1,9 @@
 import { Organization } from '@/db/schema/organizations'
-import { BusinessOnboardingStatus, CurrencyCode, StripeConnectContractType } from '@/types'
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  StripeConnectContractType,
+} from '@/types'
 
 export const dummyOrganization: Organization.Record = {
   id: '1',

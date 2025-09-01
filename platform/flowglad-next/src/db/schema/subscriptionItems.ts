@@ -20,7 +20,8 @@ import {
   hiddenColumnsForClientSchema,
   nullableStringForeignKey,
   pgEnumColumn,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -82,11 +83,17 @@ export const subscriptionItems = pgTable(
       constructIndex(TABLE_NAME, [table.priceId]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       constructIndex(TABLE_NAME, [table.usageMeterId]),
-      pgPolicy(
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"subscription_id" in (select "id" from "subscriptions")`,
+        }
+      ),
+      merchantPolicy(
         'Enable actions for own organizations via subscriptions',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'merchant',
           for: 'all',
           using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
         }

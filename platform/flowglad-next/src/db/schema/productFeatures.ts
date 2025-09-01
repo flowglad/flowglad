@@ -1,4 +1,4 @@
-import { pgTable, pgPolicy } from 'drizzle-orm/pg-core'
+import { pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import {
@@ -15,7 +15,8 @@ import {
   constructIndex,
   membershipOrganizationIdIntegrityCheckPolicy,
   parentForeignKeyIntegrityCheckPolicy,
-  merchantRole,
+  merchantPolicy,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { products } from '@/db/schema/products'
 import { features } from '@/db/schema/features'
@@ -44,17 +45,25 @@ export const productFeatures = pgTable(
       constructIndex(TABLE_NAME, [table.productId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       membershipOrganizationIdIntegrityCheckPolicy(),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"product_id" in (select "id" from "products")`,
+        }
+      ),
       parentForeignKeyIntegrityCheckPolicy({
         parentTableName: 'products',
         parentIdColumnInCurrentTable: 'product_id',
         currentTableName: TABLE_NAME,
       }),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
-      }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          for: 'all',
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        }
+      ),
       parentForeignKeyIntegrityCheckPolicy({
         parentTableName: 'features',
         parentIdColumnInCurrentTable: 'feature_id',

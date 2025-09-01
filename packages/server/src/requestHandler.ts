@@ -100,7 +100,9 @@ export const createRequestHandler = (
       // We need to use a type assertion here because TypeScript cannot narrow the type
       // of joinedPath to a specific FlowgladActionKey at compile time, even though
       // we've validated it at runtime
-      const result = await (handler as SubRouteHandler<typeof joinedPath>)(
+      const result = await (
+        handler as SubRouteHandler<typeof joinedPath>
+      )(
         {
           method: input.method as any,
           data: data as any,

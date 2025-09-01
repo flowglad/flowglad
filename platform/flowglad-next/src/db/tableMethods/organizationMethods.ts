@@ -100,28 +100,31 @@ export const insertOrDoNothingOrganizationByExternalId = async (
   return result[0]
 }
 
-export const selectOrganizationAndFirstMemberByOrganizationId = async (
-  organizationId: string,
-  transaction: DbTransaction
-) => {
-  const result = await transaction
-    .select({
-      organization: organizations,
-      user: users,
-    })
-    .from(organizations)
-    .innerJoin(memberships, eq(memberships.organizationId, organizations.id))
-    .innerJoin(users, eq(users.id, memberships.userId))
-    .where(eq(organizations.id, organizationId))
-    .orderBy(asc(memberships.createdAt))
-    .limit(1)
+export const selectOrganizationAndFirstMemberByOrganizationId =
+  async (organizationId: string, transaction: DbTransaction) => {
+    const result = await transaction
+      .select({
+        organization: organizations,
+        user: users,
+      })
+      .from(organizations)
+      .innerJoin(
+        memberships,
+        eq(memberships.organizationId, organizations.id)
+      )
+      .innerJoin(users, eq(users.id, memberships.userId))
+      .where(eq(organizations.id, organizationId))
+      .orderBy(asc(memberships.createdAt))
+      .limit(1)
 
-  if (!result || result.length === 0) {
-    return null
-  }
+    if (!result || result.length === 0) {
+      return null
+    }
 
-  return {
-    organization: organizationsSelectSchema.parse(result[0].organization),
-    user: usersSelectSchema.parse(result[0].user),
+    return {
+      organization: organizationsSelectSchema.parse(
+        result[0].organization
+      ),
+      user: usersSelectSchema.parse(result[0].user),
+    }
   }
-}

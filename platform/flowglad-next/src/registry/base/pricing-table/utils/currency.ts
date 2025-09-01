@@ -1,8 +1,21 @@
 // Zero-decimal currencies (don't use decimal places)
 const ZERO_DECIMAL_CURRENCIES = new Set([
-  'BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW',
-  'MGA', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF',
-  'XOF', 'XPF'
+  'BIF',
+  'CLP',
+  'DJF',
+  'GNF',
+  'JPY',
+  'KMF',
+  'KRW',
+  'MGA',
+  'PYG',
+  'RWF',
+  'UGX',
+  'VND',
+  'VUV',
+  'XAF',
+  'XOF',
+  'XPF',
 ])
 
 /**

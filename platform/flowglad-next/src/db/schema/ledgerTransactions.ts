@@ -1,4 +1,4 @@
-import { text, pgTable, pgPolicy, jsonb } from 'drizzle-orm/pg-core'
+import { text, pgTable, jsonb } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import {
@@ -9,7 +9,7 @@ import {
   livemodePolicy,
   constructUniqueIndex,
   pgEnumColumn,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -60,12 +60,15 @@ export const ledgerTransactions = pgTable(
       table.livemode,
       table.organizationId,
     ]),
-    pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-      as: 'permissive',
-      to: merchantRole,
-      for: 'all',
-      using: sql`"organization_id" in (select "organization_id" from "memberships")`,
-    }),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'all',
+        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+      }
+    ),
     livemodePolicy(),
   ]
 )

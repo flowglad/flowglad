@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import {
   jsonb,
-  pgPolicy,
   pgTable,
   text,
   integer,
@@ -22,7 +21,7 @@ import {
   createPaginatedListQuerySchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -121,11 +120,11 @@ export const checkoutSessions = pgTable(
       constructIndex(TABLE_NAME, [table.discountId]),
       constructIndex(TABLE_NAME, [table.customerId]),
       livemodePolicy(),
-      pgPolicy(
+      merchantPolicy(
         'Enable all actions for discounts in own organization',
         {
           as: 'permissive',
-          to: merchantRole,
+          to: 'all',
           for: 'all',
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }

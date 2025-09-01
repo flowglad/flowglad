@@ -56,7 +56,9 @@ export const OrganizationPaymentNotificationEmail = ({
       </Paragraph>
       <DetailSection>
         <DetailItem variant="organization">Customer</DetailItem>
-        <DetailValue>{customerName} - ({customerEmail})</DetailValue>
+        <DetailValue>
+          {customerName} - ({customerEmail})
+        </DetailValue>
         <DetailItem variant="organization">Payment</DetailItem>
         <DetailValue>{humanReadableAmount}</DetailValue>
         <DetailItem variant="organization">Status</DetailItem>

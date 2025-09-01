@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
+import { pgTable, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   ommittedColumnsForInsertSchema,
@@ -7,17 +7,19 @@ import {
   tableBase,
   constructUniqueIndex,
   SelectConditions,
-  merchantRole,
+  merchantPolicy,
+  customerRole,
+  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { z } from 'zod'
 import { CountryCode } from '@/types'
 import core from '@/utils/core'
 import { sql } from 'drizzle-orm'
 
-const COUNTRIES_TABLE_NAME = 'countries'
+const TABLE_NAME = 'countries'
 
 export const countries = pgTable(
-  COUNTRIES_TABLE_NAME,
+  TABLE_NAME,
   {
     ...R.omit(['livemode'], tableBase('country')),
     name: text('name').notNull().unique(),
@@ -25,14 +27,22 @@ export const countries = pgTable(
   },
   (table) => {
     return [
-      constructUniqueIndex(COUNTRIES_TABLE_NAME, [table.name]),
-      constructUniqueIndex(COUNTRIES_TABLE_NAME, [table.code]),
-      pgPolicy('Enable read', {
+      constructUniqueIndex(TABLE_NAME, [table.name]),
+      constructUniqueIndex(TABLE_NAME, [table.code]),
+      merchantPolicy('Enable read', {
         as: 'permissive',
-        to: merchantRole,
+        to: 'merchant',
         for: 'select',
         using: sql`true`,
       }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          for: 'select',
+          using: sql`true`,
+        }
+      ),
     ]
   }
 )

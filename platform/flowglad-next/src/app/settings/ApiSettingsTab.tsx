@@ -23,9 +23,11 @@ const ApiSettingsTab = () => {
           buttonIcon={<PlusIcon size={16} />}
           buttonOnClick={() => setIsCreateApiKeyModalOpen(true)}
         />
-        <ApiKeysTable filters={{
-          type: FlowgladApiKeyType.Secret,
-        }} />
+        <ApiKeysTable
+          filters={{
+            type: FlowgladApiKeyType.Secret,
+          }}
+        />
         <CreateApiKeyModal
           isOpen={isCreateApiKeyModalOpen}
           setIsOpen={setIsCreateApiKeyModalOpen}
