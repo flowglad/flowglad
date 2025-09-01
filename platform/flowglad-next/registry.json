@@ -140,6 +140,76 @@
             "target": "app/billing/invoices/page.tsx"
           }
         ]
+      },
+      {
+        "name": "payment-methods-list",
+        "type": "registry:component",
+        "title": "Payment Methods List",
+        "description": "A flexible payment methods list component for displaying and managing payment methods with card brand logos.",
+        "registryDependencies": ["button", "badge", "popover", "skeleton"],
+        "files": [
+          {
+            "path": "src/registry/base/payment-methods-list/payment-methods-list.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/components/payment-method-row.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/components/card-brand-logo.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/components/add-payment-method-button.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/visa.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/mastercard.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/amex.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/discover.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/diners.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/jcb.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/unionpay.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/page.tsx",
+            "type": "registry:page",
+            "target": "app/payment-methods/page.tsx"
+          }
+        ]
       }
     ]
   }
