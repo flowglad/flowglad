@@ -1,5 +1,5 @@
 DO $$ BEGIN
-    CREATE ROLE "authenticated";
+    CREATE ROLE "customer";
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -50,8 +50,6 @@ BEGIN
     END LOOP;
 END
 $$;
-
-GRANT customer TO postgres;
 
 CREATE INDEX IF NOT EXISTS "memberships_user_id_focused_idx" ON "memberships" USING btree ("user_id","focused");--> statement-breakpoint
 DO $$
