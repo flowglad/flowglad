@@ -793,6 +793,7 @@ export const setupPrice = async ({
   active = true,
   usageMeterId,
   startsWithCreditTrial,
+  slug,
 }: {
   productId: string
   name: string
@@ -809,6 +810,7 @@ export const setupPrice = async ({
   trialPeriodDays?: number
   active?: boolean
   startsWithCreditTrial?: boolean
+  slug?: string
 }): Promise<Price.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
@@ -821,6 +823,7 @@ export const setupPrice = async ({
       active,
       currency: currency ?? CurrencyCode.USD,
       externalId: externalId ?? core.nanoid(),
+      slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
     }
 
     const priceConfig = {
@@ -857,7 +860,6 @@ export const setupPrice = async ({
             ...basePrice,
             ...priceConfig[PriceType.SinglePayment],
             type: PriceType.SinglePayment,
-            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -867,7 +869,6 @@ export const setupPrice = async ({
             ...basePrice,
             ...priceConfig[PriceType.Subscription],
             type: PriceType.Subscription,
-            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -878,7 +879,6 @@ export const setupPrice = async ({
             ...priceConfig[PriceType.Usage],
             usageMeterId: usageMeterId!,
             type: PriceType.Usage,
-            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )

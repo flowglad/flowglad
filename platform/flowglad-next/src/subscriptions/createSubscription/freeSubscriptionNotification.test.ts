@@ -96,17 +96,13 @@ describe('Free Subscription Notification Behavior', () => {
       startDate: new Date(),
       interval: IntervalUnit.Month,
       intervalCount: 1,
-      trialEnd: null,
       autoStart: true,
-      defaultPaymentMethod: null,
-      backupPaymentMethod: null,
       discountRedemption: null,
       metadata: {},
       name: 'Free Subscription',
-      stripeSetupIntentId: null,
     }
     
-    await adminTransaction(async (transaction) => {
+    await adminTransaction(async ({transaction}) => {
       await createSubscriptionWorkflow(params, transaction)
     })
     
@@ -136,17 +132,13 @@ describe('Free Subscription Notification Behavior', () => {
       startDate: new Date(),
       interval: IntervalUnit.Month,
       intervalCount: 1,
-      trialEnd: null,
       autoStart: true,
       defaultPaymentMethod: paymentMethod,
-      backupPaymentMethod: null,
-      discountRedemption: null,
       metadata: {},
       name: 'Paid Subscription',
-      stripeSetupIntentId: null,
     }
     
-    await adminTransaction(async (transaction) => {
+    await adminTransaction(async ({transaction}) => {
       await createSubscriptionWorkflow(params, transaction)
     })
     
@@ -181,17 +173,13 @@ describe('Free Subscription Notification Behavior', () => {
       startDate: new Date(),
       interval: IntervalUnit.Month,
       intervalCount: 1,
-      trialEnd: null,
       autoStart: true,
-      defaultPaymentMethod: null,
-      backupPaymentMethod: null,
       discountRedemption: null,
       metadata: {},
       name: 'Trial Subscription',
-      stripeSetupIntentId: null,
     }
     
-    await adminTransaction(async (transaction) => {
+    await adminTransaction(async ({transaction}) => {
       await createSubscriptionWorkflow(params, transaction)
     })
     
