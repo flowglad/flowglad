@@ -397,8 +397,11 @@ export const setupSubscription = async (params: {
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
-defaultPaymentMethodId: params.defaultPaymentMethodId ?? params.paymentMethodId ?? null,
-status: status as
+          defaultPaymentMethodId:
+            params.defaultPaymentMethodId ??
+            params.paymentMethodId ??
+            null,
+          status: status as
             | SubscriptionStatus.CreditTrial
             | SubscriptionStatus.Active
             | SubscriptionStatus.Canceled,
@@ -423,7 +426,8 @@ status: status as
           renews: false,
           isFreePlan: params.isFreePlan ?? false,
           cancellationReason: params.cancellationReason ?? null,
-          replacedBySubscriptionId: params.replacedBySubscriptionId ?? null,
+          replacedBySubscriptionId:
+            params.replacedBySubscriptionId ?? null,
         } as Subscription.NonRenewingInsert,
         transaction
       )) as Subscription.NonRenewingRecord
@@ -432,11 +436,10 @@ status: status as
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
-<<<<<<< HEAD
-          defaultPaymentMethodId: params.defaultPaymentMethodId ?? params.paymentMethodId ?? null,
-          status: status as SubscriptionStatus.Trialing | SubscriptionStatus.Active | SubscriptionStatus.PastDue | SubscriptionStatus.Unpaid | SubscriptionStatus.CancellationScheduled | SubscriptionStatus.Incomplete | SubscriptionStatus.IncompleteExpired | SubscriptionStatus.Canceled | SubscriptionStatus.Paused,
-=======
-          defaultPaymentMethodId: params.paymentMethodId,
+          defaultPaymentMethodId:
+            params.defaultPaymentMethodId ??
+            params.paymentMethodId ??
+            null,
           status: status as
             | SubscriptionStatus.Trialing
             | SubscriptionStatus.Active
@@ -447,7 +450,6 @@ status: status as
             | SubscriptionStatus.IncompleteExpired
             | SubscriptionStatus.Canceled
             | SubscriptionStatus.Paused,
->>>>>>> main
           livemode: params.livemode ?? true,
           billingCycleAnchorDate: new Date(),
           currentBillingPeriodEnd:
@@ -472,7 +474,8 @@ status: status as
           renews: isNil(params.renews) ? true : params.renews,
           isFreePlan: params.isFreePlan ?? false,
           cancellationReason: params.cancellationReason ?? null,
-          replacedBySubscriptionId: params.replacedBySubscriptionId ?? null,
+          replacedBySubscriptionId:
+            params.replacedBySubscriptionId ?? null,
         },
         transaction
       )) as Subscription.StandardRecord
