@@ -461,14 +461,6 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       (subscription) => subscription.trialEnd
     )
 
-    // Prepare metadata with upgrade information if applicable
-    const upgradeMetadata = canceledFreeSubscription
-      ? {
-          upgraded_from_subscription_id: canceledFreeSubscription.id,
-          upgrade_date: new Date().toISOString(),
-        }
-      : {}
-
     const output = await createSubscriptionWorkflow(
       {
         stripeSetupIntentId: setupIntent.id,
@@ -490,10 +482,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         startDate: new Date(),
         autoStart: true,
         quantity: checkoutSession.quantity,
-        metadata: {
-          ...checkoutSession.outputMetadata,
-          ...upgradeMetadata,
-        },
+        metadata: checkoutSession.outputMetadata ?? {},
         name: checkoutSession.outputName ?? undefined,
         product,
         livemode: checkoutSession.livemode,

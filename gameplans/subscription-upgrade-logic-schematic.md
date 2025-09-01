@@ -39,6 +39,39 @@ graph TD
     O --> P[Return Success]
 ```
 
+## Business Rules
+
+### Single Free Subscription Constraint
+**REQUIREMENT**: No customer should ever have more than 1 free subscription active at any given time.
+
+This constraint must be enforced at:
+1. **Subscription Creation** - Before creating a new free subscription, check for existing active free subscriptions
+2. **Subscription Reactivation** - When reactivating a canceled free subscription
+3. **Checkout Session Creation** - When creating a checkout for a free product
+4. **Stripe Webhook Processing** - When handling subscription creation from Stripe
+
+### Validation Implementation
+```typescript
+// Before creating any free subscription
+async function validateSingleFreeSubscription(
+  customerId: string,
+  transaction: DbTransaction
+): Promise<void> {
+  const existingFreeSubscriptions = await selectSubscriptions({
+    customerId,
+    status: SubscriptionStatus.Active,
+    isFreePlan: true
+  }, transaction)
+  
+  if (existingFreeSubscriptions.length > 0) {
+    throw new Error(
+      `Customer ${customerId} already has an active free subscription. ` +
+      `Only one free subscription is allowed per customer.`
+    )
+  }
+}
+```
+
 ## Core Logic Changes
 
 ### 1. Entry Point Modification
@@ -93,27 +126,17 @@ export async function cancelFreeSubscriptionIfExists(
 }
 ```
 
-### 3. Modified Creation Workflow
-**File**: `/src/subscriptions/createSubscription/workflow.ts`
-**Function**: `createSubscriptionWorkflow`
+### 3. Subscription Linking (Database Column Approach)
+**IMPORTANT**: Never use metadata for business logic as it's customer-controlled.
 
-```typescript
-// AFTER: Accept and handle previous subscription
-interface CreateSubscriptionParams {
-  // ... existing params ...
-  previousSubscriptionId?: string  // NEW
-}
+The upgrade relationship is tracked using the `replacedBySubscriptionId` column:
+- This is a proper database column with an index
+- Creates a one-way link from old → new subscription  
+- Upgrade date is implicitly captured by new subscription's `createdAt`
 
-// In workflow:
-if (params.previousSubscriptionId) {
-  // Transfer relevant data from old subscription
-  // Add to metadata for tracking
-  metadata.upgraded_from = params.previousSubscriptionId
-  metadata.upgrade_date = new Date().toISOString()
-}
-```
+**NO CHANGES NEEDED** to `createSubscriptionWorkflow` - linking happens after creation.
 
-### 4. Subscription Linking
+### 4. Link Subscriptions After Creation
 **File**: `/src/utils/bookkeeping/processSetupIntent.ts`
 
 ```typescript
@@ -207,7 +230,7 @@ CANCELED (reason: upgraded_to_paid)
 ```
 NON-EXISTENT
   ↓ [setup intent succeeds]
-ACTIVE (paid) with metadata.upgraded_from
+ACTIVE (paid) - no metadata tracking needed
 ```
 
 ### Database Record Linkage
@@ -220,6 +243,7 @@ subscriptions table:
 │ status: canceled                    │
 │ cancellation_reason: upgraded_to_paid│
 │ replaced_by_subscription_id: uuid-2 │◄──┐
+│ canceled_at: 2024-01-15T10:30:00Z   │   │
 └─────────────────────────────────────┘   │
                                            │
 ┌─────────────────────────────────────┐   │
@@ -227,9 +251,12 @@ subscriptions table:
 ├─────────────────────────────────────┤   │
 │ id: uuid-2                          │───┘
 │ status: active                      │
-│ metadata.upgraded_from_subscription_id: uuid-1      │
+│ created_at: 2024-01-15T10:30:01Z    │
+│ metadata: {...customer_controlled}  │
 └─────────────────────────────────────┘
 ```
+
+**Note**: The upgrade date is captured by comparing `canceled_at` on the old subscription with `created_at` on the new subscription. No metadata tracking needed.
 
 ## Error Handling
 

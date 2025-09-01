@@ -11,6 +11,8 @@ import {
  * This is used during the setup intent success flow to handle the transition
  * from free to paid subscriptions.
  * 
+ * Tested via integration tests in processSetupIntent.upgrade.test.ts
+ * 
  * @param customerId - The customer whose free subscription should be canceled
  * @param transaction - Database transaction to ensure atomicity
  * @returns The canceled subscription if one was found and canceled, null otherwise

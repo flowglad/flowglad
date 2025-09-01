@@ -220,16 +220,8 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       expect(activeSubscriptions).toHaveLength(1)
       expect(activeSubscriptions[0].priceId).toBe(paidPrice.id)
 
-      // Verify linking between subscriptions
+      // Verify linking between subscriptions via the replacedBySubscriptionId column
       expect(updatedFreeSubscription.replacedBySubscriptionId).toBe(activeSubscriptions[0].id)
-      
-      // Verify metadata
-      const newSubscription = activeSubscriptions[0]
-      expect(newSubscription.metadata).toBeDefined()
-      if (newSubscription.metadata && typeof newSubscription.metadata === 'object') {
-        expect(newSubscription.metadata).toHaveProperty('upgraded_from_subscription_id')
-        expect(newSubscription.metadata).toHaveProperty('upgrade_date')
-      }
     })
 
     it('should preserve metadata from free subscription to paid subscription', async () => {
@@ -301,12 +293,11 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       expect(newSubscription!.metadata).toBeDefined()
       const metadata = newSubscription!.metadata as any
       
-      // Should have upgrade tracking
-      expect(metadata.upgraded_from_subscription_id).toBe(freeSubscription.id)
-      expect(metadata.upgrade_date).toBeDefined()
-      
-      // Should preserve checkout metadata
+      // Should preserve checkout metadata only (no upgrade tracking in metadata)
       expect(metadata.referrer).toBe('dashboard')
+      // Upgrade tracking is done via replacedBySubscriptionId column, not metadata
+      expect(metadata.upgraded_from_subscription_id).toBeUndefined()
+      expect(metadata.upgrade_date).toBeUndefined()
     })
 
     it('should handle billing periods correctly during upgrade', async () => {
@@ -378,10 +369,11 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       expect(allSubscriptions[0].status).toBe(SubscriptionStatus.Active)
       expect(allSubscriptions[0].priceId).toBe(paidPrice.id)
 
-      // Verify no upgrade metadata
+      // Verify metadata doesn't contain upgrade info (we use replacedBySubscriptionId column instead)
       const metadata = allSubscriptions[0].metadata as any
       if (metadata) {
         expect(metadata.upgraded_from_subscription_id).toBeUndefined()
+        expect(metadata.upgrade_date).toBeUndefined()
       }
     })
   })
