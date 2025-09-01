@@ -46,14 +46,14 @@ import { createSelectSchema } from 'drizzle-zod'
 import { noCase, sentenceCase, snakeCase } from 'change-case'
 
 export const merchantRole = pgRole('merchant', {
-  createRole: true,
-  createDb: true,
+  createRole: false,
+  createDb: false,
   inherit: true,
 })
 
 export const customerRole = pgRole('customer', {
-  createRole: true,
-  createDb: true,
+  createRole: false,
+  createDb: false,
   inherit: true,
 })
 
