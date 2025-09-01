@@ -10,7 +10,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import Input from '@/components/ion/Input'
+import { Input } from '@/components/ui/input'
 import Button from '@/components/ion/Button'
 import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react'
 import { cn } from '@/utils/core'
