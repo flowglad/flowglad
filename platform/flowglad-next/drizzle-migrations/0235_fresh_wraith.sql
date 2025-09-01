@@ -51,7 +51,7 @@ BEGIN
 END
 $$;
 
-GRANT customer TO postgres;
+GRANT customer TO current_user;
 
 CREATE INDEX IF NOT EXISTS "memberships_user_id_focused_idx" ON "memberships" USING btree ("user_id","focused");--> statement-breakpoint
 DO $$
