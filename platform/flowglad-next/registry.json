@@ -52,6 +52,52 @@
             "target": "app/pricing/page.tsx"
           }
         ]
+      },
+      {
+        "name": "subscription-card",
+        "type": "registry:component",
+        "title": "Subscription Card",
+        "description": "A comprehensive subscription card component with status display, billing details, and management actions.",
+        "registryDependencies": ["card", "button", "badge", "skeleton"],
+        "files": [
+          {
+            "path": "src/registry/base/subscription-card/subscription-card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/components/subscription-header.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/components/subscription-details.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/components/subscription-actions.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/components/cancel-subscription-modal.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/subscription-card/utils.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/subscription-card/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/subscription-card/page.tsx",
+            "type": "registry:page",
+            "target": "app/subscription-card/page.tsx"
+          }
+        ]
       }
     ]
   }
