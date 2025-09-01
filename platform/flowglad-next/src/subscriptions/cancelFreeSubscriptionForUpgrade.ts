@@ -43,9 +43,11 @@ export const cancelFreeSubscriptionForUpgrade = async (
   )[0]
 
   // Cancel the free subscription with special reason
+  // Include the renews field from the original subscription for schema validation
   const canceledSubscription = await updateSubscription(
     {
       id: subscriptionToCancel.id,
+      renews: subscriptionToCancel.renews,
       status: SubscriptionStatus.Canceled,
       canceledAt: new Date(),
       cancellationReason: 'upgraded_to_paid',
@@ -60,18 +62,19 @@ export const cancelFreeSubscriptionForUpgrade = async (
  * Links a canceled free subscription to its replacement paid subscription
  * by updating the replacedBySubscriptionId field.
  * 
- * @param oldSubscriptionId - The ID of the canceled free subscription
+ * @param oldSubscription - The canceled free subscription record
  * @param newSubscriptionId - The ID of the new paid subscription
  * @param transaction - Database transaction
  */
 export const linkUpgradedSubscriptions = async (
-  oldSubscriptionId: string,
+  oldSubscription: Subscription.Record,
   newSubscriptionId: string,
   transaction: DbTransaction
 ): Promise<void> => {
   await updateSubscription(
     {
-      id: oldSubscriptionId,
+      id: oldSubscription.id,
+      renews: oldSubscription.renews,
       replacedBySubscriptionId: newSubscriptionId,
     },
     transaction

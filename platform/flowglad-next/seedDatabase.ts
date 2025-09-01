@@ -1106,6 +1106,8 @@ export const setupCheckoutSession = async ({
   livemode,
   targetSubscriptionId,
   automaticallyUpdateSubscriptions,
+  outputMetadata,
+  purchaseId,
 }: {
   organizationId: string
   customerId: string
@@ -1116,6 +1118,8 @@ export const setupCheckoutSession = async ({
   livemode: boolean
   targetSubscriptionId?: string
   automaticallyUpdateSubscriptions?: boolean
+  outputMetadata?: Record<string, any>
+  purchaseId?: string
 }) => {
   const billingAddress: BillingAddress = {
     address: {
@@ -1146,7 +1150,7 @@ export const setupCheckoutSession = async ({
       quantity: 1,
       targetSubscriptionId: targetSubscriptionId ?? null,
       outputName: null,
-      outputMetadata: {},
+      outputMetadata: outputMetadata ?? {},
       automaticallyUpdateSubscriptions:
         automaticallyUpdateSubscriptions ?? false,
     }
@@ -1161,7 +1165,7 @@ export const setupCheckoutSession = async ({
       targetSubscriptionId: null,
       outputName: null,
       invoiceId: null,
-      outputMetadata: {},
+      outputMetadata: outputMetadata ?? {},
       automaticallyUpdateSubscriptions: null,
     }
   const purchaseCheckoutSessionInsert: CheckoutSession.PurchaseInsert =
@@ -1174,8 +1178,8 @@ export const setupCheckoutSession = async ({
       livemode,
       targetSubscriptionId: null,
       outputName: null,
-      outputMetadata: {},
-      purchaseId: 'test',
+      outputMetadata: outputMetadata ?? {},
+      purchaseId: purchaseId ?? 'test',
       automaticallyUpdateSubscriptions: null,
     }
 

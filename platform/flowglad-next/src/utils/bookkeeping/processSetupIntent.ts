@@ -504,7 +504,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     // Link the old and new subscriptions if there was an upgrade
     if (canceledFreeSubscription && output.result.subscription) {
       await linkUpgradedSubscriptions(
-        canceledFreeSubscription.id,
+        canceledFreeSubscription,
         output.result.subscription.id,
         transaction
       )

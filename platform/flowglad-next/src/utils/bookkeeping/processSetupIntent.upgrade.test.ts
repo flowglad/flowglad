@@ -26,6 +26,7 @@ import {
   setupProduct,
   setupPrice,
   setupSubscriptionItem,
+  setupFeeCalculation,
 } from '../../../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -180,6 +181,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         livemode: true,
       })
 
+      // Create fee calculation for the checkout session
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: paidPrice.id,
+        livemode: true,
+      })
+
       // Create successful setup intent
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -261,6 +270,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         livemode: true,
       })
 
+      // Create fee calculation for the checkout session
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: paidPrice.id,
+        livemode: true,
+      })
+
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
@@ -332,6 +349,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         livemode: true,
       })
 
+      // Create fee calculation for the checkout session
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: paidPrice.id,
+        livemode: true,
+      })
+
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
         stripeCustomerId: customer.stripeCustomerId!,
@@ -377,6 +402,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
   describe('Customer with existing paid subscription', () => {
     it('should allow creating second paid subscription while canceling free', async () => {
+      // Update organization to allow multiple subscriptions
+      await adminTransaction(async ({ transaction }) => {
+        const { updateOrganization } = await import('@/db/tableMethods/organizationMethods')
+        await updateOrganization(
+          {
+            id: organization.id,
+            allowMultipleSubscriptionsPerCustomer: true,
+          },
+          transaction
+        )
+      })
+
       // Create existing paid subscription
       const existingPaidSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -415,6 +452,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         type: CheckoutSessionType.Product,
         status: CheckoutSessionStatus.Pending,
         purchaseId: purchase.id,
+        livemode: true,
+      })
+
+      // Create fee calculation for the checkout session
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: paidPrice.id,
         livemode: true,
       })
 
