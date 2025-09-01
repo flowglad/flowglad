@@ -4,11 +4,14 @@ import { useRouter } from 'next/navigation'
 import { signOut } from '@/utils/authClient'
 import Button from '@/components/ion/Button'
 import { LogOut } from 'lucide-react'
+import { trpc } from '@/app/_trpc/client'
 
 const BillingPortalPage = () => {
   const router = useRouter()
+  const logoutMutation = trpc.utils.logout.useMutation()
 
   const handleLogout = async () => {
+    await logoutMutation.mutateAsync()
     await signOut()
     router.push('/sign-in')
   }
