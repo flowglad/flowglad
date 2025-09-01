@@ -135,9 +135,12 @@ export const prices = pgTable(
         .on(table.productId)
         .where(sql`${table.isDefault}`),
       constructIndex(TABLE_NAME, [table.usageMeterId]),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"product_id" in (select "id" from "products") and "active" = true`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"product_id" in (select "id" from "products") and "active" = true`,
+        }
+      ),
       merchantPolicy(
         'On update, ensure usage meter belongs to same organization as product',
         {

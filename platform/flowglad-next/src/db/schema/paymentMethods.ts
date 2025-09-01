@@ -56,9 +56,12 @@ export const paymentMethods = pgTable(
       constructIndex(TABLE_NAME, [table.customerId]),
       constructIndex(TABLE_NAME, [table.type]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"customer_id" in (select "id" from "customers")`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"customer_id" in (select "id" from "customers")`,
+        }
+      ),
       merchantPolicy(
         'Enable read for own organizations via customer',
         {

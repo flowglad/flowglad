@@ -1,23 +1,42 @@
-import { router, publicProcedure, customerProtectedProcedure } from '../trpc'
+import {
+  router,
+  publicProcedure,
+  customerProtectedProcedure,
+} from '../trpc'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectCustomers, setUserIdForCustomerRecords } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomers,
+  setUserIdForCustomerRecords,
+} from '@/db/tableMethods/customerMethods'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { customerClientSelectSchema } from '@/db/schema/customers'
-import { richSubscriptionClientSelectSchema, subscriptionCancellationParametersSchema } from '@/subscriptions/schemas'
+import {
+  richSubscriptionClientSelectSchema,
+  subscriptionCancellationParametersSchema,
+} from '@/subscriptions/schemas'
 import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
 import { purchaseClientSelectSchema } from '@/db/schema/purchases'
 import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
-import { selectSubscriptionById, isSubscriptionCurrent } from '@/db/tableMethods/subscriptionMethods'
-import { cancelSubscriptionImmediately, scheduleSubscriptionCancellation } from '@/subscriptions/cancelSubscription'
+import {
+  selectSubscriptionById,
+  isSubscriptionCurrent,
+} from '@/db/tableMethods/subscriptionMethods'
+import {
+  cancelSubscriptionImmediately,
+  scheduleSubscriptionCancellation,
+} from '@/subscriptions/cancelSubscription'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { auth } from '@/utils/auth'
-import { selectUserById, selectUsers } from '@/db/tableMethods/userMethods'
+import {
+  selectUserById,
+  selectUsers,
+} from '@/db/tableMethods/userMethods'
 import core from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
@@ -46,7 +65,7 @@ const getBillingProcedure = customerProtectedProcedure
   )
   .query(async ({ ctx }) => {
     const { customer, organizationId } = ctx
-    
+
     if (!organizationId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -75,7 +94,7 @@ const getBillingProcedure = customerProtectedProcedure
         apiKey: ctx.apiKey,
       }
     )
-    
+
     return {
       customer,
       invoices,
@@ -105,7 +124,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const { customer } = ctx
-    
+
     return authenticatedTransaction(
       async ({ transaction }) => {
         // First verify the subscription belongs to the customer
@@ -113,14 +132,15 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           input.id,
           transaction
         )
-        
+
         if (subscription.customerId !== customer.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
-            message: 'You do not have permission to cancel this subscription',
+            message:
+              'You do not have permission to cancel this subscription',
           })
         }
-        
+
         if (
           input.cancellation.timing ===
           SubscriptionCancellationArrangement.Immediately
@@ -139,15 +159,15 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
             },
           }
         }
-        
-        const scheduledSubscription = await scheduleSubscriptionCancellation(
-          input,
-          transaction
-        )
+
+        const scheduledSubscription =
+          await scheduleSubscriptionCancellation(input, transaction)
         return {
           subscription: {
             ...scheduledSubscription,
-            current: isSubscriptionCurrent(scheduledSubscription.status),
+            current: isSubscriptionCurrent(
+              scheduledSubscription.status
+            ),
           },
         }
       },
@@ -172,23 +192,25 @@ const requestMagicLinkProcedure = publicProcedure
   )
   .mutation(async ({ input }) => {
     const { organizationId, email } = input
-    
+
     try {
       // Verify organization exists
-      const organization = await adminTransaction(async ({ transaction }) => {
-        return selectOrganizationById(organizationId, transaction)
-      })
-      
+      const organization = await adminTransaction(
+        async ({ transaction }) => {
+          return selectOrganizationById(organizationId, transaction)
+        }
+      )
+
       if (!organization) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Organization not found',
         })
       }
-      
+
       // Set the organization ID for the billing portal session
       await setCustomerBillingPortalOrganizationId(organizationId)
-      
+
       // Check if customers exist and handle user creation/linking in single transaction
       await adminTransaction(async ({ transaction }) => {
         // Find customers by email and organizationId
@@ -199,38 +221,52 @@ const requestMagicLinkProcedure = publicProcedure
           },
           transaction
         )
-        
+
         if (customers.length > 0) {
           // Customer found - proceed with user account handling
           const [user] = await selectUsers({ email }, transaction)
-          
+
           let userId: string
-          
+
           if (!user || !user.betterAuthId) {
             // Create new user account for the customer
             const result = await auth.api.createUser({
               body: {
                 email,
                 password: core.nanoid(),
-                name: customers.map((customer) => customer.name).join(' '),
+                name: customers
+                  .map((customer) => customer.name)
+                  .join(' '),
               },
             })
-            const safelyCreatedUser = await betterAuthUserToApplicationUser(result.user)
+            const safelyCreatedUser =
+              await betterAuthUserToApplicationUser(result.user)
             userId = safelyCreatedUser.id
-            
+
             // Link customers to the new user
-            await setUserIdForCustomerRecords({ customerEmail: email, userId }, transaction)
+            await setUserIdForCustomerRecords(
+              { customerEmail: email, userId },
+              transaction
+            )
           } else {
             userId = user.id
-            
+
             // If some customers have no user id, set the user id for the customers
-            if (customers.some((customer) => customer.userId === null)) {
-              await setUserIdForCustomerRecords({ customerEmail: email, userId }, transaction)
+            if (
+              customers.some((customer) => customer.userId === null)
+            ) {
+              await setUserIdForCustomerRecords(
+                { customerEmail: email, userId },
+                transaction
+              )
             }
           }
-          
+
           // Get better auth user for email verification status
-          await selectBetterAuthUserById(user.betterAuthId!, transaction)
+          await selectBetterAuthUserById(
+            user.betterAuthId!,
+            transaction
+          )
         }
         // Always return success (even if no customer found) for security
         return { success: true }
@@ -238,18 +274,17 @@ const requestMagicLinkProcedure = publicProcedure
 
       await auth.api.signInMagicLink({
         body: {
-            email, // required
-            callbackURL: core.safeUrl(
-              `/billing-portal/${organizationId}/magic-link-success`,
-              process.env.NEXT_PUBLIC_APP_URL!
-            ),
+          email, // required
+          callbackURL: core.safeUrl(
+            `/billing-portal/${organizationId}/magic-link-success`,
+            process.env.NEXT_PUBLIC_APP_URL!
+          ),
         },
         // This endpoint requires session cookies.
         headers: await headers(),
-    })
+      })
 
       return { success: true }
-      
     } catch (error) {
       console.error('requestMagicLinkProcedure error:', error)
       if (!core.IS_PROD) {

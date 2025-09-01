@@ -12,7 +12,10 @@ import {
   setupUserAndApiKey,
   teardownOrg,
 } from '../../../seedDatabase'
-import { Organization, organizations } from '@/db/schema/organizations'
+import {
+  Organization,
+  organizations,
+} from '@/db/schema/organizations'
 import { UserRecord, users } from '@/db/schema/users'
 import { Membership, memberships } from '@/db/schema/memberships'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
@@ -23,7 +26,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 vi.mock('@/utils/email', () => ({
   sendOrganizationInvitationEmail: vi.fn(),
 }))
-
 
 describe('innerInviteUserToOrganizationHandler', () => {
   let organization: Organization.Record

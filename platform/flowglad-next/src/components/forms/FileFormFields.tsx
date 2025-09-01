@@ -30,10 +30,7 @@ export const FileFormFields = ({
           <FormItem>
             <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input
-                placeholder="File name"
-                {...field}
-              />
+              <Input placeholder="File name" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

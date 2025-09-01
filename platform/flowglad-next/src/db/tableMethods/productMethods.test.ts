@@ -411,9 +411,7 @@ describe('Database Constraints', () => {
       adminTransaction(async ({ transaction }) => {
         await insertProduct(newProductInsert, transaction)
       })
-    ).rejects.toThrow(
-      /Failed query:/
-    )
+    ).rejects.toThrow(/Failed query:/)
   })
 
   it('throws an error when updating a product to be default when another default product exists', async () => {
@@ -434,9 +432,7 @@ describe('Database Constraints', () => {
           transaction
         )
       })
-    ).rejects.toThrow(
-      /Failed query:/
-    )
+    ).rejects.toThrow(/Failed query:/)
   })
 
   it('allows inserting a non-default product when a default product already exists', async () => {

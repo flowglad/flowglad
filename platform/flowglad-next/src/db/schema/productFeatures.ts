@@ -45,9 +45,12 @@ export const productFeatures = pgTable(
       constructIndex(TABLE_NAME, [table.productId]),
       constructIndex(TABLE_NAME, [table.organizationId]),
       membershipOrganizationIdIntegrityCheckPolicy(),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"product_id" in (select "id" from "products")`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"product_id" in (select "id" from "products")`,
+        }
+      ),
       parentForeignKeyIntegrityCheckPolicy({
         parentTableName: 'products',
         parentIdColumnInCurrentTable: 'product_id',

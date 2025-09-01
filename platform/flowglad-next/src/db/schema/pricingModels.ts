@@ -36,9 +36,12 @@ export const pricingModels = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.name]),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"id" in (select "pricing_model_id" from "customers")`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"id" in (select "pricing_model_id" from "customers")`,
+        }
+      ),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {

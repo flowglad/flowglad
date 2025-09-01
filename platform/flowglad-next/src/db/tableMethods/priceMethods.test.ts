@@ -310,9 +310,7 @@ describe('priceMethods.ts', () => {
         adminTransaction(async ({ transaction }) => {
           await insertPrice(newPriceInsert, transaction)
         })
-      ).rejects.toThrow(
-        /Failed query:/
-      )
+      ).rejects.toThrow(/Failed query:/)
     })
 
     it('throws an error when updating a price to be default when another default price exists', async () => {
@@ -344,9 +342,7 @@ describe('priceMethods.ts', () => {
             transaction
           )
         })
-      ).rejects.toThrow(
-        /Failed query:/
-      )
+      ).rejects.toThrow(/Failed query:/)
     })
 
     it('allows inserting a non-default price when a default price already exists', async () => {

@@ -1,4 +1,7 @@
-import { selectOrganizationById, selectOrganizationAndFirstMemberByOrganizationId } from '@/db/tableMethods/organizationMethods'
+import {
+  selectOrganizationById,
+  selectOrganizationAndFirstMemberByOrganizationId,
+} from '@/db/tableMethods/organizationMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
@@ -56,16 +59,19 @@ export const sendCustomerPaymentFailedNotificationTask = task({
     }
 
     // Fetch the latest invoice after the PDF generation task has completed
-    const { mostUpToDateInvoice, orgAndFirstMember } = await adminTransaction(
-      async ({ transaction }) => {
-        const mostUpToDateInvoice = await selectInvoiceById(invoice.id, transaction)
-        const orgAndFirstMember = await selectOrganizationAndFirstMemberByOrganizationId(
-          organization.id,
+    const { mostUpToDateInvoice, orgAndFirstMember } =
+      await adminTransaction(async ({ transaction }) => {
+        const mostUpToDateInvoice = await selectInvoiceById(
+          invoice.id,
           transaction
         )
+        const orgAndFirstMember =
+          await selectOrganizationAndFirstMemberByOrganizationId(
+            organization.id,
+            transaction
+          )
         return { mostUpToDateInvoice, orgAndFirstMember }
-      }
-    )
+      })
 
     const result = await sendPaymentFailedEmail({
       invoiceNumber: mostUpToDateInvoice.invoiceNumber,

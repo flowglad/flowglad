@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createCustomerBookkeeping, createPricingModelBookkeeping } from './bookkeeping'
+import {
+  createCustomerBookkeeping,
+  createPricingModelBookkeeping,
+} from './bookkeeping'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupOrg,
@@ -7,9 +10,9 @@ import {
   setupPrice,
   setupPricingModel,
 } from '@/../seedDatabase'
-import { 
-  IntervalUnit, 
-  PriceType, 
+import {
+  IntervalUnit,
+  PriceType,
   FlowgladEventType,
   CurrencyCode,
   BusinessOnboardingStatus,
@@ -43,12 +46,17 @@ describe('createCustomerBookkeeping', () => {
     organization = orgData.organization
     product = orgData.product
     price = orgData.price
-    
+
     // Get the default pricing model that was created
-    defaultPricingModel = await adminTransaction(async ({ transaction }) => {
-      const pricingModel = await selectPricingModelById(orgData.pricingModel.id, transaction)
-      return pricingModel
-    })
+    defaultPricingModel = await adminTransaction(
+      async ({ transaction }) => {
+        const pricingModel = await selectPricingModelById(
+          orgData.pricingModel.id,
+          transaction
+        )
+        return pricingModel
+      }
+    )
 
     // Create a default product for the default pricing model
     defaultProduct = await setupProduct({
@@ -82,25 +90,27 @@ describe('createCustomerBookkeeping', () => {
       // - create a new customer without specifying a pricing model
 
       // Create customer through the bookkeeping function
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createCustomerBookkeeping(
-          {
-            customer: {
-              email: `test+${core.nanoid()}@example.com`,
-              name: 'Test Customer',
-              organizationId: organization.id,
-              externalId: `ext_${core.nanoid()}`,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+              },
             },
-          },
-          {
-            transaction, 
-            organizationId: organization.id,
-            userId: 'user_test',
-            livemode,
-          }
-        )
-        return output
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
 
       // expects:
       // - customer should be created successfully
@@ -109,30 +119,46 @@ describe('createCustomerBookkeeping', () => {
       // - events should include CustomerCreated and SubscriptionCreated
       expect(result.result.customer).toBeDefined()
       expect(result.result.customer.email).toContain('test+')
-      expect(result.result.customer.organizationId).toBe(organization.id)
-      
+      expect(result.result.customer.organizationId).toBe(
+        organization.id
+      )
+
       expect(result.result.subscription).toBeDefined()
       expect(result.result.subscriptionItems).toBeDefined()
-      expect(result.result.subscriptionItems?.length).toBeGreaterThan(0)
+      expect(result.result.subscriptionItems?.length).toBeGreaterThan(
+        0
+      )
 
       // Verify the subscription was actually created in the dataFree
-      const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
-        const sub = await selectSubscriptionAndItems(
-          {
-            customerId: result.result.customer.id,
-          },
-          transaction
-        )
-        return sub
-      })
+      const subscriptionInDb = await adminTransaction(
+        async ({ transaction }) => {
+          const sub = await selectSubscriptionAndItems(
+            {
+              customerId: result.result.customer.id,
+            },
+            transaction
+          )
+          return sub
+        }
+      )
       expect(subscriptionInDb).toBeDefined()
-      expect(subscriptionInDb?.subscription.customerId).toBe(result.result.customer.id)
+      expect(subscriptionInDb?.subscription.customerId).toBe(
+        result.result.customer.id
+      )
 
       // Verify events were created
       expect(result.eventsToLog).toBeDefined()
       expect(result.eventsToLog?.length).toBeGreaterThan(0)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.SubscriptionCreated)).toBe(true)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.CustomerCreated
+        )
+      ).toBe(true)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.SubscriptionCreated
+        )
+      ).toBe(true)
     })
 
     it('should create a customer with subscription from specified pricing model', async () => {
@@ -171,49 +197,57 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create customer with specified pricing model
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createCustomerBookkeeping(
-          {
-            customer: {
-              email: `test+${core.nanoid()}@example.com`,
-              name: 'Test Customer with Custom Pricing',
-              organizationId: organization.id,
-              externalId: `ext_${core.nanoid()}`,
-              pricingModelId: customPricingModel.id,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer with Custom Pricing',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId: customPricingModel.id,
+              },
             },
-          },
-          { 
-            transaction, 
-            organizationId: organization.id,
-            userId: 'user_test',
-            livemode: customProduct.livemode,
-          }
-        )
-        return output
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode: customProduct.livemode,
+            }
+          )
+          return output
+        }
+      )
 
       // expects:
       // - customer should be created with the specified pricing model
       // - subscription should use the custom pricing model's default product and price
       // - subscription price should be 2000 (custom price) not 1000 (default price)
       expect(result.result.customer).toBeDefined()
-      expect(result.result.customer.pricingModelId).toBe(customPricingModel.id)
-      
+      expect(result.result.customer.pricingModelId).toBe(
+        customPricingModel.id
+      )
+
       expect(result.result.subscription).toBeDefined()
-      
+
       // Verify the subscription uses the correct price
-      const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
-        const sub = await selectSubscriptionAndItems(
-          {
-            customerId: result.result.customer.id,
-          },
-          transaction
-        )
-        return sub
-      })
+      const subscriptionInDb = await adminTransaction(
+        async ({ transaction }) => {
+          const sub = await selectSubscriptionAndItems(
+            {
+              customerId: result.result.customer.id,
+            },
+            transaction
+          )
+          return sub
+        }
+      )
       expect(subscriptionInDb).toBeDefined()
       // The subscription items should be associated with the custom product
-      expect(subscriptionInDb?.subscriptionItems[0].priceId).toBe(customPrice.id)
+      expect(subscriptionInDb?.subscriptionItems[0].priceId).toBe(
+        customPrice.id
+      )
     })
 
     it('should create customer without subscription if no default product exists', async () => {
@@ -238,26 +272,28 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create customer with the empty pricing model
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createCustomerBookkeeping(
-          {
-            customer: {
-              email: `test+${core.nanoid()}@example.com`,
-              name: 'Test Customer No Default Product',
-              organizationId: organization.id,
-              externalId: `ext_${core.nanoid()}`,
-              pricingModelId: emptyPricingModel.id,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer No Default Product',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId: emptyPricingModel.id,
+              },
             },
-          },
-          { 
-            transaction, 
-            organizationId: organization.id,
-            userId: 'user_test',
-            livemode,
-          }
-        )
-        return output
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
 
       // expects:
       // - customer should be created successfully
@@ -268,21 +304,31 @@ describe('createCustomerBookkeeping', () => {
       expect(result.result.subscriptionItems).toBeUndefined()
 
       // Verify no subscription exists in dataFree
-      const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
-        const sub = await selectSubscriptionAndItems(
-          {
-            customerId: result.result.customer.id,
-          },
-          transaction
-        )
-        return sub
-      })
+      const subscriptionInDb = await adminTransaction(
+        async ({ transaction }) => {
+          const sub = await selectSubscriptionAndItems(
+            {
+              customerId: result.result.customer.id,
+            },
+            transaction
+          )
+          return sub
+        }
+      )
       expect(subscriptionInDb).toBeNull()
 
       // Verify only CustomerCreated event exists
       expect(result.eventsToLog).toBeDefined()
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.SubscriptionCreated)).toBe(false)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.CustomerCreated
+        )
+      ).toBe(true)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.SubscriptionCreated
+        )
+      ).toBe(false)
     })
 
     it('should create customer without subscription if no default price exists', async () => {
@@ -321,26 +367,28 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create customer
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createCustomerBookkeeping(
-          {
-            customer: {
-              email: `test+${core.nanoid()}@example.com`,
-              name: 'Test Customer No Default Price',
-              organizationId: organization.id,
-              externalId: `ext_${core.nanoid()}`,
-              pricingModelId: pricingModelNoDefaultPrice.id,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer No Default Price',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId: pricingModelNoDefaultPrice.id,
+              },
             },
-          },
-          { 
-            transaction, 
-            organizationId: organization.id,
-            userId: 'user_test',
-            livemode,
-          }
-        )
-        return output
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
 
       // expects:
       // - customer should be created successfully
@@ -351,21 +399,31 @@ describe('createCustomerBookkeeping', () => {
       expect(result.result.subscriptionItems).toBeUndefined()
 
       // Verify no subscription exists in dataFree
-      const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
-        const sub = await selectSubscriptionAndItems(
-          {
-            customerId: result.result.customer.id,
-          },
-          transaction
-        )
-        return sub
-      })
+      const subscriptionInDb = await adminTransaction(
+        async ({ transaction }) => {
+          const sub = await selectSubscriptionAndItems(
+            {
+              customerId: result.result.customer.id,
+            },
+            transaction
+          )
+          return sub
+        }
+      )
       expect(subscriptionInDb).toBeNull()
 
       // Verify only CustomerCreated event exists
       expect(result.eventsToLog).toBeDefined()
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.SubscriptionCreated)).toBe(false)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.CustomerCreated
+        )
+      ).toBe(true)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.SubscriptionCreated
+        )
+      ).toBe(false)
     })
 
     it('should handle subscription with trial period correctly', async () => {
@@ -373,49 +431,58 @@ describe('createCustomerBookkeeping', () => {
       // - default price already has 14 day trial period
       // - create a customer and verify trial end date is set
 
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createCustomerBookkeeping(
-          {
-            customer: {
-              email: `test+${core.nanoid()}@example.com`,
-              name: 'Test Customer with Trial',
-              organizationId: organization.id,
-              externalId: `ext_${core.nanoid()}`,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer with Trial',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+              },
             },
-          },
-          { 
-            transaction, 
-            organizationId: organization.id,
-            userId: 'user_test',
-            livemode,
-          }
-        )
-        return output
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
 
       // expects:
       // - customer and subscription should be created
       // - subscription should have a trial end date approximately 14 days from now
       expect(result.result.customer).toBeDefined()
       expect(result.result.subscription).toBeDefined()
-      
-      const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
-        const sub = await selectSubscriptionAndItems(
-          {
-            customerId: result.result.customer.id,
-          },
-          transaction
-        )
-        return sub
-      })
-      
+
+      const subscriptionInDb = await adminTransaction(
+        async ({ transaction }) => {
+          const sub = await selectSubscriptionAndItems(
+            {
+              customerId: result.result.customer.id,
+            },
+            transaction
+          )
+          return sub
+        }
+      )
+
       expect(subscriptionInDb).toBeDefined()
       // Trial end should be set and approximately 14 days from now
       if (subscriptionInDb?.subscription.trialEnd) {
-        const trialEndTime = new Date(subscriptionInDb.subscription.trialEnd).getTime()
-        const expectedTrialEndTime = Date.now() + (14 * 24 * 60 * 60 * 1000)
+        const trialEndTime = new Date(
+          subscriptionInDb.subscription.trialEnd
+        ).getTime()
+        const expectedTrialEndTime =
+          Date.now() + 14 * 24 * 60 * 60 * 1000
         // Allow 1 minute tolerance for test execution time
-        expect(Math.abs(trialEndTime - expectedTrialEndTime)).toBeLessThan(60 * 1000)
+        expect(
+          Math.abs(trialEndTime - expectedTrialEndTime)
+        ).toBeLessThan(60 * 1000)
       }
     })
 
@@ -425,56 +492,75 @@ describe('createCustomerBookkeeping', () => {
       // - create a customer without specifying a pricing model
 
       // Create a new org without default pricing model setup
-      const minimalOrg = await adminTransaction(async ({ transaction }) => {
-        const [country] = await selectCountries( {code: 'US'}, transaction)
-        const org = await insertOrganization(
-          {
-            name: `Minimal Org ${core.nanoid()}`,
-            defaultCurrency: CurrencyCode.USD,
-            countryId: country.id,
-            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-            stripeConnectContractType: StripeConnectContractType.Platform,
-            featureFlags: {},
-          },
-          transaction
-        )
-        return org
-      })
+      const minimalOrg = await adminTransaction(
+        async ({ transaction }) => {
+          const [country] = await selectCountries(
+            { code: 'US' },
+            transaction
+          )
+          const org = await insertOrganization(
+            {
+              name: `Minimal Org ${core.nanoid()}`,
+              defaultCurrency: CurrencyCode.USD,
+              countryId: country.id,
+              onboardingStatus:
+                BusinessOnboardingStatus.FullyOnboarded,
+              stripeConnectContractType:
+                StripeConnectContractType.Platform,
+              featureFlags: {},
+            },
+            transaction
+          )
+          return org
+        }
+      )
 
       // Create customer for the minimal org
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createCustomerBookkeeping(
-          {
-            customer: {
-              email: `test+${core.nanoid()}@example.com`,
-              name: 'Test Customer No Pricing Model',
-              organizationId: minimalOrg.id,
-              externalId: `ext_${core.nanoid()}`,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer No Pricing Model',
+                organizationId: minimalOrg.id,
+                externalId: `ext_${core.nanoid()}`,
+              },
             },
-          },
-          { 
-            transaction, 
-            organizationId: minimalOrg.id,
-            userId: 'user_test',
-            livemode,
-          }
-        )
-        return output
-      })
+            {
+              transaction,
+              organizationId: minimalOrg.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
 
       // expects:
       // - customer should be created successfully
       // - no subscription should be created since there's no pricing model
       // - only CustomerCreated event should exist
       expect(result.result.customer).toBeDefined()
-      expect(result.result.customer.organizationId).toBe(minimalOrg.id)
+      expect(result.result.customer.organizationId).toBe(
+        minimalOrg.id
+      )
       expect(result.result.subscription).toBeUndefined()
       expect(result.result.subscriptionItems).toBeUndefined()
 
       // Verify only CustomerCreated event exists
       expect(result.eventsToLog).toBeDefined()
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.CustomerCreated)).toBe(true)
-      expect(result.eventsToLog?.some(e => e.type === FlowgladEventType.SubscriptionCreated)).toBe(false)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.CustomerCreated
+        )
+      ).toBe(true)
+      expect(
+        result.eventsToLog?.some(
+          (e) => e.type === FlowgladEventType.SubscriptionCreated
+        )
+      ).toBe(false)
     })
 
     it('should prevent cross-organization customer creation', async () => {
@@ -493,59 +579,69 @@ describe('createCustomerBookkeeping', () => {
                 externalId: `ext_${core.nanoid()}`,
               },
             },
-            { 
-              transaction, 
+            {
+              transaction,
               organizationId: organization.id, // Auth context org
               userId: 'user_test',
               livemode,
             }
           )
         })
-      ).rejects.toThrow('Customer organizationId must match authenticated organizationId')
+      ).rejects.toThrow(
+        'Customer organizationId must match authenticated organizationId'
+      )
     })
 
     it('should properly set subscription metadata and name', async () => {
       // setup:
       // - create a customer and verify the subscription has proper metadata
 
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createCustomerBookkeeping(
-          {
-            customer: {
-              email: `test+${core.nanoid()}@example.com`,
-              name: 'Test Customer Metadata',
-              organizationId: organization.id,
-              externalId: `ext_${core.nanoid()}`,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer Metadata',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+              },
             },
-          },
-          { 
-            transaction, 
-            organizationId: organization.id,
-            userId: 'user_test',
-            livemode,
-          }
-        )
-        return output
-      })
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
 
       // expects:
       // - subscription should be created with proper name
       // - subscription name should include the default product name
       expect(result.result.subscription).toBeDefined()
-      
-      const subscriptionInDb = await adminTransaction(async ({ transaction }) => {
-        const sub = await selectSubscriptionAndItems(
-          {
-            customerId: result.result.customer.id,
-          },
-          transaction
-        )
-        return sub
-      })
-      
+
+      const subscriptionInDb = await adminTransaction(
+        async ({ transaction }) => {
+          const sub = await selectSubscriptionAndItems(
+            {
+              customerId: result.result.customer.id,
+            },
+            transaction
+          )
+          return sub
+        }
+      )
+
       expect(subscriptionInDb).toBeDefined()
-      expect(subscriptionInDb?.subscription.name).toContain('Default Product')
-      expect(subscriptionInDb?.subscription.name).toContain('Subscription')
+      expect(subscriptionInDb?.subscription.name).toContain(
+        'Default Product'
+      )
+      expect(subscriptionInDb?.subscription.name).toContain(
+        'Subscription'
+      )
     })
   })
 })
@@ -553,109 +649,130 @@ describe('createCustomerBookkeeping', () => {
 describe('createPricingModelBookkeeping', () => {
   let organizationId: string
   const livemode = true
-  
+
   beforeEach(async () => {
     // Set up a basic organization
     const { organization } = await setupOrg()
     organizationId = organization.id
   })
-  
+
   describe('pricing model creation with automatic default product', () => {
     it('should create a pricing model with a default product and price', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createPricingModelBookkeeping(
-          {
-            pricingModel: {
-              name: 'New Pricing Model',
-              isDefault: false,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'New Pricing Model',
+                isDefault: false,
+              },
             },
-          },
-          {
-            transaction,
-            organizationId,
-            livemode,
-          }
-        )
-        return output
-      })
-      
+            {
+              transaction,
+              organizationId,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
       // Verify the pricing model was created
       expect(result.result.pricingModel).toBeDefined()
-      expect(result.result.pricingModel.name).toBe('New Pricing Model')
+      expect(result.result.pricingModel.name).toBe(
+        'New Pricing Model'
+      )
       expect(result.result.pricingModel.isDefault).toBe(false)
-      expect(result.result.pricingModel.organizationId).toBe(organizationId)
+      expect(result.result.pricingModel.organizationId).toBe(
+        organizationId
+      )
       expect(result.result.pricingModel.livemode).toBe(livemode)
-      
+
       // Verify the default product was created
       expect(result.result.defaultProduct).toBeDefined()
       expect(result.result.defaultProduct.name).toBe('Free Plan')
       expect(result.result.defaultProduct.slug).toBe('free')
       expect(result.result.defaultProduct.default).toBe(true)
-      expect(result.result.defaultProduct.pricingModelId).toBe(result.result.pricingModel.id)
-      expect(result.result.defaultProduct.organizationId).toBe(organizationId)
+      expect(result.result.defaultProduct.pricingModelId).toBe(
+        result.result.pricingModel.id
+      )
+      expect(result.result.defaultProduct.organizationId).toBe(
+        organizationId
+      )
       expect(result.result.defaultProduct.livemode).toBe(livemode)
       expect(result.result.defaultProduct.active).toBe(true)
-      
+
       // Verify the default price was created
       expect(result.result.defaultPrice).toBeDefined()
-      expect(result.result.defaultPrice.productId).toBe(result.result.defaultProduct.id)
+      expect(result.result.defaultPrice.productId).toBe(
+        result.result.defaultProduct.id
+      )
       expect(result.result.defaultPrice.unitPrice).toBe(0)
       expect(result.result.defaultPrice.isDefault).toBe(true)
-      expect(result.result.defaultPrice.type).toBe(PriceType.Subscription)
-      expect(result.result.defaultPrice.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.result.defaultPrice.type).toBe(
+        PriceType.Subscription
+      )
+      expect(result.result.defaultPrice.intervalUnit).toBe(
+        IntervalUnit.Month
+      )
       expect(result.result.defaultPrice.intervalCount).toBe(1)
       expect(result.result.defaultPrice.livemode).toBe(livemode)
       expect(result.result.defaultPrice.active).toBe(true)
       expect(result.result.defaultPrice.name).toBe('Free Plan')
-
     })
-    
+
     it('should create a non-default pricing model with default product', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createPricingModelBookkeeping(
-          {
-            pricingModel: {
-              name: 'Another Pricing Model',
-              isDefault: false, // Can't create another default, setupOrg already created one
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Another Pricing Model',
+                isDefault: false, // Can't create another default, setupOrg already created one
+              },
             },
-          },
-          {
-            transaction,
-            organizationId,
-            livemode,
-          }
-        )
-        return output
-      })
-      
+            {
+              transaction,
+              organizationId,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
       // Verify the pricing model is not marked as default (since one already exists)
       expect(result.result.pricingModel.isDefault).toBe(false)
-      
+
       // Verify the default product and price were still created
       expect(result.result.defaultProduct.default).toBe(true)
       expect(result.result.defaultPrice.unitPrice).toBe(0)
     })
-    
+
     it('should use organization default currency for the default price', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        const output = await createPricingModelBookkeeping(
-          {
-            pricingModel: {
-              name: 'Currency Test Pricing Model',
-              isDefault: false,
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Currency Test Pricing Model',
+                isDefault: false,
+              },
             },
-          },
-          {
-            transaction,
-            organizationId,
-            livemode,
-          }
-        )
-        return output
-      })
-      
+            {
+              transaction,
+              organizationId,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
       // Verify the price uses the organization's default currency
-      expect(result.result.defaultPrice.currency).toBe(CurrencyCode.USD)
+      expect(result.result.defaultPrice.currency).toBe(
+        CurrencyCode.USD
+      )
     })
   })
 })

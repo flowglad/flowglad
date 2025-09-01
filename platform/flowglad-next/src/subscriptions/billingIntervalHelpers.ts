@@ -70,15 +70,15 @@ export function generateNextBillingPeriod({
     const startDay = startDate.getUTCDate()
     const startMonth = startDate.getUTCMonth()
     const startYear = startDate.getUTCFullYear()
-    
+
     // Calculate the target month and year
     const totalMonths = startMonth + intervalCount
     const targetMonth = totalMonths % 12
     const targetYear = startYear + Math.floor(totalMonths / 12)
-    
+
     // Get the number of days in the target month
     const daysInTargetMonth = getDaysInMonth(targetYear, targetMonth)
-    
+
     // If the original day is greater than days in target month, clamp it
     // e.g., Jan 31 -> Feb 28/29, May 31 -> Jun 30
     const targetDay = Math.min(startDay, daysInTargetMonth)
@@ -100,15 +100,19 @@ export function generateNextBillingPeriod({
     const startDay = startDate.getUTCDate()
     const startMonth = startDate.getUTCMonth()
     const startYear = startDate.getUTCFullYear()
-    
+
     const targetYear = startYear + intervalCount
-    
+
     // Special case: Feb 29 in leap year -> Feb 28 in non-leap year
     let targetDay = startDay
-    if (startMonth === 1 && startDay === 29 && !isLeapYear(new Date(targetYear, 0, 1))) {
+    if (
+      startMonth === 1 &&
+      startDay === 29 &&
+      !isLeapYear(new Date(targetYear, 0, 1))
+    ) {
       targetDay = 28
     }
-    
+
     // Create the new endDate, preserving the time of day from the startDate
     endDate = new Date(
       Date.UTC(

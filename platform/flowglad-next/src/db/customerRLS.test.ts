@@ -42,11 +42,16 @@ import {
   selectPayments,
   insertPayment,
 } from './tableMethods/paymentMethods'
-import {
-  selectPaymentMethods,
-} from './tableMethods/paymentMethodMethods'
+import { selectPaymentMethods } from './tableMethods/paymentMethodMethods'
 import core from '@/utils/core'
-import { PaymentStatus, SubscriptionStatus, InvoiceStatus, PaymentMethodType, CurrencyCode, InvoiceType } from '@/types'
+import {
+  PaymentStatus,
+  SubscriptionStatus,
+  InvoiceStatus,
+  PaymentMethodType,
+  CurrencyCode,
+  InvoiceType,
+} from '@/types'
 import { DbTransaction } from './types'
 import { afterEach } from 'vitest'
 
@@ -126,7 +131,7 @@ describe('Customer Role RLS Policies', () => {
   let org2: Organization.Record
   let org1Price: Price.Record
   let org2Price: Price.Record
-  
+
   let userA: UserRecord // Has customer in both orgs
   let userB: UserRecord // Only in org1
   let userC: UserRecord // Only in org1
@@ -164,7 +169,7 @@ describe('Customer Role RLS Policies', () => {
     const org1Data = await setupOrg()
     org1 = org1Data.organization
     org1Price = org1Data.price
-    
+
     const org2Data = await setupOrg()
     org2 = org2Data.organization
     org2Price = org2Data.price
@@ -221,7 +226,11 @@ describe('Customer Role RLS Policies', () => {
     // Update with userId
     await adminTransaction(async ({ transaction }) => {
       customerA_Org1 = await updateCustomer(
-        { id: customerA_Org1.id, userId: userA.id, name: 'Customer A Org1' },
+        {
+          id: customerA_Org1.id,
+          userId: userA.id,
+          name: 'Customer A Org1',
+        },
         transaction
       )
     })
@@ -233,7 +242,11 @@ describe('Customer Role RLS Policies', () => {
     })
     await adminTransaction(async ({ transaction }) => {
       customerB_Org1 = await updateCustomer(
-        { id: customerB_Org1.id, userId: userB.id, name: 'Customer B Org1' },
+        {
+          id: customerB_Org1.id,
+          userId: userB.id,
+          name: 'Customer B Org1',
+        },
         transaction
       )
     })
@@ -256,7 +269,11 @@ describe('Customer Role RLS Policies', () => {
     })
     await adminTransaction(async ({ transaction }) => {
       customerA_Org2 = await updateCustomer(
-        { id: customerA_Org2.id, userId: userC.id, name: 'Customer C Org2' },
+        {
+          id: customerA_Org2.id,
+          userId: userC.id,
+          name: 'Customer C Org2',
+        },
         transaction
       )
     })
@@ -268,7 +285,11 @@ describe('Customer Role RLS Policies', () => {
     })
     await adminTransaction(async ({ transaction }) => {
       customerD_Org2 = await updateCustomer(
-        { id: customerD_Org2.id, userId: userD.id, name: 'Customer D Org2' },
+        {
+          id: customerD_Org2.id,
+          userId: userD.id,
+          name: 'Customer D Org2',
+        },
         transaction
       )
     })
@@ -392,7 +413,10 @@ describe('Customer Role RLS Policies', () => {
         org1,
         async ({ transaction }) => {
           // Try to query all customers - should only see self
-          const customersVisible = await selectCustomers({}, transaction)
+          const customersVisible = await selectCustomers(
+            {},
+            transaction
+          )
 
           // Try to query customerB directly - should fail
           const customerBQuery = await selectCustomerById(
@@ -401,7 +425,10 @@ describe('Customer Role RLS Policies', () => {
           ).catch(() => null)
 
           // Try to query all invoices - should only see own
-          const invoicesVisible = await selectInvoices({}, transaction)
+          const invoicesVisible = await selectInvoices(
+            {},
+            transaction
+          )
 
           // Try to query customerB's invoice directly - should fail
           const invoiceBQuery = await selectInvoiceById(
@@ -426,10 +453,14 @@ describe('Customer Role RLS Policies', () => {
       expect(result.customerBQuery).toBeNull()
 
       // Should only see own invoices (2 for customerA plus any created by setupInvoice internally)
-      const customerAInvoices = result.invoicesVisible.filter(i => i.customerId === customerA_Org1.id)
+      const customerAInvoices = result.invoicesVisible.filter(
+        (i) => i.customerId === customerA_Org1.id
+      )
       expect(customerAInvoices.length).toBeGreaterThanOrEqual(2)
       expect(
-        result.invoicesVisible.every((i) => i.customerId === customerA_Org1.id)
+        result.invoicesVisible.every(
+          (i) => i.customerId === customerA_Org1.id
+        )
       ).toBe(true)
 
       // Should not see customerB's invoice
@@ -443,7 +474,10 @@ describe('Customer Role RLS Policies', () => {
         org1,
         async ({ transaction }) => {
           // Try to query all customers
-          const customersVisible = await selectCustomers({}, transaction)
+          const customersVisible = await selectCustomers(
+            {},
+            transaction
+          )
 
           // Try to query customerA directly
           const customerAQuery = await selectCustomerById(
@@ -452,7 +486,10 @@ describe('Customer Role RLS Policies', () => {
           ).catch(() => null)
 
           // Try to query all invoices
-          const invoicesVisible = await selectInvoices({}, transaction)
+          const invoicesVisible = await selectInvoices(
+            {},
+            transaction
+          )
 
           return {
             customersVisible,
@@ -470,9 +507,15 @@ describe('Customer Role RLS Policies', () => {
       expect(result.customerAQuery).toBeNull()
 
       // Should only see own invoices
-      const customerBInvoices = result.invoicesVisible.filter(i => i.customerId === customerB_Org1.id)
+      const customerBInvoices = result.invoicesVisible.filter(
+        (i) => i.customerId === customerB_Org1.id
+      )
       expect(customerBInvoices.length).toBeGreaterThanOrEqual(1)
-      expect(result.invoicesVisible.every(i => i.customerId === customerB_Org1.id)).toBe(true)
+      expect(
+        result.invoicesVisible.every(
+          (i) => i.customerId === customerB_Org1.id
+        )
+      ).toBe(true)
     })
 
     it('should isolate subscriptions between customers in same org', async () => {
@@ -482,7 +525,10 @@ describe('Customer Role RLS Policies', () => {
         org1,
         async ({ transaction }) => {
           // Query all subscriptions - should only see own
-          const subscriptions = await selectSubscriptions({}, transaction)
+          const subscriptions = await selectSubscriptions(
+            {},
+            transaction
+          )
 
           // Try to query customerB's subscription - should fail
           const subBQuery = await selectSubscriptionById(
@@ -497,7 +543,9 @@ describe('Customer Role RLS Policies', () => {
       // Should only see own subscription
       expect(result.subscriptions).toHaveLength(1)
       expect(result.subscriptions[0].id).toBe(subscriptionA_Org1.id)
-      expect(result.subscriptions[0].customerId).toBe(customerA_Org1.id)
+      expect(result.subscriptions[0].customerId).toBe(
+        customerA_Org1.id
+      )
 
       // Should not see customerB's subscription
       expect(result.subBQuery).toBeNull()
@@ -509,7 +557,10 @@ describe('Customer Role RLS Policies', () => {
         userA,
         org1,
         async ({ transaction }) => {
-          const paymentMethods = await selectPaymentMethods({}, transaction)
+          const paymentMethods = await selectPaymentMethods(
+            {},
+            transaction
+          )
           return paymentMethods
         }
       )
@@ -575,7 +626,11 @@ describe('Customer Role RLS Policies', () => {
         async ({ transaction }) => {
           // Try to update customerB's subscription - should fail
           const cancelResult = await updateSubscription(
-            { id: subscriptionB_Org1.id, status: SubscriptionStatus.Canceled, renews: false },
+            {
+              id: subscriptionB_Org1.id,
+              status: SubscriptionStatus.Canceled,
+              renews: false,
+            },
             transaction
           ).catch(() => null)
 
@@ -589,10 +644,15 @@ describe('Customer Role RLS Policies', () => {
       // Verify subscription is still active using admin transaction
       const verifySubscription = await adminTransaction(
         async ({ transaction }) => {
-          return selectSubscriptionById(subscriptionB_Org1.id, transaction)
+          return selectSubscriptionById(
+            subscriptionB_Org1.id,
+            transaction
+          )
         }
       )
-      expect(verifySubscription.status).toBe(SubscriptionStatus.Active)
+      expect(verifySubscription.status).toBe(
+        SubscriptionStatus.Active
+      )
     })
   })
 
@@ -657,7 +717,10 @@ describe('Customer Role RLS Policies', () => {
         async ({ transaction }) => {
           const customers = await selectCustomers({}, transaction)
           const invoices = await selectInvoices({}, transaction)
-          const subscriptions = await selectSubscriptions({}, transaction)
+          const subscriptions = await selectSubscriptions(
+            {},
+            transaction
+          )
           return { customers, invoices, subscriptions }
         }
       )
@@ -670,7 +733,10 @@ describe('Customer Role RLS Policies', () => {
         async ({ transaction }) => {
           const customers = await selectCustomers({}, transaction)
           const invoices = await selectInvoices({}, transaction)
-          const subscriptions = await selectSubscriptions({}, transaction)
+          const subscriptions = await selectSubscriptions(
+            {},
+            transaction
+          )
           return { customers, invoices, subscriptions }
         }
       )
@@ -678,21 +744,35 @@ describe('Customer Role RLS Policies', () => {
       // Org1 results - userA should only see their org1 data
       expect(org1Result.customers).toHaveLength(1)
       expect(org1Result.customers[0].id).toBe(customerA_Org1.id)
-      expect(org1Result.invoices.every(i => i.organizationId === org1.id)).toBe(true)
+      expect(
+        org1Result.invoices.every((i) => i.organizationId === org1.id)
+      ).toBe(true)
       expect(org1Result.subscriptions).toHaveLength(1)
-      expect(org1Result.subscriptions[0].id).toBe(subscriptionA_Org1.id)
+      expect(org1Result.subscriptions[0].id).toBe(
+        subscriptionA_Org1.id
+      )
 
       // Org2 results - userC should only see their org2 data
       expect(org2Result.customers).toHaveLength(1)
       expect(org2Result.customers[0].id).toBe(customerA_Org2.id)
-      expect(org2Result.invoices.every(i => i.organizationId === org2.id)).toBe(true)
+      expect(
+        org2Result.invoices.every((i) => i.organizationId === org2.id)
+      ).toBe(true)
       expect(org2Result.subscriptions).toHaveLength(1)
-      expect(org2Result.subscriptions[0].id).toBe(subscriptionA_Org2.id)
+      expect(org2Result.subscriptions[0].id).toBe(
+        subscriptionA_Org2.id
+      )
 
       // No overlap in IDs between orgs
-      expect(org1Result.customers[0].id).not.toBe(org2Result.customers[0].id)
-      expect(org1Result.invoices.every(i => i.organizationId === org1.id)).toBe(true)
-      expect(org2Result.invoices.every(i => i.organizationId === org2.id)).toBe(true)
+      expect(org1Result.customers[0].id).not.toBe(
+        org2Result.customers[0].id
+      )
+      expect(
+        org1Result.invoices.every((i) => i.organizationId === org1.id)
+      ).toBe(true)
+      expect(
+        org2Result.invoices.every((i) => i.organizationId === org2.id)
+      ).toBe(true)
     })
 
     it('should prevent customerD_Org2 from accessing any Org1 data', async () => {
@@ -763,14 +843,26 @@ describe('Customer Role RLS Policies', () => {
       )
 
       // Should only see own paid invoices
-      const ownPaidInvoices = result.paidInvoices.filter(i => i.customerId === customerA_Org1.id)
+      const ownPaidInvoices = result.paidInvoices.filter(
+        (i) => i.customerId === customerA_Org1.id
+      )
       expect(ownPaidInvoices.length).toBeGreaterThanOrEqual(1)
-      expect(result.paidInvoices.every(i => i.customerId === customerA_Org1.id)).toBe(true)
+      expect(
+        result.paidInvoices.every(
+          (i) => i.customerId === customerA_Org1.id
+        )
+      ).toBe(true)
 
       // Should only see own open invoices
-      const ownOpenInvoices = result.openInvoices.filter(i => i.customerId === customerA_Org1.id)
+      const ownOpenInvoices = result.openInvoices.filter(
+        (i) => i.customerId === customerA_Org1.id
+      )
       expect(ownOpenInvoices.length).toBeGreaterThanOrEqual(1)
-      expect(result.openInvoices.every(i => i.customerId === customerA_Org1.id)).toBe(true)
+      expect(
+        result.openInvoices.every(
+          (i) => i.customerId === customerA_Org1.id
+        )
+      ).toBe(true)
 
       // Org filter should still only show own invoices
       expect(
@@ -789,25 +881,27 @@ describe('Customer Role RLS Policies', () => {
       })
 
       // Create user for the empty customer
-      const emptyUser = await adminTransaction(async ({ transaction }) => {
-        const user = await insertUser(
-          {
-            id: `usr_${core.nanoid()}`,
-            email: emptyCustomer.email,
-            name: 'Empty Customer',
-            betterAuthId: `bau_${core.nanoid()}`,
-          },
-          transaction
-        )
-        
-        // Update customer with userId
-        await updateCustomer(
-          { id: emptyCustomer.id, userId: user.id },
-          transaction
-        )
-        
-        return user
-      })
+      const emptyUser = await adminTransaction(
+        async ({ transaction }) => {
+          const user = await insertUser(
+            {
+              id: `usr_${core.nanoid()}`,
+              email: emptyCustomer.email,
+              name: 'Empty Customer',
+              betterAuthId: `bau_${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          // Update customer with userId
+          await updateCustomer(
+            { id: emptyCustomer.id, userId: user.id },
+            transaction
+          )
+
+          return user
+        }
+      )
 
       const result = await authenticatedCustomerTransaction(
         emptyCustomer,
@@ -815,9 +909,15 @@ describe('Customer Role RLS Policies', () => {
         org1,
         async ({ transaction }) => {
           const invoices = await selectInvoices({}, transaction)
-          const subscriptions = await selectSubscriptions({}, transaction)
+          const subscriptions = await selectSubscriptions(
+            {},
+            transaction
+          )
           const payments = await selectPayments({}, transaction)
-          const paymentMethods = await selectPaymentMethods({}, transaction)
+          const paymentMethods = await selectPaymentMethods(
+            {},
+            transaction
+          )
 
           return {
             invoices,
@@ -852,13 +952,22 @@ describe('Customer Role RLS Policies', () => {
 
           // Get all related data (should be filtered by RLS)
           const invoices = await selectInvoices({}, transaction)
-          const subscriptions = await selectSubscriptions({}, transaction)
+          const subscriptions = await selectSubscriptions(
+            {},
+            transaction
+          )
           const payments = await selectPayments({}, transaction)
-          const paymentMethods = await selectPaymentMethods({}, transaction)
+          const paymentMethods = await selectPaymentMethods(
+            {},
+            transaction
+          )
 
           // Calculate aggregates
           const invoiceCount = invoices.length
-          const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
+          const totalPaid = payments.reduce(
+            (sum, p) => sum + p.amount,
+            0
+          )
 
           return {
             customer,
@@ -883,11 +992,17 @@ describe('Customer Role RLS Policies', () => {
 
       // All data should belong to customerA
       expect(
-        result.invoices.every((i) => i.customerId === customerA_Org1.id)
+        result.invoices.every(
+          (i) => i.customerId === customerA_Org1.id
+        )
       ).toBe(true)
-      expect(result.subscriptions[0].customerId).toBe(customerA_Org1.id)
+      expect(result.subscriptions[0].customerId).toBe(
+        customerA_Org1.id
+      )
       expect(result.payments[0].customerId).toBe(customerA_Org1.id)
-      expect(result.paymentMethods[0].customerId).toBe(customerA_Org1.id)
+      expect(result.paymentMethods[0].customerId).toBe(
+        customerA_Org1.id
+      )
     })
 
     it('should prevent subscription cancellation for other customers', async () => {
@@ -930,7 +1045,9 @@ describe('Customer Role RLS Policies', () => {
 
       // Should still be able to access own subscription
       expect(result.ownSubscription.id).toBe(subscriptionA_Org1.id)
-      expect(result.ownSubscription.status).toBe(SubscriptionStatus.Active)
+      expect(result.ownSubscription.status).toBe(
+        SubscriptionStatus.Active
+      )
     })
   })
 
@@ -951,7 +1068,10 @@ describe('Customer Role RLS Policies', () => {
         userA,
         org1,
         async ({ transaction }) => {
-          const subscriptions = await selectSubscriptions({}, transaction)
+          const subscriptions = await selectSubscriptions(
+            {},
+            transaction
+          )
           const activeSubscriptions = await selectSubscriptions(
             { status: SubscriptionStatus.Active },
             transaction
@@ -961,7 +1081,11 @@ describe('Customer Role RLS Policies', () => {
             transaction
           )
 
-          return { subscriptions, activeSubscriptions, trialingSubscriptions }
+          return {
+            subscriptions,
+            activeSubscriptions,
+            trialingSubscriptions,
+          }
         }
       )
 
@@ -972,7 +1096,9 @@ describe('Customer Role RLS Policies', () => {
 
       // All should belong to customerA
       expect(
-        result.subscriptions.every((s) => s.customerId === customerA_Org1.id)
+        result.subscriptions.every(
+          (s) => s.customerId === customerA_Org1.id
+        )
       ).toBe(true)
     })
 
@@ -1044,7 +1170,7 @@ describe('Customer Role RLS Policies', () => {
       expect(result.archivedCustomers[0].id).toBe(customerA_Org1.id)
       expect(result.otherCustomers).toHaveLength(1)
       expect(result.otherCustomers[0].id).toBe(customerA_Org1.id)
-      
+
       // Restore archived status for cleanup
       await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
@@ -1057,7 +1183,7 @@ describe('Customer Role RLS Policies', () => {
     it('should prevent creating new records', async () => {
       // Customer should not be able to create new customers
       // This operation should fail due to RLS policies
-      
+
       // Try to create a new customer - should fail due to RLS
       let newCustomerError: string | null = null
       try {
@@ -1085,7 +1211,9 @@ describe('Customer Role RLS Policies', () => {
 
       // Customer creation should have failed (RLS prevents inserts for customer role)
       expect(newCustomerError).toBeTruthy()
-      expect(newCustomerError).toMatch(/Failed to insert|row-level security|violates/)
+      expect(newCustomerError).toMatch(
+        /Failed to insert|row-level security|violates/
+      )
     })
   })
 })

@@ -17,7 +17,7 @@ export const CustomerBillingPortalMagicLinkEmail = ({
   organizationName,
 }: CustomerBillingPortalMagicLinkEmailProps) => {
   const displayName = customerName || email
-  
+
   return (
     <EmailLayout
       previewText={`Sign in to your billing portal${organizationName ? ` for ${organizationName}` : ''}`}
@@ -34,13 +34,15 @@ export const CustomerBillingPortalMagicLinkEmail = ({
       <Paragraph variant="customer">Hi {displayName},</Paragraph>
       <Paragraph variant="customer">
         You requested a magic link to sign in to your billing portal
-        {organizationName ? ` for ${organizationName}` : ''}.
-        Click the button below to access your account.
+        {organizationName ? ` for ${organizationName}` : ''}. Click
+        the button below to access your account.
       </Paragraph>
       <Section
         style={{ textAlign: 'center' as const, marginTop: '32px' }}
       >
-        <EmailButton href={url}>Sign In to Billing Portal</EmailButton>
+        <EmailButton href={url}>
+          Sign In to Billing Portal
+        </EmailButton>
       </Section>
       <Paragraph variant="customer" style={{ marginTop: '24px' }}>
         {`If you didn't request this sign-in link, you can safely ignore this email.`}
@@ -48,7 +50,10 @@ export const CustomerBillingPortalMagicLinkEmail = ({
       <Paragraph variant="customer">
         For security reasons, this link will expire in 10 minutes.
       </Paragraph>
-      <Paragraph variant="customer" style={{ fontSize: '12px', color: '#666' }}>
+      <Paragraph
+        variant="customer"
+        style={{ fontSize: '12px', color: '#666' }}
+      >
         This link was requested for: {email}
       </Paragraph>
     </EmailLayout>

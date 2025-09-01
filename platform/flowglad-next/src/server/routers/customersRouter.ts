@@ -98,28 +98,35 @@ const createCustomerProcedure = protectedProcedure
           /**
            * We have to parse the customer record here because of the billingAddress json
            */
-          const createdCustomerOutput = await createCustomerBookkeeping(
-            {
-              customer: {
-                ...customer,
-                organizationId,
+          const createdCustomerOutput =
+            await createCustomerBookkeeping(
+              {
+                customer: {
+                  ...customer,
+                  organizationId,
+                },
               },
-            },
-            { transaction, userId, livemode, organizationId }
-          )
+              { transaction, userId, livemode, organizationId }
+            )
 
           if (ctx.path) {
             await revalidatePath(ctx.path)
           }
-          
-          const subscription = createdCustomerOutput.result.subscription ? subscriptionWithCurrent(createdCustomerOutput.result.subscription) : undefined
+
+          const subscription = createdCustomerOutput.result
+            .subscription
+            ? subscriptionWithCurrent(
+                createdCustomerOutput.result.subscription
+              )
+            : undefined
           return {
             result: {
               data: {
                 customer: createdCustomerOutput.result.customer,
                 subscription,
-                subscriptionItems: createdCustomerOutput.result.subscriptionItems,
-              }
+                subscriptionItems:
+                  createdCustomerOutput.result.subscriptionItems,
+              },
             },
             eventsToLog: createdCustomerOutput.eventsToLog,
             ledgerCommand: createdCustomerOutput.ledgerCommand,

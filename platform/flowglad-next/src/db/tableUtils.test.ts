@@ -185,7 +185,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             pageSize: 5,
             filters: {
               organizationId,
-            }
+            },
           },
           transaction,
         })
@@ -201,7 +201,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             pageAfter: firstPage.endCursor!,
             filters: {
               organizationId,
-            }
+            },
           },
           transaction,
         })
@@ -217,7 +217,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             pageBefore: secondPage.startCursor!,
             filters: {
               organizationId,
-            }
+            },
           },
           transaction,
         })

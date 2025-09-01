@@ -1,8 +1,8 @@
 import { cn } from '@/utils/core'
 
-export function Card({ 
-  className, 
-  ...props 
+export function Card({
+  className,
+  ...props
 }: React.ComponentProps<'div'>) {
   return (
     <div

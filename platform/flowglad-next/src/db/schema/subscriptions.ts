@@ -101,9 +101,12 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
       table.externalId,
       table.organizationId,
     ]),
-    enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-      using: sql`"customer_id" in (select "id" from "customers")`,
-    }),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }
+    ),
     merchantPolicy(
       'Enable actions for own organizations via customer',
       {

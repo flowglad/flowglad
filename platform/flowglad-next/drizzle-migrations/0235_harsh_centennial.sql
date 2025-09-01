@@ -1,3 +1,19 @@
+DO $$ BEGIN
+    CREATE ROLE "authenticated";
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE OR REPLACE FUNCTION current_organization_id()
+RETURNS text AS $$
+BEGIN
+    RETURN NULLIF(
+        current_setting('request.jwt.claims', true)::json->>'organization_id',
+        ''
+    )::text;
+END;
+$$ LANGUAGE plpgsql;
+
 DO
 $$
 BEGIN

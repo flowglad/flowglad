@@ -76,9 +76,12 @@ export const invoiceLineItems = pgTable(
       constructIndex(TABLE_NAME, [table.priceId]),
       constructIndex(TABLE_NAME, [table.billingRunId]),
       constructIndex(TABLE_NAME, [table.ledgerAccountId]),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"invoice_id" in (select "id" from "invoices")`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"invoice_id" in (select "id" from "invoices")`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

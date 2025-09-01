@@ -10,16 +10,16 @@ interface PricingToggleProps {
   className?: string
 }
 
-export function PricingToggle({ 
-  options, 
-  selected, 
-  onChange, 
-  className 
+export function PricingToggle({
+  options,
+  selected,
+  onChange,
+  className,
 }: PricingToggleProps) {
   return (
-    <div 
+    <div
       className={cn(
-        "inline-flex items-center p-1 bg-muted rounded-full",
+        'inline-flex items-center p-1 bg-muted rounded-full',
         className
       )}
     >
@@ -28,11 +28,11 @@ export function PricingToggle({
           key={option}
           onClick={() => onChange(option)}
           className={cn(
-            "px-3 sm:px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-200",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            'px-3 sm:px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-200',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
             selected === option
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           )}
         >
           {option}

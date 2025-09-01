@@ -60,9 +60,12 @@ export const usageCreditBalanceAdjustments = pgTable(
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.adjustedUsageCreditId]),
       constructIndex(TABLE_NAME, [table.adjustedByUserId]),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"adjusted_usage_credit_id" in (select "id" from "usage_credits")`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"adjusted_usage_credit_id" in (select "id" from "usage_credits")`,
+        }
+      ),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {

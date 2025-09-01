@@ -3,8 +3,19 @@ import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { finalizeFeeCalculation, calculateDiscountAmountFromRedemption, calculateFlowgladFeePercentage, calculateInternationalFeePercentage, calculatePaymentMethodFeeAmount } from './common'
-import { CurrencyCode, FeeCalculationType, SubscriptionItemType, CountryCode } from '@/types'
+import {
+  finalizeFeeCalculation,
+  calculateDiscountAmountFromRedemption,
+  calculateFlowgladFeePercentage,
+  calculateInternationalFeePercentage,
+  calculatePaymentMethodFeeAmount,
+} from './common'
+import {
+  CurrencyCode,
+  FeeCalculationType,
+  SubscriptionItemType,
+  CountryCode,
+} from '@/types'
 import { Country } from '@/db/schema/countries'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { DbTransaction } from '@/db/types'
@@ -31,12 +42,18 @@ export const calculateBillingItemBaseAmount = (
   const usageMap = new Map(
     items
       .filter((i) => i.type === SubscriptionItemType.Usage)
-      .map((i) => [i.usageMeterId, i as BillingPeriodItem.UsageRecord])
+      .map((i) => [
+        i.usageMeterId,
+        i as BillingPeriodItem.UsageRecord,
+      ])
   )
   const usageAmt = overages
     .map(({ usageMeterId, balance }) => {
       const rec = usageMap.get(usageMeterId)
-      if (!rec) throw Error(`Usage billing period item not found for usage meter id: ${usageMeterId}`)
+      if (!rec)
+        throw Error(
+          `Usage billing period item not found for usage meter id: ${usageMeterId}`
+        )
       return (balance / rec.usageEventsPerUnit) * rec.unitPrice
     })
     .reduce((acc, v) => acc + v, 0)
@@ -57,17 +74,28 @@ export const createSubscriptionFeeCalculationInsert = (
     currency,
     usageOverages,
   } = params
-  const baseAmt = calculateBillingItemBaseAmount(billingPeriodItems, usageOverages)
-  const discountAmt = calculateDiscountAmountFromRedemption(baseAmt, discountRedemption)
+  const baseAmt = calculateBillingItemBaseAmount(
+    billingPeriodItems,
+    usageOverages
+  )
+  const discountAmt = calculateDiscountAmountFromRedemption(
+    baseAmt,
+    discountRedemption
+  )
   const pretax = Math.max(baseAmt - (discountAmt ?? 0), 0)
   const flowPct = calculateFlowgladFeePercentage({ organization })
   const intlPct = calculateInternationalFeePercentage({
     paymentMethod: paymentMethod.type,
-    paymentMethodCountry: (paymentMethod.billingDetails.address?.country ?? paymentMethod.paymentMethodData?.country) as CountryCode,
+    paymentMethodCountry: (paymentMethod.billingDetails.address
+      ?.country ??
+      paymentMethod.paymentMethodData?.country) as CountryCode,
     organization,
     organizationCountry,
   })
-  const payFee = calculatePaymentMethodFeeAmount(pretax, paymentMethod.type)
+  const payFee = calculatePaymentMethodFeeAmount(
+    pretax,
+    paymentMethod.type
+  )
   return {
     type: FeeCalculationType.SubscriptionPayment,
     organizationId: organization.id,
@@ -94,8 +122,17 @@ export const createAndFinalizeSubscriptionFeeCalculation = async (
   params: SubscriptionFeeCalculationParams,
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
-  const [redemption] = await selectDiscountRedemptions({ subscriptionId: params.billingPeriod.subscriptionId, fullyRedeemed: false }, transaction)
-  const insert = createSubscriptionFeeCalculationInsert({ ...params, discountRedemption: redemption })
+  const [redemption] = await selectDiscountRedemptions(
+    {
+      subscriptionId: params.billingPeriod.subscriptionId,
+      fullyRedeemed: false,
+    },
+    transaction
+  )
+  const insert = createSubscriptionFeeCalculationInsert({
+    ...params,
+    discountRedemption: redemption,
+  })
   const initial = await insertFeeCalculation(insert, transaction)
   return finalizeFeeCalculation(initial, transaction)
 }

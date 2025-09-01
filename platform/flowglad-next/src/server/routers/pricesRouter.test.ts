@@ -3,7 +3,11 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { setupOrg } from '@/../seedDatabase'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 import { insertProduct } from '@/db/tableMethods/productMethods'
-import { insertPrice, selectPriceById, safelyUpdatePrice } from '@/db/tableMethods/priceMethods'
+import {
+  insertPrice,
+  selectPriceById,
+  safelyUpdatePrice,
+} from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import core from '@/utils/core'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
@@ -105,9 +109,15 @@ describe('pricesRouter - Default Price Constraints', () => {
     it('should throw error when attempting to change unitPrice of default price on default product to non-zero', async () => {
       await expect(
         adminTransaction(async ({ transaction }) => {
-          const existingPrice = await selectPriceById(defaultPriceId, transaction)
-          const product = await selectProductById(existingPrice.productId, transaction)
-          
+          const existingPrice = await selectPriceById(
+            defaultPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
           // This should throw an error
           validateDefaultPriceUpdate(
             { unitPrice: 1000, type: PriceType.Subscription },
@@ -121,30 +131,42 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow unitPrice of 0 for default price on default product', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        const existingPrice = await selectPriceById(defaultPriceId, transaction)
-        const product = await selectProductById(existingPrice.productId, transaction)
-        
-        // This should not throw
-        validateDefaultPriceUpdate(
-          { unitPrice: 0, type: PriceType.Subscription, name: 'Updated Base Plan Price' },
-          existingPrice,
-          product
-        )
-        
-        // Actually update the price
-        const updatedPrice = await safelyUpdatePrice(
-          {
-            id: defaultPriceId,
-            type: PriceType.Subscription,
-            unitPrice: 0,
-            name: 'Updated Base Plan Price',
-          },
-          transaction
-        )
-        
-        return updatedPrice
-      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const existingPrice = await selectPriceById(
+            defaultPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
+          // This should not throw
+          validateDefaultPriceUpdate(
+            {
+              unitPrice: 0,
+              type: PriceType.Subscription,
+              name: 'Updated Base Plan Price',
+            },
+            existingPrice,
+            product
+          )
+
+          // Actually update the price
+          const updatedPrice = await safelyUpdatePrice(
+            {
+              id: defaultPriceId,
+              type: PriceType.Subscription,
+              unitPrice: 0,
+              name: 'Updated Base Plan Price',
+            },
+            transaction
+          )
+
+          return updatedPrice
+        }
+      )
 
       expect(result).toBeDefined()
       expect(result.unitPrice).toBe(0)
@@ -154,9 +176,15 @@ describe('pricesRouter - Default Price Constraints', () => {
     it('should throw error when attempting to change isDefault status of default price on default product', async () => {
       await expect(
         adminTransaction(async ({ transaction }) => {
-          const existingPrice = await selectPriceById(defaultPriceId, transaction)
-          const product = await selectProductById(existingPrice.productId, transaction)
-          
+          const existingPrice = await selectPriceById(
+            defaultPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
           // This should throw an error
           validateDefaultPriceUpdate(
             { isDefault: false, type: PriceType.Subscription },
@@ -170,30 +198,42 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow updating non-financial fields on default price of default product', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        const existingPrice = await selectPriceById(defaultPriceId, transaction)
-        const product = await selectProductById(existingPrice.productId, transaction)
-        
-        // This should not throw
-        validateDefaultPriceUpdate(
-          { name: 'Updated Default Price Name', active: false, type: PriceType.Subscription },
-          existingPrice,
-          product
-        )
-        
-        // Actually update the price
-        const updatedPrice = await safelyUpdatePrice(
-          {
-            id: defaultPriceId,
-            type: PriceType.Subscription,
-            name: 'Updated Default Price Name',
-            active: false,
-          },
-          transaction
-        )
-        
-        return updatedPrice
-      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const existingPrice = await selectPriceById(
+            defaultPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
+          // This should not throw
+          validateDefaultPriceUpdate(
+            {
+              name: 'Updated Default Price Name',
+              active: false,
+              type: PriceType.Subscription,
+            },
+            existingPrice,
+            product
+          )
+
+          // Actually update the price
+          const updatedPrice = await safelyUpdatePrice(
+            {
+              id: defaultPriceId,
+              type: PriceType.Subscription,
+              name: 'Updated Default Price Name',
+              active: false,
+            },
+            transaction
+          )
+
+          return updatedPrice
+        }
+      )
 
       expect(result).toBeDefined()
       expect(result.name).toBe('Updated Default Price Name')
@@ -205,83 +245,99 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('editPrice - Regular Prices', () => {
     it('should allow updating unitPrice on regular prices', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        const existingPrice = await selectPriceById(regularPriceId, transaction)
-        const product = await selectProductById(existingPrice.productId, transaction)
-        
-        // This should not throw for regular prices
-        validateDefaultPriceUpdate(
-          { unitPrice: 2000, type: PriceType.Subscription },
-          existingPrice,
-          product
-        )
-        
-        // Actually update the price
-        const updatedPrice = await safelyUpdatePrice(
-          {
-            id: regularPriceId,
-            type: PriceType.Subscription,
-            unitPrice: 2000,
-          },
-          transaction
-        )
-        
-        return updatedPrice
-      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const existingPrice = await selectPriceById(
+            regularPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
+          // This should not throw for regular prices
+          validateDefaultPriceUpdate(
+            { unitPrice: 2000, type: PriceType.Subscription },
+            existingPrice,
+            product
+          )
+
+          // Actually update the price
+          const updatedPrice = await safelyUpdatePrice(
+            {
+              id: regularPriceId,
+              type: PriceType.Subscription,
+              unitPrice: 2000,
+            },
+            transaction
+          )
+
+          return updatedPrice
+        }
+      )
 
       expect(result).toBeDefined()
       expect(result.unitPrice).toBe(2000)
     })
 
     it('should allow changing isDefault status on regular prices', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        // First create another price to be the new default
-        await insertPrice(
-          {
-            productId: regularProductId,
-            unitPrice: 3000,
-            isDefault: false,
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Year,
-            intervalCount: 1,
-            currency: CurrencyCode.USD,
-            livemode,
-            active: true,
-            name: 'Another Price',
-            trialPeriodDays: null,
-            setupFeeAmount: null,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-            externalId: null,
-            slug: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
-          },
-          transaction
-        )
-        
-        const existingPrice = await selectPriceById(regularPriceId, transaction)
-        const product = await selectProductById(existingPrice.productId, transaction)
-        
-        // This should not throw for regular prices
-        validateDefaultPriceUpdate(
-          { isDefault: false, type: PriceType.Subscription },
-          existingPrice,
-          product
-        )
-        
-        // Actually update the price
-        const updatedPrice = await safelyUpdatePrice(
-          {
-            id: regularPriceId,
-            type: PriceType.Subscription,
-            isDefault: false,
-          },
-          transaction
-        )
-        
-        return updatedPrice
-      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          // First create another price to be the new default
+          await insertPrice(
+            {
+              productId: regularProductId,
+              unitPrice: 3000,
+              isDefault: false,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Year,
+              intervalCount: 1,
+              currency: CurrencyCode.USD,
+              livemode,
+              active: true,
+              name: 'Another Price',
+              trialPeriodDays: null,
+              setupFeeAmount: null,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+              externalId: null,
+              slug: null,
+              startsWithCreditTrial: false,
+              overagePriceId: null,
+            },
+            transaction
+          )
+
+          const existingPrice = await selectPriceById(
+            regularPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
+          // This should not throw for regular prices
+          validateDefaultPriceUpdate(
+            { isDefault: false, type: PriceType.Subscription },
+            existingPrice,
+            product
+          )
+
+          // Actually update the price
+          const updatedPrice = await safelyUpdatePrice(
+            {
+              id: regularPriceId,
+              type: PriceType.Subscription,
+              isDefault: false,
+            },
+            transaction
+          )
+
+          return updatedPrice
+        }
+      )
 
       expect(result).toBeDefined()
       expect(result.isDefault).toBe(false)
@@ -290,34 +346,36 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('createPrice', () => {
     it('should allow creating additional prices for default products', async () => {
-      const result = await adminTransaction(async ({ transaction }) => {
-        // Create an additional price for the default product
-        const newPrice = await insertPrice(
-          {
-            productId: defaultProductId,
-            unitPrice: 500, // Non-zero price for a non-default price on default product
-            isDefault: false,
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Year,
-            intervalCount: 1,
-            currency: CurrencyCode.USD,
-            livemode,
-            active: true,
-            name: 'Premium Plan',
-            trialPeriodDays: null,
-            setupFeeAmount: null,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-            externalId: null,
-            slug: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
-          },
-          transaction
-        )
-        
-        return newPrice
-      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          // Create an additional price for the default product
+          const newPrice = await insertPrice(
+            {
+              productId: defaultProductId,
+              unitPrice: 500, // Non-zero price for a non-default price on default product
+              isDefault: false,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Year,
+              intervalCount: 1,
+              currency: CurrencyCode.USD,
+              livemode,
+              active: true,
+              name: 'Premium Plan',
+              trialPeriodDays: null,
+              setupFeeAmount: null,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+              externalId: null,
+              slug: null,
+              startsWithCreditTrial: false,
+              overagePriceId: null,
+            },
+            transaction
+          )
+
+          return newPrice
+        }
+      )
 
       expect(result).toBeDefined()
       expect(result.unitPrice).toBe(500)

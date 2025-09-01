@@ -22,7 +22,10 @@ export const validateDefaultProductUpdate = (
   existingProduct: Product.Record
 ): void => {
   // Prevent changing the default status on any product
-  if ('default' in update && update.default !== existingProduct.default) {
+  if (
+    'default' in update &&
+    update.default !== existingProduct.default
+  ) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Cannot change the default status of a product',
@@ -32,9 +35,11 @@ export const validateDefaultProductUpdate = (
   // If not a default product, no further validation needed
   if (!existingProduct.default) return
 
-  const attemptedFields = Object.keys(update).filter(k => k !== 'id')
+  const attemptedFields = Object.keys(update).filter(
+    (k) => k !== 'id'
+  )
   const disallowedFields = attemptedFields.filter(
-    f => !DEFAULT_PRODUCT_ALLOWED_FIELDS.includes(f as any)
+    (f) => !DEFAULT_PRODUCT_ALLOWED_FIELDS.includes(f as any)
   )
 
   if (disallowedFields.length > 0) {
@@ -60,15 +65,20 @@ export const validateDefaultPriceUpdate = (
   if (update.unitPrice !== undefined && update.unitPrice !== 0) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'Default prices for default products must have a unitPrice of 0',
+      message:
+        'Default prices for default products must have a unitPrice of 0',
     })
   }
 
   // Prevent changing the isDefault status
-  if ('isDefault' in update && update.isDefault !== existingPrice.isDefault) {
+  if (
+    'isDefault' in update &&
+    update.isDefault !== existingPrice.isDefault
+  ) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'Cannot change the default status of a default price on a default product',
+      message:
+        'Cannot change the default status of a default price on a default product',
     })
   }
 }
@@ -82,7 +92,8 @@ export const validateProductCreation = (
   if (product.default === true) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'Default products cannot be created manually. They are automatically created when pricing models are created.',
+      message:
+        'Default products cannot be created manually. They are automatically created when pricing models are created.',
     })
   }
 }

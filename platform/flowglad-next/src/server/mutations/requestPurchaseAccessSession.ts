@@ -47,10 +47,11 @@ export const requestPurchaseAccessSession = publicProcedure
         transaction
       )
 
-      const orgAndFirstMember = await selectOrganizationAndFirstMemberByOrganizationId(
-        customer.organizationId,
-        transaction
-      )
+      const orgAndFirstMember =
+        await selectOrganizationAndFirstMemberByOrganizationId(
+          customer.organizationId,
+          transaction
+        )
 
       const verificationURL =
         core.safeUrl(

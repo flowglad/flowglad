@@ -36,12 +36,12 @@ export default async function RootLayout({
   // The preview routes will handle their own complete HTML structure
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
-  
+
   // For preview routes, skip the root layout entirely
   if (pathname.includes('/preview-ui')) {
     return children
   }
-  
+
   const session = await getSession()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true

@@ -392,7 +392,10 @@ export const setupSubscription = async (params: {
           organizationId: params.organizationId,
           customerId: params.customerId,
           defaultPaymentMethodId: params.paymentMethodId,
-          status: status as SubscriptionStatus.CreditTrial | SubscriptionStatus.Active | SubscriptionStatus.Canceled,
+          status: status as
+            | SubscriptionStatus.CreditTrial
+            | SubscriptionStatus.Active
+            | SubscriptionStatus.Canceled,
           livemode: params.livemode ?? true,
           billingCycleAnchorDate: null,
           currentBillingPeriodStart: null,
@@ -421,7 +424,16 @@ export const setupSubscription = async (params: {
           organizationId: params.organizationId,
           customerId: params.customerId,
           defaultPaymentMethodId: params.paymentMethodId,
-          status: status as SubscriptionStatus.Trialing | SubscriptionStatus.Active | SubscriptionStatus.PastDue | SubscriptionStatus.Unpaid | SubscriptionStatus.CancellationScheduled | SubscriptionStatus.Incomplete | SubscriptionStatus.IncompleteExpired | SubscriptionStatus.Canceled | SubscriptionStatus.Paused,
+          status: status as
+            | SubscriptionStatus.Trialing
+            | SubscriptionStatus.Active
+            | SubscriptionStatus.PastDue
+            | SubscriptionStatus.Unpaid
+            | SubscriptionStatus.CancellationScheduled
+            | SubscriptionStatus.Incomplete
+            | SubscriptionStatus.IncompleteExpired
+            | SubscriptionStatus.Canceled
+            | SubscriptionStatus.Paused,
           livemode: params.livemode ?? true,
           billingCycleAnchorDate: new Date(),
           currentBillingPeriodEnd:
@@ -609,17 +621,18 @@ export const setupPurchase = async ({
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(priceId, transaction)
     const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
-    const coreFields = { customerId,
-    organizationId,
-    livemode: livemode ?? price.livemode,
-    name: 'Test Purchase',
-    priceId: price.id,
-    priceType: price.type,
-    totalPurchaseValue: price.unitPrice,
-    quantity: 1,
-    firstInvoiceValue: price.unitPrice,
-    status
-  } as const
+    const coreFields = {
+      customerId,
+      organizationId,
+      livemode: livemode ?? price.livemode,
+      name: 'Test Purchase',
+      priceId: price.id,
+      priceType: price.type,
+      totalPurchaseValue: price.unitPrice,
+      quantity: 1,
+      firstInvoiceValue: price.unitPrice,
+      status,
+    } as const
     if (price.type === PriceType.Usage) {
       return await insertPurchase(
         {
@@ -913,7 +926,7 @@ export const setupPayment = async ({
         refunded,
         refundedAmount,
         refundedAt,
-        paymentMethodId
+        paymentMethodId,
       },
       transaction
     )

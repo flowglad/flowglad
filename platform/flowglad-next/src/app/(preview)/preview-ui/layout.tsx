@@ -12,13 +12,19 @@ export default function PreviewLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1"
+        />
         <title>Component Preview - Flowglad UI</title>
         {/* eslint-disable-next-line @next/next/no-css-tags */}
         <link rel="stylesheet" href="/preview/preview.css" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider defaultTheme="system" storageKey="preview-theme">
+        <ThemeProvider
+          defaultTheme="system"
+          storageKey="preview-theme"
+        >
           <div id="preview-root" data-preview-container>
             {children}
           </div>

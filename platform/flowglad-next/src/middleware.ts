@@ -88,23 +88,34 @@ export default async function middleware(req: NextRequest) {
   if (!sessionCookie && isProtectedRoute) {
     if (pathName.startsWith('/billing-portal/')) {
       return NextResponse.redirect(
-        new URL(`/billing-portal/${pathName.split('/')[2]}/sign-in`, req.url)
+        new URL(
+          `/billing-portal/${pathName.split('/')[2]}/sign-in`,
+          req.url
+        )
       )
     }
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
 
-  const customerBillingPortalOrganizationId = await getCustomerBillingPortalOrganizationId()
-  if (customerBillingPortalOrganizationId && !pathName.startsWith('/billing-portal/') && isProtectedRoute) {
+  const customerBillingPortalOrganizationId =
+    await getCustomerBillingPortalOrganizationId()
+  if (
+    customerBillingPortalOrganizationId &&
+    !pathName.startsWith('/billing-portal/') &&
+    isProtectedRoute
+  ) {
     return NextResponse.redirect(
-      new URL(`/billing-portal/${customerBillingPortalOrganizationId}`, req.url)
+      new URL(
+        `/billing-portal/${customerBillingPortalOrganizationId}`,
+        req.url
+      )
     )
   }
-  
+
   // Add pathname to headers for layout detection
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-pathname', req.nextUrl.pathname)
-  
+
   return NextResponse.next({
     request: {
       headers: requestHeaders,

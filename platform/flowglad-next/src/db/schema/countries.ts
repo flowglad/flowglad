@@ -35,11 +35,14 @@ export const countries = pgTable(
         for: 'select',
         using: sql`true`,
       }),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        as: 'permissive',
-        for: 'select',
-        using: sql`true`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          for: 'select',
+          using: sql`true`,
+        }
+      ),
     ]
   }
 )

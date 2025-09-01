@@ -8,7 +8,10 @@ import { createTracingMiddleware } from './tracingMiddleware'
 import { FeatureFlag } from '@/types'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerAndOrganizationByCustomerWhere, selectCustomers } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerAndOrganizationByCustomerWhere,
+  selectCustomers,
+} from '@/db/tableMethods/customerMethods'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 
 // Create tracing middleware factory
@@ -64,14 +67,20 @@ const isCustomerAuthed = t.middleware(async ({ next, ctx }) => {
   if (!user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
-  const organizationId = await getCustomerBillingPortalOrganizationId()
+  const organizationId =
+    await getCustomerBillingPortalOrganizationId()
 
-  const [customerAndOrganization] = await adminTransaction(async ({ transaction }) => {
-    return selectCustomerAndOrganizationByCustomerWhere({
-      userId: user.id,
-      organizationId
-    }, transaction)
-  })
+  const [customerAndOrganization] = await adminTransaction(
+    async ({ transaction }) => {
+      return selectCustomerAndOrganizationByCustomerWhere(
+        {
+          userId: user.id,
+          organizationId,
+        },
+        transaction
+      )
+    }
+  )
 
   if (!customerAndOrganization) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
@@ -90,43 +99,52 @@ const isCustomerAuthed = t.middleware(async ({ next, ctx }) => {
   })
 })
 
-const isCustomerBillingAuthed = t.middleware(async ({ next, ctx }) => {
-  const { isApi, environment } = ctx as TRPCApiContext
-  const livemode = environment === 'live'
-  const user = (ctx as TRPCContext).user
-  if (!user) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' })
+const isCustomerBillingAuthed = t.middleware(
+  async ({ next, ctx }) => {
+    const { isApi, environment } = ctx as TRPCApiContext
+    const livemode = environment === 'live'
+    const user = (ctx as TRPCContext).user
+    if (!user) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' })
+    }
+
+    const [customer] = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomers(
+          {
+            userId: user.id,
+            organizationId: (ctx as TRPCContext).organizationId,
+          },
+          transaction
+        )
+      }
+    )
+
+    if (!customer) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' })
+    }
+
+    return next({
+      ctx: {
+        user,
+        customer,
+        path: (ctx as TRPCContext).path,
+        environment,
+        organizationId: (ctx as TRPCContext).organizationId,
+        organization: (ctx as TRPCContext).organization,
+        livemode,
+      },
+    })
   }
-
-  const [customer] = await adminTransaction(async ({ transaction }) => {
-    return selectCustomers({
-      userId: user.id,
-      organizationId: (ctx as TRPCContext).organizationId,
-    }, transaction)
-  })
-
-  if (!customer) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' })
-  }
-
-  return next({
-    ctx: {
-      user,
-      customer,
-      path: (ctx as TRPCContext).path,
-      environment,
-      organizationId: (ctx as TRPCContext).organizationId,
-      organization: (ctx as TRPCContext).organization,
-      livemode,
-    },
-  })
-})
-
+)
 
 // Protected procedure with tracing
 export const protectedProcedure = baseProcedure.use(isAuthed)
-export const customerProtectedProcedure = baseProcedure.use(isCustomerAuthed)
-export const customerBillingProtectedProcedure = baseProcedure.use(isCustomerBillingAuthed)
+export const customerProtectedProcedure =
+  baseProcedure.use(isCustomerAuthed)
+export const customerBillingProtectedProcedure = baseProcedure.use(
+  isCustomerBillingAuthed
+)
 
 export const featureFlaggedProcedure = (featureFlag: FeatureFlag) => {
   return protectedProcedure.use(({ next, ctx }) => {

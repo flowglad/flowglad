@@ -65,9 +65,12 @@ export const usageCreditApplications = pgTable(
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
-    enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-      using: sql`"usage_credit_id" in (select "id" from "usage_credits")`,
-    }),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"usage_credit_id" in (select "id" from "usage_credits")`,
+      }
+    ),
     merchantPolicy(
       `Enable read for own organizations (${TABLE_NAME})`,
       {

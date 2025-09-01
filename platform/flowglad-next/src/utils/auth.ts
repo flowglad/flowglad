@@ -9,36 +9,60 @@ import {
   verification,
 } from '@/db/schema/betterAuthSchema'
 import { betterAuthUserToApplicationUser } from './authHelpers'
-import { sendForgotPasswordEmail, sendCustomerBillingPortalMagicLink } from './email'
+import {
+  sendForgotPasswordEmail,
+  sendCustomerBillingPortalMagicLink,
+} from './email'
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { getCustomerBillingPortalOrganizationId } from './customerBillingPortalState'
 
-const handleCustomerBillingPortalEmailOTP = async (params: { email: string, url: string, token: string, organizationId: string }) => {
+const handleCustomerBillingPortalEmailOTP = async (params: {
+  email: string
+  url: string
+  token: string
+  organizationId: string
+}) => {
   const { email, url, token, organizationId } = params
-      // Get organization and customer info for the email
-      const { organization, customer } = await adminTransaction(async ({ transaction }) => {
-        const org = await selectOrganizationById(organizationId, transaction)
-        const customers = await selectCustomers({ email, organizationId }, transaction)
-        return {
-          organization: org,
-          customer: customers[0] || null
-        }
-      })
-      
-      // Build the magic link URL with OTP
-      // Send the magic link email
-      await sendCustomerBillingPortalMagicLink({
-        to: [email],
-        url,
-        customerName: customer?.name || undefined,
-        organizationName: organization?.name || undefined,
-      })
+  // Get organization and customer info for the email
+  const { organization, customer } = await adminTransaction(
+    async ({ transaction }) => {
+      const org = await selectOrganizationById(
+        organizationId,
+        transaction
+      )
+      const customers = await selectCustomers(
+        { email, organizationId },
+        transaction
+      )
+      return {
+        organization: org,
+        customer: customers[0] || null,
+      }
+    }
+  )
+
+  // Build the magic link URL with OTP
+  // Send the magic link email
+  await sendCustomerBillingPortalMagicLink({
+    to: [email],
+    url,
+    customerName: customer?.name || undefined,
+    organizationName: organization?.name || undefined,
+  })
 }
 
-const handleMerchantEmailOTP = async ({ email, url, token }: { email: string, url: string, token: string }) => {
+const handleMerchantEmailOTP = async ({
+  email,
+  url,
+  token,
+}: {
+  email: string
+  url: string
+  token: string
+}) => {
   throw new Error('Not implemented')
 }
 
@@ -52,26 +76,34 @@ export const auth = betterAuth({
       verification,
     },
   }),
-  plugins: [admin(), customSession(async ({ user, session }) => {
-    return {
+  plugins: [
+    admin(),
+    customSession(async ({ user, session }) => {
+      return {
         focusedRole: [],
         user: {
-            ...user,
+          ...user,
         },
-        session
-    };
-}),
-magicLink({ 
-  async sendMagicLink({ email, url, token }) {
-      const customerBillingPortalOrganizationId = await getCustomerBillingPortalOrganizationId()
-      if (customerBillingPortalOrganizationId) {
-        await handleCustomerBillingPortalEmailOTP({ email, url, token, organizationId: customerBillingPortalOrganizationId })
-      } else {
-        await handleMerchantEmailOTP({ email, url, token })
+        session,
       }
-  }, 
-})
-],
+    }),
+    magicLink({
+      async sendMagicLink({ email, url, token }) {
+        const customerBillingPortalOrganizationId =
+          await getCustomerBillingPortalOrganizationId()
+        if (customerBillingPortalOrganizationId) {
+          await handleCustomerBillingPortalEmailOTP({
+            email,
+            url,
+            token,
+            organizationId: customerBillingPortalOrganizationId,
+          })
+        } else {
+          await handleMerchantEmailOTP({ email, url, token })
+        }
+      },
+    }),
+  ],
   databaseHooks: {
     user: {
       create: {
@@ -122,6 +154,6 @@ export const getSession = async () => {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
-  
+
   return session
 }

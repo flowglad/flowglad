@@ -20,74 +20,71 @@ interface PaymentFailedNotificationData {
   invoiceNumber?: string
 }
 
-export const sendOrganizationPaymentFailedNotificationTask =
-  task({
-    id: 'send-organization-payment-failed-notification',
-    run: async (
-      {
-        paymentData,
-      }: {
-        paymentData: PaymentFailedNotificationData
-      },
-      { ctx }
-    ) => {
-      logger.log(
-        'Sending organization payment failed notification',
-        {
-          paymentData,
-          ctx,
+export const sendOrganizationPaymentFailedNotificationTask = task({
+  id: 'send-organization-payment-failed-notification',
+  run: async (
+    {
+      paymentData,
+    }: {
+      paymentData: PaymentFailedNotificationData
+    },
+    { ctx }
+  ) => {
+    logger.log('Sending organization payment failed notification', {
+      paymentData,
+      ctx,
+    })
+
+    const { organization, customer, usersAndMemberships } =
+      await adminTransaction(async ({ transaction }) => {
+        const organization = await selectOrganizationById(
+          paymentData.organizationId,
+          transaction
+        )
+        const customer = await selectCustomerById(
+          paymentData.customerId,
+          transaction
+        )
+        const usersAndMemberships =
+          await selectMembershipsAndUsersByMembershipWhere(
+            {
+              organizationId: paymentData.organizationId,
+            },
+            transaction
+          )
+        return {
+          organization,
+          customer,
+          usersAndMemberships,
         }
-      )
-
-      const { organization, customer, usersAndMemberships } =
-        await adminTransaction(async ({ transaction }) => {
-          const organization = await selectOrganizationById(
-            paymentData.organizationId,
-            transaction
-          )
-          const customer = await selectCustomerById(
-            paymentData.customerId,
-            transaction
-          )
-          const usersAndMemberships =
-            await selectMembershipsAndUsersByMembershipWhere(
-              {
-                organizationId: paymentData.organizationId,
-              },
-              transaction
-            )
-          return {
-            organization,
-            customer,
-            usersAndMemberships,
-          }
-        })
-
-      if (!organization || !customer) {
-        throw new Error('Organization or customer not found')
-      }
-
-      await safeSend({
-        from: 'Flowglad <notifications@flowglad.com>',
-        to: usersAndMemberships
-          .map(({ user }) => user.email)
-          .filter((email) => !isNil(email)),
-        subject: `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
-        react: OrganizationPaymentFailedNotificationEmail({
-          organizationName: organization.name,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          invoiceNumber: paymentData.invoiceNumber,
-          customerId: customer.id,
-          customerName: customer.name,
-        }),
       })
 
-      return {
-        message: 'Organization payment failed notification sent successfully',
-      }
-    },
-  })
+    if (!organization || !customer) {
+      throw new Error('Organization or customer not found')
+    }
+
+    await safeSend({
+      from: 'Flowglad <notifications@flowglad.com>',
+      to: usersAndMemberships
+        .map(({ user }) => user.email)
+        .filter((email) => !isNil(email)),
+      subject: `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
+      react: OrganizationPaymentFailedNotificationEmail({
+        organizationName: organization.name,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        invoiceNumber: paymentData.invoiceNumber,
+        customerId: customer.id,
+        customerName: customer.name,
+      }),
+    })
+
+    return {
+      message:
+        'Organization payment failed notification sent successfully',
+    }
+  },
+})
 
 export const idempotentSendOrganizationPaymentFailedNotification =
   testSafeTriggerInvoker(

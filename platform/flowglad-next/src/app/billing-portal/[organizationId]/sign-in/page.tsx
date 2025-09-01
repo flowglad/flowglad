@@ -25,39 +25,40 @@ export default function BillingPortalSignIn() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  
+
   const emailValid = z.email().safeParse(email).success
-  
-  const requestMagicLink = trpc.customerBillingPortal.requestMagicLink.useMutation({
-    onMutate: () => {
-      setLoading(true)
-      setError('')
-    },
-    onSuccess: () => {
-      toast.success(
-        'If you have an account with this organization, a magic link has been sent to your email.'
-      )
-      setEmail('')
-    },
-    onError: (error) => {
-      if (error.message.includes('Organization not found')) {
-        setError('Invalid organization')
-      } else {
-        // For security, show generic message even on error
+
+  const requestMagicLink =
+    trpc.customerBillingPortal.requestMagicLink.useMutation({
+      onMutate: () => {
+        setLoading(true)
+        setError('')
+      },
+      onSuccess: () => {
         toast.success(
           'If you have an account with this organization, a magic link has been sent to your email.'
         )
-      }
-    },
-    onSettled: () => {
-      setLoading(false)
-    },
-  })
+        setEmail('')
+      },
+      onError: (error) => {
+        if (error.message.includes('Organization not found')) {
+          setError('Invalid organization')
+        } else {
+          // For security, show generic message even on error
+          toast.success(
+            'If you have an account with this organization, a magic link has been sent to your email.'
+          )
+        }
+      },
+      onSettled: () => {
+        setLoading(false)
+      },
+    })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!emailValid || loading) return
-    
+
     await requestMagicLink.mutateAsync({
       organizationId,
       email,
@@ -109,7 +110,7 @@ export default function BillingPortalSignIn() {
               error={error}
               className={cn(error ? 'opacity-100' : 'opacity-0')}
             />
-            
+
             {!loading && email && !emailValid && (
               <p className="text-sm text-muted-foreground text-center">
                 Please enter a valid email address

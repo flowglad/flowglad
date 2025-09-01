@@ -262,17 +262,26 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   }
 }
 
-export const dbInfoForCustomerBillingPortal = async ({ betterAuthId, organizationId }: {betterAuthId: string, organizationId: string}): Promise<DatabaseAuthenticationInfo> => {
-  
+export const dbInfoForCustomerBillingPortal = async ({
+  betterAuthId,
+  organizationId,
+}: {
+  betterAuthId: string
+  organizationId: string
+}): Promise<DatabaseAuthenticationInfo> => {
   const [result] = await db
-  .select({
-    customer: customers,
-    user: users,
-  })
-  .from(customers)
-  .innerJoin(users, eq(customers.userId, users.id))
-  .where(
-    and(eq(users.betterAuthId, betterAuthId), eq(customers.organizationId, organizationId)))
+    .select({
+      customer: customers,
+      user: users,
+    })
+    .from(customers)
+    .innerJoin(users, eq(customers.userId, users.id))
+    .where(
+      and(
+        eq(users.betterAuthId, betterAuthId),
+        eq(customers.organizationId, organizationId)
+      )
+    )
   if (!result) {
     throw new Error('Customer not found')
   }
@@ -292,7 +301,8 @@ export const dbInfoForCustomerBillingPortal = async ({ betterAuthId, organizatio
         email: user.email!,
         role: 'customer',
         created_at: user.createdAt.toISOString(),
-        updated_at: user.updatedAt?.toISOString() || new Date().toISOString(),
+        updated_at:
+          user.updatedAt?.toISOString() || new Date().toISOString(),
         app_metadata: {
           provider: 'customerBillingPortal',
         },
@@ -307,10 +317,16 @@ export async function databaseAuthenticationInfoForWebappRequest(
   __testOnlyOrganizationId?: string | undefined
 ): Promise<DatabaseAuthenticationInfo> {
   const betterAuthId = user.id
-  const customerOrganizationId = await getCustomerBillingPortalOrganizationId({ __testOrganizationId: __testOnlyOrganizationId })
+  const customerOrganizationId =
+    await getCustomerBillingPortalOrganizationId({
+      __testOrganizationId: __testOnlyOrganizationId,
+    })
 
   if (customerOrganizationId) {
-    return await dbInfoForCustomerBillingPortal({ betterAuthId: user.id, organizationId: customerOrganizationId })
+    return await dbInfoForCustomerBillingPortal({
+      betterAuthId: user.id,
+      organizationId: customerOrganizationId,
+    })
   }
 
   const [focusedMembership] = await db

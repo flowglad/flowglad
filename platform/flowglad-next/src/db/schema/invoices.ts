@@ -129,9 +129,12 @@ export const invoices = pgTable(
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.billingRunId]),
       livemodePolicy(),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"customer_id" in (select "id" from "customers")`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"customer_id" in (select "id" from "customers")`,
+        }
+      ),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {

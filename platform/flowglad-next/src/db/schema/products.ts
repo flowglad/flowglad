@@ -86,9 +86,12 @@ export const products = pgTable(TABLE_NAME, columns, (table) => {
     uniqueIndex('products_pricing_model_id_default_unique_idx')
       .on(table.pricingModelId)
       .where(sql`${table.default}`),
-    enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-      using: sql`"organization_id" in (select "organization_id" from "customers") and "active" = true and "pricing_model_id" in (select "pricing_model_id" from "customers")`,
-    }),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"organization_id" in (select "organization_id" from "customers") and "active" = true and "pricing_model_id" in (select "pricing_model_id" from "customers")`,
+      }
+    ),
     merchantPolicy(
       `Enable read for own organizations (${TABLE_NAME})`,
       {

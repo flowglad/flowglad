@@ -21,55 +21,55 @@ import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 
 describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
-    it('returns taxAmount = 0 and stripeTaxCalculationId null when calculating fee for organization with StripeConnectContractType Platform', async () => {
-      const organization = {
-        id: 'org_1',
-        stripeConnectContractType: StripeConnectContractType.Platform,
-        feePercentage: '1.0',
-      } as Organization.Record
+  it('returns taxAmount = 0 and stripeTaxCalculationId null when calculating fee for organization with StripeConnectContractType Platform', async () => {
+    const organization = {
+      id: 'org_1',
+      stripeConnectContractType: StripeConnectContractType.Platform,
+      feePercentage: '1.0',
+    } as Organization.Record
 
-      const product = {
-        id: 'prod_1',
+    const product = {
+      id: 'prod_1',
+      livemode: true,
+    } as Product.Record
+
+    const price = {
+      id: 'price_1',
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+    } as Price.Record
+
+    const checkoutSession = {
+      id: 'sess_1',
+      paymentMethodType: PaymentMethodType.Card,
+      billingAddress: {
+        address: { country: CountryCode.US },
+      } as BillingAddress,
+    } as CheckoutSession.FeeReadyRecord
+
+    const organizationCountry = {
+      code: CountryCode.US,
+    } as Country.Record
+
+    const feeCalculationInsert =
+      await createCheckoutSessionFeeCalculationInsertForPrice({
+        organization,
+        product,
+        price,
+        purchase: undefined,
+        discount: undefined,
+        checkoutSessionId: checkoutSession.id,
+        billingAddress: checkoutSession.billingAddress!,
+        paymentMethodType: checkoutSession.paymentMethodType!,
+        organizationCountry,
         livemode: true,
-      } as Product.Record
+      })
 
-      const price = {
-        id: 'price_1',
-        unitPrice: 1000,
-        currency: CurrencyCode.USD,
-        livemode: true,
-      } as Price.Record
-
-      const checkoutSession = {
-        id: 'sess_1',
-        paymentMethodType: PaymentMethodType.Card,
-        billingAddress: {
-          address: { country: CountryCode.US },
-        } as BillingAddress,
-      } as CheckoutSession.FeeReadyRecord
-
-      const organizationCountry = {
-        code: CountryCode.US,
-      } as Country.Record
-
-      const feeCalculationInsert =
-        await createCheckoutSessionFeeCalculationInsertForPrice({
-          organization,
-          product,
-          price,
-          purchase: undefined,
-          discount: undefined,
-          checkoutSessionId: checkoutSession.id,
-          billingAddress: checkoutSession.billingAddress!,
-          paymentMethodType: checkoutSession.paymentMethodType!,
-          organizationCountry,
-          livemode: true,
-        })
-
-      expect(feeCalculationInsert.taxAmountFixed).toBe(0)
-      expect(feeCalculationInsert.stripeTaxCalculationId).toBeNull()
-    })
+    expect(feeCalculationInsert.taxAmountFixed).toBe(0)
+    expect(feeCalculationInsert.stripeTaxCalculationId).toBeNull()
   })
+})
 
 describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
   it('builds correct insert for a domestic invoice checkout session', async () => {
@@ -78,7 +78,9 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
       stripeConnectContractType: StripeConnectContractType.Platform,
       feePercentage: '2.5',
     } as Organization.Record
-    const organizationCountry = { code: CountryCode.US } as Country.Record
+    const organizationCountry = {
+      code: CountryCode.US,
+    } as Country.Record
     const invoice = {
       id: 'inv1',
       currency: CurrencyCode.USD,
@@ -92,15 +94,16 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
       address: { country: CountryCode.US },
     } as BillingAddress
 
-    const insert = await createCheckoutSessionFeeCalculationInsertForInvoice({
-      organization,
-      invoice,
-      invoiceLineItems,
-      billingAddress,
-      paymentMethodType: PaymentMethodType.Card,
-      checkoutSessionId: 'sess_inv_domestic',
-      organizationCountry,
-    })
+    const insert =
+      await createCheckoutSessionFeeCalculationInsertForInvoice({
+        organization,
+        invoice,
+        invoiceLineItems,
+        billingAddress,
+        paymentMethodType: PaymentMethodType.Card,
+        checkoutSessionId: 'sess_inv_domestic',
+        organizationCountry,
+      })
 
     // Base amount = 1000*2 + 500*1 = 2500
     expect(insert.baseAmount).toBe(2500)
@@ -122,26 +125,31 @@ describe('createCheckoutSessionFeeCalculationInsertForInvoice', () => {
       stripeConnectContractType: StripeConnectContractType.Platform,
       feePercentage: '3.0',
     } as Organization.Record
-    const organizationCountry = { code: CountryCode.US } as Country.Record
+    const organizationCountry = {
+      code: CountryCode.US,
+    } as Country.Record
     const invoice = {
       id: 'inv2',
       currency: CurrencyCode.USD,
       livemode: true,
     } as Invoice.Record
-    const invoiceLineItems = [{ price: 2000, quantity: 1 }] as InvoiceLineItem.ClientRecord[]
+    const invoiceLineItems = [
+      { price: 2000, quantity: 1 },
+    ] as InvoiceLineItem.ClientRecord[]
     const billingAddress = {
       address: { country: CountryCode.GB },
     } as BillingAddress
 
-    const insert = await createCheckoutSessionFeeCalculationInsertForInvoice({
-      organization,
-      invoice,
-      invoiceLineItems,
-      billingAddress,
-      paymentMethodType: PaymentMethodType.Card,
-      checkoutSessionId: 'sess_inv_intl',
-      organizationCountry,
-    })
+    const insert =
+      await createCheckoutSessionFeeCalculationInsertForInvoice({
+        organization,
+        invoice,
+        invoiceLineItems,
+        billingAddress,
+        paymentMethodType: PaymentMethodType.Card,
+        checkoutSessionId: 'sess_inv_intl',
+        organizationCountry,
+      })
 
     // Base amount = 2000
     expect(insert.baseAmount).toBe(2000)

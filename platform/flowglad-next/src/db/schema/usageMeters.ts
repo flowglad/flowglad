@@ -56,9 +56,12 @@ export const usageMeters = pgTable(
         table.slug,
         table.pricingModelId,
       ]),
-      enableCustomerReadPolicy(`Enable read for customers (${TABLE_NAME})`, {
-        using: sql`"pricing_model_id" in (select "pricing_model_id" from "customers")`,
-      }),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"pricing_model_id" in (select "pricing_model_id" from "customers")`,
+        }
+      ),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {

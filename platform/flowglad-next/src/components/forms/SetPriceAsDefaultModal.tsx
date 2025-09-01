@@ -66,10 +66,7 @@ const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
       onOpenChange={setIsOpen}
       footer={
         <div className="flex justify-end gap-3 w-full">
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-          >
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
           <Button
