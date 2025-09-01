@@ -370,7 +370,8 @@ export const teardownOrg = async ({
 export const setupSubscription = async (params: {
   organizationId: string
   customerId: string
-  paymentMethodId: string
+  paymentMethodId?: string
+  defaultPaymentMethodId?: string
   priceId: string
   interval?: IntervalUnit
   intervalCount?: number
@@ -382,6 +383,11 @@ export const setupSubscription = async (params: {
   renews?: boolean
   startDate?: Date
   cancelScheduledAt?: Date
+  isFreePlan?: boolean
+  cancellationReason?: string | null
+  replacedBySubscriptionId?: string | null
+  canceledAt?: Date | null
+  metadata?: any
 }): Promise<Subscription.Record> => {
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
@@ -391,7 +397,10 @@ export const setupSubscription = async (params: {
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
-          defaultPaymentMethodId: params.paymentMethodId,
+          defaultPaymentMethodId:
+            params.defaultPaymentMethodId ??
+            params.paymentMethodId ??
+            null,
           status: status as
             | SubscriptionStatus.CreditTrial
             | SubscriptionStatus.Active
@@ -400,14 +409,14 @@ export const setupSubscription = async (params: {
           billingCycleAnchorDate: null,
           currentBillingPeriodStart: null,
           currentBillingPeriodEnd: null,
-          canceledAt: null,
+          canceledAt: params.canceledAt ?? null,
           cancelScheduledAt: params.cancelScheduledAt ?? null,
           trialEnd: null,
           backupPaymentMethodId: null,
           priceId: params.priceId,
           interval: null,
           intervalCount: null,
-          metadata: {},
+          metadata: params.metadata ?? {},
           stripeSetupIntentId: `setupintent_${core.nanoid()}`,
           name: null,
           runBillingAtPeriodStart:
@@ -415,6 +424,10 @@ export const setupSubscription = async (params: {
           externalId: null,
           startDate: new Date(),
           renews: false,
+          isFreePlan: params.isFreePlan ?? false,
+          cancellationReason: params.cancellationReason ?? null,
+          replacedBySubscriptionId:
+            params.replacedBySubscriptionId ?? null,
         } as Subscription.NonRenewingInsert,
         transaction
       )) as Subscription.NonRenewingRecord
@@ -423,7 +436,10 @@ export const setupSubscription = async (params: {
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
-          defaultPaymentMethodId: params.paymentMethodId,
+          defaultPaymentMethodId:
+            params.defaultPaymentMethodId ??
+            params.paymentMethodId ??
+            null,
           status: status as
             | SubscriptionStatus.Trialing
             | SubscriptionStatus.Active
@@ -441,14 +457,14 @@ export const setupSubscription = async (params: {
             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           currentBillingPeriodStart:
             params.currentBillingPeriodStart ?? new Date(),
-          canceledAt: null,
+          canceledAt: params.canceledAt ?? null,
           cancelScheduledAt: params.cancelScheduledAt ?? null,
           trialEnd: params.trialEnd ?? null,
           backupPaymentMethodId: null,
           priceId: params.priceId,
           interval: params.interval ?? IntervalUnit.Month,
           intervalCount: params.intervalCount ?? 1,
-          metadata: {},
+          metadata: params.metadata ?? {},
           stripeSetupIntentId: `setupintent_${core.nanoid()}`,
           name: null,
           runBillingAtPeriodStart:
@@ -456,6 +472,10 @@ export const setupSubscription = async (params: {
           externalId: null,
           startDate: params.startDate ?? new Date(),
           renews: isNil(params.renews) ? true : params.renews,
+          isFreePlan: params.isFreePlan ?? false,
+          cancellationReason: params.cancellationReason ?? null,
+          replacedBySubscriptionId:
+            params.replacedBySubscriptionId ?? null,
         },
         transaction
       )) as Subscription.StandardRecord
@@ -773,6 +793,7 @@ export const setupPrice = async ({
   active = true,
   usageMeterId,
   startsWithCreditTrial,
+  slug,
 }: {
   productId: string
   name: string
@@ -789,6 +810,7 @@ export const setupPrice = async ({
   trialPeriodDays?: number
   active?: boolean
   startsWithCreditTrial?: boolean
+  slug?: string
 }): Promise<Price.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
@@ -801,6 +823,7 @@ export const setupPrice = async ({
       active,
       currency: currency ?? CurrencyCode.USD,
       externalId: externalId ?? core.nanoid(),
+      slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
     }
 
     const priceConfig = {
@@ -837,7 +860,6 @@ export const setupPrice = async ({
             ...basePrice,
             ...priceConfig[PriceType.SinglePayment],
             type: PriceType.SinglePayment,
-            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -847,7 +869,6 @@ export const setupPrice = async ({
             ...basePrice,
             ...priceConfig[PriceType.Subscription],
             type: PriceType.Subscription,
-            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -858,7 +879,6 @@ export const setupPrice = async ({
             ...priceConfig[PriceType.Usage],
             usageMeterId: usageMeterId!,
             type: PriceType.Usage,
-            slug: `flowglad-test-product-price+${core.nanoid()}`,
           },
           transaction
         )
@@ -1086,6 +1106,8 @@ export const setupCheckoutSession = async ({
   livemode,
   targetSubscriptionId,
   automaticallyUpdateSubscriptions,
+  outputMetadata,
+  purchaseId,
 }: {
   organizationId: string
   customerId: string
@@ -1096,6 +1118,8 @@ export const setupCheckoutSession = async ({
   livemode: boolean
   targetSubscriptionId?: string
   automaticallyUpdateSubscriptions?: boolean
+  outputMetadata?: Record<string, any>
+  purchaseId?: string
 }) => {
   const billingAddress: BillingAddress = {
     address: {
@@ -1126,7 +1150,7 @@ export const setupCheckoutSession = async ({
       quantity: 1,
       targetSubscriptionId: targetSubscriptionId ?? null,
       outputName: null,
-      outputMetadata: {},
+      outputMetadata: outputMetadata ?? {},
       automaticallyUpdateSubscriptions:
         automaticallyUpdateSubscriptions ?? false,
     }
@@ -1141,7 +1165,7 @@ export const setupCheckoutSession = async ({
       targetSubscriptionId: null,
       outputName: null,
       invoiceId: null,
-      outputMetadata: {},
+      outputMetadata: outputMetadata ?? {},
       automaticallyUpdateSubscriptions: null,
     }
   const purchaseCheckoutSessionInsert: CheckoutSession.PurchaseInsert =
@@ -1154,8 +1178,8 @@ export const setupCheckoutSession = async ({
       livemode,
       targetSubscriptionId: null,
       outputName: null,
-      outputMetadata: {},
-      purchaseId: 'test',
+      outputMetadata: outputMetadata ?? {},
+      purchaseId: purchaseId ?? 'test',
       automaticallyUpdateSubscriptions: null,
     }
 

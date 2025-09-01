@@ -123,7 +123,9 @@ export const createSubscriptionWorkflow = async (
     transaction
   )
 
-  if (price.slug !== 'free') {
+  // Don't send notifications for free subscriptions
+  // A subscription is considered free if unitPrice is 0, not based on slug
+  if (price.unitPrice !== 0) {
     await idempotentSendOrganizationSubscriptionCreatedNotification(
       updatedSubscription
     )

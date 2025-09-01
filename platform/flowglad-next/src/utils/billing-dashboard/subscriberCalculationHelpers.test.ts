@@ -112,6 +112,9 @@ const createSubscription = (
 ): Subscription.StandardRecord => ({
   ...coreSubscriptionValues,
   ...values,
+  cancellationReason: values.cancellationReason ?? null,
+  replacedBySubscriptionId: values.replacedBySubscriptionId ?? null,
+  isFreePlan: values.isFreePlan ?? false,
   renews: true,
   position: 0,
 })

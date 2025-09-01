@@ -47,6 +47,10 @@ import { activateSubscription } from '@/subscriptions/createSubscription/helpers
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import {
+  cancelFreeSubscriptionForUpgrade,
+  linkUpgradedSubscriptions,
+} from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -441,6 +445,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       throw new Error('Price interval count is required')
     }
 
+    // Check for and cancel any free subscription before creating the new one
+    const canceledFreeSubscription = await cancelFreeSubscriptionForUpgrade(
+      customer.id,
+      transaction
+    )
+
     const subscriptionsForCustomer = await selectSubscriptions(
       {
         customerId: customer.id,
@@ -472,13 +482,22 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         startDate: new Date(),
         autoStart: true,
         quantity: checkoutSession.quantity,
-        metadata: checkoutSession.outputMetadata,
+        metadata: checkoutSession.outputMetadata ?? {},
         name: checkoutSession.outputName ?? undefined,
         product,
         livemode: checkoutSession.livemode,
       },
       transaction
     )
+
+    // Link the old and new subscriptions if there was an upgrade
+    if (canceledFreeSubscription && output.result.subscription) {
+      await linkUpgradedSubscriptions(
+        canceledFreeSubscription,
+        output.result.subscription.id,
+        transaction
+      )
+    }
 
     const updatedPurchase = await updatePurchase(
       {

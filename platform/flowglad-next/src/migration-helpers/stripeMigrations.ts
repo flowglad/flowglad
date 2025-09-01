@@ -315,6 +315,9 @@ export const stripeSubscriptionToSubscriptionInsert = async (
       paymentMethodsForCustomer
     )
   return {
+    isFreePlan: false,
+    cancellationReason: null,
+    replacedBySubscriptionId: null,
     externalId: stripeSubscription.id,
     livemode: stripeSubscription.livemode,
     organizationId: params.organizationId,

@@ -143,7 +143,7 @@ export const verifyCanCreateSubscription = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
-  const { customer, defaultPaymentMethod, backupPaymentMethod } =
+  const { customer, defaultPaymentMethod, backupPaymentMethod, price } =
     params
   const currentSubscriptionsForCustomer = await selectSubscriptions(
     {
@@ -160,6 +160,23 @@ export const verifyCanCreateSubscription = async (
   // ) {
   //   return false
   // }
+  
+  // Check for single free subscription constraint
+  // A subscription is considered free if the price.unitPrice is 0
+  const isCreatingFreeSubscription = price.unitPrice === 0
+  if (isCreatingFreeSubscription) {
+    const activeFreeSubscriptions = currentSubscriptionsForCustomer.filter(
+      sub => sub.isFreePlan === true
+    )
+    if (activeFreeSubscriptions.length > 0) {
+      throw new Error(
+        `Customer ${customer.id} already has an active free subscription. ` +
+        `Only one free subscription is allowed per customer. ` +
+        `Please upgrade or cancel the existing free subscription before creating a new one.`
+      )
+    }
+  }
+  
   if (currentSubscriptionsForCustomer.length > 0) {
     const organization = await selectOrganizationById(
       customer.organizationId,
