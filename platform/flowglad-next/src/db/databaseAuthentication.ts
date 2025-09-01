@@ -262,7 +262,7 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   }
 }
 
-const dbInfoForCustomerBillingPortal = async ({ betterAuthId, organizationId }: {betterAuthId: string, organizationId: string}): Promise<DatabaseAuthenticationInfo> => {
+export const dbInfoForCustomerBillingPortal = async ({ betterAuthId, organizationId }: {betterAuthId: string, organizationId: string}): Promise<DatabaseAuthenticationInfo> => {
   
   const [result] = await db
   .select({
@@ -304,7 +304,7 @@ const dbInfoForCustomerBillingPortal = async ({ betterAuthId, organizationId }: 
 
 export async function databaseAuthenticationInfoForWebappRequest(
   user: User,
-  __testOnlyOrganizationId: string | undefined
+  __testOnlyOrganizationId?: string | undefined
 ): Promise<DatabaseAuthenticationInfo> {
   const betterAuthId = user.id
   const customerOrganizationId = await getCustomerBillingPortalOrganizationId({ __testOrganizationId: __testOnlyOrganizationId })
@@ -372,7 +372,7 @@ export async function databaseAuthenticationInfoForApiKeyResult(
 
 export async function getDatabaseAuthenticationInfo(params: {
   apiKey: string | undefined
-  __testOnlyOrganizationId: string | undefined
+  __testOnlyOrganizationId?: string
 }): Promise<DatabaseAuthenticationInfo> {
   const { apiKey, __testOnlyOrganizationId } = params
   if (apiKey) {

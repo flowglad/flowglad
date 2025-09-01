@@ -253,8 +253,9 @@ export const activateSubscription = async (
     interval: subscription.interval ?? IntervalUnit.Month,
     intervalCount: subscription.intervalCount ?? 1,
     billingCycleAnchorDate:
-      subscription.billingCycleAnchorDate ?? new Date(),
+      subscription.billingCycleAnchorDate ?? subscription.startDate ?? new Date(),
     lastBillingPeriodEndDate: subscription.currentBillingPeriodEnd,
+    subscriptionStartDate: subscription.startDate ?? undefined,
   })
 
   const price = await selectPriceById(

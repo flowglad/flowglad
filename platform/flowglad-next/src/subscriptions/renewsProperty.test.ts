@@ -798,16 +798,21 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
       // Simulate conversion by updating subscription
       const converted = await adminTransaction(async ({ transaction }) => {
+        const now = new Date()
+        const startDate = new Date(now)
+        const endDate = new Date(now)
+        endDate.setMonth(endDate.getMonth() + 1) // Add 1 month properly
+        
         const updated = await updateSubscription(
           {
             id: result.subscription.id,
             renews: true,
             status: SubscriptionStatus.Active,
-            currentBillingPeriodStart: new Date(),
-            currentBillingPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            currentBillingPeriodStart: startDate,
+            currentBillingPeriodEnd: endDate,
             interval: IntervalUnit.Month,
             intervalCount: 1,
-            billingCycleAnchorDate: new Date(),
+            billingCycleAnchorDate: startDate,
           },
           transaction
         )

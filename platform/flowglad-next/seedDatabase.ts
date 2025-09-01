@@ -324,6 +324,7 @@ export const setupCustomer = async (params: {
   invoiceNumberBase?: string
   email?: string
   livemode?: boolean
+  userId?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const email = params.email ?? `test+${core.nanoid()}@test.com`
@@ -337,6 +338,7 @@ export const setupCustomer = async (params: {
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
         invoiceNumberBase: params.invoiceNumberBase ?? core.nanoid(),
+        userId: params.userId,
       },
       transaction
     )
@@ -870,6 +872,7 @@ export const setupPayment = async ({
   refundedAt,
   chargeDate,
   purchaseId,
+  paymentMethodId,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -887,6 +890,7 @@ export const setupPayment = async ({
   refundedAt?: Date
   chargeDate?: Date
   purchaseId?: string
+  paymentMethodId?: string
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -909,6 +913,7 @@ export const setupPayment = async ({
         refunded,
         refundedAmount,
         refundedAt,
+        paymentMethodId
       },
       transaction
     )

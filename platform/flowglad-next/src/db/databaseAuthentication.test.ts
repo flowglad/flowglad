@@ -5,6 +5,7 @@ import {
   dbAuthInfoForBillingPortalApiKeyResult,
   databaseAuthenticationInfoForApiKeyResult,
   getDatabaseAuthenticationInfo,
+  dbInfoForCustomerBillingPortal,
 } from '@/db/databaseAuthentication'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -233,7 +234,8 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
       role: 'merchant',
     } as unknown as BetterAuthUserWithRole
     const result = await databaseAuthenticationInfoForWebappRequest(
-      mockBetterAuthUser
+      mockBetterAuthUser,
+      undefined
     )
     expect(result.userId).toEqual(webMemB.userId)
     expect(result.livemode).toEqual(true)
@@ -729,14 +731,14 @@ describe('getDatabaseAuthenticationInfo', () => {
     // - function delegates to the API key flow
     // - return value equals the stubbed Secret flow result
     const liveResult = await getDatabaseAuthenticationInfo(
-      secretApiKeyTokenLive
+      {apiKey: secretApiKeyTokenLive}
     )
     expect(liveResult.livemode).toEqual(true)
     expect(liveResult.jwtClaim.organization_id).toEqual(
       secretApiKeyOrg.id
     )
     const testResult = await getDatabaseAuthenticationInfo(
-      secretApiKeyTokenTest
+      {apiKey: secretApiKeyTokenTest}
     )
     expect(testResult.livemode).toEqual(false)
     expect(testResult.jwtClaim.organization_id).toEqual(
@@ -918,5 +920,327 @@ describe('subtleties and invariants across flows', () => {
     expect(secretRes.jwtClaim.session_id).toBeDefined()
     expect((webappRes.jwtClaim as any).session_id).toBeUndefined()
     expect((bpRes.jwtClaim as any).session_id).toBeUndefined()
+  })
+})
+
+describe('Customer Role vs Merchant Role Authentication', () => {
+  let customerOrg: Organization.Record
+  let merchantUser: UserRecord
+  let customerUser: UserRecord
+  let customer1: Customer.Record
+  let customer2SameOrg: Customer.Record
+  let customerDifferentOrg: Customer.Record
+  let differentOrg: Organization.Record
+  
+  beforeEach(async () => {
+    // Setup organizations
+    const orgSetup = await setupOrg()
+    customerOrg = orgSetup.organization
+    const otherOrgSetup = await setupOrg()
+    differentOrg = otherOrgSetup.organization
+    
+    // Create merchant user with membership
+    const merchantSetup = await setupUserAndApiKey({
+      organizationId: customerOrg.id,
+      livemode: true,
+    })
+    merchantUser = merchantSetup.user
+    
+    // Create customer users
+    await adminTransaction(async ({ transaction }) => {
+      const [user] = await transaction
+        .insert(users)
+        .values({
+          id: `usr_${core.nanoid()}`,
+          email: `customer1@test.com`,
+          name: 'Customer User',
+          betterAuthId: `bau_${core.nanoid()}`,
+        })
+        .returning()
+      customerUser = user as UserRecord
+    })
+    
+    // Create customers
+    customer1 = await setupCustomer({
+      organizationId: customerOrg.id,
+      email: customerUser.email!,
+      userId: customerUser.id,
+      livemode: true,
+    })
+    
+    customer2SameOrg = await setupCustomer({
+      organizationId: customerOrg.id,
+      email: 'customer2@test.com',
+      livemode: true,
+    })
+    
+    customerDifferentOrg = await setupCustomer({
+      organizationId: differentOrg.id,
+      email: 'customer3@test.com',
+      livemode: true,
+    })
+  })
+
+  describe('dbInfoForCustomerBillingPortal', () => {
+    it('should return customer role in JWT claim for customer authentication', async () => {
+      const result = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      expect(result.jwtClaim.role).toBe('customer')
+      expect(result.jwtClaim.organization_id).toBe(customerOrg.id)
+      expect(result.userId).toBe(customerUser.id)
+      expect(result.jwtClaim.user_metadata.role).toBe('customer')
+      expect(result.jwtClaim.app_metadata.provider).toBe('customerBillingPortal')
+    })
+
+    it('should distinguish between merchant and customer roles', async () => {
+      // Merchant authentication
+      const merchantResult = await databaseAuthenticationInfoForWebappRequest({
+        id: merchantUser.betterAuthId!,
+        email: merchantUser.email!,
+        role: 'merchant',
+      } as BetterAuthUserWithRole)
+      
+      // Customer authentication
+      const customerResult = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      expect(merchantResult.jwtClaim.role).toBe('merchant')
+      expect(customerResult.jwtClaim.role).toBe('customer')
+      
+      // Different providers
+      expect(merchantResult.jwtClaim.app_metadata.provider).toBe('apiKey')
+      expect(customerResult.jwtClaim.app_metadata.provider).toBe('customerBillingPortal')
+    })
+
+    it('should fail when customer tries to authenticate for wrong organization', async () => {
+      await expect(
+        dbInfoForCustomerBillingPortal({
+          betterAuthId: customerUser.betterAuthId!,
+          organizationId: 'wrong_org_id',
+        })
+      ).rejects.toThrow('Customer not found')
+    })
+
+    it('should fail when user has no customer record in the organization', async () => {
+      // Create a user with no customer record
+      const userWithoutCustomer = await adminTransaction(async ({ transaction }) => {
+        const [user] = await transaction
+          .insert(users)
+          .values({
+            id: `usr_${core.nanoid()}`,
+            email: `nocustomer@test.com`,
+            name: 'No Customer User',
+            betterAuthId: `bau_${core.nanoid()}`,
+          })
+          .returning()
+        return user as UserRecord
+      })
+      
+      await expect(
+        dbInfoForCustomerBillingPortal({
+          betterAuthId: userWithoutCustomer.betterAuthId!,
+          organizationId: customerOrg.id,
+        })
+      ).rejects.toThrow('Customer not found')
+    })
+
+    it('should handle customer authentication across different organizations', async () => {
+      // Create same user with customer in different org
+      const userWithMultipleCustomers = await adminTransaction(async ({ transaction }) => {
+        const [user] = await transaction
+          .insert(users)
+          .values({
+            id: `usr_${core.nanoid()}`,
+            email: `multi@test.com`,
+            name: 'Multi Org User',
+            betterAuthId: `bau_${core.nanoid()}`,
+          })
+          .returning()
+        return user as UserRecord
+      })
+      
+      // Create customers in both orgs
+      const customerOrg1 = await setupCustomer({
+        organizationId: customerOrg.id,
+        email: userWithMultipleCustomers.email!,
+        userId: userWithMultipleCustomers.id,
+        livemode: true,
+      })
+      
+      const customerOrg2 = await setupCustomer({
+        organizationId: differentOrg.id,
+        email: userWithMultipleCustomers.email!,
+        userId: userWithMultipleCustomers.id,
+        livemode: true,
+      })
+      
+      // Authenticate for org1
+      const org1Result = await dbInfoForCustomerBillingPortal({
+        betterAuthId: userWithMultipleCustomers.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      // Authenticate for org2
+      const org2Result = await dbInfoForCustomerBillingPortal({
+        betterAuthId: userWithMultipleCustomers.betterAuthId!,
+        organizationId: differentOrg.id,
+      })
+      
+      // Both should succeed but with different organization contexts
+      expect(org1Result.jwtClaim.organization_id).toBe(customerOrg.id)
+      expect(org2Result.jwtClaim.organization_id).toBe(differentOrg.id)
+      expect(org1Result.jwtClaim.role).toBe('customer')
+      expect(org2Result.jwtClaim.role).toBe('customer')
+    })
+
+    it('should set correct livemode based on customer record', async () => {
+      // Create test mode customer
+      const testModeCustomer = await setupCustomer({
+        organizationId: customerOrg.id,
+        email: 'testmode@test.com',
+        livemode: false,
+      })
+      
+      // Create user for test mode customer
+      const testModeUser = await adminTransaction(async ({ transaction }) => {
+        const [user] = await transaction
+          .insert(users)
+          .values({
+            id: `usr_${core.nanoid()}`,
+            email: testModeCustomer.email!,
+            name: 'Test Mode User',
+            betterAuthId: `bau_${core.nanoid()}`,
+          })
+          .returning()
+        
+        // Update customer with userId
+        await transaction
+          .update(customers)
+          .set({ userId: user.id })
+          .where(eq(customers.id, testModeCustomer.id))
+        
+        return user as UserRecord
+      })
+      
+      const testModeResult = await dbInfoForCustomerBillingPortal({
+        betterAuthId: testModeUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      expect(testModeResult.livemode).toBe(false)
+      
+      // Compare with live mode customer
+      const liveModeResult = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      expect(liveModeResult.livemode).toBe(true)
+    })
+  })
+
+  describe('Role-based JWT Claim Differences', () => {
+    it('should have different JWT claim structures for merchant vs customer', async () => {
+      const merchantAuth = await databaseAuthenticationInfoForWebappRequest({
+        id: merchantUser.betterAuthId!,
+        email: merchantUser.email!,
+        role: 'merchant',
+      } as BetterAuthUserWithRole)
+      
+      const customerAuth = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      // Merchant should have session_id in some cases (for Secret API keys)
+      // Customer should never have session_id
+      expect((customerAuth.jwtClaim as any).session_id).toBeUndefined()
+      
+      // Both should have organization_id
+      expect(merchantAuth.jwtClaim.organization_id).toBeDefined()
+      expect(customerAuth.jwtClaim.organization_id).toBeDefined()
+      
+      // Role should be different
+      expect(merchantAuth.jwtClaim.role).toBe('merchant')
+      expect(customerAuth.jwtClaim.role).toBe('customer')
+      
+      // user_metadata.role should match
+      expect(merchantAuth.jwtClaim.user_metadata.role).toBe('merchant')
+      expect(customerAuth.jwtClaim.user_metadata.role).toBe('customer')
+    })
+
+    it('should prevent role elevation attempts', async () => {
+      // Customer auth info
+      const customerAuth = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      // Verify the role is strictly 'customer'
+      expect(customerAuth.jwtClaim.role).toBe('customer')
+      
+      // The role in user_metadata should also be 'customer'
+      expect(customerAuth.jwtClaim.user_metadata.role).toBe('customer')
+      
+      // app_metadata.provider should indicate customer portal
+      expect(customerAuth.jwtClaim.app_metadata.provider).toBe('customerBillingPortal')
+      
+      // These should prevent any attempt to elevate to merchant role
+      // through JWT manipulation
+    })
+  })
+
+  describe('Customer Isolation Validation', () => {
+    it('should ensure customer JWT claims are properly scoped', async () => {
+      const customerAuth = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      
+      // Verify all required fields for RLS policies
+      expect(customerAuth.jwtClaim.sub).toBe(customerUser.id)
+      expect(customerAuth.jwtClaim.organization_id).toBe(customerOrg.id)
+      expect(customerAuth.jwtClaim.role).toBe('customer')
+      
+      // These fields are used by RLS policies to filter data
+      expect(customerAuth.userId).toBe(customerUser.id)
+      expect(customerAuth.jwtClaim.user_metadata.id).toBe(customerUser.id)
+    })
+
+    it('should handle NULL userId customers correctly in authentication', async () => {
+      // Create customer with NULL userId
+      const nullUserCustomer = await setupCustomer({
+        organizationId: customerOrg.id,
+        email: 'nulluser@test.com',
+        livemode: true,
+      })
+      
+      // Create a user that doesn't match the customer
+      const unrelatedUser = await adminTransaction(async ({ transaction }) => {
+        const [user] = await transaction
+          .insert(users)
+          .values({
+            id: `usr_${core.nanoid()}`,
+            email: 'unrelated@test.com',
+            name: 'Unrelated User',
+            betterAuthId: `bau_${core.nanoid()}`,
+          })
+          .returning()
+        return user as UserRecord
+      })
+      
+      // Should fail to authenticate as the NULL userId customer
+      await expect(
+        dbInfoForCustomerBillingPortal({
+          betterAuthId: unrelatedUser.betterAuthId!,
+          organizationId: customerOrg.id,
+        })
+      ).rejects.toThrow('Customer not found')
+    })
   })
 })

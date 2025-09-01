@@ -183,6 +183,9 @@ describe('createCursorPaginatedSelectFunction', () => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
+            filters: {
+              organizationId,
+            }
           },
           transaction,
         })
@@ -196,6 +199,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            }
           },
           transaction,
         })
@@ -209,6 +215,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageBefore: secondPage.startCursor!,
+            filters: {
+              organizationId,
+            }
           },
           transaction,
         })
