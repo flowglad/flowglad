@@ -368,7 +368,8 @@ export const teardownOrg = async ({
 export const setupSubscription = async (params: {
   organizationId: string
   customerId: string
-  paymentMethodId: string
+  paymentMethodId?: string
+  defaultPaymentMethodId?: string
   priceId: string
   interval?: IntervalUnit
   intervalCount?: number
@@ -380,6 +381,11 @@ export const setupSubscription = async (params: {
   renews?: boolean
   startDate?: Date
   cancelScheduledAt?: Date
+  isFreePlan?: boolean
+  cancellationReason?: string | null
+  replacedBySubscriptionId?: string | null
+  canceledAt?: Date | null
+  metadata?: any
 }): Promise<Subscription.Record> => {
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
@@ -389,20 +395,20 @@ export const setupSubscription = async (params: {
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
-          defaultPaymentMethodId: params.paymentMethodId,
+          defaultPaymentMethodId: params.defaultPaymentMethodId ?? params.paymentMethodId ?? null,
           status: status as SubscriptionStatus.CreditTrial | SubscriptionStatus.Active | SubscriptionStatus.Canceled,
           livemode: params.livemode ?? true,
           billingCycleAnchorDate: null,
           currentBillingPeriodStart: null,
           currentBillingPeriodEnd: null,
-          canceledAt: null,
+          canceledAt: params.canceledAt ?? null,
           cancelScheduledAt: params.cancelScheduledAt ?? null,
           trialEnd: null,
           backupPaymentMethodId: null,
           priceId: params.priceId,
           interval: null,
           intervalCount: null,
-          metadata: {},
+          metadata: params.metadata ?? {},
           stripeSetupIntentId: `setupintent_${core.nanoid()}`,
           name: null,
           runBillingAtPeriodStart:
@@ -410,6 +416,9 @@ export const setupSubscription = async (params: {
           externalId: null,
           startDate: new Date(),
           renews: false,
+          isFreePlan: params.isFreePlan ?? false,
+          cancellationReason: params.cancellationReason ?? null,
+          replacedBySubscriptionId: params.replacedBySubscriptionId ?? null,
         } as Subscription.NonRenewingInsert,
         transaction
       )) as Subscription.NonRenewingRecord
@@ -418,7 +427,7 @@ export const setupSubscription = async (params: {
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
-          defaultPaymentMethodId: params.paymentMethodId,
+          defaultPaymentMethodId: params.defaultPaymentMethodId ?? params.paymentMethodId ?? null,
           status: status as SubscriptionStatus.Trialing | SubscriptionStatus.Active | SubscriptionStatus.PastDue | SubscriptionStatus.Unpaid | SubscriptionStatus.CancellationScheduled | SubscriptionStatus.Incomplete | SubscriptionStatus.IncompleteExpired | SubscriptionStatus.Canceled | SubscriptionStatus.Paused,
           livemode: params.livemode ?? true,
           billingCycleAnchorDate: new Date(),
@@ -427,14 +436,14 @@ export const setupSubscription = async (params: {
             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           currentBillingPeriodStart:
             params.currentBillingPeriodStart ?? new Date(),
-          canceledAt: null,
+          canceledAt: params.canceledAt ?? null,
           cancelScheduledAt: params.cancelScheduledAt ?? null,
           trialEnd: params.trialEnd ?? null,
           backupPaymentMethodId: null,
           priceId: params.priceId,
           interval: params.interval ?? IntervalUnit.Month,
           intervalCount: params.intervalCount ?? 1,
-          metadata: {},
+          metadata: params.metadata ?? {},
           stripeSetupIntentId: `setupintent_${core.nanoid()}`,
           name: null,
           runBillingAtPeriodStart:
@@ -442,6 +451,9 @@ export const setupSubscription = async (params: {
           externalId: null,
           startDate: params.startDate ?? new Date(),
           renews: isNil(params.renews) ? true : params.renews,
+          isFreePlan: params.isFreePlan ?? false,
+          cancellationReason: params.cancellationReason ?? null,
+          replacedBySubscriptionId: params.replacedBySubscriptionId ?? null,
         },
         transaction
       )) as Subscription.StandardRecord

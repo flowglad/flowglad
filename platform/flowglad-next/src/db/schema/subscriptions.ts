@@ -31,7 +31,7 @@ import {
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import { IntervalUnit, SubscriptionStatus } from '@/types'
-import { z } from 'zod'
+import { uuid, z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
 import core from '@/utils/core'
@@ -70,6 +70,9 @@ const columns = {
   metadata: jsonb('metadata'),
   canceledAt: timestamp('canceled_at'),
   cancelScheduledAt: timestamp('cancel_scheduled_at'),
+  cancellationReason: text('cancellation_reason'),
+  replacedBySubscriptionId: text('replaced_by_subscription_id'),
+  isFreePlan: boolean('is_free_plan').default(false),
   priceId: nullableStringForeignKey('price_id', prices),
   runBillingAtPeriodStart: boolean(
     'run_billing_at_period_start'
@@ -95,6 +98,10 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.customerId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.status]),
+    constructIndex(TABLE_NAME, [table.replacedBySubscriptionId]),
+    constructIndex(TABLE_NAME, [table.isFreePlan]),
+    constructIndex(TABLE_NAME, [table.cancellationReason]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
     constructUniqueIndex(TABLE_NAME, [table.stripeSetupIntentId]),
     constructUniqueIndex(TABLE_NAME, [
       table.externalId,

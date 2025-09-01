@@ -47,6 +47,10 @@ import { activateSubscription } from '@/subscriptions/createSubscription/helpers
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import {
+  cancelFreeSubscriptionForUpgrade,
+  linkUpgradedSubscriptions,
+} from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -441,6 +445,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       throw new Error('Price interval count is required')
     }
 
+    // Check for and cancel any free subscription before creating the new one
+    const canceledFreeSubscription = await cancelFreeSubscriptionForUpgrade(
+      customer.id,
+      transaction
+    )
+
     const subscriptionsForCustomer = await selectSubscriptions(
       {
         customerId: customer.id,
@@ -450,6 +460,14 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     const hasHadTrial = subscriptionsForCustomer.some(
       (subscription) => subscription.trialEnd
     )
+
+    // Prepare metadata with upgrade information if applicable
+    const upgradeMetadata = canceledFreeSubscription
+      ? {
+          upgraded_from_subscription_id: canceledFreeSubscription.id,
+          upgrade_date: new Date().toISOString(),
+        }
+      : {}
 
     const output = await createSubscriptionWorkflow(
       {
@@ -472,13 +490,25 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         startDate: new Date(),
         autoStart: true,
         quantity: checkoutSession.quantity,
-        metadata: checkoutSession.outputMetadata,
+        metadata: {
+          ...checkoutSession.outputMetadata,
+          ...upgradeMetadata,
+        },
         name: checkoutSession.outputName ?? undefined,
         product,
         livemode: checkoutSession.livemode,
       },
       transaction
     )
+
+    // Link the old and new subscriptions if there was an upgrade
+    if (canceledFreeSubscription && output.result.subscription) {
+      await linkUpgradedSubscriptions(
+        canceledFreeSubscription.id,
+        output.result.subscription.id,
+        transaction
+      )
+    }
 
     const updatedPurchase = await updatePurchase(
       {

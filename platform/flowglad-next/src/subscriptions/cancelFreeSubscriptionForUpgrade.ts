@@ -1,0 +1,79 @@
+import { DbTransaction } from '@/db/types'
+import { Subscription } from '@/db/schema/subscriptions'
+import { SubscriptionStatus } from '@/types'
+import {
+  selectSubscriptions,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+
+/**
+ * Cancels an active free subscription when a customer is upgrading to a paid plan.
+ * This is used during the setup intent success flow to handle the transition
+ * from free to paid subscriptions.
+ * 
+ * @param customerId - The customer whose free subscription should be canceled
+ * @param transaction - Database transaction to ensure atomicity
+ * @returns The canceled subscription if one was found and canceled, null otherwise
+ */
+export const cancelFreeSubscriptionForUpgrade = async (
+  customerId: string,
+  transaction: DbTransaction
+): Promise<Subscription.Record | null> => {
+  // Find active subscriptions for the customer
+  const activeSubscriptions = await selectSubscriptions(
+    {
+      customerId,
+      status: SubscriptionStatus.Active,
+    },
+    transaction
+  )
+
+  // Filter for free subscriptions (isFreePlan = true)
+  const freeSubscriptions = activeSubscriptions.filter(
+    sub => sub.isFreePlan === true
+  )
+
+  if (freeSubscriptions.length === 0) {
+    return null
+  }
+
+  // If multiple free subscriptions exist (edge case), cancel the most recent one
+  const subscriptionToCancel = freeSubscriptions.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0]
+
+  // Cancel the free subscription with special reason
+  const canceledSubscription = await updateSubscription(
+    {
+      id: subscriptionToCancel.id,
+      status: SubscriptionStatus.Canceled,
+      canceledAt: new Date(),
+      cancellationReason: 'upgraded_to_paid',
+    },
+    transaction
+  )
+
+  return canceledSubscription
+}
+
+/**
+ * Links a canceled free subscription to its replacement paid subscription
+ * by updating the replacedBySubscriptionId field.
+ * 
+ * @param oldSubscriptionId - The ID of the canceled free subscription
+ * @param newSubscriptionId - The ID of the new paid subscription
+ * @param transaction - Database transaction
+ */
+export const linkUpgradedSubscriptions = async (
+  oldSubscriptionId: string,
+  newSubscriptionId: string,
+  transaction: DbTransaction
+): Promise<void> => {
+  await updateSubscription(
+    {
+      id: oldSubscriptionId,
+      replacedBySubscriptionId: newSubscriptionId,
+    },
+    transaction
+  )
+}
