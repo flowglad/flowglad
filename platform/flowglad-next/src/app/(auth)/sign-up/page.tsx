@@ -12,8 +12,7 @@ import {
 import Input from '@/components/ion/Input'
 import Label from '@/components/ion/Label'
 import { useState } from 'react'
-import Image from 'next/image'
-import { Loader2, X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { signIn, signUp } from '@/utils/authClient'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -61,9 +60,11 @@ export default function SignUp() {
     },
   } as const
   return (
-    <Card className="z-50 rounded-md max-w-md">
-      <CardHeader>
+    <>
+    <Card className="max-w-xl rounded-2xl">
+      <CardHeader className="text-center">
         <CardTitle className="text-lg md:text-xl">Sign Up</CardTitle>
+        <CardDescription>Create an account to get started</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
@@ -150,6 +151,11 @@ export default function SignUp() {
               'Create an account'
             )}
           </Button>
+          <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+                <span className="bg-nav text-muted-foreground relative z-10 px-2">
+                  Or continue with
+                </span>
+              </div>
           <div
             className={cn(
               'w-full gap-2 flex items-center',
@@ -198,6 +204,34 @@ export default function SignUp() {
           </div>
         </div>
       </CardContent>
+      <CardFooter className="flex justify-center">
+        <div className="text-sm">
+          Already have an account?{" "}
+          <a href="/sign-in" className="underline underline-offset-4">
+            Sign in
+          </a>
+        </div>
+      </CardFooter>
+      
     </Card>
+
+    <div className="mt-4 text-muted-foreground text-center text-xs text-balance">
+      By clicking continue, you agree to our{' '}
+      <a
+        href="https://flowglad.com/terms-of-service"
+        className="underline underline-offset-4 hover:text-primary transition-colors"
+      >
+        Terms of Service
+      </a>{' '}
+      and{' '}
+      <a
+        href="https://flowglad.com/privacy-policy"
+        className="underline underline-offset-4 hover:text-primary transition-colors"
+      >
+        Privacy Policy
+      </a>
+      .
+    </div>
+    </>
   )
 }

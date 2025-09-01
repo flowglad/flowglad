@@ -15,7 +15,6 @@ import Checkbox from '@/components/ion/Checkbox'
 import { useState } from 'react'
 import { Loader2, Key } from 'lucide-react'
 import { authClient, signIn } from '@/utils/authClient'
-import Link from 'next/link'
 import { cn } from '@/utils/core'
 import ErrorLabel from '@/components/ErrorLabel'
 import { toast } from 'sonner'
@@ -30,9 +29,11 @@ export default function SignIn() {
   const forgotPasswordDisabled = !z.string().email().safeParse(email)
     .success
   return (
-    <Card className="max-w-lg lg:w-80 w-full">
-      <CardHeader>
+    
+    <Card className="w-full max-w-md rounded-2xl">
+      <CardHeader className="text-center">
         <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
+        <CardDescription>Enter your email and password to sign in</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
@@ -128,6 +129,12 @@ export default function SignIn() {
             )}
           </Button>
 
+          <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+                <span className="bg-nav text-muted-foreground relative z-10 px-2">
+                  Or continue with
+                </span>
+              </div>
+
           <div
             className={cn(
               'w-full gap-2 flex items-center',
@@ -187,6 +194,14 @@ export default function SignIn() {
           />
         </div>
       </CardContent>
+      <CardFooter className="flex justify-center">
+        <div className="text-sm">
+          Don&apos;t have an account?{" "}
+          <a href="/sign-up" className="underline underline-offset-4">
+            Sign up
+          </a>
+        </div>
+      </CardFooter>
     </Card>
   )
 }

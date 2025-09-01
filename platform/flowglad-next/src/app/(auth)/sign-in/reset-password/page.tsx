@@ -120,14 +120,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="max-w-lg lg:w-80 w-full ">
+      <Card className="max-w-xl rounded-2xl">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-2">
-            <div className="p-3 rounded-full bg-primary/10">
-              <Lock size={24} className="text-primary" />
-            </div>
-          </div>
           <CardTitle className="text-lg md:text-xl">
             {success
               ? 'Password Reset Successful!'
@@ -251,6 +245,5 @@ export default function ResetPasswordPage() {
           )}
         </CardContent>
       </Card>
-    </div>
   )
 }
