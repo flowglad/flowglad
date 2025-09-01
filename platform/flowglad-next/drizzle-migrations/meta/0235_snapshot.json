@@ -1,5 +1,5 @@
 {
-  "id": "1f30e45f-84c0-4236-9b93-8bc4b531499f",
+  "id": "34c6a50f-5935-475e-97cf-b4001ea32a81",
   "prevId": "983919fb-4685-4a92-a48d-d6c94d7a636e",
   "version": "7",
   "dialect": "postgresql",
@@ -685,7 +685,7 @@
           "to": [
             "merchant"
           ],
-          "using": "\"billingPeriodId\" in (select \"id\" from \"BillingPeriods\" where \"subscriptionId\" in (select \"id\" from \"Subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
+          "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
         },
         "Check mode": {
           "name": "Check mode",
@@ -1069,7 +1069,7 @@
           "to": [
             "merchant"
           ],
-          "using": "\"billingPeriodId\" in (select \"id\" from \"BillingPeriods\" where \"subscriptionId\" in (select \"id\" from \"Subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
+          "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
         },
         "Check mode": {
           "name": "Check mode",
@@ -2490,7 +2490,7 @@
           "to": [
             "customer"
           ],
-          "using": "\"organization_id\" in (select \"id\" from \"organizations\") and \"active\" = true"
+          "using": "\"organization_id\" = current_organization_id() and \"active\" = true"
         },
         "Enable all actions for discounts in own organization": {
           "name": "Enable all actions for discounts in own organization",
@@ -3002,7 +3002,7 @@
           "to": [
             "customer"
           ],
-          "using": "\"organization_id\" in (select \"id\" from \"organizations\") and \"active\" = true"
+          "using": "\"organization_id\" = current_organization_id() and \"active\" = true"
         },
         "Check mode": {
           "name": "Check mode",
@@ -8047,7 +8047,7 @@
           "to": [
             "customer"
           ],
-          "using": "\"organization_id\" in (select \"organization_id\" from \"customers\") and \"active\" = true and \"pricing_model_id\" in (select \"pricing_model_id\" from \"customers\")"
+          "using": "\"organization_id\" = current_organization_id() and \"active\" = true and \"pricing_model_id\" in (select \"pricing_model_id\" from \"customers\")"
         },
         "Enable read for own organizations (products)": {
           "name": "Enable read for own organizations (products)",

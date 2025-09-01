@@ -123,7 +123,7 @@ const columnRefinements = {
   taxAmountFixed: safeZodNonNegativeInteger,
   pretaxTotal: safeZodNonNegativeInteger,
   discountAmountFixed: safeZodNonNegativeInteger,
-  billingAddress: billingAddressSchema.nullable(),
+  billingAddress: billingAddressSchema,
   type: core.createSafeZodEnum(FeeCalculationType),
   currency: currencyCodeSchema,
 }

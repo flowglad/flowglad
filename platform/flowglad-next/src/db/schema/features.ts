@@ -77,7 +77,7 @@ export const features = pgTable(
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
-        using: sql`"organization_id" in (select "id" from "organizations") and "active" = true`,
+        using: sql`"organization_id" = current_organization_id() and "active" = true`,
       }
     ),
     livemodePolicy(),

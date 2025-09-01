@@ -72,7 +72,7 @@ export const billingRuns = pgTable(
           as: 'permissive',
           to: 'own_organization',
           for: 'all',
-          using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
+          using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
         }
       ),
       livemodePolicy(),
