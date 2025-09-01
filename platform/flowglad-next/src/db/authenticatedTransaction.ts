@@ -63,7 +63,7 @@ export async function authenticatedTransaction<T>(
       )}', TRUE)`
     )
 
-    await transaction.execute(sql`set role ${sql.raw(jwtClaim.role)}`)
+    await transaction.execute(sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)}`)
     await transaction.execute(
       sql`SELECT set_config('app.livemode', '${sql.raw(
         Boolean(livemode).toString()
