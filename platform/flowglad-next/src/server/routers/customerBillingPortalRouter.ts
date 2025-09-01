@@ -299,8 +299,71 @@ const requestMagicLinkProcedure = publicProcedure
     }
   })
 
+// getCustomersByEmail procedure - Get all customers for an email at an organization
+const getCustomersByEmailProcedure = customerProtectedProcedure
+  .input(
+    z.object({
+      email: z.string().email(),
+      organizationId: z.string(),
+    })
+  )
+  .output(customerClientSelectSchema.array())
+  .query(async ({ input, ctx }) => {
+    const { email, organizationId } = input
+
+    // Fetch all customer profiles for this email at the organization
+    const customersResult = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomers(
+          {
+            email,
+            organizationId,
+          },
+          transaction
+        )
+      }
+    )
+
+    return customersResult
+  })
+
+// validateCustomerAccess procedure - Validate customer access
+const validateCustomerAccessProcedure = customerProtectedProcedure
+  .input(
+    z.object({
+      customerId: z.string(),
+      organizationId: z.string(),
+    })
+  )
+  .output(customerClientSelectSchema)
+  .query(async ({ input, ctx }) => {
+    const { customerId, organizationId } = input
+    const { customer } = ctx
+
+    // Verify the customer ID matches the authenticated customer
+    if (customer.id !== customerId) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'You do not have access to this customer',
+      })
+    }
+
+    // Verify the organization ID matches
+    if (customer.organizationId !== organizationId) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Customer does not belong to this organization',
+      })
+    }
+
+    // Return the validated customer
+    return customer
+  })
+
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
   requestMagicLink: requestMagicLinkProcedure,
+  getCustomersByEmail: getCustomersByEmailProcedure,
+  validateCustomerAccess: validateCustomerAccessProcedure,
 })
