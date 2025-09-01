@@ -36,6 +36,8 @@ export const memberships = pgTable(
     return [
       constructIndex(MEMBERSHIPS_TABLE_NAME, [table.userId]),
       constructIndex(MEMBERSHIPS_TABLE_NAME, [table.organizationId]),
+      // Composite index for the common query pattern (userId, focused)
+      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.userId, table.focused]),
       constructUniqueIndex(MEMBERSHIPS_TABLE_NAME, [
         table.userId,
         table.organizationId,

@@ -53,8 +53,9 @@ $$;
 
 GRANT customer TO current_user;
 
+CREATE INDEX IF NOT EXISTS "memberships_user_id_focused_idx" ON "memberships" USING btree ("user_id","focused");--> statement-breakpoint
 CREATE POLICY "Enable read for customers (countries)" ON "countries" AS PERMISSIVE FOR SELECT TO "customer" USING (true);--> statement-breakpoint
-CREATE POLICY "Enable read for customers (customers)" ON "customers" AS PERMISSIVE FOR SELECT TO "customer" USING ("user_id" = requesting_user_id());--> statement-breakpoint
+CREATE POLICY "Enable read for customers (customers)" ON "customers" AS PERMISSIVE FOR SELECT TO "customer" USING ("user_id" = requesting_user_id() AND "organization_id" = current_organization_id());--> statement-breakpoint
 CREATE POLICY "Enable read for customers (discount_redemptions)" ON "discount_redemptions" AS PERMISSIVE FOR SELECT TO "customer" USING ("subscription_id" in (select "id" from "subscriptions"));--> statement-breakpoint
 CREATE POLICY "Enable read for customers (discounts)" ON "discounts" AS PERMISSIVE FOR SELECT TO "customer" USING ("organization_id" in (select "id" from "organizations") and "active" = true);--> statement-breakpoint
 CREATE POLICY "Enable read for customers (features)" ON "features" AS PERMISSIVE FOR SELECT TO "customer" USING ("organization_id" in (select "id" from "organizations") and "active" = true);--> statement-breakpoint
