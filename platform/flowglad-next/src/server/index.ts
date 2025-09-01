@@ -37,6 +37,7 @@ import { featuresRouter } from './routers/featuresRouter'
 import { productFeaturesRouter } from './routers/productFeaturesRouter'
 import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeaturesRouter'
 import { customerBillingPortalRouter } from './routers/customerBillingPortalRouter'
+import { logout } from './mutations/logout'
 
 const filesRouter = router({
   create: createFile,
@@ -76,6 +77,7 @@ export const appRouter = router({
     toggleTestMode,
     inviteUserToOrganization,
     requestBillingPortalLink,
+    logout,
   }),
   apiKeys: apiKeysRouter,
   subscriptions: subscriptionsRouter,

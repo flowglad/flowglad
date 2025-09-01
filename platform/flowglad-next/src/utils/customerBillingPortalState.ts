@@ -11,7 +11,12 @@ export const setCustomerBillingPortalOrganizationId = async (
   organizationId: string
 ) => {
   const cookieStore = await cookies()
-  await cookieStore.set(cookieName, organizationId)
+  await cookieStore.set(cookieName, organizationId, {
+    maxAge: 60 * 60 * 24, // 24 hours in seconds
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  })
 }
 
 export const getCustomerBillingPortalOrganizationId =
