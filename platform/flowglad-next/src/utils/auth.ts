@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth'
-import { admin, emailOTP } from 'better-auth/plugins'
+import { admin, customSession, magicLink } from 'better-auth/plugins'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/db/client'
 import {
@@ -9,8 +9,62 @@ import {
   verification,
 } from '@/db/schema/betterAuthSchema'
 import { betterAuthUserToApplicationUser } from './authHelpers'
-import { sendForgotPasswordEmail } from './email'
+import {
+  sendForgotPasswordEmail,
+  sendCustomerBillingPortalMagicLink,
+} from './email'
 import { headers } from 'next/headers'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { getCustomerBillingPortalOrganizationId } from './customerBillingPortalState'
+
+const handleCustomerBillingPortalEmailOTP = async (params: {
+  email: string
+  url: string
+  token: string
+  organizationId: string
+}) => {
+  const { email, url, token, organizationId } = params
+  // Get organization and customer info for the email
+  const { organization, customer } = await adminTransaction(
+    async ({ transaction }) => {
+      const org = await selectOrganizationById(
+        organizationId,
+        transaction
+      )
+      const customers = await selectCustomers(
+        { email, organizationId },
+        transaction
+      )
+      return {
+        organization: org,
+        customer: customers[0] || null,
+      }
+    }
+  )
+
+  // Build the magic link URL with OTP
+  // Send the magic link email
+  await sendCustomerBillingPortalMagicLink({
+    to: [email],
+    url,
+    customerName: customer?.name || undefined,
+    organizationName: organization?.name || undefined,
+  })
+}
+
+const handleMerchantEmailOTP = async ({
+  email,
+  url,
+  token,
+}: {
+  email: string
+  url: string
+  token: string
+}) => {
+  throw new Error('Not implemented')
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -22,7 +76,34 @@ export const auth = betterAuth({
       verification,
     },
   }),
-  plugins: [admin()],
+  plugins: [
+    admin(),
+    customSession(async ({ user, session }) => {
+      return {
+        focusedRole: [],
+        user: {
+          ...user,
+        },
+        session,
+      }
+    }),
+    magicLink({
+      async sendMagicLink({ email, url, token }) {
+        const customerBillingPortalOrganizationId =
+          await getCustomerBillingPortalOrganizationId()
+        if (customerBillingPortalOrganizationId) {
+          await handleCustomerBillingPortalEmailOTP({
+            email,
+            url,
+            token,
+            organizationId: customerBillingPortalOrganizationId,
+          })
+        } else {
+          await handleMerchantEmailOTP({ email, url, token })
+        }
+      },
+    }),
+  ],
   databaseHooks: {
     user: {
       create: {
@@ -37,8 +118,18 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         required: false,
-        defaultValue: 'user',
+        defaultValue: 'merchant',
         input: false, // don't allow user to set role
+      },
+    },
+  },
+  session: {
+    additionalFields: {
+      contextOrganizationId: {
+        type: 'string',
+        required: false,
+        defaultValue: undefined,
+        input: false, // don't allow user to set contextOrganizationId
       },
     },
   },
@@ -63,5 +154,6 @@ export const getSession = async () => {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
+
   return session
 }

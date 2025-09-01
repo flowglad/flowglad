@@ -17,7 +17,10 @@ import { Invoice } from '@/db/schema/invoices'
 import { BillingAddress } from '@/db/schema/organizations'
 import { Purchase } from '@/db/schema/purchases'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { calculateTotalFeeAmount, calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
+import {
+  calculateTotalFeeAmount,
+  calculateTotalDueAmount,
+} from '@/utils/bookkeeping/fees/common'
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Country } from '@/db/schema/countries'
 import { Customer } from '@/db/schema/customers'

@@ -85,19 +85,17 @@ export const createProductTransaction = async (
         },
         ...payload.prices.slice(1),
       ]
-  const createdPrices = await Promise.all(
-    pricesWithSafelyDefaultPrice.map(async (price) => {
-      return createPrice(
-        {
-          ...price,
-          productId: createdProduct.id,
-          livemode,
-          currency: defaultCurrency,
-          externalId: null,
-        },
-        transaction
-      )
-    })
+  // Use bulk insert instead of multiple individual inserts
+  const priceInserts = pricesWithSafelyDefaultPrice.map((price) => ({
+    ...price,
+    productId: createdProduct.id,
+    livemode,
+    currency: defaultCurrency,
+    externalId: null,
+  }))
+  const createdPrices = await bulkInsertPrices(
+    priceInserts,
+    transaction
   )
   return {
     product: createdProduct,

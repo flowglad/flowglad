@@ -19,19 +19,28 @@ interface ComponentRendererProps {
   config: ComponentConfig
 }
 
-export function ComponentRenderer({ config }: ComponentRendererProps) {
+export function ComponentRenderer({
+  config,
+}: ComponentRendererProps) {
   const [selectedVariant, setSelectedVariant] = useState(0)
   const [showCode, setShowCode] = useState(false)
-  
+
   const Component = config.component
-  const currentProps = config.variants?.[selectedVariant]?.props || config.defaultProps || {}
+  const currentProps =
+    config.variants?.[selectedVariant]?.props ||
+    config.defaultProps ||
+    {}
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-semibold text-foreground">{config.displayName}</h3>
+        <h3 className="text-xl font-semibold text-foreground">
+          {config.displayName}
+        </h3>
         {config.description && (
-          <p className="mt-1 text-sm text-muted-foreground">{config.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {config.description}
+          </p>
         )}
       </div>
 
@@ -72,20 +81,22 @@ export function ComponentRenderer({ config }: ComponentRendererProps) {
         <div className="bg-muted text-muted-foreground p-4 rounded-lg overflow-x-auto">
           <pre className="text-sm">
             <code>
-              {`<${config.displayName}${Object.entries(currentProps).length > 0 ? '\n' : ''}${
-                Object.entries(currentProps)
-                  .map(([key, value]) => {
-                    if (typeof value === 'string') {
-                      return `  ${key}="${value}"`
-                    }
-                    if (typeof value === 'boolean') {
-                      return value ? `  ${key}` : ''
-                    }
-                    return `  ${key}={${JSON.stringify(value)}}`
-                  })
-                  .filter(Boolean)
-                  .join('\n')
-              }${Object.entries(currentProps).length > 0 ? '\n' : ''}/>`}
+              {`<${config.displayName}${Object.entries(currentProps).length > 0 ? '\n' : ''}${Object.entries(
+                currentProps
+              )
+                .map(([key, value]) => {
+                  if (typeof value === 'string') {
+                    return `  ${key}="${value}"`
+                  }
+                  if (typeof value === 'boolean') {
+                    return value ? `  ${key}` : ''
+                  }
+                  return `  ${key}={${JSON.stringify(value)}}`
+                })
+                .filter(Boolean)
+                .join(
+                  '\n'
+                )}${Object.entries(currentProps).length > 0 ? '\n' : ''}/>`}
             </code>
           </pre>
         </div>
@@ -97,7 +108,9 @@ export function ComponentRenderer({ config }: ComponentRendererProps) {
 function ComponentLoadingFallback() {
   return (
     <div className="flex items-center justify-center p-8">
-      <div className="animate-pulse text-muted-foreground">Loading component...</div>
+      <div className="animate-pulse text-muted-foreground">
+        Loading component...
+      </div>
     </div>
   )
 }
@@ -106,12 +119,19 @@ interface ComponentGalleryProps {
   components: ComponentConfig[]
 }
 
-export function ComponentGallery({ components }: ComponentGalleryProps) {
+export function ComponentGallery({
+  components,
+}: ComponentGalleryProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  
-  const filteredComponents = components.filter(comp =>
-    comp.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    comp.description?.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const filteredComponents = components.filter(
+    (comp) =>
+      comp.displayName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      comp.description
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase())
   )
 
   return (

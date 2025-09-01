@@ -16,9 +16,9 @@ export interface ServerTool<T extends z.ZodRawShape> {
   schema: T
   callbackConstructor: (
     apikey: string
-  ) => (
-    args: { [K in keyof T]: z.infer<T[K]> }
-  ) => Promise<ToolResponse>
+  ) => (args: {
+    [K in keyof T]: z.infer<T[K]>
+  }) => Promise<ToolResponse>
 }
 
 export type ToolConstructor<T extends z.ZodRawShape> = ServerTool<T>

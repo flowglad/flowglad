@@ -161,9 +161,12 @@ describe('Subscription Activation Workflow E2E', () => {
       expect(usageCredits[0].status).toBe('posted')
       expect(usageCredits[1].usageMeterId).toBe(usageMeter.id)
       expect(usageCredits[1].status).toBe('posted')
-      
+
       // Total should be 1000 (Once) + 100 (EveryBillingPeriod) = 1100
-      const totalIssuedAmount = usageCredits.reduce((sum, credit) => sum + credit.issuedAmount, 0)
+      const totalIssuedAmount = usageCredits.reduce(
+        (sum, credit) => sum + credit.issuedAmount,
+        0
+      )
       expect(totalIssuedAmount).toBe(1100)
 
       // call @customerBillingTransaction and check state

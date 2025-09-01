@@ -44,7 +44,13 @@ export interface PricingProductGroup {
 export interface PricingTableProps {
   productGroups: PricingProductGroup[]
   currentGroupSlug?: string
-  onProductSelect?: ({ productSlug, groupSlug }: { productSlug: string; groupSlug: string }) => void
+  onProductSelect?: ({
+    productSlug,
+    groupSlug,
+  }: {
+    productSlug: string
+    groupSlug: string
+  }) => void
   showToggle?: boolean
   className?: string
 }

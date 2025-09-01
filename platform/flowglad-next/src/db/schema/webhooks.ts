@@ -1,10 +1,4 @@
-import {
-  boolean,
-  text,
-  pgTable,
-  pgPolicy,
-  jsonb,
-} from 'drizzle-orm/pg-core'
+import { boolean, text, pgTable, jsonb } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import {
@@ -13,7 +7,7 @@ import {
   constructIndex,
   livemodePolicy,
   ommittedColumnsForInsertSchema,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -45,12 +39,14 @@ export const webhooks = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructIndex(TABLE_NAME, [table.active]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
-      }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          for: 'all',
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

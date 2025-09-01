@@ -78,8 +78,8 @@ export const grantEntitlementUsageCredits = async (
   /**
    * Create usage credit inserts from the already-filtered feature items
    */
-  const usageCreditInserts: UsageCredit.Insert[] = featureItemsToGrant
-    .map((featureItem) => {
+  const usageCreditInserts: UsageCredit.Insert[] =
+    featureItemsToGrant.map((featureItem) => {
       return {
         organizationId: command.organizationId,
         livemode: command.livemode,

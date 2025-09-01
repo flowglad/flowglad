@@ -56,14 +56,20 @@ const columnEnhancers = {
   source: core.createSafeZodEnum(PurchaseAccessSessionSource),
 }
 
-export const purchaseAccessSessionsInsertSchema =
-  createInsertSchema(purchaseAccessSessions).omit(ommittedColumnsForInsertSchema).extend(columnEnhancers)
+export const purchaseAccessSessionsInsertSchema = createInsertSchema(
+  purchaseAccessSessions
+)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(columnEnhancers)
 
 export const purchaseAccessSessionsSelectSchema = createSelectSchema(
   purchaseAccessSessions
 ).extend(columnEnhancers)
 
-export const purchaseAccessSessionsUpdateSchema = purchaseAccessSessionsInsertSchema.partial().extend({ id: z.string() })
+export const purchaseAccessSessionsUpdateSchema =
+  purchaseAccessSessionsInsertSchema
+    .partial()
+    .extend({ id: z.string() })
 
 const readonlyColumns = {
   purchaseId: true,

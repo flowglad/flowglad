@@ -1,5 +1,5 @@
 import { IntervalUnit } from '@/types'
-import { addMonths, addYears, isLeapYear } from 'date-fns'
+import { isLeapYear } from 'date-fns'
 
 interface GenerateNextBillingPeriodParams {
   billingCycleAnchorDate: Date
@@ -18,7 +18,8 @@ interface BillingPeriodRange {
 function getDaysInMonth(year: number, month: number): number {
   // Returns how many days are in a given month (0-based),
   // e.g. getDaysInMonth(2023, 1) => 28 or 29 for February
-  return new Date(year, month + 1, 0).getDate()
+  // Use UTC to avoid timezone issues
+  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
 }
 
 /**
@@ -65,16 +66,21 @@ export function generateNextBillingPeriod({
 
   let endDate: Date
   if (interval === IntervalUnit.Month) {
-    // For monthly intervals, figure out how many days we should use based on startDate's day
+    // For monthly intervals, we need to handle month-end edge cases properly
     const startDay = startDate.getUTCDate()
+    const startMonth = startDate.getUTCMonth()
+    const startYear = startDate.getUTCFullYear()
 
-    // Add `intervalCount` months to startDate
-    const workingDate = addMonths(startDate, intervalCount)
-    const targetYear = workingDate.getUTCFullYear()
-    const targetMonth = workingDate.getUTCMonth()
+    // Calculate the target month and year
+    const totalMonths = startMonth + intervalCount
+    const targetMonth = totalMonths % 12
+    const targetYear = startYear + Math.floor(totalMonths / 12)
+
+    // Get the number of days in the target month
     const daysInTargetMonth = getDaysInMonth(targetYear, targetMonth)
 
-    // If the original startDay is 31, but new month has only 30 days, clamp to 30, etc.
+    // If the original day is greater than days in target month, clamp it
+    // e.g., Jan 31 -> Feb 28/29, May 31 -> Jun 30
     const targetDay = Math.min(startDay, daysInTargetMonth)
 
     // Create the new endDate, preserving the time of day from the startDate
@@ -90,42 +96,35 @@ export function generateNextBillingPeriod({
       )
     )
   } else if (interval === IntervalUnit.Year) {
-    // For yearly intervals, add `intervalCount` years to startDate
-    const baseEndDate = addYears(startDate, intervalCount)
+    // For yearly intervals, we need to handle leap year edge cases
+    const startDay = startDate.getUTCDate()
+    const startMonth = startDate.getUTCMonth()
+    const startYear = startDate.getUTCFullYear()
 
-    // If the anchor day was Feb 29 but the new year isn't a leap year, clamp to Feb 28
-    // However, we preserve the time from startDate
+    const targetYear = startYear + intervalCount
+
+    // Special case: Feb 29 in leap year -> Feb 28 in non-leap year
+    let targetDay = startDay
     if (
-      billingCycleAnchorDate.getUTCMonth() === 1 && // 1 => February
-      billingCycleAnchorDate.getUTCDate() === 29 && // was anchored on Feb 29
-      !isLeapYear(baseEndDate) // new year isn't leap
+      startMonth === 1 &&
+      startDay === 29 &&
+      !isLeapYear(new Date(targetYear, 0, 1))
     ) {
-      endDate = new Date(
-        Date.UTC(
-          baseEndDate.getUTCFullYear(),
-          1, // February
-          28,
-          startDate.getUTCHours(),
-          startDate.getUTCMinutes(),
-          startDate.getUTCSeconds(),
-          startDate.getUTCMilliseconds()
-        )
-      )
-    } else {
-      // Otherwise, just preserve the date portion from adding years,
-      // but also preserve the time portion from startDate
-      endDate = new Date(
-        Date.UTC(
-          baseEndDate.getUTCFullYear(),
-          baseEndDate.getUTCMonth(),
-          baseEndDate.getUTCDate(),
-          startDate.getUTCHours(),
-          startDate.getUTCMinutes(),
-          startDate.getUTCSeconds(),
-          startDate.getUTCMilliseconds()
-        )
-      )
+      targetDay = 28
     }
+
+    // Create the new endDate, preserving the time of day from the startDate
+    endDate = new Date(
+      Date.UTC(
+        targetYear,
+        startMonth,
+        targetDay,
+        startDate.getUTCHours(),
+        startDate.getUTCMinutes(),
+        startDate.getUTCSeconds(),
+        startDate.getUTCMilliseconds()
+      )
+    )
   } else {
     // Currently only support Month & Year intervals
     throw new Error(`Unsupported interval: ${interval}`)

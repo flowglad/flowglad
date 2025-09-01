@@ -7,12 +7,11 @@ import {
   nullableStringForeignKey,
   constructIndex,
   livemodePolicy,
-  createSupabaseWebhookSchema,
   ommittedColumnsForInsertSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
   pgEnumColumn,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
@@ -68,12 +67,14 @@ export const billingPeriodItems = pgTable(
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.discountRedemptionId]),
       constructIndex(TABLE_NAME, [table.usageMeterId]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"billingPeriodId" in (select "id" from "BillingPeriods" where "subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
-      }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          for: 'all',
+          using: sql`"billing_period_id" in (select "id" from "billing_periods" where "subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships")))`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

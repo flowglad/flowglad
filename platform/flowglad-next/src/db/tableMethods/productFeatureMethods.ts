@@ -200,6 +200,26 @@ export const syncProductFeatures = async (
   transaction: DbTransaction
 ) => {
   const { product, desiredFeatureIds } = params
+  
+  // Early return if no features to sync
+  if (!desiredFeatureIds || desiredFeatureIds.length === 0) {
+    // Just expire all existing features if any
+    const allProductFeaturesForProduct = await selectProductFeatures(
+      { productId: product.id },
+      transaction
+    )
+    if (allProductFeaturesForProduct.length > 0) {
+      const activeFeatures = allProductFeaturesForProduct.filter(pf => !pf.expiredAt)
+      if (activeFeatures.length > 0) {
+        await expireProductFeaturesByFeatureId(
+          activeFeatures.map((pf) => pf.id),
+          transaction
+        )
+      }
+    }
+    return []
+  }
+  
   const allProductFeaturesForProduct = await selectProductFeatures(
     {
       productId: product.id,
@@ -216,36 +236,48 @@ export const syncProductFeatures = async (
     (pf) => !desiredFeatureIdsSet.has(pf.featureId) && !pf.expiredAt
   )
 
-  await expireProductFeaturesByFeatureId(
-    productFeaturesToExpire.map((pf) => pf.id),
-    transaction
-  )
+  // Only call expire if there are features to expire
+  if (productFeaturesToExpire.length > 0) {
+    await expireProductFeaturesByFeatureId(
+      productFeaturesToExpire.map((pf) => pf.id),
+      transaction
+    )
+  }
+  
   const featureIdsToUnexpire = allProductFeaturesForProduct
     .filter(
       (pf) => desiredFeatureIdsSet.has(pf.featureId) && pf.expiredAt
     )
     .map((pf) => pf.featureId)
-  const unexpiredFeatures = await unexpireProductFeatures(
-    {
-      featureIds: featureIdsToUnexpire,
-      productId: product.id,
-      organizationId: product.organizationId,
-    },
-    transaction
-  )
+  
+  // Only call unexpire if there are features to unexpire
+  const unexpiredFeatures = featureIdsToUnexpire.length > 0
+    ? await unexpireProductFeatures(
+        {
+          featureIds: featureIdsToUnexpire,
+          productId: product.id,
+          organizationId: product.organizationId,
+        },
+        transaction
+      )
+    : []
+    
   const featureIdsToCreate = desiredFeatureIds.filter(
     (featureId) => !existingProductFeaturesByFeatureId.has(featureId)
   )
-  const productFeatureInserts: ProductFeature.Insert[] =
-    featureIdsToCreate.map((featureId) => ({
-      productId: product.id,
-      featureId,
-      organizationId: product.organizationId,
-      livemode: product.livemode,
-    }))
-  const newlyCreatedFeatures = await bulkInsertProductFeatures(
-    productFeatureInserts,
-    transaction
-  )
+  
+  // Only bulk insert if there are features to create
+  const newlyCreatedFeatures = featureIdsToCreate.length > 0
+    ? await bulkInsertProductFeatures(
+        featureIdsToCreate.map((featureId) => ({
+          productId: product.id,
+          featureId,
+          organizationId: product.organizationId,
+          livemode: product.livemode,
+        })),
+        transaction
+      )
+    : []
+    
   return [...newlyCreatedFeatures, ...unexpiredFeatures]
 }

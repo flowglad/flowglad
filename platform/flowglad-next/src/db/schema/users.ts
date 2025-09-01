@@ -44,9 +44,12 @@ export const usersSelectSchema = createSelectSchema(
  * that is part of its insert, as we create the User record based on the id
  * provided by Clerk
  */
-export const usersInsertSchema = createInsertSchema(users).omit(ommittedColumnsForInsertSchema).extend(insertAndSelectSchema).extend({
-  id: z.string(),
-})
+export const usersInsertSchema = createInsertSchema(users)
+  .omit(ommittedColumnsForInsertSchema)
+  .extend(insertAndSelectSchema)
+  .extend({
+    id: z.string(),
+  })
 
 export const usersUpdateSchema = usersInsertSchema.partial().extend({
   id: z.string(),

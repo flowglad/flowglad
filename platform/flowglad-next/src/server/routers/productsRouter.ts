@@ -66,7 +66,7 @@ export const createProduct = protectedProcedure
     try {
       // Validate that default products cannot be created manually
       validateProductCreation(input.product)
-      
+
       const result = await authenticatedTransaction(
         async ({ transaction, userId, livemode, organizationId }) => {
           const { product, price, featureIds } = input
@@ -115,7 +115,10 @@ export const editProduct = protectedProcedure
           const { product, featureIds } = input
 
           // Fetch the existing product to check if it's a default product
-          const existingProduct = await selectProductById(product.id, transaction)
+          const existingProduct = await selectProductById(
+            product.id,
+            transaction
+          )
           if (!existingProduct) {
             throw new Error('Product not found')
           }

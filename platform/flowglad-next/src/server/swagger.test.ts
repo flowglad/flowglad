@@ -194,8 +194,8 @@ describe('Swagger Configuration', () => {
 
   describe('Customer Route Parameters', () => {
     it('should have {externalId} as the parameter for customer routes', () => {
-      const customerPaths = Object.entries(paths || {}).filter(([path]) =>
-        path.includes('/customer/')
+      const customerPaths = Object.entries(paths || {}).filter(
+        ([path]) => path.includes('/customer/')
       )
 
       customerPaths.forEach(([path, pathObj]: [string, any]) => {

@@ -20,6 +20,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
 import core, { zodOptionalNullableString } from '@/utils/core'
@@ -92,14 +93,16 @@ export const organizations = pgTable(
       constructUniqueIndex(TABLE_NAME, [table.domain]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
       constructIndex(TABLE_NAME, [table.countryId]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'select',
-        using: sql`id IN ( SELECT memberships.organization_id
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          for: 'select',
+          using: sql`id IN ( SELECT memberships.organization_id
    FROM memberships
   WHERE (memberships.user_id = requesting_user_id() and memberships.organization_id = current_organization_id()))`,
-      }),
+        }
+      ),
     ]
   }
 ).enableRLS()

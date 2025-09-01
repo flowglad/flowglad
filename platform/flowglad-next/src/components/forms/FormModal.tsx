@@ -164,8 +164,6 @@ export const NestedFormModal = <T extends FieldValues>({
     </div>
   )
 
-  
-
   return (
     <Modal
       open={isOpen}

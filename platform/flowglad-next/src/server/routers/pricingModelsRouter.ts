@@ -115,7 +115,7 @@ const createPricingModelProcedure = protectedProcedure
         apiKey: ctx.apiKey,
       }
     )
-    return { 
+    return {
       pricingModel: result.result.pricingModel,
       // Note: We're not returning the default product/price in the API response
       // to maintain backward compatibility, but they are created
@@ -217,10 +217,14 @@ const clonePricingModelProcedure = protectedProcedure
   })
 
 const getTableRowsProcedure = protectedProcedure
-  .input(createPaginatedTableRowInputSchema(z.object({
-    organizationId: z.string().optional(),
-    isDefault: z.boolean().optional(),
-  })))
+  .input(
+    createPaginatedTableRowInputSchema(
+      z.object({
+        organizationId: z.string().optional(),
+        isDefault: z.boolean().optional(),
+      })
+    )
+  )
   .output(
     createPaginatedTableRowOutputSchema(
       z.object({

@@ -13,13 +13,19 @@ export function PricingTable({
   currentGroupSlug = 'personal',
   onProductSelect,
   showToggle = true,
-  className
+  className,
 }: PricingTableProps) {
-  const [selectedGroupSlug, setSelectedGroupSlug] = React.useState(currentGroupSlug)
+  const [selectedGroupSlug, setSelectedGroupSlug] =
+    React.useState(currentGroupSlug)
   const [isOpen, setIsOpen] = React.useState(true)
 
-  const currentGroup = productGroups.find(g => g.slug === selectedGroupSlug) || productGroups[0]
-  const groupOptions = productGroups.map(g => ({ name: g.name, slug: g.slug }))
+  const currentGroup =
+    productGroups.find((g) => g.slug === selectedGroupSlug) ||
+    productGroups[0]
+  const groupOptions = productGroups.map((g) => ({
+    name: g.name,
+    slug: g.slug,
+  }))
 
   const handleProductSelect = (productSlug: string) => {
     if (onProductSelect) {
@@ -32,26 +38,28 @@ export function PricingTable({
   }
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn('relative w-full', className)}>
       <div className="bg-muted/50 rounded-t-lg">
         <div className="relative px-6 py-4 sm:py-6 lg:py-8">
           <div className="flex flex-col items-center space-y-6">
             <h2 className="text-2xl sm:text-3xl font-medium text-center text-foreground">
               Upgrade your plan
             </h2>
-            
+
             {showToggle && productGroups.length > 1 && (
               <PricingToggle
-                options={groupOptions.map(g => g.name)}
+                options={groupOptions.map((g) => g.name)}
                 selected={currentGroup?.name || ''}
                 onChange={(name) => {
-                  const group = groupOptions.find(g => g.name === name)
+                  const group = groupOptions.find(
+                    (g) => g.name === name
+                  )
                   if (group) setSelectedGroupSlug(group.slug)
                 }}
               />
             )}
           </div>
-          
+
           <Button
             variant="ghost"
             size="icon"
@@ -63,12 +71,14 @@ export function PricingTable({
         </div>
 
         <div className="px-4 sm:px-6 pb-6 sm:pb-8">
-          <div className={cn(
-            "grid gap-6",
-            "grid-cols-1",
-            "lg:grid-cols-3",
-            "max-w-6xl mx-auto"
-          )}>
+          <div
+            className={cn(
+              'grid gap-6',
+              'grid-cols-1',
+              'lg:grid-cols-3',
+              'max-w-6xl mx-auto'
+            )}
+          >
             {currentGroup?.products.map((product) => (
               <PricingColumn
                 key={product.slug}
@@ -94,7 +104,7 @@ export function PricingTable({
               ChatGPT Enterprise
             </a>
           </p>
-        </div>        
+        </div>
       </div>
     </div>
   )

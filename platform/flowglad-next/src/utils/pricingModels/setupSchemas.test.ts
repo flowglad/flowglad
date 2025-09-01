@@ -120,7 +120,13 @@ describe('validateSetupPricingModelInput', () => {
           active: true,
         },
       ],
-      usageMeters: [{ slug: 'm1', name: 'Meter One', aggregationType: UsageMeterAggregationType.Sum }],
+      usageMeters: [
+        {
+          slug: 'm1',
+          name: 'Meter One',
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+      ],
       products: [
         {
           product: {

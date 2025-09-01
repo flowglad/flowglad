@@ -25,6 +25,7 @@ import {
   OrganizationPaymentFailedNotificationEmailProps,
 } from '@/email-templates/organization/organization-payment-failed'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
+import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -349,6 +350,30 @@ export const sendForgotPasswordEmail = async ({
     react: await ForgotPasswordEmail({
       user: to[0],
       url,
+    }),
+  })
+}
+
+export const sendCustomerBillingPortalMagicLink = async ({
+  to,
+  url,
+  customerName,
+  organizationName,
+}: {
+  to: string[]
+  url: string
+  customerName?: string
+  organizationName?: string
+}) => {
+  return safeSend({
+    from: 'notifications@flowglad.com',
+    to: to.map(safeTo),
+    subject: `Sign in to your ${organizationName ? `${organizationName}` : ''} billing portal`,
+    react: await CustomerBillingPortalMagicLinkEmail({
+      email: to[0],
+      url,
+      customerName,
+      organizationName,
     }),
   })
 }

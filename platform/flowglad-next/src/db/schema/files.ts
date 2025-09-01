@@ -11,7 +11,7 @@ import {
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -42,13 +42,16 @@ export const files = pgTable(
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(TABLE_NAME, [table.objectKey]),
       livemodePolicy(),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"organization_id" in (select "organization_id" from "memberships")`,
-        withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
-      }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'merchant',
+          for: 'all',
+          using: sql`"organization_id" in (select "organization_id" from "memberships")`,
+          withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
+        }
+      ),
     ]
   }
 ).enableRLS()

@@ -324,6 +324,7 @@ export const setupCustomer = async (params: {
   invoiceNumberBase?: string
   email?: string
   livemode?: boolean
+  userId?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const email = params.email ?? `test+${core.nanoid()}@test.com`
@@ -337,6 +338,7 @@ export const setupCustomer = async (params: {
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
         invoiceNumberBase: params.invoiceNumberBase ?? core.nanoid(),
+        userId: params.userId,
       },
       transaction
     )
@@ -395,8 +397,11 @@ export const setupSubscription = async (params: {
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
-          defaultPaymentMethodId: params.defaultPaymentMethodId ?? params.paymentMethodId ?? null,
-          status: status as SubscriptionStatus.CreditTrial | SubscriptionStatus.Active | SubscriptionStatus.Canceled,
+defaultPaymentMethodId: params.defaultPaymentMethodId ?? params.paymentMethodId ?? null,
+status: status as
+            | SubscriptionStatus.CreditTrial
+            | SubscriptionStatus.Active
+            | SubscriptionStatus.Canceled,
           livemode: params.livemode ?? true,
           billingCycleAnchorDate: null,
           currentBillingPeriodStart: null,
@@ -427,8 +432,22 @@ export const setupSubscription = async (params: {
         {
           organizationId: params.organizationId,
           customerId: params.customerId,
+<<<<<<< HEAD
           defaultPaymentMethodId: params.defaultPaymentMethodId ?? params.paymentMethodId ?? null,
           status: status as SubscriptionStatus.Trialing | SubscriptionStatus.Active | SubscriptionStatus.PastDue | SubscriptionStatus.Unpaid | SubscriptionStatus.CancellationScheduled | SubscriptionStatus.Incomplete | SubscriptionStatus.IncompleteExpired | SubscriptionStatus.Canceled | SubscriptionStatus.Paused,
+=======
+          defaultPaymentMethodId: params.paymentMethodId,
+          status: status as
+            | SubscriptionStatus.Trialing
+            | SubscriptionStatus.Active
+            | SubscriptionStatus.PastDue
+            | SubscriptionStatus.Unpaid
+            | SubscriptionStatus.CancellationScheduled
+            | SubscriptionStatus.Incomplete
+            | SubscriptionStatus.IncompleteExpired
+            | SubscriptionStatus.Canceled
+            | SubscriptionStatus.Paused,
+>>>>>>> main
           livemode: params.livemode ?? true,
           billingCycleAnchorDate: new Date(),
           currentBillingPeriodEnd:
@@ -619,17 +638,18 @@ export const setupPurchase = async ({
   return adminTransaction(async ({ transaction }) => {
     const price = await selectPriceById(priceId, transaction)
     const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
-    const coreFields = { customerId,
-    organizationId,
-    livemode: livemode ?? price.livemode,
-    name: 'Test Purchase',
-    priceId: price.id,
-    priceType: price.type,
-    totalPurchaseValue: price.unitPrice,
-    quantity: 1,
-    firstInvoiceValue: price.unitPrice,
-    status
-  } as const
+    const coreFields = {
+      customerId,
+      organizationId,
+      livemode: livemode ?? price.livemode,
+      name: 'Test Purchase',
+      priceId: price.id,
+      priceType: price.type,
+      totalPurchaseValue: price.unitPrice,
+      quantity: 1,
+      firstInvoiceValue: price.unitPrice,
+      status,
+    } as const
     if (price.type === PriceType.Usage) {
       return await insertPurchase(
         {
@@ -882,6 +902,7 @@ export const setupPayment = async ({
   refundedAt,
   chargeDate,
   purchaseId,
+  paymentMethodId,
 }: {
   stripeChargeId: string
   status: PaymentStatus
@@ -899,6 +920,7 @@ export const setupPayment = async ({
   refundedAt?: Date
   chargeDate?: Date
   purchaseId?: string
+  paymentMethodId?: string
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
     const payment = await insertPayment(
@@ -921,6 +943,7 @@ export const setupPayment = async ({
         refunded,
         refundedAmount,
         refundedAt,
+        paymentMethodId,
       },
       transaction
     )

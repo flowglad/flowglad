@@ -7,18 +7,15 @@ interface PricingFeatureProps extends PricingFeatureType {
   className?: string
 }
 
-export function PricingFeature({ 
-  text, 
-  included, 
-  tooltip, 
-  className 
+export function PricingFeature({
+  text,
+  included,
+  tooltip,
+  className,
 }: PricingFeatureProps) {
   return (
-    <div 
-      className={cn(
-        "flex items-start gap-3",
-        className
-      )}
+    <div
+      className={cn('flex items-start gap-3', className)}
       title={tooltip}
     >
       <div className="mt-0.5 flex-shrink-0">
@@ -28,10 +25,12 @@ export function PricingFeature({
           <X className="h-5 w-5 text-muted-foreground" />
         )}
       </div>
-      <span className={cn(
-        "text-sm",
-        included ? "text-foreground" : "text-muted-foreground"
-      )}>
+      <span
+        className={cn(
+          'text-sm',
+          included ? 'text-foreground' : 'text-muted-foreground'
+        )}
+      >
         {text}
       </span>
     </div>

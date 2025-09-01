@@ -659,6 +659,7 @@ export const processSetupIntentSucceeded = async (
       eventsToLog: [],
     }
   }
+
   if (
     initialCheckoutSession.type ===
     CheckoutSessionType.ActivateSubscription

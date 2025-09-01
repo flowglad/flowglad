@@ -35,9 +35,7 @@ import {
   updateSetupIntent,
 } from '@/utils/stripe'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import {
-  FeeCalculation,
-} from '@/db/schema/feeCalculations'
+import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Purchase } from '@/db/schema/purchases'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'

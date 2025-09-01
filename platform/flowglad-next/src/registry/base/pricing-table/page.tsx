@@ -16,22 +16,25 @@ const sampleProductGroups: PricingProductGroup[] = [
           unitAmount: 0,
           currency: 'USD',
           intervalUnit: 'month',
-          intervalCount: 1
+          intervalCount: 1,
         },
         description: 'Intelligence for everyday tasks',
         current: true,
         cta: {
           text: 'Your current plan',
-          disabled: true
+          disabled: true,
         },
         features: [
           { text: 'Access to GPT-5', included: true },
           { text: 'Limited file uploads', included: true },
-          { text: 'Limited and slower image generation', included: true },
+          {
+            text: 'Limited and slower image generation',
+            included: true,
+          },
           { text: 'Limited memory and context', included: true },
-          { text: 'Limited deep research', included: true }
+          { text: 'Limited deep research', included: true },
         ],
-        footnote: 'Have an existing plan? See billing help'
+        footnote: 'Have an existing plan? See billing help',
       },
       {
         slug: 'plus',
@@ -40,23 +43,29 @@ const sampleProductGroups: PricingProductGroup[] = [
           unitAmount: 20,
           currency: 'USD',
           intervalUnit: 'month',
-          intervalCount: 1
+          intervalCount: 1,
         },
         description: 'More access to advanced intelligence',
         popular: true,
         cta: {
-          text: 'Get Plus'
+          text: 'Get Plus',
         },
         features: [
           { text: 'GPT-5 with advanced reasoning', included: true },
           { text: 'Expanded messaging and uploads', included: true },
-          { text: 'Expanded and faster image creation', included: true },
+          {
+            text: 'Expanded and faster image creation',
+            included: true,
+          },
           { text: 'Expanded memory and context', included: true },
-          { text: 'Expanded deep research and agent mode', included: true },
+          {
+            text: 'Expanded deep research and agent mode',
+            included: true,
+          },
           { text: 'Projects, tasks, custom GPTs', included: true },
           { text: 'Sora video generation', included: true },
-          { text: 'Codex agent', included: true }
-        ]
+          { text: 'Codex agent', included: true },
+        ],
       },
       {
         slug: 'pro',
@@ -65,26 +74,38 @@ const sampleProductGroups: PricingProductGroup[] = [
           unitAmount: 200,
           currency: 'USD',
           intervalUnit: 'month',
-          intervalCount: 1
+          intervalCount: 1,
         },
         description: 'Full access to the best of ChatGPT',
         cta: {
-          text: 'Get Pro'
+          text: 'Get Pro',
         },
         features: [
           { text: 'GPT-5 with pro reasoning', included: true },
           { text: 'Unlimited messages and uploads', included: true },
-          { text: 'Unlimited and faster image creation', included: true },
+          {
+            text: 'Unlimited and faster image creation',
+            included: true,
+          },
           { text: 'Maximum memory and context', included: true },
-          { text: 'Maximum deep research and agent mode', included: true },
-          { text: 'Expanded projects, tasks, and custom GPTs', included: true },
+          {
+            text: 'Maximum deep research and agent mode',
+            included: true,
+          },
+          {
+            text: 'Expanded projects, tasks, and custom GPTs',
+            included: true,
+          },
           { text: 'Expanded Sora video generation', included: true },
           { text: 'Expanded Codex agent', included: true },
-          { text: 'Research preview of new features', included: true }
+          {
+            text: 'Research preview of new features',
+            included: true,
+          },
         ],
-        footnote: 'Unlimited subject to abuse guardrails. Learn more'
-      }
-    ]
+        footnote: 'Unlimited subject to abuse guardrails. Learn more',
+      },
+    ],
   },
   {
     name: 'Business',
@@ -97,19 +118,22 @@ const sampleProductGroups: PricingProductGroup[] = [
           unitAmount: 25,
           currency: 'USD',
           intervalUnit: 'month',
-          intervalCount: 1
+          intervalCount: 1,
         },
         description: 'Collaborate with your team',
         cta: {
-          text: 'Get Team'
+          text: 'Get Team',
         },
         features: [
           { text: 'Everything in Plus', included: true },
           { text: 'Team workspace', included: true },
           { text: 'Admin console', included: true },
-          { text: 'Team data excluded from training', included: true },
-          { text: 'Priority support', included: true }
-        ]
+          {
+            text: 'Team data excluded from training',
+            included: true,
+          },
+          { text: 'Priority support', included: true },
+        ],
       },
       {
         slug: 'enterprise',
@@ -118,12 +142,12 @@ const sampleProductGroups: PricingProductGroup[] = [
           unitAmount: 60,
           currency: 'USD',
           intervalUnit: 'month',
-          intervalCount: 1
+          intervalCount: 1,
         },
         description: 'Advanced security and controls',
         popular: true,
         cta: {
-          text: 'Contact Sales'
+          text: 'Contact Sales',
         },
         features: [
           { text: 'Everything in Team', included: true },
@@ -133,8 +157,8 @@ const sampleProductGroups: PricingProductGroup[] = [
           { text: 'Extended context windows', included: true },
           { text: 'Custom data retention', included: true },
           { text: 'Enterprise agreements', included: true },
-          { text: 'Dedicated support', included: true }
-        ]
+          { text: 'Dedicated support', included: true },
+        ],
       },
       {
         slug: 'custom',
@@ -143,11 +167,11 @@ const sampleProductGroups: PricingProductGroup[] = [
           unitAmount: 0,
           currency: 'USD',
           intervalUnit: 'month',
-          intervalCount: 1
+          intervalCount: 1,
         },
         description: 'Tailored for your organization',
         cta: {
-          text: 'Contact Us'
+          text: 'Contact Us',
         },
         features: [
           { text: 'Everything in Enterprise', included: true },
@@ -155,16 +179,22 @@ const sampleProductGroups: PricingProductGroup[] = [
           { text: 'Dedicated infrastructure', included: true },
           { text: 'Custom integrations', included: true },
           { text: 'White-glove onboarding', included: true },
-          { text: 'Custom SLAs', included: true }
+          { text: 'Custom SLAs', included: true },
         ],
-        footnote: 'Contact us for custom pricing'
-      }
-    ]
-  }
+        footnote: 'Contact us for custom pricing',
+      },
+    ],
+  },
 ]
 
 export default function PricingTableDemo() {
-  const handleProductSelect = ({ productSlug, groupSlug }: { productSlug: string; groupSlug: string }) => {
+  const handleProductSelect = ({
+    productSlug,
+    groupSlug,
+  }: {
+    productSlug: string
+    groupSlug: string
+  }) => {
     // console.log(`Selected product: ${productSlug} from group: ${groupSlug}`)
     // Handle product selection (e.g., navigate to checkout, show modal, etc.)
   }
@@ -173,12 +203,15 @@ export default function PricingTableDemo() {
     <div className="min-h-screen bg-gray-100 py-12">
       <div className="container mx-auto px-4">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-4">Pricing Table Component</h1>
+          <h1 className="text-4xl font-bold mb-4">
+            Pricing Table Component
+          </h1>
           <p className="text-lg text-muted-foreground">
-            A responsive pricing table component with multiple products and tiers
+            A responsive pricing table component with multiple
+            products and tiers
           </p>
         </div>
-        
+
         <PricingTable
           productGroups={sampleProductGroups}
           currentGroupSlug="personal"

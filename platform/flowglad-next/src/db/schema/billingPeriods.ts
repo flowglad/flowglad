@@ -1,10 +1,5 @@
 import * as R from 'ramda'
-import {
-  pgTable,
-  pgPolicy,
-  timestamp,
-  boolean,
-} from 'drizzle-orm/pg-core'
+import { pgTable, timestamp, boolean } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   tableBase,
@@ -15,7 +10,7 @@ import {
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
@@ -46,12 +41,14 @@ export const billingPeriods = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.status]),
-      pgPolicy(`Enable read for own organizations (${TABLE_NAME})`, {
-        as: 'permissive',
-        to: merchantRole,
-        for: 'all',
-        using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
-      }),
+      merchantPolicy(
+        `Enable read for own organizations (${TABLE_NAME})`,
+        {
+          as: 'permissive',
+          to: 'all',
+          using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
+        }
+      ),
       livemodePolicy(),
     ]
   }

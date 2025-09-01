@@ -125,27 +125,33 @@ export const editPrice = protectedProcedure
     return authenticatedTransaction(
       async ({ transaction }) => {
         const { price } = input
-        
+
         // Fetch the existing price and its product to check if it's a default price on a default product
-        const existingPrice = await selectPriceById(price.id, transaction)
+        const existingPrice = await selectPriceById(
+          price.id,
+          transaction
+        )
         if (!existingPrice) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Price not found',
           })
         }
-        
-        const product = await selectProductById(existingPrice.productId, transaction)
+
+        const product = await selectProductById(
+          existingPrice.productId,
+          transaction
+        )
         if (!product) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Product not found',
           })
         }
-        
+
         // Validate that default prices on default products maintain their constraints
         validateDefaultPriceUpdate(price, existingPrice, product)
-        
+
         const updatedPrice = await safelyUpdatePrice(
           price,
           transaction

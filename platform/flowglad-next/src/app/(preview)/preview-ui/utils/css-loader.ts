@@ -41,32 +41,38 @@ class PreviewCSSLoader {
       // Fetch manifest to get the current CSS hash
       const manifestResponse = await fetch('/preview/manifest.json')
       if (!manifestResponse.ok) {
-        throw new Error(`Failed to fetch manifest: ${manifestResponse.statusText}`)
+        throw new Error(
+          `Failed to fetch manifest: ${manifestResponse.statusText}`
+        )
       }
-      
+
       const manifest: CSSManifest = await manifestResponse.json()
-      
+
       // Use hashed version in production, regular in development
-      const cssPath = process.env.NODE_ENV === 'production' 
-        ? `/preview/preview.${manifest.hash}.css`
-        : manifest.path
-      
+      const cssPath =
+        process.env.NODE_ENV === 'production'
+          ? `/preview/preview.${manifest.hash}.css`
+          : manifest.path
+
       // Fetch CSS content
       const cssResponse = await fetch(cssPath)
       if (!cssResponse.ok) {
-        throw new Error(`Failed to fetch CSS: ${cssResponse.statusText}`)
+        throw new Error(
+          `Failed to fetch CSS: ${cssResponse.statusText}`
+        )
       }
-      
+
       const cssContent = await cssResponse.text()
       this.cssCache = cssContent
-      
+
       // Inject CSS into the page
       this.injectCSS(cssContent)
-      
+
       this.isLoaded = true
       // eslint-disable-next-line no-console
-      console.log(`✅ Preview CSS loaded (${(manifest.size / 1024).toFixed(2)}kb)`)
-      
+      console.log(
+        `✅ Preview CSS loaded (${(manifest.size / 1024).toFixed(2)}kb)`
+      )
     } catch (error) {
       console.error('Failed to load preview CSS:', error)
       // Fallback: try to load the non-hashed version
@@ -80,14 +86,16 @@ class PreviewCSSLoader {
     try {
       const response = await fetch('/preview/preview.css')
       if (!response.ok) {
-        throw new Error(`Failed to fetch fallback CSS: ${response.statusText}`)
+        throw new Error(
+          `Failed to fetch fallback CSS: ${response.statusText}`
+        )
       }
-      
+
       const cssContent = await response.text()
       this.cssCache = cssContent
       this.injectCSS(cssContent)
       this.isLoaded = true
-      
+
       // eslint-disable-next-line no-console
       console.log('✅ Preview CSS loaded (fallback)')
     } catch (error) {
@@ -98,17 +106,18 @@ class PreviewCSSLoader {
 
   private injectCSS(css: string): void {
     if (typeof document === 'undefined') return
-    
+
     // Remove existing style element if present
     this.removeCSS()
-    
+
     // Create and inject new style element
     this.styleElement = document.createElement('style')
     this.styleElement.setAttribute('data-preview-css', 'true')
     this.styleElement.textContent = css
-    
+
     // Insert at the beginning of head to allow overrides
-    const head = document.head || document.getElementsByTagName('head')[0]
+    const head =
+      document.head || document.getElementsByTagName('head')[0]
     if (head.firstChild) {
       head.insertBefore(this.styleElement, head.firstChild)
     } else {

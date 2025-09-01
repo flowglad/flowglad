@@ -123,9 +123,12 @@ export const createSubscriptionWorkflow = async (
     transaction
   )
 
-  await idempotentSendOrganizationSubscriptionCreatedNotification(
-    updatedSubscription
-  )
+  if (price.slug !== 'free') {
+    await idempotentSendOrganizationSubscriptionCreatedNotification(
+      updatedSubscription
+    )
+  }
+
   const timestamp = new Date()
   const eventInserts: Event.Insert[] = [
     {

@@ -11,8 +11,8 @@ export function ThemeToggle() {
       <button
         onClick={() => setTheme('light')}
         className={`p-2 rounded transition-colors ${
-          theme === 'light' 
-            ? 'bg-background text-foreground shadow-sm' 
+          theme === 'light'
+            ? 'bg-background text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground'
         }`}
         title="Light mode"
@@ -22,8 +22,8 @@ export function ThemeToggle() {
       <button
         onClick={() => setTheme('system')}
         className={`p-2 rounded transition-colors ${
-          theme === 'system' 
-            ? 'bg-background text-foreground shadow-sm' 
+          theme === 'system'
+            ? 'bg-background text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground'
         }`}
         title="System preference"
@@ -33,8 +33,8 @@ export function ThemeToggle() {
       <button
         onClick={() => setTheme('dark')}
         className={`p-2 rounded transition-colors ${
-          theme === 'dark' 
-            ? 'bg-background text-foreground shadow-sm' 
+          theme === 'dark'
+            ? 'bg-background text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground'
         }`}
         title="Dark mode"

@@ -45,9 +45,7 @@ describe('trpcErrorHandler', () => {
       expect(result.userMessage).toBe(
         'This product slug already exists in this pricing model. Please choose a different slug.'
       )
-      expect(result.developerMessage).toBe(
-        'Database error'
-      )
+      expect(result.developerMessage).toBe('Database error')
       expect(result.context).toHaveProperty(
         'constraint',
         'products_pricing_model_id_slug_unique_idx'
@@ -68,9 +66,7 @@ describe('trpcErrorHandler', () => {
       expect(result.userMessage).toBe(
         'This customer record either does not exist or you do not have access to it.'
       )
-      expect(result.developerMessage).toBe(
-        'RLS violation'
-      )
+      expect(result.developerMessage).toBe('RLS violation')
       expect(result.context?.code).toBe('42501')
     })
 
@@ -204,7 +200,7 @@ describe('trpcErrorHandler', () => {
             resource: 'subscription',
             operation: 'cancel',
             id: 'sub_123',
-          })
+          }),
         })
       )
     })
@@ -244,7 +240,8 @@ describe('trpcErrorHandler', () => {
       it('should handle duplicate slug error specially', () => {
         const pgError = {
           code: '23505',
-          constraint_name: 'products_pricing_model_id_slug_unique_idx',
+          constraint_name:
+            'products_pricing_model_id_slug_unique_idx',
           table_name: 'products',
         }
         const error = new Error('Database error', { cause: pgError })
@@ -255,7 +252,9 @@ describe('trpcErrorHandler', () => {
           })
         } catch (e) {
           const trpcError = e as TRPCError
-          expect(trpcError.message).toContain('product slug already exists')
+          expect(trpcError.message).toContain(
+            'product slug already exists'
+          )
           expect(trpcError.code).toBe('CONFLICT')
         }
       })
@@ -290,7 +289,8 @@ describe('trpcErrorHandler', () => {
       it('should handle duplicate email error', () => {
         const pgError = {
           code: '23505',
-          constraint_name: 'customers_organization_id_email_unique_idx',
+          constraint_name:
+            'customers_organization_id_email_unique_idx',
           table_name: 'customers',
         }
         const error = new Error('Database error', { cause: pgError })

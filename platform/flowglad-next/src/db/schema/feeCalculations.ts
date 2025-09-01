@@ -19,7 +19,7 @@ import {
   ommittedColumnsForInsertSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
+  merchantPolicy,
 } from '@/db/tableUtils'
 import {
   CheckoutSession,
@@ -107,9 +107,9 @@ export const feeCalculations = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
       livemodePolicy(),
-      pgPolicy('Enable select for own organization', {
+      merchantPolicy('Enable select for own organization', {
         as: 'permissive',
-        to: merchantRole,
+        to: 'merchant',
         for: 'select',
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }),
@@ -123,7 +123,7 @@ const columnRefinements = {
   taxAmountFixed: safeZodNonNegativeInteger,
   pretaxTotal: safeZodNonNegativeInteger,
   discountAmountFixed: safeZodNonNegativeInteger,
-  billingAddress: billingAddressSchema.nullable(),
+  billingAddress: billingAddressSchema,
   type: core.createSafeZodEnum(FeeCalculationType),
   currency: currencyCodeSchema,
 }

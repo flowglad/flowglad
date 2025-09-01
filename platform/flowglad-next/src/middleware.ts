@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteMatcher } from '@clerk/nextjs/server'
 import core from './utils/core'
 import { getSessionCookie } from 'better-auth/cookies'
+import { getCustomerBillingPortalOrganizationId } from './utils/customerBillingPortalState'
+import { getSession } from './utils/auth'
 
 const publicRoutes = [
   '/mcp',
+  '/billing-portal/(.*)/sign-in',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/handler/(.*)',
@@ -27,6 +30,7 @@ const publicRoutes = [
    * Purchase session procedures need to be public,
    * otherwise anon users will hit 307 redirects.
    */
+  '/api/trpc/customerBillingPortal.requestMagicLink',
   '/api/trpc/purchases.(.*)Session',
   '/api/trpc/checkoutSessions.setPaymentMethodType',
   '/api/trpc/checkoutSessions.setCustomerEmail',
@@ -79,22 +83,39 @@ export default async function middleware(req: NextRequest) {
     )
   }
   const sessionCookie = getSessionCookie(req)
-
   const isProtectedRoute = !isPublicRoute(req)
-
+  const pathName = req.nextUrl.pathname
   if (!sessionCookie && isProtectedRoute) {
-    if (req.nextUrl.pathname.startsWith('/billing/org_')) {
+    if (pathName.startsWith('/billing-portal/')) {
       return NextResponse.redirect(
-        new URL('/billing/sign-in', req.url)
+        new URL(
+          `/billing-portal/${pathName.split('/')[2]}/sign-in`,
+          req.url
+        )
       )
     }
     return NextResponse.redirect(new URL('/sign-in', req.url))
   }
-  
+
+  const customerBillingPortalOrganizationId =
+    await getCustomerBillingPortalOrganizationId()
+  if (
+    customerBillingPortalOrganizationId &&
+    !pathName.startsWith('/billing-portal/') &&
+    isProtectedRoute
+  ) {
+    return NextResponse.redirect(
+      new URL(
+        `/billing-portal/${customerBillingPortalOrganizationId}`,
+        req.url
+      )
+    )
+  }
+
   // Add pathname to headers for layout detection
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-pathname', req.nextUrl.pathname)
-  
+
   return NextResponse.next({
     request: {
       headers: requestHeaders,

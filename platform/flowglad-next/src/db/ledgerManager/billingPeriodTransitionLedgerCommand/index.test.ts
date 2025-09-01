@@ -70,7 +70,10 @@ import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
 import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { aggregateAvailableBalanceForUsageCredit } from '@/db/tableMethods/ledgerEntryMethods'
-import { UsageCreditApplicationStatus, BillingPeriodStatus } from '@/types'
+import {
+  UsageCreditApplicationStatus,
+  BillingPeriodStatus,
+} from '@/types'
 import core from '@/utils/core'
 
 describe('processBillingPeriodTransitionLedgerCommand', () => {
@@ -640,13 +643,13 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
 
     beforeEach(async () => {
       // Use existing organization from parent beforeEach
-      
+
       // Create a separate customer for non-renewing tests
       nonRenewingCustomer = await setupCustomer({
         organizationId: organization.id,
         email: `nonrenewing-${core.nanoid()}@test.com`,
       })
-      
+
       // Create non-renewing subscription (CreditTrial)
       nonRenewingSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -665,26 +668,26 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         quantity: 1,
         unitPrice: price.unitPrice,
       })
-      
+
       // Create multiple usage meters for testing
       usageMeter1 = await setupUsageMeter({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
         name: 'Non-Renewing Meter 1',
       })
-      
+
       usageMeter2 = await setupUsageMeter({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
         name: 'Non-Renewing Meter 2',
       })
-      
+
       usageMeter3 = await setupUsageMeter({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
         name: 'Non-Renewing Meter 3',
       })
-      
+
       // Create features with different renewal frequencies
       onceFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
@@ -695,47 +698,50 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         livemode: true,
         pricingModelId: pricingModel.id,
       })
-      
+
       recurringFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
         name: 'Recurring Grant Feature',
         usageMeterId: usageMeter2.id,
         amount: 1000,
-        renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
         livemode: true,
         pricingModelId: pricingModel.id,
       })
-      
+
       // Create product features
       productFeatureOnce = await setupProductFeature({
         organizationId: organization.id,
         productId: product.id,
         featureId: onceFeature.id,
       })
-      
+
       productFeatureRecurring = await setupProductFeature({
         organizationId: organization.id,
         productId: product.id,
         featureId: recurringFeature.id,
       })
-      
+
       // Create subscription item features
-      subscriptionItemFeatureOnce = await setupSubscriptionItemFeatureUsageCreditGrant({
-        subscriptionItemId: nonRenewingSubscriptionItem.id,
-        featureId: onceFeature.id,
-        productFeatureId: productFeatureOnce.id,
-        usageMeterId: usageMeter1.id,
-        amount: onceFeature.amount,
-      })
-      
-      subscriptionItemFeatureRecurring = await setupSubscriptionItemFeatureUsageCreditGrant({
-        subscriptionItemId: nonRenewingSubscriptionItem.id,
-        featureId: recurringFeature.id,
-        productFeatureId: productFeatureRecurring.id,
-        usageMeterId: usageMeter2.id,
-        amount: recurringFeature.amount,
-      })
-      
+      subscriptionItemFeatureOnce =
+        await setupSubscriptionItemFeatureUsageCreditGrant({
+          subscriptionItemId: nonRenewingSubscriptionItem.id,
+          featureId: onceFeature.id,
+          productFeatureId: productFeatureOnce.id,
+          usageMeterId: usageMeter1.id,
+          amount: onceFeature.amount,
+        })
+
+      subscriptionItemFeatureRecurring =
+        await setupSubscriptionItemFeatureUsageCreditGrant({
+          subscriptionItemId: nonRenewingSubscriptionItem.id,
+          featureId: recurringFeature.id,
+          productFeatureId: productFeatureRecurring.id,
+          usageMeterId: usageMeter2.id,
+          amount: recurringFeature.amount,
+        })
+
       // Create ledger accounts
       ledgerAccountNonRenewing1 = await setupLedgerAccount({
         organizationId: organization.id,
@@ -743,14 +749,14 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         usageMeterId: usageMeter1.id,
         livemode: nonRenewingSubscription.livemode,
       })
-      
+
       ledgerAccountNonRenewing2 = await setupLedgerAccount({
         organizationId: organization.id,
         subscriptionId: nonRenewingSubscription.id,
         usageMeterId: usageMeter2.id,
         livemode: nonRenewingSubscription.livemode,
       })
-      
+
       // Create non-renewing command template
       nonRenewingCommand = {
         organizationId: organization.id,
@@ -777,7 +783,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             status: SubscriptionStatus.CreditTrial,
             renews: false,
           })
-          
+
           // Create subscription item for test
           const testSubscriptionItem = await setupSubscriptionItem({
             subscriptionId: testSubscription.id,
@@ -786,26 +792,29 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             quantity: 1,
             unitPrice: price.unitPrice,
           })
-          
+
           // Create subscription item features for test
-          const testFeatureOnce = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: onceFeature.id,
-            productFeatureId: productFeatureOnce.id,
-            usageMeterId: usageMeter1.id,
-            amount: 500,
-            renewalFrequency: FeatureUsageGrantFrequency.Once,
-          })
-          
-          const testFeatureRecurring = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: recurringFeature.id,
-            productFeatureId: productFeatureRecurring.id,
-            usageMeterId: usageMeter2.id,
-            amount: 1000,
-            renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
-          })
-          
+          const testFeatureOnce =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: onceFeature.id,
+              productFeatureId: productFeatureOnce.id,
+              usageMeterId: usageMeter1.id,
+              amount: 500,
+              renewalFrequency: FeatureUsageGrantFrequency.Once,
+            })
+
+          const testFeatureRecurring =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: recurringFeature.id,
+              productFeatureId: productFeatureRecurring.id,
+              usageMeterId: usageMeter2.id,
+              amount: 1000,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+            })
+
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {
             organizationId: organization.id,
@@ -823,37 +832,52 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process the non-renewing billing period transition
-          const { ledgerTransaction, ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            testCommand,
-            transaction
-          )
+          const { ledgerTransaction, ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              testCommand,
+              transaction
+            )
 
           // Assert - verify transaction created with correct fields
           expect(ledgerTransaction).toBeDefined()
-          expect(ledgerTransaction.type).toBe(LedgerTransactionType.BillingPeriodTransition)
-          expect(ledgerTransaction.initiatingSourceId).toBe(testSubscription.id) // Should use subscription ID, not billing period
-          expect(ledgerTransaction.subscriptionId).toBe(testSubscription.id)
+          expect(ledgerTransaction.type).toBe(
+            LedgerTransactionType.BillingPeriodTransition
+          )
+          expect(ledgerTransaction.initiatingSourceId).toBe(
+            testSubscription.id
+          ) // Should use subscription ID, not billing period
+          expect(ledgerTransaction.subscriptionId).toBe(
+            testSubscription.id
+          )
 
           // Assert - both credits should be granted initially for non-renewing
           expect(ledgerEntries).toHaveLength(2)
-          
+
           // Check the Once credit
           const onceEntry = ledgerEntries.find(
-            entry => entry.amount === 500
+            (entry) => entry.amount === 500
           ) as LedgerEntry.CreditGrantRecognizedRecord
           expect(onceEntry).toBeDefined()
-          expect(onceEntry.entryType).toBe(LedgerEntryType.CreditGrantRecognized)
-          expect(onceEntry.direction).toBe(LedgerEntryDirection.Credit)
+          expect(onceEntry.entryType).toBe(
+            LedgerEntryType.CreditGrantRecognized
+          )
+          expect(onceEntry.direction).toBe(
+            LedgerEntryDirection.Credit
+          )
           expect(onceEntry.billingPeriodId).toBeNull() // No billing period for non-renewing
           expect(onceEntry.usageMeterId).toBe(usageMeter1.id)
-          
+
           // Check the EveryBillingPeriod credit (treated as Once for non-renewing)
           const recurringEntry = ledgerEntries.find(
-            entry => entry.amount === 1000
+            (entry) => entry.amount === 1000
           ) as LedgerEntry.CreditGrantRecognizedRecord
           expect(recurringEntry).toBeDefined()
-          expect(recurringEntry.entryType).toBe(LedgerEntryType.CreditGrantRecognized)
-          expect(recurringEntry.direction).toBe(LedgerEntryDirection.Credit)
+          expect(recurringEntry.entryType).toBe(
+            LedgerEntryType.CreditGrantRecognized
+          )
+          expect(recurringEntry.direction).toBe(
+            LedgerEntryDirection.Credit
+          )
           expect(recurringEntry.billingPeriodId).toBeNull() // No billing period for non-renewing
           expect(recurringEntry.usageMeterId).toBe(usageMeter2.id)
 
@@ -895,7 +919,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             status: SubscriptionStatus.CreditTrial,
             renews: false,
           })
-          
+
           // Create subscription item for test
           const testSubscriptionItem = await setupSubscriptionItem({
             subscriptionId: testSubscription.id,
@@ -904,17 +928,19 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             quantity: 1,
             unitPrice: price.unitPrice,
           })
-          
+
           // Create subscription item feature for test
-          const testFeatureRecurring = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: recurringFeature.id,
-            productFeatureId: productFeatureRecurring.id,
-            usageMeterId: usageMeter2.id,
-            amount: 1000,
-            renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
-          })
-          
+          const testFeatureRecurring =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: recurringFeature.id,
+              productFeatureId: productFeatureRecurring.id,
+              usageMeterId: usageMeter2.id,
+              amount: 1000,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+            })
+
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {
             organizationId: organization.id,
@@ -931,10 +957,11 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - first call should grant the credit
-          const firstResult = await processBillingPeriodTransitionLedgerCommand(
-            testCommand,
-            transaction
-          )
+          const firstResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              testCommand,
+              transaction
+            )
 
           // Assert first call
           expect(firstResult.ledgerEntries).toHaveLength(1)
@@ -943,17 +970,19 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Instead of processing again (which would violate unique constraint),
           // verify that the granting logic would skip EveryBillingPeriod on subsequent calls
           // by checking the actual credits in the database
-          
+
           // Verify total credits in database
           const allCredits = await transaction
             .select()
             .from(usageCredits)
-            .where(eq(usageCredits.subscriptionId, testSubscription.id))
-          
+            .where(
+              eq(usageCredits.subscriptionId, testSubscription.id)
+            )
+
           // Should only have the one credit from first call
           expect(allCredits).toHaveLength(1)
           expect(allCredits[0].issuedAmount).toBe(1000)
-          
+
           // Verify the credit is non-expiring
           expect(allCredits[0].expiresAt).toBeNull()
           expect(allCredits[0].billingPeriodId).toBeNull()
@@ -971,7 +1000,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             status: SubscriptionStatus.CreditTrial,
             renews: false,
           })
-          
+
           const testSubscriptionItem = await setupSubscriptionItem({
             subscriptionId: testSubscription.id,
             name: 'Test Subscription Item',
@@ -979,7 +1008,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             quantity: 1,
             unitPrice: price.unitPrice,
           })
-          
+
           // Arrange - create feature for third meter
           const thirdFeature = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
@@ -990,53 +1019,59 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             livemode: true,
             pricingModelId: pricingModel.id,
           })
-          
+
           const thirdProductFeature = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: thirdFeature.id,
           })
-          const usageCreditGrantFeatureOnce = await setupUsageCreditGrantFeature({
-            organizationId: organization.id,
-            name: 'Usage Credit Grant Feature Once',
-            usageMeterId: usageMeter1.id,
-            amount: 500,
-            renewalFrequency: FeatureUsageGrantFrequency.Once,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          })
-          const usageCreditGrantFeatureRecurring = await setupUsageCreditGrantFeature({
-            organizationId: organization.id,
-            name: 'Usage Credit Grant Feature Recurring',
-            usageMeterId: usageMeter2.id,
-            amount: 1000,
-            renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          })
-          const testFeatureOnce = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: usageCreditGrantFeatureOnce.id,
-            productFeatureId: productFeatureOnce.id,
-            usageMeterId: usageMeter1.id,
-            amount: usageCreditGrantFeatureOnce.amount,
-          })
-          
-          const testFeatureRecurring = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: usageCreditGrantFeatureRecurring.id,
-            productFeatureId: productFeatureRecurring.id,
-            usageMeterId: usageMeter2.id,
-            amount: usageCreditGrantFeatureRecurring.amount,
-          })
-          
-          const thirdSubscriptionFeature = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: thirdFeature.id,
-            productFeatureId: thirdProductFeature.id,
-            usageMeterId: usageMeter3.id,
-            amount: thirdFeature.amount,
-          })
+          const usageCreditGrantFeatureOnce =
+            await setupUsageCreditGrantFeature({
+              organizationId: organization.id,
+              name: 'Usage Credit Grant Feature Once',
+              usageMeterId: usageMeter1.id,
+              amount: 500,
+              renewalFrequency: FeatureUsageGrantFrequency.Once,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            })
+          const usageCreditGrantFeatureRecurring =
+            await setupUsageCreditGrantFeature({
+              organizationId: organization.id,
+              name: 'Usage Credit Grant Feature Recurring',
+              usageMeterId: usageMeter2.id,
+              amount: 1000,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            })
+          const testFeatureOnce =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: usageCreditGrantFeatureOnce.id,
+              productFeatureId: productFeatureOnce.id,
+              usageMeterId: usageMeter1.id,
+              amount: usageCreditGrantFeatureOnce.amount,
+            })
+
+          const testFeatureRecurring =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: usageCreditGrantFeatureRecurring.id,
+              productFeatureId: productFeatureRecurring.id,
+              usageMeterId: usageMeter2.id,
+              amount: usageCreditGrantFeatureRecurring.amount,
+            })
+
+          const thirdSubscriptionFeature =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: thirdFeature.id,
+              productFeatureId: thirdProductFeature.id,
+              usageMeterId: usageMeter3.id,
+              amount: thirdFeature.amount,
+            })
 
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {
@@ -1056,30 +1091,37 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process command, should create missing ledger accounts
-          const { ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            testCommand,
-            transaction
-          )
+          const { ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              testCommand,
+              transaction
+            )
 
           // Assert - verify ledger accounts were created
           const createdAccounts = await selectLedgerAccounts(
             { subscriptionId: testSubscription.id },
             transaction
           )
-          
+
           expect(createdAccounts).toHaveLength(3)
-          
+
           // Verify each account has correct usage meter
-          const meter1Account = createdAccounts.find(a => a.usageMeterId === usageMeter1.id)
-          const meter2Account = createdAccounts.find(a => a.usageMeterId === usageMeter2.id)
-          const meter3Account = createdAccounts.find(a => a.usageMeterId === usageMeter3.id)
-          
+          const meter1Account = createdAccounts.find(
+            (a) => a.usageMeterId === usageMeter1.id
+          )
+          const meter2Account = createdAccounts.find(
+            (a) => a.usageMeterId === usageMeter2.id
+          )
+          const meter3Account = createdAccounts.find(
+            (a) => a.usageMeterId === usageMeter3.id
+          )
+
           expect(meter1Account).toBeDefined()
           expect(meter2Account).toBeDefined()
           expect(meter3Account).toBeDefined()
-          
+
           // All accounts should be linked to the subscription
-          createdAccounts.forEach(account => {
+          createdAccounts.forEach((account) => {
             expect(account.subscriptionId).toBe(testSubscription.id)
             expect(account.organizationId).toBe(organization.id)
           })
@@ -1096,23 +1138,33 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           nonRenewingCommand.payload.subscriptionFeatureItems = []
 
           // Act - process command with no credits to grant
-          const { ledgerTransaction, ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            nonRenewingCommand,
-            transaction
-          )
+          const { ledgerTransaction, ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              nonRenewingCommand,
+              transaction
+            )
 
           // Assert - transaction created but no entries
           expect(ledgerTransaction).toBeDefined()
-          expect(ledgerTransaction.type).toBe(LedgerTransactionType.BillingPeriodTransition)
-          expect(ledgerTransaction.initiatingSourceId).toBe(nonRenewingSubscription.id)
-          
+          expect(ledgerTransaction.type).toBe(
+            LedgerTransactionType.BillingPeriodTransition
+          )
+          expect(ledgerTransaction.initiatingSourceId).toBe(
+            nonRenewingSubscription.id
+          )
+
           expect(ledgerEntries).toHaveLength(0)
-          
+
           // Verify no credits were created
           const credits = await db
             .select()
             .from(usageCredits)
-            .where(eq(usageCredits.subscriptionId, nonRenewingSubscription.id))
+            .where(
+              eq(
+                usageCredits.subscriptionId,
+                nonRenewingSubscription.id
+              )
+            )
           expect(credits).toHaveLength(0)
         })
       })
@@ -1131,7 +1183,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             livemode: true,
             expiresAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Expired 7 days ago
           })
-          
+
           const futureExpiringCredit = await setupUsageCredit({
             organizationId: organization.id,
             subscriptionId: nonRenewingSubscription.id,
@@ -1139,9 +1191,11 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             issuedAmount: 300,
             creditType: UsageCreditType.Grant,
             livemode: true,
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Expires in 30 days
+            expiresAt: new Date(
+              Date.now() + 30 * 24 * 60 * 60 * 1000
+            ), // Expires in 30 days
           })
-          
+
           const neverExpiringCredit = await setupUsageCredit({
             organizationId: organization.id,
             subscriptionId: nonRenewingSubscription.id,
@@ -1156,32 +1210,49 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           nonRenewingCommand.payload.subscriptionFeatureItems = []
 
           // Act - process non-renewing command
-          const { ledgerTransaction, ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            nonRenewingCommand,
-            transaction
-          )
+          const { ledgerTransaction, ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              nonRenewingCommand,
+              transaction
+            )
 
           // Assert - no expiration entries created
           const expirationEntries = ledgerEntries.filter(
-            entry => entry.entryType === LedgerEntryType.CreditGrantExpired
+            (entry) =>
+              entry.entryType === LedgerEntryType.CreditGrantExpired
           )
           expect(expirationEntries).toHaveLength(0)
-          
+
           // Verify all credits still exist and are unchanged
           const allCredits = await db
             .select()
             .from(usageCredits)
-            .where(eq(usageCredits.subscriptionId, nonRenewingSubscription.id))
-          
+            .where(
+              eq(
+                usageCredits.subscriptionId,
+                nonRenewingSubscription.id
+              )
+            )
+
           expect(allCredits).toHaveLength(3)
-          
+
           // Credits should maintain their original expiration dates
-          const pastCredit = allCredits.find(c => c.id === pastExpiredCredit.id)
-          const futureCredit = allCredits.find(c => c.id === futureExpiringCredit.id)
-          const neverCredit = allCredits.find(c => c.id === neverExpiringCredit.id)
-          
-          expect(pastCredit?.expiresAt).toEqual(pastExpiredCredit.expiresAt)
-          expect(futureCredit?.expiresAt).toEqual(futureExpiringCredit.expiresAt)
+          const pastCredit = allCredits.find(
+            (c) => c.id === pastExpiredCredit.id
+          )
+          const futureCredit = allCredits.find(
+            (c) => c.id === futureExpiringCredit.id
+          )
+          const neverCredit = allCredits.find(
+            (c) => c.id === neverExpiringCredit.id
+          )
+
+          expect(pastCredit?.expiresAt).toEqual(
+            pastExpiredCredit.expiresAt
+          )
+          expect(futureCredit?.expiresAt).toEqual(
+            futureExpiringCredit.expiresAt
+          )
           expect(neverCredit?.expiresAt).toBeNull()
         })
       })
@@ -1197,7 +1268,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             status: SubscriptionStatus.CreditTrial,
             renews: false,
           })
-          
+
           // Arrange - create credit that would normally expire
           const expiringCredit = await setupUsageCredit({
             organizationId: organization.id,
@@ -1209,7 +1280,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             expiresAt: new Date(Date.now() - 1000), // Already expired
             status: UsageCreditStatus.Posted,
           })
-          
+
           // Create test accounts for the subscription
           const testLedgerAccount1 = await setupLedgerAccount({
             organizationId: organization.id,
@@ -1217,14 +1288,14 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             usageMeterId: usageMeter1.id,
             livemode: true,
           })
-          
+
           const testLedgerAccount2 = await setupLedgerAccount({
             organizationId: organization.id,
             subscriptionId: testSubscription.id,
             usageMeterId: usageMeter2.id,
             livemode: true,
           })
-          
+
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {
             organizationId: organization.id,
@@ -1239,28 +1310,36 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process the non-renewing command
-          const { ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            testCommand,
-            transaction
-          )
+          const { ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              testCommand,
+              transaction
+            )
 
           // Assert - no expiration entries created despite expired credit
           const expirationEntries = ledgerEntries.filter(
-            entry => entry.entryType === LedgerEntryType.CreditGrantExpired
+            (entry) =>
+              entry.entryType === LedgerEntryType.CreditGrantExpired
           )
           expect(expirationEntries).toHaveLength(0)
-          
+
           // Verify no expiration entries in database
           const dbExpirationEntries = await transaction
             .select()
             .from(ledgerEntriesTable)
             .where(
               and(
-                eq(ledgerEntriesTable.subscriptionId, testSubscription.id),
-                eq(ledgerEntriesTable.entryType, LedgerEntryType.CreditGrantExpired)
+                eq(
+                  ledgerEntriesTable.subscriptionId,
+                  testSubscription.id
+                ),
+                eq(
+                  ledgerEntriesTable.entryType,
+                  LedgerEntryType.CreditGrantExpired
+                )
               )
             )
-          
+
           expect(dbExpirationEntries).toHaveLength(0)
         })
       })
@@ -1272,35 +1351,45 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Arrange - ensure subscription is non-renewing and command is correct
           expect(nonRenewingSubscription.renews).toBe(false)
           expect(nonRenewingCommand.payload.type).toBe('non_renewing')
-          
+
           // Payload should not have billingPeriod fields
-          expect((nonRenewingCommand.payload as any).newBillingPeriod).toBeUndefined()
-          expect((nonRenewingCommand.payload as any).previousBillingPeriod).toBeUndefined()
-          
+          expect(
+            (nonRenewingCommand.payload as any).newBillingPeriod
+          ).toBeUndefined()
+          expect(
+            (nonRenewingCommand.payload as any).previousBillingPeriod
+          ).toBeUndefined()
+
           // Add a feature to process
           nonRenewingCommand.payload.subscriptionFeatureItems = [
             subscriptionItemFeatureOnce,
           ]
 
           // Act - process the command
-          const { ledgerTransaction, ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            nonRenewingCommand,
-            transaction
-          )
+          const { ledgerTransaction, ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              nonRenewingCommand,
+              transaction
+            )
 
           // Assert - verify correct processing
           expect(ledgerTransaction).toBeDefined()
-          expect(ledgerTransaction.initiatingSourceId).toBe(nonRenewingSubscription.id)
-          expect(ledgerTransaction.initiatingSourceType).toBe(LedgerTransactionType.BillingPeriodTransition)
-          
+          expect(ledgerTransaction.initiatingSourceId).toBe(
+            nonRenewingSubscription.id
+          )
+          expect(ledgerTransaction.initiatingSourceType).toBe(
+            LedgerTransactionType.BillingPeriodTransition
+          )
+
           // Verify ledger entries have no billing period references
-          ledgerEntries.forEach(entry => {
+          ledgerEntries.forEach((entry) => {
             expect(entry.billingPeriodId).toBeNull()
           })
-          
+
           // Verify created credit has no billing period
           if (ledgerEntries.length > 0) {
-            const creditEntry = ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
+            const creditEntry =
+              ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
             const credit = await selectUsageCreditById(
               creditEntry.sourceUsageCreditId!,
               transaction
@@ -1325,7 +1414,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             interval: undefined,
             intervalCount: undefined,
           })
-          
+
           const testSubscriptionItem = await setupSubscriptionItem({
             subscriptionId: testSubscription.id,
             name: 'Test Subscription Item',
@@ -1333,7 +1422,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             quantity: 1,
             unitPrice: price.unitPrice,
           })
-          
+
           // Arrange - create additional features with specific amounts
           const onceFeature2 = await setupUsageCreditGrantFeature({
             organizationId: organization.id,
@@ -1344,45 +1433,49 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             livemode: true,
             pricingModelId: pricingModel.id,
           })
-          
-          const recurringFeature2 = await setupUsageCreditGrantFeature({
-            organizationId: organization.id,
-            name: 'Recurring Feature 2',
-            usageMeterId: usageMeter3.id,
-            amount: 400,
-            renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          })
-          
+
+          const recurringFeature2 =
+            await setupUsageCreditGrantFeature({
+              organizationId: organization.id,
+              name: 'Recurring Feature 2',
+              usageMeterId: usageMeter3.id,
+              amount: 400,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            })
+
           // Create product features and subscription item features
           const pf2 = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: onceFeature2.id,
           })
-          
+
           const pf3 = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: recurringFeature2.id,
           })
-          
-          const sif2 = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: onceFeature2.id,
-            productFeatureId: pf2.id,
-            usageMeterId: usageMeter3.id,
-            amount: 200,
-          })
-          
-          const sif3 = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: recurringFeature2.id,
-            productFeatureId: pf3.id,
-            usageMeterId: usageMeter3.id,
-            amount: 400,
-          })
+
+          const sif2 =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: onceFeature2.id,
+              productFeatureId: pf2.id,
+              usageMeterId: usageMeter3.id,
+              amount: 200,
+            })
+
+          const sif3 =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: recurringFeature2.id,
+              productFeatureId: pf3.id,
+              usageMeterId: usageMeter3.id,
+              amount: 400,
+            })
 
           // Update Once features to have smaller amounts (100 instead of 500)
           const onceFeature100 = await setupUsageCreditGrantFeature({
@@ -1394,44 +1487,48 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             livemode: true,
             pricingModelId: pricingModel.id,
           })
-          
-          const recurringFeature300 = await setupUsageCreditGrantFeature({
-            organizationId: organization.id,
-            name: 'Recurring 300',
-            usageMeterId: usageMeter2.id,
-            amount: 300,
-            renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          })
-          
+
+          const recurringFeature300 =
+            await setupUsageCreditGrantFeature({
+              organizationId: organization.id,
+              name: 'Recurring 300',
+              usageMeterId: usageMeter2.id,
+              amount: 300,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            })
+
           const pf100 = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: onceFeature100.id,
           })
-          
+
           const pf300 = await setupProductFeature({
             organizationId: organization.id,
             productId: product.id,
             featureId: recurringFeature300.id,
           })
-          
-          const sif100 = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: onceFeature100.id,
-            productFeatureId: pf100.id,
-            usageMeterId: usageMeter1.id,
-            amount: 100,
-          })
-          
-          const sif300 = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: recurringFeature300.id,
-            productFeatureId: pf300.id,
-            usageMeterId: usageMeter2.id,
-            amount: 300,
-          })
+
+          const sif100 =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: onceFeature100.id,
+              productFeatureId: pf100.id,
+              usageMeterId: usageMeter1.id,
+              amount: 100,
+            })
+
+          const sif300 =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: recurringFeature300.id,
+              productFeatureId: pf300.id,
+              usageMeterId: usageMeter2.id,
+              amount: 300,
+            })
 
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {
@@ -1443,30 +1540,35 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               type: 'non_renewing',
               subscription: testSubscription,
               subscriptionFeatureItems: [
-                sif100,  // Once: 100
-                sif2,    // Once: 200
-                sif300,  // EveryBillingPeriod: 300
-                sif3,    // EveryBillingPeriod: 400
+                sif100, // Once: 100
+                sif2, // Once: 200
+                sif300, // EveryBillingPeriod: 300
+                sif3, // EveryBillingPeriod: 400
               ],
             },
           }
 
           // Act - process initial command
-          const { ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            testCommand,
-            transaction
-          )
+          const { ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              testCommand,
+              transaction
+            )
 
           // Assert - all 4 credits granted
           expect(ledgerEntries).toHaveLength(4)
-          
+
           // Calculate total amount
-          const totalAmount = ledgerEntries.reduce((sum, entry) => sum + entry.amount, 0)
+          const totalAmount = ledgerEntries.reduce(
+            (sum, entry) => sum + entry.amount,
+            0
+          )
           expect(totalAmount).toBe(1000) // 100 + 200 + 300 + 400
-          
+
           // Verify all credits never expire
           for (const entry of ledgerEntries) {
-            const creditEntry = entry as LedgerEntry.CreditGrantRecognizedRecord
+            const creditEntry =
+              entry as LedgerEntry.CreditGrantRecognizedRecord
             const credit = await selectUsageCreditById(
               creditEntry.sourceUsageCreditId!,
               transaction
@@ -1474,13 +1576,14 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             expect(credit.expiresAt).toBeNull()
             expect(credit.billingPeriodId).toBeNull()
           }
-          
+
           // Act - process command again
-          const secondResult = await processBillingPeriodTransitionLedgerCommand(
-            nonRenewingCommand,
-            transaction
-          )
-          
+          const secondResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              nonRenewingCommand,
+              transaction
+            )
+
           // Assert - no new credits on second call (all treated as Once for non-renewing)
           expect(secondResult.ledgerEntries).toHaveLength(0)
         })
@@ -1495,18 +1598,21 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             subscriptionItemFeatureOnce,
             subscriptionItemFeatureRecurring,
           ]
-          
-          const initialResult = await processBillingPeriodTransitionLedgerCommand(
-            nonRenewingCommand,
-            transaction
-          )
-          
+
+          const initialResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              nonRenewingCommand,
+              transaction
+            )
+
           // Verify initial credits granted
           expect(initialResult.ledgerEntries).toHaveLength(2)
           const initialCreditIds = initialResult.ledgerEntries.map(
-            e => (e as LedgerEntry.CreditGrantRecognizedRecord).sourceUsageCreditId
+            (e) =>
+              (e as LedgerEntry.CreditGrantRecognizedRecord)
+                .sourceUsageCreditId
           )
-          
+
           // Convert subscription to renewing
           const updatedSubscription = await updateSubscription(
             {
@@ -1515,14 +1621,16 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               status: SubscriptionStatus.Active,
               defaultPaymentMethodId: paymentMethod.id,
               currentBillingPeriodStart: new Date(),
-              currentBillingPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              currentBillingPeriodEnd: new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+              ),
               interval: IntervalUnit.Month,
               intervalCount: 1,
               billingCycleAnchorDate: new Date(),
             },
             transaction
           )
-          
+
           // Create billing period for renewing subscription
           const renewingBillingPeriod = await setupBillingPeriod({
             subscriptionId: updatedSubscription.id,
@@ -1530,46 +1638,57 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             endDate: updatedSubscription.currentBillingPeriodEnd!,
             status: BillingPeriodStatus.Active,
           })
-          
+
           // Create standard command for renewing subscription
-          const renewingCommand: BillingPeriodTransitionLedgerCommand = {
-            organizationId: organization.id,
-            subscriptionId: updatedSubscription.id,
-            livemode: updatedSubscription.livemode,
-            type: LedgerTransactionType.BillingPeriodTransition,
-            payload: {
-              type: 'standard',
-              subscription: updatedSubscription,
-              previousBillingPeriod: null,
-              newBillingPeriod: renewingBillingPeriod,
-              subscriptionFeatureItems: [
-                subscriptionItemFeatureRecurring, // Only recurring should grant again
-              ],
-            },
-          }
-          
+          const renewingCommand: BillingPeriodTransitionLedgerCommand =
+            {
+              organizationId: organization.id,
+              subscriptionId: updatedSubscription.id,
+              livemode: updatedSubscription.livemode,
+              type: LedgerTransactionType.BillingPeriodTransition,
+              payload: {
+                type: 'standard',
+                subscription: updatedSubscription,
+                previousBillingPeriod: null,
+                newBillingPeriod: renewingBillingPeriod,
+                subscriptionFeatureItems: [
+                  subscriptionItemFeatureRecurring, // Only recurring should grant again
+                ],
+              },
+            }
+
           // Act - process renewing command
-          const renewingResult = await processBillingPeriodTransitionLedgerCommand(
-            renewingCommand,
-            transaction
-          )
-          
+          const renewingResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              renewingCommand,
+              transaction
+            )
+
           // Assert - new credits created for recurring feature only
           expect(renewingResult.ledgerEntries).toHaveLength(1)
           expect(renewingResult.ledgerEntries[0].amount).toBe(1000) // Recurring amount
-          
+
           // Verify original credits still exist and are unchanged
           for (const creditId of initialCreditIds) {
-            const originalCredit = await selectUsageCreditById(creditId!, transaction)
+            const originalCredit = await selectUsageCreditById(
+              creditId!,
+              transaction
+            )
             expect(originalCredit.expiresAt).toBeNull() // Still never expire
             expect(originalCredit.billingPeriodId).toBeNull() // Still no billing period
           }
-          
+
           // Verify new credit has expiration and billing period
-          const newCreditEntry = renewingResult.ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
-          const newCredit = await selectUsageCreditById(newCreditEntry.sourceUsageCreditId!, transaction)
+          const newCreditEntry = renewingResult
+            .ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
+          const newCredit = await selectUsageCreditById(
+            newCreditEntry.sourceUsageCreditId!,
+            transaction
+          )
           expect(newCredit.expiresAt).toBeDefined()
-          expect(newCredit.billingPeriodId).toBe(renewingBillingPeriod.id)
+          expect(newCredit.billingPeriodId).toBe(
+            renewingBillingPeriod.id
+          )
         })
       })
 
@@ -1579,15 +1698,19 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           nonRenewingCommand.payload.subscriptionFeatureItems = [
             subscriptionItemFeatureRecurring, // 1000 credits
           ]
-          
-          const initialResult = await processBillingPeriodTransitionLedgerCommand(
-            nonRenewingCommand,
-            transaction
-          )
-          
+
+          const initialResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              nonRenewingCommand,
+              transaction
+            )
+
           expect(initialResult.ledgerEntries).toHaveLength(1)
-          const initialCreditId = (initialResult.ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord).sourceUsageCreditId
-          
+          const initialCreditId = (
+            initialResult
+              .ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
+          ).sourceUsageCreditId
+
           // Convert to Active with renews: true
           const activeSubscription = await updateSubscription(
             {
@@ -1596,16 +1719,21 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               status: SubscriptionStatus.Active,
               defaultPaymentMethodId: paymentMethod.id,
               currentBillingPeriodStart: new Date(),
-              currentBillingPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              currentBillingPeriodEnd: new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+              ),
               interval: IntervalUnit.Month,
               intervalCount: 1,
               billingCycleAnchorDate: new Date(),
             },
             transaction
           )
-          
+
           // Verify initial credit remains unchanged
-          const initialCredit = await selectUsageCreditById(initialCreditId!, transaction)
+          const initialCredit = await selectUsageCreditById(
+            initialCreditId!,
+            transaction
+          )
           expect(initialCredit.expiresAt).toBeNull()
           expect(initialCredit.billingPeriodId).toBeNull()
           expect(initialCredit.status).toBe(UsageCreditStatus.Posted)
@@ -1618,7 +1746,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         // setup:
         // - create command with invalid subscription ID
         // - attempt to process non_renewing command
-
         // expects:
         // - appropriate error thrown
         // - transaction rolled back
@@ -1629,7 +1756,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         // setup:
         // - create command with type: 'non_renewing'
         // - include invalid fields like billingPeriod (should not exist)
-        
         // expects:
         // - validation error or graceful handling
         // - clear error message about invalid payload
@@ -1648,7 +1774,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             status: SubscriptionStatus.CreditTrial,
             renews: false,
           })
-          
+
           const testSubscriptionItem = await setupSubscriptionItem({
             subscriptionId: testSubscription.id,
             name: 'Test Subscription Item',
@@ -1656,23 +1782,25 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             quantity: 1,
             unitPrice: price.unitPrice,
           })
-          const usageCreditGrantFeatureOnce = await setupUsageCreditGrantFeature({
-            organizationId: organization.id,
-            name: 'Usage Credit Grant Feature Once',
-            usageMeterId: usageMeter1.id,
-            amount: 500,
-            renewalFrequency: FeatureUsageGrantFrequency.Once,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          })
-          const testFeatureOnce = await setupSubscriptionItemFeatureUsageCreditGrant({
-            subscriptionItemId: testSubscriptionItem.id,
-            featureId: usageCreditGrantFeatureOnce.id,
-            productFeatureId: productFeatureOnce.id,
-            usageMeterId: usageMeter1.id,
-            amount: 500,
-          })
-          
+          const usageCreditGrantFeatureOnce =
+            await setupUsageCreditGrantFeature({
+              organizationId: organization.id,
+              name: 'Usage Credit Grant Feature Once',
+              usageMeterId: usageMeter1.id,
+              amount: 500,
+              renewalFrequency: FeatureUsageGrantFrequency.Once,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            })
+          const testFeatureOnce =
+            await setupSubscriptionItemFeatureUsageCreditGrant({
+              subscriptionItemId: testSubscriptionItem.id,
+              featureId: usageCreditGrantFeatureOnce.id,
+              productFeatureId: productFeatureOnce.id,
+              usageMeterId: usageMeter1.id,
+              amount: 500,
+            })
+
           // Create test ledger account
           const testLedgerAccount = await setupLedgerAccount({
             organizationId: organization.id,
@@ -1680,7 +1808,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             usageMeterId: usageMeter1.id,
             livemode: true,
           })
-          
+
           // Create test-specific command
           const testCommand: BillingPeriodTransitionLedgerCommand = {
             organizationId: organization.id,
@@ -1693,40 +1821,48 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               subscriptionFeatureItems: [testFeatureOnce], // 500 credits
             },
           }
-          
-          const { ledgerEntries } = await processBillingPeriodTransitionLedgerCommand(
-            testCommand,
-            transaction
-          )
-          
+
+          const { ledgerEntries } =
+            await processBillingPeriodTransitionLedgerCommand(
+              testCommand,
+              transaction
+            )
+
           expect(ledgerEntries).toHaveLength(1)
-          const creditEntry = ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
+          const creditEntry =
+            ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
           expect(creditEntry.sourceUsageCreditId).toBeDefined()
           const creditId = creditEntry.sourceUsageCreditId!
-          
+
           // Verify the credit exists
-          const credit = await selectUsageCreditById(creditId, transaction)
+          const credit = await selectUsageCreditById(
+            creditId,
+            transaction
+          )
           if (!credit) {
-            throw new Error(`Credit ${creditId} not found in database`)
+            throw new Error(
+              `Credit ${creditId} not found in database`
+            )
           }
           expect(credit).toBeDefined()
-          
+
           // Assert - verify credit properties for non-renewing subscription
           expect(credit.issuedAmount).toBe(500)
           expect(credit.expiresAt).toBeNull() // Never expires
           expect(credit.billingPeriodId).toBeNull() // No billing period for non-renewing
           expect(credit.status).toBe(UsageCreditStatus.Posted)
           expect(credit.subscriptionId).toBe(testSubscription.id)
-          
+
           // Verify the credit balance is available for usage
-          const availableBalance = await aggregateAvailableBalanceForUsageCredit(
-            {
-              ledgerAccountId: testLedgerAccount.id,
-              sourceUsageCreditId: creditId,
-            },
-            transaction
-          )
-          
+          const availableBalance =
+            await aggregateAvailableBalanceForUsageCredit(
+              {
+                ledgerAccountId: testLedgerAccount.id,
+                sourceUsageCreditId: creditId,
+              },
+              transaction
+            )
+
           expect(availableBalance).toHaveLength(1)
           expect(availableBalance[0].balance).toBe(500) // Full amount available
           expect(availableBalance[0].usageCreditId).toBe(creditId)
@@ -1741,7 +1877,6 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         // - process usage events
         // - grant additional one-time credits
         // - process more usage
-
         // expects:
         // - all credits tracked correctly
         // - usage applied in correct order
