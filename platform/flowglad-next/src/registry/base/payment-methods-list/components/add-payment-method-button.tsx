@@ -11,6 +11,7 @@ export function AddPaymentMethodButton({
 }: AddPaymentMethodButtonProps) {
   return (
     <Button
+      type="button"
       onClick={onClick}
       disabled={loading}
       variant="outline"

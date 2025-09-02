@@ -1,16 +1,45 @@
-export interface PaymentMethod {
+// Base payment method properties
+interface PaymentMethodBase {
   id: string
-  type: 'card' | 'bank_account' | 'paypal' | 'other'
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+// Card payment method
+interface CardPaymentMethod extends PaymentMethodBase {
+  type: 'card'
   brand?: string
   last4: string
   expiryMonth?: number
   expiryYear?: number
+}
+
+// Bank account payment method
+interface BankAccountPaymentMethod extends PaymentMethodBase {
+  type: 'bank_account'
+  last4: string
   bankName?: string
   accountType?: string
-  email?: string
-  createdAt?: Date
-  updatedAt?: Date
 }
+
+// PayPal payment method
+interface PayPalPaymentMethod extends PaymentMethodBase {
+  type: 'paypal'
+  email: string
+}
+
+// Other payment method
+interface OtherPaymentMethod extends PaymentMethodBase {
+  type: 'other'
+  description: string
+}
+
+// Discriminated union for all payment method types
+export type PaymentMethod =
+  | CardPaymentMethod
+  | BankAccountPaymentMethod
+  | PayPalPaymentMethod
+  | OtherPaymentMethod
 
 export interface PaymentMethodsListProps {
   paymentMethods: PaymentMethod[]

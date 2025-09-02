@@ -49,7 +49,7 @@ export function PaymentMethodRow({
   }
 
   const formatExpiry = () => {
-    if (paymentMethod.expiryMonth && paymentMethod.expiryYear) {
+    if (paymentMethod.type === 'card' && paymentMethod.expiryMonth && paymentMethod.expiryYear) {
       return `${String(paymentMethod.expiryMonth).padStart(2, '0')}/${String(paymentMethod.expiryYear).slice(-2)}`
     }
     return null
@@ -70,6 +70,8 @@ export function PaymentMethodRow({
               {paymentMethod.type === 'bank_account' &&
                 `•••• ${paymentMethod.last4}`}
               {paymentMethod.type === 'paypal' && paymentMethod.email}
+              {paymentMethod.type === 'other' &&
+                paymentMethod.description}
             </span>
             {isDefault && (
               <Badge variant="secondary" className="text-xs">

@@ -5,6 +5,9 @@ export const DiscoverLogo = ({
 }: {
   className?: string
 }) => {
+  // Generate a unique ID for this instance to avoid clipPath collisions
+  const clipPathId = React.useId()
+
   return (
     <svg
       className={className}
@@ -13,7 +16,7 @@ export const DiscoverLogo = ({
       xmlns="http://www.w3.org/2000/svg"
     >
       <rect width="49" height="49" rx="8" fill="white" />
-      <g clipPath="url(#clip0_discover)">
+      <g clipPath={`url(#${clipPathId})`}>
         <path
           d="M9.84782 25.3658C9.50838 25.6779 9.06744 25.8141 8.3694 25.8141H8.07947V22.0849H8.3694C9.06744 22.0849 9.49102 22.2121 9.84782 22.541C10.2214 22.8797 10.4462 23.4046 10.4462 23.9449C10.4462 24.4862 10.2214 25.0272 9.84782 25.3658ZM8.58581 21.1294H7V26.7688H8.57744C9.41626 26.7688 10.0219 26.5673 10.5536 26.1178C11.1854 25.5854 11.559 24.783 11.559 23.953C11.559 22.2888 10.3378 21.1294 8.58581 21.1294Z"
           fill="#201D1C"
@@ -45,7 +48,7 @@ export const DiscoverLogo = ({
         <circle cx="25.5" cy="24" r="3" fill="#FF6000" />
       </g>
       <defs>
-        <clipPath id="clip0_discover">
+        <clipPath id={clipPathId}>
           <rect
             width="35"
             height="6"

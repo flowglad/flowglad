@@ -41,6 +41,12 @@ const mockPaymentMethods: PaymentMethod[] = [
     accountType: 'checking',
     createdAt: new Date('2024-04-05'),
   },
+  {
+    id: '5',
+    type: 'paypal',
+    email: 'user@example.com',
+    createdAt: new Date('2024-05-01'),
+  },
 ]
 
 export default function PaymentMethodsListDemo() {
@@ -62,7 +68,7 @@ export default function PaymentMethodsListDemo() {
       expiryYear: 2025 + Math.floor(Math.random() * 5),
       createdAt: new Date(),
     }
-    setPaymentMethods([...paymentMethods, newMethod])
+    setPaymentMethods((prev) => [...prev, newMethod])
   }
 
   const handleRemovePaymentMethod = async (id: string) => {
@@ -77,7 +83,7 @@ export default function PaymentMethodsListDemo() {
     // Simulate API call
     setLoading(true)
     await new Promise((resolve) => setTimeout(resolve, 500))
-    setPaymentMethods(paymentMethods.filter((pm) => pm.id !== id))
+    setPaymentMethods((prev) => prev.filter((pm) => pm.id !== id))
     setLoading(false)
   }
 
