@@ -22,7 +22,7 @@ export function formatDate(date: Date | string): string {
 }
 
 export function formatBillingInterval(
-  interval?: string,
+  interval?: 'month' | 'year' | 'week' | 'day',
   intervalCount?: number
 ): string {
   if (!interval) return ''
@@ -92,6 +92,12 @@ export function calculateTotalAmount(
 
 export function getDaysUntilDate(date: Date | string): number {
   const targetDate = typeof date === 'string' ? new Date(date) : date
+
+  // Check for invalid date
+  if (isNaN(targetDate.getTime())) {
+    return 0
+  }
+
   const now = new Date()
   const diffTime = targetDate.getTime() - now.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
@@ -99,6 +105,13 @@ export function getDaysUntilDate(date: Date | string): number {
 }
 
 export function formatDaysRemaining(date: Date | string): string {
+  const targetDate = typeof date === 'string' ? new Date(date) : date
+
+  // Check for invalid date
+  if (isNaN(targetDate.getTime())) {
+    return 'Invalid date'
+  }
+
   const days = getDaysUntilDate(date)
 
   if (days < 0) {

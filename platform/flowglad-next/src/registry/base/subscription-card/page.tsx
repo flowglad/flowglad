@@ -151,22 +151,16 @@ export default function SubscriptionCardDemo() {
     // Demo: Canceling subscription
     setLoadingStates((prev) => ({ ...prev, [subscriptionId]: true }))
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    setLoadingStates((prev) => ({ ...prev, [subscriptionId]: false }))
-    // Demo: Subscription canceled successfully
-  }
-
-  const handleReactivate = async (subscriptionId: string) => {
-    // Demo: Reactivating subscription
-    setLoadingStates((prev) => ({ ...prev, [subscriptionId]: true }))
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    setLoadingStates((prev) => ({ ...prev, [subscriptionId]: false }))
-    // Demo: Subscription reactivated successfully
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Demo: Subscription canceled successfully
+    } finally {
+      setLoadingStates((prev) => ({
+        ...prev,
+        [subscriptionId]: false,
+      }))
+    }
   }
 
   return (
@@ -225,7 +219,6 @@ export default function SubscriptionCardDemo() {
             </h3>
             <SubscriptionCard
               subscription={mockSubscriptions.canceling}
-              onReactivate={handleReactivate}
               loading={loadingStates[mockSubscriptions.canceling.id]}
             />
           </div>

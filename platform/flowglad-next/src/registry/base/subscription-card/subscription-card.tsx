@@ -16,7 +16,6 @@ import { SubscriptionActions } from './components/subscription-actions'
 export function SubscriptionCard({
   subscription,
   onCancel,
-  onReactivate,
   loading = false,
   className,
 }: SubscriptionCardProps) {
@@ -38,14 +37,15 @@ export function SubscriptionCard({
         <SubscriptionDetails subscription={subscription} />
       </CardContent>
 
-      {(onCancel || onReactivate) && (
+      {onCancel && (
         <CardFooter>
           <SubscriptionActions
             subscriptionId={subscription.id}
+            subscriptionName={subscription.name}
             status={subscription.status}
             cancelAtPeriodEnd={subscription.cancelAtPeriodEnd}
+            currentPeriodEnd={subscription.currentPeriodEnd}
             onCancel={onCancel}
-            onReactivate={onReactivate}
             loading={loading}
             className="w-full justify-end"
           />

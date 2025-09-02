@@ -111,7 +111,6 @@ interface SubscriptionCardProps {
     items: SubscriptionItem[]
   }
   onCancel?: (subscriptionId: string) => Promise<void>
-  onReactivate?: (subscriptionId: string) => Promise<void>
   loading?: boolean
 }
 ```

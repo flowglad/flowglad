@@ -34,7 +34,6 @@ export interface Subscription {
 export interface SubscriptionCardProps {
   subscription: Subscription
   onCancel?: (subscriptionId: string) => Promise<void>
-  onReactivate?: (subscriptionId: string) => Promise<void>
   loading?: boolean
   className?: string
 }
@@ -53,10 +52,11 @@ export interface SubscriptionDetailsProps {
 
 export interface SubscriptionActionsProps {
   subscriptionId: string
+  subscriptionName: string
   status: SubscriptionStatus
   cancelAtPeriodEnd: boolean
+  currentPeriodEnd: Date
   onCancel?: (subscriptionId: string) => Promise<void>
-  onReactivate?: (subscriptionId: string) => Promise<void>
   loading?: boolean
   className?: string
 }

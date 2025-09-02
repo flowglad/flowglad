@@ -103,14 +103,11 @@ export function CancelSubscriptionModal({
                 • You won&apos;t be charged after the current period
                 ends
               </li>
-              <li>
-                • You can reactivate anytime before the end date
-              </li>
               <li>• Your data and settings will be preserved</li>
             </ul>
           </div>
 
-          {subscriptionName && (
+          {subscriptionId && (
             <div className="text-sm text-muted-foreground">
               Subscription ID:{' '}
               <span className="font-mono text-xs">
