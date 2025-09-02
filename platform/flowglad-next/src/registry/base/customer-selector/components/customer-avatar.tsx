@@ -11,6 +11,8 @@ export function CustomerAvatar({
   size = 'md',
   className,
 }: CustomerAvatarProps) {
+  const [imageError, setImageError] = React.useState(false)
+
   const sizeClasses = {
     sm: 'h-8 w-8 text-xs',
     md: 'h-10 w-10 text-sm',
@@ -30,7 +32,7 @@ export function CustomerAvatar({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
   }
 
-  if (avatarUrl) {
+  if (avatarUrl && !imageError) {
     return (
       <div
         className={cn(
@@ -43,16 +45,11 @@ export function CustomerAvatar({
           src={avatarUrl}
           alt={name}
           className="h-full w-full object-cover"
-          onError={(e) => {
-            // If image fails to load, hide it and show fallback
-            e.currentTarget.style.display = 'none'
+          onError={() => {
+            // If image fails to load, show fallback
+            setImageError(true)
           }}
         />
-        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <span className="font-medium text-muted-foreground">
-            {getInitials(name)}
-          </span>
-        </div>
       </div>
     )
   }

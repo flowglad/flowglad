@@ -1,3 +1,5 @@
+'use client'
+
 import { PricingTable } from '@/registry/base/pricing/pricing-table'
 import type { PricingProductGroup } from '@/registry/base/pricing/types'
 import { CustomerSelector } from '@/registry/base/customer-selector'
@@ -264,8 +266,8 @@ export const registryComponents = [
     component: CustomerSelector,
     defaultProps: {
       customers: mockCustomers,
-      onSelect: () => {
-        // Handle customer selection
+      onSelect: (customerId: string) => {
+        console.log('Selected customer:', customerId)
       },
       searchable: true,
       gridCols: 3 as const,

@@ -4,6 +4,7 @@ import * as React from 'react'
 import { Check, Building2, Calendar } from 'lucide-react'
 import { cn } from '@/utils/core'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatDate } from '@/registry/lib/date'
 import { CustomerAvatar } from './customer-avatar'
 import type { CustomerCardProps } from '../types'
 
@@ -13,15 +14,6 @@ export function CustomerCard({
   onClick,
   className,
 }: CustomerCardProps) {
-  const formatDate = (date: Date | string) => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(dateObj)
-  }
-
   return (
     <Card
       className={cn(
