@@ -6,7 +6,7 @@ import {
   CardFooter,
   CardHeader,
 } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '../skeleton/skeleton'
 import { cn } from '@/utils/core'
 import { SubscriptionCardProps } from './types'
 import { SubscriptionHeader } from './components/subscription-header'

@@ -1,5 +1,9 @@
+'use client'
+
 import { PricingTable } from '@/registry/base/pricing/pricing-table'
 import type { PricingProductGroup } from '@/registry/base/pricing/types'
+import { CustomerSelector } from '@/registry/base/customer-selector'
+import type { CustomerProfile } from '@/registry/base/customer-selector'
 
 const personalProductGroup: PricingProductGroup = {
   name: 'Personal',
@@ -164,6 +168,45 @@ const businessProductGroup: PricingProductGroup = {
   ],
 }
 
+// Mock customer data for the customer selector component
+const mockCustomers: CustomerProfile[] = [
+  {
+    id: 'cust_1',
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    organizationId: 'org_1',
+    organizationName: 'Acme Corp',
+    createdAt: new Date('2024-01-15'),
+    avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=JD',
+  },
+  {
+    id: 'cust_2',
+    name: 'Jane Smith',
+    email: 'jane.smith@example.com',
+    organizationId: 'org_1',
+    organizationName: 'Acme Corp',
+    createdAt: new Date('2024-02-20'),
+    avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=JS',
+  },
+  {
+    id: 'cust_3',
+    name: 'Bob Johnson',
+    email: 'bob.johnson@techco.com',
+    organizationId: 'org_2',
+    organizationName: 'TechCo Industries',
+    createdAt: new Date('2024-03-10'),
+  },
+  {
+    id: 'cust_4',
+    name: 'Alice Williams',
+    email: 'alice.williams@startup.io',
+    organizationId: 'org_3',
+    organizationName: 'Startup IO',
+    createdAt: new Date('2024-04-05'),
+    avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AW',
+  },
+]
+
 export const registryComponents = [
   {
     name: 'pricing-table',
@@ -211,6 +254,92 @@ export const registryComponents = [
           onProductSelect: () => {
             // Handle product selection
           },
+        },
+      },
+    ],
+  },
+  {
+    name: 'customer-selector',
+    displayName: 'CustomerSelector',
+    description:
+      'A component for selecting customer profiles with search functionality and responsive grid layout',
+    component: CustomerSelector,
+    defaultProps: {
+      customers: mockCustomers,
+      onSelect: (customerId: string) => {
+        console.log('Selected customer:', customerId)
+      },
+      searchable: true,
+      gridCols: 3 as const,
+    },
+    variants: [
+      {
+        name: 'Default',
+        props: {
+          customers: mockCustomers,
+          onSelect: () => {
+            // Handle customer selection
+          },
+          searchable: true,
+          gridCols: 3 as const,
+        },
+      },
+      {
+        name: 'No Search',
+        props: {
+          customers: mockCustomers,
+          onSelect: () => {
+            // Handle customer selection
+          },
+          searchable: false,
+          gridCols: 3 as const,
+        },
+      },
+      {
+        name: 'Single Column',
+        props: {
+          customers: mockCustomers,
+          onSelect: () => {
+            // Handle customer selection
+          },
+          searchable: true,
+          gridCols: 1 as const,
+        },
+      },
+      {
+        name: 'Four Columns',
+        props: {
+          customers: mockCustomers,
+          onSelect: () => {
+            // Handle customer selection
+          },
+          searchable: true,
+          gridCols: 4 as const,
+        },
+      },
+      {
+        name: 'Loading State',
+        props: {
+          customers: [],
+          onSelect: () => {
+            // Handle customer selection
+          },
+          loading: true,
+          searchable: true,
+          gridCols: 3 as const,
+        },
+      },
+      {
+        name: 'Empty State',
+        props: {
+          customers: [],
+          onSelect: () => {
+            // Handle customer selection
+          },
+          searchable: true,
+          gridCols: 3 as const,
+          emptyStateMessage:
+            'No customers found in your organization',
         },
       },
     ],

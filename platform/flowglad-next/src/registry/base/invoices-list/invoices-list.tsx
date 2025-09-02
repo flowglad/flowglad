@@ -4,7 +4,7 @@ import * as React from 'react'
 import { cn } from '@/utils/core'
 import { InvoiceRow } from './invoice-row'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '@/registry/base/skeleton/skeleton'
 import type { Invoice, InvoicesListProps } from './types'
 import { sortInvoices } from './utils'
 
