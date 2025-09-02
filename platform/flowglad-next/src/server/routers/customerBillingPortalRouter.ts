@@ -42,6 +42,11 @@ import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import { headers } from 'next/headers'
+import { stripe } from '@/utils/stripe'
+import {
+  selectPaymentMethodById,
+  safelyUpdatePaymentMethod,
+} from '@/db/tableMethods/paymentMethodMethods'
 
 // getBilling procedure - copy of getCustomerBilling for customer portal
 const getBillingProcedure = customerProtectedProcedure
@@ -299,8 +304,184 @@ const requestMagicLinkProcedure = publicProcedure
     }
   })
 
+// createAddPaymentMethodSession procedure
+const createAddPaymentMethodSessionProcedure =
+  customerProtectedProcedure
+    .input(
+      z.object({
+        customerId: z.string().describe('The customer ID'),
+        successUrl: z
+          .string()
+          .url()
+          .describe('URL to redirect on success'),
+        cancelUrl: z
+          .string()
+          .url()
+          .describe('URL to redirect on cancel'),
+      })
+    )
+    .output(
+      z.object({
+        sessionUrl: z
+          .string()
+          .url()
+          .describe('The Stripe setup session URL'),
+        sessionId: z.string().describe('The Stripe setup session ID'),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { customer, organizationId, livemode } = ctx
+      const { successUrl, cancelUrl } = input
+
+      // Verify the customer ID matches the authenticated customer
+      if (input.customerId !== customer.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message:
+            'You do not have permission to manage this customer',
+        })
+      }
+
+      // Get the Stripe customer ID
+      if (!customer.stripeCustomerId) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Customer does not have a Stripe customer ID',
+        })
+      }
+
+      try {
+        // Create a Stripe Checkout session in setup mode for adding a payment method
+        const session = await stripe(
+          livemode
+        ).checkout.sessions.create({
+          mode: 'setup' as const,
+          customer: customer.stripeCustomerId!,
+          payment_method_types: ['card'],
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          metadata: {
+            customerId: customer.id,
+            organizationId,
+          },
+        } as any)
+
+        if (!session.url) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create setup session URL',
+          })
+        }
+
+        return {
+          sessionUrl: session.url,
+          sessionId: session.id,
+        }
+      } catch (error) {
+        console.error('Error creating setup session:', error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to create payment method setup session',
+        })
+      }
+    })
+
+// setDefaultPaymentMethod procedure
+const setDefaultPaymentMethodProcedure = customerProtectedProcedure
+  .input(
+    z.object({
+      paymentMethodId: z
+        .string()
+        .describe('The payment method ID to set as default'),
+    })
+  )
+  .output(
+    z.object({
+      success: z.boolean(),
+      paymentMethod: paymentMethodClientSelectSchema,
+    })
+  )
+  .mutation(async ({ input, ctx }) => {
+    const { customer, livemode } = ctx
+    const { paymentMethodId } = input
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        // Verify the payment method belongs to the customer
+        const paymentMethod = await selectPaymentMethodById(
+          paymentMethodId,
+          transaction
+        )
+
+        if (paymentMethod.customerId !== customer.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'You do not have permission to update this payment method',
+          })
+        }
+
+        // Check if already default
+        if (paymentMethod.default) {
+          return {
+            success: true,
+            paymentMethod,
+          }
+        }
+
+        try {
+          // Update default payment method in Stripe
+          if (
+            customer.stripeCustomerId &&
+            paymentMethod.stripePaymentMethodId
+          ) {
+            await stripe(livemode).customers.update(
+              customer.stripeCustomerId,
+              {
+                invoice_settings: {
+                  default_payment_method:
+                    paymentMethod.stripePaymentMethodId,
+                },
+              }
+            )
+          }
+
+          // Update in database (safelyUpdatePaymentMethod handles setting others to non-default)
+          const updatedPaymentMethod =
+            await safelyUpdatePaymentMethod(
+              {
+                id: paymentMethodId,
+                default: true,
+              },
+              transaction
+            )
+
+          return {
+            success: true,
+            paymentMethod: updatedPaymentMethod,
+          }
+        } catch (error) {
+          console.error(
+            'Error setting default payment method:',
+            error
+          )
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to set default payment method',
+          })
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
   requestMagicLink: requestMagicLinkProcedure,
+  createAddPaymentMethodSession:
+    createAddPaymentMethodSessionProcedure,
+  setDefaultPaymentMethod: setDefaultPaymentMethodProcedure,
 })
