@@ -50,6 +50,56 @@
         ]
       },
       {
+        "name": "skeleton",
+        "type": "registry:component",
+        "title": "Skeleton",
+        "description": "A skeleton component for loading states.",
+        "files": [
+          {
+            "path": "src/registry/base/skeleton/skeleton.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "customer-selector",
+        "type": "registry:component",
+        "title": "Customer Selector",
+        "description": "A component for selecting customer profiles with search functionality and responsive grid layout.",
+        "registryDependencies": ["input", "card"],
+        "files": [
+          {
+            "path": "src/registry/base/customer-selector/customer-selector.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/components/customer-card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/components/customer-avatar.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/customer-selector/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/date.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/customer-selector/page.tsx",
+            "type": "registry:page",
+            "target": "app/customer-selector/page.tsx"
+          }
+        ]
+      },
+      {
         "name": "invoices-list",
         "type": "registry:component",
         "title": "Invoices List",
@@ -78,6 +128,10 @@
           },
           {
             "path": "src/registry/base/invoices-list/utils.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/date.ts",
             "type": "registry:lib"
           },
           {
