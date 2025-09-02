@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { cn } from '@/utils/core'
 import { Badge } from '@/components/ui/badge'
-import type { PricingTablePrice } from '../types'
-import { humanReadableCurrencyAmount } from '../utils/currency'
+import type { PricingTablePrice } from '@/registry/base/pricing/types'
+import { formatCurrency } from '@/registry/lib/currency'
 
 interface PricingHeaderProps {
   name: string
@@ -20,7 +20,7 @@ export function PricingHeader({
   className,
 }: PricingHeaderProps) {
   // Use the currency utils to format the price properly
-  const formattedPrice = humanReadableCurrencyAmount(
+  const formattedPrice = formatCurrency(
     price.unitAmount,
     price.currency
   )

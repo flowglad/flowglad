@@ -4,50 +4,46 @@
     "homepage": "https://flowglad.com",
     "items": [
       {
-        "name": "pricing-table",
+        "name": "pricing",
         "type": "registry:component",
         "title": "Pricing Table",
         "description": "A responsive pricing table component with product toggle and tier selection.",
         "registryDependencies": ["button", "badge"],
         "files": [
           {
-            "path": "src/registry/base/pricing-table/pricing-table.tsx",
+            "path": "src/registry/base/pricing/pricing-table.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/pricing-table/components/pricing-toggle.tsx",
+            "path": "src/registry/base/pricing/pricing-toggle.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/pricing-table/components/pricing-column.tsx",
+            "path": "src/registry/base/pricing/pricing-column.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/pricing-table/components/pricing-header.tsx",
+            "path": "src/registry/base/pricing/pricing-header.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/pricing-table/components/pricing-feature.tsx",
+            "path": "src/registry/base/pricing/pricing-feature.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/pricing-table/components/card.tsx",
+            "path": "src/registry/components/card.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/pricing-table/types.ts",
+            "path": "src/registry/base/pricing/types.ts",
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/base/pricing-table/utils/currency.ts",
+            "path": "src/registry/lib/currency.ts",
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/base/pricing-table/index.ts",
-            "type": "registry:lib"
-          },
-          {
-            "path": "src/registry/base/pricing-table/page.tsx",
+            "path": "src/registry/base/pricing/page.tsx",
             "type": "registry:page",
             "target": "app/pricing/page.tsx"
           }
@@ -84,6 +80,44 @@
             "path": "src/registry/base/customer-selector/page.tsx",
             "type": "registry:page",
             "target": "app/customer-selector/page.tsx"
+          }
+        ]
+      },
+      {
+        "name": "invoices-list",
+        "type": "registry:component",
+        "title": "Invoices List",
+        "description": "A comprehensive invoice list component with sorting, pagination, and status badges.",
+        "registryDependencies": ["button", "badge", "skeleton"],
+        "files": [
+          {
+            "path": "src/registry/base/invoices-list/invoices-list.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/invoice-row.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/invoice-status-badge.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/invoice-amount.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/invoices-list/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/invoices-list/utils.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/invoices-list/page.tsx",
+            "type": "registry:page",
+            "target": "app/billing/invoices/page.tsx"
           }
         ]
       }

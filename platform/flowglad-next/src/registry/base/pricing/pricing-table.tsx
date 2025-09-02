@@ -4,8 +4,8 @@ import * as React from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/utils/core'
 import { Button } from '@/components/ui/button'
-import { PricingToggle } from './components/pricing-toggle'
-import { PricingColumn } from './components/pricing-column'
+import { PricingToggle } from './pricing-toggle'
+import { PricingColumn } from './pricing-column'
 import type { PricingTableProps } from './types'
 
 export function PricingTable({

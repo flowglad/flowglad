@@ -29,10 +29,6 @@ PID1=$!
 cd "$ROOT_DIR/platform/flowglad-next" && pnpm lint &
 PID2=$!
 
-# Run lint for platform/hosted-billing  
-cd "$ROOT_DIR/platform/hosted-billing" && pnpm lint &
-PID3=$!
-
 # Wait for each process and capture exit status
 wait $PID1
 STATUS1=$?
