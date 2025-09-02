@@ -3,10 +3,10 @@
 import * as React from 'react'
 import { cn } from '@/utils/core'
 import { Button } from '@/components/ui/button'
-import { Card } from './card'
+import { Card } from '@/registry/components/card'
 import { PricingHeader } from './pricing-header'
 import { PricingFeature } from './pricing-feature'
-import type { PricingTableProduct } from '../types'
+import type { PricingTableProduct } from '@/registry/base/pricing/types'
 
 interface PricingColumnProps {
   product: PricingTableProduct

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect } from 'react'
-import { PricingTable } from '@/registry/base/pricing-table'
-import type { PricingProductGroup } from '@/registry/base/pricing-table/types'
+import { PricingTable } from '@/registry/base/pricing/pricing-table'
+import type { PricingProductGroup } from '@/registry/base/pricing/types'
 import { trpc } from '../_trpc/client'
 
 const InternalDemoPage = () => {

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Check, X } from 'lucide-react'
 import { cn } from '@/utils/core'
-import type { PricingFeature as PricingFeatureType } from '../types'
+import type { PricingFeature as PricingFeatureType } from './types'
 
 interface PricingFeatureProps extends PricingFeatureType {
   className?: string
