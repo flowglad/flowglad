@@ -4,7 +4,7 @@ import * as React from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '@/utils/core'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '@/registry/base/skeleton/skeleton'
 import { CustomerCard } from './components/customer-card'
 import type { CustomerSelectorProps } from './types'
 
