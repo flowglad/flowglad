@@ -1,6 +1,6 @@
 'use client'
 
-import Button from '@/components/ion/Button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import {
   Card,
   CardContent,

@@ -19,7 +19,7 @@ import {
 } from '@/components/ion/Input'
 import Label from '@/components/ion/Label'
 import { Popover, PopoverContent, PopoverTrigger } from './Popover'
-import Button from './Button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react'
 import core from '@/utils/core'
 

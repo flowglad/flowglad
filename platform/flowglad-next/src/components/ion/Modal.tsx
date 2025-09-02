@@ -7,7 +7,7 @@ import * as ModalPrimitive from '@radix-ui/react-dialog'
 import clsx from 'clsx'
 import * as React from 'react'
 
-import Button from '@/components/ion/Button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 
 const ModalTrigger = ModalPrimitive.Trigger
 

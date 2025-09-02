@@ -11,7 +11,7 @@ import { Price } from '@/db/schema/prices'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import { Button } from '@/components/ui/button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Pencil, Ellipsis } from 'lucide-react'
 import PopoverMenu, {
   PopoverMenuItem,
@@ -72,6 +72,7 @@ function InternalCustomerDetailsScreen({
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"
+                    asDiv={true}
                   >
                     <Ellipsis className="rotate-90 w-4 h-6" />
                   </Button>

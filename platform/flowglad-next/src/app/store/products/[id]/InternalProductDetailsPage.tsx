@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Price } from '@/db/schema/prices'
 import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
 import { Product } from '@/db/schema/products'
@@ -86,6 +86,7 @@ function InternalProductDetailsPage(
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"
+                    asDiv={true}
                   >
                     <Ellipsis className="rotate-90 w-4 h-6" />
                   </Button>

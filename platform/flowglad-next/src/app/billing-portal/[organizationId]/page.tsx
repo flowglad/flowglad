@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { signOut } from '@/utils/authClient'
-import Button from '@/components/ion/Button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { LogOut } from 'lucide-react'
 import { trpc } from '@/app/_trpc/client'
 

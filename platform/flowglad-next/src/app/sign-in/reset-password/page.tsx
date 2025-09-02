@@ -11,7 +11,7 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import Input from '@/components/ion/Input'
-import Button from '@/components/ion/Button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react'
 import { cn } from '@/utils/core'
 import ErrorLabel from '@/components/ErrorLabel'

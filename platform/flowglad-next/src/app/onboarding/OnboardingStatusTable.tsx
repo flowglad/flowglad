@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import {
   Nouns,
   OnboardingChecklistItem,
