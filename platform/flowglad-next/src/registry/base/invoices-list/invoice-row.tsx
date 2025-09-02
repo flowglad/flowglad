@@ -5,8 +5,8 @@ import { cn } from '@/utils/core'
 import { Button } from '@/components/ui/button'
 import { InvoiceStatusBadge } from './invoice-status-badge'
 import { InvoiceAmount } from './invoice-amount'
-import type { Invoice } from '../types'
-import { formatDate } from '../utils'
+import type { Invoice } from './types'
+import { formatDate } from './utils'
 
 interface InvoiceRowProps {
   invoice: Invoice

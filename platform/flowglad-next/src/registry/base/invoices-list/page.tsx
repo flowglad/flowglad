@@ -1,6 +1,4 @@
-'use client'
-
-import * as React from 'react'
+import { useState } from 'react'
 import { InvoicesList } from './invoices-list'
 import type { Invoice } from './types'
 
@@ -73,8 +71,8 @@ const mockInvoices: Invoice[] = [
 ]
 
 export default function InvoicesListDemo() {
-  const [currentPage, setCurrentPage] = React.useState(1)
-  const [loading, setLoading] = React.useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [loading, setLoading] = useState(false)
   const pageSize = 10
 
   const handleInvoiceClick = (invoiceId: string) => {

@@ -164,16 +164,6 @@ export const safeContactList = (
   return stagingContacts
 }
 
-export const formatCurrency = (amount: number, cents?: boolean) => {
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: cents ? 2 : 0,
-    maximumFractionDigits: cents ? 2 : 0,
-  })
-  return formatter.format(cents ? amount : Math.round(amount))
-}
-
 export const formatDate = (
   date: Date | string,
   includeTime?: boolean
@@ -546,7 +536,6 @@ export const core = {
   sliceIntoChunks,
   localizedEnvVariable,
   formatDate,
-  formatCurrency,
   safeContactList,
   devPrefixString,
   log,

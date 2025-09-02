@@ -83,7 +83,7 @@ export function currencyCharacter(currencyCode: string): string {
  * @param locale - The locale to use for formatting (default: 'en-US')
  * @returns A formatted currency string
  */
-export function humanReadableCurrencyAmount(
+export function formatCurrency(
   unitAmount: number,
   currencyCode: string,
   locale: string = 'en-US'

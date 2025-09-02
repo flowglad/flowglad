@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/utils/core'
-import type { InvoiceStatus } from '../types'
+import type { InvoiceStatus } from './types'
 
 interface InvoiceStatusBadgeProps {
   status: InvoiceStatus

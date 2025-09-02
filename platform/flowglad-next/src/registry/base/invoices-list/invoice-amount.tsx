@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { cn } from '@/utils/core'
-import { formatCurrency } from '../utils'
+import { formatCurrency } from '@/registry/lib/currency'
 
 interface InvoiceAmountProps {
   amount: number

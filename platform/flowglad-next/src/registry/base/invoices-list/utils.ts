@@ -17,22 +17,6 @@ export function formatDate(
   )
 }
 
-export function formatCurrency(
-  amount: number,
-  currency: string,
-  locale: string = 'en-US'
-): string {
-  // Convert from cents to dollars (or equivalent for other currencies)
-  const displayAmount = amount / 100
-
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(displayAmount)
-}
-
 export function getInvoiceStatusColor(status: string): string {
   const statusColors: Record<string, string> = {
     paid: 'text-green-600 bg-green-50',
