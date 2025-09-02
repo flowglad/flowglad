@@ -43,10 +43,6 @@
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/base/pricing/index.ts",
-            "type": "registry:lib"
-          },
-          {
             "path": "src/registry/base/pricing/page.tsx",
             "type": "registry:page",
             "target": "app/pricing/page.tsx"
@@ -82,10 +78,6 @@
           },
           {
             "path": "src/registry/base/invoices-list/utils.ts",
-            "type": "registry:lib"
-          },
-          {
-            "path": "src/registry/base/invoices-list/index.ts",
             "type": "registry:lib"
           },
           {
