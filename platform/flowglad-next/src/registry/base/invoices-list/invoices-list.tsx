@@ -6,6 +6,7 @@ import { InvoiceRow } from './invoice-row'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Invoice, InvoicesListProps } from './types'
+import { sortInvoices } from './utils'
 
 export function InvoicesList({
   invoices,
@@ -35,19 +36,7 @@ export function InvoicesList({
   const sortedInvoices = React.useMemo(() => {
     if (!sortColumn) return invoices
 
-    return [...invoices].sort((a, b) => {
-      const aValue = a[sortColumn]
-      const bValue = b[sortColumn]
-
-      if (aValue === null || aValue === undefined) return 1
-      if (bValue === null || bValue === undefined) return -1
-
-      let comparison = 0
-      if (aValue < bValue) comparison = -1
-      if (aValue > bValue) comparison = 1
-
-      return sortDirection === 'asc' ? comparison : -comparison
-    })
+    return sortInvoices({ invoices, sortColumn, sortDirection })
   }, [invoices, sortColumn, sortDirection])
 
   if (loading) {
