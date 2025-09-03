@@ -1,41 +1,39 @@
-'use client'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { getSession } from '@/utils/auth'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
+import { redirect } from 'next/navigation'
 
-import { useRouter } from 'next/navigation'
-import { signOut } from '@/utils/authClient'
-import { Button } from '@/components/ui/button'
-import { LogOut } from 'lucide-react'
-import { trpc } from '@/app/_trpc/client'
-
-const BillingPortalPage = () => {
-  const router = useRouter()
-  const logoutMutation = trpc.utils.logout.useMutation()
-
-  const handleLogout = async () => {
-    await logoutMutation.mutateAsync()
-    await signOut()
-    router.push('/sign-in')
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-4">
-          Customer Billing Portal!
-        </h1>
-      </div>
-
-      <div className="p-6 border-t">
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className="w-full sm:w-auto flex items-center gap-2"
-        >
-          <LogOut size={16} />
-          Logout
-        </Button>
-      </div>
-    </div>
-  )
+interface BillingPortalRedirectPageProps {
+  params: Promise<{
+    organizationId: string
+  }>
 }
 
-export default BillingPortalPage
+const BillingPortalRedirectPage = async ({
+  params,
+}: BillingPortalRedirectPageProps) => {
+  const { organizationId } = await params
+  const session = await getSession()
+  if (!session) {
+    throw new Error('User not authenticated')
+  }
+  const user = await betterAuthUserToApplicationUser(session.user)
+  const customers = await authenticatedTransaction(
+    async ({ transaction }) => {
+      return selectCustomers(
+        { userId: user.id, organizationId },
+        transaction
+      )
+    }
+  )
+  if (customers.length === 0) {
+    return <div>No customers found</div>
+  } else if (customers.length === 1) {
+    redirect(`/billing-portal/${organizationId}/${customers[0].id}`)
+  } else {
+    redirect(`/billing-portal/${organizationId}/select-customer`)
+  }
+}
+
+export default BillingPortalRedirectPage
