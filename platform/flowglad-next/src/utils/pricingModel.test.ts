@@ -878,10 +878,9 @@ describe('clonePricingModelTransaction', () => {
       )
       expect(clonedFeature).toBeDefined()
 
-      // Note: The current implementation doesn't update usageMeterId references
-      // This test documents the current behavior where usageMeterId still points to the old meter
-      // This might need to be addressed in a future update
-      expect(clonedFeature?.usageMeterId).toBe(usageMeter.id)
+      // Verify that usageMeterId is correctly remapped to the new usage meter
+      expect(clonedFeature?.usageMeterId).not.toBe(usageMeter.id)
+      expect(clonedFeature?.usageMeterId).toBe(clonedMeter?.id)
     })
   })
 
