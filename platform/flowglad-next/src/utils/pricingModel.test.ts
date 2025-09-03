@@ -1828,6 +1828,525 @@ describe('clonePricingModelTransaction', () => {
       expect(clonedUsageMeters[0].livemode).toBe(false)
     })
   })
+
+  describe('Parent Association Validation', () => {
+    it('should ensure all cloned resources reference only the new pricing model and have no references to old parents', async () => {
+      // Create source pricing model with all types of resources
+      const sourcePricingModel = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Source with All Resources',
+        livemode: false,
+      })
+
+      // Create usage meters
+      const sourceUsageMeter1 = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'API Calls Meter',
+              slug: 'api-calls-meter-validation',
+              aggregationType: UsageMeterAggregationType.Sum,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const sourceUsageMeter2 = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Storage Meter',
+              slug: 'storage-meter-validation',
+              aggregationType: UsageMeterAggregationType.Sum,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Create features - one with usage meter reference
+      const sourceToggleFeature = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Toggle Feature',
+              slug: 'toggle-feature-validation',
+              description: 'Toggle feature for validation',
+              type: FeatureType.Toggle,
+              amount: null,
+              usageMeterId: null,
+              renewalFrequency: null,
+              active: true,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const sourceUsageFeature = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Usage Feature',
+              slug: 'usage-feature-validation',
+              description: 'Usage feature with meter reference',
+              type: FeatureType.UsageCreditGrant,
+              amount: 1000,
+              usageMeterId: sourceUsageMeter1.id, // Reference to source usage meter
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              active: true,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Create product with prices and features
+      const sourceProduct = await adminTransaction(
+        async ({ transaction }) => {
+          const newProduct = await insertProduct(
+            {
+              name: 'Source Product',
+              organizationId: organization.id,
+              livemode: false,
+              description: 'Product for validation',
+              active: true,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              pricingModelId: sourcePricingModel.id,
+              imageURL: null,
+              externalId: null,
+              default: false,
+              slug: `source-product-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          const sourcePrice = await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: newProduct.id,
+              name: 'Source Price',
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: false,
+              active: true,
+              isDefault: true,
+              unitPrice: 5000,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              slug: `source-price-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          // Associate features with product
+          await insertProductFeature(
+            {
+              productId: newProduct.id,
+              featureId: sourceToggleFeature.id,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+
+          await insertProductFeature(
+            {
+              productId: newProduct.id,
+              featureId: sourceUsageFeature.id,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+
+          return newProduct
+        }
+      )
+
+      // Clone the pricing model
+      const clonedPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: sourcePricingModel.id,
+              name: 'Cloned for Validation',
+            },
+            transaction
+          )
+        }
+      )
+
+      // Validate that cloned pricing model is different from source
+      expect(clonedPricingModel.id).not.toBe(sourcePricingModel.id)
+
+      // 1. Validate Usage Meters - should reference new pricing model only
+      const clonedUsageMeters = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsageMeters(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+
+      expect(clonedUsageMeters).toHaveLength(2)
+      clonedUsageMeters.forEach((meter) => {
+        // Should reference new pricing model
+        expect(meter.pricingModelId).toBe(clonedPricingModel.id)
+        // Should NOT reference old pricing model
+        expect(meter.pricingModelId).not.toBe(sourcePricingModel.id)
+        // Should have new IDs
+        expect(meter.id).not.toBe(sourceUsageMeter1.id)
+        expect(meter.id).not.toBe(sourceUsageMeter2.id)
+      })
+
+      // 2. Validate Features - should reference new pricing model and new usage meters
+      const clonedFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFeatures(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+
+      expect(clonedFeatures).toHaveLength(2)
+
+      const clonedToggleFeature = clonedFeatures.find(
+        (f) => f.slug === 'toggle-feature-validation'
+      )
+      const clonedUsageFeature = clonedFeatures.find(
+        (f) => f.slug === 'usage-feature-validation'
+      )
+
+      expect(clonedToggleFeature).toBeDefined()
+      expect(clonedUsageFeature).toBeDefined()
+
+      // Validate toggle feature associations
+      expect(clonedToggleFeature!.pricingModelId).toBe(
+        clonedPricingModel.id
+      )
+      expect(clonedToggleFeature!.pricingModelId).not.toBe(
+        sourcePricingModel.id
+      )
+      expect(clonedToggleFeature!.id).not.toBe(sourceToggleFeature.id)
+      expect(clonedToggleFeature!.usageMeterId).toBeNull()
+
+      // Validate usage feature associations
+      expect(clonedUsageFeature!.pricingModelId).toBe(
+        clonedPricingModel.id
+      )
+      expect(clonedUsageFeature!.pricingModelId).not.toBe(
+        sourcePricingModel.id
+      )
+      expect(clonedUsageFeature!.id).not.toBe(sourceUsageFeature.id)
+
+      // CRITICAL: usageMeterId should reference the NEW usage meter, not the old one
+      expect(clonedUsageFeature!.usageMeterId).not.toBeNull()
+      expect(clonedUsageFeature!.usageMeterId).not.toBe(
+        sourceUsageMeter1.id
+      )
+
+      // Find the corresponding new usage meter by slug
+      const correspondingNewMeter = clonedUsageMeters.find(
+        (m) => m.slug === 'api-calls-meter-validation'
+      )
+      expect(correspondingNewMeter).toBeDefined()
+      expect(clonedUsageFeature!.usageMeterId).toBe(
+        correspondingNewMeter!.id
+      )
+
+      // 3. Validate Products - should reference new pricing model
+      const clonedProducts = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricesAndProductsByProductWhere(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+
+      expect(clonedProducts).toHaveLength(1)
+      const clonedProduct = clonedProducts[0]
+
+      expect(clonedProduct.pricingModelId).toBe(clonedPricingModel.id)
+      expect(clonedProduct.pricingModelId).not.toBe(
+        sourcePricingModel.id
+      )
+      expect(clonedProduct.id).not.toBe(sourceProduct.id)
+
+      // 4. Validate Prices - should reference new products
+      expect(clonedProduct.prices).toHaveLength(1)
+      const clonedPrice = clonedProduct.prices[0]
+
+      expect(clonedPrice.productId).toBe(clonedProduct.id)
+      expect(clonedPrice.productId).not.toBe(sourceProduct.id)
+
+      // 5. Validate Product Features - should reference new products and new features
+      const clonedProductFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectProductFeatures(
+            { productId: clonedProduct.id },
+            transaction
+          )
+        }
+      )
+
+      expect(clonedProductFeatures).toHaveLength(2)
+
+      clonedProductFeatures.forEach((pf) => {
+        // Should reference new product
+        expect(pf.productId).toBe(clonedProduct.id)
+        expect(pf.productId).not.toBe(sourceProduct.id)
+
+        // Should reference new features (not old ones)
+        expect(pf.featureId).not.toBe(sourceToggleFeature.id)
+        expect(pf.featureId).not.toBe(sourceUsageFeature.id)
+
+        // Should be one of the new feature IDs
+        const newFeatureIds = clonedFeatures.map((f) => f.id)
+        expect(newFeatureIds).toContain(pf.featureId)
+      })
+
+      // 6. Final validation - ensure NO resources from old pricing model are referenced
+      // Get all resource IDs from source
+      const sourceResourceIds = [
+        sourcePricingModel.id,
+        sourceUsageMeter1.id,
+        sourceUsageMeter2.id,
+        sourceToggleFeature.id,
+        sourceUsageFeature.id,
+        sourceProduct.id,
+      ]
+
+      // Check that none of the cloned resources reference any source IDs
+      const allClonedIds = [
+        clonedPricingModel.id,
+        ...clonedUsageMeters.map((m) => m.id),
+        ...clonedUsageMeters.map((m) => m.pricingModelId),
+        ...clonedFeatures.map((f) => f.id),
+        ...clonedFeatures.map((f) => f.pricingModelId),
+        ...clonedFeatures
+          .map((f) => f.usageMeterId)
+          .filter((id) => id !== null),
+        ...clonedProducts.map((p) => p.id),
+        ...clonedProducts.map((p) => p.pricingModelId),
+        ...clonedProducts.flatMap((p) => p.prices.map((pr) => pr.id)),
+        ...clonedProducts.flatMap((p) =>
+          p.prices.map((pr) => pr.productId)
+        ),
+        ...clonedProductFeatures.map((pf) => pf.id),
+        ...clonedProductFeatures.map((pf) => pf.productId),
+        ...clonedProductFeatures.map((pf) => pf.featureId),
+      ]
+
+      // None of the cloned IDs should match any source IDs
+      allClonedIds.forEach((clonedId) => {
+        if (clonedId) {
+          expect(sourceResourceIds).not.toContain(clonedId)
+        }
+      })
+    })
+
+    it('should correctly remap multiple features with different usage meter references', async () => {
+      // Create source pricing model
+      const sourcePricingModel = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Source with Multiple Meters',
+        livemode: false,
+      })
+
+      // Create multiple usage meters
+      const meter1 = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Meter 1',
+              slug: 'meter-1',
+              aggregationType: UsageMeterAggregationType.Sum,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const meter2 = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Meter 2',
+              slug: 'meter-2',
+              aggregationType:
+                UsageMeterAggregationType.CountDistinctProperties,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Create features referencing different meters
+      const feature1 = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Feature with Meter 1',
+              slug: 'feature-meter-1',
+              description: 'References meter 1',
+              type: FeatureType.UsageCreditGrant,
+              amount: 100,
+              usageMeterId: meter1.id,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              active: true,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const feature2 = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Feature with Meter 2',
+              slug: 'feature-meter-2',
+              description: 'References meter 2',
+              type: FeatureType.UsageCreditGrant,
+              amount: 200,
+              usageMeterId: meter2.id,
+              renewalFrequency: FeatureUsageGrantFrequency.Once,
+              active: true,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const feature3 = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'Feature with No Meter',
+              slug: 'feature-no-meter',
+              description: 'No meter reference',
+              type: FeatureType.Toggle,
+              amount: null,
+              usageMeterId: null,
+              renewalFrequency: null,
+              active: true,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Clone the pricing model
+      const clonedPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: sourcePricingModel.id,
+              name: 'Cloned with Multiple Meters',
+            },
+            transaction
+          )
+        }
+      )
+
+      // Get cloned meters and features
+      const clonedMeters = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsageMeters(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+
+      const clonedFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFeatures(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+
+      // Find specific meters and features by slug
+      const newMeter1 = clonedMeters.find((m) => m.slug === 'meter-1')
+      const newMeter2 = clonedMeters.find((m) => m.slug === 'meter-2')
+      const newFeature1 = clonedFeatures.find(
+        (f) => f.slug === 'feature-meter-1'
+      )
+      const newFeature2 = clonedFeatures.find(
+        (f) => f.slug === 'feature-meter-2'
+      )
+      const newFeature3 = clonedFeatures.find(
+        (f) => f.slug === 'feature-no-meter'
+      )
+
+      expect(newMeter1).toBeDefined()
+      expect(newMeter2).toBeDefined()
+      expect(newFeature1).toBeDefined()
+      expect(newFeature2).toBeDefined()
+      expect(newFeature3).toBeDefined()
+
+      // Validate correct meter remapping
+      expect(newFeature1!.usageMeterId).toBe(newMeter1!.id)
+      expect(newFeature1!.usageMeterId).not.toBe(meter1.id)
+
+      expect(newFeature2!.usageMeterId).toBe(newMeter2!.id)
+      expect(newFeature2!.usageMeterId).not.toBe(meter2.id)
+
+      expect(newFeature3!.usageMeterId).toBeNull()
+
+      // Validate all features reference the new pricing model
+      const allNewFeatures = [
+        newFeature1!,
+        newFeature2!,
+        newFeature3!,
+      ]
+      allNewFeatures.forEach((feature) => {
+        expect(feature.pricingModelId).toBe(clonedPricingModel.id)
+        expect(feature.pricingModelId).not.toBe(sourcePricingModel.id)
+      })
+    })
+  })
 })
 
 // Add missing import for productFeatures table

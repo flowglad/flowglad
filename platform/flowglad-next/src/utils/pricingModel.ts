@@ -166,6 +166,11 @@ export const clonePricingModelTransaction = async (
     transaction
   )
 
+  // Create a mapping from old usage meter ID to slug for later remapping
+  const oldUsageMeterIdToSlug = new Map(
+    sourceUsageMeters.map((meter) => [meter.id, meter.slug])
+  )
+
   if (sourceUsageMeters.length > 0) {
     const usageMeterInserts: UsageMeter.Insert[] =
       sourceUsageMeters.map((meter) =>
@@ -181,6 +186,17 @@ export const clonePricingModelTransaction = async (
     )
   }
 
+  // Get newly created usage meters to build slug to new ID mapping
+  const newUsageMeters = await selectUsageMeters(
+    { pricingModelId: newPricingModel.id },
+    transaction
+  )
+
+  // Create mapping from slug to new usage meter ID
+  const slugToNewUsageMeterId = new Map(
+    newUsageMeters.map((meter) => [meter.slug, meter.id])
+  )
+
   // Clone features from source pricing model
   const sourceFeatures = await selectFeatures(
     { pricingModelId: pricingModel.id },
@@ -189,6 +205,18 @@ export const clonePricingModelTransaction = async (
 
   if (sourceFeatures.length > 0) {
     const featureInserts = sourceFeatures.map((feature) => {
+      // Remap usageMeterId if present
+      let remappedUsageMeterId = feature.usageMeterId
+      if (feature.usageMeterId) {
+        const oldSlug = oldUsageMeterIdToSlug.get(
+          feature.usageMeterId
+        )
+        if (oldSlug) {
+          remappedUsageMeterId =
+            slugToNewUsageMeterId.get(oldSlug) || null
+        }
+      }
+
       const baseFeature = omit(
         [
           'id',
@@ -202,6 +230,7 @@ export const clonePricingModelTransaction = async (
           ...feature,
           livemode,
           pricingModelId: newPricingModel.id,
+          usageMeterId: remappedUsageMeterId,
         }
       )
       return baseFeature as Feature.Insert
