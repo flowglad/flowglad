@@ -4,6 +4,54 @@
     "homepage": "https://flowglad.com",
     "items": [
       {
+        "name": "button",
+        "type": "registry:component",
+        "title": "Button",
+        "description": "A button component with multiple variants and sizes.",
+        "files": [
+          {
+            "path": "src/registry/components/button.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "badge",
+        "type": "registry:component",
+        "title": "Badge",
+        "description": "A badge component for displaying status or labels.",
+        "files": [
+          {
+            "path": "src/registry/components/badge.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "input",
+        "type": "registry:component",
+        "title": "Input",
+        "description": "A text input component.",
+        "files": [
+          {
+            "path": "src/registry/components/input.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "card",
+        "type": "registry:component",
+        "title": "Card",
+        "description": "A card component for content containers.",
+        "files": [
+          {
+            "path": "src/registry/components/card.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
         "name": "pricing",
         "type": "registry:component",
         "title": "Pricing Table",
@@ -57,6 +105,18 @@
         "files": [
           {
             "path": "src/registry/base/skeleton/skeleton.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "popover",
+        "type": "registry:component",
+        "title": "Popover",
+        "description": "A popover component for displaying floating content.",
+        "files": [
+          {
+            "path": "src/registry/components/popover.tsx",
             "type": "registry:component"
           }
         ]
