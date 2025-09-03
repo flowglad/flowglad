@@ -38,7 +38,6 @@ import {
 import {
   selectProductFeatures,
   insertProductFeature,
-  updateProductFeature,
 } from '@/db/tableMethods/productFeatureMethods'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from './core'
@@ -702,7 +701,7 @@ describe('clonePricingModelTransaction', () => {
           )
         }
       )
-      
+
       const usageFeature = await adminTransaction(
         async ({ transaction }) => {
           return insertFeature(
@@ -715,7 +714,8 @@ describe('clonePricingModelTransaction', () => {
               type: FeatureType.UsageCreditGrant,
               amount: 1000,
               usageMeterId: apiRequestsMeter.id,
-              renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
               active: true,
               livemode: false,
             },
@@ -781,7 +781,7 @@ describe('clonePricingModelTransaction', () => {
           (f) => f.pricingModelId === clonedPricingModel.id
         )
       ).toBe(true)
-      
+
       // Verify usage meter was also cloned
       const clonedUsageMeters = await adminTransaction(
         async ({ transaction }) => {
@@ -826,7 +826,8 @@ describe('clonePricingModelTransaction', () => {
               type: FeatureType.UsageCreditGrant,
               amount: 5000,
               usageMeterId: usageMeter.id,
-              renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
               active: true,
               livemode: false,
             },

@@ -183,13 +183,23 @@ export const clonePricingModelTransaction = async (
   )
 
   if (sourceFeatures.length > 0) {
-    const featureInserts: Feature.Insert[] = sourceFeatures.map(
-      (feature) =>
-        omit(['id'], {
+    const featureInserts = sourceFeatures.map((feature) => {
+      const baseFeature = omit(
+        [
+          'id',
+          'createdAt',
+          'updatedAt',
+          'createdByCommit',
+          'updatedByCommit',
+          'position',
+        ],
+        {
           ...feature,
           pricingModelId: newPricingModel.id,
-        })
-    )
+        }
+      )
+      return baseFeature as Feature.Insert
+    })
     await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
       featureInserts,
       transaction
