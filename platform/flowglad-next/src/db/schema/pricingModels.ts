@@ -18,6 +18,8 @@ import {
 import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+import core from '@/utils/core'
+import { DestinationEnvironment } from '@/types'
 
 const TABLE_NAME = 'pricing_models'
 
@@ -150,6 +152,9 @@ export type EditPricingModelInput = z.infer<
 export const clonePricingModelInputSchema = z.object({
   id: z.string(),
   name: z.string().describe('The name of the new pricing model.'),
+  destinationEnvironment: core
+    .createSafeZodEnum(DestinationEnvironment)
+    .optional(),
 })
 
 export type ClonePricingModelInput = z.infer<
