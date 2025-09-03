@@ -1,6 +1,6 @@
 // Generated with Ion on 9/24/2024, 7:45:21 PM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=430:1834
-// ion/NumberInput: Generated with Ion on 9/24/2024, 7:45:21 PM
+// ion/NumberInput: Migrated to use shadcn input directly
 import { Minus, Plus } from 'lucide-react'
 import clsx from 'clsx'
 import React, {
@@ -18,13 +18,9 @@ import {
 } from 'react-number-format'
 import { twMerge } from 'tailwind-merge'
 
-import Hint from '@/components/ion/Hint'
-import {
-  inputClassNames,
-  InputContainer,
-} from '@/components/ion/Input'
-import Label from '@/components/ion/Label'
+import { Label } from '@/components/ui/label'
 import { UseFormRegisterReturn } from 'react-hook-form'
+import { cn } from '@/utils/core'
 
 /** Credit to https://github.com/mantinedev/mantine/blob/master/packages/@mantine/core/src/components/NumberInput/NumberInput.tsx */
 
@@ -339,77 +335,80 @@ const NumberInput = React.forwardRef<
     return (
       <div className={className}>
         {label && (
-          <Label
-            id={`${id}__label`}
-            htmlFor={id}
-            required={required}
-            helper={helper}
-            disabled={props.disabled}
-            className="mb-1"
-          >
+          <Label htmlFor={id} className="mb-1">
             {label}
+            {required && (
+              <span className="text-destructive ml-1">*</span>
+            )}
+            {helper && (
+              <span className="text-muted-foreground ml-2 text-sm">
+                {helper}
+              </span>
+            )}
           </Label>
         )}
-        <InputContainer
-          className={clsx('bg-background-input', {
-            'pr-0': !iconTrailing,
-          })}
-          error={error}
-          disabled={props.disabled}
-        >
-          {iconLeading && (
-            <span
-              className={clsx('text-subtle', {
-                'text-on-disabled': props.disabled,
-              })}
-            >
-              {iconLeading}
-            </span>
-          )}
-          <NumericFormat
-            id={id}
-            aria-required={required}
-            aria-invalid={ariaInvalid}
-            aria-describedby={hint ? `${id}__hint` : undefined}
-            value={_value}
-            onValueChange={handleValueChange}
-            getInputRef={inputRef}
-            className={twMerge(clsx(inputClassNames, inputClassName))}
-            min={min}
-            max={max}
-            allowLeadingZeros={allowLeadingZeros}
-            onKeyDown={(e) => {
-              onKeyDown?.(e)
-              if (e.key === 'ArrowDown') {
-                onDecrement()
-              }
-              if (e.key === 'ArrowUp') {
-                onIncrement()
-              }
-            }}
-            onBlur={(e) => {
-              onBlur?.(e)
-              if (typeof _value === 'number') {
-                const clampedValue = clamp(_value, min, max)
-                if (clampedValue !== _value) {
-                  _setValue(clampedValue)
+
+        <div className="relative">
+          <div className="relative flex items-center">
+            {iconLeading && (
+              <div className="absolute left-3 flex items-center text-muted-foreground z-10">
+                {iconLeading}
+              </div>
+            )}
+            <NumericFormat
+              id={id}
+              aria-required={required}
+              aria-invalid={ariaInvalid}
+              aria-describedby={hint ? `${id}__hint` : undefined}
+              value={_value}
+              onValueChange={handleValueChange}
+              getInputRef={inputRef}
+              min={min}
+              max={max}
+              allowLeadingZeros={allowLeadingZeros}
+              onKeyDown={(e) => {
+                if (onKeyDown) {
+                  onKeyDown(e)
                 }
-              }
-            }}
-            {...props}
-            {...restProps}
-          />
-          {iconTrailing && (
-            <span
-              className={clsx('text-subtle', {
-                'text-on-disabled': props.disabled,
-              })}
-            >
-              {iconTrailing}
-            </span>
-          )}
+                if (e.key === 'ArrowDown') {
+                  onDecrement()
+                }
+                if (e.key === 'ArrowUp') {
+                  onIncrement()
+                }
+              }}
+              onBlur={(e) => {
+                if (onBlur) {
+                  onBlur(e)
+                }
+                if (typeof _value === 'number') {
+                  const clampedValue = clamp(_value, min, max)
+                  if (clampedValue !== _value) {
+                    _setValue(clampedValue)
+                  }
+                }
+              }}
+              className={cn(
+                'flex h-9 w-full rounded-md border bg-input px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+                iconLeading && 'pl-10',
+                iconTrailing && 'pr-10',
+                error
+                  ? 'border-destructive focus-visible:ring-destructive'
+                  : 'border-transparent focus-visible:border-stroke-strong focus-visible:bg-transparent focus-visible:ring-0',
+                inputClassName
+              )}
+              disabled={props.disabled}
+              {...restProps}
+            />
+            {iconTrailing && (
+              <div className="absolute right-3 flex items-center text-muted-foreground z-10">
+                {iconTrailing}
+              </div>
+            )}
+          </div>
+
           {showControls && (
-            <div className="flex gap-1 items-center px-2">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center">
               <button
                 tabIndex={-1}
                 onClick={(e) => {
@@ -421,7 +420,7 @@ const NumberInput = React.forwardRef<
                     e.preventDefault()
                   }
                 }}
-                className="h-5 w-5 outline-none flex items-center justify-center text-secondary hover:text-foreground transition-all bg-neutral-accent active:bg-neutral-container hover:bg-neutral-accent active:text-foreground rounded-full aria-disabled:pointer-events-none aria-disabled:text-on-disabled"
+                className="h-5 w-5 outline-none flex items-center justify-center text-muted-foreground hover:text-foreground transition-all bg-secondary hover:bg-secondary/80 active:bg-secondary/90 rounded-full aria-disabled:pointer-events-none aria-disabled:text-muted-foreground/50"
                 aria-label="Decrement"
               >
                 <Minus
@@ -441,35 +440,34 @@ const NumberInput = React.forwardRef<
                     e.preventDefault()
                   }
                 }}
-                className="h-5 w-5 flex outline-none items-center justify-center text-secondary hover:text-foreground transition-all bg-neutral-accent active:bg-neutral-container hover:bg-neutral-accent active:text-foreground rounded-full aria-disabled:pointer-events-none aria-disabled:text-on-disabled"
+                className="h-5 w-5 flex outline-none items-center justify-center text-muted-foreground hover:text-foreground transition-all bg-secondary hover:bg-secondary/80 active:bg-secondary/90 rounded-full aria-disabled:pointer-events-none aria-disabled:text-muted-foreground/50"
                 aria-label="Increment"
               >
                 <Plus strokeWidth={2} className="w-[10px] h-[10px]" />
               </button>
             </div>
           )}
-        </InputContainer>
+        </div>
+
         {hint && (
-          <Hint
+          <p
             id={`${id}__hint`}
-            error={error}
-            className="mt-1"
-            showIcon={showHintIcon}
-            disabled={props.disabled}
+            className={clsx('mt-1 text-sm', {
+              'text-destructive': error,
+              'text-muted-foreground': !error,
+              'text-muted-foreground/50': props.disabled,
+            })}
           >
             {hint}
-          </Hint>
+          </p>
         )}
         {error && (
-          <Hint
-            id={`${id}__hint`}
-            error={error}
-            className="mt-1"
-            showIcon={showHintIcon}
-            disabled={props.disabled}
+          <p
+            id={`${id}__error`}
+            className="mt-1 text-sm text-destructive"
           >
             {error}
-          </Hint>
+          </p>
         )}
       </div>
     )

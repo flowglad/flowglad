@@ -4,7 +4,15 @@ import { trpc } from '@/app/_trpc/client'
 import { sendInvoiceReminderSchema } from '@/db/schema/invoiceLineItems'
 import { Controller, useFormContext } from 'react-hook-form'
 import { z } from 'zod'
-import Input from '../ion/Input'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 
 type SendReminderEmailFormFields = z.infer<
   typeof sendInvoiceReminderSchema
@@ -17,38 +25,48 @@ const SendReminderEmailFormFields = () => {
   const cc = watch('cc')
   return (
     <>
-      <Controller
+      <FormField
         control={control}
         name="to"
         render={({ field }) => (
-          <Input
-            label="To (comma separated)"
-            value={field.value?.join(', ') ?? ''}
-            onChange={(e) => {
-              const value = e.target.value
-              const emails = value
-                .split(',')
-                .map((email) => email.trim())
-              field.onChange(emails)
-            }}
-          />
+          <FormItem>
+            <FormLabel>To (comma separated)</FormLabel>
+            <FormControl>
+              <Input
+                value={field.value?.join(', ') ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value
+                  const emails = value
+                    .split(',')
+                    .map((email) => email.trim())
+                  field.onChange(emails)
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
-      <Controller
+      <FormField
         control={control}
         name="cc"
         render={({ field }) => (
-          <Input
-            label="CC (comma separated)"
-            value={field.value?.join(', ') ?? ''}
-            onChange={(e) => {
-              const value = e.target.value
-              const emails = value
-                .split(',')
-                .map((email) => email.trim())
-              field.onChange(emails)
-            }}
-          />
+          <FormItem>
+            <FormLabel>CC (comma separated)</FormLabel>
+            <FormControl>
+              <Input
+                value={field.value?.join(', ') ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value
+                  const emails = value
+                    .split(',')
+                    .map((email) => email.trim())
+                  field.onChange(emails)
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
         )}
       />
     </>
