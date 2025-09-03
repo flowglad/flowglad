@@ -19,6 +19,7 @@ import {
   FeatureType,
   UsageMeterAggregationType,
   FeatureUsageGrantFrequency,
+  DestinationEnvironment,
 } from '@/types'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import {
@@ -1279,6 +1280,552 @@ describe('clonePricingModelTransaction', () => {
             f.id !== additionalFeature.id
         )
       ).toBe(true)
+    })
+  })
+
+  describe('Livemode Handling', () => {
+    it('should inherit livemode from source pricing model when destinationEnvironment is not specified', async () => {
+      // Setup source pricing model with livemode = true
+      const livemodeSource = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Livemode Source',
+        livemode: true,
+      })
+
+      // Add various artifacts to the source pricing model
+      const usageMeter = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: livemodeSource.id,
+              name: 'Test Meter',
+              slug: 'test-meter',
+              aggregationType: UsageMeterAggregationType.Sum,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      const feature = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: livemodeSource.id,
+              name: 'Test Feature',
+              slug: 'test-feature',
+              description: 'Test feature',
+              type: FeatureType.Toggle,
+              amount: null,
+              usageMeterId: null,
+              renewalFrequency: null,
+              active: true,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      const product = await adminTransaction(
+        async ({ transaction }) => {
+          const newProduct = await insertProduct(
+            {
+              name: 'Livemode Product',
+              organizationId: organization.id,
+              livemode: true,
+              description: null,
+              active: true,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              pricingModelId: livemodeSource.id,
+              imageURL: null,
+              externalId: null,
+              default: false,
+              slug: `livemode-product-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: newProduct.id,
+              name: 'Livemode Price',
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              active: true,
+              isDefault: true,
+              unitPrice: 1000,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              slug: `livemode-price-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          await insertProductFeature(
+            {
+              productId: newProduct.id,
+              featureId: feature.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+            transaction
+          )
+
+          return newProduct
+        }
+      )
+
+      // Clone without specifying destinationEnvironment
+      const clonedPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: livemodeSource.id,
+              name: 'Cloned Livemode',
+              // destinationEnvironment not specified
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify pricing model livemode
+      expect(clonedPricingModel.livemode).toBe(true)
+
+      // Verify usage meters livemode
+      const clonedUsageMeters = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsageMeters(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedUsageMeters).toHaveLength(1)
+      expect(clonedUsageMeters[0].livemode).toBe(true)
+
+      // Verify features livemode
+      const clonedFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFeatures(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedFeatures).toHaveLength(1)
+      expect(clonedFeatures[0].livemode).toBe(true)
+
+      // Verify products and prices livemode
+      expect(clonedPricingModel.products).toHaveLength(1)
+      expect(clonedPricingModel.products[0].livemode).toBe(true)
+      expect(clonedPricingModel.products[0].prices).toHaveLength(1)
+      expect(clonedPricingModel.products[0].prices[0].livemode).toBe(
+        true
+      )
+
+      // Verify product features livemode
+      const clonedProductFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectProductFeatures(
+            { productId: clonedPricingModel.products[0].id },
+            transaction
+          )
+        }
+      )
+      expect(clonedProductFeatures).toHaveLength(1)
+      expect(clonedProductFeatures[0].livemode).toBe(true)
+    })
+
+    it('should use specified destinationEnvironment (Livemode) when provided', async () => {
+      // Setup source pricing model with livemode = false (testmode)
+      const testmodeSource = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Testmode Source',
+        livemode: false,
+      })
+
+      // Add artifacts to the source pricing model (all testmode)
+      const usageMeter = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: testmodeSource.id,
+              name: 'Test Meter',
+              slug: 'test-meter-2',
+              aggregationType: UsageMeterAggregationType.Sum,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const feature = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: testmodeSource.id,
+              name: 'Test Feature',
+              slug: 'test-feature-2',
+              description: 'Test feature',
+              type: FeatureType.Toggle,
+              amount: null,
+              usageMeterId: null,
+              renewalFrequency: null,
+              active: true,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const product = await adminTransaction(
+        async ({ transaction }) => {
+          const newProduct = await insertProduct(
+            {
+              name: 'Testmode Product',
+              organizationId: organization.id,
+              livemode: false,
+              description: null,
+              active: true,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              pricingModelId: testmodeSource.id,
+              imageURL: null,
+              externalId: null,
+              default: false,
+              slug: `testmode-product-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: newProduct.id,
+              name: 'Testmode Price',
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: false,
+              active: true,
+              isDefault: true,
+              unitPrice: 2000,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              slug: `testmode-price-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          await insertProductFeature(
+            {
+              productId: newProduct.id,
+              featureId: feature.id,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+
+          return newProduct
+        }
+      )
+
+      // Clone with destinationEnvironment = Livemode (should override source's testmode)
+      const clonedPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: testmodeSource.id,
+              name: 'Cloned to Livemode',
+              destinationEnvironment: DestinationEnvironment.Livemode,
+            },
+            transaction
+          )
+        }
+      )
+
+      // All artifacts should be livemode = true despite source being testmode
+      expect(clonedPricingModel.livemode).toBe(true)
+
+      // Verify usage meters livemode
+      const clonedUsageMeters = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsageMeters(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedUsageMeters).toHaveLength(1)
+      expect(clonedUsageMeters[0].livemode).toBe(true)
+
+      // Verify features livemode
+      const clonedFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFeatures(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedFeatures).toHaveLength(1)
+      expect(clonedFeatures[0].livemode).toBe(true)
+
+      // Verify products and prices livemode
+      expect(clonedPricingModel.products).toHaveLength(1)
+      expect(clonedPricingModel.products[0].livemode).toBe(true)
+      expect(clonedPricingModel.products[0].prices).toHaveLength(1)
+      expect(clonedPricingModel.products[0].prices[0].livemode).toBe(
+        true
+      )
+
+      // Verify product features livemode
+      const clonedProductFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectProductFeatures(
+            { productId: clonedPricingModel.products[0].id },
+            transaction
+          )
+        }
+      )
+      expect(clonedProductFeatures).toHaveLength(1)
+      expect(clonedProductFeatures[0].livemode).toBe(true)
+    })
+
+    it('should use specified destinationEnvironment (Testmode) when provided', async () => {
+      // Setup source pricing model with livemode = true
+      const livemodeSource = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Livemode Source 2',
+        livemode: true,
+      })
+
+      // Add artifacts to the source pricing model (all livemode)
+      const usageMeter = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: livemodeSource.id,
+              name: 'Test Meter',
+              slug: 'test-meter-3',
+              aggregationType: UsageMeterAggregationType.Sum,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      const feature = await adminTransaction(
+        async ({ transaction }) => {
+          return insertFeature(
+            {
+              organizationId: organization.id,
+              pricingModelId: livemodeSource.id,
+              name: 'Test Feature',
+              slug: 'test-feature-3',
+              description: 'Test feature',
+              type: FeatureType.Toggle,
+              amount: null,
+              usageMeterId: null,
+              renewalFrequency: null,
+              active: true,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      const product = await adminTransaction(
+        async ({ transaction }) => {
+          const newProduct = await insertProduct(
+            {
+              name: 'Livemode Product 2',
+              organizationId: organization.id,
+              livemode: true,
+              description: null,
+              active: true,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              pricingModelId: livemodeSource.id,
+              imageURL: null,
+              externalId: null,
+              default: false,
+              slug: `livemode-product-2-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: newProduct.id,
+              name: 'Livemode Price 2',
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              active: true,
+              isDefault: true,
+              unitPrice: 3000,
+              setupFeeAmount: 0,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              slug: `livemode-price-2-${core.nanoid()}`,
+            },
+            transaction
+          )
+
+          await insertProductFeature(
+            {
+              productId: newProduct.id,
+              featureId: feature.id,
+              organizationId: organization.id,
+              livemode: true,
+            },
+            transaction
+          )
+
+          return newProduct
+        }
+      )
+
+      // Clone with destinationEnvironment = Testmode (should override source's livemode)
+      const clonedPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: livemodeSource.id,
+              name: 'Cloned to Testmode',
+              destinationEnvironment: DestinationEnvironment.Testmode,
+            },
+            transaction
+          )
+        }
+      )
+
+      // All artifacts should be livemode = false despite source being livemode
+      expect(clonedPricingModel.livemode).toBe(false)
+
+      // Verify usage meters livemode
+      const clonedUsageMeters = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsageMeters(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedUsageMeters).toHaveLength(1)
+      expect(clonedUsageMeters[0].livemode).toBe(false)
+
+      // Verify features livemode
+      const clonedFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFeatures(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedFeatures).toHaveLength(1)
+      expect(clonedFeatures[0].livemode).toBe(false)
+
+      // Verify products and prices livemode
+      expect(clonedPricingModel.products).toHaveLength(1)
+      expect(clonedPricingModel.products[0].livemode).toBe(false)
+      expect(clonedPricingModel.products[0].prices).toHaveLength(1)
+      expect(clonedPricingModel.products[0].prices[0].livemode).toBe(
+        false
+      )
+
+      // Verify product features livemode
+      const clonedProductFeatures = await adminTransaction(
+        async ({ transaction }) => {
+          return selectProductFeatures(
+            { productId: clonedPricingModel.products[0].id },
+            transaction
+          )
+        }
+      )
+      expect(clonedProductFeatures).toHaveLength(1)
+      expect(clonedProductFeatures[0].livemode).toBe(false)
+    })
+
+    it('should handle testmode source cloned without destinationEnvironment', async () => {
+      // Setup source pricing model with livemode = false
+      const testmodeSource = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Testmode Source 2',
+        livemode: false,
+      })
+
+      // Add a simple artifact
+      await adminTransaction(async ({ transaction }) => {
+        return insertUsageMeter(
+          {
+            organizationId: organization.id,
+            pricingModelId: testmodeSource.id,
+            name: 'Test Meter',
+            slug: 'test-meter-4',
+            aggregationType: UsageMeterAggregationType.Sum,
+            livemode: false,
+          },
+          transaction
+        )
+      })
+
+      // Clone without specifying destinationEnvironment
+      const clonedPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: testmodeSource.id,
+              name: 'Cloned Testmode',
+              // destinationEnvironment not specified - should inherit false from source
+            },
+            transaction
+          )
+        }
+      )
+
+      // Should inherit testmode (livemode = false) from source
+      expect(clonedPricingModel.livemode).toBe(false)
+
+      const clonedUsageMeters = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsageMeters(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedUsageMeters).toHaveLength(1)
+      expect(clonedUsageMeters[0].livemode).toBe(false)
     })
   })
 })

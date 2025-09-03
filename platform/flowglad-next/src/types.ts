@@ -924,3 +924,8 @@ export enum SubscriptionItemType {
   Usage = 'usage',
   Static = 'static',
 }
+
+export enum DestinationEnvironment {
+  Livemode = 'livemode',
+  Testmode = 'testmode',
+}

@@ -43,6 +43,7 @@ import {
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
+import { DestinationEnvironment } from '@/types'
 
 export const createPrice = async (
   payload: Price.Insert,
@@ -146,10 +147,13 @@ export const clonePricingModelTransaction = async (
     input.id,
     transaction
   )
+  const livemode = input.destinationEnvironment
+    ? input.destinationEnvironment === DestinationEnvironment.Livemode
+    : pricingModel.livemode
   const newPricingModel = await insertPricingModel(
     {
       name: input.name,
-      livemode: pricingModel.livemode,
+      livemode,
       isDefault: false,
       organizationId: pricingModel.organizationId,
     },
@@ -168,6 +172,7 @@ export const clonePricingModelTransaction = async (
         omit(['id'], {
           ...meter,
           pricingModelId: newPricingModel.id,
+          livemode,
         })
       )
     await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
@@ -195,6 +200,7 @@ export const clonePricingModelTransaction = async (
         ],
         {
           ...feature,
+          livemode,
           pricingModelId: newPricingModel.id,
         }
       )
@@ -231,6 +237,7 @@ export const clonePricingModelTransaction = async (
         ...product,
         pricingModelId: newPricingModel.id,
         externalId: null,
+        livemode,
       }),
     ])
   )
@@ -246,6 +253,7 @@ export const clonePricingModelTransaction = async (
         return omit(['id'], {
           ...price,
           externalId: null,
+          livemode,
         })
       }),
     ])
@@ -279,6 +287,7 @@ export const clonePricingModelTransaction = async (
           pricesInsertSchema.parse({
             ...priceInsert,
             productId: newProductId,
+            livemode,
           })
       )
       allPriceInserts.push(...updatedPriceInserts)
@@ -326,7 +335,7 @@ export const clonePricingModelTransaction = async (
           productId: newProductId,
           featureId: newFeatureId,
           organizationId: pricingModel.organizationId,
-          livemode: pricingModel.livemode,
+          livemode,
         })
       }
     }
