@@ -70,7 +70,7 @@ This document breaks down the Full Shadcn Migration into parallelizable PRs with
 ### Track A: Foundation & Configuration (2 Sequential PRs)
 Critical foundation work that must be completed first.
 
-### Track B: Core Component Replacements (6 Parallel PRs)
+### Track B: Core Component Replacements (4 Parallel PRs)
 High-usage components that can be developed in parallel with mocks.
 
 ### Track C: Specialized Component Replacements (4 Parallel PRs)
@@ -79,7 +79,10 @@ Domain-specific components with complex logic.
 ### Track D: Color System & Styling Migration (3 Parallel PRs)
 Color variable replacement and styling updates.
 
-### Track E: Integration & Cleanup (4 Sequential PRs)
+### Track E: Complex Components (3 Parallel PRs)
+Complex components requiring research and careful implementation.
+
+### Track F: Final Cleanup (2 Sequential PRs)
 Final integration, testing, and cleanup work.
 
 ---
@@ -145,16 +148,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Shadcn Configuration', () => {
-  test('All required shadcn components are installed')
-  test('cn utility function works correctly')
-  test('Component aliases resolve correctly')
-  test('Tailwind config uses correct base colors')
-  test('CSS variables are properly configured')
-})
-```
+**Verification Checklist:**
+- [ ] All required shadcn components installed successfully
+- [ ] cn utility function works correctly
+- [ ] Component aliases resolve correctly
+- [ ] Tailwind config uses correct base colors
+- [ ] CSS variables are properly configured
 
 ---
 
@@ -268,16 +267,12 @@ const config: Config = {
 }
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('CSS Variables Migration', () => {
-  test('All ion custom variables removed from CSS')
-  test('All shadcn default variables present')
-  test('Dark mode variables properly configured')
-  test('Tailwind config uses only shadcn colors')
-  test('No references to removed color variables')
-})
-```
+**Verification Checklist:**
+- [ ] All ion custom variables removed from CSS
+- [ ] All shadcn default variables present
+- [ ] Dark mode variables properly configured
+- [ ] Tailwind config uses only shadcn colors
+- [ ] No references to removed color variables
 
 ---
 
@@ -359,193 +354,18 @@ find src -name "*.tsx" -type f -exec sed -i '' \
   {} \;
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Modal to Dialog Migration', () => {
-  test('All Modal imports replaced with Dialog imports')
-  test('Modal trigger prop converted to DialogTrigger')
-  test('Modal title prop converted to DialogTitle')
-  test('Modal subtitle prop converted to DialogDescription')
-  test('Modal footer prop converted to DialogFooter')
-  test('All modal usage patterns work correctly')
-  test('No remaining Modal component references')
-})
-```
+**Verification Checklist:**
+- [ ] All Modal imports replaced with Dialog imports
+- [ ] Modal trigger prop converted to DialogTrigger composition
+- [ ] Modal title prop converted to DialogTitle
+- [ ] Modal subtitle prop converted to DialogDescription
+- [ ] Modal footer prop converted to DialogFooter
+- [ ] All modal usage patterns work correctly
+- [ ] No remaining Modal component references
 
 ---
 
-### PR B2: Table → Data Table Migration
-**Dependencies:** A1, A2
-
-**Files to replace:**
-```
-src/components/ion/Table.tsx → DELETE
-src/components/ion/ColumnHeaderCell.tsx → DELETE
-src/components/ion/TableTitle.tsx → DELETE
-```
-
-**Files to update (15+ table components):**
-```
-src/app/store/products/ProductsTable.tsx
-src/app/customers/CustomersTable.tsx
-src/app/finance/payments/PaymentsTable.tsx
-src/app/finance/invoices/InvoicesTable.tsx
-... (all table components)
-```
-
-**Migration Pattern:**
-```typescript
-// BEFORE (Ion Table)
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
-
-const columns: ColumnDef<Product>[] = [
-  {
-    header: ({ column }) => (
-      <ColumnHeaderCell column={column}>Name</ColumnHeaderCell>
-    ),
-    accessorKey: 'name',
-  },
-]
-
-<Table
-  columns={columns}
-  data={products}
-  pagination={{
-    pageIndex: 0,
-    pageSize: 10,
-    total: 100,
-    onPageChange: handlePageChange,
-  }}
-  onClickRow={handleRowClick}
-/>
-
-// AFTER (Shadcn Data Table)
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { DataTable } from "@/components/ui/data-table"
-
-const columns: ColumnDef<Product>[] = [
-  {
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Name
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    accessorKey: 'name',
-  },
-]
-
-<DataTable
-  columns={columns}
-  data={products}
-  pagination={{
-    pageIndex: 0,
-    pageSize: 10,
-    pageCount: Math.ceil(100 / 10),
-  }}
-  onRowClick={handleRowClick}
-/>
-```
-
-**Pure Shadcn Table Implementation:**
-```typescript
-// ❌ DO NOT create custom DataTable wrapper
-// ✅ Use shadcn Table components directly with explicit composition
-
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-
-// Each table implementation handles its own state and pagination
-function ProductsTable({ products, pagination }: ProductsTableProps) {
-  return (
-    <div className="space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products.map((product) => (
-            <TableRow key={product.id} className="cursor-pointer hover:bg-muted/50">
-              <TableCell>{product.name}</TableCell>
-              <TableCell>{product.price}</TableCell>
-              <TableCell>{product.status}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      
-      {/* Explicit pagination using shadcn Button components */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing {pagination.start} to {pagination.end} of {pagination.total}
-        </p>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={pagination.onPrevious}
-            disabled={!pagination.canPrevious}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={pagination.onNext}
-            disabled={!pagination.canNext}
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-```
-
-**Test Coverage Required:**
-```typescript
-describe('Table to Shadcn Table Migration', () => {
-  test('All Table imports use shadcn Table components')
-  test('Table structure uses explicit shadcn composition')
-  test('Pagination implemented with shadcn Button components')
-  test('Row interactions handled explicitly in each table')
-  test('Loading states use shadcn Skeleton components')
-  test('No custom DataTable wrapper components')
-  test('No remaining Ion table references')
-})
-```
-
----
-
-### PR B3: Badge Component Migration
+### PR B2: Badge Component Migration
 **Dependencies:** A1, A2
 
 **Files to replace:**
@@ -617,21 +437,17 @@ import { Badge } from "@/components/ui/badge"
 // ✅ Follow shadcn conventions exactly
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Badge Migration', () => {
-  test('All Badge imports updated to shadcn')
-  test('Ion color usage converted to className overrides')
-  test('Icons composed explicitly within Badge children')
-  test('All badge variants use standard shadcn variants only')
-  test('No custom Badge extensions or Ion API compatibility')
-  test('No remaining ion Badge references')
-})
-```
+**Verification Checklist:**
+- [ ] All Badge imports updated to shadcn
+- [ ] Ion color usage converted to className overrides
+- [ ] Icons composed explicitly within Badge children
+- [ ] All badge variants use standard shadcn variants only
+- [ ] No custom Badge extensions or Ion API compatibility
+- [ ] No remaining ion Badge references
 
 ---
 
-### PR B4: Form Components Migration (Label, Hint, Switch)
+### PR B3: Form Components Migration (Label, Hint, Switch)
 **Dependencies:** A1, A2
 
 **Files to replace:**
@@ -720,135 +536,18 @@ import { Label } from "@/components/ui/label"
 </div>
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Form Components Migration', () => {
-  test('All Label components use shadcn Label')
-  test('Required indicators display correctly')
-  test('Error states show proper styling')
-  test('Hint components converted to FormDescription/FormMessage')
-  test('Switch components work with new API')
-  test('Form validation displays correctly')
-  test('No remaining ion form component references')
-})
-```
+**Verification Checklist:**
+- [ ] All Label components use shadcn Label
+- [ ] Required indicators display correctly
+- [ ] Error states show proper styling
+- [ ] Hint components converted to FormDescription/FormMessage
+- [ ] Switch components work with new API
+- [ ] Form validation displays correctly
+- [ ] No remaining ion form component references
 
 ---
 
-### PR B5: Input Components Migration (NumberInput, CurrencyInput)
-**Dependencies:** A1, A2
-
-**Files to replace:**
-```
-src/components/ion/NumberInput.tsx → DELETE
-src/components/ion/CurrencyInput.tsx → DELETE
-```
-
-**Files to update (20+ input usages):**
-```
-src/components/forms/PriceFormFields.tsx
-src/components/forms/DiscountFormFields.tsx
-... (all numeric input components)
-```
-
-**Pure Shadcn Input Implementation:**
-```typescript
-// ❌ DO NOT create custom NumberInput/CurrencyInput wrappers
-// ✅ Use standard HTML input with shadcn Input component + explicit handling
-
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
-
-// BEFORE (Ion NumberInput with complex API)
-<NumberInput
-  value={price}
-  onValueChange={setPrice}
-  min={0}
-  step={0.01}
-  placeholder="0.00"
-  currency="USD"
-  label="Price"
-  error={!!errors.price}
-/>
-
-// AFTER (Pure Shadcn with explicit composition)
-<FormItem>
-  <FormLabel>Price</FormLabel>
-  <FormControl>
-    <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-        $
-      </span>
-      <Input
-        type="number"
-        min={0}
-        step={0.01}
-        placeholder="0.00"
-        value={price}
-        onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
-        className="pl-8 text-right"
-      />
-    </div>
-  </FormControl>
-  <FormMessage />
-</FormItem>
-```
-
-**Number Formatting in Components:**
-```typescript
-// Handle number formatting explicitly in each component
-function PriceForm() {
-  const [price, setPrice] = useState<number>(0)
-  
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    const numValue = value === '' ? 0 : parseFloat(value)
-    if (!isNaN(numValue)) {
-      setPrice(numValue)
-    }
-  }
-
-  return (
-    <FormItem>
-      <FormLabel>Price</FormLabel>
-      <FormControl>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-            $
-          </span>
-          <Input
-            type="number"
-            min={0}
-            step={0.01}
-            placeholder="0.00"
-            value={price}
-            onChange={handlePriceChange}
-            className="pl-8 text-right"
-          />
-        </div>
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )
-}
-```
-
-**Test Coverage Required:**
-```typescript
-describe('Input Components Migration', () => {
-  test('Number inputs use standard HTML input with type="number"')
-  test('Currency formatting handled explicitly in components')
-  test('Form validation uses shadcn Form components')
-  test('No custom NumberInput or CurrencyInput wrappers')
-  test('Input styling uses shadcn Input component only')
-  test('No remaining ion input component references')
-})
-```
-
----
-
-### PR B6: Layout Components Migration (Tab, Popover, PageTitle)
+### PR B4: Layout Components Migration (Tab, Popover, PageTitle)
 **Dependencies:** A1, A2
 
 **Files to replace:**
@@ -968,17 +667,13 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
 }
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Layout Components Migration', () => {
-  test('Tab components work with new API')
-  test('Tab selection and content switching works')
-  test('Popover positioning and triggers work')
-  test('PageTitle replaced with semantic PageHeader')
-  test('Layout components are responsive')
-  test('No remaining ion layout component references')
-})
-```
+**Verification Checklist:**
+- [ ] Tab components work with new API
+- [ ] Tab selection and content switching works
+- [ ] Popover positioning and triggers work
+- [ ] PageTitle replaced with semantic PageHeader
+- [ ] Layout components are responsive
+- [ ] No remaining ion layout component references
 
 ---
 
@@ -1069,17 +764,13 @@ import { cn } from "@/lib/utils"
 // ✅ Use shadcn Calendar + Popover + Button directly
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Date Components Migration', () => {
-  test('Calendar uses shadcn Calendar + Popover + Button composition')
-  test('Date selection handled explicitly in each form')
-  test('Date formatting uses date-fns in components')
-  test('Form integration uses shadcn Form components')
-  test('No custom DatePicker wrapper components')
-  test('No remaining ion date component references')
-})
-```
+**Verification Checklist:**
+- [ ] Calendar uses shadcn Calendar + Popover + Button composition
+- [ ] Date selection handled explicitly in each form
+- [ ] Date formatting uses date-fns in components
+- [ ] Form integration uses shadcn Form components
+- [ ] No custom DatePicker wrapper components
+- [ ] No remaining ion date component references
 
 ---
 
@@ -1143,16 +834,12 @@ export function CardSkeleton() {
 }
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Skeleton Migration', () => {
-  test('Skeleton components render correctly')
-  test('Loading states display appropriately')
-  test('Skeleton animations work')
-  test('Responsive skeleton layouts')
-  test('No remaining ion Skeleton references')
-})
-```
+**Verification Checklist:**
+- [ ] Skeleton components render correctly
+- [ ] Loading states display appropriately
+- [ ] Skeleton animations work
+- [ ] Responsive skeleton layouts
+- [ ] No remaining ion Skeleton references
 
 ---
 
@@ -1212,16 +899,12 @@ export function CheckoutDetails({ items, total, currency }: CheckoutDetailsProps
 }
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Checkout Components Migration', () => {
-  test('CheckoutDetails displays items correctly')
-  test('Price calculations are accurate')
-  test('Currency formatting works')
-  test('Billing components render properly')
-  test('No remaining ion checkout component references')
-})
-```
+**Verification Checklist:**
+- [ ] CheckoutDetails displays items correctly
+- [ ] Price calculations are accurate
+- [ ] Currency formatting works
+- [ ] Billing components render properly
+- [ ] No remaining ion checkout component references
 
 ---
 
@@ -1264,15 +947,11 @@ import {
 </TooltipProvider>
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Utility Components Migration', () => {
-  test('Tooltips display on hover')
-  test('Disabled tooltips work correctly')
-  test('Branding components render properly')
-  test('No remaining ion utility component references')
-})
-```
+**Verification Checklist:**
+- [ ] Tooltips display on hover
+- [ ] Disabled tooltips work correctly
+- [ ] Branding components render properly
+- [ ] No remaining ion utility component references
 
 ---
 
@@ -1333,16 +1012,12 @@ const manualReviewPatterns = [
 ]
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Color Migration', () => {
-  test('All ion color classes replaced')
-  test('Shadcn color classes render correctly')
-  test('Dark mode colors work properly')
-  test('Hover and focus states use correct colors')
-  test('No remaining custom color references')
-})
-```
+**Verification Checklist:**
+- [ ] All ion color classes replaced
+- [ ] Shadcn color classes render correctly
+- [ ] Dark mode colors work properly
+- [ ] Hover and focus states use correct colors
+- [ ] No remaining custom color references
 
 ---
 
@@ -1379,16 +1054,12 @@ find src -name "*.tsx" -type f -exec sed -i '' \
   {} \;
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Utility Function Migration', () => {
-  test('All clsx imports replaced with cn')
-  test('All twMerge imports replaced with cn')
-  test('cn function works correctly')
-  test('Class merging behavior is preserved')
-  test('No remaining clsx/twMerge references')
-})
-```
+**Verification Checklist:**
+- [ ] All clsx imports replaced with cn
+- [ ] All twMerge imports replaced with cn
+- [ ] cn function works correctly
+- [ ] Class merging behavior is preserved
+- [ ] No remaining clsx/twMerge references
 
 ---
 
@@ -1418,50 +1089,219 @@ src/components/**/*.module.css (if any)
 .text-balance { /* ... */ }
 ```
 
-**Test Coverage Required:**
+**Verification Checklist:**
+- [ ] All ion-specific CSS classes removed
+- [ ] Shadcn styles work correctly
+- [ ] No visual regressions
+- [ ] Custom utilities still function
+
+---
+
+## Track E: Complex Components
+
+### PR E1: Table Components Migration
+**Dependencies:** A1, A2, B1, B2, B3, B4, C1, C2, C3, C4, D1, D2, D3
+
+**Files to replace:**
+```
+src/components/ion/Table.tsx → DELETE
+src/components/ion/ColumnHeaderCell.tsx → DELETE
+src/components/ion/TableTitle.tsx → DELETE
+```
+
+**Files to update (15+ table components):**
+```
+src/app/store/products/ProductsTable.tsx
+src/app/customers/CustomersTable.tsx
+src/app/finance/payments/PaymentsTable.tsx
+src/app/finance/invoices/InvoicesTable.tsx
+... (all table components)
+```
+
+**Research Requirements:**
+- Research shadcn community best practices for complex tables
+- Study data-table implementations in shadcn ecosystem
+- Analyze pagination patterns used by shadcn community
+- Review accessibility standards for table components
+
+**Pure Shadcn Table Implementation:**
 ```typescript
-describe('CSS Cleanup', () => {
-  test('All ion-specific CSS classes removed')
-  test('Shadcn styles work correctly')
-  test('No visual regressions')
-  test('Custom utilities still function')
-})
+// ❌ DO NOT create custom DataTable wrapper
+// ✅ Use shadcn Table components directly with explicit composition
+
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+// Each table implementation handles its own state and pagination
+function ProductsTable({ products, pagination }: ProductsTableProps) {
+  return (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((product) => (
+            <TableRow key={product.id} className="cursor-pointer hover:bg-muted/50">
+              <TableCell>{product.name}</TableCell>
+              <TableCell>{product.price}</TableCell>
+              <TableCell>{product.status}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      
+      {/* Explicit pagination using shadcn Button components */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {pagination.start} to {pagination.end} of {pagination.total}
+        </p>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={pagination.onPrevious}
+            disabled={!pagination.canPrevious}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={pagination.onNext}
+            disabled={!pagination.canNext}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
 ```
 
 ---
 
-## Track E: Integration & Cleanup
+### PR E2: Input Components Migration (NumberInput, CurrencyInput)
+**Dependencies:** A1, A2, B1, B2, B3, B4, C1, C2, C3, C4, D1, D2, D3
 
-### PR E1: Import Path Standardization
+**Files to replace:**
+```
+src/components/ion/NumberInput.tsx → DELETE
+src/components/ion/CurrencyInput.tsx → DELETE
+```
+
+**Files to update (20+ input usages):**
+```
+src/components/forms/PriceFormFields.tsx
+src/components/forms/DiscountFormFields.tsx
+... (all numeric input components)
+```
+
+**Research Requirements:**
+- Research shadcn community number input implementations
+- Study currency input patterns in shadcn ecosystem
+- Analyze form validation best practices with shadcn
+- Review number formatting libraries compatible with shadcn
+- Investigate react-number-format integration patterns
+
+**Pure Shadcn Input Implementation:**
+```typescript
+// ❌ DO NOT create custom NumberInput/CurrencyInput wrappers
+// ✅ Use standard HTML input with shadcn Input component + explicit handling
+
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+
+// BEFORE (Ion NumberInput with complex API)
+<NumberInput
+  value={price}
+  onValueChange={setPrice}
+  min={0}
+  step={0.01}
+  placeholder="0.00"
+  currency="USD"
+  label="Price"
+  error={!!errors.price}
+/>
+
+// AFTER (Pure Shadcn with explicit composition)
+<FormItem>
+  <FormLabel>Price</FormLabel>
+  <FormControl>
+    <div className="relative">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+        $
+      </span>
+      <Input
+        type="number"
+        min={0}
+        step={0.01}
+        placeholder="0.00"
+        value={price}
+        onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+        className="pl-8 text-right"
+      />
+    </div>
+  </FormControl>
+  <FormMessage />
+</FormItem>
+```
+
+**Number Formatting Research:**
+```typescript
+// Research community patterns for:
+// 1. react-number-format integration with shadcn Input
+// 2. Currency symbol positioning and internationalization
+// 3. Number validation and formatting best practices
+// 4. Decimal precision handling in forms
+// 5. Accessibility considerations for number inputs
+
+// Example research areas:
+// - How does shadcn community handle currency inputs?
+// - What are the standard patterns for number validation?
+// - How to handle international number formats?
+// - Best practices for form integration with complex inputs?
+```
+
+---
+
+### PR E3: Advanced Input Components Research & Implementation
+**Dependencies:** E2
+
+**Research Focus:**
+- Study advanced input patterns in shadcn community
+- Research accessibility best practices for complex inputs
+- Analyze performance implications of different input approaches
+- Document recommended patterns for future input components
+
+**Implementation:**
+- Create documentation for number/currency input patterns
+- Establish guidelines for future complex input implementations
+- Provide examples and best practices for the team
+
+---
+
+## Track F: Final Cleanup
+
+### PR F1: Component Cleanup & Deletion
 **Dependencies:** All previous PRs
-
-**Automated Import Update:**
-```bash
-#!/bin/bash
-# scripts/standardize-imports.sh
-
-# Standardize all shadcn component imports
-find src -name "*.tsx" -type f -exec sed -i '' \
-  -e 's|from '\''@/components/ui/\*'\''|from "@/components/ui/*"|g' \
-  -e 's|from '\''@/lib/\*'\''|from "@/lib/*"|g' \
-  -e 's|from '\''@/utils/core'\''|from "@/lib/utils"|g' \
-  {} \;
-```
-
-**Test Coverage Required:**
-```typescript
-describe('Import Standardization', () => {
-  test('All imports use consistent paths')
-  test('No broken import references')
-  test('All shadcn components importable')
-  test('TypeScript compilation succeeds')
-})
-```
-
----
-
-### PR E2: Component Cleanup & Deletion
-**Dependencies:** E1
 
 **Files to delete:**
 ```bash
@@ -1489,21 +1329,10 @@ echo "Checking for clsx/twMerge..."
 grep -r "clsx\|twMerge" src/ && echo "❌ Old utilities found" || echo "✅ No old utilities"
 ```
 
-**Test Coverage Required:**
-```typescript
-describe('Cleanup Verification', () => {
-  test('No ion component references remain')
-  test('No custom color references remain')
-  test('No clsx/twMerge references remain')
-  test('All imports resolve correctly')
-  test('Application builds successfully')
-})
-```
-
 ---
 
-### PR E3: Documentation & Type Updates
-**Dependencies:** E2
+### PR F2: Documentation & Type Updates
+**Dependencies:** F1
 
 **Files to create/update:**
 ```
@@ -1527,60 +1356,12 @@ src/types/
 
 # Component Usage
 - All available shadcn components
-- Custom extensions and variants
 - Usage examples and best practices
+- Research findings for complex components
 
 # Color System
 - Shadcn color token reference
 - Dark mode implementation
-- Custom color additions
-```
-
----
-
-### PR E4: Performance Testing & Optimization
-**Dependencies:** E3
-
-**Performance Metrics to Track:**
-```typescript
-// Performance benchmarks
-const performanceMetrics = {
-  bundleSize: {
-    before: '2.5MB', // With ion components
-    after: '1.8MB',  // Target with shadcn
-    improvement: '28%'
-  },
-  
-  renderTime: {
-    tableComponent: {
-      before: '45ms',
-      after: '32ms',
-      improvement: '29%'
-    },
-    modalComponent: {
-      before: '23ms', 
-      after: '18ms',
-      improvement: '22%'
-    }
-  },
-  
-  accessibility: {
-    before: '85%', // WCAG compliance
-    after: '95%',  // Target with shadcn
-    improvement: '12%'
-  }
-}
-```
-
-**Test Coverage Required:**
-```typescript
-describe('Performance & Quality', () => {
-  test('Bundle size reduced by target percentage')
-  test('Component render times improved')
-  test('Accessibility compliance increased')
-  test('No performance regressions')
-  test('All user flows function correctly')
-})
 ```
 
 ---
@@ -1597,13 +1378,11 @@ describe('Performance & Quality', () => {
 - Begin parallel component work
 
 ### Week 2-3 - Core Components (Parallel)
-**Teams 1-6 work in parallel:**
+**Teams 1-4 work in parallel:**
 - **Team 1**: PR B1 (Modal → Dialog Migration)
-- **Team 2**: PR B2 (Table → Data Table Migration)  
-- **Team 3**: PR B3 (Badge Component Migration)
-- **Team 4**: PR B4 (Form Components Migration)
-- **Team 5**: PR B5 (Input Components Migration)
-- **Team 6**: PR B6 (Layout Components Migration)
+- **Team 2**: PR B2 (Badge Component Migration)
+- **Team 3**: PR B3 (Form Components Migration)
+- **Team 4**: PR B4 (Layout Components Migration)
 
 ### Week 4 - Specialized Components (Parallel)
 **Teams 1-4 work in parallel:**
@@ -1618,14 +1397,18 @@ describe('Performance & Quality', () => {
 - **Team 2**: PR D2 (Utility Function Migration)
 - **Team 3**: PR D3 (Custom CSS Cleanup)
 
-### Week 6 - Integration & Cleanup (Sequential)
+### Week 6 - Complex Components (Parallel)
+**Teams 1-3 work in parallel:**
+- **Team 1**: PR E1 (Table Components Migration)
+- **Team 2**: PR E2 (Input Components Migration - NumberInput, CurrencyInput)
+- **Team 3**: PR E3 (Advanced Input Components Research & Implementation)
+
+### Week 7 - Final Integration & Cleanup (Sequential)
 **Monday-Tuesday:**
-- **Team 1**: PR E1 (Import Path Standardization)
-- **Team 2**: PR E2 (Component Cleanup & Deletion)
+- **Team 1**: PR F1 (Component Cleanup & Deletion)
 
 **Wednesday-Thursday:**
-- **Team 1**: PR E3 (Documentation & Type Updates)
-- **Team 2**: PR E4 (Performance Testing & Optimization)
+- **Team 2**: PR F2 (Documentation & Type Updates)
 
 **Friday:**
 - Final testing and deployment preparation
@@ -1638,11 +1421,9 @@ describe('Performance & Quality', () => {
 graph TD
     A1[Shadcn Config] --> A2[CSS Variables]
     A1 --> B1[Modal Migration]
-    A1 --> B2[Table Migration]
-    A1 --> B3[Badge Migration]
-    A1 --> B4[Form Migration]
-    A1 --> B5[Input Migration]
-    A1 --> B6[Layout Migration]
+    A1 --> B2[Badge Migration]
+    A1 --> B3[Form Migration]
+    A1 --> B4[Layout Migration]
     A1 --> C1[Calendar Migration]
     A1 --> C2[Skeleton Migration]
     A1 --> C3[Checkout Migration]
@@ -1652,12 +1433,10 @@ graph TD
     A2 --> D2[Utility Updates]
     A2 --> D3[CSS Cleanup]
     
-    B1 --> E1[Import Standardization]
+    B1 --> E1[Table Migration]
     B2 --> E1
     B3 --> E1
     B4 --> E1
-    B5 --> E1
-    B6 --> E1
     C1 --> E1
     C2 --> E1
     C3 --> E1
@@ -1666,9 +1445,11 @@ graph TD
     D2 --> E1
     D3 --> E1
     
-    E1 --> E2[Cleanup & Deletion]
-    E2 --> E3[Documentation]
-    E3 --> E4[Performance Testing]
+    E1 --> E2[Input Migration]
+    E1 --> E3[Input Research]
+    E2 --> F1[Cleanup & Deletion]
+    E3 --> F1
+    F1 --> F2[Documentation]
 ```
 
 ---
@@ -1689,19 +1470,12 @@ graph TD
 - [ ] No visual regressions in UI components
 - [ ] Consistent color usage across application
 
-### Performance Improvements
-- [ ] Bundle size reduced by 25%+ (target: 2.5MB → 1.8MB)
-- [ ] Component render times improved by 20%+
-- [ ] Accessibility compliance increased to 95%+
-- [ ] No performance regressions in user flows
-- [ ] Lighthouse scores maintained or improved
-
 ### Code Quality
-- [ ] 100% test coverage for migration changes
 - [ ] All automated migration scripts successful
 - [ ] No remaining clsx/twMerge references
 - [ ] Consistent import paths throughout codebase
 - [ ] Complete documentation for new component system
+- [ ] Research documentation for complex components completed
 
 ### Integration Quality
 - [ ] All user flows function correctly
@@ -1762,21 +1536,34 @@ Each PR section above is self-contained and can be assigned to a separate agent.
 6. **Dependencies** and integration points
 
 ### Agent Guidelines:
-1. **Follow existing code patterns** and project conventions
-2. **Include comprehensive TypeScript types** for all new components
-3. **Write tests alongside implementation** with required coverage
+1. **Standardize imports before starting** - Each agent must standardize import paths in their assigned files before making any changes
+2. **Follow existing code patterns** and project conventions
+3. **Include comprehensive TypeScript types** for all new components
 4. **Document all public APIs** and migration changes
-5. **Follow shadcn conventions** for component structure and naming
+5. **Follow shadcn conventions** for component structure and naming exactly
 6. **Use automated migration scripts** where provided
 7. **Validate no regressions** in existing functionality
 8. **Ensure accessibility compliance** with WCAG standards
+9. **Research community patterns** for complex components before implementation
+
+### Import Standardization Requirement:
+**Every agent must run this before starting their assigned PR:**
+```bash
+#!/bin/bash
+# Standardize imports in assigned files
+find [assigned-files] -name "*.tsx" -type f -exec sed -i '' \
+  -e 's|from '\''@/components/ui/\*'\''|from "@/components/ui/*"|g' \
+  -e 's|from '\''@/lib/\*'\''|from "@/lib/*"|g' \
+  -e 's|from '\''@/utils/core'\''|from "@/lib/utils"|g' \
+  {} \;
+```
 
 ### Testing Strategy:
-- **Unit tests** for all migrated components
-- **Integration tests** for component interactions  
-- **Visual regression tests** for UI consistency
-- **Performance tests** for render time and bundle size
-- **Accessibility tests** for WCAG compliance
-- **End-to-end tests** for critical user flows
+- **Manual testing** for all migrated components
+- **Visual verification** for UI consistency
+- **Functional testing** for component interactions
+- **Accessibility verification** with screen readers
+- **Cross-browser testing** for compatibility
+- **UI testing strategy** to be determined in future planning sessions
 
 This migration plan provides the detailed, specific approach needed to successfully transition Flowglad to a fully shadcn-based component system while maintaining quality, performance, and user experience standards.

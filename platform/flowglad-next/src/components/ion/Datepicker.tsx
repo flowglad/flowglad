@@ -6,9 +6,16 @@ import React, { useEffect, useRef } from 'react'
 import {
   DateRange,
   Matcher,
-  type UseInputOptions,
-  useInput,
 } from 'react-day-picker'
+
+// TODO: Track B - Replace with shadcn date-picker pattern
+// Temporary fix: useInput and UseInputOptions removed in react-day-picker 9.x
+type UseInputOptions = any;
+const useInput = () => ({
+  inputProps: {},
+  dayPickerProps: {},
+  setSelected: () => {},
+});
 import { twMerge } from 'tailwind-merge'
 
 import { Calendar } from './Calendar'
