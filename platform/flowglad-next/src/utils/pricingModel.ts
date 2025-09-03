@@ -27,7 +27,22 @@ import {
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from '@/db/tableMethods/pricingModelMethods'
 import { ClonePricingModelInput } from '@/db/schema/pricingModels'
-import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
+import {
+  syncProductFeatures,
+  selectProductFeatures,
+  bulkInsertProductFeatures,
+} from '@/db/tableMethods/productFeatureMethods'
+import {
+  selectUsageMeters,
+  bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
+} from '@/db/tableMethods/usageMeterMethods'
+import {
+  selectFeatures,
+  bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
+} from '@/db/tableMethods/featureMethods'
+import { UsageMeter } from '@/db/schema/usageMeters'
+import { Feature } from '@/db/schema/features'
+import { ProductFeature } from '@/db/schema/productFeatures'
 
 export const createPrice = async (
   payload: Price.Insert,
@@ -140,6 +155,46 @@ export const clonePricingModelTransaction = async (
     },
     transaction
   )
+
+  // Clone usage meters from source pricing model
+  const sourceUsageMeters = await selectUsageMeters(
+    { pricingModelId: pricingModel.id },
+    transaction
+  )
+
+  if (sourceUsageMeters.length > 0) {
+    const usageMeterInserts: UsageMeter.Insert[] =
+      sourceUsageMeters.map((meter) =>
+        omit(['id'], {
+          ...meter,
+          pricingModelId: newPricingModel.id,
+        })
+      )
+    await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
+      usageMeterInserts,
+      transaction
+    )
+  }
+
+  // Clone features from source pricing model
+  const sourceFeatures = await selectFeatures(
+    { pricingModelId: pricingModel.id },
+    transaction
+  )
+
+  if (sourceFeatures.length > 0) {
+    const featureInserts: Feature.Insert[] = sourceFeatures.map(
+      (feature) =>
+        omit(['id'], {
+          ...feature,
+          pricingModelId: newPricingModel.id,
+        })
+    )
+    await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
+      featureInserts,
+      transaction
+    )
+  }
   const productsWithPrices =
     await selectPricesAndProductsByProductWhere(
       {
@@ -148,6 +203,16 @@ export const clonePricingModelTransaction = async (
       transaction
     )
   const products = productsWithPrices as ProductWithPrices[]
+
+  // Get all product features for the source products
+  const sourceProductIds = products.map((p) => p.id)
+  const sourceProductFeatures =
+    sourceProductIds.length > 0
+      ? await selectProductFeatures(
+          { productId: sourceProductIds },
+          transaction
+        )
+      : []
   // Create a map of existing product id => new product insert
   const productInsertMap = new Map<string, Product.Insert>(
     products.map((product) => [
@@ -212,6 +277,57 @@ export const clonePricingModelTransaction = async (
 
   // Bulk insert all new prices
   await bulkInsertPrices(allPriceInserts, transaction)
+
+  // Clone product features if any exist
+  if (sourceProductFeatures.length > 0) {
+    // Get newly created features for mapping
+    const newFeatures = await selectFeatures(
+      { pricingModelId: newPricingModel.id },
+      transaction
+    )
+
+    // Create a map from source feature slug to new feature id
+    const sourceFeatureSlugs = sourceFeatures.reduce(
+      (acc, f) => ({ ...acc, [f.id]: f.slug }),
+      {} as Record<string, string>
+    )
+    const newFeatureIdBySlug = newFeatures.reduce(
+      (acc, f) => ({ ...acc, [f.slug]: f.id }),
+      {} as Record<string, string>
+    )
+
+    // Create product feature inserts with new product and feature ids
+    const productFeatureInserts: ProductFeature.Insert[] = []
+    for (const sourcePf of sourceProductFeatures) {
+      if (sourcePf.expiredAt) {
+        // Skip expired product features
+        continue
+      }
+      const newProductId = oldProductIdToNewProductIdMap.get(
+        sourcePf.productId
+      )
+      const sourceFeatureSlug = sourceFeatureSlugs[sourcePf.featureId]
+      const newFeatureId = sourceFeatureSlug
+        ? newFeatureIdBySlug[sourceFeatureSlug]
+        : undefined
+
+      if (newProductId && newFeatureId) {
+        productFeatureInserts.push({
+          productId: newProductId,
+          featureId: newFeatureId,
+          organizationId: pricingModel.organizationId,
+          livemode: pricingModel.livemode,
+        })
+      }
+    }
+
+    if (productFeatureInserts.length > 0) {
+      await bulkInsertProductFeatures(
+        productFeatureInserts,
+        transaction
+      )
+    }
+  }
 
   // Return the newly created pricing model with products and prices
   const [newPricingModelWithProducts] =
