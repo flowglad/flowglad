@@ -39,6 +39,8 @@ import { ApiKey } from '@/db/schema/apiKeys'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { ProductFeature } from '@/db/schema/productFeatures'
+import { productFeatures } from '@/db/schema/productFeatures'
+import { eq } from 'drizzle-orm'
 
 describe('clonePricingModelTransaction', () => {
   let organization: Organization.Record
@@ -1912,10 +1914,6 @@ describe('clonePricingModelTransaction', () => {
     })
   })
 })
-
-// Add missing import for productFeatures table
-import { productFeatures } from '@/db/schema/productFeatures'
-import { eq } from 'drizzle-orm'
 
 describe('createProductTransaction', () => {
   let organization: Organization.Record
