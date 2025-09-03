@@ -6,6 +6,11 @@ import {
   setupUserAndApiKey,
   setupPricingModel,
   setupToggleFeature,
+  setupUsageCreditGrantFeature,
+  setupUsageMeter,
+  setupProduct,
+  setupPrice,
+  setupProductFeature,
 } from '@/../seedDatabase'
 import {
   clonePricingModelTransaction,
@@ -17,35 +22,21 @@ import {
   PriceType,
   CurrencyCode,
   FeatureType,
-  UsageMeterAggregationType,
   FeatureUsageGrantFrequency,
   DestinationEnvironment,
 } from '@/types'
+import { core } from '@/utils/core'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
-import {
-  selectPricesAndProductsByProductWhere,
-  insertPrice,
-} from '@/db/tableMethods/priceMethods'
-import { insertProduct } from '@/db/tableMethods/productMethods'
+import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { Product } from '@/db/schema/products'
-import { nulledPriceColumns, Price } from '@/db/schema/prices'
+import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Feature } from '@/db/schema/features'
-import {
-  insertFeature,
-  selectFeatures,
-} from '@/db/tableMethods/featureMethods'
-import {
-  selectProductFeatures,
-  insertProductFeature,
-} from '@/db/tableMethods/productFeatureMethods'
+import { selectFeatures } from '@/db/tableMethods/featureMethods'
+import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { ApiKey } from '@/db/schema/apiKeys'
-import core from './core'
-import {
-  selectUsageMeters,
-  insertUsageMeter,
-} from '@/db/tableMethods/usageMeterMethods'
+import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { ProductFeature } from '@/db/schema/productFeatures'
 
@@ -201,50 +192,23 @@ describe('clonePricingModelTransaction', () => {
 
     it('should handle a pricing model with multiple products correctly', async () => {
       // Create additional products in source pricing model
-      const product2 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertProduct(
-            {
-              name: 'Second Product',
-              organizationId: organization.id,
-              livemode: true,
-              description: null,
-              active: true,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: sourcePricingModel.id,
-              imageURL: null,
-              externalId: null,
-              default: false,
-              slug: `flowglad-test-product-price+${core.nanoid()}`,
-            },
-            transaction
-          )
-        }
-      )
+      const product2 = await setupProduct({
+        name: 'Second Product',
+        organizationId: organization.id,
+        livemode: true,
+        pricingModelId: sourcePricingModel.id,
+        active: true,
+      })
 
-      await adminTransaction(async ({ transaction }) => {
-        return insertPrice(
-          {
-            ...nulledPriceColumns,
-            productId: product2.id,
-            name: 'Second Product Price',
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            livemode: true,
-            active: true,
-            isDefault: true,
-            unitPrice: 2000,
-            setupFeeAmount: 0,
-            trialPeriodDays: 0,
-            currency: CurrencyCode.USD,
-            externalId: null,
-            slug: `flowglad-test-product-price+${core.nanoid()}`,
-          },
-          transaction
-        )
+      await setupPrice({
+        productId: product2.id,
+        name: 'Second Product Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        unitPrice: 2000,
       })
 
       const clonedPricingModel = await adminTransaction(
@@ -557,37 +521,21 @@ describe('clonePricingModelTransaction', () => {
   describe('Usage Meters Cloning', () => {
     it('should clone usage meters with preserved slugs', async () => {
       // Create usage meters for the source pricing model
-      const usageMeter1 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'API Calls',
-              slug: 'api-calls',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const usageMeter1 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Calls',
+        slug: 'api-calls',
+        livemode: false,
+      })
 
-      const usageMeter2 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Storage GB',
-              slug: 'storage-gb',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Storage GB',
+        slug: 'storage-gb',
+        livemode: false,
+      })
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
@@ -665,65 +613,36 @@ describe('clonePricingModelTransaction', () => {
   describe('Features Cloning', () => {
     it('should clone features with preserved slugs', async () => {
       // Create different types of features
-      const toggleFeature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Premium Support',
-              slug: 'premium-support',
-              description: 'Access to premium support',
-              type: FeatureType.Toggle,
-              amount: null,
-              usageMeterId: null,
-              renewalFrequency: null,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const toggleFeature = await setupToggleFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Premium Support',
+        slug: 'premium-support',
+        description: 'Access to premium support',
+        livemode: false,
+      })
 
       // Create a usage meter for the usage credit grant feature
-      const apiRequestsMeter = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'API Requests Meter',
-              slug: 'api-requests-meter',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const apiRequestsMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Requests Meter',
+        slug: 'api-requests-meter',
+        livemode: false,
+      })
 
-      const usageFeature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'API Requests',
-              slug: 'api-requests',
-              description: 'Number of API requests',
-              type: FeatureType.UsageCreditGrant,
-              amount: 1000,
-              usageMeterId: apiRequestsMeter.id,
-              renewalFrequency:
-                FeatureUsageGrantFrequency.EveryBillingPeriod,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const usageFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Requests',
+        slug: 'api-requests',
+        description: 'Number of API requests',
+        amount: 1000,
+        usageMeterId: apiRequestsMeter.id,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        livemode: false,
+      })
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
@@ -798,44 +717,27 @@ describe('clonePricingModelTransaction', () => {
 
     it('should handle features with usage meter dependencies', async () => {
       // Create a usage meter first
-      const usageMeter = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Data Transfer',
-              slug: 'data-transfer',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Data Transfer',
+        slug: 'data-transfer',
+        livemode: false,
+      })
 
       // Create a feature that references the usage meter
-      const featureWithMeter = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Bandwidth Usage',
-              slug: 'bandwidth-usage',
-              description: 'Monthly bandwidth allowance',
-              type: FeatureType.UsageCreditGrant,
-              amount: 5000,
-              usageMeterId: usageMeter.id,
-              renewalFrequency:
-                FeatureUsageGrantFrequency.EveryBillingPeriod,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const featureWithMeter = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Bandwidth Usage',
+        slug: 'bandwidth-usage',
+        description: 'Monthly bandwidth allowance',
+        amount: 5000,
+        usageMeterId: usageMeter.id,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        livemode: false,
+      })
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
@@ -905,33 +807,19 @@ describe('clonePricingModelTransaction', () => {
   describe('Product Features Cloning', () => {
     it('should clone product features associations', async () => {
       // Associate features with the product
-      const productFeature1 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertProductFeature(
-            {
-              productId: product.id,
-              featureId: features[0].id,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const productFeature1 = await setupProductFeature({
+        productId: product.id,
+        featureId: features[0].id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
-      const productFeature2 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertProductFeature(
-            {
-              productId: product.id,
-              featureId: features[1].id,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const productFeature2 = await setupProductFeature({
+        productId: product.id,
+        featureId: features[1].id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
@@ -1007,32 +895,22 @@ describe('clonePricingModelTransaction', () => {
 
     it('should not clone expired product features', async () => {
       // Create active product feature
-      const activeProductFeature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertProductFeature(
-            {
-              productId: product.id,
-              featureId: features[0].id,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const activeProductFeature = await setupProductFeature({
+        productId: product.id,
+        featureId: features[0].id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
       // Create expired product feature
       const expiredProductFeature = await adminTransaction(
         async ({ transaction }) => {
-          const pf = await insertProductFeature(
-            {
-              productId: product.id,
-              featureId: features[1].id,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+          const pf = await setupProductFeature({
+            productId: product.id,
+            featureId: features[1].id,
+            organizationId: organization.id,
+            livemode: false,
+          })
           // Mark it as expired
           return await transaction
             .update(productFeatures)
@@ -1090,125 +968,67 @@ describe('clonePricingModelTransaction', () => {
       // Setup: Create a comprehensive pricing model with all components
 
       // 1. Create usage meters
-      const meter1 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'API Requests',
-              slug: 'api-requests-meter',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const meter1 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Requests',
+        slug: 'api-requests-meter',
+        livemode: false,
+      })
 
       // 2. Create additional features
-      const additionalFeature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Advanced Analytics',
-              slug: 'advanced-analytics',
-              description: 'Access to advanced analytics dashboard',
-              type: FeatureType.Toggle,
-              amount: null,
-              usageMeterId: null,
-              renewalFrequency: null,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const additionalFeature = await setupToggleFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Advanced Analytics',
+        slug: 'advanced-analytics',
+        description: 'Access to advanced analytics dashboard',
+        livemode: false,
+      })
 
       // 3. Create additional product
-      const product2 = await adminTransaction(
-        async ({ transaction }) => {
-          const newProduct = await insertProduct(
-            {
-              name: 'Pro Plan',
-              organizationId: organization.id,
-              livemode: false,
-              description: 'Professional tier',
-              active: true,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: sourcePricingModel.id,
-              imageURL: null,
-              externalId: null,
-              default: false,
-              slug: `pro-plan-${core.nanoid()}`,
-            },
-            transaction
-          )
+      const product2 = await setupProduct({
+        name: 'Pro Plan',
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        livemode: false,
+        active: true,
+      })
 
-          // Add price for the product
-          await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: newProduct.id,
-              name: 'Pro Monthly',
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: false,
-              active: true,
-              isDefault: true,
-              unitPrice: 5000,
-              setupFeeAmount: 0,
-              trialPeriodDays: 14,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              slug: `pro-monthly-${core.nanoid()}`,
-            },
-            transaction
-          )
-
-          return newProduct
-        }
-      )
+      // Add price for the product
+      await setupPrice({
+        productId: product2.id,
+        name: 'Pro Monthly',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: false,
+        isDefault: true,
+        unitPrice: 5000,
+      })
 
       // 4. Associate features with products
-      await adminTransaction(async ({ transaction }) => {
-        // Associate features with first product
-        await insertProductFeature(
-          {
-            productId: product.id,
-            featureId: features[0].id,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+      // Associate features with first product
+      await setupProductFeature({
+        productId: product.id,
+        featureId: features[0].id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
-        // Associate features with second product
-        await insertProductFeature(
-          {
-            productId: product2.id,
-            featureId: additionalFeature.id,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+      // Associate features with second product
+      await setupProductFeature({
+        productId: product2.id,
+        featureId: additionalFeature.id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
-        await insertProductFeature(
-          {
-            productId: product2.id,
-            featureId: features[1].id,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+      await setupProductFeature({
+        productId: product2.id,
+        featureId: features[1].id,
+        organizationId: organization.id,
+        livemode: false,
       })
 
       // Clone the comprehensive pricing model
@@ -1310,98 +1130,48 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Add various artifacts to the source pricing model
-      const usageMeter = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: livemodeSource.id,
-              name: 'Test Meter',
-              slug: 'test-meter',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: true,
-            },
-            transaction
-          )
-        }
-      )
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: livemodeSource.id,
+        name: 'Test Meter',
+        slug: 'test-meter',
+        livemode: true,
+      })
 
-      const feature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: livemodeSource.id,
-              name: 'Test Feature',
-              slug: 'test-feature',
-              description: 'Test feature',
-              type: FeatureType.Toggle,
-              amount: null,
-              usageMeterId: null,
-              renewalFrequency: null,
-              active: true,
-              livemode: true,
-            },
-            transaction
-          )
-        }
-      )
+      const feature = await setupToggleFeature({
+        organizationId: organization.id,
+        pricingModelId: livemodeSource.id,
+        name: 'Test Feature',
+        slug: 'test-feature',
+        description: 'Test feature',
+        livemode: true,
+      })
 
-      const product = await adminTransaction(
-        async ({ transaction }) => {
-          const newProduct = await insertProduct(
-            {
-              name: 'Livemode Product',
-              organizationId: organization.id,
-              livemode: true,
-              description: null,
-              active: true,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: livemodeSource.id,
-              imageURL: null,
-              externalId: null,
-              default: false,
-              slug: `livemode-product-${core.nanoid()}`,
-            },
-            transaction
-          )
+      const product = await setupProduct({
+        name: 'Livemode Product',
+        organizationId: organization.id,
+        pricingModelId: livemodeSource.id,
+        livemode: true,
+        active: true,
+      })
 
-          await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: newProduct.id,
-              name: 'Livemode Price',
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              active: true,
-              isDefault: true,
-              unitPrice: 1000,
-              setupFeeAmount: 0,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              slug: `livemode-price-${core.nanoid()}`,
-            },
-            transaction
-          )
+      await setupPrice({
+        productId: product.id,
+        name: 'Livemode Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        unitPrice: 1000,
+      })
 
-          await insertProductFeature(
-            {
-              productId: newProduct.id,
-              featureId: feature.id,
-              organizationId: organization.id,
-              livemode: true,
-            },
-            transaction
-          )
-
-          return newProduct
-        }
-      )
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature.id,
+        organizationId: organization.id,
+        livemode: true,
+      })
 
       // Clone without specifying destinationEnvironment
       const clonedPricingModel = await adminTransaction(
@@ -1474,98 +1244,48 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Add artifacts to the source pricing model (all testmode)
-      const usageMeter = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: testmodeSource.id,
-              name: 'Test Meter',
-              slug: 'test-meter-2',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: testmodeSource.id,
+        name: 'Test Meter',
+        slug: 'test-meter-2',
+        livemode: false,
+      })
 
-      const feature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: testmodeSource.id,
-              name: 'Test Feature',
-              slug: 'test-feature-2',
-              description: 'Test feature',
-              type: FeatureType.Toggle,
-              amount: null,
-              usageMeterId: null,
-              renewalFrequency: null,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const feature = await setupToggleFeature({
+        organizationId: organization.id,
+        pricingModelId: testmodeSource.id,
+        name: 'Test Feature',
+        slug: 'test-feature-2',
+        description: 'Test feature',
+        livemode: false,
+      })
 
-      const product = await adminTransaction(
-        async ({ transaction }) => {
-          const newProduct = await insertProduct(
-            {
-              name: 'Testmode Product',
-              organizationId: organization.id,
-              livemode: false,
-              description: null,
-              active: true,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: testmodeSource.id,
-              imageURL: null,
-              externalId: null,
-              default: false,
-              slug: `testmode-product-${core.nanoid()}`,
-            },
-            transaction
-          )
+      const product = await setupProduct({
+        name: 'Testmode Product',
+        organizationId: organization.id,
+        pricingModelId: testmodeSource.id,
+        livemode: false,
+        active: true,
+      })
 
-          await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: newProduct.id,
-              name: 'Testmode Price',
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: false,
-              active: true,
-              isDefault: true,
-              unitPrice: 2000,
-              setupFeeAmount: 0,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              slug: `testmode-price-${core.nanoid()}`,
-            },
-            transaction
-          )
+      await setupPrice({
+        productId: product.id,
+        name: 'Testmode Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: false,
+        isDefault: true,
+        unitPrice: 2000,
+      })
 
-          await insertProductFeature(
-            {
-              productId: newProduct.id,
-              featureId: feature.id,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-
-          return newProduct
-        }
-      )
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature.id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
       // Clone with destinationEnvironment = Livemode (should override source's testmode)
       const clonedPricingModel = await adminTransaction(
@@ -1638,98 +1358,48 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Add artifacts to the source pricing model (all livemode)
-      const usageMeter = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: livemodeSource.id,
-              name: 'Test Meter',
-              slug: 'test-meter-3',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: true,
-            },
-            transaction
-          )
-        }
-      )
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: livemodeSource.id,
+        name: 'Test Meter',
+        slug: 'test-meter-3',
+        livemode: true,
+      })
 
-      const feature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: livemodeSource.id,
-              name: 'Test Feature',
-              slug: 'test-feature-3',
-              description: 'Test feature',
-              type: FeatureType.Toggle,
-              amount: null,
-              usageMeterId: null,
-              renewalFrequency: null,
-              active: true,
-              livemode: true,
-            },
-            transaction
-          )
-        }
-      )
+      const feature = await setupToggleFeature({
+        organizationId: organization.id,
+        pricingModelId: livemodeSource.id,
+        name: 'Test Feature',
+        slug: 'test-feature-3',
+        description: 'Test feature',
+        livemode: true,
+      })
 
-      const product = await adminTransaction(
-        async ({ transaction }) => {
-          const newProduct = await insertProduct(
-            {
-              name: 'Livemode Product 2',
-              organizationId: organization.id,
-              livemode: true,
-              description: null,
-              active: true,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: livemodeSource.id,
-              imageURL: null,
-              externalId: null,
-              default: false,
-              slug: `livemode-product-2-${core.nanoid()}`,
-            },
-            transaction
-          )
+      const product = await setupProduct({
+        name: 'Livemode Product 2',
+        organizationId: organization.id,
+        pricingModelId: livemodeSource.id,
+        livemode: true,
+        active: true,
+      })
 
-          await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: newProduct.id,
-              name: 'Livemode Price 2',
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: true,
-              active: true,
-              isDefault: true,
-              unitPrice: 3000,
-              setupFeeAmount: 0,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              slug: `livemode-price-2-${core.nanoid()}`,
-            },
-            transaction
-          )
+      await setupPrice({
+        productId: product.id,
+        name: 'Livemode Price 2',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        unitPrice: 3000,
+      })
 
-          await insertProductFeature(
-            {
-              productId: newProduct.id,
-              featureId: feature.id,
-              organizationId: organization.id,
-              livemode: true,
-            },
-            transaction
-          )
-
-          return newProduct
-        }
-      )
+      await setupProductFeature({
+        productId: product.id,
+        featureId: feature.id,
+        organizationId: organization.id,
+        livemode: true,
+      })
 
       // Clone with destinationEnvironment = Testmode (should override source's livemode)
       const clonedPricingModel = await adminTransaction(
@@ -1802,18 +1472,12 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Add a simple artifact
-      await adminTransaction(async ({ transaction }) => {
-        return insertUsageMeter(
-          {
-            organizationId: organization.id,
-            pricingModelId: testmodeSource.id,
-            name: 'Test Meter',
-            slug: 'test-meter-4',
-            aggregationType: UsageMeterAggregationType.Sum,
-            livemode: false,
-          },
-          transaction
-        )
+      await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: testmodeSource.id,
+        name: 'Test Meter',
+        slug: 'test-meter-4',
+        livemode: false,
       })
 
       // Clone without specifying destinationEnvironment
@@ -1856,149 +1520,79 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Create usage meters
-      const sourceUsageMeter1 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'API Calls Meter',
-              slug: 'api-calls-meter-validation',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const sourceUsageMeter1 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'API Calls Meter',
+        slug: 'api-calls-meter-validation',
+        livemode: false,
+      })
 
-      const sourceUsageMeter2 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Storage Meter',
-              slug: 'storage-meter-validation',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const sourceUsageMeter2 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Storage Meter',
+        slug: 'storage-meter-validation',
+        livemode: false,
+      })
 
       // Create features - one with usage meter reference
-      const sourceToggleFeature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Toggle Feature',
-              slug: 'toggle-feature-validation',
-              description: 'Toggle feature for validation',
-              type: FeatureType.Toggle,
-              amount: null,
-              usageMeterId: null,
-              renewalFrequency: null,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const sourceToggleFeature = await setupToggleFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Toggle Feature',
+        slug: 'toggle-feature-validation',
+        description: 'Toggle feature for validation',
+        livemode: false,
+      })
 
-      const sourceUsageFeature = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Usage Feature',
-              slug: 'usage-feature-validation',
-              description: 'Usage feature with meter reference',
-              type: FeatureType.UsageCreditGrant,
-              amount: 1000,
-              usageMeterId: sourceUsageMeter1.id, // Reference to source usage meter
-              renewalFrequency:
-                FeatureUsageGrantFrequency.EveryBillingPeriod,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const sourceUsageFeature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Usage Feature',
+        slug: 'usage-feature-validation',
+        description: 'Usage feature with meter reference',
+        amount: 1000,
+        usageMeterId: sourceUsageMeter1.id, // Reference to source usage meter
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        livemode: false,
+      })
 
       // Create product with prices and features
-      const sourceProduct = await adminTransaction(
-        async ({ transaction }) => {
-          const newProduct = await insertProduct(
-            {
-              name: 'Source Product',
-              organizationId: organization.id,
-              livemode: false,
-              description: 'Product for validation',
-              active: true,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              pricingModelId: sourcePricingModel.id,
-              imageURL: null,
-              externalId: null,
-              default: false,
-              slug: `source-product-${core.nanoid()}`,
-            },
-            transaction
-          )
+      const sourceProduct = await setupProduct({
+        name: 'Source Product',
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        livemode: false,
+        active: true,
+      })
 
-          const sourcePrice = await insertPrice(
-            {
-              ...nulledPriceColumns,
-              productId: newProduct.id,
-              name: 'Source Price',
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              livemode: false,
-              active: true,
-              isDefault: true,
-              unitPrice: 5000,
-              setupFeeAmount: 0,
-              trialPeriodDays: 0,
-              currency: CurrencyCode.USD,
-              externalId: null,
-              slug: `source-price-${core.nanoid()}`,
-            },
-            transaction
-          )
+      const sourcePrice = await setupPrice({
+        productId: sourceProduct.id,
+        name: 'Source Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: false,
+        isDefault: true,
+        unitPrice: 5000,
+      })
 
-          // Associate features with product
-          await insertProductFeature(
-            {
-              productId: newProduct.id,
-              featureId: sourceToggleFeature.id,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      // Associate features with product
+      await setupProductFeature({
+        productId: sourceProduct.id,
+        featureId: sourceToggleFeature.id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
-          await insertProductFeature(
-            {
-              productId: newProduct.id,
-              featureId: sourceUsageFeature.id,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-
-          return newProduct
-        }
-      )
+      await setupProductFeature({
+        productId: sourceProduct.id,
+        featureId: sourceUsageFeature.id,
+        organizationId: organization.id,
+        livemode: false,
+      })
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
@@ -2194,103 +1788,56 @@ describe('clonePricingModelTransaction', () => {
       })
 
       // Create multiple usage meters
-      const meter1 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Meter 1',
-              slug: 'meter-1',
-              aggregationType: UsageMeterAggregationType.Sum,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const meter1 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Meter 1',
+        slug: 'meter-1',
+        livemode: false,
+      })
 
-      const meter2 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertUsageMeter(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Meter 2',
-              slug: 'meter-2',
-              aggregationType:
-                UsageMeterAggregationType.CountDistinctProperties,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const meter2 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Meter 2',
+        slug: 'meter-2',
+        livemode: false,
+      })
 
       // Create features referencing different meters
-      const feature1 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Feature with Meter 1',
-              slug: 'feature-meter-1',
-              description: 'References meter 1',
-              type: FeatureType.UsageCreditGrant,
-              amount: 100,
-              usageMeterId: meter1.id,
-              renewalFrequency:
-                FeatureUsageGrantFrequency.EveryBillingPeriod,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const feature1 = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Feature with Meter 1',
+        slug: 'feature-meter-1',
+        description: 'References meter 1',
+        amount: 100,
+        usageMeterId: meter1.id,
+        renewalFrequency:
+          FeatureUsageGrantFrequency.EveryBillingPeriod,
+        livemode: false,
+      })
 
-      const feature2 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Feature with Meter 2',
-              slug: 'feature-meter-2',
-              description: 'References meter 2',
-              type: FeatureType.UsageCreditGrant,
-              amount: 200,
-              usageMeterId: meter2.id,
-              renewalFrequency: FeatureUsageGrantFrequency.Once,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const feature2 = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Feature with Meter 2',
+        slug: 'feature-meter-2',
+        description: 'References meter 2',
+        amount: 200,
+        usageMeterId: meter2.id,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: false,
+      })
 
-      const feature3 = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            {
-              organizationId: organization.id,
-              pricingModelId: sourcePricingModel.id,
-              name: 'Feature with No Meter',
-              slug: 'feature-no-meter',
-              description: 'No meter reference',
-              type: FeatureType.Toggle,
-              amount: null,
-              usageMeterId: null,
-              renewalFrequency: null,
-              active: true,
-              livemode: false,
-            },
-            transaction
-          )
-        }
-      )
+      const feature3 = await setupToggleFeature({
+        organizationId: organization.id,
+        pricingModelId: sourcePricingModel.id,
+        name: 'Feature with No Meter',
+        slug: 'feature-no-meter',
+        description: 'No meter reference',
+        livemode: false,
+      })
 
       // Clone the pricing model
       const clonedPricingModel = await adminTransaction(
