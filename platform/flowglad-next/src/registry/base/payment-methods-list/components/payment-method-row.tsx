@@ -49,7 +49,11 @@ export function PaymentMethodRow({
   }
 
   const formatExpiry = () => {
-    if (paymentMethod.type === 'card' && paymentMethod.expiryMonth && paymentMethod.expiryYear) {
+    if (
+      paymentMethod.type === 'card' &&
+      paymentMethod.expiryMonth &&
+      paymentMethod.expiryYear
+    ) {
       return `${String(paymentMethod.expiryMonth).padStart(2, '0')}/${String(paymentMethod.expiryYear).slice(-2)}`
     }
     return null

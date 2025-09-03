@@ -122,6 +122,64 @@
         ]
       },
       {
+        "name": "subscription-card",
+        "type": "registry:component",
+        "title": "Subscription Card",
+        "description": "A comprehensive subscription card component with status display, billing details, and management actions.",
+        "registryDependencies": ["card", "button", "badge", "skeleton"],
+        "files": [
+          {
+            "path": "src/registry/base/subscription-card/subscription-card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/subscription-header.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/subscription-details.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/subscription-actions.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/cancel-subscription-dialog.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/cn.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/billing-interval.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/subscription-status.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/subscription-total.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/components/dialog.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/page.tsx",
+            "type": "registry:page",
+            "target": "app/subscription-card/page.tsx"
+          }
+        ]
+      },
+      {
         "name": "customer-selector",
         "type": "registry:component",
         "title": "Customer Selector",
@@ -133,11 +191,11 @@
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/customer-selector/components/customer-card.tsx",
+            "path": "src/registry/base/customer-selector/customer-card.tsx",
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/customer-selector/components/customer-avatar.tsx",
+            "path": "src/registry/base/customer-selector/customer-avatar.tsx",
             "type": "registry:component"
           },
           {
@@ -145,11 +203,11 @@
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/base/customer-selector/index.ts",
+            "path": "src/registry/lib/date.ts",
             "type": "registry:lib"
           },
           {
-            "path": "src/registry/lib/date.ts",
+            "path": "src/registry/lib/cn.ts",
             "type": "registry:lib"
           },
           {

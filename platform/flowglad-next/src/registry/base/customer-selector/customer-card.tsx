@@ -2,11 +2,11 @@
 
 import * as React from 'react'
 import { Check, Building2, Calendar } from 'lucide-react'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDate } from '@/registry/lib/date'
 import { CustomerAvatar } from './customer-avatar'
-import type { CustomerCardProps } from '../types'
+import type { CustomerCardProps } from './types'
 
 export function CustomerCard({
   customer,

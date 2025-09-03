@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { InvoiceRow } from './invoice-row'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/registry/base/skeleton/skeleton'

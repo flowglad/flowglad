@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { Button } from '@/components/ui/button'
 import { InvoiceStatusBadge } from './invoice-status-badge'
 import { InvoiceAmount } from './invoice-amount'
