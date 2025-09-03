@@ -22,6 +22,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
   defaultPricingModelId,
 }) => {
   const createFeatureMutation = trpc.features.create.useMutation() // Adjusted endpoint
+  const trpcContext = trpc.useContext()
   const { livemode } = useAuthenticatedContext()
   return (
     <FormModal<CreateFeatureInput>
@@ -45,6 +46,18 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
       }}
       onSubmit={async (data) => {
         await createFeatureMutation.mutateAsync(data)
+      }}
+      onSuccess={() => {
+        // Invalidate the specific query the dropdown uses
+        trpcContext.features.getFeaturesForPricingModel.invalidate({
+          pricingModelId: defaultPricingModelId,
+        })
+
+        // Invalidate the general list for other components
+        trpcContext.features.list.invalidate()
+
+        // Invalidate table data
+        trpcContext.features.getTableRows.invalidate()
       }}
     >
       <FeatureFormFields />

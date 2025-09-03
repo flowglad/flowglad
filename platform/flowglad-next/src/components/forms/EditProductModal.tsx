@@ -35,7 +35,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
           createdAt: new Date(0),
           direction: 'forward',
         }),
-        limit: 100,
+        limit: '100',
       },
       {
         enabled: isOpen, // Only fetch when modal is open

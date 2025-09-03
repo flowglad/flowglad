@@ -11,9 +11,16 @@ export const ProductFeatureMultiSelect = ({
   pricingModelId: string
 }) => {
   const { data: features } =
-    trpc.features.getFeaturesForPricingModel.useQuery({
-      pricingModelId,
-    })
+    trpc.features.getFeaturesForPricingModel.useQuery(
+      {
+        pricingModelId,
+      },
+      {
+        refetchOnMount: 'always', // Force refetch every time component mounts
+        staleTime: 0, // Consider data stale immediately
+      }
+    )
+
   const {
     formState: { errors },
     control,
