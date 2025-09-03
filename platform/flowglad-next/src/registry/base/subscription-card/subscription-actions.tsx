@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/registry/lib/cn'
 import { SubscriptionActionsProps } from './types'
-import { CancelSubscriptionModal } from './cancel-subscription-modal'
+import { CancelSubscriptionDialog } from './cancel-subscription-dialog'
 
 export function SubscriptionActions({
   subscriptionId,
@@ -50,17 +50,15 @@ export function SubscriptionActions({
         Cancel Subscription
       </Button>
 
-      {showCancelModal && (
-        <CancelSubscriptionModal
-          isOpen={showCancelModal}
-          onOpenChange={setShowCancelModal}
-          subscriptionId={subscriptionId}
-          subscriptionName={subscriptionName}
-          currentPeriodEnd={currentPeriodEnd}
-          onConfirm={handleCancel}
-          loading={isProcessing}
-        />
-      )}
+      <CancelSubscriptionDialog
+        isOpen={showCancelModal}
+        onOpenChange={setShowCancelModal}
+        subscriptionId={subscriptionId}
+        subscriptionName={subscriptionName}
+        currentPeriodEnd={currentPeriodEnd}
+        onConfirm={handleCancel}
+        loading={isProcessing}
+      />
     </div>
   )
 }

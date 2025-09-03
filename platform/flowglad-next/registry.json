@@ -85,7 +85,7 @@
             "type": "registry:component"
           },
           {
-            "path": "src/registry/base/subscription-card/cancel-subscription-modal.tsx",
+            "path": "src/registry/base/subscription-card/cancel-subscription-dialog.tsx",
             "type": "registry:component"
           },
           {
@@ -107,6 +107,10 @@
           {
             "path": "src/registry/lib/subscription-total.ts",
             "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/components/dialog.tsx",
+            "type": "registry:component"
           },
           {
             "path": "src/registry/base/subscription-card/page.tsx",

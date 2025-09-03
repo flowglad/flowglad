@@ -61,7 +61,7 @@ export interface SubscriptionActionsProps {
   className?: string
 }
 
-export interface CancelSubscriptionModalProps {
+export interface CancelSubscriptionDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   subscriptionId: string
