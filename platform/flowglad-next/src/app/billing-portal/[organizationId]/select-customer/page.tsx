@@ -1,25 +1,17 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import { CustomerSelector } from '@/registry/base/customer-selector/customer-selector'
 import { useSession } from '@/utils/authClient'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { use } from 'react'
 
-interface SelectCustomerPageProps {
-  params: Promise<{
-    organizationId: string
-  }>
-}
-
-export default function SelectCustomerPage({
-  params,
-}: SelectCustomerPageProps) {
-  const { organizationId } = use(params)
+export default function SelectCustomerPage() {
   const router = useRouter()
+  const params = useParams<{ organizationId: string }>()
+  const { organizationId } = params
   const { data: session, isPending: isSessionLoading } = useSession()
 
   // Fetch customers for the logged-in user

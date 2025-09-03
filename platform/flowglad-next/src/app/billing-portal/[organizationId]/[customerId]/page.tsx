@@ -1,24 +1,20 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useSession } from '@/utils/authClient'
 import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { LogOut, ChevronLeft, User, AlertCircle } from 'lucide-react'
 import { trpc } from '@/app/_trpc/client'
 import { toast } from 'sonner'
-import { use } from 'react'
 
-interface BillingPortalPageProps {
-  params: Promise<{
+const BillingPortalPage = () => {
+  const router = useRouter()
+  const params = useParams<{
     organizationId: string
     customerId: string
-  }>
-}
-
-const BillingPortalPage = ({ params }: BillingPortalPageProps) => {
-  const { organizationId, customerId } = use(params)
-  const router = useRouter()
+  }>()
+  const { organizationId, customerId } = params
   const { data: session } = useSession()
   const logoutMutation = trpc.utils.logout.useMutation()
 
