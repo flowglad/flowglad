@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import InvoiceFormLineItem from './InvoiceFormLineItem'
-import { Button } from '@/components/ui/button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Label } from '@/components/ui/label'
 import { Plus, GripVertical } from 'lucide-react'
 

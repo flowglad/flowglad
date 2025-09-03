@@ -52,11 +52,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       defaultValues={defaultValues}
       form={form ?? undefined}
     >
-      <div className="text-secondary gap-4">
-        <p className="text-secondary pb-4">
+      <div className="text-muted-foreground gap-4">
+        <p className="text-muted-foreground pb-4">
           {`Are you sure you want to delete this ${noun}?`}
         </p>
-        <p className="text-secondary pb-4">
+        <p className="text-muted-foreground pb-4">
           This action cannot be undone.
         </p>
       </div>

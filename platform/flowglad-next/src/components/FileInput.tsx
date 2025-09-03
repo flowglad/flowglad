@@ -5,7 +5,7 @@ import core, { cn } from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
 
 import { FileUploadData, Nullish } from '@/types'
-import { Button } from '@/components/ui/button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Label } from '@/components/ui/label'
 import { Plus, X, File as FileIcon } from 'lucide-react'
 

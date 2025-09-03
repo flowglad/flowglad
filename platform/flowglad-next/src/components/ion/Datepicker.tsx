@@ -1,6 +1,6 @@
 // Generated with Ion on 10/11/2024, 4:12:37 AM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=3690:18567
-// ion/DatePicker: Generated with Ion on 10/11/2024, 4:12:34 AM
+// ion/DatePicker: Migrated to use shadcn input directly
 import clsx from 'clsx'
 import React, { useEffect, useRef } from 'react'
 import {
@@ -12,16 +12,12 @@ import {
 import { twMerge } from 'tailwind-merge'
 
 import { Calendar } from './Calendar'
-import Hint from '@/components/ion/Hint'
-import {
-  inputClassNames,
-  inputContainerClasses,
-} from '@/components/ion/Input'
-import Label from '@/components/ion/Label'
+import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from './Popover'
-import Button from './Button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react'
 import core from '@/utils/core'
+import { cn } from '@/utils/core'
 
 /* ---------------------------------- Type --------------------------------- */
 
@@ -121,15 +117,16 @@ function Datepicker({
   return (
     <div className={className}>
       {label && (
-        <Label
-          id={`${id}__label`}
-          htmlFor={id}
-          required={required}
-          helper={helper}
-          disabled={props.disabled}
-          className="mb-1"
-        >
+        <Label htmlFor={id} className="mb-1">
           {label}
+          {required && (
+            <span className="text-destructive ml-1">*</span>
+          )}
+          {helper && (
+            <span className="text-muted-foreground ml-2 text-sm">
+              {helper}
+            </span>
+          )}
         </Label>
       )}
       <Popover
@@ -142,19 +139,24 @@ function Datepicker({
         }}
       >
         <PopoverTrigger asChild>
-          <span
-            className={twMerge(
-              clsx(
-                inputContainerClasses({
+          <div
+            className={cn(
+              'relative flex items-center w-full rounded-md border px-3 text-sm transition-all h-9',
+              'bg-input hover:border-input focus-within:ring-2 focus-within:ring-ring focus-within:border-ring',
+              {
+                'border-destructive focus-within:ring-destructive':
                   error,
-                  disabled: props.disabled,
-                }),
-                'bg-background-input group-focus-within:primary-focus group-focus:primary-focus',
-                inputFocused && 'primary-focus'
-              )
+                'border-input': !error,
+                'opacity-50 cursor-not-allowed': props.disabled,
+              },
+              inputFocused && 'ring-2 ring-ring border-ring'
             )}
           >
-            {iconLeading}
+            {iconLeading && (
+              <div className="absolute left-3 flex items-center text-muted-foreground z-10">
+                {iconLeading}
+              </div>
+            )}
             <input
               id={id}
               aria-required={required}
@@ -167,7 +169,11 @@ function Datepicker({
                     : 'Choose date'
                   : undefined
               }
-              className={inputClassNames}
+              className={cn(
+                'h-full w-full flex-shrink bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 disabled:pointer-events-none placeholder:text-muted-foreground disabled:text-muted-foreground/50 border-none px-0 text-sm',
+                iconLeading && 'pl-10',
+                iconTrailing && 'pr-10'
+              )}
               ref={inputRef}
               onChange={(e) => {
                 inputProps.onChange?.(e)
@@ -196,8 +202,12 @@ function Datepicker({
               disabled={props.disabled}
               {...inputProps}
             />
-            {iconTrailing}
-          </span>
+            {iconTrailing && (
+              <div className="absolute right-3 flex items-center text-muted-foreground z-10">
+                {iconTrailing}
+              </div>
+            )}
+          </div>
         </PopoverTrigger>
         <PopoverContent
           className="w-auto px-5 py-8 border border-stroke-strong"
@@ -225,15 +235,16 @@ function Datepicker({
         </PopoverContent>
       </Popover>
       {hint && (
-        <Hint
+        <p
           id={`${id}__hint`}
-          error={error}
-          className="mt-1"
-          showIcon={showHintIcon}
-          disabled={props.disabled}
+          className={cn('mt-1 text-sm', {
+            'text-destructive': error,
+            'text-muted-foreground': !error,
+            'text-muted-foreground/50': props.disabled,
+          })}
         >
           {hint}
-        </Hint>
+        </p>
       )}
     </div>
   )
@@ -282,15 +293,16 @@ export const DateRangePicker = ({
   return (
     <div className={className}>
       {label && (
-        <Label
-          id={`${id}__label`}
-          htmlFor={id}
-          required={required}
-          helper={helper}
-          disabled={props.disabled}
-          className="mb-1"
-        >
+        <Label htmlFor={id} className="mb-1">
           {label}
+          {required && (
+            <span className="text-destructive ml-1">*</span>
+          )}
+          {helper && (
+            <span className="text-muted-foreground ml-2 text-sm">
+              {helper}
+            </span>
+          )}
         </Label>
       )}
       <Popover
@@ -332,15 +344,16 @@ export const DateRangePicker = ({
         </PopoverContent>
       </Popover>
       {hint && (
-        <Hint
+        <p
           id={`${id}__hint`}
-          error={error}
-          className="mt-1"
-          showIcon={showHintIcon}
-          disabled={props.disabled}
+          className={cn('mt-1 text-sm', {
+            'text-destructive': error,
+            'text-muted-foreground': !error,
+            'text-muted-foreground/50': props.disabled,
+          })}
         >
           {hint}
-        </Hint>
+        </p>
       )}
     </div>
   )

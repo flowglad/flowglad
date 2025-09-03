@@ -9,7 +9,7 @@ import {
 } from '@stripe/react-stripe-js'
 import { FormEvent, useState } from 'react'
 import core, { cn } from '@/utils/core'
-import { Button } from '@/components/ui/button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { trpc } from '@/app/_trpc/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'

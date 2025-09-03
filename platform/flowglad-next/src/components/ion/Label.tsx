@@ -27,7 +27,7 @@ export interface LabelProps
 /* ---------------------------------- Component --------------------------------- */
 
 const labelVariants = cva(
-  'text-sm gap-1 font-medium text-secondary whitespace-nowrap peer-disabled:cursor-not-allowed peer-disabled:text-on-disabled'
+  'text-sm gap-1 font-medium text-muted-foreground whitespace-nowrap peer-disabled:cursor-not-allowed peer-disabled:text-on-disabled'
 )
 
 const Label = React.forwardRef<
@@ -93,7 +93,7 @@ const Label = React.forwardRef<
           id={descriptionId}
           className={clsx(
             'text-sm font-normal',
-            disabled ? 'text-on-disabled' : 'text-secondary'
+            disabled ? 'text-on-disabled' : 'text-muted-foreground'
           )}
         >
           {description}

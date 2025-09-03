@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { File } from '@/db/schema/files'
 import { Link } from '@/db/schema/links'
-import Button from './ion/Button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { useState } from 'react'
 import EditFileModal from '@/components/forms/EditFileModal'
 import EditLinkModal from '@/components/forms/EditLinkModal'

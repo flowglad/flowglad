@@ -49,16 +49,16 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
   }
 
   const modalText = product.active ? (
-    <div className="text-secondary gap-4">
+    <div className="text-muted-foreground gap-4">
       <p>Deactivating will hide this product from new purchases.</p>
       <p>Are you sure you want to deactivate this product?</p>
     </div>
   ) : (
-    <div className="text-secondary gap-4">
-      <p className="text-secondary pb-4">
+    <div className="text-muted-foreground gap-4">
+      <p className="text-muted-foreground pb-4">
         Activating will make this product available for new purchases.
       </p>
-      <p className="text-secondary pb-4">
+      <p className="text-muted-foreground pb-4">
         Are you sure you want to activate this product?
       </p>
     </div>

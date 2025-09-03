@@ -28,7 +28,7 @@ function SignupSideBar({ className = '' }: SignupSideBarProps) {
           <div className="text-5xl leading-[54px] font-semibold text-foreground w-full max-w-[372px]">
             {tagline}
           </div>
-          <div className="text-lg leading-6 text-secondary w-full max-w-[372px]">
+          <div className="text-lg leading-6 text-muted-foreground w-full max-w-[372px]">
             {taglineDescription}
           </div>
         </div>
