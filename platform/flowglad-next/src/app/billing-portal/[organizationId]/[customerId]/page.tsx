@@ -58,7 +58,9 @@ const BillingPortalPage = ({ params }: BillingPortalPageProps) => {
     // If customers are loaded and current customer is not in the list
     if (customersData?.customers && !currentCustomer) {
       toast.error('Access denied to this customer profile')
-      router.push(`/billing-portal/${organizationId}/select-customer`)
+      router.replace(
+        `/billing-portal/${organizationId}/select-customer`
+      )
     }
   }, [
     session,
