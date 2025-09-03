@@ -11,7 +11,7 @@ import {
   setupOrg,
   setupUserAndApiKey,
   teardownOrg,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import {
   Organization,
   organizations,

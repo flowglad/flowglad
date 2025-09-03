@@ -9,7 +9,7 @@ import {
   setupSubscription,
   setupBillingPeriod,
   setupBillingPeriodItem,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import {
   IntervalUnit,
   SubscriptionStatus,

@@ -5,7 +5,7 @@ import {
   setupCustomer,
   setupPaymentMethod,
   setupSubscription,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { setDefaultPaymentMethodForCustomer } from './customerBilling'
 import { Organization } from '@/db/schema/organizations'
 import { Customer } from '@/db/schema/customers'
