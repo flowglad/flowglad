@@ -881,6 +881,24 @@ describe('clonePricingModelTransaction', () => {
       // Verify that usageMeterId is correctly remapped to the new usage meter
       expect(clonedFeature?.usageMeterId).not.toBe(usageMeter.id)
       expect(clonedFeature?.usageMeterId).toBe(clonedMeter?.id)
+
+      // Verify that the cloned feature grants the same credits to the corresponding meter as the original
+      expect(clonedFeature?.amount).toBe(featureWithMeter.amount)
+      expect(clonedFeature?.amount).toBe(5000)
+      expect(clonedFeature?.renewalFrequency).toBe(
+        featureWithMeter.renewalFrequency
+      )
+      expect(clonedFeature?.renewalFrequency).toBe(
+        FeatureUsageGrantFrequency.EveryBillingPeriod
+      )
+
+      // Verify all other feature attributes are preserved
+      expect(clonedFeature?.name).toBe(featureWithMeter.name)
+      expect(clonedFeature?.description).toBe(
+        featureWithMeter.description
+      )
+      expect(clonedFeature?.type).toBe(featureWithMeter.type)
+      expect(clonedFeature?.active).toBe(featureWithMeter.active)
     })
   })
 
