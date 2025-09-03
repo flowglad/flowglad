@@ -55,15 +55,39 @@ import {
   safelyUpdatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 
-// getBilling procedure - copy of getCustomerBilling for customer portal
+// Enhanced getBilling procedure with pagination support for invoices
 const getBillingProcedure = customerProtectedProcedure
-  .input(z.object({}))
+  .input(
+    z.object({
+      customerId: z
+        .string()
+        .optional()
+        .describe('Optional customer ID for validation'),
+      invoicePagination: z
+        .object({
+          page: z.number().min(1).default(1),
+          pageSize: z.number().min(1).max(100).default(10),
+        })
+        .optional()
+        .describe('Pagination parameters for invoices'),
+    })
+  )
   .output(
     z.object({
       customer: customerClientSelectSchema,
       subscriptions: richSubscriptionClientSelectSchema.array(),
       invoices: invoiceWithLineItemsClientSchema.array(),
+      invoicePagination: z
+        .object({
+          page: z.number(),
+          pageSize: z.number(),
+          totalCount: z.number(),
+          totalPages: z.number(),
+        })
+        .optional()
+        .describe('Pagination metadata for invoices'),
       paymentMethods: paymentMethodClientSelectSchema.array(),
       purchases: purchaseClientSelectSchema.array(),
       currentSubscriptions: richSubscriptionClientSelectSchema
@@ -76,13 +100,22 @@ const getBillingProcedure = customerProtectedProcedure
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
   )
-  .query(async ({ ctx }) => {
+  .query(async ({ ctx, input }) => {
     const { customer, organizationId } = ctx
 
     if (!organizationId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'organizationId is required',
+      })
+    }
+
+    // Validate customer ID if provided
+    if (input.customerId && input.customerId !== customer.id) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message:
+          'You do not have permission to access this customer data',
       })
     }
 
@@ -108,9 +141,38 @@ const getBillingProcedure = customerProtectedProcedure
       }
     )
 
+    // Apply pagination to invoices if requested
+    let paginatedInvoices = invoices
+    let invoicePaginationMetadata:
+      | {
+          page: number
+          pageSize: number
+          totalCount: number
+          totalPages: number
+        }
+      | undefined = undefined
+
+    if (input.invoicePagination) {
+      const { page, pageSize } = input.invoicePagination
+      const totalCount = invoices.length
+      const totalPages = Math.ceil(totalCount / pageSize)
+      const startIndex = (page - 1) * pageSize
+      const endIndex = startIndex + pageSize
+
+      paginatedInvoices = invoices.slice(startIndex, endIndex)
+
+      invoicePaginationMetadata = {
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+      }
+    }
+
     return {
       customer,
-      invoices,
+      invoices: paginatedInvoices,
+      invoicePagination: invoicePaginationMetadata,
       paymentMethods,
       currentSubscriptions: currentSubscriptions.map((item) =>
         richSubscriptionClientSelectSchema.parse(item)
@@ -419,6 +481,105 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     )
   })
 
+// downloadInvoice procedure - returns PDF URL or generates new one if needed
+const downloadInvoiceProcedure = customerProtectedProcedure
+  .input(
+    z.object({
+      invoiceId: z.string().describe('The invoice ID to download'),
+    })
+  )
+  .output(
+    z.object({
+      pdfUrl: z
+        .string()
+        .url()
+        .describe('The URL to download the invoice PDF'),
+      invoiceNumber: z.string().describe('The invoice number'),
+      fileName: z.string().describe('Suggested filename for the PDF'),
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    const { customer } = ctx
+    const { invoiceId } = input
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        // Fetch the invoice
+        const invoice = await selectInvoiceById(
+          invoiceId,
+          transaction
+        )
+
+        // Verify the invoice belongs to the customer
+        if (invoice.customerId !== customer.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'You do not have permission to access this invoice',
+          })
+        }
+
+        // Check if PDF URL exists and is valid
+        if (invoice.pdfURL) {
+          // Return existing PDF URL
+          return {
+            pdfUrl: invoice.pdfURL,
+            invoiceNumber:
+              invoice.invoiceNumber || `INV-${invoice.id}`,
+            fileName: `invoice-${invoice.invoiceNumber || invoice.id}.pdf`,
+          }
+        }
+
+        // If no PDF URL exists, we need to generate one
+        // For Stripe invoices, we could fetch from Stripe
+        // Note: stripeInvoiceId may not exist on all invoice types
+        const stripeInvoiceId = (invoice as any).stripeInvoiceId
+        if (stripeInvoiceId) {
+          try {
+            const stripeInvoice = await stripe(
+              invoice.livemode
+            ).invoices.retrieve(stripeInvoiceId)
+
+            if (stripeInvoice.invoice_pdf) {
+              // Return Stripe's invoice PDF URL
+              return {
+                pdfUrl: stripeInvoice.invoice_pdf,
+                invoiceNumber:
+                  invoice.invoiceNumber ||
+                  stripeInvoice.number ||
+                  `INV-${invoice.id}`,
+                fileName: `invoice-${invoice.invoiceNumber || stripeInvoice.number || invoice.id}.pdf`,
+              }
+            }
+          } catch (error) {
+            console.error(
+              'Failed to retrieve Stripe invoice PDF:',
+              error
+            )
+          }
+        }
+
+        // If we still don't have a PDF URL, we can either:
+        // 1. Trigger PDF generation (if you have a PDF generation service)
+        // 2. Return a URL to generate the PDF on-demand
+        // For now, we'll return a URL that points to a PDF preview endpoint
+        const pdfPreviewUrl = core.safeUrl(
+          `/invoice/view/${invoice.organizationId}/${invoice.id}/pdf-preview`,
+          process.env.NEXT_PUBLIC_APP_URL!
+        )
+
+        return {
+          pdfUrl: pdfPreviewUrl,
+          invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id}`,
+          fileName: `invoice-${invoice.invoiceNumber || invoice.id}.pdf`,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
@@ -426,4 +587,5 @@ export const customerBillingPortalRouter = router({
   createAddPaymentMethodSession:
     createAddPaymentMethodSessionProcedure,
   setDefaultPaymentMethod: setDefaultPaymentMethodProcedure,
+  downloadInvoice: downloadInvoiceProcedure,
 })
