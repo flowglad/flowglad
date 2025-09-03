@@ -48,18 +48,9 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
         await createFeatureMutation.mutateAsync(data)
       }}
       onSuccess={() => {
-        // Invalidate all queries that might contain features for this pricing model
-        // This ensures the dropdown gets fresh data regardless of context
         trpcContext.features.getFeaturesForPricingModel.invalidate()
-
-        // CRITICAL: Invalidate productFeatures.list since EditProductModal uses this
-        // to populate the features dropdown, not features.getFeaturesForPricingModel
         trpcContext.productFeatures.list.invalidate()
-
-        // Invalidate the general list for other components
         trpcContext.features.list.invalidate()
-
-        // Invalidate table data
         trpcContext.features.getTableRows.invalidate()
       }}
     >
