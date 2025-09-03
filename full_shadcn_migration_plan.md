@@ -24,7 +24,7 @@ By the end of this migration, we will:
 2. **Replace all custom color variables** with shadcn's default color system
 3. **Use pure shadcn composition patterns** with zero Ion API compatibility layers
 4. **Achieve 100% shadcn component coverage** with zero Ion dependencies
-5. **Implement shadcn's default configuration** (default style, slate base color, CSS variables)
+5. **Implement shadcn's default configuration** (default style, zinc base color, CSS variables)
 6. **Eliminate all composite/implicit component APIs** in favor of explicit shadcn composition
 
 ### Success Criteria
@@ -41,7 +41,7 @@ By the end of this migration, we will:
 #### Configuration Standardization
 We're standardizing on shadcn's **default configuration**:
 - **Style**: `"default"` (instead of current `"new-york"`)
-- **Base Color**: `"slate"` (instead of current `"neutral"`)
+- **Base Color**: `"zinc"` (instead of current `"neutral"`)
 - **CSS Variables**: `true` (maintained for theming flexibility)
 - **Utility Function**: `cn` from `@/lib/utils` (replacing `clsx`/`twMerge`)
 
@@ -117,7 +117,7 @@ platform/flowglad-next/src/lib/
   "tailwind": {
     "config": "tailwind.config.ts",
     "css": "src/app/globals.css",
-    "baseColor": "slate",  // Change from "neutral"
+    "baseColor": "zinc",  // Change from "neutral"
     "cssVariables": true,
     "prefix": ""
   },
@@ -168,65 +168,65 @@ platform/flowglad-next/tailwind.config.ts
 
 **CSS Variables Replacement:**
 ```css
-/* Remove ALL custom ion variables and replace with shadcn defaults */
+/* Remove ALL custom ion variables and replace with shadcn zinc defaults */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
+    --background: 0 0% 98%;
+    --foreground: 240 6% 10%;
+    --card: 0 0% 98%;
+    --card-foreground: 240 6% 10%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 240 6% 10%;
+    --primary: 240 6% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 240 6% 10%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 4%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 4%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 6% 10%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 240 5% 84%;
   }
 }
 ```
 
 **Tailwind Config Cleanup:**
 ```typescript
-// Remove ALL custom color definitions
+// Remove ALL custom color definitions and use zinc-based shadcn defaults
 const config: Config = {
   // Remove: blue-primary-*, red-primary-*, green-single-*, etc.
   // Remove: fbg-*, on-primary-*, custom semantic colors
-  // Keep only: shadcn default color system
+  // Keep only: shadcn default color system with zinc base
   theme: {
     extend: {
-      // Keep only shadcn-compatible extensions
+      // Shadcn semantic colors using zinc palette via CSS variables
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -267,12 +267,150 @@ const config: Config = {
 }
 ```
 
+**Critical Fixes for Contrast & Theme Issues:**
+```typescript
+// Fix hardcoded dark mode in src/app/layout.tsx
+// BEFORE:
+<html lang="en" className="dark h-full" data-mode="dark">
+  <body className={cn(inter.className, 'dark', 'h-full')}>
+
+// AFTER:
+<html lang="en" className="h-full">
+  <body className={cn(inter.className, 'h-full')}>
+```
+
+```css
+/* Remove conflicting CSS variables from globals.css */
+/* REMOVE these old variables that conflict with zinc system: */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: '#1b1b1b'; /* ← This hardcoded background breaks everything */
+}
+```
+
+**Import Path Standardization:**
+```typescript
+// Fix utility imports in src/app/layout.tsx
+// BEFORE:
+import { cn } from '@/utils/core'
+
+// AFTER:
+import { cn } from '@/lib/utils'
+```
+
+**Proper Theme Provider Implementation:**
+```typescript
+// Install next-themes for proper theme management
+pnpm add next-themes
+
+// Create src/components/theme-provider.tsx
+"use client"
+import * as React from "react"
+import { ThemeProvider as NextThemesProvider } from "next-themes"
+import { type ThemeProviderProps } from "next-themes/dist/types"
+
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+}
+
+// Update src/app/Providers.tsx
+import { ThemeProvider } from '@/components/theme-provider'
+
+export default function Providers({ children, authContext }) {
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system" 
+      enableSystem
+      disableTransitionOnChange
+    >
+      {/* other providers */}
+    </ThemeProvider>
+  )
+}
+```
+
+**System Detection Best Practices Implemented:**
+- ✅ **next-themes**: Industry standard for React/Next.js theme management
+- ✅ **System preference detection**: `enableSystem` automatically detects OS theme
+- ✅ **Class-based toggling**: `attribute="class"` works with Tailwind's `darkMode: 'class'`
+- ✅ **Persistence**: Automatically saves user preference to localStorage
+- ✅ **Hydration safe**: Prevents flash of incorrect theme on page load
+- ✅ **Manual override**: Users can choose light/dark/system preferences
+- ✅ **Smooth transitions**: Proper CSS transitions with `disableTransitionOnChange`
+
+**Hydration Mismatch Fix:**
+```typescript
+// Fix SSR hydration mismatch in src/app/layout.tsx
+<html lang="en" className="h-full" suppressHydrationWarning>
+  <body className={cn(inter.className, 'h-full')}>
+
+// Clear any build cache that might cause server/client mismatches
+rm -rf .next && pnpm run dev
+```
+
+**Common Hydration Issues & Solutions:**
+- **Server renders dark class**: `suppressHydrationWarning` on `<html>` prevents errors
+- **Build cache conflicts**: Clear `.next` directory for fresh builds
+- **Theme flashing**: `next-themes` prevents theme flash with proper SSR handling
+- **localStorage mismatch**: Theme provider handles client/server storage differences
+
 **Verification Checklist:**
 - [ ] All ion custom variables removed from CSS
-- [ ] All shadcn default variables present
-- [ ] Dark mode variables properly configured
-- [ ] Tailwind config uses only shadcn colors
-- [ ] No references to removed color variables
+- [ ] All shadcn zinc-based variables present and correctly configured
+- [ ] Dark mode zinc variables properly configured
+- [ ] Tailwind config uses only shadcn zinc semantic colors
+- [ ] No references to removed custom color variables
+- [ ] Zinc color palette HSL values match TailwindCSS specifications
+- [ ] **Fixed hardcoded dark mode classes in layout.tsx**
+- [ ] **Removed conflicting CSS variables and hardcoded backgrounds**
+- [ ] **Text contrast is readable in both light and dark themes**
+- [ ] **Theme switching responds to system preferences**
+
+**Zinc Color Mapping Reference:**
+```css
+/* TailwindCSS Zinc Palette → Shadcn Semantic Variables */
+
+/* Light Theme Mapping */
+:root {
+  /* zinc-50 (0 0% 98%) → background, card, popover, primary-foreground, destructive-foreground */
+  /* zinc-100 (240 5% 96%) → secondary, muted, accent */  
+  /* zinc-200 (240 6% 90%) → border, input */
+  /* zinc-500 (240 4% 46%) → muted-foreground */
+  /* zinc-900 (240 6% 10%) → foreground, card-foreground, popover-foreground, primary, secondary-foreground, accent-foreground, ring */
+}
+
+/* Dark Theme Mapping */
+.dark {
+  /* zinc-50 (0 0% 98%) → foreground, card-foreground, popover-foreground, primary, secondary-foreground, accent-foreground, destructive-foreground */
+  /* zinc-400 (240 5% 65%) → muted-foreground */
+  /* zinc-800 (240 4% 16%) → secondary, muted, accent, border, input */
+  /* zinc-900 (240 6% 10%) → primary-foreground */
+  /* zinc-950 (240 10% 4%) → background, card, popover */
+  /* zinc-300 (240 5% 84%) → ring */
+}
+```
+
+This mapping ensures proper contrast ratios and accessibility while maintaining visual consistency with TailwindCSS's Zinc palette.
+
+**Why Zinc Over Slate:**
+- **Neutral Foundation**: Zinc provides a true neutral grayscale without color bias
+- **Better Contrast**: Zinc offers improved contrast ratios for accessibility compliance
+- **Standard Compliance**: Zinc aligns with TailwindCSS's recommended neutral palette
+- **Design Flexibility**: Zinc works better with both warm and cool color accents
+- **Community Adoption**: Zinc is increasingly the preferred choice in shadcn implementations
+
+**Developer Notes:**
+- Use semantic variables (`bg-background`, `text-foreground`) instead of direct zinc classes (`bg-zinc-50`)
+- Standard TailwindCSS colors (green-600, blue-500, etc.) work alongside zinc semantic variables
+- All zinc values are automatically responsive to light/dark mode via CSS variables
+- Test color contrast in both themes to ensure accessibility compliance
 
 ---
 

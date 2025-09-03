@@ -5,6 +5,7 @@ import type { AuthContextValues } from '../contexts/authContext'
 import AuthProvider from '../contexts/authContext'
 import TrpcProvider from '@/app/_trpc/Provider'
 import PostHogPageView from './PostHogPageview'
+import { ThemeProvider } from '@/components/theme-provider'
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -21,13 +22,21 @@ export default function Providers({
   authContext: Omit<AuthContextValues, 'setOrganization'>
 }) {
   return (
-    <TrpcProvider>
-      <AuthProvider values={authContext}>
-        <PostHogProvider client={posthog}>
-          <PostHogPageView user={authContext.user} />
-          {children}
-        </PostHogProvider>
-      </AuthProvider>
-    </TrpcProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      storageKey="flowglad-theme"
+    >
+      <TrpcProvider>
+        <AuthProvider values={authContext}>
+          <PostHogProvider client={posthog}>
+            <PostHogPageView user={authContext.user} />
+            {children}
+          </PostHogProvider>
+        </AuthProvider>
+      </TrpcProvider>
+    </ThemeProvider>
   )
 }

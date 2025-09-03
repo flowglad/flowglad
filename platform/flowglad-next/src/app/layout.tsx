@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 
 import Providers from './Providers'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
@@ -71,8 +71,8 @@ export default async function RootLayout({
     }
   }
   return (
-    <html lang="en" className="dark h-full" data-mode="dark">
-      <body className={cn(inter.className, 'dark', 'h-full')}>
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className={cn(inter.className, 'h-full')}>
         <Providers
           authContext={{
             organization,
