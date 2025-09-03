@@ -27,13 +27,10 @@ export default function SelectCustomerPage({
     data: customersData,
     isLoading: isLoadingCustomers,
     error,
-  } = trpc.customerBillingPortal.getCustomersByEmail.useQuery(
+  } = trpc.customerBillingPortal.getCustomersForUserAndOrganization.useQuery(
+    {},
     {
-      email: session?.user?.email ?? '',
-      organizationId,
-    },
-    {
-      enabled: !!session?.user?.email && !!organizationId,
+      enabled: !!session?.user && !!organizationId,
     }
   )
 
@@ -111,7 +108,7 @@ export default function SelectCustomerPage({
 
   // Transform customer data to match CustomerProfile interface
   const customerProfiles = customersData.customers.map(
-    (customer) => ({
+    (customer: any) => ({
       id: customer.id,
       name: customer.name || customer.email,
       email: customer.email,

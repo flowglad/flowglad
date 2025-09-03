@@ -1,9 +1,8 @@
-'use client'
-
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
-import { use } from 'react'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { getSession } from '@/utils/auth'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
+import { redirect } from 'next/navigation'
 
 interface BillingPortalRedirectPageProps {
   params: Promise<{
@@ -11,25 +10,30 @@ interface BillingPortalRedirectPageProps {
   }>
 }
 
-const BillingPortalRedirectPage = ({
+const BillingPortalRedirectPage = async ({
   params,
 }: BillingPortalRedirectPageProps) => {
-  const router = useRouter()
-  const { organizationId } = use(params)
-
-  useEffect(() => {
-    // Redirect to customer selection page
-    router.push(`/billing-portal/${organizationId}/select-customer`)
-  }, [organizationId, router])
-
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-        <p className="text-muted-foreground">Redirecting...</p>
-      </div>
-    </div>
+  const { organizationId } = await params
+  const session = await getSession()
+  if (!session) {
+    throw new Error('User not authenticated')
+  }
+  const user = await betterAuthUserToApplicationUser(session.user)
+  const customers = await authenticatedTransaction(
+    async ({ transaction }) => {
+      return selectCustomers(
+        { userId: user.id, organizationId },
+        transaction
+      )
+    }
   )
+  if (customers.length === 0) {
+    return <div>No customers found</div>
+  } else if (customers.length === 1) {
+    redirect(`/billing-portal/${organizationId}/${customers[0].id}`)
+  } else {
+    redirect(`/billing-portal/${organizationId}/select-customer`)
+  }
 }
 
 export default BillingPortalRedirectPage

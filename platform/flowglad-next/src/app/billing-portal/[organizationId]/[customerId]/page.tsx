@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signOut } from '@/utils/authClient'
+import { useSession } from '@/utils/authClient'
 import { MigrationButton as Button } from '@/components/ui/button-migration'
-import { LogOut, ChevronLeft, User } from 'lucide-react'
+import { LogOut, ChevronLeft, User, AlertCircle } from 'lucide-react'
 import { trpc } from '@/app/_trpc/client'
 import { toast } from 'sonner'
 import { use } from 'react'
@@ -19,73 +19,78 @@ interface BillingPortalPageProps {
 const BillingPortalPage = ({ params }: BillingPortalPageProps) => {
   const { organizationId, customerId } = use(params)
   const router = useRouter()
+  const { data: session } = useSession()
   const logoutMutation = trpc.utils.logout.useMutation()
-
-  // Validate customer access
-  const {
-    data: accessData,
-    isLoading: isValidating,
-    error: accessError,
-  } = trpc.customerBillingPortal.validateCustomerAccess.useQuery(
-    {
-      customerId,
-      organizationId,
-    },
-    {
-      enabled: !!customerId && !!organizationId,
-    }
-  )
 
   // Check if user has multiple customer profiles
   const { data: customersData } =
-    trpc.customerBillingPortal.getCustomersByEmail.useQuery(
+    trpc.customerBillingPortal.getCustomersForUserAndOrganization.useQuery(
+      {},
       {
-        email: accessData?.customer?.email ?? '',
-        organizationId,
-      },
-      {
-        enabled: !!accessData?.customer?.email && !!organizationId,
+        enabled: !!session?.user,
       }
     )
+
+  const {
+    data: customerBilling,
+    isLoading: isLoadingCustomerBilling,
+  } = trpc.customerBillingPortal.getBilling.useQuery(
+    {},
+    {
+      enabled: !!session?.user && !!customerId,
+    }
+  )
 
   const hasMultipleCustomers =
     customersData?.customers && customersData.customers.length > 1
 
+  // Validate that the user has access to this specific customer
+  const currentCustomer = customersData?.customers?.find(
+    (c) => c.id === customerId
+  )
+
   useEffect(() => {
-    if (accessError) {
+    if (!session) {
+      router.push('/sign-in')
+      return
+    }
+
+    // If customers are loaded and current customer is not in the list
+    if (customersData?.customers && !currentCustomer) {
       toast.error('Access denied to this customer profile')
       router.push(`/billing-portal/${organizationId}/select-customer`)
     }
-  }, [accessError, organizationId, router])
+  }, [
+    session,
+    customersData,
+    currentCustomer,
+    organizationId,
+    router,
+    customerId,
+  ])
 
   const handleLogout = async () => {
     await logoutMutation.mutateAsync()
-    await signOut()
     router.push('/sign-in')
   }
 
   const handleChangeCustomer = () => {
     router.push(`/billing-portal/${organizationId}/select-customer`)
   }
-
-  if (isValidating) {
+  const customer = customerBilling?.customer
+  if (isLoadingCustomerBilling) {
+    return <></>
+  }
+  if (!customer) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">
-            Validating access...
-          </p>
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+          <h2 className="text-2xl font-bold">Customer not found</h2>
         </div>
       </div>
     )
   }
-
-  if (!accessData?.hasAccess) {
-    return null // Will redirect via useEffect
-  }
-
-  const customer = accessData.customer
-
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b">

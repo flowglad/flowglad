@@ -15,7 +15,10 @@ import {
   customerBillingTransaction,
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { customerClientSelectSchema } from '@/db/schema/customers'
 import {
   richSubscriptionClientSelectSchema,
@@ -420,108 +423,28 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
   })
 
 // Get all customers for an email at an organization
-const getCustomersByEmailProcedure = publicProcedure
-  .input(
-    z.object({
-      email: z.string().email(),
-      organizationId: z.string(),
-    })
-  )
-  .output(
-    z.object({
-      customers: customerClientSelectSchema.array(),
-    })
-  )
-  .query(async ({ input }) => {
-    const { email, organizationId } = input
-
-    const { customers } = await adminTransaction(
-      async ({ transaction }) => {
-        // Verify organization exists
-        const organization = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
-
-        if (!organization) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Organization not found',
-          })
-        }
-
-        // Get all customer profiles for this email at this organization
-        const customers = await selectCustomers(
-          {
-            email: email,
-            organizationId: organizationId,
-          },
-          transaction
-        )
-
-        return { customers }
-      }
+const getCustomersForUserAndOrganizationProcedure =
+  customerProtectedProcedure
+    .input(z.object({}))
+    .output(
+      z.object({
+        customers: customerClientSelectSchema.array(),
+      })
     )
-
-    return { customers }
-  })
-
-// Validate customer access (used by portal pages)
-const validateCustomerAccessProcedure = customerProtectedProcedure
-  .input(
-    z.object({
-      customerId: z.string(),
-      organizationId: z.string(),
-    })
-  )
-  .output(
-    z.object({
-      customer: customerClientSelectSchema,
-      hasAccess: z.boolean(),
-    })
-  )
-  .query(async ({ input, ctx }) => {
-    const { customerId, organizationId } = input
-    const { user } = ctx
-
-    const { customer, hasAccess } = await adminTransaction(
-      async ({ transaction }) => {
-        // Get the customer
-        const customers = await selectCustomers(
-          {
-            id: customerId,
-            organizationId: organizationId,
-          },
-          transaction
-        )
-
-        if (!customers || customers.length === 0) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Customer not found',
-          })
+    .query(
+      authenticatedProcedureTransaction(
+        async ({ ctx, transaction }) => {
+          const customers = await selectCustomers(
+            {
+              userId: ctx.user.id,
+              organizationId: ctx.organizationId,
+            },
+            transaction
+          )
+          return { customers }
         }
-
-        const customer = customers[0]
-
-        // Verify user has access to this customer
-        // Check if user email matches customer email or if user ID matches
-        const hasAccess =
-          customer.email === user.email || customer.userId === user.id
-
-        if (!hasAccess) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: 'Access denied to this customer',
-          })
-        }
-
-        return { customer, hasAccess }
-      }
+      )
     )
-
-    return { customer, hasAccess }
-  })
 
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
@@ -530,6 +453,6 @@ export const customerBillingPortalRouter = router({
   createAddPaymentMethodSession:
     createAddPaymentMethodSessionProcedure,
   setDefaultPaymentMethod: setDefaultPaymentMethodProcedure,
-  getCustomersByEmail: getCustomersByEmailProcedure,
-  validateCustomerAccess: validateCustomerAccessProcedure,
+  getCustomersForUserAndOrganization:
+    getCustomersForUserAndOrganizationProcedure,
 })
