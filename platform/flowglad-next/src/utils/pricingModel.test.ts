@@ -675,6 +675,9 @@ describe('clonePricingModelTransaction', () => {
               slug: 'premium-support',
               description: 'Access to premium support',
               type: FeatureType.Toggle,
+              amount: null,
+              usageMeterId: null,
+              renewalFrequency: null,
               active: true,
               livemode: false,
             },
@@ -683,6 +686,23 @@ describe('clonePricingModelTransaction', () => {
         }
       )
 
+      // Create a usage meter for the usage credit grant feature
+      const apiRequestsMeter = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUsageMeter(
+            {
+              organizationId: organization.id,
+              pricingModelId: sourcePricingModel.id,
+              name: 'API Requests Meter',
+              slug: 'api-requests-meter',
+              aggregationType: UsageMeterAggregationType.Sum,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+      
       const usageFeature = await adminTransaction(
         async ({ transaction }) => {
           return insertFeature(
@@ -692,9 +712,10 @@ describe('clonePricingModelTransaction', () => {
               name: 'API Requests',
               slug: 'api-requests',
               description: 'Number of API requests',
-              type: FeatureType.Usage,
+              type: FeatureType.UsageCreditGrant,
               amount: 1000,
-              renewalFrequency: FeatureUsageGrantFrequency.Monthly,
+              usageMeterId: apiRequestsMeter.id,
+              renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
               active: true,
               livemode: false,
             },
@@ -747,10 +768,10 @@ describe('clonePricingModelTransaction', () => {
         (f) => f.slug === 'api-requests'
       )
       expect(clonedUsage).toBeDefined()
-      expect(clonedUsage?.type).toBe(FeatureType.Usage)
+      expect(clonedUsage?.type).toBe(FeatureType.UsageCreditGrant)
       expect(clonedUsage?.amount).toBe(1000)
       expect(clonedUsage?.renewalFrequency).toBe(
-        FeatureUsageGrantFrequency.Monthly
+        FeatureUsageGrantFrequency.EveryBillingPeriod
       )
       expect(clonedUsage?.id).not.toBe(usageFeature.id)
 
@@ -760,6 +781,18 @@ describe('clonePricingModelTransaction', () => {
           (f) => f.pricingModelId === clonedPricingModel.id
         )
       ).toBe(true)
+      
+      // Verify usage meter was also cloned
+      const clonedUsageMeters = await adminTransaction(
+        async ({ transaction }) => {
+          return selectUsageMeters(
+            { pricingModelId: clonedPricingModel.id },
+            transaction
+          )
+        }
+      )
+      expect(clonedUsageMeters).toHaveLength(1)
+      expect(clonedUsageMeters[0].slug).toBe('api-requests-meter')
     })
 
     it('should handle features with usage meter dependencies', async () => {
@@ -790,8 +823,10 @@ describe('clonePricingModelTransaction', () => {
               name: 'Bandwidth Usage',
               slug: 'bandwidth-usage',
               description: 'Monthly bandwidth allowance',
-              type: FeatureType.Usage,
+              type: FeatureType.UsageCreditGrant,
+              amount: 5000,
               usageMeterId: usageMeter.id,
+              renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
               active: true,
               livemode: false,
             },
@@ -1063,6 +1098,9 @@ describe('clonePricingModelTransaction', () => {
               slug: 'advanced-analytics',
               description: 'Access to advanced analytics dashboard',
               type: FeatureType.Toggle,
+              amount: null,
+              usageMeterId: null,
+              renewalFrequency: null,
               active: true,
               livemode: false,
             },
