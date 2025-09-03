@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/registry/components/card'
 import { PricingHeader } from './pricing-header'

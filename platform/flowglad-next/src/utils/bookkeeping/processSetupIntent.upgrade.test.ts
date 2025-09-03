@@ -27,7 +27,7 @@ import {
   setupPrice,
   setupSubscriptionItem,
   setupFeeCalculation,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
@@ -46,9 +46,7 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import {
-  selectCheckoutSessionById,
-} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { IntentMetadataType } from '@/utils/stripe'
 
 // Helper function to create mock setup intent
@@ -147,7 +145,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       livemode: true,
     })
   })
-  
+
   describe('Customer with free subscription upgrading to paid', () => {
     it('should cancel free subscription and create paid subscription atomically', async () => {
       // Create free subscription for customer
@@ -197,39 +195,62 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      const result = await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(setupIntent, transaction)
-      })
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processSetupIntentSucceeded(
+            setupIntent,
+            transaction
+          )
+        }
+      )
 
       // Verify free subscription was canceled
-      const updatedFreeSubscription = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptionById(freeSubscription.id, transaction)
-      })
-      expect(updatedFreeSubscription.status).toBe(SubscriptionStatus.Canceled)
-      expect(updatedFreeSubscription.cancellationReason).toBe('upgraded_to_paid')
+      const updatedFreeSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptionById(
+            freeSubscription.id,
+            transaction
+          )
+        }
+      )
+      expect(updatedFreeSubscription.status).toBe(
+        SubscriptionStatus.Canceled
+      )
+      expect(updatedFreeSubscription.cancellationReason).toBe(
+        'upgraded_to_paid'
+      )
       expect(updatedFreeSubscription.canceledAt).toBeDefined()
-      expect(updatedFreeSubscription.replacedBySubscriptionId).toBeDefined()
+      expect(
+        updatedFreeSubscription.replacedBySubscriptionId
+      ).toBeDefined()
 
       // Verify new subscription was created
-      const allSubscriptions = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptions({ customerId: customer.id }, transaction)
-      })
+      const allSubscriptions = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
+          )
+        }
+      )
       const activeSubscriptions = allSubscriptions.filter(
-        sub => sub.status === SubscriptionStatus.Active
+        (sub) => sub.status === SubscriptionStatus.Active
       )
       expect(activeSubscriptions).toHaveLength(1)
       expect(activeSubscriptions[0].priceId).toBe(paidPrice.id)
 
       // Verify linking between subscriptions via the replacedBySubscriptionId column
-      expect(updatedFreeSubscription.replacedBySubscriptionId).toBe(activeSubscriptions[0].id)
+      expect(updatedFreeSubscription.replacedBySubscriptionId).toBe(
+        activeSubscriptions[0].id
+      )
     })
 
     it('should preserve metadata from free subscription to paid subscription', async () => {
       // Create free subscription with custom metadata
-      const customMetadata = { 
+      const customMetadata = {
         source: 'organic',
         campaign: 'summer2024',
-        customField: 'test123'
+        customField: 'test123',
       }
       const freeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -278,21 +299,29 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(setupIntent, transaction)
+        return await processSetupIntentSucceeded(
+          setupIntent,
+          transaction
+        )
       })
 
       // Get the new subscription
-      const allSubscriptions = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptions({ customerId: customer.id }, transaction)
-      })
+      const allSubscriptions = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
+          )
+        }
+      )
       const newSubscription = allSubscriptions.find(
-        sub => sub.status === SubscriptionStatus.Active
+        (sub) => sub.status === SubscriptionStatus.Active
       )
 
       expect(newSubscription).toBeDefined()
       expect(newSubscription!.metadata).toBeDefined()
       const metadata = newSubscription!.metadata as any
-      
+
       // Should preserve checkout metadata only (no upgrade tracking in metadata)
       expect(metadata.referrer).toBe('dashboard')
       // Upgrade tracking is done via replacedBySubscriptionId column, not metadata
@@ -306,7 +335,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create active billing period for free subscription
       // - create checkout session for paid product
       // - create successful setup intent
-      
       // expects:
       // - free subscription's billing period should remain unchanged
       // - new subscription should have its own billing period
@@ -318,9 +346,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
   describe('Customer without existing subscription', () => {
     it('should create new subscription without canceling anything', async () => {
       // Ensure customer has no subscriptions
-      const existingSubscriptions = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptions({ customerId: customer.id }, transaction)
-      })
+      const existingSubscriptions = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
+          )
+        }
+      )
       expect(existingSubscriptions).toHaveLength(0)
 
       // Create purchase and checkout session for paid product
@@ -358,15 +391,25 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Process the setup intent
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(setupIntent, transaction)
+        return await processSetupIntentSucceeded(
+          setupIntent,
+          transaction
+        )
       })
 
       // Verify new subscription was created
-      const allSubscriptions = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptions({ customerId: customer.id }, transaction)
-      })
+      const allSubscriptions = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
+          )
+        }
+      )
       expect(allSubscriptions).toHaveLength(1)
-      expect(allSubscriptions[0].status).toBe(SubscriptionStatus.Active)
+      expect(allSubscriptions[0].status).toBe(
+        SubscriptionStatus.Active
+      )
       expect(allSubscriptions[0].priceId).toBe(paidPrice.id)
 
       // Verify metadata doesn't contain upgrade info (we use replacedBySubscriptionId column instead)
@@ -386,7 +429,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create two active free subscriptions for different products
       // - create checkout session for paid product
       // - create successful setup intent
-      
       // expects:
       // - most recently created free subscription should be canceled
       // - older free subscription should remain active
@@ -399,7 +441,9 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
     it('should allow creating second paid subscription while canceling free', async () => {
       // Update organization to allow multiple subscriptions
       await adminTransaction(async ({ transaction }) => {
-        const { updateOrganization } = await import('@/db/tableMethods/organizationMethods')
+        const { updateOrganization } = await import(
+          '@/db/tableMethods/organizationMethods'
+        )
         await updateOrganization(
           {
             id: organization.id,
@@ -466,32 +510,60 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Process the setup intent
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(setupIntent, transaction)
+        return await processSetupIntentSucceeded(
+          setupIntent,
+          transaction
+        )
       })
 
       // Verify free subscription was canceled
-      const updatedFreeSubscription = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptionById(freeSubscription.id, transaction)
-      })
-      expect(updatedFreeSubscription.status).toBe(SubscriptionStatus.Canceled)
-      expect(updatedFreeSubscription.cancellationReason).toBe('upgraded_to_paid')
+      const updatedFreeSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptionById(
+            freeSubscription.id,
+            transaction
+          )
+        }
+      )
+      expect(updatedFreeSubscription.status).toBe(
+        SubscriptionStatus.Canceled
+      )
+      expect(updatedFreeSubscription.cancellationReason).toBe(
+        'upgraded_to_paid'
+      )
 
       // Verify original paid subscription remains active
-      const updatedExistingPaid = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptionById(existingPaidSubscription.id, transaction)
-      })
-      expect(updatedExistingPaid.status).toBe(SubscriptionStatus.Active)
+      const updatedExistingPaid = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptionById(
+            existingPaidSubscription.id,
+            transaction
+          )
+        }
+      )
+      expect(updatedExistingPaid.status).toBe(
+        SubscriptionStatus.Active
+      )
       expect(updatedExistingPaid.cancellationReason).toBeNull()
 
       // Verify customer has two active paid subscriptions
-      const allSubscriptions = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptions({ customerId: customer.id }, transaction)
-      })
+      const allSubscriptions = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
+          )
+        }
+      )
       const activeSubscriptions = allSubscriptions.filter(
-        sub => sub.status === SubscriptionStatus.Active
+        (sub) => sub.status === SubscriptionStatus.Active
       )
       expect(activeSubscriptions).toHaveLength(2)
-      expect(activeSubscriptions.every(sub => sub.isFreePlan === false || sub.isFreePlan === null)).toBe(true)
+      expect(
+        activeSubscriptions.every(
+          (sub) => sub.isFreePlan === false || sub.isFreePlan === null
+        )
+      ).toBe(true)
     })
 
     it('should not cancel existing paid subscription', async () => {
@@ -499,7 +571,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create customer with active paid subscription (unitPrice > 0)
       // - create checkout session for different paid product
       // - create successful setup intent
-      
       // expects:
       // - existing paid subscription should remain active
       // - new paid subscription should be created
@@ -514,7 +585,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create customer with active free subscription
       // - create checkout session with invalid price data that will cause creation to fail
       // - create successful setup intent
-      
       // expects:
       // - should throw an error
       // - free subscription should remain active (not canceled)
@@ -532,7 +602,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create successful setup intent
       // - process the setup intent once successfully
       // - process the same setup intent again (webhook replay)
-      
       // expects:
       // - first processing should cancel free and create paid subscription
       // - second processing should return existing result without modifications
@@ -573,21 +642,36 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
 
       // Process the setup intent
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(setupIntent, transaction)
+        return await processSetupIntentSucceeded(
+          setupIntent,
+          transaction
+        )
       })
 
       // Verify free subscription remains active
-      const updatedFreeSubscription = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptionById(freeSubscription.id, transaction)
-      })
-      expect(updatedFreeSubscription.status).toBe(SubscriptionStatus.Active)
+      const updatedFreeSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptionById(
+            freeSubscription.id,
+            transaction
+          )
+        }
+      )
+      expect(updatedFreeSubscription.status).toBe(
+        SubscriptionStatus.Active
+      )
       expect(updatedFreeSubscription.cancellationReason).toBeNull()
       expect(updatedFreeSubscription.canceledAt).toBeNull()
 
       // Verify no new subscriptions were created
-      const allSubscriptions = await adminTransaction(async ({ transaction }) => {
-        return await selectSubscriptions({ customerId: customer.id }, transaction)
-      })
+      const allSubscriptions = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectSubscriptions(
+            { customerId: customer.id },
+            transaction
+          )
+        }
+      )
       expect(allSubscriptions).toHaveLength(1)
       expect(allSubscriptions[0].id).toBe(freeSubscription.id)
     })
@@ -598,7 +682,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create existing incomplete subscription
       // - create checkout session of type ActivateSubscription targeting the incomplete subscription
       // - create successful setup intent
-      
       // expects:
       // - free subscription should remain active
       // - incomplete subscription should be activated
@@ -613,7 +696,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create customer with canceled free subscription (status = 'canceled')
       // - create checkout session for paid product
       // - create successful setup intent
-      
       // expects:
       // - canceled free subscription should remain unchanged
       // - new subscription should be created normally
@@ -626,7 +708,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create customer with free subscription canceled with reason 'customer_request'
       // - create checkout session for paid product
       // - create successful setup intent
-      
       // expects:
       // - canceled subscription should remain unchanged
       // - new subscription should be created normally
@@ -638,7 +719,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // - create customer with free subscription in trial period
       // - create checkout session for paid product
       // - create successful setup intent
-      
       // expects:
       // - free subscription should be canceled regardless of trial status
       // - new paid subscription should be created with its own trial settings
@@ -652,7 +732,6 @@ describe('cancelFreeSubscriptionIfExists - Helper Function', () => {
     // setup:
     // - create customer
     // - create active subscription with isFreePlan = true
-    
     // expects:
     // - should return the canceled subscription
     // - subscription status should be 'canceled'
@@ -664,7 +743,6 @@ describe('cancelFreeSubscriptionIfExists - Helper Function', () => {
     // setup:
     // - create customer
     // - create only paid subscriptions (isFreePlan = false)
-    
     // expects:
     // - should return null
     // - no subscriptions should be modified
@@ -675,7 +753,6 @@ describe('cancelFreeSubscriptionIfExists - Helper Function', () => {
     // setup:
     // - create customer
     // - create free subscription with status = 'canceled'
-    
     // expects:
     // - should return null
     // - canceled subscription should remain unchanged
@@ -686,7 +763,6 @@ describe('cancelFreeSubscriptionIfExists - Helper Function', () => {
     // setup:
     // - create customer
     // - create two active free subscriptions with different creation dates
-    
     // expects:
     // - should cancel the most recently created free subscription
     // - older free subscription should remain active

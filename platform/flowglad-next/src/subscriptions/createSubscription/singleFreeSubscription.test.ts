@@ -17,26 +17,26 @@ import {
   setupPrice,
   setupProduct,
   setupPaymentMethod,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 
 describe('Single Free Subscription Constraint', () => {
   let organization: Organization.Record
   let customer: Customer.Record
   let freePrice: Price.Record
   let paidPrice: Price.Record
-  
+
   beforeEach(async () => {
     // Set up organization and products
     const orgData = await setupOrg()
     organization = orgData.organization
-    
+
     // Create customer
     customer = await setupCustomer({
       organizationId: organization.id,
       stripeCustomerId: `cus_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Create free product and price
     const freeProduct = await setupProduct({
       organizationId: organization.id,
@@ -44,7 +44,7 @@ describe('Single Free Subscription Constraint', () => {
       name: 'Free Plan',
       livemode: true,
     })
-    
+
     freePrice = await setupPrice({
       productId: freeProduct.id,
       name: 'Free Tier',
@@ -55,7 +55,7 @@ describe('Single Free Subscription Constraint', () => {
       livemode: true,
       isDefault: true,
     })
-    
+
     // Create paid product and price
     const paidProduct = await setupProduct({
       organizationId: organization.id,
@@ -63,7 +63,7 @@ describe('Single Free Subscription Constraint', () => {
       name: 'Pro Plan',
       livemode: true,
     })
-    
+
     paidPrice = await setupPrice({
       productId: paidProduct.id,
       name: 'Pro Tier',
@@ -75,7 +75,7 @@ describe('Single Free Subscription Constraint', () => {
       isDefault: false,
     })
   })
-  
+
   describe('verifyCanCreateSubscription', () => {
     it('should prevent creating a second free subscription when one already exists', async () => {
       // Create first free subscription
@@ -87,7 +87,7 @@ describe('Single Free Subscription Constraint', () => {
         livemode: true,
         isFreePlan: true,
       })
-      
+
       // Try to create second free subscription
       const params: CreateSubscriptionParams = {
         customer,
@@ -104,8 +104,8 @@ describe('Single Free Subscription Constraint', () => {
         metadata: {},
         name: 'Second Free Sub',
       }
-      
-      await adminTransaction(async ({transaction}) => {
+
+      await adminTransaction(async ({ transaction }) => {
         await expect(
           verifyCanCreateSubscription(params, transaction)
         ).rejects.toThrow(
@@ -113,7 +113,7 @@ describe('Single Free Subscription Constraint', () => {
         )
       })
     })
-    
+
     it('should allow creating a paid subscription when a free subscription exists', async () => {
       // Create free subscription
       await setupSubscription({
@@ -124,7 +124,7 @@ describe('Single Free Subscription Constraint', () => {
         livemode: true,
         isFreePlan: true,
       })
-      
+
       // Create payment method
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
@@ -132,7 +132,7 @@ describe('Single Free Subscription Constraint', () => {
         stripePaymentMethodId: `pm_${core.nanoid()}`,
         livemode: true,
       })
-      
+
       // Try to create paid subscription (should succeed)
       const params: CreateSubscriptionParams = {
         customer,
@@ -150,10 +150,12 @@ describe('Single Free Subscription Constraint', () => {
         metadata: {},
         name: 'Paid Sub',
       }
-      
-      await adminTransaction(async ({transaction}) => {
+
+      await adminTransaction(async ({ transaction }) => {
         // Update organization to allow multiple subscriptions
-        const { updateOrganization } = await import('@/db/tableMethods/organizationMethods')
+        const { updateOrganization } = await import(
+          '@/db/tableMethods/organizationMethods'
+        )
         await updateOrganization(
           {
             id: organization.id,
@@ -161,14 +163,14 @@ describe('Single Free Subscription Constraint', () => {
           },
           transaction
         )
-        
+
         // This should not throw
         await expect(
           verifyCanCreateSubscription(params, transaction)
         ).resolves.not.toThrow()
       })
     })
-    
+
     it('should allow creating a free subscription when no active free subscription exists', async () => {
       // Create canceled free subscription
       await setupSubscription({
@@ -181,7 +183,7 @@ describe('Single Free Subscription Constraint', () => {
         canceledAt: new Date(),
         cancellationReason: 'customer_request',
       })
-      
+
       // Try to create new free subscription (should succeed)
       const params: CreateSubscriptionParams = {
         customer,
@@ -198,19 +200,21 @@ describe('Single Free Subscription Constraint', () => {
         metadata: {},
         name: 'New Free Sub',
       }
-      
-      await adminTransaction(async ({transaction}) => {
+
+      await adminTransaction(async ({ transaction }) => {
         // This should not throw
         await expect(
           verifyCanCreateSubscription(params, transaction)
         ).resolves.not.toThrow()
       })
     })
-    
+
     it('should allow multiple paid subscriptions when organization allows it', async () => {
       // Update organization to allow multiple subscriptions
-      await adminTransaction(async ({transaction}) => {
-        const { updateOrganization } = await import('@/db/tableMethods/organizationMethods')
+      await adminTransaction(async ({ transaction }) => {
+        const { updateOrganization } = await import(
+          '@/db/tableMethods/organizationMethods'
+        )
         await updateOrganization(
           {
             id: organization.id,
@@ -219,7 +223,7 @@ describe('Single Free Subscription Constraint', () => {
           transaction
         )
       })
-      
+
       // Create first paid subscription
       const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
@@ -227,7 +231,7 @@ describe('Single Free Subscription Constraint', () => {
         stripePaymentMethodId: `pm_${core.nanoid()}`,
         livemode: true,
       })
-      
+
       await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -237,7 +241,7 @@ describe('Single Free Subscription Constraint', () => {
         isFreePlan: false,
         defaultPaymentMethodId: paymentMethod.id,
       })
-      
+
       // Try to create second paid subscription (should succeed)
       const params: CreateSubscriptionParams = {
         customer,
@@ -255,8 +259,8 @@ describe('Single Free Subscription Constraint', () => {
         metadata: {},
         name: 'Second Paid Sub',
       }
-      
-      await adminTransaction(async ({transaction}) => {
+
+      await adminTransaction(async ({ transaction }) => {
         // This should not throw
         await expect(
           verifyCanCreateSubscription(params, transaction)

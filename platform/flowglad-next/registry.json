@@ -4,6 +4,54 @@
     "homepage": "https://flowglad.com",
     "items": [
       {
+        "name": "button",
+        "type": "registry:component",
+        "title": "Button",
+        "description": "A button component with multiple variants and sizes.",
+        "files": [
+          {
+            "path": "src/registry/components/button.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "badge",
+        "type": "registry:component",
+        "title": "Badge",
+        "description": "A badge component for displaying status or labels.",
+        "files": [
+          {
+            "path": "src/registry/components/badge.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "input",
+        "type": "registry:component",
+        "title": "Input",
+        "description": "A text input component.",
+        "files": [
+          {
+            "path": "src/registry/components/input.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "card",
+        "type": "registry:component",
+        "title": "Card",
+        "description": "A card component for content containers.",
+        "files": [
+          {
+            "path": "src/registry/components/card.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
         "name": "pricing",
         "type": "registry:component",
         "title": "Pricing Table",
@@ -50,6 +98,126 @@
         ]
       },
       {
+        "name": "skeleton",
+        "type": "registry:component",
+        "title": "Skeleton",
+        "description": "A skeleton component for loading states.",
+        "files": [
+          {
+            "path": "src/registry/base/skeleton/skeleton.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "popover",
+        "type": "registry:component",
+        "title": "Popover",
+        "description": "A popover component for displaying floating content.",
+        "files": [
+          {
+            "path": "src/registry/components/popover.tsx",
+            "type": "registry:component"
+          }
+        ]
+      },
+      {
+        "name": "subscription-card",
+        "type": "registry:component",
+        "title": "Subscription Card",
+        "description": "A comprehensive subscription card component with status display, billing details, and management actions.",
+        "registryDependencies": ["card", "button", "badge", "skeleton"],
+        "files": [
+          {
+            "path": "src/registry/base/subscription-card/subscription-card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/subscription-header.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/subscription-details.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/subscription-actions.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/cancel-subscription-dialog.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/cn.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/billing-interval.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/subscription-status.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/subscription-total.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/components/dialog.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/subscription-card/page.tsx",
+            "type": "registry:page",
+            "target": "app/subscription-card/page.tsx"
+          }
+        ]
+      },
+      {
+        "name": "customer-selector",
+        "type": "registry:component",
+        "title": "Customer Selector",
+        "description": "A component for selecting customer profiles with search functionality and responsive grid layout.",
+        "registryDependencies": ["input", "card"],
+        "files": [
+          {
+            "path": "src/registry/base/customer-selector/customer-selector.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/customer-card.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/customer-avatar.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/customer-selector/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/date.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/lib/cn.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/customer-selector/page.tsx",
+            "type": "registry:page",
+            "target": "app/customer-selector/page.tsx"
+          }
+        ]
+      },
+      {
         "name": "invoices-list",
         "type": "registry:component",
         "title": "Invoices List",
@@ -81,9 +249,83 @@
             "type": "registry:lib"
           },
           {
+            "path": "src/registry/lib/date.ts",
+            "type": "registry:lib"
+          },
+          {
             "path": "src/registry/base/invoices-list/page.tsx",
             "type": "registry:page",
             "target": "app/billing/invoices/page.tsx"
+          }
+        ]
+      },
+      {
+        "name": "payment-methods-list",
+        "type": "registry:component",
+        "title": "Payment Methods List",
+        "description": "A flexible payment methods list component for displaying and managing payment methods with card brand logos.",
+        "registryDependencies": ["button", "badge", "popover", "skeleton"],
+        "files": [
+          {
+            "path": "src/registry/base/payment-methods-list/payment-methods-list.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/components/payment-method-row.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/components/card-brand-logo.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/components/add-payment-method-button.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/visa.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/mastercard.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/amex.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/discover.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/diners.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/jcb.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/unionpay.tsx",
+            "type": "registry:component"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/logos/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/types.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/index.ts",
+            "type": "registry:lib"
+          },
+          {
+            "path": "src/registry/base/payment-methods-list/page.tsx",
+            "type": "registry:page",
+            "target": "app/payment-methods/page.tsx"
           }
         ]
       }

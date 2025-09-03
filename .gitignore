@@ -26,3 +26,7 @@ generated/styles.ts
 .dev-routes-backup
 .ion-target
 .vercel
+
+# Package managers - ALWAYS use pnpm in this project
+package-lock.json
+yarn.lock

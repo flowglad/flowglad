@@ -35,7 +35,7 @@ import {
   setupPurchase,
   setupSubscription,
   setupCheckoutSession,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
 import {

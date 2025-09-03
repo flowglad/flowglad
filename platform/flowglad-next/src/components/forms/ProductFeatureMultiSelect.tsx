@@ -3,6 +3,7 @@ import MultipleSelector from '@/components/forms/MultiSelect'
 import { Controller, useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import { cn } from '@/utils/core'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ion/Skeleton'
 
 export const ProductFeatureMultiSelect = ({
@@ -21,7 +22,9 @@ export const ProductFeatureMultiSelect = ({
 
   return (
     <>
-      <label className="text-sm font-medium leading-none text-foreground">Features</label>
+      <label className="text-sm font-medium leading-none text-foreground">
+        Features
+      </label>
       {!features ? (
         <Skeleton className="h-9 w-full" />
       ) : (

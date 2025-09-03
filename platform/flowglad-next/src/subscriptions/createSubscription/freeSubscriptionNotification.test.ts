@@ -14,12 +14,16 @@ import {
   setupProduct,
   setupPrice,
   setupPaymentMethod,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 
 // Mock the notification function
-vi.mock('@/trigger/notifications/send-organization-subscription-created-notification', () => ({
-  idempotentSendOrganizationSubscriptionCreatedNotification: vi.fn(),
-}))
+vi.mock(
+  '@/trigger/notifications/send-organization-subscription-created-notification',
+  () => ({
+    idempotentSendOrganizationSubscriptionCreatedNotification:
+      vi.fn(),
+  })
+)
 
 describe('Free Subscription Notification Behavior', () => {
   let organization: Organization.Record
@@ -28,21 +32,21 @@ describe('Free Subscription Notification Behavior', () => {
   let paidPrice: Price.Record
   let freeProduct: Product.Record
   let paidProduct: Product.Record
-  
+
   beforeEach(async () => {
     vi.clearAllMocks()
-    
+
     // Set up organization and products
     const orgData = await setupOrg()
     organization = orgData.organization
-    
+
     // Create customer
     customer = await setupCustomer({
       organizationId: organization.id,
       stripeCustomerId: `cus_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Create free product and price
     freeProduct = await setupProduct({
       organizationId: organization.id,
@@ -50,7 +54,7 @@ describe('Free Subscription Notification Behavior', () => {
       name: 'Free Plan',
       livemode: true,
     })
-    
+
     freePrice = await setupPrice({
       productId: freeProduct.id,
       name: 'Free Tier',
@@ -61,7 +65,7 @@ describe('Free Subscription Notification Behavior', () => {
       livemode: true,
       isDefault: true,
     })
-    
+
     // Create paid product and price
     paidProduct = await setupProduct({
       organizationId: organization.id,
@@ -69,7 +73,7 @@ describe('Free Subscription Notification Behavior', () => {
       name: 'Pro Plan',
       livemode: true,
     })
-    
+
     paidPrice = await setupPrice({
       productId: paidProduct.id,
       name: 'Pro Tier',
@@ -81,11 +85,14 @@ describe('Free Subscription Notification Behavior', () => {
       isDefault: false,
     })
   })
-  
+
   it('should NOT send notification when creating a free subscription (unitPrice = 0)', async () => {
-    const { idempotentSendOrganizationSubscriptionCreatedNotification } = 
-      await import('@/trigger/notifications/send-organization-subscription-created-notification')
-    
+    const {
+      idempotentSendOrganizationSubscriptionCreatedNotification,
+    } = await import(
+      '@/trigger/notifications/send-organization-subscription-created-notification'
+    )
+
     const params: CreateSubscriptionParams = {
       customer,
       price: freePrice,
@@ -101,19 +108,24 @@ describe('Free Subscription Notification Behavior', () => {
       metadata: {},
       name: 'Free Subscription',
     }
-    
-    await adminTransaction(async ({transaction}) => {
+
+    await adminTransaction(async ({ transaction }) => {
       await createSubscriptionWorkflow(params, transaction)
     })
-    
+
     // Verify notification was NOT sent for free subscription
-    expect(idempotentSendOrganizationSubscriptionCreatedNotification).not.toHaveBeenCalled()
+    expect(
+      idempotentSendOrganizationSubscriptionCreatedNotification
+    ).not.toHaveBeenCalled()
   })
-  
+
   it('should send notification when creating a paid subscription (unitPrice > 0)', async () => {
-    const { idempotentSendOrganizationSubscriptionCreatedNotification } = 
-      await import('@/trigger/notifications/send-organization-subscription-created-notification')
-    
+    const {
+      idempotentSendOrganizationSubscriptionCreatedNotification,
+    } = await import(
+      '@/trigger/notifications/send-organization-subscription-created-notification'
+    )
+
     // Create payment method for paid subscription
     const paymentMethod = await setupPaymentMethod({
       organizationId: organization.id,
@@ -121,7 +133,7 @@ describe('Free Subscription Notification Behavior', () => {
       stripePaymentMethodId: `pm_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     const params: CreateSubscriptionParams = {
       customer,
       price: paidPrice,
@@ -137,19 +149,24 @@ describe('Free Subscription Notification Behavior', () => {
       metadata: {},
       name: 'Paid Subscription',
     }
-    
-    await adminTransaction(async ({transaction}) => {
+
+    await adminTransaction(async ({ transaction }) => {
       await createSubscriptionWorkflow(params, transaction)
     })
-    
+
     // Verify notification WAS sent for paid subscription
-    expect(idempotentSendOrganizationSubscriptionCreatedNotification).toHaveBeenCalledTimes(1)
+    expect(
+      idempotentSendOrganizationSubscriptionCreatedNotification
+    ).toHaveBeenCalledTimes(1)
   })
-  
+
   it('should NOT send notification for free subscription regardless of slug name', async () => {
-    const { idempotentSendOrganizationSubscriptionCreatedNotification } = 
-      await import('@/trigger/notifications/send-organization-subscription-created-notification')
-    
+    const {
+      idempotentSendOrganizationSubscriptionCreatedNotification,
+    } = await import(
+      '@/trigger/notifications/send-organization-subscription-created-notification'
+    )
+
     // Create a free price with a different slug (not 'free')
     const freePriceWithDifferentSlug = await setupPrice({
       productId: freeProduct.id,
@@ -162,7 +179,7 @@ describe('Free Subscription Notification Behavior', () => {
       livemode: true,
       isDefault: false,
     })
-    
+
     const params: CreateSubscriptionParams = {
       customer,
       price: freePriceWithDifferentSlug,
@@ -178,12 +195,14 @@ describe('Free Subscription Notification Behavior', () => {
       metadata: {},
       name: 'Trial Subscription',
     }
-    
-    await adminTransaction(async ({transaction}) => {
+
+    await adminTransaction(async ({ transaction }) => {
       await createSubscriptionWorkflow(params, transaction)
     })
-    
+
     // Verify notification was NOT sent even though slug is not 'free'
-    expect(idempotentSendOrganizationSubscriptionCreatedNotification).not.toHaveBeenCalled()
+    expect(
+      idempotentSendOrganizationSubscriptionCreatedNotification
+    ).not.toHaveBeenCalled()
   })
 })

@@ -10,8 +10,9 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import Input from '@/components/ion/Input'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import Button from '@/components/ion/Button'
 import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react'
 import { cn } from '@/utils/core'
 import ErrorLabel from '@/components/ErrorLabel'
@@ -159,46 +160,76 @@ export default function ResetPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-4">
-                <Input
-                  id="password"
-                  type="password"
-                  label="New Password"
-                  placeholder="Enter your new password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
-                    if (validationErrors.password) {
-                      setValidationErrors((prev) => ({
-                        ...prev,
-                        password: undefined,
-                      }))
+                <div>
+                  <Label htmlFor="password" className="mb-1">
+                    New Password
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your new password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (validationErrors.password) {
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          password: undefined,
+                        }))
+                      }
+                    }}
+                    className={
+                      validationErrors.password
+                        ? 'border-destructive'
+                        : ''
                     }
-                  }}
-                  error={validationErrors.password}
-                  required
-                  disabled={loading}
-                  hint="Password must be at least 8 characters long"
-                />
+                    required
+                    disabled={loading}
+                  />
+                  {validationErrors.password && (
+                    <p className="mt-1 text-sm text-destructive">
+                      {validationErrors.password}
+                    </p>
+                  )}
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Password must be at least 8 characters long
+                  </p>
+                </div>
 
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  label="Confirm New Password"
-                  placeholder="Confirm your new password"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value)
-                    if (validationErrors.confirmPassword) {
-                      setValidationErrors((prev) => ({
-                        ...prev,
-                        confirmPassword: undefined,
-                      }))
+                <div>
+                  <Label htmlFor="confirmPassword" className="mb-1">
+                    Confirm New Password
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your new password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      if (validationErrors.confirmPassword) {
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          confirmPassword: undefined,
+                        }))
+                      }
+                    }}
+                    className={
+                      validationErrors.confirmPassword
+                        ? 'border-destructive'
+                        : ''
                     }
-                  }}
-                  error={validationErrors.confirmPassword}
-                  required
-                  disabled={loading}
-                />
+                    required
+                    disabled={loading}
+                  />
+                  {validationErrors.confirmPassword && (
+                    <p className="mt-1 text-sm text-destructive">
+                      {validationErrors.confirmPassword}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <Button
