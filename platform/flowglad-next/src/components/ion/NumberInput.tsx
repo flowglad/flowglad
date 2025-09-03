@@ -436,7 +436,7 @@ const NumberInput = React.forwardRef<
                     e.preventDefault()
                   }
                 }}
-                className="h-5 w-5 outline-none flex items-center justify-center text-secondary hover:text-foreground transition-all bg-neutral-accent active:bg-neutral-container hover:bg-neutral-accent active:text-foreground rounded-full aria-disabled:pointer-events-none aria-disabled:text-on-disabled"
+                className="h-5 w-5 outline-none flex items-center justify-center text-muted-foreground hover:text-foreground transition-all bg-neutral-accent active:bg-neutral-container hover:bg-neutral-accent active:text-foreground rounded-full aria-disabled:pointer-events-none aria-disabled:text-on-disabled"
                 aria-label="Decrement"
               >
                 <Minus
@@ -456,7 +456,7 @@ const NumberInput = React.forwardRef<
                     e.preventDefault()
                   }
                 }}
-                className="h-5 w-5 flex outline-none items-center justify-center text-secondary hover:text-foreground transition-all bg-neutral-accent active:bg-neutral-container hover:bg-neutral-accent active:text-foreground rounded-full aria-disabled:pointer-events-none aria-disabled:text-on-disabled"
+                className="h-5 w-5 flex outline-none items-center justify-center text-muted-foreground hover:text-foreground transition-all bg-neutral-accent active:bg-neutral-container hover:bg-neutral-accent active:text-foreground rounded-full aria-disabled:pointer-events-none aria-disabled:text-on-disabled"
                 aria-label="Increment"
               >
                 <Plus strokeWidth={2} className="w-[10px] h-[10px]" />
