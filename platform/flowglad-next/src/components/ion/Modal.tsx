@@ -7,7 +7,7 @@ import * as ModalPrimitive from '@radix-ui/react-dialog'
 import clsx from 'clsx'
 import * as React from 'react'
 
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 
 const ModalTrigger = ModalPrimitive.Trigger
 
@@ -151,13 +151,9 @@ const ModalHeader = ({
     </div>
     {showClose && (
       <ModalClose asChild>
-        <Button
-          iconLeading={<X size={16} />}
-          variant="ghost"
-          color="primary"
-          size="md"
-          onClick={onClose}
-        />
+        <Button variant="ghost" size="default" onClick={onClose}>
+          <X size={16} />
+        </Button>
       </ModalClose>
     )}
   </div>

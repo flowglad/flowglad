@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import {
   Nouns,
   OnboardingChecklistItem,
@@ -85,13 +85,14 @@ const OnboardingCodeblock = ({
           {markdownText}
         </Markdown>
         <Button
-          iconLeading={<Copy size={20} />}
           size="sm"
           onClick={() => {
             toast.success('Copied to clipboard')
             navigator.clipboard.writeText(markdownText)
           }}
-        />
+        >
+          <Copy size={20} />
+        </Button>
       </div>
     </div>
   )

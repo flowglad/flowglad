@@ -23,16 +23,15 @@ import { FallbackSkeleton } from '../ui/skeleton'
 import { FeatureFlag } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
 import {
+  SidebarHeader,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { signOut } from '@/utils/authClient'
 
 export const SideNavigation = () => {

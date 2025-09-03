@@ -21,6 +21,7 @@ import { trpc } from '@/app/_trpc/client'
 import { FallbackSkeleton, Skeleton } from './ui/skeleton'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
+import { Button } from '@/components/ui/button'
 
 /**
  * Two dots make a graph principle: this is the minimum range duration required
@@ -209,12 +210,11 @@ export function RevenueChart({
           </Select>
         </div>
         {/* <Button
-          iconLeading={<Export size={16} weight={'regular'} />}
           variant="ghost"
-          color="primary"
           size="sm"
           onClick={exportOnClickHandler}
         >
+          <Export size={16} weight={'regular'} />
           Export
         </Button> */}
       </div>

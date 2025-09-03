@@ -5,7 +5,7 @@ import core, { cn } from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
 
 import { FileUploadData, Nullish } from '@/types'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Plus, X, File as FileIcon } from 'lucide-react'
 
@@ -190,12 +190,13 @@ const FileInput: React.FC<FileInputProps> = ({
             <div>
               <Button
                 variant="ghost"
-                iconLeading={<X size={16} />}
                 onClick={(e) => {
                   e.stopPropagation()
                   deleteFile(file)
                 }}
-              />
+              >
+                <X size={16} />
+              </Button>
             </div>
           </div>
         ))}
@@ -203,12 +204,13 @@ const FileInput: React.FC<FileInputProps> = ({
           <div className="max-w-full max-h-[100px] object-contain rounded-md">
             <Button
               variant="ghost"
-              iconLeading={<Plus size={16} />}
               onClick={(e) => {
                 e.stopPropagation()
                 document.getElementById(id)?.click()
               }}
-            />
+            >
+              <Plus size={16} />
+            </Button>
           </div>
         )}
       </div>

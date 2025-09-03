@@ -7,7 +7,7 @@ import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import PageTitle from '@/components/ion/PageTitle'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -35,10 +35,8 @@ const InternalInvoicesPage = () => {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle>Invoices</PageTitle>
-          <Button
-            iconLeading={<Plus size={16} />}
-            onClick={() => setCreateInvoiceModalOpen(true)}
-          >
+          <Button onClick={() => setCreateInvoiceModalOpen(true)}>
+            <Plus size={16} />
             Create Invoice
           </Button>
         </div>

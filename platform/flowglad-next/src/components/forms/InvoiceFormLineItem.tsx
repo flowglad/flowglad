@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=770:28007
 'use client'
 import { GripVertical, X } from 'lucide-react'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   FormField,
@@ -120,21 +120,23 @@ const InvoiceFormLineItem = ({
       <Button
         {...attributes}
         {...listeners}
-        iconLeading={<GripVertical size={16} />}
         variant="ghost"
         size="default"
         className={clsx(
           'cursor-grab',
           isDragging && 'cursor-grabbing'
         )}
-      />
+      >
+        <GripVertical size={16} />
+      </Button>
       <Button
-        iconLeading={<X size={16} />}
         variant="ghost"
         size="default"
         onClick={xOnClickHandler}
         disabled={disableRemove}
-      />
+      >
+        <X size={16} />
+      </Button>
     </div>
   )
 }

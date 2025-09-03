@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { signOut } from '@/utils/authClient'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
 import { trpc } from '@/app/_trpc/client'
 
