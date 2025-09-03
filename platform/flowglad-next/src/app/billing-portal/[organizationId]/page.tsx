@@ -1,41 +1,35 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signOut } from '@/utils/authClient'
-import Button from '@/components/ion/Button'
-import { LogOut } from 'lucide-react'
-import { trpc } from '@/app/_trpc/client'
+import { Loader2 } from 'lucide-react'
+import { use } from 'react'
 
-const BillingPortalPage = () => {
+interface BillingPortalRedirectPageProps {
+  params: Promise<{
+    organizationId: string
+  }>
+}
+
+const BillingPortalRedirectPage = ({
+  params,
+}: BillingPortalRedirectPageProps) => {
   const router = useRouter()
-  const logoutMutation = trpc.utils.logout.useMutation()
+  const { organizationId } = use(params)
 
-  const handleLogout = async () => {
-    await logoutMutation.mutateAsync()
-    await signOut()
-    router.push('/sign-in')
-  }
+  useEffect(() => {
+    // Redirect to customer selection page
+    router.push(`/billing-portal/${organizationId}/select-customer`)
+  }, [organizationId, router])
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-4">
-          Customer Billing Portal!
-        </h1>
-      </div>
-
-      <div className="p-6 border-t">
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className="w-full sm:w-auto flex items-center gap-2"
-        >
-          <LogOut size={16} />
-          Logout
-        </Button>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <p className="text-muted-foreground">Redirecting...</p>
       </div>
     </div>
   )
 }
 
-export default BillingPortalPage
+export default BillingPortalRedirectPage
