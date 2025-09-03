@@ -23,7 +23,7 @@ import {
   inputClassNames,
   InputContainer,
 } from '@/components/ion/Input'
-import Label from '@/components/ion/Label'
+import { cn } from '@/utils/core'
 import { UseFormRegisterReturn } from 'react-hook-form'
 
 /** Credit to https://github.com/mantinedev/mantine/blob/master/packages/@mantine/core/src/components/NumberInput/NumberInput.tsx */
@@ -339,16 +339,31 @@ const NumberInput = React.forwardRef<
     return (
       <div className={className}>
         {label && (
-          <Label
-            id={`${id}__label`}
-            htmlFor={id}
-            required={required}
-            helper={helper}
-            disabled={props.disabled}
-            className="mb-1"
-          >
-            {label}
-          </Label>
+          <div className="mb-1">
+            <label
+              id={`${id}__label`}
+              htmlFor={id}
+              className={cn(
+                "text-sm font-medium leading-none text-foreground",
+                props.disabled && "opacity-50"
+              )}
+            >
+              {label}
+              {required && (
+                <span className="text-destructive ml-1">*</span>
+              )}
+            </label>
+            {helper && (
+              <span
+                className={cn(
+                  "text-xs text-muted-foreground ml-2",
+                  props.disabled && "opacity-50"
+                )}
+              >
+                ({helper})
+              </span>
+            )}
+          </div>
         )}
         <InputContainer
           className={clsx('bg-background-input', {
