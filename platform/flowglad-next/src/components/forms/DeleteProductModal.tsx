@@ -25,7 +25,7 @@ const DeleteProductModal = ({
       isOpen={isOpen}
       setIsOpen={setIsOpen}
     >
-      <p className="text-secondary">
+      <p className="text-muted-foreground">
         {`Are you sure you want to delete this product?`}
         <br />
         <br />

@@ -175,7 +175,8 @@ body {
 
     /* shadcn compatibility layer */
     --primary-foreground: var(--on-primary);
-    --secondary-foreground: var(--on-neutral);
+    --secondary: var(--neutral-container);
+    --secondary-foreground: var(--on-neutral-container);
     --accent: var(--primary-container);
     --accent-foreground: var(--on-primary-container);
     --destructive: var(--danger);
@@ -295,7 +296,8 @@ body {
 
     /* shadcn compatibility layer */
     --primary-foreground: var(--on-primary);
-    --secondary-foreground: var(--on-neutral);
+    --secondary: var(--neutral-container);
+    --secondary-foreground: var(--on-neutral-container);
     --accent: var(--primary-container);
     --accent-foreground: var(--on-primary-container);
     --destructive: var(--danger);

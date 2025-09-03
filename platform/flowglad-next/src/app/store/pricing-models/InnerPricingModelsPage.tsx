@@ -5,7 +5,7 @@ import InternalPageContainer from '@/components/InternalPageContainer'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { MigrationButton as Button } from '@/components/ui/button-migration'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 const InnerPricingModelsPage = () => {

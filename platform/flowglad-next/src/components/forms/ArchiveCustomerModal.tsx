@@ -46,26 +46,26 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
   }
 
   const modalText = !customerArchived ? (
-    <div className="text-secondary gap-4">
-      <p className="text-secondary pb-4">
+    <div className="text-muted-foreground gap-4">
+      <p className="text-muted-foreground pb-4">
         Archiving will hide this customer from active lists.
       </p>
-      <p className="text-secondary pb-4">
+      <p className="text-muted-foreground pb-4">
         You can unarchive them later.
       </p>
-      <p className="text-secondary pb-4">
+      <p className="text-muted-foreground pb-4">
         Would you like to archive this customer?
       </p>
     </div>
   ) : (
-    <div className="text-secondary gap-4">
-      <p className="text-secondary pb-4">
+    <div className="text-muted-foreground gap-4">
+      <p className="text-muted-foreground pb-4">
         Unarchiving will make this customer active again.
       </p>
-      <p className="text-secondary pb-4">
+      <p className="text-muted-foreground pb-4">
         It will not take any billing actions or notify them.
       </p>
-      <p className="text-secondary pb-4">
+      <p className="text-muted-foreground pb-4">
         Would you like to unarchive this customer?
       </p>
     </div>

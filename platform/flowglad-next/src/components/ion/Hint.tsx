@@ -31,7 +31,7 @@ function Hint({
         'flex items-center gap-1 text-xs text-subtle mt-1',
         {
           'text-danger': error,
-          'text-secondary': !error && !disabled,
+          'text-muted-foreground': !error && !disabled,
           'text-on-disabled': disabled,
         },
         className

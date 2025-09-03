@@ -57,16 +57,16 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   }
 
   const modalText = price.active ? (
-    <div className="text-secondary gap-4">
+    <div className="text-muted-foreground gap-4">
       <p>Archiving will hide this price from new purchases.</p>
       <p>Are you sure you want to archive this price?</p>
     </div>
   ) : (
-    <div className="text-secondary gap-4">
-      <p className="text-secondary pb-4">
+    <div className="text-muted-foreground gap-4">
+      <p className="text-muted-foreground pb-4">
         Unarchiving will make this price available for new purchases.
       </p>
-      <p className="text-secondary pb-4">
+      <p className="text-muted-foreground pb-4">
         Are you sure you want to unarchive this price?
       </p>
     </div>
