@@ -10,10 +10,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { X, AlertTriangle } from 'lucide-react'
-import { CancelSubscriptionModalProps } from '../types'
-import { formatDate } from '../utils'
+import { CancelSubscriptionModalProps } from './types'
+import { formatDate } from '@/registry/lib/date'
 
 export function CancelSubscriptionModal({
   isOpen,

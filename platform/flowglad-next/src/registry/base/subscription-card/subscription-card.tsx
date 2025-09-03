@@ -7,11 +7,11 @@ import {
   CardHeader,
 } from '@/components/ui/card'
 import { Skeleton } from '../skeleton/skeleton'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { SubscriptionCardProps } from './types'
-import { SubscriptionHeader } from './components/subscription-header'
-import { SubscriptionDetails } from './components/subscription-details'
-import { SubscriptionActions } from './components/subscription-actions'
+import { SubscriptionHeader } from './subscription-header'
+import { SubscriptionDetails } from './subscription-details'
+import { SubscriptionActions } from './subscription-actions'
 
 export function SubscriptionCard({
   subscription,

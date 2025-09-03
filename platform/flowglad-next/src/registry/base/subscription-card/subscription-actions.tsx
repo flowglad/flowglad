@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/utils/core'
-import { SubscriptionActionsProps } from '../types'
+import { cn } from '@/registry/lib/cn'
+import { SubscriptionActionsProps } from './types'
 import { CancelSubscriptionModal } from './cancel-subscription-modal'
 
 export function SubscriptionActions({

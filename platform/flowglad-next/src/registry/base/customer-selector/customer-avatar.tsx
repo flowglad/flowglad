@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import { User } from 'lucide-react'
-import { cn } from '@/utils/core'
-import type { CustomerAvatarProps } from '../types'
+import { cn } from '@/registry/lib/cn'
+import type { CustomerAvatarProps } from './types'
 
 export function CustomerAvatar({
   name,

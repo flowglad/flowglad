@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { X } from 'lucide-react'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { Button } from '@/components/ui/button'
 import { PricingToggle } from './pricing-toggle'
 import { PricingColumn } from './pricing-column'
