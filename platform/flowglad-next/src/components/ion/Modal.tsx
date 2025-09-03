@@ -76,7 +76,7 @@ const ModalSubtitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ModalPrimitive.Description
     ref={ref}
-    className={clsx('text-sm text-secondary', className)}
+    className={clsx('text-sm text-muted-foreground', className)}
     {...props}
   />
 ))

@@ -20,7 +20,7 @@ function SettingsOrganizationDetailsPage() {
         <div className="flex flex-col gap-6">
           <DetailLabel label="Name" value={organization.name} />
           <div className="flex flex-col gap-0.5">
-            <div className="text-xs font-medium text-secondary">
+            <div className="text-xs font-medium text-muted-foreground">
               ID
             </div>
             <CopyableTextTableCell copyText={organization.id}>
