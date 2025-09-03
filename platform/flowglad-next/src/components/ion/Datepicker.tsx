@@ -14,7 +14,7 @@ import { twMerge } from 'tailwind-merge'
 import { Calendar } from './Calendar'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from './Popover'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react'
 import core from '@/utils/core'
 import { cn } from '@/utils/core'
@@ -315,15 +315,11 @@ export const DateRangePicker = ({
         }}
       >
         <PopoverTrigger asChild>
-          <Button
-            iconLeading={<CalendarIcon size={16} />}
-            iconTrailing={<ChevronDown size={16} strokeWidth={2} />}
-            variant="outline"
-            color="primary"
-            size="sm"
-          >
+          <Button variant="outline" size="sm">
+            <CalendarIcon size={16} />
             {core.formatDate(fromDate)} -{' '}
             {toDate ? core.formatDate(toDate) : 'Present'}
+            <ChevronDown size={16} strokeWidth={2} />
           </Button>
         </PopoverTrigger>
         <PopoverContent

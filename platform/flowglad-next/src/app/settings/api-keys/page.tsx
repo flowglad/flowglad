@@ -7,7 +7,7 @@ import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
 import { Plus } from 'lucide-react'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { FlowgladApiKeyType } from '@/types'
 
 function ApiKeysPage() {
@@ -19,10 +19,8 @@ function ApiKeysPage() {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle className="mb-6">API Keys</PageTitle>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            iconLeading={<Plus size={16} />}
-          >
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus size={16} />
             Create API Key
           </Button>
         </div>
