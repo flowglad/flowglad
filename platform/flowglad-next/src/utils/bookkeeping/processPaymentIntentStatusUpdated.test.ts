@@ -22,7 +22,7 @@ import {
   setupPaymentMethod,
   setupPurchase,
   setupSubscription,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
 import { adminTransaction } from '@/db/adminTransaction'

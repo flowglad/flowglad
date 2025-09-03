@@ -13,7 +13,7 @@ import {
   teardownOrg,
   setupPrice,
   setupUsageMeter,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'

@@ -30,7 +30,7 @@ import {
   setupSubscription,
   setupBillingPeriod,
   setupBillingPeriodItem,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { DbTransaction } from '@/db/types'
 
 // No need to mock the database methods anymore as we'll use real database calls
