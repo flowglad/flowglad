@@ -72,8 +72,16 @@ const BillingPortalPage = ({ params }: BillingPortalPageProps) => {
   ])
 
   const handleLogout = async () => {
-    await logoutMutation.mutateAsync()
-    router.push('/sign-in')
+    try {
+      await logoutMutation.mutateAsync()
+      router.push('/sign-in')
+    } catch (error) {
+      // Log error for debugging but don't show to user
+      console.error('Logout failed:', error)
+      // Still redirect to sign-in even if mutation fails
+      // This ensures user can still leave the page
+      router.push('/sign-in')
+    }
   }
 
   const handleChangeCustomer = () => {

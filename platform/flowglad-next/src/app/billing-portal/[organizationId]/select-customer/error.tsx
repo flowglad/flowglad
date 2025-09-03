@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
 
 export default function Error({
@@ -12,6 +12,8 @@ export default function Error({
   reset: () => void
 }) {
   const router = useRouter()
+  const params = useParams()
+  const organizationId = params?.organizationId as string
 
   useEffect(() => {
     console.error('Customer selection error:', error)
@@ -31,9 +33,16 @@ export default function Error({
           <p className="text-muted-foreground">
             We encountered an error while loading customer profiles.
           </p>
-          {error.message && (
-            <p className="text-sm text-muted-foreground bg-muted rounded-md p-3 font-mono">
-              {error.message}
+          {process.env.NODE_ENV === 'development' &&
+            error.message && (
+              <p className="text-sm text-muted-foreground bg-muted rounded-md p-3 font-mono">
+                {error.message}
+              </p>
+            )}
+          {process.env.NODE_ENV === 'production' && (
+            <p className="text-sm text-muted-foreground">
+              Please try again or contact support if the issue
+              persists.
             </p>
           )}
         </div>
@@ -46,7 +55,11 @@ export default function Error({
             Try Again
           </button>
           <button
-            onClick={() => router.push('/billing-portal')}
+            onClick={() =>
+              organizationId
+                ? router.push(`/billing-portal/${organizationId}`)
+                : router.back()
+            }
             className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
           >
             Go Back

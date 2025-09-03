@@ -33,9 +33,16 @@ export default function Error({
           <p className="text-muted-foreground">
             We encountered an error while loading the billing portal.
           </p>
-          {error.message && (
-            <p className="text-sm text-muted-foreground bg-muted rounded-md p-3 font-mono">
-              {error.message}
+          {process.env.NODE_ENV === 'development' &&
+            error.message && (
+              <p className="text-sm text-muted-foreground bg-muted rounded-md p-3 font-mono">
+                {error.message}
+              </p>
+            )}
+          {process.env.NODE_ENV === 'production' && (
+            <p className="text-sm text-muted-foreground">
+              Please try again or contact support if the issue
+              persists.
             </p>
           )}
         </div>
