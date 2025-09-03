@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Organization } from '@/db/schema/organizations'
-import { setupPricingModel, setupOrg } from '../../../seedDatabase'
+import { setupPricingModel, setupOrg } from '@/../seedDatabase'
 import {
   safelyUpdatePricingModel,
   selectPricingModelById,

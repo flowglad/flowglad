@@ -19,7 +19,7 @@ import {
   setupDiscount,
   setupInvoice,
   setupPurchase,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import {
   selectDiscountRedemptions,

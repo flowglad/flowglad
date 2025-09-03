@@ -1,3 +1,14 @@
+## Package Manager
+**IMPORTANT**: This project uses `pnpm` as its package manager. ALWAYS use `pnpm` for all package management operations. Never use `npm` or `yarn`.
+
+Examples:
+- Install dependencies: `pnpm install`
+- Add a package: `pnpm add <package-name>`
+- Run scripts: `pnpm run <script-name>`
+- Build: `pnpm build`
+- Lint: `pnpm lint`
+- Type check: `pnpm type-check`
+
 ## On Every Change
 Whenever you complete a task, confirm that everything lints as expected:
 ```bash

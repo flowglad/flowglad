@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/registry/lib/cn'
 import { formatCurrency } from '@/registry/lib/currency'
 
 interface InvoiceAmountProps {

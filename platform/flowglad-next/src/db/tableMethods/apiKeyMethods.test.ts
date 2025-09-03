@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { setupOrg } from '../../../seedDatabase'
+import { setupOrg } from '@/../seedDatabase'
 import { FlowgladApiKeyType } from '@/types'
 import { nanoid } from '@/utils/core'
 import {

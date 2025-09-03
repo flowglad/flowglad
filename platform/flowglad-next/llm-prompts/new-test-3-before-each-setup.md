@@ -275,7 +275,7 @@ import {
   setupOrg,
   setupProduct,
   setupPrice,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 import { nanoid } from '@/utils/core'
 import {

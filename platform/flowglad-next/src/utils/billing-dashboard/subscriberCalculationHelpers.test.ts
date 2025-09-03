@@ -43,7 +43,7 @@ import {
   setupCustomer,
   setupPaymentMethod,
   setupSubscription,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { DbTransaction } from '@/db/types'
 
 // Import the mocked functions

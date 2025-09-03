@@ -13,7 +13,7 @@ import {
   setupPaymentMethod,
   setupPurchase,
   setupCheckoutSession,
-} from '../../../seedDatabase'
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   deleteExpiredCheckoutSessionsAndFeeCalculations,
