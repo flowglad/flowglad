@@ -42,7 +42,7 @@ const BillingPortalPage = ({ params }: BillingPortalPageProps) => {
   )
 
   const hasMultipleCustomers =
-    customersData?.customers && customersData.customers.length > 1
+    (customersData?.customers?.length ?? 0) > 1
 
   // Validate that the user has access to this specific customer
   const currentCustomer = customersData?.customers?.find(
