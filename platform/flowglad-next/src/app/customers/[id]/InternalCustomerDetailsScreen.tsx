@@ -11,7 +11,7 @@ import { Price } from '@/db/schema/prices'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PageTitle from '@/components/ion/PageTitle'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Pencil, Ellipsis } from 'lucide-react'
 import PopoverMenu, {
   PopoverMenuItem,
@@ -61,18 +61,15 @@ function InternalCustomerDetailsScreen({
               </PageTitle>
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
-              <Button
-                iconLeading={<Pencil size={16} />}
-                onClick={() => setIsEditOpen(true)}
-              >
+              <Button onClick={() => setIsEditOpen(true)}>
+                <Pencil size={16} />
                 Edit
               </Button>
               <Popover>
-                <PopoverTrigger className="flex">
+                <PopoverTrigger asChild>
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"
-                    asDiv={true}
                   >
                     <Ellipsis className="rotate-90 w-4 h-6" />
                   </Button>

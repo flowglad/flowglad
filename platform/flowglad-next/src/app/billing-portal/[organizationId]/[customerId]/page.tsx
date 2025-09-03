@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from '@/utils/authClient'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { LogOut, ChevronLeft, User, AlertCircle } from 'lucide-react'
 import { trpc } from '@/app/_trpc/client'
 import { toast } from 'sonner'

@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import { useState } from 'react'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Price } from '@/db/schema/prices'
 import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
 import { Product } from '@/db/schema/products'
@@ -75,18 +75,15 @@ function InternalProductDetailsPage(
               </PageTitle>
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
-              <Button
-                iconLeading={<Pencil size={16} />}
-                onClick={() => setIsEditOpen(true)}
-              >
+              <Button onClick={() => setIsEditOpen(true)}>
+                <Pencil size={16} />
                 Edit
               </Button>
               <Popover>
-                <PopoverTrigger className="flex">
+                <PopoverTrigger asChild>
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"
-                    asDiv={true}
                   >
                     <Ellipsis className="rotate-90 w-4 h-6" />
                   </Button>

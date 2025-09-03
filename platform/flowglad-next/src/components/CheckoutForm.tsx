@@ -4,7 +4,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import PaymentForm, { PaymentLoadingForm } from './PaymentForm'
 import { ChevronRight, TriangleAlert } from 'lucide-react'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 
@@ -31,11 +31,9 @@ const CheckoutFormDisabled = () => {
                 onClick={() => {
                   router.push('/onboarding')
                 }}
-                iconTrailing={
-                  <ChevronRight size={16} strokeWidth={4} />
-                }
               >
                 Enable Payouts
+                <ChevronRight size={16} strokeWidth={4} />
               </Button>
             </div>
           </div>

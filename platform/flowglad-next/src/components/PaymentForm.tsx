@@ -9,7 +9,7 @@ import {
 } from '@stripe/react-stripe-js'
 import { FormEvent, useState } from 'react'
 import core, { cn } from '@/utils/core'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
@@ -489,15 +489,13 @@ const PaymentForm = () => {
                 isSubmitting ||
                 checkoutBlocked
               }
-              iconLeading={
-                isSubmitting ? (
-                  <LoaderCircle
-                    className="animate-spin-slow"
-                    size={16}
-                  />
-                ) : undefined
-              }
             >
+              {isSubmitting && (
+                <LoaderCircle
+                  className="animate-spin-slow"
+                  size={16}
+                />
+              )}
               {buttonLabel}
             </Button>
             {errorMessage && <ErrorLabel error={errorMessage} />}

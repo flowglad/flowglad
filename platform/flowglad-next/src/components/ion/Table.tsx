@@ -1,4 +1,4 @@
-// ion/TableContainer: Generated with Ion on 9/20/2024, 10:31:46 PM
+// ion/TableContainer: Generated with Ion on 9/20/2024, 10:30:46 PM
 import {
   type ColumnDef,
   type Table as TableType,
@@ -14,7 +14,7 @@ import clsx from 'clsx'
 import * as React from 'react'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import {
   ArrowLeft,
   ArrowRight,
