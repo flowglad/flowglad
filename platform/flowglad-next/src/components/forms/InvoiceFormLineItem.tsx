@@ -15,9 +15,12 @@ import clsx from 'clsx'
 import NumberInput from '../ion/NumberInput'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
-import { ControlledCurrencyInput } from './ControlledCurrencyInput'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import {
+  humanReadableCurrencyAmountToStripeCurrencyAmount,
+  stripeCurrencyAmountToHumanReadableCurrencyAmount,
+} from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { CurrencyInput } from '../ion/CurrencyInput'
 
 interface InvoiceFormLineItemProps {
   id: string
@@ -104,11 +107,29 @@ const InvoiceFormLineItem = ({
           )
         }}
       />
-      <ControlledCurrencyInput
-        name={`invoiceLineItems.${index}.price`}
+      <Controller
         control={form.control}
-        className="w-[100px]"
+        name={`invoiceLineItems.${index}.price`}
+        render={({ field }) => (
+          <CurrencyInput
+            value={field.value?.toString() ?? ''}
+            className="w-[100px]"
+            onValueChange={(value) => {
+              if (value.floatValue) {
+                field.onChange(
+                  humanReadableCurrencyAmountToStripeCurrencyAmount(
+                    organization!.defaultCurrency,
+                    Math.ceil(value.floatValue * 100) / 100
+                  )
+                )
+              } else {
+                field.onChange(0)
+              }
+            }}
+          />
+        )}
       />
+
       <div className="w-20 flex items-center">
         <p className="text-md">
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
