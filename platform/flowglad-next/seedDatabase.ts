@@ -334,7 +334,7 @@ export const setupCustomer = async (params: {
         organizationId: params.organizationId,
         email,
         name: email,
-        externalId: params.externalId ?? core.nanoid(),
+        externalId: (params.externalId?.trim() || core.nanoid()),
         livemode: params.livemode ?? true,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
