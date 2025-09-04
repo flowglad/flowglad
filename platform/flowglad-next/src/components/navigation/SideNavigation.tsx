@@ -17,7 +17,7 @@ import ParentChildNavigationItem from './ParentChildNavigationItem'
 import StandaloneNavigationItem from './StandaloneNavigationItem'
 import { Switch } from '@/components/ui/switch'
 import { trpc } from '@/app/_trpc/client'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { Skeleton } from '../ui/skeleton'
 import { FeatureFlag } from '@/types'
@@ -108,7 +108,7 @@ export const SideNavigation = () => {
     <>
       <SidebarHeader
         className={cn(
-          'w-full flex flex-row items-center border-b border-stroke-subtle py-3',
+          'w-full flex flex-row items-center border-b border-muted py-3',
           isCollapsed
             ? 'justify-center px-3 gap-0'
             : 'justify-between px-3 gap-2.5 p-2'

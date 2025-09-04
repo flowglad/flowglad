@@ -137,7 +137,7 @@ export const ProductsTable = ({
           id: 'image',
           width: 100,
           cell: ({ row: { original: cellData } }) => (
-            <div className="bg-fbg-primary-200 h-10 w-10 hover:bg-fbg-primary-200 overflow-clip flex items-center justify-center rounded-md">
+            <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md">
               {cellData.product.imageURL ? (
                 <Image
                   src={cellData.product.imageURL}
@@ -244,7 +244,7 @@ export const ProductsTable = ({
           onClickRow={(row) => {
             router.push(`/store/products/${row.product.id}`)
           }}
-          className="bg-nav"
+          className="bg-background"
           bordered
           pagination={{
             pageIndex,

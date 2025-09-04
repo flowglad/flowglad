@@ -32,11 +32,11 @@ function InnerRevenueTooltip({
     <div
       className={twMerge(
         clsx(
-          'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-stroke-subtle shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
+          'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-muted shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
         )
       )}
     >
-      <div className="flex justify-between items-center gap-2 text-xs font-medium text-on-primary-hover">
+      <div className="flex justify-between items-center gap-2 text-xs font-medium text-primary-foreground-hover">
         <div className="text-left">
           <div
             className={core.cn(

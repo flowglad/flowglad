@@ -44,7 +44,7 @@ const InternalInvoicesPage = () => {
         />
 
         <Tabs value={selectedStatus} onValueChange={handleTabChange}>
-          <TabsList className="gap-8 border-b border-stroke-subtle">
+          <TabsList className="gap-8 border-b border-muted">
             <InvoiceStatusTab status="all" />
             <InvoiceStatusTab status={InvoiceStatus.Draft} />
             <InvoiceStatusTab status={InvoiceStatus.Open} />

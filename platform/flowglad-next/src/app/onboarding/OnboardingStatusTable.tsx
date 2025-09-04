@@ -47,7 +47,7 @@ const OnboardingStatusRow = ({
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div className="flex flex-row items-center justify-between border border-stroke-subtle rounded-lg bg-background-input py-4 px-4">
+      <div className="flex flex-row items-center justify-between border border-muted rounded-lg bg-background-input py-4 px-4">
         <div className="flex flex-col justify-start w-full">
           <p className="font-medium text-foreground pb-1">{title}</p>
           <OnboardingItemDescriptionLabel>
@@ -116,7 +116,7 @@ const CodeblockGroup = ({
         <Tabs
           value={selectedSection}
           onValueChange={setSelectedSection}
-          className="w-full flex border-b border-stroke-subtle font-semibold"
+          className="w-full flex border-b border-muted font-semibold"
         >
           <TabsList className="gap-8">
             {sections.map((section) => (

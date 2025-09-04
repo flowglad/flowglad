@@ -62,7 +62,7 @@ function InternalProductsPage({ products: initialProducts }: Props) {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="gap-8 border-b border-stroke-subtle w-full">
+          <TabsList className="gap-8 border-b border-muted w-full">
             <ProductStatusTab status="all" />
             <ProductStatusTab status="active" />
             <ProductStatusTab status="inactive" />

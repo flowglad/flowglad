@@ -25,7 +25,7 @@ const SettingsPage = () => {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="gap-8 border-b border-stroke-subtle">
+          <TabsList className="gap-8 border-b border-muted">
             <TabsTrigger value="overview">
               <div className="flex items-center gap-2">
                 <span>Overview</span>

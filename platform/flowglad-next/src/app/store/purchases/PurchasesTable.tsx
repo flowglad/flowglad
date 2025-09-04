@@ -63,7 +63,7 @@ const PurchasesTable = ({
     <Table
       columns={columns}
       data={data}
-      className="bg-nav"
+      className="bg-background"
       bordered
     />
   )

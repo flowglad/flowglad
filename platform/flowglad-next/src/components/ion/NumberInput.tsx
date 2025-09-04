@@ -20,7 +20,7 @@ import { twMerge } from 'tailwind-merge'
 
 import { Label } from '@/components/ui/label'
 import { UseFormRegisterReturn } from 'react-hook-form'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 
 /** Credit to https://github.com/mantinedev/mantine/blob/master/packages/@mantine/core/src/components/NumberInput/NumberInput.tsx */
 
@@ -394,7 +394,7 @@ const NumberInput = React.forwardRef<
                 iconTrailing && 'pr-10',
                 error
                   ? 'border-destructive focus-visible:ring-destructive'
-                  : 'border-transparent focus-visible:border-stroke-strong focus-visible:bg-transparent focus-visible:ring-0',
+                  : 'border-transparent focus-visible:border-ring-strong focus-visible:bg-transparent focus-visible:ring-0',
                 inputClassName
               )}
               disabled={props.disabled}

@@ -75,7 +75,7 @@ const PostPurchaseAssetRow = ({
   modals,
 }: PostPurchaseAssetRowProps) => {
   return (
-    <div className="w-full flex items-center justify-between py-4 px-3 bg-container bg-nav border border-stroke-subtle rounded-radius [&:not(:only-child)]:rounded-none [&:not(:only-child)]:border-t-0 [&:not(:only-child)]:first:border-t [&:not(:only-child)]:first:rounded-t-radius [&:not(:only-child)]:last:rounded-b-radius">
+    <div className="w-full flex items-center justify-between py-4 px-3 bg-background bg-background border border-muted rounded-radius [&:not(:only-child)]:rounded-none [&:not(:only-child)]:border-t-0 [&:not(:only-child)]:first:border-t [&:not(:only-child)]:first:rounded-t-radius [&:not(:only-child)]:last:rounded-b-radius">
       <div className="flex items-center gap-3 w-full">
         <div className="flex items-center justify-center w-8 h-8 rounded-radius bg-input">
           {itemIcon}

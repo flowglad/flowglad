@@ -251,10 +251,10 @@ const FileInput: React.FC<FileInputProps> = ({
       {label && <Label className="mb-1">{label}</Label>}
       <div
         className={core.cn(
-          'w-full min-w-[320px] relative flex flex-col items-center gap-1 p-4 rounded-radius-md border-2 border-stroke-subtle border-dashed cursor-pointer transition-colors duration-200 hover:border-primary',
-          isDragging && 'border-primary bg-container-high',
+          'w-full min-w-[320px] relative flex flex-col items-center gap-1 p-4 rounded-radius-md border-2 border-muted border-dashed cursor-pointer transition-colors duration-200 hover:border-primary',
+          isDragging && 'border-primary bg-card',
           uploadedFiles.length > 0 &&
-            'border-solid border-stroke-subtle border'
+            'border-solid border-muted border'
         )}
         onClick={() => document.getElementById(id)?.click()}
         onDragOver={(e) => {

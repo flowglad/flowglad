@@ -15,7 +15,7 @@ import clsx from 'clsx'
 import NumberInput from '../ion/NumberInput'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
-import { ControlledCurrencyInput } from './ControlledCurrencyInput'
+import { CurrencyInput } from '../ion/CurrencyInput'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 
@@ -60,7 +60,7 @@ const InvoiceFormLineItem = ({
       style={style}
       className={clsx(
         'w-full flex items-center gap-8 bg-background pb-2 border border-transparent z-0',
-        isDragging && 'z-20  border-stroke-subtle rounded-radius-sm'
+        isDragging && 'z-20  border-muted rounded-radius-sm'
       )}
     >
       <div className="flex flex-row gap-2 min-w-80">
@@ -104,10 +104,12 @@ const InvoiceFormLineItem = ({
           )
         }}
       />
-      <ControlledCurrencyInput
+      <Controller
         name={`invoiceLineItems.${index}.price`}
         control={form.control}
-        className="w-[100px]"
+        render={({ field }) => (
+          <CurrencyInput {...field} className="w-[100px]" />
+        )}
       />
       <div className="w-20 flex items-center">
         <p className="text-md">

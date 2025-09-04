@@ -1,4 +1,4 @@
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { ChevronsUpDown } from 'lucide-react'
 import { Column } from '@tanstack/react-table'
 

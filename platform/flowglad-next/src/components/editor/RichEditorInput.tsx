@@ -10,7 +10,7 @@ import StarterKit from '@tiptap/starter-kit'
 import mentionSuggestions from './mentionSuggestions'
 import ErrorLabel from '../ErrorLabel'
 import { useEffect } from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 
 const RichEditorInput = ({
   onChange,

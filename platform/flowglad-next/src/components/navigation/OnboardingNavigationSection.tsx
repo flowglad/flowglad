@@ -3,7 +3,7 @@ import { ChevronRight, TriangleRight } from 'lucide-react'
 import { BusinessOnboardingStatus } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import {
   SidebarMenuButton,
   SidebarMenuItem,

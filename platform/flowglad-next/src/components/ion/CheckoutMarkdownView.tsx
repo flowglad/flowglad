@@ -4,19 +4,19 @@ const components = {
   // Override default elements
   h1: (props: any) => (
     <h1
-      className="text-2xl font-bold text-on-primary-hover py-2"
+      className="text-2xl font-bold text-primary-foreground-hover py-2"
       {...props}
     />
   ),
   h2: (props: any) => (
     <h2
-      className="text-xl font-semibold text-on-primary-hover py-2"
+      className="text-xl font-semibold text-primary-foreground-hover py-2"
       {...props}
     />
   ),
   h3: (props: any) => (
     <h3
-      className="text-lg font-semibold text-on-primary-hover py-2"
+      className="text-lg font-semibold text-primary-foreground-hover py-2"
       {...props}
     />
   ),
@@ -55,7 +55,7 @@ const CheckoutMarkdownView = ({
 
   return (
     <div className="w-full">
-      <h1 className="text-2xl font-bold text-on-primary-hover py-2">
+      <h1 className="text-2xl font-bold text-primary-foreground-hover py-2">
         {title}
       </h1>
       <ReactMarkdown components={components}>{source}</ReactMarkdown>

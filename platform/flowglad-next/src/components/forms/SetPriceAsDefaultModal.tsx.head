@@ -1,0 +1,18 @@
+        <DialogFooter>
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMakeDefault}
+              disabled={editPrice.isPending}
+            >
+              Set as Default
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>

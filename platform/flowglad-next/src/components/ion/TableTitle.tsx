@@ -67,7 +67,7 @@ type TableTitleProps = {
 const TableTitle = ({ title, ...props }: TableTitleProps) => {
   return (
     <div className="w-full flex justify-between items-start">
-      <div className="text-xl font-semibold text-on-primary-hover">
+      <div className="text-xl font-semibold text-primary-foreground-hover">
         {title}
       </div>
       {(props as NoButtons).noButtons ? null : (

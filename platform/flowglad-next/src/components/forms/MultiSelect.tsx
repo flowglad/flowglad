@@ -564,11 +564,11 @@ const MultipleSelector = React.forwardRef<
                 'hover:border-outline': !disabled && !resolvedError,
                 'focus-within:danger-focus border-danger hover:border-danger':
                   resolvedError && !disabled,
-                'focus-within:primary-focus focus-within:border-stroke-primary':
+                'focus-within:primary-focus focus-within:border-border-primary':
                   !resolvedError && !disabled,
                 'border-danger': resolvedError && !disabled,
-                'border-stroke': !resolvedError && !disabled,
-                'border-stroke-disabled text-on-disabled': disabled,
+                'border-border': !resolvedError && !disabled,
+                'border-border-disabled text-on-disabled': disabled,
                 'pointer-events-none': disabled,
                 'cursor-text': !disabled,
               },
@@ -678,7 +678,7 @@ const MultipleSelector = React.forwardRef<
           <div className="relative">
             {open && (
               <CommandList
-                className="absolute top-1 z-10 w-full rounded-md border border-stroke-subtle bg-background text-on-background shadow-medium outline-none animate-in"
+                className="absolute top-1 z-10 w-full rounded-md border border-muted bg-background text-on-background shadow-medium outline-none animate-in"
                 onMouseLeave={() => {
                   setOnScrollbar(false)
                 }}

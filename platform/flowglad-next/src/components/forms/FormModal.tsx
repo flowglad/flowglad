@@ -316,13 +316,13 @@ const FormModal = <T extends FieldValues>({
         direction="right"
       >
         <DrawerContent className="h-full flex flex-col">
-          <DrawerHeader className="sticky top-0 z-10 bg-background border-b border-stroke-subtle px-6 py-4">
+          <DrawerHeader className="sticky top-0 z-10 bg-background border-b border-muted px-6 py-4">
             <DrawerTitle>{title}</DrawerTitle>
           </DrawerHeader>
           <div className="flex-1 overflow-y-auto px-6 py-5">
             {innerContent}
           </div>
-          <div className="sticky bottom-0 z-10 bg-background border-t border-stroke-subtle px-6 py-4">
+          <div className="sticky bottom-0 z-10 bg-background border-t border-muted px-6 py-4">
             {hideFooter ? null : footer}
           </div>
         </DrawerContent>

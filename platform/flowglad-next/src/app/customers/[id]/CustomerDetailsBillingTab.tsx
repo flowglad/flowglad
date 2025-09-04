@@ -31,7 +31,7 @@ const CustomerDetailsSection = ({
 
   return (
     <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-radius-sm">
-      <div className="text-xl font-semibold text-on-primary-hover">
+      <div className="text-xl font-semibold text-primary-foreground-hover">
         Details
       </div>
       <div className="grid grid-cols-2 gap-x-16 gap-y-4">

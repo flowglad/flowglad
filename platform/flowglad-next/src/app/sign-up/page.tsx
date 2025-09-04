@@ -17,7 +17,7 @@ import { Loader2, X } from 'lucide-react'
 import { signIn, signUp } from '@/utils/authClient'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { ErrorContext } from 'better-auth/react'
 
 export default function SignUp() {

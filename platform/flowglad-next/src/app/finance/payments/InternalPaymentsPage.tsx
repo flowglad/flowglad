@@ -34,7 +34,7 @@ export default function InternalPaymentsPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="gap-8 border-b border-stroke-subtle">
+          <TabsList className="gap-8 border-b border-muted">
             <PaymentsTab status="all" />
             <PaymentsTab status={PaymentStatus.Succeeded} />
             <PaymentsTab status={PaymentStatus.Processing} />

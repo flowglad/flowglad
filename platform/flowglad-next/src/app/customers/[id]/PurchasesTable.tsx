@@ -207,7 +207,7 @@ const PurchasesTable = ({
       <Table
         columns={columns}
         data={tableData}
-        className="bg-nav w-full"
+        className="bg-background w-full"
         bordered
         pagination={{
           pageIndex,

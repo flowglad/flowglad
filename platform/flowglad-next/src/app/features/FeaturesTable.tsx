@@ -174,7 +174,7 @@ const FeaturesTable = ({
       onClickRow={(row) => {
         // router.push(`/features/${row.feature.id}`) // TODO: Add feature details page
       }}
-      className="bg-nav"
+      className="bg-background"
       bordered
       pagination={{
         pageIndex,

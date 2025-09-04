@@ -82,7 +82,7 @@ function InternalCustomerDetailsScreen({
             />
           </div>
         </div>
-        <Tabs className="w-full flex border-b border-stroke-subtle text-sm font-semibold">
+        <Tabs className="w-full flex border-b border-muted text-sm font-semibold">
           <TabsList className="gap-8">
             <TabsTrigger
               className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-lg"

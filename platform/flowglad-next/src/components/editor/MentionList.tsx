@@ -66,7 +66,7 @@ const MentionList = forwardRef<
   }))
 
   return (
-    <div className="bg-background-input rounded-md shadow-medium flex flex-col gap-1 overflow-auto p-3 relative border border-stroke-subtle">
+    <div className="bg-background-input rounded-md shadow-medium flex flex-col gap-1 overflow-auto p-3 relative border border-muted">
       {props.items.length ? (
         props.items.map((item, index) => (
           <button

@@ -2,7 +2,7 @@
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import {
   SidebarMenuButton,
   SidebarMenuItem,

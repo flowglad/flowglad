@@ -34,7 +34,7 @@ const TableRoot = React.forwardRef<
         ref={ref}
         className={twMerge(
           clsx(
-            'w-full caption-bottom table-fixed rounded-radius bg-nav',
+            'w-full caption-bottom table-fixed rounded-radius bg-background',
             className
           )
         )}
@@ -75,7 +75,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={twMerge(
-      clsx('border-t border-stroke-subtle font-medium', className)
+      clsx('border-t border-muted font-medium', className)
     )}
     {...props}
   />
@@ -94,7 +94,7 @@ const TableRow = React.forwardRef<
     ref={ref}
     className={twMerge(
       clsx(
-        'border-stroke-subtle border-t transition-colors last:border-b-0 data-[state=selected]:bg-container-high ',
+        'border-muted border-t transition-colors last:border-b-0 data-[state=selected]:bg-accent-high ',
         borderless && 'border-none',
         className
       )
@@ -397,7 +397,7 @@ function Table<TData, TValue>({
         className={clsx(
           'w-full',
           bordered &&
-            'border border-stroke rounded-radius overflow-hidden',
+            'border border-border rounded-radius overflow-hidden',
           className
         )}
       >
@@ -454,7 +454,7 @@ function Table<TData, TValue>({
 
   if (!isLoading && rowLength === 0) {
     return (
-      <div className="w-full border-dashed border-2 border-stroke-subtle rounded-radius flex items-center justify-center h-32">
+      <div className="w-full border-dashed border-2 border-muted rounded-radius flex items-center justify-center h-32">
         <span className="text-muted-foreground">No items.</span>
       </div>
     )
@@ -466,7 +466,7 @@ function Table<TData, TValue>({
         className={clsx(
           'w-full',
           bordered &&
-            'border border-stroke rounded-radius overflow-hidden',
+            'border border-border rounded-radius overflow-hidden',
           className
         )}
       >
@@ -520,7 +520,7 @@ function Table<TData, TValue>({
                     data-state={row.getIsSelected() && 'selected'}
                     className={clsx(
                       'hover:bg-list-item-background-hover first:border-t-0',
-                      row.getIsSelected() && 'bg-container-high',
+                      row.getIsSelected() && 'bg-card',
                       onClickRow && 'cursor-pointer'
                     )}
                     onClick={

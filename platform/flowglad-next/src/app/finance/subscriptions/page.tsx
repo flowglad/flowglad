@@ -50,7 +50,7 @@ function InternalSubscriptionsPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="gap-8 border-b border-stroke-subtle">
+          <TabsList className="gap-8 border-b border-muted">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value={SubscriptionStatus.Active}>
               Active

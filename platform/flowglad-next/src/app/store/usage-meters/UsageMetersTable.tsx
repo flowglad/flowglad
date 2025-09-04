@@ -123,7 +123,7 @@ const UsageMetersTable = ({
             <Table
               columns={columns}
               data={tableData}
-              className="bg-nav"
+              className="bg-background"
               bordered
               pagination={{
                 pageIndex,
