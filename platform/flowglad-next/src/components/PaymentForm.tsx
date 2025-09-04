@@ -323,7 +323,7 @@ const PaymentForm = () => {
     >
       {
         <div
-          className={core.cn(
+          className={cn(
             'absolute inset-0 z-10 transition-opacity duration-300',
             embedsReady
               ? 'opacity-0 pointer-events-none'
@@ -334,7 +334,7 @@ const PaymentForm = () => {
         </div>
       }
       <div
-        className={core.cn(
+        className={cn(
           'transition-opacity duration-300',
           !embedsReady && 'opacity-0'
         )}
@@ -368,7 +368,7 @@ const PaymentForm = () => {
           onReady={() => {
             setEmailEmbedReady(true)
           }}
-          className={core.cn('pb-3', !embedsReady && 'opacity-0')}
+          className={cn('pb-3', !embedsReady && 'opacity-0')}
         />
         {emailError && (
           <ErrorLabel error={emailError} className="pb-4" />

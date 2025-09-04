@@ -240,7 +240,7 @@ const FileInput: React.FC<FileInputProps> = ({
     <div className={className}>
       {label && <Label className="mb-1">{label}</Label>}
       <div
-        className={core.cn(
+        className={cn(
           'w-full min-w-[320px] relative flex flex-col items-center gap-1 p-4 rounded-radius-md border-2 border-muted border-dashed cursor-pointer transition-colors duration-200 hover:border-primary',
           isDragging && 'border-primary bg-card',
           uploadedFiles.length > 0 &&

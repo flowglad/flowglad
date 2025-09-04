@@ -3,7 +3,6 @@
 
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
-import clsx from 'clsx'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
 
 export enum PopoverMenuItemState {
@@ -43,7 +42,7 @@ const PopoverMenuItem = ({
   return (
     <PopoverPrimitive.Close asChild>
       <div
-        className={clsx(
+        className={cn(
           'flex flex-col w-fit items-start gap-2.5 px-4 py-2 text-sm hover:bg-white hover:bg-opacity-[0.07] rounded-radius-xs',
           className,
           disabled
@@ -53,7 +52,7 @@ const PopoverMenuItem = ({
         onClick={disabled ? undefined : onClick}
       >
         <div
-          className={core.cn(
+          className={cn(
             'font-bold whitespace-normal break-words',
             state === PopoverMenuItemState.Danger
               ? 'text-danger'
@@ -78,7 +77,7 @@ const PopoverMenu = ({ items }: PopoverMenuProps) => {
       {items.map((item, index) => (
         <PopoverMenuItem
           key={index}
-          className={core.cn(
+          className={cn(
             'max-w-[200px] w-full justify-start text-left'
           )}
           state={item.state}

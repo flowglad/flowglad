@@ -11,7 +11,7 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import { Purchase } from '@/db/schema/purchases'
 import { sentenceCase } from 'change-case'
 import Image from 'next/image'
-import CheckoutMarkdownView from '@/components/ion/CheckoutMarkdownView'
+import { CheckoutMarkdownView } from '@/components/ui/checkout-markdown-view'
 import { Price } from '@/db/schema/prices'
 
 export interface BillingHeaderProps

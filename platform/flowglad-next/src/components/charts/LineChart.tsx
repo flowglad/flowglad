@@ -28,7 +28,7 @@ import {
   hasOnlyOneValueForKey,
 } from '@/utils/chartStyles'
 import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
-import { cx } from '@/utils/core'
+import { cn } from '@/lib/utils'
 
 // Add useContainerSize hook
 const useContainerSize = () => {
@@ -72,7 +72,7 @@ const LegendItem = ({
   const hasOnValueChange = !!onClick
   return (
     <li
-      className={cx(
+      className={cn(
         // base
         'group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition',
         hasOnValueChange
@@ -85,7 +85,7 @@ const LegendItem = ({
       }}
     >
       <span
-        className={cx(
+        className={cn(
           'h-[3px] w-3.5 shrink-0 rounded-full',
           getColorClassName(color, 'bg'),
           activeLegend && activeLegend !== name
@@ -95,7 +95,7 @@ const LegendItem = ({
         aria-hidden={true}
       />
       <p
-        className={cx(
+        className={cn(
           // base
           'truncate whitespace-nowrap text-xs',
           // text color
@@ -149,7 +149,7 @@ const ScrollButton = ({
   return (
     <button
       type="button"
-      className={cx(
+      className={cn(
         // base
         'group inline-flex size-5 items-center truncate rounded transition',
         disabled
@@ -293,13 +293,13 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
     return (
       <ol
         ref={ref}
-        className={cx('relative overflow-hidden', className)}
+        className={cn('relative overflow-hidden', className)}
         {...other}
       >
         <div
           ref={scrollableRef}
           tabIndex={0}
-          className={cx(
+          className={cn(
             'flex h-full',
             enableLegendSlider
               ? hasScroll?.right || hasScroll?.left
@@ -322,7 +322,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>(
         (hasScroll?.right || hasScroll?.left) ? (
           <>
             <div
-              className={cx(
+              className={cn(
                 // base
                 'absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1',
                 // background color
@@ -384,7 +384,7 @@ const ChartLegend = (
     <div
       ref={legendRef}
       style={{ paddingLeft: paddingLeft }}
-      className={cx(
+      className={cn(
         'flex items-center',
         { 'justify-center': legendPosition === 'center' },
         { 'justify-start': legendPosition === 'left' },
@@ -439,7 +439,7 @@ const ChartTooltip = ({
     )
     return (
       <div
-        className={cx(
+        className={cn(
           // base
           'rounded-md border text-sm shadow-md',
           // border color
@@ -448,9 +448,9 @@ const ChartTooltip = ({
           'bg-white dark:bg-gray-950'
         )}
       >
-        <div className={cx('border-b border-inherit px-4 py-2')}>
+        <div className={cn('border-b border-inherit px-4 py-2')}>
           <p
-            className={cx(
+            className={cn(
               // base
               'font-medium',
               // text color
@@ -460,7 +460,7 @@ const ChartTooltip = ({
             {label} LABEL LABEL LABEL
           </p>
         </div>
-        <div className={cx('space-y-1 px-4 py-2')}>
+        <div className={cn('space-y-1 px-4 py-2')}>
           {legendPayload.map(({ value, category, color }, index) => (
             <div
               key={`id-${index}`}
@@ -469,13 +469,13 @@ const ChartTooltip = ({
               <div className="flex items-center space-x-2">
                 <span
                   aria-hidden="true"
-                  className={cx(
+                  className={cn(
                     'h-[3px] w-3.5 shrink-0 rounded-full',
                     getColorClassName(color, 'bg')
                   )}
                 />
                 <p
-                  className={cx(
+                  className={cn(
                     // base
                     'whitespace-nowrap text-right',
                     // text color
@@ -486,7 +486,7 @@ const ChartTooltip = ({
                 </p>
               </div>
               <p
-                className={cx(
+                className={cn(
                   // base
                   'whitespace-nowrap text-right font-medium tabular-nums',
                   // text color
@@ -665,7 +665,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
     return (
       <div
         ref={mergeRefs([ref, containerRef])}
-        className={cx('h-80 w-full', className)}
+        className={cn('h-80 w-full', className)}
         tremor-id="tremor-raw"
         {...other}
       >
@@ -703,7 +703,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
           >
             {/* {showGridLines ? (
               <CartesianGrid
-                className={cx(
+                className={cn(
                   'stroke-gray-200 stroke-1 dark:stroke-gray-800'
                 )}
                 // horizontal={true}
@@ -725,7 +725,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               }
               fill=""
               stroke=""
-              className={cx(
+              className={cn(
                 // base
                 'text-xs',
                 // text fill
@@ -759,7 +759,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
               domain={yAxisDomain as AxisDomain}
               fill=""
               stroke=""
-              className={cx(
+              className={cn(
                 // base
                 'text-xs',
                 // text fill
@@ -868,7 +868,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             ) : null}
             {categories.map((category) => (
               <Line
-                className={cx(
+                className={cn(
                   getColorClassName(
                     categoryColors.get(
                       category
@@ -894,7 +894,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   } = props
                   return (
                     <Dot
-                      className={cx(
+                      className={cn(
                         'stroke-white dark:stroke-gray-950',
                         onValueChange ? 'cursor-pointer' : '',
                         getColorClassName(
@@ -948,7 +948,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                         strokeLinecap={strokeLinecap}
                         strokeLinejoin={strokeLinejoin}
                         strokeWidth={strokeWidth}
-                        className={cx(
+                        className={cn(
                           'stroke-white dark:stroke-gray-950',
                           onValueChange ? 'cursor-pointer' : '',
                           getColorClassName(
@@ -979,7 +979,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
             {onValueChange
               ? categories.map((category) => (
                   <Line
-                    className={cx('cursor-pointer')}
+                    className={cn('cursor-pointer')}
                     strokeOpacity={0}
                     key={category}
                     name={category}

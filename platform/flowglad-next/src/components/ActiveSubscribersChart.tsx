@@ -9,8 +9,6 @@ import { Skeleton } from './ui/skeleton'
 import { LineChart } from './charts/LineChart'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
-import { twMerge } from 'tailwind-merge'
-import clsx from 'clsx'
 import ErrorBoundary from './ErrorBoundary'
 import {
   AvailableChartColorsKeys,
@@ -56,17 +54,15 @@ const SubscriberCountTooltip = ({
   return (
     <ErrorBoundary fallback={<div>Error</div>}>
       <div
-        className={twMerge(
-          clsx(
-            'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-muted shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
-          )
+        className={cn(
+          'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-muted shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
         )}
       >
         <div className="flex justify-between items-center gap-2 text-xs font-medium text-primary-foreground-hover">
           {color && (
             <div className="text-left">
               <div
-                className={core.cn(
+                className={cn(
                   // Use getColorClassName to derive the correct background class
                   color
                     ? getColorClassName(

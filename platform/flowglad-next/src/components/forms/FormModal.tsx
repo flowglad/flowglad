@@ -155,7 +155,7 @@ export const NestedFormModal = <T extends FieldValues>({
 
   const innerContent = (
     <div
-      className={core.cn(
+      className={cn(
         'transition-opacity duration-200',
         isOpen ? 'opacity-100' : 'opacity-0'
       )}
@@ -180,7 +180,7 @@ export const NestedFormModal = <T extends FieldValues>({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
-        className={core.cn(
+        className={cn(
           'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
           extraWide && 'w-full',
           wide && 'max-w-5xl',
@@ -266,7 +266,7 @@ const FormModal = <T extends FieldValues>({
 
   const innerContent = (
     <div
-      className={core.cn(
+      className={cn(
         'transition-opacity duration-200',
         isOpen ? 'opacity-100' : 'opacity-0'
       )}
@@ -291,7 +291,7 @@ const FormModal = <T extends FieldValues>({
   let content = (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
-        className={core.cn(
+        className={cn(
           'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
           extraWide && 'w-full',
           wide && 'max-w-5xl',
@@ -355,7 +355,7 @@ const FormModal = <T extends FieldValues>({
             })
           }
         })}
-        className={core.cn(isOpen && 'flex-1 overflow-y-auto')}
+        className={cn(isOpen && 'flex-1 overflow-y-auto')}
         id={id}
       >
         {content}

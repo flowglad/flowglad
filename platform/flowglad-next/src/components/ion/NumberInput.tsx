@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=430:1834
 // ion/NumberInput: Migrated to use shadcn input directly
 import { Minus, Plus } from 'lucide-react'
-import clsx from 'clsx'
+import { cn } from '@/lib/utils'
 import React, {
   type Dispatch,
   type SetStateAction,
@@ -16,11 +16,9 @@ import {
   type OnValueChange,
   NumericFormat,
 } from 'react-number-format'
-import { twMerge } from 'tailwind-merge'
 
 import { Label } from '@/components/ui/label'
 import { UseFormRegisterReturn } from 'react-hook-form'
-import { cn } from '@/lib/utils'
 
 /** Credit to https://github.com/mantinedev/mantine/blob/master/packages/@mantine/core/src/components/NumberInput/NumberInput.tsx */
 
@@ -452,7 +450,7 @@ const NumberInput = React.forwardRef<
         {hint && (
           <p
             id={`${id}__hint`}
-            className={clsx('mt-1 text-sm', {
+            className={cn('mt-1 text-sm', {
               'text-destructive': error,
               'text-muted-foreground': !error,
               'text-muted-foreground/50': props.disabled,

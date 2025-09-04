@@ -10,10 +10,9 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import clsx from 'clsx'
 import * as React from 'react'
 import { useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeft,
@@ -32,11 +31,9 @@ const TableRoot = React.forwardRef<
     <div className="overflow-auto">
       <table
         ref={ref}
-        className={twMerge(
-          clsx(
-            'w-full caption-bottom table-fixed rounded-radius bg-background',
-            className
-          )
+        className={cn(
+          'w-full caption-bottom table-fixed rounded-radius bg-background',
+          className
         )}
         style={{ borderCollapse: 'collapse' }}
         {...props}
@@ -74,9 +71,7 @@ const TableFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
-    className={twMerge(
-      clsx('border-t border-muted font-medium', className)
-    )}
+    className={cn('border-t border-muted font-medium', className)}
     {...props}
   />
 ))
@@ -92,12 +87,10 @@ const TableRow = React.forwardRef<
 >(({ className, borderless, ...props }, ref) => (
   <tr
     ref={ref}
-    className={twMerge(
-      clsx(
-        'border-muted border-t transition-colors last:border-b-0 data-[state=selected]:bg-accent-high ',
-        borderless && 'border-none',
-        className
-      )
+    className={cn(
+      'border-muted border-t transition-colors last:border-b-0 data-[state=selected]:bg-accent-high ',
+      borderless && 'border-none',
+      className
     )}
     {...props}
   />
@@ -112,12 +105,10 @@ const TableHead = React.forwardRef<
 >(({ className, style, rounded, ...props }, ref) => (
   <th
     ref={ref}
-    className={twMerge(
-      clsx(
-        'px-5 py-3 text-left align-middle text-sm font-normal text-muted-foreground bg-fbg-white-0 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
-        rounded && 'first:rounded-tl-radius last:rounded-tr-radius',
-        className
-      )
+    className={cn(
+      'px-5 py-3 text-left align-middle text-sm font-normal text-muted-foreground bg-muted/50 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+      rounded && 'first:rounded-tl-radius last:rounded-tr-radius',
+      className
     )}
     style={{
       ...style,
@@ -139,11 +130,9 @@ const TableCell = React.forwardRef<
 >(({ className, style, ...props }, ref) => (
   <td
     ref={ref}
-    className={twMerge(
-      clsx(
-        'px-5 py-3 align-middle text-sm text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
-        className
-      )
+    className={cn(
+      'px-5 py-3 align-middle text-sm text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+      className
     )}
     style={{
       ...style,
@@ -165,7 +154,7 @@ const TableCaption = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={clsx('py-1 text-sm text-muted-foreground', className)}
+    className={cn('py-1 text-sm text-muted-foreground', className)}
     {...props}
   />
 ))
@@ -394,7 +383,7 @@ function Table<TData, TValue>({
   if (isLoading || pagination?.isLoading || pagination?.isFetching) {
     return (
       <div
-        className={clsx(
+        className={cn(
           'w-full',
           bordered &&
             'border border-border rounded-radius overflow-hidden',
@@ -402,7 +391,7 @@ function Table<TData, TValue>({
         )}
       >
         <div className="overflow-auto">
-          <TableRoot className={clsx('w-full', 'table-fixed')}>
+          <TableRoot className={cn('w-full', 'table-fixed')}>
             {caption && <TableCaption>{caption}</TableCaption>}
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -463,7 +452,7 @@ function Table<TData, TValue>({
   return (
     <div className="w-full flex flex-col gap-0">
       <div
-        className={clsx(
+        className={cn(
           'w-full',
           bordered &&
             'border border-border rounded-radius overflow-hidden',
@@ -471,7 +460,7 @@ function Table<TData, TValue>({
         )}
       >
         <div className="overflow-auto">
-          <TableRoot className={clsx('w-full', 'table-fixed')}>
+          <TableRoot className={cn('w-full', 'table-fixed')}>
             {caption && <TableCaption>{caption}</TableCaption>}
             {columns.some((column) => !!column.header) && (
               <TableHeader>
@@ -518,7 +507,7 @@ function Table<TData, TValue>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className={clsx(
+                    className={cn(
                       'hover:bg-list-item-background-hover first:border-t-0',
                       row.getIsSelected() && 'bg-card',
                       onClickRow && 'cursor-pointer'

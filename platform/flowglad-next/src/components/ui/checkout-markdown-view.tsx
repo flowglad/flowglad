@@ -1,22 +1,23 @@
 import ReactMarkdown from 'react-markdown'
+import { cn } from '@/lib/utils'
 
 const components = {
-  // Override default elements
+  // Override default elements with shadcn semantic colors
   h1: (props: any) => (
     <h1
-      className="text-2xl font-bold text-primary-foreground-hover py-2"
+      className="text-2xl font-bold text-foreground py-2"
       {...props}
     />
   ),
   h2: (props: any) => (
     <h2
-      className="text-xl font-semibold text-primary-foreground-hover py-2"
+      className="text-xl font-semibold text-foreground py-2"
       {...props}
     />
   ),
   h3: (props: any) => (
     <h3
-      className="text-lg font-semibold text-primary-foreground-hover py-2"
+      className="text-lg font-semibold text-foreground py-2"
       {...props}
     />
   ),
@@ -40,27 +41,27 @@ const components = {
   ),
 }
 
-interface MarkdownContentProps {
+interface CheckoutMarkdownViewProps {
   source: string
   title?: string
 }
 
-const CheckoutMarkdownView = ({
+export function CheckoutMarkdownView({
   source,
   title,
-}: MarkdownContentProps) => {
+}: CheckoutMarkdownViewProps) {
   if (!source) {
     return null
   }
 
   return (
     <div className="w-full">
-      <h1 className="text-2xl font-bold text-primary-foreground-hover py-2">
-        {title}
-      </h1>
+      {title && (
+        <h1 className="text-2xl font-bold text-foreground py-2">
+          {title}
+        </h1>
+      )}
       <ReactMarkdown components={components}>{source}</ReactMarkdown>
     </div>
   )
 }
-
-export default CheckoutMarkdownView

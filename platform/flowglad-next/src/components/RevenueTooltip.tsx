@@ -1,6 +1,4 @@
 import { TooltipCallbackProps } from '@/components/charts/AreaChart'
-import { twMerge } from 'tailwind-merge'
-import clsx from 'clsx'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 import { getColorClassName } from '@/utils/chartStyles'
@@ -31,16 +29,14 @@ function InnerRevenueTooltip({
     )
   return (
     <div
-      className={twMerge(
-        clsx(
-          'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-muted shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
-        )
+      className={cn(
+        'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-muted shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
       )}
     >
       <div className="flex justify-between items-center gap-2 text-xs font-medium text-primary-foreground-hover">
         <div className="text-left">
           <div
-            className={core.cn(
+            className={cn(
               getColorClassName(payload[0].color, 'bg'),
               'w-2 h-2 rounded-full'
             )}

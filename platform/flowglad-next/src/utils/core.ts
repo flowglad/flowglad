@@ -1,5 +1,4 @@
-import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { cn } from '@/lib/utils'
 import omit from 'ramda/src/omit'
 import has from 'ramda/src/has'
 import {
@@ -17,10 +16,6 @@ import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
 import { Nullish, StripePriceMode } from '@/types'
-
-export const cn = (...inputs: ClassValue[]) => {
-  return twMerge(clsx(inputs))
-}
 
 export const envVariable = (key: string) => process.env[key] || ''
 
@@ -430,10 +425,6 @@ export const createInvoiceNumber = (
   number: number
 ) => {
   return `${invoiceNumberBase}-${number.toString().padStart(5, '0')}`
-}
-
-export function cx(...args: ClassValue[]) {
-  return twMerge(clsx(...args))
 }
 
 export const safeZodAlwaysNull = z

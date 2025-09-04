@@ -22,18 +22,18 @@ const CheckoutPage = ({
   }
   useSetCheckoutSessionCookieEffect(checkoutInfo)
   /** Background split overlay for left side of checkout page */
-  const leftBackgroundOverlay = core.cn(
+  const leftBackgroundOverlay = cn(
     'absolute top-0 left-0 bottom-0 right-[50%]',
     'bg-background-input -z-10 hidden lg:block'
   )
   /** Background split overlay for right side of checkout page */
-  const rightBackgroundOverlay = core.cn(
+  const rightBackgroundOverlay = cn(
     'absolute top-0 left-[50%] bottom-0 right-0',
     '-z-10 hidden lg:block'
   )
 
   /** Container for entire checkout page content */
-  const checkoutContainer = core.cn(
+  const checkoutContainer = cn(
     'bg-transparent',
     'flex flex-col lg:flex-row',
     'gap-8 lg:gap-0 h-full m-auto lg:m-0',
@@ -43,7 +43,7 @@ const CheckoutPage = ({
   const checkoutContainerInnerDimensionsClass =
     'w-full flex flex-1 pt-16 lg:bg-transparent lg:h-full'
   /** Container for checkout form section on right side */
-  const checkoutFormContainer = core.cn(
+  const checkoutFormContainer = cn(
     'bg-internal',
     'lg:w-[444px]',
     checkoutContainerInnerDimensionsClass,

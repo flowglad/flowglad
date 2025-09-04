@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/form'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import clsx from 'clsx'
+import { cn } from '@/lib/utils'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
 import { DollarSign } from 'lucide-react'
@@ -57,7 +57,7 @@ const InvoiceFormLineItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={clsx(
+      className={cn(
         'w-full flex items-center gap-8 bg-background pb-2 border border-transparent z-0',
         isDragging && 'z-20  border-muted rounded-radius-sm'
       )}
@@ -158,10 +158,7 @@ const InvoiceFormLineItem = ({
         {...listeners}
         variant="ghost"
         size="default"
-        className={clsx(
-          'cursor-grab',
-          isDragging && 'cursor-grabbing'
-        )}
+        className={cn('cursor-grab', isDragging && 'cursor-grabbing')}
       >
         <GripVertical className="w-4 h-4" />
       </Button>
