@@ -15,7 +15,10 @@ import {
   customerBillingTransaction,
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { customerClientSelectSchema } from '@/db/schema/customers'
 import {
   richSubscriptionClientSelectSchema,
@@ -55,15 +58,35 @@ import {
   safelyUpdatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 
-// getBilling procedure - copy of getCustomerBilling for customer portal
+// Enhanced getBilling procedure with pagination support for invoices
 const getBillingProcedure = customerProtectedProcedure
-  .input(z.object({}))
+  .input(
+    z.object({
+      invoicePagination: z
+        .object({
+          page: z.number().int().min(1).default(1),
+          pageSize: z.number().int().min(1).max(100).default(10),
+        })
+        .optional()
+        .describe('Pagination parameters for invoices'),
+    })
+  )
   .output(
     z.object({
       customer: customerClientSelectSchema,
       subscriptions: richSubscriptionClientSelectSchema.array(),
       invoices: invoiceWithLineItemsClientSchema.array(),
+      invoicePagination: z
+        .object({
+          page: z.number(),
+          pageSize: z.number(),
+          totalCount: z.number(),
+          totalPages: z.number(),
+        })
+        .optional()
+        .describe('Pagination metadata for invoices'),
       paymentMethods: paymentMethodClientSelectSchema.array(),
       purchases: purchaseClientSelectSchema.array(),
       currentSubscriptions: richSubscriptionClientSelectSchema
@@ -76,7 +99,7 @@ const getBillingProcedure = customerProtectedProcedure
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
   )
-  .query(async ({ ctx }) => {
+  .query(async ({ ctx, input }) => {
     const { customer, organizationId } = ctx
 
     if (!organizationId) {
@@ -108,9 +131,38 @@ const getBillingProcedure = customerProtectedProcedure
       }
     )
 
+    // Apply pagination to invoices if requested
+    let paginatedInvoices = invoices
+    let invoicePaginationMetadata:
+      | {
+          page: number
+          pageSize: number
+          totalCount: number
+          totalPages: number
+        }
+      | undefined = undefined
+
+    if (input.invoicePagination) {
+      const { page, pageSize } = input.invoicePagination
+      const totalCount = invoices.length
+      const totalPages = Math.ceil(totalCount / pageSize)
+      const startIndex = (page - 1) * pageSize
+      const endIndex = startIndex + pageSize
+
+      paginatedInvoices = invoices.slice(startIndex, endIndex)
+
+      invoicePaginationMetadata = {
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+      }
+    }
+
     return {
       customer,
-      invoices,
+      invoices: paginatedInvoices,
+      invoicePagination: invoicePaginationMetadata,
       paymentMethods,
       currentSubscriptions: currentSubscriptions.map((item) =>
         richSubscriptionClientSelectSchema.parse(item)
@@ -419,6 +471,30 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     )
   })
 
+// Get all customers for an email at an organization
+const getCustomersForUserAndOrganizationProcedure =
+  customerProtectedProcedure
+    .input(z.object({}))
+    .output(
+      z.object({
+        customers: customerClientSelectSchema.array(),
+      })
+    )
+    .query(
+      authenticatedProcedureTransaction(
+        async ({ ctx, transaction }) => {
+          const customers = await selectCustomers(
+            {
+              userId: ctx.user.id,
+              organizationId: ctx.organizationId,
+            },
+            transaction
+          )
+          return { customers }
+        }
+      )
+    )
+
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
@@ -426,4 +502,6 @@ export const customerBillingPortalRouter = router({
   createAddPaymentMethodSession:
     createAddPaymentMethodSessionProcedure,
   setDefaultPaymentMethod: setDefaultPaymentMethodProcedure,
+  getCustomersForUserAndOrganization:
+    getCustomersForUserAndOrganizationProcedure,
 })

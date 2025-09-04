@@ -14,6 +14,7 @@ export const user = pgTable('better_auth_user', {
     .$defaultFn(() => false)
     .notNull(),
   image: text('image'),
+  banned: boolean('banned').$defaultFn(() => false),
   createdAt: timestamp('created_at')
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),

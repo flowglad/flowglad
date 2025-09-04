@@ -24,7 +24,7 @@ import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMeth
 import { insertInvoice } from '@/db/tableMethods/invoiceMethods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { invoicesInsertSchema } from '@/db/schema/invoices'
-import { z } from 'zod'
+import { nanoid, z } from 'zod'
 import {
   PriceType,
   IntervalUnit,
@@ -318,14 +318,17 @@ export const setupPaymentMethod = async (params: {
   })
 }
 
-export const setupCustomer = async (params: {
+interface SetupCustomerParams {
   organizationId: string
   stripeCustomerId?: string
   invoiceNumberBase?: string
   email?: string
   livemode?: boolean
+  externalId?: string
   userId?: string
-}) => {
+}
+
+export const setupCustomer = async (params: SetupCustomerParams) => {
   return adminTransaction(async ({ transaction }) => {
     const email = params.email ?? `test+${core.nanoid()}@test.com`
     return insertCustomer(
@@ -333,7 +336,7 @@ export const setupCustomer = async (params: {
         organizationId: params.organizationId,
         email,
         name: email,
-        externalId: core.nanoid(),
+        externalId: (params.externalId?.trim() || core.nanoid()),
         livemode: params.livemode ?? true,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
@@ -343,6 +346,38 @@ export const setupCustomer = async (params: {
       transaction
     )
   })
+}
+
+type SetupUserAndCustomerParams = Omit<
+  SetupCustomerParams,
+  'userId'
+> & {
+  betterAuthUserId?: string
+}
+
+export const setupUserAndCustomer = async (
+  params: SetupUserAndCustomerParams
+) => {
+  const userId = core.nanoid()
+  const user = await adminTransaction(async ({ transaction }) => {
+    return await insertUser(
+      {
+        email: `test+${userId}@test.com`,
+        name: `Test ${userId}`,
+        betterAuthId: params.betterAuthUserId,
+        id: userId,
+      },
+      transaction
+    )
+  })
+  const customer = await setupCustomer({
+    ...params,
+    userId,
+  })
+  return {
+    user,
+    customer,
+  }
 }
 
 export const teardownOrg = async ({

@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
+import { snakeCase } from 'change-case'
 import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import {
@@ -26,14 +27,16 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
-import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
-import { useAuthContext } from '@/contexts/authContext'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
 import { core } from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { useFormContext } from 'react-hook-form'
+import { CreateProductSchema } from '@/db/schema/prices'
 import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
+import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
 
 const SubscriptionFields = ({
   omitTrialFields = false,
@@ -47,15 +50,32 @@ const SubscriptionFields = ({
     control,
     watch,
   } = usePriceFormContext()
-
+  const { organization } = useAuthenticatedContext()
   return (
     <>
       <div className="flex items-end gap-2.5">
-        <ControlledCurrencyInput
-          name="price.unitPrice"
+        <Controller
           control={control}
-          label="Amount"
-          className="flex-1"
+          name="price.unitPrice"
+          render={({ field }) => (
+            <CurrencyInput
+              value={field.value?.toString() ?? ''}
+              onValueChange={(value) => {
+                if (value.floatValue) {
+                  field.onChange(
+                    humanReadableCurrencyAmountToStripeCurrencyAmount(
+                      organization!.defaultCurrency,
+                      Math.ceil(value.floatValue * 100) / 100
+                    )
+                  )
+                } else {
+                  field.onChange(0)
+                }
+              }}
+              className="flex-1"
+              label="Amount"
+            />
+          )}
         />
         <FormField
           control={control}
@@ -176,11 +196,31 @@ const PriceFormFields = ({
     setValue,
     formState: { errors },
   } = usePriceFormContext()
+  const fullForm = useFormContext<CreateProductSchema>()
   const type = watch('price.type')
+  const productName = fullForm.watch('product.name')
+  const isPriceSlugDirty = useRef(false)
+
+  // Auto-generate price slug from product name when creating new products
+  useEffect(() => {
+    if (edit) return // Don't auto-generate for edit mode
+
+    // Only auto-generate if the price slug field is not dirty
+    if (!isPriceSlugDirty.current && productName?.trim()) {
+      const newSlug = snakeCase(productName)
+      setValue('price.slug', newSlug)
+    } else if (!isPriceSlugDirty.current && !productName?.trim()) {
+      // If product name is empty, also clear the price slug
+      setValue('price.slug', '')
+    }
+  }, [productName, edit, setValue])
+
   let typeFields = <></>
-  const { organization } = useAuthContext()
+  const { organization } = useAuthenticatedContext()
   const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
   if (!core.IS_PROD) {
+    const price = watch('price')
+    console.log('===price', price)
     // eslint-disable-next-line no-console
     console.log('===errors', errors)
   }
@@ -235,7 +275,17 @@ const PriceFormFields = ({
           <FormItem>
             <FormLabel>Price Slug</FormLabel>
             <FormControl>
-              <Input {...field} value={field.value ?? ''} />
+              <Input
+                {...field}
+                value={field.value ?? ''}
+                onFocus={() => {
+                  isPriceSlugDirty.current = true
+                }}
+                onChange={(e) => {
+                  isPriceSlugDirty.current = true
+                  field.onChange(e)
+                }}
+              />
             </FormControl>
             <FormDescription>
               The slug is used to identify the price in the API. It
