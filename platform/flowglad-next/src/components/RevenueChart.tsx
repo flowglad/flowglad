@@ -208,12 +208,14 @@ export function RevenueChart({
             </SelectContent>
           </Select>
         </div>
-        {/* <Button
-          iconLeading={<Export size={16} weight={'regular'} />}
+        {/*         <Button
           variant="ghost"
-          color="primary"
           size="sm"
           onClick={exportOnClickHandler}
+        >
+          <Export className="w-4 h-4 mr-2" weight={'regular'} />
+          Export
+        </Button>
         >
           Export
         </Button> */}

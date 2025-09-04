@@ -7,7 +7,7 @@ import InternalPageContainer from '@/components/InternalPageContainer'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 export default function UsageMetersPage() {
@@ -25,8 +25,8 @@ export default function UsageMetersPage() {
           action={
             <Button
               onClick={() => setCreateUsageMeterModalOpen(true)}
-              iconLeading={<Plus size={16} strokeWidth={2} />}
             >
+              <Plus className="w-4 h-4 mr-2" strokeWidth={2} />
               Create Usage Meter
             </Button>
           }

@@ -32,7 +32,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { signOut } from '@/utils/authClient'
 
 export const SideNavigation = () => {

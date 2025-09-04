@@ -14,7 +14,7 @@ import clsx from 'clsx'
 import * as React from 'react'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import {
   ArrowLeft,
   ArrowRight,

@@ -7,7 +7,7 @@ import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { PageHeader } from '@/components/ui/page-header'
 import OrganizationMembersTable from '@/app/settings/teammates/OrganizationMembersTable'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import TableTitle from '@/components/ion/TableTitle'
 
 const OrganizationSettingsTab = () => {
@@ -39,10 +39,10 @@ const OrganizationSettingsTab = () => {
           <TableTitle title="Team" noButtons />
           <Button
             onClick={() => setIsInviteModalOpen(true)}
-            iconLeading={<Plus className="w-4 h-4" strokeWidth={2} />}
             size="sm"
             variant="outline"
           >
+            <Plus className="w-4 h-4 mr-2" strokeWidth={2} />
             Invite Member
           </Button>
         </div>

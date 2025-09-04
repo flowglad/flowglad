@@ -7,7 +7,7 @@ import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/ui/page-header'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -36,10 +36,8 @@ const InternalInvoicesPage = () => {
         <PageHeader
           title="Invoices"
           action={
-            <Button
-              iconLeading={<Plus size={16} />}
-              onClick={() => setCreateInvoiceModalOpen(true)}
-            >
+            <Button onClick={() => setCreateInvoiceModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Create Invoice
             </Button>
           }

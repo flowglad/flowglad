@@ -1,6 +1,6 @@
 'use client'
 
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,

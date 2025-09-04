@@ -4,7 +4,7 @@ import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import WebhooksTable from './WebhooksTable'
 import { PageHeader } from '@/components/ui/page-header'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
 import { Plus } from 'lucide-react'
@@ -20,10 +20,8 @@ function WebhooksPage() {
           title="Webhooks"
           className="mb-6"
           action={
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              iconLeading={<Plus size={16} />}
-            >
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Create Webhook
             </Button>
           }

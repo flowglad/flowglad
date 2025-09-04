@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import OrganizationMembersTable from './OrganizationMembersTable'
 import { useState } from 'react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 function TeammatesPage() {

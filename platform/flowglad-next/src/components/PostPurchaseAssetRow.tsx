@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { File } from '@/db/schema/files'
 import { Link } from '@/db/schema/links'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import EditFileModal from '@/components/forms/EditFileModal'
 import EditLinkModal from '@/components/forms/EditLinkModal'
@@ -50,17 +50,17 @@ const PostPurchaseAssetButtonStrip = ({
       <Button
         variant="ghost"
         size="sm"
-        iconLeading={<Pencil size={16} />}
         onClick={() => setIsEditOpen(true)}
       >
+        <Pencil className="w-4 h-4 mr-2" />
         Edit
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        iconLeading={<Trash size={16} />}
         onClick={() => setIsDeleteOpen(true)}
       >
+        <Trash className="w-4 h-4 mr-2" />
         Delete
       </Button>
     </>
@@ -121,11 +121,11 @@ export const FilePostPurchaseAssetRow = ({
             <Button
               variant="ghost"
               size="sm"
-              iconLeading={downloadIcon}
               onClick={() => {
                 window.open(file.cdnUrl, '_blank')
               }}
             >
+              {downloadIcon}
               Download
             </Button>
           ) : (
@@ -178,9 +178,9 @@ export const LinkPostPurchaseAssetRow = ({
             <Button
               variant="ghost"
               size="sm"
-              iconLeading={<SquareArrowOutUpRight size={16} />}
               onClick={() => window.open(link.url, '_blank')}
             >
+              <SquareArrowOutUpRight className="w-4 h-4 mr-2" />
               Open
             </Button>
           ) : (

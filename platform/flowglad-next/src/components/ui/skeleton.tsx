@@ -1,4 +1,4 @@
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import React from 'react'
 
 type SkeletonTheme = 'default' | 'light' | 'dark'

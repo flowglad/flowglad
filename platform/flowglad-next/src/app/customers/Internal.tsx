@@ -9,7 +9,7 @@ import {
   TabsContent,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { useAuthenticatedContext } from '@/contexts/authContext'
@@ -60,10 +60,8 @@ function Internal() {
           <PageHeader
             title="Customers"
             action={
-              <Button
-                iconLeading={<Plus size={16} />}
-                onClick={() => setIsCreateCustomerOpen(true)}
-              >
+              <Button onClick={() => setIsCreateCustomerOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
                 Create Customer
               </Button>
             }

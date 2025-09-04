@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 
 interface InputProps extends React.ComponentProps<'input'> {
   /** Icon to the left of the input text */

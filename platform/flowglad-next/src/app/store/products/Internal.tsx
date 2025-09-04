@@ -3,7 +3,7 @@
 'use client'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import { ProductWithPrices } from '@/db/schema/prices'
 import { ProductsTable, ProductsTableFilters } from './ProductsTable'
@@ -51,10 +51,8 @@ function InternalProductsPage({ products: initialProducts }: Props) {
         <PageHeader
           title="Products"
           action={
-            <Button
-              iconLeading={<Plus size={16} />}
-              onClick={() => setIsCreateProductOpen(true)}
-            >
+            <Button onClick={() => setIsCreateProductOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Create Product
             </Button>
           }

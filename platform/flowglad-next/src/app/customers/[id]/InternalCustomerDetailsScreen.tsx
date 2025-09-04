@@ -11,7 +11,7 @@ import { Price } from '@/db/schema/prices'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Pencil, Ellipsis } from 'lucide-react'
 import PopoverMenu, {
   PopoverMenuItem,
@@ -60,10 +60,8 @@ function InternalCustomerDetailsScreen({
               className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
               action={
                 <div className="flex flex-row gap-4 justify-end flex-shrink-0">
-                  <Button
-                    iconLeading={<Pencil size={16} />}
-                    onClick={() => setIsEditOpen(true)}
-                  >
+                  <Button onClick={() => setIsEditOpen(true)}>
+                    <Pencil className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
                   <Popover>

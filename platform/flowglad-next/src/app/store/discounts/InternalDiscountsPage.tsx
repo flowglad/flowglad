@@ -1,7 +1,7 @@
 'use client'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import CreateDiscountModal from '@/components/forms/CreateDiscountModal'
 import DiscountsTable, {
   DiscountsTableFilters,
@@ -62,10 +62,8 @@ function InternalDiscountsPage() {
         <PageHeader
           title="Discounts"
           action={
-            <Button
-              iconLeading={<Plus size={16} />}
-              onClick={() => setIsCreateDiscountOpen(true)}
-            >
+            <Button onClick={() => setIsCreateDiscountOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               Create Discount
             </Button>
           }

@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import InvoiceFormLineItem from './InvoiceFormLineItem'
-import { MigrationButton as Button } from '@/components/ui/button-migration'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Plus, GripVertical } from 'lucide-react'
 
@@ -78,11 +78,12 @@ export const InvoiceFormLineItemsField = () => {
       <div className="w-full flex items-end gap-8">
         <div className="flex flex-row gap-2 min-w-80 items-end">
           <Button
-            iconLeading={<GripVertical size={16} />}
             variant="ghost"
             size="default"
             className="opacity-0"
-          />
+          >
+            <GripVertical className="w-4 h-4 mr-2" />
+          </Button>
           <Label className="flex-1">Item</Label>
         </div>
         <Label className="w-20">Qty</Label>
@@ -113,13 +114,9 @@ export const InvoiceFormLineItemsField = () => {
           ))}
         </SortableContext>
       </DndContext>
-      <Button
-        iconLeading={<Plus size={16} />}
-        variant="ghost"
-        size="sm"
-        onClick={addAnItemClickHandler}
-      >
-        Add Item
+      <Button variant="ghost" size="sm" onClick={addLineItem}>
+        <Plus className="w-4 h-4 mr-2" />
+        Add Line Item
       </Button>
     </div>
   )
