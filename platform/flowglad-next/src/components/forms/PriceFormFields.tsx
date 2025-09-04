@@ -32,6 +32,8 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
 import { core } from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { useFormContext } from 'react-hook-form'
+import { CreateProductSchema } from '@/db/schema/prices'
 import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
 import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
@@ -194,8 +196,25 @@ const PriceFormFields = ({
     setValue,
     formState: { errors },
   } = usePriceFormContext()
+  const fullForm = useFormContext<CreateProductSchema>()
   const type = watch('price.type')
+  const productName = fullForm.watch('product.name')
   const isPriceSlugDirty = useRef(false)
+
+  // Auto-generate price slug from product name when creating new products
+  useEffect(() => {
+    if (edit) return // Don't auto-generate for edit mode
+
+    // Only auto-generate if the price slug field is not dirty
+    if (!isPriceSlugDirty.current && productName?.trim()) {
+      const newSlug = snakeCase(productName)
+      setValue('price.slug', newSlug)
+    } else if (!isPriceSlugDirty.current && !productName?.trim()) {
+      // If product name is empty, also clear the price slug
+      setValue('price.slug', '')
+    }
+  }, [productName, edit, setValue])
+
   let typeFields = <></>
   const { organization } = useAuthenticatedContext()
   const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
@@ -242,29 +261,7 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={(e) => {
-                    // First, let the field handle its own onChange
-                    field.onChange(e)
-
-                    // Then handle our auto-slug logic
-                    const newName = e.target.value
-
-                    // Only auto-generate slug if the price slug field is not dirty
-                    if (!isPriceSlugDirty.current && newName.trim()) {
-                      const newSlug = snakeCase(newName)
-                      setValue('price.slug', newSlug)
-                    } else if (
-                      !isPriceSlugDirty.current &&
-                      !newName.trim()
-                    ) {
-                      // If name is empty, also clear the slug
-                      setValue('price.slug', '')
-                    }
-                  }}
-                />
+                <Input {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
