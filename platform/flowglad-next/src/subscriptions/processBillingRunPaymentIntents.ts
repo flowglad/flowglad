@@ -33,6 +33,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
+  sendOrganizationPaymentFailedNotificationEmail,
   sendOrganizationPaymentNotificationEmail,
   sendPaymentFailedEmail,
 } from '@/utils/email'
@@ -149,7 +150,7 @@ const processFailedNotifications = async (
     currency,
   })
 
-  await sendOrganizationPaymentNotificationEmail({
+  await sendOrganizationPaymentFailedNotificationEmail({
     to: params.organizationMemberUsers
       .filter((user) => user.email)
       .map((user) => user.email!),
@@ -157,7 +158,6 @@ const processFailedNotifications = async (
     currency,
     customerId: params.customer.id,
     customerName: params.customer.name,
-    customerEmail: params.customer.email,
     amount: params.invoiceLineItems.reduce((acc, item) => {
       return item.price * item.quantity + acc
     }, 0),
