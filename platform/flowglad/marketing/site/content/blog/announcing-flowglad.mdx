@@ -1,0 +1,63 @@
+---
+title: "Announcing Flowglad"
+description: "Today we're excited to introduce Flowglad, the easiest way to add billing to your app."
+date: "2024-01-15"
+author: "Flowglad Team"
+slug: "announcing-flowglad"
+---
+
+# Announcing Flowglad
+
+Today we're excited to introduce **Flowglad**, the easiest way to add billing to your app. After months of development and testing with early adopters, we're ready to help developers monetize their applications with minimal effort.
+
+## Why We Built Flowglad
+
+Building billing infrastructure is hard. Really hard. Between handling subscriptions, usage tracking, payment processing, and compliance, it can take months to get right. We've been there, and we know the pain.
+
+That's why we built Flowglad - to abstract away all the complexity while still giving you the power and flexibility you need.
+
+## What Makes Flowglad Different
+
+### 🚀 **Dead Simple Integration**
+
+Get up and running in minutes, not weeks. Our SDK handles everything from checkout sessions to webhook processing.
+
+```tsx
+import { useBilling } from '@flowglad/nextjs'
+
+function CheckoutButton() {
+  const { createCheckoutSession } = useBilling()
+  
+  return (
+    <button onClick={() => createCheckoutSession()}>
+      Upgrade to Pro
+    </button>
+  )
+}
+```
+
+### 📊 **Built-in Analytics**
+
+Track your revenue, conversion rates, and user behavior right out of the box. No need to cobble together multiple services.
+
+### 🔄 **Usage-Based Billing**
+
+Perfect for API products, SaaS platforms, or any app where users pay for what they consume.
+
+### 🛡️ **Enterprise Ready**
+
+SOC 2 compliant, supports multi-tenant architectures, and scales to millions of transactions.
+
+## What's Next
+
+This is just the beginning. We're working on exciting features like:
+
+- Advanced analytics and reporting
+- Multi-currency support
+- Custom billing cycles
+- Advanced discount management
+
+Ready to get started? [Check out our docs](/docs) or [join our Discord community](/join-discord) to connect with other developers using Flowglad.
+
+*Happy building!*  
+*The Flowglad Team*

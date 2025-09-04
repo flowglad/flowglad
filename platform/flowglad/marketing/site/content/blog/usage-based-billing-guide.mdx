@@ -1,0 +1,106 @@
+---
+title: "The Complete Guide to Usage-Based Billing"
+description: "Everything you need to know about implementing usage-based billing in your SaaS application."
+date: "2024-01-20"
+author: "Sarah Chen"
+slug: "usage-based-billing-guide"
+---
+
+# The Complete Guide to Usage-Based Billing
+
+Usage-based billing is becoming increasingly popular among SaaS companies, and for good reason. Instead of fixed monthly fees, customers pay for exactly what they use - making your product more accessible to small customers while allowing power users to scale naturally.
+
+## What is Usage-Based Billing?
+
+Usage-based billing, also known as consumption-based pricing, charges customers based on their actual usage of your product or service. Think of how AWS charges for compute time, or how Stripe charges per transaction.
+
+### Common Usage Metrics
+
+- **API Calls**: Perfect for developer-focused products
+- **Storage**: Great for file hosting or backup services  
+- **Bandwidth**: Ideal for CDNs or media streaming
+- **Processing Time**: Perfect for compute-intensive tasks
+- **Active Users**: Good for team-based collaboration tools
+
+## Benefits of Usage-Based Billing
+
+### 1. Lower Barrier to Entry
+New customers can start small without committing to expensive monthly plans. This significantly improves conversion rates from free trials.
+
+### 2. Natural Growth
+As customers grow their business, their usage (and payments) grow naturally with it. This creates a strong alignment between your success and theirs.
+
+### 3. Fair Pricing
+Customers only pay for what they actually use, making your product feel more valuable and fair.
+
+### 4. Higher Revenue Potential
+Power users will naturally pay more as they use more, often exceeding what they would pay on a flat monthly plan.
+
+## Implementation with Flowglad
+
+Implementing usage-based billing with Flowglad is straightforward:
+
+```typescript
+import { trackUsage } from '@flowglad/nextjs'
+
+// Track an API call
+await trackUsage({
+  customerId: user.id,
+  eventName: 'api_call',
+  quantity: 1,
+  metadata: {
+    endpoint: '/api/users',
+    method: 'GET'
+  }
+})
+```
+
+### Setting Up Usage Metrics
+
+1. **Define Your Metrics**: Decide what you want to charge for
+2. **Track Usage**: Use our SDK to track usage events in real-time
+3. **Set Pricing Tiers**: Configure pricing per unit in the Flowglad dashboard
+4. **Handle Billing**: We automatically calculate bills based on usage
+
+## Best Practices
+
+### Start Simple
+Don't try to track everything. Start with one or two key metrics that directly correlate with the value you provide.
+
+### Provide Usage Visibility  
+Always show customers their current usage and projected costs. Transparency builds trust.
+
+### Set Usage Limits
+Implement soft and hard limits to prevent bill shock. Flowglad supports automatic limit enforcement.
+
+### Offer Prepaid Credits
+Some customers prefer predictable costs. Offer prepaid credit packages for volume discounts.
+
+## Common Pitfalls to Avoid
+
+❌ **Tracking too many metrics**: This creates confusion and complexity  
+❌ **Not providing usage visibility**: Customers hate surprise bills  
+❌ **Ignoring edge cases**: What happens when usage spikes unexpectedly?  
+❌ **Complex pricing models**: Keep it simple and understandable  
+
+## Real-World Examples
+
+**Twilio** charges per SMS/call/email sent - simple and directly tied to value  
+**Vercel** charges for function execution time and bandwidth used  
+**OpenAI** charges per API token processed  
+
+Each of these models is easy to understand and directly correlates with the value provided.
+
+## Getting Started
+
+Ready to implement usage-based billing? Flowglad makes it easy:
+
+1. [Sign up for Flowglad](/docs)
+2. Install our SDK in your app
+3. Start tracking usage events
+4. Configure your pricing model
+5. Launch and start growing!
+
+Usage-based billing can transform your SaaS business by making it more accessible to new customers while maximizing revenue from power users. With Flowglad handling the complex billing logic, you can focus on building great products.
+
+*Questions about usage-based billing? [Join our Discord](/join-discord) to chat with other developers who've made the switch.*
