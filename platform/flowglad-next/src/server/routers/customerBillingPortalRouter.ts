@@ -63,7 +63,7 @@ const getBillingProcedure = customerProtectedProcedure
     z.object({
       invoicePagination: z
         .object({
-          page: z.number().min(1).default(1),
+          page: z.number().int().min(1).default(1),
           pageSize: z.number().min(1).max(100).default(10),
         })
         .optional()
