@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { cn } from "@/lib/utils"
-import core from "@/utils/core"
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
 import { FileUploadData, Nullish } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -225,7 +225,7 @@ const FileInput: React.FC<FileInputProps> = ({
           </div>
         </div>
       </div>
-    ) : null
+    )
 
   let hintElement = null
   if (typeof hint === 'string') {
