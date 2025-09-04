@@ -26,14 +26,14 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
-import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
-import { useAuthContext } from '@/contexts/authContext'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
 import { core } from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
+import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
 
 const SubscriptionFields = ({
   omitTrialFields = false,
@@ -47,15 +47,32 @@ const SubscriptionFields = ({
     control,
     watch,
   } = usePriceFormContext()
-
+  const { organization } = useAuthenticatedContext()
   return (
     <>
       <div className="flex items-end gap-2.5">
-        <ControlledCurrencyInput
-          name="price.unitPrice"
+        <Controller
           control={control}
-          label="Amount"
-          className="flex-1"
+          name="price.unitPrice"
+          render={({ field }) => (
+            <CurrencyInput
+              value={field.value?.toString() ?? ''}
+              onValueChange={(value) => {
+                if (value.floatValue) {
+                  field.onChange(
+                    humanReadableCurrencyAmountToStripeCurrencyAmount(
+                      organization!.defaultCurrency,
+                      Math.ceil(value.floatValue * 100) / 100
+                    )
+                  )
+                } else {
+                  field.onChange(0)
+                }
+              }}
+              className="flex-1"
+              label="Amount"
+            />
+          )}
         />
         <FormField
           control={control}
@@ -178,9 +195,11 @@ const PriceFormFields = ({
   } = usePriceFormContext()
   const type = watch('price.type')
   let typeFields = <></>
-  const { organization } = useAuthContext()
+  const { organization } = useAuthenticatedContext()
   const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
   if (!core.IS_PROD) {
+    const price = watch('price')
+    console.log('===price', price)
     // eslint-disable-next-line no-console
     console.log('===errors', errors)
   }
