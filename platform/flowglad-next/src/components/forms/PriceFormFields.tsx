@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
+import { snakeCase } from 'change-case'
 import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import {
@@ -194,6 +195,7 @@ const PriceFormFields = ({
     formState: { errors },
   } = usePriceFormContext()
   const type = watch('price.type')
+  const isPriceSlugDirty = useRef(false)
   let typeFields = <></>
   const { organization } = useAuthenticatedContext()
   const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
@@ -240,7 +242,29 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input {...field} value={field.value ?? ''} />
+                <Input
+                  {...field}
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    // First, let the field handle its own onChange
+                    field.onChange(e)
+
+                    // Then handle our auto-slug logic
+                    const newName = e.target.value
+
+                    // Only auto-generate slug if the price slug field is not dirty
+                    if (!isPriceSlugDirty.current && newName.trim()) {
+                      const newSlug = snakeCase(newName)
+                      setValue('price.slug', newSlug)
+                    } else if (
+                      !isPriceSlugDirty.current &&
+                      !newName.trim()
+                    ) {
+                      // If name is empty, also clear the slug
+                      setValue('price.slug', '')
+                    }
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -254,7 +278,17 @@ const PriceFormFields = ({
           <FormItem>
             <FormLabel>Price Slug</FormLabel>
             <FormControl>
-              <Input {...field} value={field.value ?? ''} />
+              <Input
+                {...field}
+                value={field.value ?? ''}
+                onFocus={() => {
+                  isPriceSlugDirty.current = true
+                }}
+                onChange={(e) => {
+                  isPriceSlugDirty.current = true
+                  field.onChange(e)
+                }}
+              />
             </FormControl>
             <FormDescription>
               The slug is used to identify the price in the API. It
