@@ -8,8 +8,8 @@ import {
   LinkAuthenticationElementProps,
 } from '@stripe/react-stripe-js'
 import { FormEvent, useState } from 'react'
-import { cn } from "@/lib/utils"
-import core from "@/utils/core"
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { trpc } from '@/app/_trpc/client'
@@ -46,23 +46,42 @@ export const PaymentLoadingForm = ({
     <>
       <div className="flex flex-col gap-4">
         <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
         <div className="flex gap-4">
+          <Skeleton className="h-10 w-1/2" />
+          <Skeleton className="h-10 w-1/2" />
+        </div>
+        <Skeleton className="h-10 w-full" />
+        <div className="flex gap-4">
+          <Skeleton className="h-10 w-1/2" />
           <Skeleton className="h-10 w-1/2" />
         </div>
       </div>
       <div className="flex flex-col gap-4 py-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="flex flex-col gap-4 py-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
     </>
   )
 }
+
 const AuthenticationElement = ({
   readonlyCustomerEmail,
   onChange,
   onReady,
   className,
+}: {
   readonlyCustomerEmail: string | undefined | null
   onChange: LinkAuthenticationElementProps['onChange']
   className: string
   onReady: LinkAuthenticationElementProps['onReady']
+}) => {
   const preventInteraction = readonlyCustomerEmail
     ? (
         e:
@@ -73,6 +92,8 @@ const AuthenticationElement = ({
         e.stopPropagation()
       }
     : undefined
+
+  return (
     <div
       className="relative"
       onMouseDown={preventInteraction}
@@ -94,6 +115,9 @@ const AuthenticationElement = ({
         )}
       />
     </div>
+  )
+}
+
 const paymentFormButtonLabel = ({
   checkoutBlocked,
   subscriptionDetails,
@@ -101,12 +125,14 @@ const paymentFormButtonLabel = ({
   flowType,
   totalDueAmount,
   currency,
+}: {
   checkoutBlocked: boolean
   subscriptionDetails: SubscriptionCheckoutDetails | null
   flowType: CheckoutFlowType
   totalDueAmount: number | null
   feeCalculation: FeeCalculation.CustomerRecord | null
   currency: CurrencyCode
+}) => {
   if (checkoutBlocked) {
     return 'Processing'
   } else if (flowType === CheckoutFlowType.AddPaymentMethod) {
@@ -123,12 +149,16 @@ const paymentFormButtonLabel = ({
       )}`
     } else if (flowType === CheckoutFlowType.Subscription) {
       return `Start ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+        currency,
+        totalDueAmount
       )} Subscription`
     }
   } else if (flowType === CheckoutFlowType.Subscription) {
     return `Start Subscription`
   }
   return 'Pay'
+}
+
 const PaymentForm = () => {
   const stripe = useStripe()
   const elements = useElements()
@@ -157,8 +187,10 @@ const PaymentForm = () => {
     useState(false)
   const [emailComplete, setEmailComplete] = useState(
     Boolean(readonlyCustomerEmail)
+  )
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
+  )
   const embedsReady =
     emailEmbedReady && paymentEmbedReady && addressEmbedReady
   const [errorMessage, setErrorMessage] = useState<
@@ -167,30 +199,40 @@ const PaymentForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const confirmCheckoutSession =
     trpc.purchases.confirmSession.useMutation()
+
   const totalDueAmount: number | null = feeCalculation
     ? calculateTotalDueAmount(feeCalculation)
     : null
+
   const buttonLabel = paymentFormButtonLabel({
     checkoutBlocked: checkoutBlocked ?? false,
     subscriptionDetails: subscriptionDetails ?? null,
+    feeCalculation,
+    flowType,
     totalDueAmount,
+    currency,
   })
   const showDiscountCodeInput =
     flowType !== CheckoutFlowType.Invoice &&
     flowType !== CheckoutFlowType.AddPaymentMethod
   const showAutomaticallyUpdateCurrentSubscriptions =
     flowType === CheckoutFlowType.AddPaymentMethod
+  return (
     <form
       className="w-[380px] relative"
       onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         // We don't want to let default form submission happen here,
         // which would refresh the page.
         event.preventDefault()
+
         if (!stripe || !elements) {
           // Stripe.js hasn't yet loaded.
           // Make sure to disable form submission until Stripe.js has loaded.
           return
+        }
+
         setIsSubmitting(true)
+
         try {
           await confirmCheckoutSession.mutateAsync({
             id: checkoutSession.id,
@@ -198,6 +240,8 @@ const PaymentForm = () => {
         } catch (error: unknown) {
           setIsSubmitting(false)
           setErrorMessage((error as Error).message)
+          return
+        }
         /**
          * If the total due amount is 0, and the price type is a single payment,
          * we cannot attempt to confirm a $0 payment. So we can redirect to the purchase page.
@@ -207,11 +251,16 @@ const PaymentForm = () => {
           flowType === CheckoutFlowType.SinglePayment
         ) {
           window.location.href = `${redirectUrl}?checkout_session=${checkoutPageContext.checkoutSession.id}`
+          return
+        }
         // Trigger form validation and wallet collection
         const submitResult = await elements.submit()
         const { error: submitError } = submitResult
         if (submitError) {
           setErrorMessage(submitError.message)
+          setIsSubmitting(false)
+          return
+        }
         // Create the ConfirmationToken using the details collected by the Payment Element
         // and additional shipping information
         const useConfirmSetup =
@@ -254,19 +303,24 @@ const PaymentForm = () => {
                   billing_details: {
                     email: readonlyCustomerEmail,
                   },
+                },
               },
             })
           error = confirmationError
+        }
         if (error) {
           // This point will only be reached if there is an immediate error when
           // confirming the payment. Show error to your customer (for example, payment
           // details incomplete)
           setErrorMessage(error?.message)
+        } else {
           // Your customer will be redirected to your `return_url`. For some payment
           // methods like iDEAL, your customer will be redirected to an intermediate
           // site first to authorize the payment, then redirected to the `return_url`.
+        }
         setIsSubmitting(false)
       }}
+    >
       {
         <div
           className={core.cn(
@@ -277,10 +331,13 @@ const PaymentForm = () => {
           )}
         >
           <PaymentLoadingForm />
+        </div>
+      }
       <div
         className={core.cn(
           'transition-opacity duration-300',
           !embedsReady && 'opacity-0'
+        )}
       >
         <AuthenticationElement
           readonlyCustomerEmail={readonlyCustomerEmail}
@@ -305,38 +362,64 @@ const PaymentForm = () => {
                 setEmailError(
                   JSON.parse(parseResult.error.message)[0].message
                 )
+              }
+            }
           }}
           onReady={() => {
             setEmailEmbedReady(true)
+          }}
           className={core.cn('pb-3', !embedsReady && 'opacity-0')}
         />
         {emailError && (
           <ErrorLabel error={emailError} className="pb-4" />
+        )}
         <PaymentElement
+          onReady={() => {
             // setTimeout(() => {
             setPaymentEmbedReady(true)
             // }, 300)
+          }}
           options={{
             fields: {
               billingDetails: {
                 email: readonlyCustomerEmail ? 'never' : undefined,
                 address: 'never',
+              },
             },
+          }}
           onChange={async (e) => {
             if (e.complete) {
               await editCheckoutSessionPaymentMethodType({
                 id: checkoutSession.id,
                 paymentMethodType: e.value.type as PaymentMethodType,
+              })
               setPaymentInfoComplete(true)
+            }
+          }}
           className={!embedsReady ? 'opacity-0' : ''}
+        />
         <AddressElement
+          options={{
             mode: 'billing',
             defaultValues:
               checkoutSession?.billingAddress ?? undefined,
+          }}
+          onReady={() => {
+            // setTimeout(() => {
             setAddressEmbedReady(true)
+            // }, 300)
+          }}
+          onChange={async (event) => {
+            if (event.complete) {
               await editCheckoutSessionBillingAddress({
+                id: checkoutSession.id,
                 billingAddress: event.value,
+              })
+            }
+          }}
           className={!embedsReady ? 'py-3 opacity-0' : 'py-3'}
+        />
+      </div>
       {embedsReady && (
         <>
           {showDiscountCodeInput && <DiscountCodeInput />}
@@ -355,6 +438,7 @@ const PaymentForm = () => {
                       {
                         id: checkoutSession.id,
                         automaticallyUpdateSubscriptions: checked,
+                      }
                     )
                   }}
                 />
@@ -366,6 +450,7 @@ const PaymentForm = () => {
                 </Label>
               </div>
             </div>
+          )}
           <div className="py-8">
             <Button
               className="justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 w-full h-[45px]"
@@ -374,11 +459,13 @@ const PaymentForm = () => {
                 !emailComplete ||
                 isSubmitting ||
                 checkoutBlocked
+              }
             >
               {isSubmitting && (
                 <LoaderCircle
                   className="animate-spin-slow w-4 h-4 mr-2"
                   size={16}
+                />
               )}
               {buttonLabel}
             </Button>
@@ -389,10 +476,14 @@ const PaymentForm = () => {
                   <p>This is a test mode checkout.</p>
                   <p>No payments will be processed.</p>
                 </div>
+              </div>
             )}
             <PoweredByFlowglad />
           </div>
         </>
       )}
     </form>
+  )
+}
+
 export default PaymentForm
