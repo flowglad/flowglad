@@ -43,6 +43,8 @@ export default function DiscountFormFields({
   const amountType = watch('discount.amountType')
   const discount = watch('discount')
   if (!core.IS_PROD) {
+    const discount = watch('discount')
+    console.log('===discount', discount)
     // eslint-disable-next-line no-console
     console.log('===errors', errors)
   }
