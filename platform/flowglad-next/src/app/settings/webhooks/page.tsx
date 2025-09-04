@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import WebhooksTable from './WebhooksTable'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import { MigrationButton as Button } from '@/components/ui/button-migration'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
@@ -16,15 +16,18 @@ function WebhooksPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageTitle className="mb-6">Webhooks</PageTitle>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            iconLeading={<Plus size={16} />}
-          >
-            Create Webhook
-          </Button>
-        </div>
+        <PageHeader
+          title="Webhooks"
+          className="mb-6"
+          action={
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              iconLeading={<Plus size={16} />}
+            >
+              Create Webhook
+            </Button>
+          }
+        />
 
         <WebhooksTable />
         <CreateWebhookModal

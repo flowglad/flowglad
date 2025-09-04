@@ -10,7 +10,7 @@ import {
   PopoverMenuItemState,
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
-import Badge, { BadgeColor } from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import TableTitle from '@/components/ion/TableTitle'
 import EndPurchaseModal from '@/components/forms/EndPurchaseModal'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
@@ -61,20 +61,24 @@ const PurchaseStatusCell = ({
   purchase: Purchase.ClientRecord
 }) => {
   let badgeLabel: string = 'Pending'
-  let badgeColor: BadgeColor = 'grey'
+  let badgeClassName: string = 'bg-gray-100 text-gray-800'
 
   if (purchase.endDate) {
-    badgeColor = 'grey'
+    badgeClassName = 'bg-gray-100 text-gray-800'
     badgeLabel = 'Concluded'
   } else if (purchase.purchaseDate) {
-    badgeColor = 'green'
+    badgeClassName = 'bg-green-100 text-green-800'
     badgeLabel = 'Paid'
   } else {
-    badgeColor = 'grey'
+    badgeClassName = 'bg-gray-100 text-gray-800'
     badgeLabel = 'Pending'
   }
 
-  return <Badge color={badgeColor}>{badgeLabel}</Badge>
+  return (
+    <Badge variant="secondary" className={badgeClassName}>
+      {badgeLabel}
+    </Badge>
+  )
 }
 
 export interface PurchasesTableFilters {

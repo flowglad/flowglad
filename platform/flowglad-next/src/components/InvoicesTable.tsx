@@ -2,7 +2,7 @@ import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
 import { useMemo, useState } from 'react'
-import Badge, { BadgeProps } from './ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
@@ -25,29 +25,32 @@ const InvoiceStatusBadge = ({
 }: {
   invoice: Invoice.ClientRecord
 }) => {
-  let color: BadgeProps['color']
+  let className: string
   switch (invoice.status) {
     case 'draft':
-      color = 'grey'
+      className = 'bg-gray-100 text-gray-800'
       break
     case 'paid':
-      color = 'green'
+      className = 'bg-green-100 text-green-800'
       break
     case 'void':
-      color = 'red'
+      className = 'bg-red-100 text-red-800'
       break
     case 'uncollectible':
-      color = 'red'
+      className = 'bg-red-100 text-red-800'
       break
     case 'partially_refunded':
-      color = 'yellow'
+      className = 'bg-yellow-100 text-yellow-800'
       break
     case 'refunded':
-      color = 'yellow'
+      className = 'bg-yellow-100 text-yellow-800'
+      break
+    default:
+      className = 'bg-gray-100 text-gray-800'
       break
   }
   return (
-    <Badge variant="soft" color={color} size="sm">
+    <Badge variant="secondary" className={className}>
       {sentenceCase(invoice.status)}
     </Badge>
   )

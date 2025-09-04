@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs'
 import { PaymentsTab } from './components/PaymentsTab'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default function InternalPaymentsPage() {
   const [activeTab, setActiveTab] = useState<string>('all')
@@ -27,7 +27,7 @@ export default function InternalPaymentsPage() {
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
         <div className="flex flex-row justify-between">
-          <PageTitle>Payments</PageTitle>
+          <PageHeader title="Payments" />
         </div>
         <Tabs
           value={activeTab}

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import Hint from './ion/Hint'
+import { FormDescription, FormMessage } from '@/components/ui/form'
 import { CheckoutFlowType } from '@/types'
 import {
   Form,
@@ -146,7 +146,13 @@ export default function DiscountCodeInput() {
             />
           </div>
         </div>
-        <Hint error={discountCodeStatus === 'error'}>{hint}</Hint>
+        {hint && (
+          <div
+            className={`text-sm ${discountCodeStatus === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}
+          >
+            {hint}
+          </div>
+        )}
       </div>
     </Form>
   )

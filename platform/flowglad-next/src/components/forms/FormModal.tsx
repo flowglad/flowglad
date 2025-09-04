@@ -9,7 +9,19 @@ import {
   UseFormReturn,
 } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import Modal, { ModalInterfaceProps } from '../ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+
+export interface ModalInterfaceProps {
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+}
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -165,22 +177,22 @@ export const NestedFormModal = <T extends FieldValues>({
   )
 
   return (
-    <Modal
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      title={title}
-      className={core.cn(
-        'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
-        extraWide && 'w-full'
-      )}
-      onClose={core.noOp}
-      footer={footer}
-      wide={wide}
-      extraWide={extraWide}
-      headerAlignment="center"
-    >
-      {innerContent}
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent
+        className={core.cn(
+          'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
+          extraWide && 'w-full',
+          wide && 'max-w-5xl',
+          !wide && !extraWide && 'max-w-xl'
+        )}
+      >
+        <DialogHeader className="text-center">
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto">{innerContent}</div>
+        {footer && <DialogFooter>{footer}</DialogFooter>}
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -276,22 +288,24 @@ const FormModal = <T extends FieldValues>({
   )
 
   let content = (
-    <Modal
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      title={title}
-      className={core.cn(
-        'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
-        extraWide && 'w-full'
-      )}
-      onClose={hardResetFormValues}
-      footer={hideFooter ? null : footer}
-      wide={wide}
-      extraWide={extraWide}
-      headerAlignment="center"
-    >
-      {innerContent}
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent
+        className={core.cn(
+          'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
+          extraWide && 'w-full',
+          wide && 'max-w-5xl',
+          !wide && !extraWide && 'max-w-xl'
+        )}
+      >
+        <DialogHeader className="text-center">
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto">{innerContent}</div>
+        {!hideFooter && footer && (
+          <DialogFooter>{footer}</DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 
   if (mode === 'drawer') {

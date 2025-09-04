@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Tabs,
   TabsContent,
@@ -19,7 +19,7 @@ const SettingsPage = () => {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <PageTitle>Settings</PageTitle>
+        <PageHeader title="Settings" />
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}

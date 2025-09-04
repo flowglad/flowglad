@@ -2,7 +2,7 @@
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1033:8693
 'use client'
 import { useState } from 'react'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
@@ -41,7 +41,7 @@ function InternalDashboardPage({
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
         <div className="flex flex-row justify-between">
-          <PageTitle>Dashboard</PageTitle>
+          <PageHeader title="Dashboard" />
         </div>
         <div className="flex justify-between items-center">
           <DateRangePicker

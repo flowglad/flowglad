@@ -3,24 +3,25 @@
 // ion/DatePicker: Migrated to use shadcn input directly
 import clsx from 'clsx'
 import React, { useEffect, useRef } from 'react'
-import {
-  DateRange,
-  Matcher,
-} from 'react-day-picker'
+import { DateRange, Matcher } from 'react-day-picker'
 
 // TODO: Track B - Replace with shadcn date-picker pattern
 // Temporary fix: useInput and UseInputOptions removed in react-day-picker 9.x
-type UseInputOptions = any;
+type UseInputOptions = any
 const useInput = () => ({
   inputProps: {},
   dayPickerProps: {},
   setSelected: () => {},
-});
+})
 import { twMerge } from 'tailwind-merge'
 
 import { Calendar } from './Calendar'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from './Popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react'
 import core from '@/utils/core'

@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 import * as React from 'react'
 import { forwardRef, useEffect } from 'react'
 
-import { Badge } from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import {
   Command,
@@ -13,8 +13,8 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { cn } from '@/utils/core'
-import Hint from '../ion/Hint'
+import { cn } from '@/lib/utils'
+import { FormDescription, FormMessage } from '@/components/ui/form'
 
 export interface Option {
   value: string
@@ -751,25 +751,22 @@ const MultipleSelector = React.forwardRef<
           </div>
         </Command>
         {hint && (
-          <Hint
+          <div
             id={`${id}__hint`}
-            className="text-xs text-subtle mt-1"
-            showIcon={showHintIcon}
-            disabled={disabled}
+            className={`text-xs mt-1 ${disabled ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}
           >
             {hint}
-          </Hint>
+          </div>
         )}
         {error && (
-          <Hint
+          <div
             id={`${id}__error`}
-            error={error}
-            className="mt-1 text-danger"
-            showIcon={showHintIcon}
-            disabled={disabled}
+            className={`mt-1 text-destructive text-xs ${disabled ? 'opacity-60' : ''}`}
           >
-            {error}
-          </Hint>
+            {typeof error === 'string'
+              ? error
+              : 'This field has an error'}
+          </div>
         )}
       </div>
     )

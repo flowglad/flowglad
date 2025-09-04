@@ -3,7 +3,7 @@
 
 import core from '@/utils/core'
 import clsx from 'clsx'
-import { PopoverClose } from './ion/Popover'
+import * as PopoverPrimitive from '@radix-ui/react-popover'
 
 export enum PopoverMenuItemState {
   Default = 'default',
@@ -40,7 +40,7 @@ const PopoverMenuItem = ({
   helperText,
 }: PopoverMenuItemProps) => {
   return (
-    <PopoverClose asChild>
+    <PopoverPrimitive.Close asChild>
       <div
         className={clsx(
           'flex flex-col w-fit items-start gap-2.5 px-4 py-2 text-sm hover:bg-white hover:bg-opacity-[0.07] rounded-radius-xs',
@@ -67,7 +67,7 @@ const PopoverMenuItem = ({
           </p>
         )}
       </div>
-    </PopoverClose>
+    </PopoverPrimitive.Close>
   )
 }
 

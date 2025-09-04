@@ -6,7 +6,7 @@ import { InvoiceStatusTab } from './components/InvoiceStatusTab'
 import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import { MigrationButton as Button } from '@/components/ui/button-migration'
 import { Plus } from 'lucide-react'
 import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
@@ -33,15 +33,17 @@ const InternalInvoicesPage = () => {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageTitle>Invoices</PageTitle>
-          <Button
-            iconLeading={<Plus size={16} />}
-            onClick={() => setCreateInvoiceModalOpen(true)}
-          >
-            Create Invoice
-          </Button>
-        </div>
+        <PageHeader
+          title="Invoices"
+          action={
+            <Button
+              iconLeading={<Plus size={16} />}
+              onClick={() => setCreateInvoiceModalOpen(true)}
+            >
+              Create Invoice
+            </Button>
+          }
+        />
 
         <Tabs value={selectedStatus} onValueChange={handleTabChange}>
           <TabsList className="gap-8 border-b border-stroke-subtle">

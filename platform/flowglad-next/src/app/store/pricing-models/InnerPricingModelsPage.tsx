@@ -1,5 +1,5 @@
 'use client'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import PricingModelsTable from './PricingModelsTable'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
@@ -16,15 +16,18 @@ const InnerPricingModelsPage = () => {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between items-center mb-6 gap-8">
-          <PageTitle>Pricing Models</PageTitle>
-          <Button
-            onClick={() => setIsCreatePricingModelOpen(true)}
-            iconLeading={<Plus size={16} strokeWidth={2} />}
-          >
-            Create Pricing Model
-          </Button>
-        </div>
+        <PageHeader
+          title="Pricing Models"
+          className="mb-6"
+          action={
+            <Button
+              onClick={() => setIsCreatePricingModelOpen(true)}
+              iconLeading={<Plus size={16} strokeWidth={2} />}
+            >
+              Create Pricing Model
+            </Button>
+          }
+        />
         <PricingModelsTable />
       </div>
       <CreatePricingModelModal

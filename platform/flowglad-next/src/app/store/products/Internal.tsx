@@ -12,7 +12,7 @@ import { PricingModel } from '@/db/schema/pricingModels'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import { ProductStatusTab } from './components/ProductStatusTab'
 
 export enum FocusedTab {
@@ -48,15 +48,17 @@ function InternalProductsPage({ products: initialProducts }: Props) {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageTitle>Products</PageTitle>
-          <Button
-            iconLeading={<Plus size={16} />}
-            onClick={() => setIsCreateProductOpen(true)}
-          >
-            Create Product
-          </Button>
-        </div>
+        <PageHeader
+          title="Products"
+          action={
+            <Button
+              iconLeading={<Plus size={16} />}
+              onClick={() => setIsCreateProductOpen(true)}
+            >
+              Create Product
+            </Button>
+          }
+        />
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}

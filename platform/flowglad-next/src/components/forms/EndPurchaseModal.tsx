@@ -1,9 +1,20 @@
 'use client'
 import { useForm, Controller } from 'react-hook-form'
-import { ModalInterfaceProps } from '../ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+
+interface ModalInterfaceProps {
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+}
 import { trpc } from '@/app/_trpc/client'
 import { Purchase } from '@/db/schema/purchases'
-import Modal from '../ion/Modal'
 import { Button } from '@/components/ui/button'
 import Datepicker from '@/components/ion/Datepicker'
 
@@ -53,50 +64,52 @@ const EndPurchaseModal = ({
   }
 
   return (
-    <Modal
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      title="End Purchase"
-      className="overflow-y-visible"
-    >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col gap-4 overflow-y-visible"
-      >
-        <p>Select an end date for the purchase: {purchase.name}</p>
-        <Controller
-          name="endDate"
-          control={control}
-          rules={{ required: 'End date is required' }}
-          render={({ field }) => {
-            return (
-              <Datepicker
-                {...field}
-                onSelect={(value) => field.onChange(value)}
-                value={field.value || undefined}
-              />
-            )
-          }}
-        />
-        {errors.endDate && (
-          <span className="text-danger text-sm">
-            {errors.endDate.message}
-          </span>
-        )}
-        <div className="flex justify-end gap-2 mt-4">
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-            type="button"
-          >
-            Cancel
-          </Button>
-          <Button variant="destructive" type="submit">
-            End Purchase
-          </Button>
-        </div>
-      </form>
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="overflow-y-visible">
+        <DialogHeader>
+          <DialogTitle>End Purchase</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-4 overflow-y-visible"
+        >
+          <p>Select an end date for the purchase: {purchase.name}</p>
+          <Controller
+            name="endDate"
+            control={control}
+            rules={{ required: 'End date is required' }}
+            render={({ field }) => {
+              return (
+                <Datepicker
+                  {...field}
+                  onSelect={(value) => field.onChange(value)}
+                  value={field.value || undefined}
+                />
+              )
+            }}
+          />
+          {errors.endDate && (
+            <span className="text-destructive text-sm">
+              {errors.endDate.message}
+            </span>
+          )}
+          <DialogFooter>
+            <div className="flex justify-end gap-2 mt-4 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" type="submit">
+                End Purchase
+              </Button>
+            </div>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

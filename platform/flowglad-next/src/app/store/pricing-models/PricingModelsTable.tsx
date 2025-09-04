@@ -5,7 +5,7 @@ import Table, {
   type ColumnDefWithWidth,
 } from '@/components/ion/Table'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
-import Badge from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import { PricingModel } from '@/db/schema/pricingModels'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
@@ -105,7 +105,10 @@ const PricingModelsTable = ({
                 {cellData.pricingModel.name}
               </span>
               {cellData.pricingModel.isDefault && (
-                <Badge color="green" size="sm">
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-800 text-xs"
+                >
                   Default
                 </Badge>
               )}

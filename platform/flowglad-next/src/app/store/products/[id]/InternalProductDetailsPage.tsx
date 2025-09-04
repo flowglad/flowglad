@@ -9,7 +9,7 @@ import { Product } from '@/db/schema/products'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import EditProductModal from '@/components/forms/EditProductModal'
 
 import { Plus } from 'lucide-react'
@@ -26,7 +26,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ion/Popover'
+} from '@/components/ui/popover'
 
 export type InternalProductDetailsPageProps = {
   product: Product.ClientRecord
@@ -70,9 +70,10 @@ function InternalProductDetailsPage(
           <Breadcrumb />
           <div className="flex flex-row items-center justify-between">
             <div className="min-w-0 overflow-hidden mr-4">
-              <PageTitle className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                {product.name}
-              </PageTitle>
+              <PageHeader
+                title={product.name}
+                className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
+              />
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
               <Button

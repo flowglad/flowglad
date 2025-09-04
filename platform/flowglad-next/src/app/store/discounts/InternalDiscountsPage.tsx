@@ -14,7 +14,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs'
 import { sentenceCase } from 'change-case'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 interface DiscountStatusTabProps {
@@ -59,15 +59,17 @@ function InternalDiscountsPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageTitle>Discounts</PageTitle>
-          <Button
-            iconLeading={<Plus size={16} />}
-            onClick={() => setIsCreateDiscountOpen(true)}
-          >
-            Create Discount
-          </Button>
-        </div>
+        <PageHeader
+          title="Discounts"
+          action={
+            <Button
+              iconLeading={<Plus size={16} />}
+              onClick={() => setIsCreateDiscountOpen(true)}
+            >
+              Create Discount
+            </Button>
+          }
+        />
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}

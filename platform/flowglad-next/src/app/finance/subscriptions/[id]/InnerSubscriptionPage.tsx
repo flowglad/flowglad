@@ -1,7 +1,7 @@
 'use client'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import { RichSubscription } from '@/subscriptions/schemas'
 import TableTitle from '@/components/ion/TableTitle'
 import PaymentsTable from '../../payments/PaymentsTable'
@@ -34,9 +34,10 @@ const InnerSubscriptionPage = ({
           <Breadcrumb />
           <div className="flex flex-col">
             <div className="flex flex-row justify-between items-center mb-6 gap-8">
-              <PageTitle className="flex flex-row items-center gap-2">
-                {subscription.name ?? 'Subscription'}
-              </PageTitle>
+              <PageHeader
+                title={subscription.name ?? 'Subscription'}
+                className="flex flex-row items-center gap-2"
+              />
             </div>
             <SubscriptionStatusBadge status={subscription.status} />
           </div>

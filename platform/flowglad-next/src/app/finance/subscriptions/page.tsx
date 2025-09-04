@@ -13,9 +13,8 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import Badge from '@/components/ion/Badge'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 
 function InternalSubscriptionsPage() {
   const [activeTab, setActiveTab] = useState<string>('all')
@@ -44,9 +43,7 @@ function InternalSubscriptionsPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageTitle>Subscriptions</PageTitle>
-        </div>
+        <PageHeader title="Subscriptions" />
 
         <Tabs
           value={activeTab}

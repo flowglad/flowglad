@@ -14,7 +14,7 @@ import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import CustomersTable from './CustomersTable'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 interface CustomerTabProps {
@@ -57,15 +57,17 @@ function Internal() {
       <InternalPageContainer>
         <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
           <Breadcrumb />
-          <div className="flex flex-row justify-between">
-            <PageTitle>Customers</PageTitle>
-            <Button
-              iconLeading={<Plus size={16} />}
-              onClick={() => setIsCreateCustomerOpen(true)}
-            >
-              Create Customer
-            </Button>
-          </div>
+          <PageHeader
+            title="Customers"
+            action={
+              <Button
+                iconLeading={<Plus size={16} />}
+                onClick={() => setIsCreateCustomerOpen(true)}
+              >
+                Create Customer
+              </Button>
+            }
+          />
           <div>
             <CustomersTable filters={getFiltersForTab(activeTab)} />
           </div>

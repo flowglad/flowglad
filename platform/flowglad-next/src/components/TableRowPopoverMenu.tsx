@@ -3,7 +3,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ion/Popover'
+} from '@/components/ui/popover'
 import PopoverMenu, { PopoverMenuProps } from './PopoverMenu'
 
 export type TableRowPopoverMenuProps = PopoverMenuProps

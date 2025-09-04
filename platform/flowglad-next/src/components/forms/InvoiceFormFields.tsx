@@ -27,7 +27,6 @@ import { useEffect, useState } from 'react'
 import { Customer } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
 import { Switch } from '@/components/ui/switch'
-import Badge from '../ion/Badge'
 import ConnectedSelect from './ConnectedSelect'
 import core from '@/utils/core'
 
