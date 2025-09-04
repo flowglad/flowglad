@@ -133,6 +133,8 @@ interface BillingRunFailureNotificationParams
 const processFailedNotifications = async (
   params: BillingRunFailureNotificationParams
 ) => {
+  const organizationName = params.organization.name
+  const currency = params.invoice.currency
   await sendPaymentFailedEmail({
     organizationName: params.organization.name,
     to: [params.customer.email],
@@ -144,7 +146,21 @@ const processFailedNotifications = async (
       quantity: item.quantity,
     })),
     retryDate: params.retryDate,
-    currency: params.invoice.currency,
+    currency,
+  })
+
+  await sendOrganizationPaymentNotificationEmail({
+    to: params.organizationMemberUsers
+      .filter((user) => user.email)
+      .map((user) => user.email!),
+    organizationName,
+    currency,
+    customerId: params.customer.id,
+    customerName: params.customer.name,
+    customerEmail: params.customer.email,
+    amount: params.invoiceLineItems.reduce((acc, item) => {
+      return item.price * item.quantity + acc
+    }, 0),
   })
 }
 
@@ -246,7 +262,6 @@ export const processPaymentIntentEventForBillingRun = async (
 
   const billingRunStatus =
     paymentIntentStatusToBillingRunStatus[event.data.object.status]
-
   billingRun = await updateBillingRun(
     {
       id: billingRun.id,
