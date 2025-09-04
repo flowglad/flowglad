@@ -21,7 +21,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
-      <main className="container py-16">
+      <main className="container pt-14 py-16">
         <div className="text-center mb-16">
           <h1 className="text-4xl lg:text-5xl font-bold mb-4">
             Simple, transparent pricing

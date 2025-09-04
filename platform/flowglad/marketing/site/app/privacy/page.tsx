@@ -14,7 +14,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
-      <main className="container py-16">
+      <main className="container pt-14 py-16">
         <div className="max-w-4xl mx-auto">
           <Button variant="ghost" asChild className="mb-6">
             <Link href="/" className="flex items-center gap-2">

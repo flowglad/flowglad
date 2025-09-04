@@ -8,7 +8,11 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center space-x-2">
-              <div className="h-6 w-6 rounded-full bg-white"></div>
+              <div
+                className="h-6 w-6 rounded-full bg-white"
+                role="img"
+                aria-label="Flowglad logo"
+              ></div>
               <span className="font-bold">Flowglad</span>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
@@ -81,8 +85,9 @@ export default function Footer() {
                 <Link
                   href="/github"
                   className="hover:text-foreground transition-colors flex items-center gap-2"
+                  aria-label="Visit our GitHub repository"
                 >
-                  <Github className="h-4 w-4" />
+                  <Github className="h-4 w-4 fill-current" />
                   GitHub
                 </Link>
               </li>
@@ -90,8 +95,9 @@ export default function Footer() {
                 <Link
                   href="/join-discord"
                   className="hover:text-foreground transition-colors flex items-center gap-2"
+                  aria-label="Join our Discord community"
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4 fill-current" />
                   Discord
                 </Link>
               </li>
