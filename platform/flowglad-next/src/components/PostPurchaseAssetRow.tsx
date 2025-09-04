@@ -85,7 +85,7 @@ const PostPurchaseAssetRow = ({
             {asset.name}
           </div>
           {mode === 'seller' && (
-            <div className="text-xs text-subtle">
+            <div className="text-xs text-muted-foreground">
               Available after purchase
             </div>
           )}

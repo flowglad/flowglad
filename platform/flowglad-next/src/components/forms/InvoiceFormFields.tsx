@@ -27,6 +27,7 @@ import { useEffect, useState } from 'react'
 import { Customer } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import ConnectedSelect from './ConnectedSelect'
 import core from '@/utils/core'
 
@@ -246,15 +247,19 @@ const InvoiceFormFields = ({
             <FormItem className="flex-1">
               <FormLabel>Bank Payment Only</FormLabel>
               <FormControl>
-                <Switch
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                  label={
-                    <div className="cursor-pointer w-full">
-                      Only accept payment via ACH or Wire.
-                    </div>
-                  }
-                />
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="bank-payment-only"
+                    checked={Boolean(field.value)}
+                    onCheckedChange={field.onChange}
+                  />
+                  <Label
+                    htmlFor="bank-payment-only"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Only accept payment via ACH or Wire.
+                  </Label>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

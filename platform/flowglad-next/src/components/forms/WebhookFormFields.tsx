@@ -15,6 +15,7 @@ import MultiSelect, { Option } from './MultiSelect'
 
 import StatusBadge from '../StatusBadge'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 // import { MultiSelect } from '@/components/ion/ui/MultiSelect'
 
 const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
@@ -89,19 +90,23 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
             name="webhook.active"
             control={form.control}
             render={({ field }) => (
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                label={
-                  <div className="cursor-pointer w-full">
-                    {field.value ? (
-                      <StatusBadge active={true} />
-                    ) : (
-                      <StatusBadge active={false} />
-                    )}
-                  </div>
-                }
-              />
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="webhook-active"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <Label
+                  htmlFor="webhook-active"
+                  className="cursor-pointer w-full"
+                >
+                  {field.value ? (
+                    <StatusBadge active={true} />
+                  ) : (
+                    <StatusBadge active={false} />
+                  )}
+                </Label>
+              </div>
             )}
           />
         </div>

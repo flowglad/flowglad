@@ -32,7 +32,7 @@ const WebhookSecretModal = ({
           >
             {secret}
           </CopyableTextTableCell>
-          <p className="text-sm text-subtle">
+          <p className="text-sm text-muted-foreground">
             {`Keep this secret somewhere safe and do not commit it to your source code. You'll need it to verify webhook signatures.`}
           </p>
         </div>

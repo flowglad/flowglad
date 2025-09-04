@@ -129,13 +129,13 @@ export const SideNavigation = () => {
               <div className="text-sm font-semibold text-foreground truncate">
                 {organization?.name}
               </div>
-              <div className="text-xs font-medium text-subtle truncate">
+              <div className="text-xs font-medium text-muted-foreground truncate">
                 {organization?.tagline}
               </div>
             </div>
           </div>
         </div>
-        <SidebarTrigger className="flex-shrink-0 text-subtle" />
+        <SidebarTrigger className="flex-shrink-0 text-muted-foreground" />
       </SidebarHeader>
 
       <SidebarContent className="pt-3">
@@ -247,10 +247,7 @@ export const SideNavigation = () => {
                   toggleTestMode.isPending ||
                   focusedMembership.isPending
                 }
-                className={
-                  'data-[state=checked]:!bg-orange-primary-500'
-                }
-                thumbClassName={'data-[state=checked]:!bg-white'}
+                className="data-[state=checked]:bg-orange-primary-500 data-[state=checked]:focus-visible:ring-orange-primary-500 [&>*]:data-[state=checked]:bg-white"
               />
             </div>
           </FallbackSkeleton>

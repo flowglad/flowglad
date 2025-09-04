@@ -12,6 +12,7 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import { useEffect, useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { Price } from '@/db/schema/prices'
 import {
   FormField,
@@ -112,16 +113,24 @@ export const RecurringUsageCreditsOveragePriceSelect = ({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <Switch
-        label="Intended for Recurring Usage Credits"
-        checked={isRecurringUsageCredits}
-        onCheckedChange={(checked) => {
-          setIsRecurringUsageCredits(checked)
-          if (!checked) {
-            setValue(fieldName, null)
-          }
-        }}
-      />
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="recurring-usage-credits"
+          checked={isRecurringUsageCredits}
+          onCheckedChange={(checked) => {
+            setIsRecurringUsageCredits(checked)
+            if (!checked) {
+              setValue(fieldName, null)
+            }
+          }}
+        />
+        <Label
+          htmlFor="recurring-usage-credits"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Intended for Recurring Usage Credits
+        </Label>
+      </div>
       {isRecurringUsageCredits && (
         <OveragePriceSelect productId={productId} />
       )}

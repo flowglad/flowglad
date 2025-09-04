@@ -28,6 +28,7 @@ import UsageMetersSelect from './UsageMetersSelect'
 
 import core, { titleCase } from '@/utils/core'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 const FeatureFormFields = () => {
   const form = useFormContext<CreateFeatureInput>()
@@ -209,11 +210,19 @@ const FeatureFormFields = () => {
         control={form.control}
         name="feature.active"
         render={({ field }) => (
-          <Switch
-            label="Active"
-            checked={field.value}
-            onCheckedChange={field.onChange}
-          />
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="feature-active"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+            <Label
+              htmlFor="feature-active"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Active
+            </Label>
+          </div>
         )}
       />
     </div>

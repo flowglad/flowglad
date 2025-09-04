@@ -52,17 +52,25 @@ const TrialFields = () => {
   }, [overagePriceId, startsWithCreditTrial, setTrialType])
   return (
     <div className="flex flex-col gap-2.5">
-      <Switch
-        label="Trial"
-        checked={offerTrial}
-        onCheckedChange={(checked) => {
-          setOfferTrial(checked)
-          if (!checked) {
-            setValue('price.trialPeriodDays', 0)
-            setValue('price.startsWithCreditTrial', null)
-          }
-        }}
-      />
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="trial-toggle"
+          checked={offerTrial}
+          onCheckedChange={(checked) => {
+            setOfferTrial(checked)
+            if (!checked) {
+              setValue('price.trialPeriodDays', 0)
+              setValue('price.startsWithCreditTrial', null)
+            }
+          }}
+        />
+        <Label
+          htmlFor="trial-toggle"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Trial
+        </Label>
+      </div>
       {offerTrial && (
         <>
           <div>

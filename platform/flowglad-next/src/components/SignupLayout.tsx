@@ -19,7 +19,7 @@ const SignupLayout = ({
               {children}
               <Link
                 href="https://flowglad.com/privacy-policy"
-                className="text-sm text-subtle mt-8"
+                className="text-sm text-muted-foreground mt-8"
               >
                 Privacy Policy
               </Link>

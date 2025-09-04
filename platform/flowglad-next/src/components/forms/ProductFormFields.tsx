@@ -14,6 +14,7 @@ import PriceFormFields from '@/components/forms/PriceFormFields'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
 import core from '@/utils/core'
@@ -71,7 +72,7 @@ export const ProductFormFields = ({
                         value={value || ''}
                       />
                     </FormControl>
-                    <FormDescription className="text-xs text-subtle mt-1">
+                    <FormDescription className="text-xs text-muted-foreground mt-1">
                       Used to identify the product in its pricing
                       model. Must be unique per-pricing model.
                     </FormDescription>
@@ -96,7 +97,7 @@ export const ProductFormFields = ({
                       value={field.value || ''}
                     />
                   </FormControl>
-                  <FormDescription className="text-xs text-subtle mt-1">
+                  <FormDescription className="text-xs text-muted-foreground mt-1">
                     Details about your product that will be displayed
                     on the purchase page.
                   </FormDescription>
@@ -125,19 +126,23 @@ export const ProductFormFields = ({
                   <FormItem>
                     <FormLabel>Status</FormLabel>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        label={
-                          <div className="cursor-pointer w-full">
-                            {field.value ? (
-                              <StatusBadge active={true} />
-                            ) : (
-                              <StatusBadge active={false} />
-                            )}
-                          </div>
-                        }
-                      />
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="product-active"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                        <Label
+                          htmlFor="product-active"
+                          className="cursor-pointer w-full"
+                        >
+                          {field.value ? (
+                            <StatusBadge active={true} />
+                          ) : (
+                            <StatusBadge active={false} />
+                          )}
+                        </Label>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

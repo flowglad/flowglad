@@ -637,7 +637,7 @@ const MultipleSelector = React.forwardRef<
                     : placeholder
                 }
                 className={cn(
-                  'flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm placeholder:text-subtle',
+                  'flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm placeholder:text-muted-foreground',
                   'py-0.5',
                   'disabled:text-on-disabled disabled:placeholder:text-on-disabled disabled:pointer-events-none',
                   {

@@ -10,6 +10,7 @@ import {
 import { FormEvent, useState } from 'react'
 import core, { cn } from '@/utils/core'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { trpc } from '@/app/_trpc/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
@@ -463,21 +464,29 @@ const PaymentForm = () => {
           <TotalBillingDetails />
           {showAutomaticallyUpdateCurrentSubscriptions && (
             <div className="py-4">
-              <Switch
-                label="Set as default method for existing subscriptions"
-                checked={
-                  checkoutSession.automaticallyUpdateSubscriptions ??
-                  false
-                }
-                onCheckedChange={async (checked) => {
-                  await editCheckoutSessionAutomaticallyUpdateSubscriptions(
-                    {
-                      id: checkoutSession.id,
-                      automaticallyUpdateSubscriptions: checked,
-                    }
-                  )
-                }}
-              />
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="auto-update-subscriptions"
+                  checked={
+                    checkoutSession.automaticallyUpdateSubscriptions ??
+                    false
+                  }
+                  onCheckedChange={async (checked) => {
+                    await editCheckoutSessionAutomaticallyUpdateSubscriptions(
+                      {
+                        id: checkoutSession.id,
+                        automaticallyUpdateSubscriptions: checked,
+                      }
+                    )
+                  }}
+                />
+                <Label
+                  htmlFor="auto-update-subscriptions"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Set as default method for existing subscriptions
+                </Label>
+              </div>
             </div>
           )}
           <div className="py-8">

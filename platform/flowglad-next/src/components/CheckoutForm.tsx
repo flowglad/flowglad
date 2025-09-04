@@ -22,7 +22,7 @@ const CheckoutFormDisabled = () => {
             <p className="text-lg font-semibold">
               Checkout is disabled
             </p>
-            <p className="text-center text-sm text-subtle font-medium m-auto max-w-[300px]">
+            <p className="text-center text-sm text-muted-foreground font-medium m-auto max-w-[300px]">
               This is likely because the organization does not have
               payouts enabled.
             </p>

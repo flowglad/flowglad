@@ -182,7 +182,7 @@ const FileInput: React.FC<FileInputProps> = ({
             ) : (
               <div className="w-full h-full flex items-center justify-center gap-2">
                 <FileIcon size={16} />
-                <div className="text-xs text-subtle">
+                <div className="text-xs text-muted-foreground">
                   {file.file?.name ?? file.objectKey.split('/').pop()}
                 </div>
               </div>
@@ -228,7 +228,7 @@ const FileInput: React.FC<FileInputProps> = ({
             isUploading && 'opacity-50'
           )}
         >
-          <div className="text-xs text-center text-subtle w-full">
+          <div className="text-xs text-center text-muted-foreground w-full">
             {fileTypes && fileTypes.length > 0
               ? `${fileTypes
                   .map((type) => `.${type}`)
@@ -241,7 +241,7 @@ const FileInput: React.FC<FileInputProps> = ({
   let hintElement = null
   if (typeof hint === 'string') {
     hintElement = (
-      <div className="text-xs text-subtle mt-1">{hint}</div>
+      <div className="text-xs text-muted-foreground mt-1">{hint}</div>
     )
   } else if (React.isValidElement(hint)) {
     hintElement = hint

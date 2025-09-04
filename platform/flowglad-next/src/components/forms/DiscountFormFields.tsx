@@ -21,6 +21,7 @@ import { DiscountAmountType, DiscountDuration } from '@/types'
 import NumberInput from '@/components/ion/NumberInput'
 import StatusBadge from '@/components/StatusBadge'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { Percent } from 'lucide-react'
@@ -222,19 +223,23 @@ export default function DiscountFormFields({
             name="discount.active"
             control={control}
             render={({ field }) => (
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                label={
-                  <div className="cursor-pointer w-full">
-                    {field.value ? (
-                      <StatusBadge active={true} />
-                    ) : (
-                      <StatusBadge active={false} />
-                    )}
-                  </div>
-                }
-              />
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="discount-active"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <Label
+                  htmlFor="discount-active"
+                  className="cursor-pointer w-full"
+                >
+                  {field.value ? (
+                    <StatusBadge active={true} />
+                  ) : (
+                    <StatusBadge active={false} />
+                  )}
+                </Label>
+              </div>
             )}
           />
         </div>

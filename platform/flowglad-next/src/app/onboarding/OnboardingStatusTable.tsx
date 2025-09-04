@@ -30,7 +30,7 @@ const OnboardingItemDescriptionLabel = ({
   children: React.ReactNode
 }) => {
   return typeof children === 'string' ? (
-    <p className="text-sm text-subtle">{children}</p>
+    <p className="text-sm text-muted-foreground">{children}</p>
   ) : (
     children
   )

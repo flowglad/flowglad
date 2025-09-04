@@ -13,10 +13,7 @@ const TabsList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={cn(
-      'inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground',
-      className
-    )}
+    className={cn('flex items-start', className)}
     {...props}
   />
 ))
@@ -29,7 +26,12 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+      // Ion-inspired styles
+      'flex justify-center items-center px-2 pt-2 pb-4 text-2xl font-semibold text-subtle',
+      // Active state mirrors Ion selected state
+      'data-[state=active]:border-b data-[state=active]:border-[#dfdfdf] data-[state=active]:text-[#dfdfdf]',
+      // Disabled handling retained from shadcn
+      'disabled:pointer-events-none disabled:opacity-50',
       className
     )}
     {...props}
