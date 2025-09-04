@@ -1,7 +1,7 @@
 'use client'
 import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import CheckoutForm from '@/components/CheckoutForm'
-import CheckoutDetails from '@/components/ion/CheckoutDetails'
+import { CheckoutDetails } from '@/components/checkout/checkout-details'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import { trpc } from '@/app/_trpc/client'
 import { useEffect, useRef } from 'react'

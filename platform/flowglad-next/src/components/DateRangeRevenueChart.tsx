@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DateRangePicker } from './ion/Datepicker'
+import { DateRangePicker } from './date-range-picker'
 import { RevenueChart } from './RevenueChart'
 
 const DateRangeRevenueChart = ({

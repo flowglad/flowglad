@@ -519,15 +519,19 @@ const MultipleSelector = React.forwardRef<
     return (
       <div>
         {label && (
-          <Label
-            id={`${id}__label`}
-            htmlFor={id}
-            required={required}
-            helper={helper}
-            className="mb-0.5"
-          >
-            {label}
-          </Label>
+          <div className="mb-0.5">
+            <Label id={`${id}__label`} htmlFor={id}>
+              {label}
+              {required && (
+                <span className="text-destructive ml-1">*</span>
+              )}
+              {helper && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  ({helper})
+                </span>
+              )}
+            </Label>
+          </div>
         )}
         <Command
           ref={dropdownRef}

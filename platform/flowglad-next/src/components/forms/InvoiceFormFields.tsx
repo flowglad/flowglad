@@ -21,7 +21,13 @@ import { InvoiceFormLineItemsField } from './InvoiceFormLineItemsField'
 import { Invoice } from '@/db/schema/invoices'
 import { useFormContext } from 'react-hook-form'
 import { useAuthenticatedContext } from '../../contexts/authContext'
-import Datepicker from '../ion/Datepicker'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { format } from 'date-fns'
 import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import { Customer } from '@/db/schema/customers'
@@ -173,18 +179,40 @@ const InvoiceFormFields = ({
             <FormItem className="flex-1 w-full">
               <FormLabel>Issued On</FormLabel>
               <FormControl>
-                <Datepicker
-                  {...field}
-                  onSelect={(value) =>
-                    field.onChange(value ? value.toISOString() : '')
-                  }
-                  value={
-                    field.value ? new Date(field.value) : undefined
-                  }
-                  iconTrailing={<ChevronDown size={16} />}
-                  iconLeading={<Calendar size={16} />}
-                  className="flex-1 w-full"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex-1 w-full justify-start text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2" />
+                      {field.value
+                        ? format(new Date(field.value), 'PPP')
+                        : 'Select issue date'}
+                      <ChevronDown size={16} className="ml-auto" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
+                    <CalendarComponent
+                      mode="single"
+                      selected={
+                        field.value
+                          ? new Date(field.value)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        field.onChange(date ? date.toISOString() : '')
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -294,19 +322,42 @@ const InvoiceFormFields = ({
             >
               <FormLabel>Due Date</FormLabel>
               <FormControl>
-                <Datepicker
-                  {...field}
-                  onSelect={(value) =>
-                    field.onChange(value ? value.toISOString() : '')
-                  }
-                  value={
-                    field.value ? new Date(field.value) : undefined
-                  }
-                  iconTrailing={<ChevronDown size={16} />}
-                  iconLeading={<Calendar size={16} />}
-                  className="flex-1"
-                  disabled={dueOption !== 'Custom Date'}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={dueOption !== 'Custom Date'}
+                      className={cn(
+                        'flex-1 justify-start text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2" />
+                      {field.value
+                        ? format(new Date(field.value), 'PPP')
+                        : 'Select due date'}
+                      <ChevronDown size={16} className="ml-auto" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
+                    <CalendarComponent
+                      mode="single"
+                      selected={
+                        field.value
+                          ? new Date(field.value)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        field.onChange(date ? date.toISOString() : '')
+                      }
+                      disabled={(date) => dueOption !== 'Custom Date'}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </FormControl>
               <FormMessage />
             </FormItem>

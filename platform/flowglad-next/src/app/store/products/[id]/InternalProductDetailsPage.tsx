@@ -85,9 +85,11 @@ function InternalProductDetailsPage(
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"
-                    asDiv={true}
+                    asChild
                   >
-                    <Ellipsis className="rotate-90 w-4 h-6" />
+                    <span>
+                      <Ellipsis className="rotate-90 w-4 h-6" />
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-fit" align="end">

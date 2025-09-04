@@ -16,7 +16,15 @@ interface ModalInterfaceProps {
 import { trpc } from '@/app/_trpc/client'
 import { Purchase } from '@/db/schema/purchases'
 import { Button } from '@/components/ui/button'
-import Datepicker from '@/components/ion/Datepicker'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 interface EndPurchaseModalProps extends ModalInterfaceProps {
   purchase: Purchase.ClientRecord
@@ -80,11 +88,33 @@ const EndPurchaseModal = ({
             rules={{ required: 'End date is required' }}
             render={({ field }) => {
               return (
-                <Datepicker
-                  {...field}
-                  onSelect={(value) => field.onChange(value)}
-                  value={field.value || undefined}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {field.value
+                        ? format(field.value, 'PPP')
+                        : 'Select date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
+                    <Calendar
+                      mode="single"
+                      selected={field.value || undefined}
+                      onSelect={(date) => field.onChange(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               )
             }}
           />

@@ -31,11 +31,13 @@ const CheckoutFormDisabled = () => {
                 onClick={() => {
                   router.push('/onboarding')
                 }}
-                iconTrailing={
-                  <ChevronRight size={16} strokeWidth={4} />
-                }
               >
                 Enable Payouts
+                <ChevronRight
+                  className="w-4 h-4 ml-2"
+                  size={16}
+                  strokeWidth={4}
+                />
               </Button>
             </div>
           </div>

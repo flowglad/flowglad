@@ -1,14 +1,16 @@
-// Generated with Ion on 11/17/2024, 2:36:56 AM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=583:15070
-import clsx from 'clsx'
+'use client'
+
+import { cn } from '@/lib/utils'
 import FlowgladLogo from '@/components/FlowgladLogo'
 import { useSearchParams } from 'next/navigation'
 
-type SignupSideBarProps = {
+interface SignupSideBarProps {
   className?: string
 }
 
-function SignupSideBar({ className = '' }: SignupSideBarProps) {
+export function SignupSideBar({
+  className = '',
+}: SignupSideBarProps) {
   const searchParams = useSearchParams()
   const flow = searchParams.get('flow')
   let tagline = 'Start Making Internet Money'
@@ -17,8 +19,8 @@ function SignupSideBar({ className = '' }: SignupSideBarProps) {
 
   return (
     <div
-      className={clsx(
-        'bg-nav flex-1 h-full w-full max-w-[512px] flex flex-col justify-center items-center gap-[175px] px-10 pt-[100px] pb-[60px] border-r border-container',
+      className={cn(
+        'bg-card flex-1 h-full w-full max-w-[512px] flex flex-col justify-center items-center gap-[175px] px-10 pt-[100px] pb-[60px] border-r border-border',
         className
       )}
     >
@@ -36,5 +38,3 @@ function SignupSideBar({ className = '' }: SignupSideBarProps) {
     </div>
   )
 }
-
-export default SignupSideBar

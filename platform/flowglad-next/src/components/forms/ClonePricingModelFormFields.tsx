@@ -20,7 +20,9 @@ const ClonePricingModelFormFields: React.FC = () => {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel required>Catalog Name</FormLabel>
+            <FormLabel>
+              Catalog Name <span className="text-destructive">*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 placeholder="Enter pricing model name"

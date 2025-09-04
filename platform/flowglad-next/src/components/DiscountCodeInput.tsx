@@ -125,21 +125,23 @@ export default function DiscountCodeInput() {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      id="discountCode"
-                      className="h-11 bg-[#353535] focus-visible:bg-[#353535] border-none"
-                      autoCapitalize="characters"
-                      iconTrailing={
-                        discount
+                    <div className="relative">
+                      <Input
+                        id="discountCode"
+                        className="h-11 bg-[#353535] focus-visible:bg-[#353535] border-none pr-12"
+                        autoCapitalize="characters"
+                        {...field}
+                        onChange={(e) => {
+                          const code = e.target.value.toUpperCase()
+                          field.onChange(code)
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {discount
                           ? clearDiscountCodeButton
-                          : applyDiscountCodeButton
-                      }
-                      {...field}
-                      onChange={(e) => {
-                        const code = e.target.value.toUpperCase()
-                        field.onChange(code)
-                      }}
-                    />
+                          : applyDiscountCodeButton}
+                      </div>
+                    </div>
                   </FormControl>
                 </FormItem>
               )}

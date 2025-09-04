@@ -5,7 +5,7 @@ import { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import { FallbackSkeleton, Skeleton } from './ui/skeleton'
+import { Skeleton } from './ui/skeleton'
 import { LineChart } from './charts/LineChart'
 import core from '@/utils/core'
 import { twMerge } from 'tailwind-merge'
@@ -167,19 +167,20 @@ export const ActiveSubscribersChart = ({
       </div>
 
       <div className="mt-2">
-        <FallbackSkeleton
-          showSkeleton={isLoading}
-          className="w-36 h-12"
-        >
-          <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            {formattedSubscriberValue}
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {isTooltipLabelDate
-              ? core.formatDate(new Date(tooltipLabel as string))
-              : core.formatDateRange({ fromDate, toDate })}
-          </p>
-        </FallbackSkeleton>
+        {isLoading ? (
+          <Skeleton className="w-36 h-12" />
+        ) : (
+          <>
+            <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+              {formattedSubscriberValue}
+            </p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              {isTooltipLabelDate
+                ? core.formatDate(new Date(tooltipLabel as string))
+                : core.formatDateRange({ fromDate, toDate })}
+            </p>
+          </>
+        )}
       </div>
       {isLoading ? (
         <div className="-mb-2 mt-8 w-full flex items-center justify-center">

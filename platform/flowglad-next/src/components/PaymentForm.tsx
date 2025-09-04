@@ -22,8 +22,8 @@ import {
 } from '@/types'
 import { LoaderCircle } from 'lucide-react'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import TotalBillingDetails from './ion/TotalBillingDetails'
-import PoweredByFlowgladText from './ion/PoweredByFlowgladText'
+import { TotalBillingDetails } from './checkout/total-billing-details'
+import { PoweredByFlowglad } from './powered-by-flowglad'
 import DiscountCodeInput from './DiscountCodeInput'
 import {
   SubscriptionCheckoutDetails,
@@ -44,66 +44,27 @@ export const PaymentLoadingForm = ({
   return (
     <>
       <div className="flex flex-col gap-4">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
         <div className="flex gap-4">
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
+          <Skeleton className="h-10 w-1/2" />
+          <Skeleton className="h-10 w-1/2" />
         </div>
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
+        <Skeleton className="h-10 w-full" />
         <div className="flex gap-4">
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
+          <Skeleton className="h-10 w-1/2" />
+          <Skeleton className="h-10 w-1/2" />
         </div>
       </div>
       <div className="flex flex-col gap-4 py-3">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
       </div>
       <div className="flex flex-col gap-4 py-3">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
       </div>
     </>
   )
@@ -498,15 +459,13 @@ const PaymentForm = () => {
                 isSubmitting ||
                 checkoutBlocked
               }
-              iconLeading={
-                isSubmitting ? (
-                  <LoaderCircle
-                    className="animate-spin-slow"
-                    size={16}
-                  />
-                ) : undefined
-              }
             >
+              {isSubmitting && (
+                <LoaderCircle
+                  className="animate-spin-slow w-4 h-4 mr-2"
+                  size={16}
+                />
+              )}
               {buttonLabel}
             </Button>
             {errorMessage && <ErrorLabel error={errorMessage} />}
@@ -518,7 +477,7 @@ const PaymentForm = () => {
                 </div>
               </div>
             )}
-            <PoweredByFlowgladText />
+            <PoweredByFlowglad />
           </div>
         </>
       )}

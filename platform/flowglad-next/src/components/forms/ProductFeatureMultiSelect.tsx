@@ -2,9 +2,9 @@ import { trpc } from '@/app/_trpc/client'
 import MultipleSelector from '@/components/forms/MultiSelect'
 import { Controller, useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ion/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const ProductFeatureMultiSelect = ({
   pricingModelId,

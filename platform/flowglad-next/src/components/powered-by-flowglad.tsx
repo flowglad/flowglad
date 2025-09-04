@@ -1,22 +1,24 @@
 import Link from 'next/link'
 import { Lock } from 'lucide-react'
 import FlowgladWordmark from '@/components/FlowgladWordmark'
-import core from '@/utils/core'
+import { cn } from '@/lib/utils'
 
-const PoweredByFlowgladText = ({
-  className,
-}: {
+interface PoweredByFlowgladProps {
   className?: string
-}) => {
+}
+
+export function PoweredByFlowglad({
+  className,
+}: PoweredByFlowgladProps) {
   return (
     <div
-      className={core.cn(
+      className={cn(
         'h-5 w-full flex items-center gap-2 py-8 justify-center',
         className
       )}
     >
-      <Lock size={16} className="text-on-disabled" />
-      <div className="text-sm font-medium text-center text-on-disabled">
+      <Lock size={16} className="text-muted-foreground" />
+      <div className="text-sm font-medium text-center text-muted-foreground">
         Powered by
       </div>
       <Link href="https://flowglad.com">
@@ -25,5 +27,3 @@ const PoweredByFlowgladText = ({
     </div>
   )
 }
-
-export default PoweredByFlowgladText

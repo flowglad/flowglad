@@ -19,7 +19,7 @@ import { Switch } from '@/components/ui/switch'
 import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/utils/core'
 import { useEffect, useState } from 'react'
-import { FallbackSkeleton } from '../ui/skeleton'
+import { Skeleton } from '../ui/skeleton'
 import { FeatureFlag } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
 import {
@@ -228,10 +228,9 @@ export const SideNavigation = () => {
           />
         </SidebarMenu>
         <div className="pt-4 px-2">
-          <FallbackSkeleton
-            showSkeleton={initialFocusedMembershipLoading}
-            className="w-full h-6"
-          >
+          {initialFocusedMembershipLoading ? (
+            <Skeleton className="w-full h-6" />
+          ) : (
             <div className="w-full h-6 flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">
                 Test Mode
@@ -250,7 +249,7 @@ export const SideNavigation = () => {
                 className="data-[state=checked]:bg-orange-primary-500 data-[state=checked]:focus-visible:ring-orange-primary-500 [&>*]:data-[state=checked]:bg-white"
               />
             </div>
-          </FallbackSkeleton>
+          )}
         </div>
       </SidebarFooter>
     </>

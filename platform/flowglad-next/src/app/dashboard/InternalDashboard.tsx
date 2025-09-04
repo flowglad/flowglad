@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
-import { DateRangePicker } from '@/components/ion/Datepicker'
+import { DateRangePicker } from '@/components/date-range-picker'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 

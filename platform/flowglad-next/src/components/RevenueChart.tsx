@@ -18,7 +18,7 @@ import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import { FallbackSkeleton, Skeleton } from './ui/skeleton'
+import { Skeleton } from './ui/skeleton'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
 
@@ -222,19 +222,20 @@ export function RevenueChart({
       </div>
 
       <div className="mt-2">
-        <FallbackSkeleton
-          showSkeleton={isLoading}
-          className="w-36 h-12"
-        >
-          <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            {formattedRevenueValue}
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {isTooltipLabelDate
-              ? core.formatDate(new Date(tooltipLabel as string))
-              : core.formatDateRange({ fromDate, toDate })}
-          </p>
-        </FallbackSkeleton>
+        {isLoading ? (
+          <Skeleton className="w-36 h-12" />
+        ) : (
+          <>
+            <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+              {formattedRevenueValue}
+            </p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              {isTooltipLabelDate
+                ? core.formatDate(new Date(tooltipLabel as string))
+                : core.formatDateRange({ fromDate, toDate })}
+            </p>
+          </>
+        )}
       </div>
       {isLoading ? (
         <div className="-mb-2 mt-8 flex items-center">
