@@ -44,7 +44,6 @@ const DateRangeActiveSubscribersChart = ({
                 to: range?.to ?? new Date(),
               })
             }}
-            mode="range"
           />
         )}
       </div>

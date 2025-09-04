@@ -276,3 +276,5 @@ export const TotalBillingDetails = React.forwardRef<
     </Card>
   )
 })
+
+TotalBillingDetails.displayName = 'TotalBillingDetails'

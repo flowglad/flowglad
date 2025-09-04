@@ -44,7 +44,6 @@ const DateRangeRecurringRevenueChart = ({
                 to: range?.to ?? new Date(),
               })
             }}
-            mode="range"
           />
         )}
       </div>

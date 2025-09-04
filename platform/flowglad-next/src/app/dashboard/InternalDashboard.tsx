@@ -58,7 +58,6 @@ function InternalDashboardPage({
                 })
               }
             }}
-            mode="range"
           />
         </div>
         <div className="grid grid-cols-1 gap-6">
