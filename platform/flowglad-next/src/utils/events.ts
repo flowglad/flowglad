@@ -12,6 +12,7 @@ import { Customer } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
 import { Subscription } from '@/db/schema/subscriptions'
 import { hashData } from './backendCore'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 export interface CreateEventPayload {
   type: FlowgladEventType
@@ -74,6 +75,10 @@ export const commitPaymentSucceededEvent = async (
   payment: Payment.Record,
   transaction: DbTransaction
 ) => {
+  const customer = await selectCustomerById(
+    payment.customerId,
+    transaction
+  )
   return commitEvent(
     {
       type: FlowgladEventType.PaymentSucceeded,
@@ -82,6 +87,12 @@ export const commitPaymentSucceededEvent = async (
       payload: {
         id: payment.id,
         object: EventNoun.Payment,
+        customer: customer
+          ? {
+              id: customer.id,
+              externalId: customer.externalId,
+            }
+          : undefined,
       },
       organizationId: payment.organizationId,
       livemode: payment.livemode,

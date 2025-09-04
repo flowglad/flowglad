@@ -107,10 +107,18 @@ export const events = pgTable(
   }
 ).enableRLS()
 
-export const eventPayloadSchema = z.object({
-  id: z.string(),
-  object: core.createSafeZodEnum(EventNoun),
-})
+export const eventPayloadSchema = z
+  .object({
+    id: z.string(),
+    object: core.createSafeZodEnum(EventNoun),
+    customer: z
+      .object({
+        id: z.string(),
+        externalId: z.string(),
+      })
+      .optional(),
+  })
+  .passthrough()
 
 const columnRefinements = {
   type: core.createSafeZodEnum(FlowgladEventType),
