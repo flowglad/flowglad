@@ -5,8 +5,8 @@ import { CheckoutDetails } from '@/components/checkout/checkout-details'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import { trpc } from '@/app/_trpc/client'
 import { useEffect, useRef } from 'react'
-import { cn } from "@/lib/utils"
-import core from "@/utils/core"
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import { CheckoutFlowType } from '@/types'
 import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 
@@ -39,6 +39,7 @@ const CheckoutPage = ({
     'gap-8 lg:gap-0 h-full m-auto lg:m-0',
     'z-10 overflow-y-scroll lg:justify-center'
   )
+
   const checkoutContainerInnerDimensionsClass =
     'w-full flex flex-1 pt-16 lg:bg-transparent lg:h-full'
   /** Container for checkout form section on right side */
@@ -67,5 +68,7 @@ const CheckoutPage = ({
         </div>
       </div>
     </CheckoutPageProvider>
+  )
 }
+
 export default CheckoutPage

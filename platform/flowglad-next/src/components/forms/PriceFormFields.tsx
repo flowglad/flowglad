@@ -261,12 +261,6 @@ const PriceFormFields = ({
   let typeFields = <></>
   const { organization } = useAuthenticatedContext()
   const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
-  if (!core.IS_PROD) {
-    const price = watch('price')
-    console.log('===price', price)
-    // eslint-disable-next-line no-console
-    console.log('===errors', errors)
-  }
 
   switch (type) {
     case PriceType.Subscription:

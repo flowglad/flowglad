@@ -42,12 +42,6 @@ export default function DiscountFormFields({
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
   const discount = watch('discount')
-  if (!core.IS_PROD) {
-    const discount = watch('discount')
-    console.log('===discount', discount)
-    // eslint-disable-next-line no-console
-    console.log('===errors', errors)
-  }
   const { organization } = useAuthenticatedContext()
   return (
     <div className="space-y-4">
