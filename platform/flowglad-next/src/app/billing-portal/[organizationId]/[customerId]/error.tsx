@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 
 export default function BillingPortalError({
   error,
@@ -13,6 +13,8 @@ export default function BillingPortalError({
   reset: () => void
 }) {
   const router = useRouter()
+  const params = useParams()
+  const organizationId = params?.organizationId as string
 
   useEffect(() => {
     // Log the error to an error reporting service
@@ -21,6 +23,10 @@ export default function BillingPortalError({
 
   const handleGoBack = () => {
     router.back()
+  }
+
+  const handleSelectDifferentCustomer = () => {
+    router.push(`/billing-portal/${organizationId}/select-customer`)
   }
 
   return (
@@ -37,6 +43,12 @@ export default function BillingPortalError({
                 {error.message ||
                   'An unexpected error occurred while loading your billing information.'}
               </p>
+              {process.env.NODE_ENV === 'development' &&
+                error.message && (
+                  <p className="text-xs text-muted-foreground bg-muted rounded-md p-2 font-mono mt-2">
+                    {error.message}
+                  </p>
+                )}
             </div>
           </div>
         </div>
@@ -64,11 +76,10 @@ export default function BillingPortalError({
           </Button>
           <Button
             variant="outline"
-            onClick={handleGoBack}
+            onClick={handleSelectDifferentCustomer}
             className="flex-1 flex items-center justify-center gap-2"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Go Back
+            Select Different Customer
           </Button>
         </div>
 

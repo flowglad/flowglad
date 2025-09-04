@@ -85,13 +85,14 @@ const OnboardingCodeblock = ({
           {markdownText}
         </Markdown>
         <Button
-          iconLeading={<Copy size={20} />}
           size="sm"
           onClick={() => {
             toast.success('Copied to clipboard')
             navigator.clipboard.writeText(markdownText)
           }}
-        />
+        >
+          <Copy size={20} />
+        </Button>
       </div>
     </div>
   )

@@ -1,4 +1,10 @@
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface TableTitleButtonProps {
   buttonLabel: string
@@ -26,33 +32,61 @@ const TableTitleButtonStrip = ({
   secondaryButtonDisabled,
   secondaryButtonDisabledTooltip,
 }: TableTitleButtonProps) => {
+  const renderButton = (
+    label: string,
+    icon: React.ReactNode,
+    onClick: () => void,
+    disabled?: boolean,
+    disabledTooltip?: string,
+    className?: string
+  ) => {
+    const button = (
+      <Button
+        variant="outline"
+        size="sm"
+        className={className}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {icon}
+        {label}
+      </Button>
+    )
+
+    if (disabled && disabledTooltip) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>{button}</TooltipTrigger>
+            <TooltipContent>
+              <p>{disabledTooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )
+    }
+
+    return button
+  }
+
   return (
     <div className="flex flex-row gap-2">
-      {secondaryButtonLabel && (
-        <Button
-          iconLeading={secondaryButtonIcon}
-          variant="outline"
-          color="primary"
-          size="sm"
-          onClick={secondaryButtonOnClick}
-          disabled={secondaryButtonDisabled}
-          disabledTooltip={secondaryButtonDisabledTooltip}
-        >
-          {secondaryButtonLabel}
-        </Button>
+      {secondaryButtonLabel &&
+        renderButton(
+          secondaryButtonLabel,
+          secondaryButtonIcon!,
+          secondaryButtonOnClick!,
+          secondaryButtonDisabled,
+          secondaryButtonDisabledTooltip
+        )}
+      {renderButton(
+        buttonLabel,
+        buttonIcon,
+        buttonOnClick,
+        buttonDisabled,
+        buttonDisabledTooltip,
+        'border-primary'
       )}
-      <Button
-        iconLeading={buttonIcon}
-        variant="outline"
-        color="primary"
-        size="sm"
-        className="border-primary"
-        onClick={buttonOnClick}
-        disabled={buttonDisabled}
-        disabledTooltip={buttonDisabledTooltip}
-      >
-        {buttonLabel}
-      </Button>
     </div>
   )
 }

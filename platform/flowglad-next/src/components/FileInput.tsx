@@ -190,12 +190,13 @@ const FileInput: React.FC<FileInputProps> = ({
             <div>
               <Button
                 variant="ghost"
-                iconLeading={<X size={16} />}
                 onClick={(e) => {
                   e.stopPropagation()
                   deleteFile(file)
                 }}
-              />
+              >
+                <X size={16} />
+              </Button>
             </div>
           </div>
         ))}
@@ -203,12 +204,13 @@ const FileInput: React.FC<FileInputProps> = ({
           <div className="max-w-full max-h-[100px] object-contain rounded-md">
             <Button
               variant="ghost"
-              iconLeading={<Plus size={16} />}
               onClick={(e) => {
                 e.stopPropagation()
                 document.getElementById(id)?.click()
               }}
-            />
+            >
+              <Plus size={16} />
+            </Button>
           </div>
         )}
       </div>

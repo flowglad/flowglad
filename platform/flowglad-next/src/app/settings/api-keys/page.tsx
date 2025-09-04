@@ -19,10 +19,8 @@ function ApiKeysPage() {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle className="mb-6">API Keys</PageTitle>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            iconLeading={<Plus size={16} />}
-          >
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus size={16} />
             Create API Key
           </Button>
         </div>

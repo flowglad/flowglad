@@ -15,7 +15,10 @@ import {
   customerBillingTransaction,
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import { customerClientSelectSchema } from '@/db/schema/customers'
 import {
   richSubscriptionClientSelectSchema,
@@ -419,6 +422,30 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     )
   })
 
+// Get all customers for an email at an organization
+const getCustomersForUserAndOrganizationProcedure =
+  customerProtectedProcedure
+    .input(z.object({}))
+    .output(
+      z.object({
+        customers: customerClientSelectSchema.array(),
+      })
+    )
+    .query(
+      authenticatedProcedureTransaction(
+        async ({ ctx, transaction }) => {
+          const customers = await selectCustomers(
+            {
+              userId: ctx.user.id,
+              organizationId: ctx.organizationId,
+            },
+            transaction
+          )
+          return { customers }
+        }
+      )
+    )
+
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
@@ -426,4 +453,6 @@ export const customerBillingPortalRouter = router({
   createAddPaymentMethodSession:
     createAddPaymentMethodSessionProcedure,
   setDefaultPaymentMethod: setDefaultPaymentMethodProcedure,
+  getCustomersForUserAndOrganization:
+    getCustomersForUserAndOrganizationProcedure,
 })

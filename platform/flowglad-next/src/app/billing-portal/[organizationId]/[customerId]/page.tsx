@@ -1,17 +1,20 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import { SubscriptionCard } from '@/registry/base/subscription-card/subscription-card'
 import { InvoicesList } from '@/registry/base/invoices-list/invoices-list'
 import { PaymentMethodsList } from '@/registry/base/payment-methods-list/payment-methods-list'
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { BillingPortalHeader } from './components/BillingPortalHeader'
 import { BillingPortalNav } from './components/BillingPortalNav'
 import { ChangeCustomerButton } from './components/ChangeCustomerButton'
 import { useState } from 'react'
 import { SubscriptionCancellationArrangement } from '@/types'
+import { useSession } from '@/utils/authClient'
+import { toast } from 'sonner'
 
 export default function BillingPortalPage() {
   const params = useParams<{
@@ -19,13 +22,59 @@ export default function BillingPortalPage() {
     customerId: string
   }>()
   const router = useRouter()
+  const { organizationId, customerId } = params
+  const { data: session } = useSession()
   const [activeSection, setActiveSection] = useState<
     'subscription' | 'payment-methods' | 'invoices'
   >('subscription')
 
+  // Check if user has multiple customer profiles
+  const { data: customersData } =
+    trpc.customerBillingPortal.getCustomersForUserAndOrganization.useQuery(
+      {},
+      {
+        enabled: !!session?.user,
+      }
+    )
+
   // Fetch billing data
   const { data, isLoading, error, refetch } =
-    trpc.customerBillingPortal.getBilling.useQuery({})
+    trpc.customerBillingPortal.getBilling.useQuery(
+      {},
+      {
+        enabled: !!session?.user && !!customerId,
+      }
+    )
+
+  const hasMultipleCustomers =
+    (customersData?.customers?.length ?? 0) > 1
+
+  // Validate that the user has access to this specific customer
+  const currentCustomer = customersData?.customers?.find(
+    (c) => c.id === customerId
+  )
+
+  useEffect(() => {
+    if (!session) {
+      router.push('/sign-in')
+      return
+    }
+
+    // If customers are loaded and current customer is not in the list
+    if (customersData?.customers && !currentCustomer) {
+      toast.error('Access denied to this customer profile')
+      router.replace(
+        `/billing-portal/${organizationId}/select-customer`
+      )
+    }
+  }, [
+    session,
+    customersData,
+    currentCustomer,
+    organizationId,
+    router,
+    customerId,
+  ])
 
   // Cancel subscription mutation
   const cancelSubscriptionMutation =
@@ -115,7 +164,6 @@ export default function BillingPortalPage() {
   }
 
   const currentSubscription = data.currentSubscriptions?.[0]
-  const hasMultipleCustomers = false // This would be determined by checking if user has multiple customer profiles
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,39 +194,63 @@ export default function BillingPortalPage() {
                 <SubscriptionCard
                   subscription={{
                     id: currentSubscription.id,
-                    name:
-                      currentSubscription.priceNickname ||
-                      'Subscription',
-                    status: currentSubscription.status as
-                      | 'active'
-                      | 'canceled'
-                      | 'past_due'
-                      | 'trialing',
-                    currentPeriodEnd: new Date(
-                      currentSubscription.currentPeriodEnd
-                    ),
-                    currentPeriodStart: new Date(
-                      currentSubscription.currentPeriodStart
-                    ),
+                    name: currentSubscription.name || 'Subscription',
+                    status:
+                      'status' in currentSubscription
+                        ? (currentSubscription.status as
+                            | 'active'
+                            | 'canceled'
+                            | 'past_due'
+                            | 'trialing')
+                        : 'active',
+                    currentPeriodEnd:
+                      'currentPeriodEnd' in currentSubscription
+                        ? new Date(
+                            currentSubscription.currentPeriodEnd as string
+                          )
+                        : new Date(),
+                    currentPeriodStart:
+                      'currentPeriodStart' in currentSubscription
+                        ? new Date(
+                            currentSubscription.currentPeriodStart as string
+                          )
+                        : new Date(),
                     cancelAtPeriodEnd:
-                      currentSubscription.cancelAtPeriodEnd || false,
-                    canceledAt: currentSubscription.canceledAt
-                      ? new Date(currentSubscription.canceledAt)
-                      : undefined,
-                    trialEnd: currentSubscription.trialEnd
-                      ? new Date(currentSubscription.trialEnd)
-                      : undefined,
+                      'cancelAtPeriodEnd' in currentSubscription
+                        ? (currentSubscription.cancelAtPeriodEnd as boolean)
+                        : false,
+                    canceledAt:
+                      'canceledAt' in currentSubscription &&
+                      currentSubscription.canceledAt
+                        ? new Date(
+                            String(currentSubscription.canceledAt)
+                          )
+                        : undefined,
+                    trialEnd:
+                      'trialEnd' in currentSubscription &&
+                      currentSubscription.trialEnd
+                        ? new Date(
+                            String(currentSubscription.trialEnd)
+                          )
+                        : undefined,
                     items:
-                      currentSubscription.lineItems?.map((item) => ({
-                        id: item.id,
-                        productName: item.productName || '',
-                        quantity: item.quantity || 1,
-                        unitAmount: item.amount || 0,
-                        currency: 'usd',
-                      })) || [],
+                      'lineItems' in currentSubscription &&
+                      Array.isArray(currentSubscription.lineItems)
+                        ? currentSubscription.lineItems.map(
+                            (item: any) => ({
+                              id: item.id,
+                              productName: item.productName || '',
+                              quantity: item.quantity || 1,
+                              unitAmount: item.amount || 0,
+                              currency: 'usd',
+                              priceId: item.priceId || '',
+                              productId: item.productId || '',
+                            })
+                          )
+                        : [],
                   }}
                   onCancel={handleCancelSubscription}
-                  loading={cancelSubscriptionMutation.isLoading}
+                  loading={cancelSubscriptionMutation.isPending}
                 />
               ) : (
                 <div className="text-center py-12 bg-muted/50 rounded-lg">
@@ -199,17 +271,26 @@ export default function BillingPortalPage() {
                 Payment Methods
               </h2>
               <PaymentMethodsList
-                paymentMethods={data.paymentMethods.map((pm) => ({
-                  id: pm.id,
-                  type: pm.type || 'card',
-                  last4: pm.last4 || '****',
-                  brand: pm.brand || 'unknown',
-                  expiryMonth: pm.expiryMonth,
-                  expiryYear: pm.expiryYear,
-                  isDefault: pm.isDefault || false,
-                }))}
+                paymentMethods={data.paymentMethods.map((pm) => {
+                  const paymentData = pm.paymentMethodData || {}
+                  return {
+                    id: pm.id,
+                    type: 'card' as const,
+                    last4: String(paymentData.last4 || '****'),
+                    brand: String(paymentData.brand || 'unknown'),
+                    expiryMonth:
+                      typeof paymentData.exp_month === 'number'
+                        ? paymentData.exp_month
+                        : undefined,
+                    expiryYear:
+                      typeof paymentData.exp_year === 'number'
+                        ? paymentData.exp_year
+                        : undefined,
+                    isDefault: pm.default || false,
+                  }
+                })}
                 defaultPaymentMethodId={
-                  data.paymentMethods.find((pm) => pm.isDefault)?.id
+                  data.paymentMethods.find((pm) => pm.default)?.id
                 }
                 onAddPaymentMethod={handleAddPaymentMethod}
                 onSetDefault={handleSetDefaultPaymentMethod}
@@ -236,13 +317,31 @@ export default function BillingPortalPage() {
                         : `INV-${invoice.id.slice(-8)}`,
                     status:
                       'status' in invoice
-                        ? (invoice.status as
-                            | 'paid'
-                            | 'open'
-                            | 'past_due'
-                            | 'void')
+                        ? (() => {
+                            const s = String(invoice.status)
+                            // Map past_due to open for display
+                            if (s === 'past_due')
+                              return 'open' as const
+                            if (
+                              s === 'paid' ||
+                              s === 'void' ||
+                              s === 'draft' ||
+                              s === 'uncollectible'
+                            )
+                              return s as
+                                | 'paid'
+                                | 'void'
+                                | 'draft'
+                                | 'uncollectible'
+                            return 'open' as const
+                          })()
                         : 'open',
-                    amount:
+                    created: invoice.createdAt,
+                    dueDate:
+                      'dueDate' in invoice && invoice.dueDate
+                        ? new Date(String(invoice.dueDate))
+                        : undefined,
+                    amountDue:
                       'total' in invoice && invoice.total
                         ? Number(invoice.total)
                         : 0,
@@ -250,25 +349,9 @@ export default function BillingPortalPage() {
                       'currency' in invoice && invoice.currency
                         ? String(invoice.currency)
                         : 'usd',
-                    dueDate:
-                      'dueDate' in invoice && invoice.dueDate
-                        ? new Date(invoice.dueDate as string)
-                        : undefined,
-                    paidAt:
-                      'paidDate' in invoice && invoice.paidDate
-                        ? new Date(invoice.paidDate as string)
-                        : undefined,
-                    created: invoice.createdAt.getTime() / 1000,
-                    createdAt: invoice.createdAt,
-                    amountDue:
-                      'total' in invoice && invoice.total
-                        ? Number(invoice.total)
-                        : 0,
-                    downloadUrl:
+                    hostedInvoiceUrl:
                       'stripeInvoiceUrl' in invoice
-                        ? (invoice.stripeInvoiceUrl as
-                            | string
-                            | undefined)
+                        ? String(invoice.stripeInvoiceUrl || '')
                         : undefined,
                   }
                 })}

@@ -35,10 +35,8 @@ const InternalInvoicesPage = () => {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle>Invoices</PageTitle>
-          <Button
-            iconLeading={<Plus size={16} />}
-            onClick={() => setCreateInvoiceModalOpen(true)}
-          >
+          <Button onClick={() => setCreateInvoiceModalOpen(true)}>
+            <Plus size={16} />
             Create Invoice
           </Button>
         </div>

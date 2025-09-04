@@ -1,6 +1,6 @@
 'use client'
 
-import Button from '@/components/ion/Button'
+import { Button } from '@/components/ui/button'
 import { Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 

@@ -18,10 +18,8 @@ function WebhooksPage() {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle className="mb-6">Webhooks</PageTitle>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            iconLeading={<Plus size={16} />}
-          >
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus size={16} />
             Create Webhook
           </Button>
         </div>

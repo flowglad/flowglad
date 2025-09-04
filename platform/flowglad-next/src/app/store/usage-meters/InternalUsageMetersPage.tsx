@@ -21,10 +21,8 @@ export default function UsageMetersPage() {
         <Breadcrumb />
         <div className="flex flex-row justify-between items-center mb-6 gap-8">
           <PageTitle>Usage Meters</PageTitle>
-          <Button
-            onClick={() => setCreateUsageMeterModalOpen(true)}
-            iconLeading={<Plus size={16} strokeWidth={2} />}
-          >
+          <Button onClick={() => setCreateUsageMeterModalOpen(true)}>
+            <Plus size={16} strokeWidth={2} />
             Create Usage Meter
           </Button>
         </div>

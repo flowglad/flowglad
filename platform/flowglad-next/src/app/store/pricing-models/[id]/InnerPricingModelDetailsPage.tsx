@@ -49,10 +49,8 @@ function InnerPricingModelDetailsPage({
               {pricingModel.isDefault && <DefaultBadge />}
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
-              <Button
-                iconLeading={<Pencil size={16} />}
-                onClick={() => setIsEditOpen(true)}
-              >
+              <Button onClick={() => setIsEditOpen(true)}>
+                <Pencil size={16} />
                 Edit
               </Button>
             </div>

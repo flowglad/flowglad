@@ -50,10 +50,8 @@ function InternalProductsPage({ products: initialProducts }: Props) {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle>Products</PageTitle>
-          <Button
-            iconLeading={<Plus size={16} />}
-            onClick={() => setIsCreateProductOpen(true)}
-          >
+          <Button onClick={() => setIsCreateProductOpen(true)}>
+            <Plus size={16} />
             Create Product
           </Button>
         </div>

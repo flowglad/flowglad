@@ -1,4 +1,4 @@
-// ion/TableContainer: Generated with Ion on 9/20/2024, 10:31:46 PM
+// ion/TableContainer: Generated with Ion on 9/20/2024, 10:30:46 PM
 import {
   type ColumnDef,
   type Table as TableType,
@@ -14,7 +14,7 @@ import clsx from 'clsx'
 import * as React from 'react'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import Button from './Button'
+import { Button } from '@/components/ui/button'
 import {
   ArrowLeft,
   ArrowRight,
@@ -114,7 +114,7 @@ const TableHead = React.forwardRef<
     ref={ref}
     className={twMerge(
       clsx(
-        'px-5 py-3 text-left align-middle text-sm font-normal text-secondary bg-fbg-white-0 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'px-5 py-3 text-left align-middle text-sm font-normal text-muted-foreground bg-fbg-white-0 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         rounded && 'first:rounded-tl-radius last:rounded-tr-radius',
         className
       )
@@ -165,7 +165,7 @@ const TableCaption = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={clsx('py-1 text-sm text-secondary', className)}
+    className={clsx('py-1 text-sm text-muted-foreground', className)}
     {...props}
   />
 ))
@@ -198,7 +198,7 @@ const PaginationRow = ({
   if (isLoading && total === 0) {
     return (
       <div className="flex items-center gap-2 w-full justify-between py-3">
-        <div className="text-sm text-secondary">
+        <div className="text-sm text-muted-foreground">
           <div className="h-4 w-24 bg-stroke-subtle animate-pulse rounded" />
         </div>
       </div>
@@ -207,7 +207,7 @@ const PaginationRow = ({
 
   return (
     <div className="flex items-center gap-2 w-full justify-between py-3">
-      <div className="text-sm text-secondary">
+      <div className="text-sm text-muted-foreground">
         {safeTotal === 0 ? (
           'No Results'
         ) : safeTotal === 1 ? (
@@ -455,7 +455,7 @@ function Table<TData, TValue>({
   if (!isLoading && rowLength === 0) {
     return (
       <div className="w-full border-dashed border-2 border-stroke-subtle rounded-radius flex items-center justify-center h-32">
-        <span className="text-secondary">No items.</span>
+        <span className="text-muted-foreground">No items.</span>
       </div>
     )
   }

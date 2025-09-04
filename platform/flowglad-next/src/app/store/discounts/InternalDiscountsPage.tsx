@@ -61,10 +61,8 @@ function InternalDiscountsPage() {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle>Discounts</PageTitle>
-          <Button
-            iconLeading={<Plus size={16} />}
-            onClick={() => setIsCreateDiscountOpen(true)}
-          >
+          <Button onClick={() => setIsCreateDiscountOpen(true)}>
+            <Plus size={16} />
             Create Discount
           </Button>
         </div>

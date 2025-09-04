@@ -72,7 +72,7 @@ const SetPricingModelAsDefaultModal: React.FC<
       }
       showClose
     >
-      <div className="text-secondary">
+      <div className="text-muted-foreground">
         <p>
           Set {pricingModel.name} to default? This will be the default
           pricing model for new products.

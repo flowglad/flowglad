@@ -79,7 +79,7 @@ const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
       }
       showClose
     >
-      <div className="text-secondary">
+      <div className="text-muted-foreground">
         <p>
           Set {price.name} to default? This will be the default price
           customers will see for this product moving forward.

@@ -120,21 +120,23 @@ const InvoiceFormLineItem = ({
       <Button
         {...attributes}
         {...listeners}
-        iconLeading={<GripVertical size={16} />}
         variant="ghost"
         size="default"
         className={clsx(
           'cursor-grab',
           isDragging && 'cursor-grabbing'
         )}
-      />
+      >
+        <GripVertical size={16} />
+      </Button>
       <Button
-        iconLeading={<X size={16} />}
         variant="ghost"
         size="default"
         onClick={xOnClickHandler}
         disabled={disableRemove}
-      />
+      >
+        <X size={16} />
+      </Button>
     </div>
   )
 }

@@ -160,7 +160,6 @@ const SelectOrganizationPage = () => {
             type="submit"
             disabled={isSubmitting || !selectedOrganizationId}
             className="w-full"
-            loading={isSubmitting}
             onClick={handleSubmit(onSubmit)}
           >
             {isSubmitting ? 'Switching...' : 'Switch Organization'}

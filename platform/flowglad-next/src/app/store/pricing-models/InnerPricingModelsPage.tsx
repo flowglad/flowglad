@@ -18,10 +18,8 @@ const InnerPricingModelsPage = () => {
         <Breadcrumb />
         <div className="flex flex-row justify-between items-center mb-6 gap-8">
           <PageTitle>Pricing Models</PageTitle>
-          <Button
-            onClick={() => setIsCreatePricingModelOpen(true)}
-            iconLeading={<Plus size={16} strokeWidth={2} />}
-          >
+          <Button onClick={() => setIsCreatePricingModelOpen(true)}>
+            <Plus size={16} strokeWidth={2} />
             Create Pricing Model
           </Button>
         </div>

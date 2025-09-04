@@ -61,14 +61,12 @@ function InternalCustomerDetailsScreen({
               </PageTitle>
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
-              <Button
-                iconLeading={<Pencil size={16} />}
-                onClick={() => setIsEditOpen(true)}
-              >
+              <Button onClick={() => setIsEditOpen(true)}>
+                <Pencil size={16} />
                 Edit
               </Button>
               <Popover>
-                <PopoverTrigger className="flex">
+                <PopoverTrigger asChild>
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"

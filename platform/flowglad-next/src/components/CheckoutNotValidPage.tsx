@@ -8,7 +8,7 @@ const CheckoutNotValidPage = ({
       <h1 className="text-3xl font-bold mb-6 text-primary">
         This offering is no longer available from {organizationName}
       </h1>
-      <h2 className="text-xl text-secondary">
+      <h2 className="text-xl text-muted-foreground">
         Please reach out to the team if you believe this is a mistake
       </h2>
     </div>

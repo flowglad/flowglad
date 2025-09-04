@@ -489,15 +489,13 @@ const PaymentForm = () => {
                 isSubmitting ||
                 checkoutBlocked
               }
-              iconLeading={
-                isSubmitting ? (
-                  <LoaderCircle
-                    className="animate-spin-slow"
-                    size={16}
-                  />
-                ) : undefined
-              }
             >
+              {isSubmitting && (
+                <LoaderCircle
+                  className="animate-spin-slow"
+                  size={16}
+                />
+              )}
               {buttonLabel}
             </Button>
             {errorMessage && <ErrorLabel error={errorMessage} />}
