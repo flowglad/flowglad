@@ -115,6 +115,10 @@ export const stripePaymentIntentSucceededTask = task({
           payload: {
             object: EventNoun.Payment,
             id: payment.id,
+            customer: {
+              id: customerAndCustomer.customer.id,
+              externalId: customerAndCustomer.customer.externalId,
+            },
           },
           submittedAt: timestamp,
           hash: constructPaymentSucceededEventHash(payment),
