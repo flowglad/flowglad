@@ -283,6 +283,7 @@ export const requestingCustomerAndUser = async ({
         eq(customers.organizationId, organizationId)
       )
     )
+    .limit(1)
   return z
     .object({
       customer: customersSelectSchema,

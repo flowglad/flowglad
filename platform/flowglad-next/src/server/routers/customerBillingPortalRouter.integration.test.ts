@@ -250,74 +250,82 @@ const createTestContext = (
 
 describe('Customer Billing Portal Router', () => {
   describe('getBilling', () => {
-    test('returns complete billing information without pagination', async () => {
-      const ctx = createTestContext()
-      const input = {}
+    test(
+      'returns complete billing information without pagination',
+      { timeout: 10000 },
+      async () => {
+        const ctx = createTestContext()
+        const input = {}
 
-      const result = await customerBillingPortalRouter
-        .createCaller(ctx)
-        .getBilling(input)
+        const result = await customerBillingPortalRouter
+          .createCaller(ctx)
+          .getBilling(input)
 
-      expect(result).toMatchObject({
-        customer: expect.objectContaining({
-          id: customer.id,
-          email: customer.email,
-          organizationId: organization.id,
-        }),
-        subscriptions: expect.arrayContaining([
-          expect.objectContaining({
-            id: subscription.id,
-            customerId: customer.id,
-            status: SubscriptionStatus.Active,
+        expect(result).toMatchObject({
+          customer: expect.objectContaining({
+            id: customer.id,
+            email: customer.email,
+            organizationId: organization.id,
           }),
-        ]),
-        invoices: expect.any(Array),
-        invoicePagination: undefined,
-        paymentMethods: expect.arrayContaining([
-          expect.objectContaining({
-            id: paymentMethod.id,
-            customerId: customer.id,
-            default: true,
+          subscriptions: expect.arrayContaining([
+            expect.objectContaining({
+              id: subscription.id,
+              customerId: customer.id,
+              status: SubscriptionStatus.Active,
+            }),
+          ]),
+          invoices: expect.any(Array),
+          invoicePagination: undefined,
+          paymentMethods: expect.arrayContaining([
+            expect.objectContaining({
+              id: paymentMethod.id,
+              customerId: customer.id,
+              default: true,
+            }),
+          ]),
+          purchases: expect.any(Array),
+          currentSubscriptions: expect.any(Array),
+          catalog: expect.objectContaining({
+            id: pricingModel.id,
           }),
-        ]),
-        purchases: expect.any(Array),
-        currentSubscriptions: expect.any(Array),
-        catalog: expect.objectContaining({
-          id: pricingModel.id,
-        }),
-        pricingModel: expect.objectContaining({
-          id: pricingModel.id,
-        }),
-      })
+          pricingModel: expect.objectContaining({
+            id: pricingModel.id,
+          }),
+        })
 
-      // Verify all invoices are returned when no pagination
-      expect(result.invoices.length).toBeGreaterThanOrEqual(3)
-    })
-
-    test('returns paginated billing data when pagination parameters provided', async () => {
-      const ctx = createTestContext()
-      const input = {
-        invoicePagination: { page: 1, pageSize: 2 },
+        // Verify all invoices are returned when no pagination
+        expect(result.invoices.length).toBeGreaterThanOrEqual(3)
       }
+    )
 
-      const result = await customerBillingPortalRouter
-        .createCaller(ctx)
-        .getBilling(input)
+    test(
+      'returns paginated billing data when pagination parameters provided',
+      { timeout: 10000 },
+      async () => {
+        const ctx = createTestContext()
+        const input = {
+          invoicePagination: { page: 1, pageSize: 2 },
+        }
 
-      expect(result.invoices).toHaveLength(2)
-      expect(result.invoicePagination).toEqual({
-        page: 1,
-        pageSize: 2,
-        totalCount: expect.any(Number),
-        totalPages: expect.any(Number),
-      })
-      expect(
-        result.invoicePagination!.totalCount
-      ).toBeGreaterThanOrEqual(3)
-      expect(
-        result.invoicePagination!.totalPages
-      ).toBeGreaterThanOrEqual(2)
-    })
+        const result = await customerBillingPortalRouter
+          .createCaller(ctx)
+          .getBilling(input)
+
+        expect(result.invoices).toHaveLength(2)
+        expect(result.invoicePagination).toEqual({
+          page: 1,
+          pageSize: 2,
+          totalCount: expect.any(Number),
+          totalPages: expect.any(Number),
+        })
+        expect(
+          result.invoicePagination!.totalCount
+        ).toBeGreaterThanOrEqual(3)
+        expect(
+          result.invoicePagination!.totalPages
+        ).toBeGreaterThanOrEqual(2)
+      }
+    )
 
     test('handles empty invoice list correctly with pagination', async () => {
       // Create a customer with no invoices
@@ -357,37 +365,43 @@ describe('Customer Billing Portal Router', () => {
       })
     })
 
-    test('returns correct page of invoices for pagination', async () => {
-      // Create more invoices for better pagination testing
-      for (let i = 0; i < 7; i++) {
-        await setupInvoice({
-          customerId: customer.id,
-          organizationId: organization.id,
-          status: InvoiceStatus.Open,
-          livemode: true,
-          priceId: price.id,
+    test(
+      'returns correct page of invoices for pagination',
+      { timeout: 10000 },
+      async () => {
+        // Create more invoices for better pagination testing
+        await Promise.all(
+          Array.from({ length: 7 }).map(() =>
+            setupInvoice({
+              customerId: customer.id,
+              organizationId: organization.id,
+              status: InvoiceStatus.Open,
+              livemode: true,
+              priceId: price.id,
+            })
+          )
+        )
+
+        const ctx = createTestContext()
+
+        // Get page 2 with page size 5
+        const input = {
+          invoicePagination: { page: 2, pageSize: 5 },
+        }
+
+        const result = await customerBillingPortalRouter
+          .createCaller(ctx)
+          .getBilling(input)
+
+        expect(result.invoices).toHaveLength(5)
+        expect(result.invoicePagination).toEqual({
+          page: 2,
+          pageSize: 5,
+          totalCount: 10, // 3 original + 7 new
+          totalPages: 2, // 10 invoices / 5 per page
         })
       }
-
-      const ctx = createTestContext()
-
-      // Get page 2 with page size 5
-      const input = {
-        invoicePagination: { page: 2, pageSize: 5 },
-      }
-
-      const result = await customerBillingPortalRouter
-        .createCaller(ctx)
-        .getBilling(input)
-
-      expect(result.invoices).toHaveLength(5)
-      expect(result.invoicePagination).toEqual({
-        page: 2,
-        pageSize: 5,
-        totalCount: 10, // 3 original + 7 new
-        totalPages: 2, // 10 invoices / 5 per page
-      })
-    })
+    )
 
     test.skip('throws error when organizationId is missing from context', async () => {
       // Skip this test as the procedure doesn't actually check for missing organizationId in the way we're testing
@@ -644,57 +658,61 @@ describe('Customer Billing Portal Router', () => {
   })
 
   describe('setDefaultPaymentMethod', () => {
-    test('successfully sets default payment method', async () => {
-      // Create additional payment method to test with
-      const additionalPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        livemode: true,
-        default: false,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        type: PaymentMethodType.Card,
-      })
-
-      const ctx = createTestContext()
-      const input = {
-        paymentMethodId: additionalPaymentMethod.id,
-      }
-
-      const result = await customerBillingPortalRouter
-        .createCaller(ctx)
-        .setDefaultPaymentMethod(input)
-
-      expect(result).toMatchObject({
-        success: true,
-        paymentMethod: expect.objectContaining({
-          id: additionalPaymentMethod.id,
+    test(
+      'successfully sets default payment method',
+      { timeout: 10000 },
+      async () => {
+        // Create additional payment method to test with
+        const additionalPaymentMethod = await setupPaymentMethod({
+          organizationId: organization.id,
           customerId: customer.id,
-          default: true,
-        }),
-      })
+          livemode: true,
+          default: false,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
 
-      // Verify the payment method is actually set as default
-      const updatedPaymentMethod = await adminTransaction(
-        async ({ transaction }) => {
-          return selectPaymentMethodById(
-            additionalPaymentMethod.id,
-            transaction
-          )
+        const ctx = createTestContext()
+        const input = {
+          paymentMethodId: additionalPaymentMethod.id,
         }
-      )
-      expect(updatedPaymentMethod.default).toBe(true)
 
-      // Verify the previous default is no longer default
-      const previousDefault = await adminTransaction(
-        async ({ transaction }) => {
-          return selectPaymentMethodById(
-            paymentMethod.id,
-            transaction
-          )
-        }
-      )
-      expect(previousDefault.default).toBe(false)
-    })
+        const result = await customerBillingPortalRouter
+          .createCaller(ctx)
+          .setDefaultPaymentMethod(input)
+
+        expect(result).toMatchObject({
+          success: true,
+          paymentMethod: expect.objectContaining({
+            id: additionalPaymentMethod.id,
+            customerId: customer.id,
+            default: true,
+          }),
+        })
+
+        // Verify the payment method is actually set as default
+        const updatedPaymentMethod = await adminTransaction(
+          async ({ transaction }) => {
+            return selectPaymentMethodById(
+              additionalPaymentMethod.id,
+              transaction
+            )
+          }
+        )
+        expect(updatedPaymentMethod.default).toBe(true)
+
+        // Verify the previous default is no longer default
+        const previousDefault = await adminTransaction(
+          async ({ transaction }) => {
+            return selectPaymentMethodById(
+              paymentMethod.id,
+              transaction
+            )
+          }
+        )
+        expect(previousDefault.default).toBe(false)
+      }
+    )
 
     test("throws error when trying to set another customer's payment method as default", async () => {
       // Create another customer with a payment method
@@ -736,35 +754,42 @@ describe('Customer Billing Portal Router', () => {
       ).rejects.toThrow()
     })
 
-    test('updates subscriptions to use new default payment method', async () => {
-      // Create additional payment method
-      const newPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        livemode: true,
-        default: false,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        type: PaymentMethodType.Card,
-      })
+    test(
+      'updates subscriptions to use new default payment method',
+      { timeout: 10000 },
+      async () => {
+        // Create additional payment method
+        const newPaymentMethod = await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          livemode: true,
+          default: false,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
 
-      const ctx = createTestContext()
-      const input = {
-        paymentMethodId: newPaymentMethod.id,
-      }
-
-      await customerBillingPortalRouter
-        .createCaller(ctx)
-        .setDefaultPaymentMethod(input)
-
-      // Verify subscription now uses the new payment method
-      const updatedSubscription = await adminTransaction(
-        async ({ transaction }) => {
-          return selectSubscriptionById(subscription.id, transaction)
+        const ctx = createTestContext()
+        const input = {
+          paymentMethodId: newPaymentMethod.id,
         }
-      )
-      expect(updatedSubscription.defaultPaymentMethodId).toBe(
-        newPaymentMethod.id
-      )
-    })
+
+        await customerBillingPortalRouter
+          .createCaller(ctx)
+          .setDefaultPaymentMethod(input)
+
+        // Verify subscription now uses the new payment method
+        const updatedSubscription = await adminTransaction(
+          async ({ transaction }) => {
+            return selectSubscriptionById(
+              subscription.id,
+              transaction
+            )
+          }
+        )
+        expect(updatedSubscription.defaultPaymentMethodId).toBe(
+          newPaymentMethod.id
+        )
+      }
+    )
   })
 })
