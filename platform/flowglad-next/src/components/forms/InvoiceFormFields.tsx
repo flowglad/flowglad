@@ -37,6 +37,7 @@ import { trpc } from '@/app/_trpc/client'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import ConnectedSelect from './ConnectedSelect'
+import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 
 const selectOptionsFromCustomers = (

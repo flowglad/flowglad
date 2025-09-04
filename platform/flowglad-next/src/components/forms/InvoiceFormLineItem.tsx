@@ -12,10 +12,9 @@ import {
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import clsx from 'clsx'
-import NumberInput from '../ion/NumberInput'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
-import { CurrencyInput } from '../ion/CurrencyInput'
+import { DollarSign } from 'lucide-react'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 
@@ -84,31 +83,66 @@ const InvoiceFormLineItem = ({
           )}
         />
       </div>
-      <Controller
+      <FormField
         name={`invoiceLineItems.${index}.quantity`}
         control={form.control}
         render={({ field }) => {
           return (
-            <NumberInput
-              placeholder="1"
-              {...field}
-              onChange={(e) => {
-                field.onChange(Number(e.target.value))
-              }}
-              max={1000}
-              min={0}
-              className="w-20"
-              inputClassName="h-9"
-              showControls={false}
-            />
+            <FormItem className="w-20">
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="1"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  className="h-9 text-center"
+                  value={field.value?.toString() ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const numValue = Number(value)
+                    if (!isNaN(numValue)) {
+                      field.onChange(numValue)
+                    }
+                  }}
+                />
+              </FormControl>
+            </FormItem>
           )
         }}
       />
-      <Controller
+      <FormField
         name={`invoiceLineItems.${index}.price`}
         control={form.control}
         render={({ field }) => (
-          <CurrencyInput {...field} className="w-[100px]" />
+          <FormItem className="w-[100px]">
+            <FormControl>
+              <div className="relative">
+                <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  placeholder="0.00"
+                  className="h-9 pl-6 text-right text-sm"
+                  value={
+                    field.value ? (field.value / 100).toFixed(2) : ''
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value) {
+                      const floatValue = parseFloat(value)
+                      if (!isNaN(floatValue)) {
+                        field.onChange(Math.round(floatValue * 100))
+                      }
+                    } else {
+                      field.onChange(0)
+                    }
+                  }}
+                />
+              </div>
+            </FormControl>
+          </FormItem>
         )}
       />
       <div className="w-20 flex items-center">

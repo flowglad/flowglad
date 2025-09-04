@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import NumberInput from '@/components/ion/NumberInput'
 import UsageMetersSelect from './UsageMetersSelect'
 
 import core, { titleCase } from '@/utils/core'
@@ -156,15 +155,23 @@ const FeatureFormFields = () => {
               <FormItem>
                 <FormLabel>Amount</FormLabel>
                 <FormControl>
-                  <NumberInput
-                    {...field}
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
                     placeholder="e.g. 100"
-                    value={field.value ?? undefined} // Ensure undefined for empty to avoid "0" display issues
-                    onChange={(e) =>
-                      field.onChange(
-                        parseInt(e.target.value, 10) || null
-                      )
-                    }
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value) {
+                        const intValue = parseInt(value, 10)
+                        if (!isNaN(intValue)) {
+                          field.onChange(intValue)
+                        }
+                      } else {
+                        field.onChange(null)
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />

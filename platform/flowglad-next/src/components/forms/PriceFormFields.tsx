@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
 import { snakeCase } from 'change-case'
 import { Switch } from '@/components/ui/switch'
-import { CurrencyInput } from '@/components/ion/CurrencyInput'
+import { DollarSign } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -54,27 +54,47 @@ const SubscriptionFields = ({
   return (
     <>
       <div className="flex items-end gap-2.5">
-        <Controller
+        <FormField
           control={control}
           name="price.unitPrice"
           render={({ field }) => (
-            <CurrencyInput
-              value={field.value?.toString() ?? ''}
-              onValueChange={(value) => {
-                if (value.floatValue) {
-                  field.onChange(
-                    humanReadableCurrencyAmountToStripeCurrencyAmount(
-                      organization!.defaultCurrency,
-                      Math.ceil(value.floatValue * 100) / 100
-                    )
-                  )
-                } else {
-                  field.onChange(0)
-                }
-              }}
-              className="flex-1"
-              label="Amount"
-            />
+            <FormItem className="flex-1">
+              <FormLabel>Amount</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0.00"
+                    className="pl-10 text-right"
+                    value={
+                      field.value
+                        ? (field.value / 100).toFixed(2)
+                        : ''
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value) {
+                        const floatValue = parseFloat(value)
+                        if (!isNaN(floatValue)) {
+                          field.onChange(
+                            humanReadableCurrencyAmountToStripeCurrencyAmount(
+                              organization!.defaultCurrency,
+                              Math.ceil(floatValue * 100) / 100
+                            )
+                          )
+                        }
+                      } else {
+                        field.onChange(0)
+                      }
+                    }}
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
         <FormField
@@ -171,7 +191,30 @@ const SinglePaymentFields = () => {
           <FormItem className="flex-1">
             <FormLabel>Amount</FormLabel>
             <FormControl>
-              <CurrencyInput {...field} className="flex-1" />
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  placeholder="0.00"
+                  className="pl-10 text-right flex-1"
+                  value={
+                    field.value ? (field.value / 100).toFixed(2) : ''
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value) {
+                      const floatValue = parseFloat(value)
+                      if (!isNaN(floatValue)) {
+                        field.onChange(Math.round(floatValue * 100))
+                      }
+                    } else {
+                      field.onChange(0)
+                    }
+                  }}
+                />
+              </div>
             </FormControl>
             <FormMessage />
           </FormItem>

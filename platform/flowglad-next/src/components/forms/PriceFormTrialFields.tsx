@@ -16,7 +16,7 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import NumberInput from '@/components/ion/NumberInput'
+import { Input } from '@/components/ui/input'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 
 const TrialFields = () => {
@@ -114,15 +114,20 @@ const TrialFields = () => {
                 <FormItem>
                   <FormLabel>Trial Period Days</FormLabel>
                   <FormControl>
-                    <NumberInput
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(Number(e.target.value))
-                      }}
+                    <Input
+                      type="number"
                       min={1}
                       max={365}
                       step={1}
-                      error={fieldState.error?.message}
+                      placeholder="7"
+                      value={field.value?.toString() ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        const numValue = Number(value)
+                        if (!isNaN(numValue)) {
+                          field.onChange(numValue)
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

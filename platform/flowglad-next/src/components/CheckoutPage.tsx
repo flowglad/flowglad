@@ -5,7 +5,8 @@ import { CheckoutDetails } from '@/components/checkout/checkout-details'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import { trpc } from '@/app/_trpc/client'
 import { useEffect, useRef } from 'react'
-import core, { cn } from '@/utils/core'
+import { cn } from "@/lib/utils"
+import core from "@/utils/core"
 import { CheckoutFlowType } from '@/types'
 import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 
@@ -20,13 +21,11 @@ const CheckoutPage = ({
     )
   }
   useSetCheckoutSessionCookieEffect(checkoutInfo)
-
   /** Background split overlay for left side of checkout page */
   const leftBackgroundOverlay = core.cn(
     'absolute top-0 left-0 bottom-0 right-[50%]',
     'bg-background-input -z-10 hidden lg:block'
   )
-
   /** Background split overlay for right side of checkout page */
   const rightBackgroundOverlay = core.cn(
     'absolute top-0 left-[50%] bottom-0 right-0',
@@ -42,7 +41,6 @@ const CheckoutPage = ({
   )
   const checkoutContainerInnerDimensionsClass =
     'w-full flex flex-1 pt-16 lg:bg-transparent lg:h-full'
-
   /** Container for checkout form section on right side */
   const checkoutFormContainer = core.cn(
     'bg-internal',
@@ -50,6 +48,7 @@ const CheckoutPage = ({
     checkoutContainerInnerDimensionsClass,
     'lg:pl-8'
   )
+
   return (
     <CheckoutPageProvider values={checkoutInfo}>
       <div className={leftBackgroundOverlay} />
@@ -68,7 +67,5 @@ const CheckoutPage = ({
         </div>
       </div>
     </CheckoutPageProvider>
-  )
 }
-
 export default CheckoutPage

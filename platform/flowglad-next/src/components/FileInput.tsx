@@ -1,14 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import core, { cn } from '@/utils/core'
+import { cn } from "@/lib/utils"
+import core from "@/utils/core"
 import { trpc } from '@/app/_trpc/client'
-
 import { FileUploadData, Nullish } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Plus, X, File as FileIcon } from 'lucide-react'
-
 interface FileInputProps {
   directory: string
   onUploadComplete?: (data: FileUploadData) => void
@@ -46,7 +45,6 @@ const isFileTypeImage = (fileType: string) =>
   fileType === 'webp' ||
   fileType === 'jpg' ||
   fileType === 'jpeg'
-
 const FileInput: React.FC<FileInputProps> = ({
   directory,
   onUploadComplete,
@@ -68,7 +66,6 @@ const FileInput: React.FC<FileInputProps> = ({
     FileUploadDataWithType[]
   >([])
   const getPresignedURL = trpc.utils.getPresignedURL.useMutation()
-
   React.useEffect(() => {
     if (initialURL) {
       setUploadedFiles([
@@ -89,7 +86,6 @@ const FileInput: React.FC<FileInputProps> = ({
       ])
     }
   }, [initialURL])
-
   const deleteFile = (fileDetails: FileUploadDataWithType) => {
     const updatedFiles = uploadedFiles.filter(
       (file) => file.objectKey !== fileDetails.objectKey
@@ -97,15 +93,12 @@ const FileInput: React.FC<FileInputProps> = ({
     setUploadedFiles(updatedFiles)
     onUploadDeleted?.(fileDetails)
   }
-
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const files = event.target.files
     if (!files || files.length === 0) return
-
     setIsUploading(true)
-
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
         const key = `${core.nanoid()}${file.name.substring(
@@ -116,15 +109,12 @@ const FileInput: React.FC<FileInputProps> = ({
           directory,
           contentType: file.type,
         })
-
         const response = await fetch(data.presignedURL, {
           method: 'PUT',
           body: file,
           headers: {
             'Content-Type': file.type,
           },
-        })
-
         if (!response.ok) {
           throw new Error(`Failed to upload file: ${file.name}`)
         }
@@ -132,23 +122,17 @@ const FileInput: React.FC<FileInputProps> = ({
           ...data,
           file,
           fileType: file.type,
-        }
       })
-
       const fileUploadsWithFiles = await Promise.all(uploadPromises)
-
       fileUploadsWithFiles.forEach((data) =>
         onUploadComplete?.({
           objectKey: data.objectKey,
           publicURL: data.publicURL,
-        })
       )
-
       const newUploadedFiles = [
         ...uploadedFiles,
         ...fileUploadsWithFiles,
       ]
-
       setUploadedFiles(newUploadedFiles)
     } catch (error) {
       console.error('Error uploading files:', error)
@@ -156,11 +140,8 @@ const FileInput: React.FC<FileInputProps> = ({
         error instanceof Error
           ? error
           : new Error('Unknown error occurred')
-      )
     } finally {
       setIsUploading(false)
-    }
-  }
   const preview =
     uploadedFiles.length > 0 ? (
       <div className="w-full h-full flex items-center justify-center gap-2">
@@ -212,7 +193,6 @@ const FileInput: React.FC<FileInputProps> = ({
               <Plus className="w-4 h-4 mr-2" />
               Add File
             </Button>
-          </div>
         )}
       </div>
     ) : (
@@ -234,18 +214,12 @@ const FileInput: React.FC<FileInputProps> = ({
                   .map((type) => `.${type}`)
                   .join(', ')} allowed`
               : ''}
-          </div>
-        </div>
-      </div>
-    )
   let hintElement = null
   if (typeof hint === 'string') {
     hintElement = (
       <div className="text-xs text-muted-foreground mt-1">{hint}</div>
-    )
   } else if (React.isValidElement(hint)) {
     hintElement = hint
-  }
   return (
     <div className={className}>
       {label && <Label className="mb-1">{label}</Label>}
@@ -255,7 +229,6 @@ const FileInput: React.FC<FileInputProps> = ({
           isDragging && 'border-primary bg-card',
           uploadedFiles.length > 0 &&
             'border-solid border-muted border'
-        )}
         onClick={() => document.getElementById(id)?.click()}
         onDragOver={(e) => {
           e.preventDefault()
@@ -263,21 +236,14 @@ const FileInput: React.FC<FileInputProps> = ({
           setIsDragging(true)
         }}
         onDragLeave={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
           setIsDragging(false)
-        }}
         onDrop={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setIsDragging(false)
           const files = e.dataTransfer.files
           if (files && files.length > 0) {
             handleFileChange({
               target: { files },
             } as React.ChangeEvent<HTMLInputElement>)
           }
-        }}
       >
         <div className="w-full relative flex flex-col items-center gap-3">
           <input
@@ -290,14 +256,10 @@ const FileInput: React.FC<FileInputProps> = ({
             accept={fileTypes?.join(',') ?? undefined}
           />
           {preview}
-        </div>
-      </div>
       {error && (
         <div className="text-sm text-destructive mt-1">{error}</div>
       )}
       {hintElement}
     </div>
   )
-}
-
 export default FileInput

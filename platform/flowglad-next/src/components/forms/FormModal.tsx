@@ -25,6 +25,7 @@ export interface ModalInterfaceProps {
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 import { useEffect, useId, useState } from 'react'
 import ErrorLabel from '@/components/ErrorLabel'

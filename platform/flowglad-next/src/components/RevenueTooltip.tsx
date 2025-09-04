@@ -1,6 +1,7 @@
 import { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { twMerge } from 'tailwind-merge'
 import clsx from 'clsx'
+import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 import { getColorClassName } from '@/utils/chartStyles'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
