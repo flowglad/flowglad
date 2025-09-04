@@ -90,10 +90,12 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,
       table.externalId,
+      table.livemode,
     ]),
     constructUniqueIndex(TABLE_NAME, [
       table.organizationId,
       table.invoiceNumberBase,
+      table.livemode,
     ]),
     constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
     constructGinIndex(TABLE_NAME, table.email),
