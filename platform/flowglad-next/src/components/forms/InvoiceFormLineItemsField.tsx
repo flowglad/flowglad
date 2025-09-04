@@ -114,7 +114,11 @@ export const InvoiceFormLineItemsField = () => {
           ))}
         </SortableContext>
       </DndContext>
-      <Button variant="ghost" size="sm" onClick={addLineItem}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={addAnItemClickHandler}
+      >
         <Plus className="w-4 h-4 mr-2" />
         Add Line Item
       </Button>

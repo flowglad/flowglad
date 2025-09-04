@@ -33,15 +33,15 @@ export const intervalLabel = (
 }
 
 export const pricingSubtitleForSubscriptionFlow = (
-  subscriptionDetails: SubscriptionCheckoutDetails
+  checkoutContext: ReturnType<typeof useCheckoutPageContext>
 ) => {
-  const {
-    purchase,
-    price,
-    product,
-    subscriptionItems,
-    checkoutSession,
-  } = subscriptionDetails
+  // Use type assertion since we know these properties exist for subscription flows
+  const { purchase, price, product, checkoutSession } =
+    checkoutContext as any
+
+  if (!purchase || !price || !product || !checkoutSession) {
+    return ''
+  }
 
   const priceSubtitle =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -99,7 +99,7 @@ export const BillingHeader = React.forwardRef<
     )}`
   } else if (flowType === CheckoutFlowType.Subscription) {
     mainTitleSuffix = pricingSubtitleForSubscriptionFlow(
-      subscriptionDetails as SubscriptionCheckoutDetails
+      checkoutPageContext
     )
   }
 
@@ -121,7 +121,7 @@ export const BillingHeader = React.forwardRef<
             <div className="w-full">
               <CheckoutMarkdownView
                 data-testid="product-description"
-                content={product.description}
+                source={product.description}
               />
             </div>
           )}

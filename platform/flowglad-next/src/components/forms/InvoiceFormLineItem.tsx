@@ -132,7 +132,7 @@ const InvoiceFormLineItem = ({
       <Button
         variant="ghost"
         size="default"
-        onClick={removeLineItem}
+        onClick={() => onRemove(id)}
         disabled={disableRemove}
       >
         <X className="w-4 h-4" />
