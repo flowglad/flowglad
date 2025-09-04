@@ -115,6 +115,7 @@ const FileInput: React.FC<FileInputProps> = ({
           headers: {
             'Content-Type': file.type,
           },
+        })
         if (!response.ok) {
           throw new Error(`Failed to upload file: ${file.name}`)
         }
@@ -122,12 +123,14 @@ const FileInput: React.FC<FileInputProps> = ({
           ...data,
           file,
           fileType: file.type,
+        }
       })
       const fileUploadsWithFiles = await Promise.all(uploadPromises)
       fileUploadsWithFiles.forEach((data) =>
         onUploadComplete?.({
           objectKey: data.objectKey,
           publicURL: data.publicURL,
+        })
       )
       const newUploadedFiles = [
         ...uploadedFiles,
@@ -140,8 +143,12 @@ const FileInput: React.FC<FileInputProps> = ({
         error instanceof Error
           ? error
           : new Error('Unknown error occurred')
+      )
     } finally {
       setIsUploading(false)
+    }
+  }
+
   const preview =
     uploadedFiles.length > 0 ? (
       <div className="w-full h-full flex items-center justify-center gap-2">
@@ -193,6 +200,7 @@ const FileInput: React.FC<FileInputProps> = ({
               <Plus className="w-4 h-4 mr-2" />
               Add File
             </Button>
+          </div>
         )}
       </div>
     ) : (
@@ -214,12 +222,20 @@ const FileInput: React.FC<FileInputProps> = ({
                   .map((type) => `.${type}`)
                   .join(', ')} allowed`
               : ''}
+          </div>
+        </div>
+      </div>
+    ) : null
+
   let hintElement = null
   if (typeof hint === 'string') {
     hintElement = (
       <div className="text-xs text-muted-foreground mt-1">{hint}</div>
+    )
   } else if (React.isValidElement(hint)) {
     hintElement = hint
+  }
+
   return (
     <div className={className}>
       {label && <Label className="mb-1">{label}</Label>}
@@ -229,6 +245,7 @@ const FileInput: React.FC<FileInputProps> = ({
           isDragging && 'border-primary bg-card',
           uploadedFiles.length > 0 &&
             'border-solid border-muted border'
+        )}
         onClick={() => document.getElementById(id)?.click()}
         onDragOver={(e) => {
           e.preventDefault()
@@ -237,6 +254,7 @@ const FileInput: React.FC<FileInputProps> = ({
         }}
         onDragLeave={(e) => {
           setIsDragging(false)
+        }}
         onDrop={(e) => {
           const files = e.dataTransfer.files
           if (files && files.length > 0) {
@@ -244,6 +262,8 @@ const FileInput: React.FC<FileInputProps> = ({
               target: { files },
             } as React.ChangeEvent<HTMLInputElement>)
           }
+          setIsDragging(false)
+        }}
       >
         <div className="w-full relative flex flex-col items-center gap-3">
           <input
@@ -256,10 +276,14 @@ const FileInput: React.FC<FileInputProps> = ({
             accept={fileTypes?.join(',') ?? undefined}
           />
           {preview}
+        </div>
+      </div>
       {error && (
         <div className="text-sm text-destructive mt-1">{error}</div>
       )}
       {hintElement}
     </div>
   )
+}
+
 export default FileInput
