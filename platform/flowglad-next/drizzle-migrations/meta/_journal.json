@@ -1660,6 +1660,13 @@
       "when": 1756931619080,
       "tag": "0237_natural_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 238,
+      "version": "7",
+      "when": 1756999525882,
+      "tag": "0238_smiling_sentinels",
+      "breakpoints": true
     }
   ]
 }
