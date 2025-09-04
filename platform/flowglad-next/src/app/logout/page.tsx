@@ -13,6 +13,6 @@ export default function Logout() {
       redirect('/sign-in')
     }
     performLogout()
-  }, [])
+  }, [logoutMutation])
   return null
 }

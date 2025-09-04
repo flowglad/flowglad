@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { User } from 'lucide-react'
 import { cn } from '@/registry/lib/cn'
+import Image from 'next/image'
 import type { CustomerAvatarProps } from './types'
 
 export function CustomerAvatar({
@@ -41,9 +42,10 @@ export function CustomerAvatar({
           className
         )}
       >
-        <img
+        <Image
           src={avatarUrl}
           alt={name}
+          fill
           className="h-full w-full object-cover"
           onError={() => {
             // If image fails to load, show fallback
