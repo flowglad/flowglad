@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import { useState } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import debounce from 'debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,35 +56,55 @@ export default function DiscountCodeInput() {
     hint = 'Discount code applied!'
   }
 
-  const attemptHandler = async (data: DiscountCodeFormData) => {
-    try {
-      const code = data.discountCode
-      let discountSucceeded = false
-      setDiscountCodeStatus('loading')
-      if (purchase) {
-        const result = await attemptDiscountCode({
-          code,
-          purchaseId: purchase.id,
-        })
-        discountSucceeded = result?.isValid
-      } else if (product) {
-        const result = await attemptDiscountCode({
-          code,
-          productId: product.id,
-        })
-        discountSucceeded = result?.isValid
-      }
-      if (discountSucceeded) {
-        setDiscountCodeStatus('success')
-      } else {
+  const attemptHandler = useCallback(
+    async (data: DiscountCodeFormData) => {
+      try {
+        const code = data.discountCode
+        let discountSucceeded = false
+        setDiscountCodeStatus('loading')
+        if (purchase) {
+          const result = await attemptDiscountCode({
+            code,
+            purchaseId: purchase.id,
+          })
+          discountSucceeded = result?.isValid
+        } else if (product) {
+          const result = await attemptDiscountCode({
+            code,
+            productId: product.id,
+          })
+          discountSucceeded = result?.isValid
+        }
+        if (discountSucceeded) {
+          setDiscountCodeStatus('success')
+        } else {
+          setDiscountCodeStatus('error')
+        }
+      } catch (error) {
         setDiscountCodeStatus('error')
       }
-    } catch (error) {
-      setDiscountCodeStatus('error')
-    }
-  }
+    },
+    [attemptDiscountCode, purchase, product]
+  )
 
-  const debouncedAttemptHandler = debounce(attemptHandler, 300)
+  const debouncedAttemptHandlerRef = useRef<ReturnType<
+    typeof debounce
+  > | null>(null)
+
+  useEffect(() => {
+    // Create the debounced function
+    debouncedAttemptHandlerRef.current = debounce(attemptHandler, 300)
+
+    // Cleanup function to cancel pending debounced calls
+    return () => {
+      if (debouncedAttemptHandlerRef.current) {
+        debouncedAttemptHandlerRef.current.clear()
+        debouncedAttemptHandlerRef.current = null
+      }
+    }
+  }, [attemptHandler])
+
+  const debouncedAttemptHandler = debouncedAttemptHandlerRef.current
 
   const clearDiscountCodeButton = (
     <Button
@@ -145,7 +165,11 @@ export default function DiscountCodeInput() {
                       onBlur={async (e) => {
                         field.onBlur()
                         const code = e.target.value.trim()
-                        if (code && code !== discount?.code) {
+                        if (
+                          code &&
+                          code !== discount?.code &&
+                          debouncedAttemptHandler
+                        ) {
                           debouncedAttemptHandler({
                             discountCode: code,
                           })
