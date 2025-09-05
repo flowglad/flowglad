@@ -7,15 +7,15 @@ import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/ui/page-header'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
+// import { Button } from '@/components/ui/button'
+// import { Plus } from 'lucide-react'
+// import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 const InternalInvoicesPage = () => {
-  const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
-    useState(false)
+  // const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
+  //   useState(false)
   const [selectedStatus, setSelectedStatus] = useState<
     InvoiceStatus | 'all'
   >('all')
@@ -35,12 +35,7 @@ const InternalInvoicesPage = () => {
         <Breadcrumb />
         <PageHeader
           title="Invoices"
-          action={
-            <Button onClick={() => setCreateInvoiceModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
-            </Button>
-          }
+          // Removed create invoice action - disabled per main branch business logic
         />
 
         <Tabs value={selectedStatus} onValueChange={handleTabChange}>
@@ -57,10 +52,10 @@ const InternalInvoicesPage = () => {
             <InvoicesTable filters={filters} />
           </TabsContent>
         </Tabs>
-        <CreateInvoiceModal
+        {/* <CreateInvoiceModal
           isOpen={createInvoiceModalOpen}
           setIsOpen={setCreateInvoiceModalOpen}
-        />
+        /> */}
       </div>
     </InternalPageContainer>
   )
