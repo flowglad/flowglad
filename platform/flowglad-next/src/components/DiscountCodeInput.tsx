@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import { useState } from 'react'
+import debounce from 'debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -83,6 +84,8 @@ export default function DiscountCodeInput() {
     }
   }
 
+  const debouncedAttemptHandler = debounce(attemptHandler, 300)
+
   const clearDiscountCodeButton = (
     <Button
       onClick={async (e) => {
@@ -138,6 +141,15 @@ export default function DiscountCodeInput() {
                       onChange={(e) => {
                         const code = e.target.value.toUpperCase()
                         field.onChange(code)
+                      }}
+                      onBlur={async (e) => {
+                        field.onBlur()
+                        const code = e.target.value.trim()
+                        if (code && code !== discount?.code) {
+                          debouncedAttemptHandler({
+                            discountCode: code,
+                          })
+                        }
                       }}
                     />
                   </FormControl>
