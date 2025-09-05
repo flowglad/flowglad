@@ -133,7 +133,7 @@ const PricingModelsTable = ({
         },
         {
           id: '_',
-          width: '10%',
+          size: 100,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell pricingModel={cellData.pricingModel} />
           ),

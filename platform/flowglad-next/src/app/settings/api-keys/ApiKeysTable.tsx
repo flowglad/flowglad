@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from '@/utils/core'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
@@ -84,7 +85,7 @@ const ApiKeysTable = ({
       [
         {
           header: ({ column }) => (
-            <ColumnHeaderCell
+            <DataTableColumnHeader
               title="Name"
               column={column}
               className="w-24"
