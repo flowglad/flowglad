@@ -9,9 +9,9 @@ import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
 import TableTitle from '@/components/ion/TableTitle'
-import { Plus } from 'lucide-react'
-import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
-import { useState } from 'react'
+// import { Plus } from 'lucide-react'
+// import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
+// import { useState } from 'react'
 import PaymentsTable from '@/app/finance/payments/PaymentsTable'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
@@ -108,8 +108,8 @@ export const CustomerBillingSubPage = ({
   invoices,
   payments,
 }: CustomerBillingSubPageProps) => {
-  const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
-    useState(false)
+  // const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
+  //   useState(false)
   return (
     <>
       <div className="w-full flex items-start">
@@ -127,9 +127,10 @@ export const CustomerBillingSubPage = ({
             />
             <TableTitle
               title="Invoices"
-              buttonLabel="Create Invoice"
-              buttonIcon={<Plus size={16} />}
-              buttonOnClick={() => setCreateInvoiceModalOpen(true)}
+              noButtons
+              // buttonLabel="Create Invoice"
+              // buttonIcon={<Plus size={16} />}
+              // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
             <InvoicesTable customer={customer} />
             <TableTitle title="Payments" noButtons />
@@ -147,11 +148,11 @@ export const CustomerBillingSubPage = ({
           </div>
         </div>
       </div>
-      <CreateInvoiceModal
+      {/* <CreateInvoiceModal
         isOpen={createInvoiceModalOpen}
         setIsOpen={setCreateInvoiceModalOpen}
         customer={customer}
-      />
+      /> */}
     </>
   )
 }
