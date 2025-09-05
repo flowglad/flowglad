@@ -246,7 +246,6 @@ export const SideNavigation = () => {
                   toggleTestMode.isPending ||
                   focusedMembership.isPending
                 }
-                className="data-[state=checked]:bg-orange-primary-500 data-[state=checked]:focus-visible:ring-orange-primary-500 [&>*]:data-[state=checked]:bg-white"
               />
             </div>
           )}
