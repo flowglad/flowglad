@@ -2,48 +2,39 @@
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
 import OrganizationSettingsTab from '@/app/settings/OrganizationSettingsTab'
 import ApiSettingsTab from '@/app/settings/ApiSettingsTab'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 const SettingsPage = () => {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeSection, setActiveSection] = useState('overview')
+
+  // Section options for the button group
+  const sectionOptions = [
+    { value: 'overview', label: 'Overview' },
+    { value: 'api', label: 'API' },
+  ]
 
   return (
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
         <PageHeader title="Settings" />
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="gap-8 border-b border-muted">
-            <TabsTrigger value="overview">
-              <div className="flex items-center gap-2">
-                <span>Overview</span>
-              </div>
-            </TabsTrigger>
-            <TabsTrigger value="api">
-              <div className="flex items-center gap-2">
-                <span>API</span>
-              </div>
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="mt-6">
-            <OrganizationSettingsTab />
-          </TabsContent>
-          <TabsContent value="api" className="mt-6">
-            <ApiSettingsTab />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full">
+          <FilterButtonGroup
+            options={sectionOptions}
+            value={activeSection}
+            onValueChange={setActiveSection}
+            className="mb-6"
+          />
+          <div className="mt-6">
+            {activeSection === 'overview' && (
+              <OrganizationSettingsTab />
+            )}
+            {activeSection === 'api' && <ApiSettingsTab />}
+          </div>
+        </div>
       </div>
     </InternalPageContainer>
   )

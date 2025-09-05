@@ -10,10 +10,9 @@ import { ProductsTable, ProductsTableFilters } from './ProductsTable'
 import { trpc } from '@/app/_trpc/client'
 import { PricingModel } from '@/db/schema/pricingModels'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { ProductStatusTab } from './components/ProductStatusTab'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 export enum FocusedTab {
   All = 'all',
@@ -30,9 +29,16 @@ type Props = {
 function InternalProductsPage({ products: initialProducts }: Props) {
   const [isCreateProductOpen, setIsCreateProductOpen] =
     useState(false)
-  const [activeTab, setActiveTab] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
   const { data } = trpc.pricingModels.getDefault.useQuery({})
   const defaultPricingModel = data?.pricingModel
+
+  // Filter options for the button group
+  const filterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ]
 
   const getFilterForTab = (tab: string): ProductsTableFilters => {
     if (tab === 'all') {
@@ -57,21 +63,15 @@ function InternalProductsPage({ products: initialProducts }: Props) {
             </Button>
           }
         />
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="gap-8 border-b border-muted w-full">
-            <ProductStatusTab status="all" />
-            <ProductStatusTab status="active" />
-            <ProductStatusTab status="inactive" />
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-6">
-            <ProductsTable filters={getFilterForTab(activeTab)} />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full">
+          <FilterButtonGroup
+            options={filterOptions}
+            value={activeFilter}
+            onValueChange={setActiveFilter}
+            className="mb-6"
+          />
+          <ProductsTable filters={getFilterForTab(activeFilter)} />
+        </div>
       </div>
       {defaultPricingModel && (
         <CreateProductModal

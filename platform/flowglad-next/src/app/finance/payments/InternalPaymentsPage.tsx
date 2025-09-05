@@ -3,14 +3,22 @@
 import { useState } from 'react'
 import PaymentsTable from './PaymentsTable'
 import { PaymentStatus } from '@/types'
-import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs'
-import { PaymentsTab } from './components/PaymentsTab'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 export default function InternalPaymentsPage() {
-  const [activeTab, setActiveTab] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
+
+  // Filter options for the button group
+  const filterOptions = [
+    { value: 'all', label: 'All' },
+    { value: PaymentStatus.Succeeded, label: 'Succeeded' },
+    { value: PaymentStatus.Processing, label: 'Processing' },
+    { value: PaymentStatus.Refunded, label: 'Refunded' },
+    { value: PaymentStatus.Canceled, label: 'Canceled' },
+  ]
 
   const getFiltersForTab = (tab: string) => {
     if (tab === 'all') {
@@ -29,23 +37,15 @@ export default function InternalPaymentsPage() {
         <div className="flex flex-row justify-between">
           <PageHeader title="Payments" />
         </div>
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="gap-8 border-b border-muted">
-            <PaymentsTab status="all" />
-            <PaymentsTab status={PaymentStatus.Succeeded} />
-            <PaymentsTab status={PaymentStatus.Processing} />
-            <PaymentsTab status={PaymentStatus.Refunded} />
-            <PaymentsTab status={PaymentStatus.Canceled} />
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-6">
-            <PaymentsTable filters={getFiltersForTab(activeTab)} />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full">
+          <FilterButtonGroup
+            options={filterOptions}
+            value={activeFilter}
+            onValueChange={setActiveFilter}
+            className="mb-6"
+          />
+          <PaymentsTable filters={getFiltersForTab(activeFilter)} />
+        </div>
       </div>
     </InternalPageContainer>
   )

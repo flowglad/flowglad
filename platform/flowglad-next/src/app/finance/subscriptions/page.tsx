@@ -7,17 +7,12 @@ import { SubscriptionStatus } from '@/types'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { trpc } from '@/app/_trpc/client'
 import { useState } from 'react'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 function InternalSubscriptionsPage() {
-  const [activeTab, setActiveTab] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
 
   const { data: countsData } =
     trpc.subscriptions.getCountsByStatus.useQuery({})
@@ -26,6 +21,17 @@ function InternalSubscriptionsPage() {
   const countsByStatusMap = new Map(
     countsByStatus.map((item) => [item.status, item.count])
   )
+
+  // Filter options for the button group
+  const filterOptions = [
+    { value: 'all', label: 'All' },
+    { value: SubscriptionStatus.Active, label: 'Active' },
+    { value: SubscriptionStatus.Trialing, label: 'Trialing' },
+    { value: SubscriptionStatus.Canceled, label: 'Canceled' },
+    { value: SubscriptionStatus.Paused, label: 'Paused' },
+    { value: SubscriptionStatus.PastDue, label: 'Past Due' },
+    { value: SubscriptionStatus.Incomplete, label: 'Incomplete' },
+  ]
 
   const getFilterForTab = (
     tab: string
@@ -45,38 +51,17 @@ function InternalSubscriptionsPage() {
         <Breadcrumb />
         <PageHeader title="Subscriptions" />
 
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="gap-8 border-b border-muted">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value={SubscriptionStatus.Active}>
-              Active
-            </TabsTrigger>
-            <TabsTrigger value={SubscriptionStatus.Trialing}>
-              Trialing
-            </TabsTrigger>
-            <TabsTrigger value={SubscriptionStatus.Canceled}>
-              Canceled
-            </TabsTrigger>
-            <TabsTrigger value={SubscriptionStatus.Paused}>
-              Paused
-            </TabsTrigger>
-            <TabsTrigger value={SubscriptionStatus.PastDue}>
-              Past Due
-            </TabsTrigger>
-            <TabsTrigger value={SubscriptionStatus.Incomplete}>
-              Incomplete
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value={activeTab} className="mt-6">
-            <SubscriptionsTable
-              filters={getFilterForTab(activeTab)}
-            />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full">
+          <FilterButtonGroup
+            options={filterOptions}
+            value={activeFilter}
+            onValueChange={setActiveFilter}
+            className="mb-6"
+          />
+          <SubscriptionsTable
+            filters={getFilterForTab(activeFilter)}
+          />
+        </div>
       </div>
     </InternalPageContainer>
   )

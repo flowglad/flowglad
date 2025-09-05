@@ -2,11 +2,10 @@
 
 import { useState } from 'react'
 import { InvoiceStatus } from '@/types'
-import { InvoiceStatusTab } from './components/InvoiceStatusTab'
 import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
-import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/ui/page-header'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 // import { Button } from '@/components/ui/button'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
@@ -22,9 +21,19 @@ const InternalInvoicesPage = () => {
   const { isLoading, getCountForStatus } =
     useInvoiceCountsByStatusMap()
 
-  const handleTabChange = (value: string) => {
+  const handleFilterChange = (value: string) => {
     setSelectedStatus(value as InvoiceStatus | 'all')
   }
+
+  // Filter options for the button group
+  const filterOptions = [
+    { value: 'all', label: 'All' },
+    { value: InvoiceStatus.Draft, label: 'Draft' },
+    { value: InvoiceStatus.Open, label: 'Open' },
+    { value: InvoiceStatus.Paid, label: 'Paid' },
+    { value: InvoiceStatus.Uncollectible, label: 'Uncollectible' },
+    { value: InvoiceStatus.Void, label: 'Void' },
+  ]
 
   const filters =
     selectedStatus !== 'all' ? { status: selectedStatus } : {}
@@ -38,20 +47,15 @@ const InternalInvoicesPage = () => {
           // Removed create invoice action - disabled per main branch business logic
         />
 
-        <Tabs value={selectedStatus} onValueChange={handleTabChange}>
-          <TabsList className="gap-8 border-b border-muted">
-            <InvoiceStatusTab status="all" />
-            <InvoiceStatusTab status={InvoiceStatus.Draft} />
-            <InvoiceStatusTab status={InvoiceStatus.Open} />
-            <InvoiceStatusTab status={InvoiceStatus.Paid} />
-            <InvoiceStatusTab status={InvoiceStatus.Uncollectible} />
-            <InvoiceStatusTab status={InvoiceStatus.Void} />
-          </TabsList>
-
-          <TabsContent value={selectedStatus} className="mt-6">
-            <InvoicesTable filters={filters} />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full">
+          <FilterButtonGroup
+            options={filterOptions}
+            value={selectedStatus}
+            onValueChange={handleFilterChange}
+            className="mb-6"
+          />
+          <InvoicesTable filters={filters} />
+        </div>
         {/* <CreateInvoiceModal
           isOpen={createInvoiceModalOpen}
           setIsOpen={setCreateInvoiceModalOpen}
