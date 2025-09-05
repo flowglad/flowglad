@@ -27,7 +27,7 @@ const CheckoutModal = ({
   useSetCheckoutSessionCookieEffect(checkoutInfo)
 
   const checkoutFormContainer = cn(
-    'bg-internal',
+    'bg-background',
     'w-full flex flex-1'
   )
 

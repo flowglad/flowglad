@@ -64,7 +64,7 @@ const BusinessDetails = () => {
       .sort((a, b) => a.label.localeCompare(b.label)) ?? []
 
   return (
-    <div className="bg-internal h-full w-full flex justify-between items-center">
+    <div className="bg-background h-full w-full flex justify-between items-center">
       <div className="flex-1 h-full w-full flex flex-col justify-center items-center gap-9 p-20">
         <div className="w-full flex flex-col items-center gap-4">
           <Form {...form}>

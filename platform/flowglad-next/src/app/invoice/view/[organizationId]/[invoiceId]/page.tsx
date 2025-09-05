@@ -17,8 +17,8 @@ import { findOrCreateInvoiceCheckoutSession } from '@/utils/checkoutSessionState
 const CustomerInvoicePaidView = (props: InvoiceTemplateProps) => {
   const { invoice, invoiceLineItems } = props
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-primary-container p-4">
-      <div className="bg-internal rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4">
+      <div className="bg-card rounded-lg shadow-lg p-8 max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-primary text-2xl font-bold mb-2">
             Invoice Paid
@@ -100,8 +100,8 @@ const CustomerInvoiceOpenView = async (
     checkoutSession,
   }
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-primary-container p-4">
-      <div className="bg-internal rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4">
+      <div className="bg-card rounded-lg shadow-lg p-8 max-w-md w-full">
         <div className="mb-8">
           <p className="text-4xl font-bold mb-1">
             {stripeCurrencyAmountToHumanReadableCurrencyAmount(

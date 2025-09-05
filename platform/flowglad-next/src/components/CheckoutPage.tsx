@@ -44,7 +44,7 @@ const CheckoutPage = ({
     'w-full flex flex-1 pt-16 lg:bg-transparent lg:h-full'
   /** Container for checkout form section on right side */
   const checkoutFormContainer = cn(
-    'bg-internal',
+    'bg-background',
     'lg:w-[444px]',
     checkoutContainerInnerDimensionsClass,
     'lg:pl-8'

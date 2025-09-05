@@ -32,7 +32,7 @@ const TableRoot = React.forwardRef<
       <table
         ref={ref}
         className={cn(
-          'w-full caption-bottom table-fixed rounded-radius bg-background',
+          'w-full caption-bottom table-fixed rounded-lg bg-background',
           className
         )}
         style={{ borderCollapse: 'collapse' }}

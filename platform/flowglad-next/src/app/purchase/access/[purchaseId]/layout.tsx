@@ -23,7 +23,7 @@ const PurchaseAccessLayout = async ({
   )
 
   return (
-    <div className="bg-internal h-full w-full flex justify-between items-center">
+    <div className="bg-background h-full w-full flex justify-between items-center">
       <PostPaymentSidebar organization={organization} />
       {children}
     </div>

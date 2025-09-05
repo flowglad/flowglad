@@ -97,11 +97,11 @@
 }
 
 input:-internal-autofill-selected {
-  background-color: var(--background-input) !important;
+  background-color: hsl(var(--input)) !important;
 }
 
 input:-webkit-autofill {
-  background-color: var(--background-input) !important;
+  background-color: hsl(var(--input)) !important;
 }
 
 input {

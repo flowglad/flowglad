@@ -123,7 +123,7 @@ export const SideNavigation = () => {
               : 'max-w-lg opacity-100 flex-1'
           )}
         >
-          <div className="flex items-center gap-3 rounded-radius-sm">
+          <div className="flex items-center gap-3 rounded-md">
             {maybeLogo}
             <div className="flex flex-col justify-center gap-0.5 whitespace-nowrap">
               <div className="text-sm font-semibold text-foreground truncate">

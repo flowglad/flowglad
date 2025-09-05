@@ -260,7 +260,7 @@ const InvoicesTable = ({
       <Table
         columns={columns}
         data={tableData}
-        className="w-full rounded-radius"
+        className="w-full rounded-lg"
         bordered
         pagination={{
           pageIndex,

@@ -28,7 +28,7 @@ const WebhookSecretModal = ({
         <div className="flex flex-col gap-4">
           <CopyableTextTableCell
             copyText={secret}
-            className="bg-surface-subtle p-3 rounded-radius-md"
+            className="bg-surface-subtle p-3 rounded-lg-md"
           >
             {secret}
           </CopyableTextTableCell>

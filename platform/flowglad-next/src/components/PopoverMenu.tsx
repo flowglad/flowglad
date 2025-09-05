@@ -43,7 +43,7 @@ const PopoverMenuItem = ({
     <PopoverPrimitive.Close asChild>
       <div
         className={cn(
-          'flex flex-col w-fit items-start gap-2.5 px-4 py-2 text-sm hover:bg-white hover:bg-opacity-[0.07] rounded-radius-xs',
+          'flex flex-col w-fit items-start gap-2.5 px-4 py-2 text-sm hover:bg-white hover:bg-opacity-[0.07] rounded-sm',
           className,
           disabled
             ? 'opacity-50 cursor-not-allowed'

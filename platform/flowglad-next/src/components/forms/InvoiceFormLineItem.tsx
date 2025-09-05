@@ -59,7 +59,7 @@ const InvoiceFormLineItem = ({
       style={style}
       className={cn(
         'w-full flex items-center gap-8 bg-background pb-2 border border-transparent z-0',
-        isDragging && 'z-20  border-muted rounded-radius-sm'
+        isDragging && 'z-20  border-muted rounded-md'
       )}
     >
       <div className="flex flex-row gap-2 min-w-80">

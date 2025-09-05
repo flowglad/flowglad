@@ -7,7 +7,7 @@ export function DetailLabel({
 }) {
   const valueElement =
     typeof value === 'string' ? (
-      <div className="text-sm font-semibold text-primary-foreground-hover">
+      <div className="text-sm font-semibold text-foreground">
         {value}
       </div>
     ) : (

@@ -553,7 +553,7 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'flex items-center w-full rounded-radius-sm border text-sm text-foreground',
+              'flex items-center w-full rounded-lg-sm border text-sm text-foreground',
               'transition-all',
               'min-h-9 h-auto',
               'overflow-hidden',

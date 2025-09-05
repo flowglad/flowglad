@@ -23,7 +23,7 @@ export const RevenueCategoryBar = ({
       <div className="flex flex-col mt-2 space-y-2">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <span className="w-2 h-2 bg-purple-500 inline-block mr-2 rounded-radius-lg"></span>
+            <span className="w-2 h-2 bg-purple-500 inline-block mr-2 rounded-lg-lg"></span>
             <span>Service</span>
           </div>
           <span>
@@ -36,7 +36,7 @@ export const RevenueCategoryBar = ({
         </div>
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <span className="w-2 h-2 bg-blue-500 inline-block mr-2 rounded-radius-lg"></span>
+            <span className="w-2 h-2 bg-blue-500 inline-block mr-2 rounded-lg-lg"></span>
             <span>Digital</span>
           </div>
           <span>
@@ -49,7 +49,7 @@ export const RevenueCategoryBar = ({
         </div>
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <span className="w-2 h-2 bg-yellow-500 inline-block mr-2 rounded-radius-lg"></span>
+            <span className="w-2 h-2 bg-yellow-500 inline-block mr-2 rounded-lg-lg"></span>
             <span>Membership</span>
           </div>
           <span>
