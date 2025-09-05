@@ -2,6 +2,7 @@ import { Customer } from '@/db/schema/customers'
 import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
 import { Subscription } from '@/db/schema/subscriptions'
+import { Purchase } from '@/db/schema/purchases'
 import { FlowgladEventType } from '@/types'
 import { createHash } from 'node:crypto'
 
@@ -25,6 +26,24 @@ export function constructPaymentSucceededEventHash(
 ) {
   return constructEventHash({
     type: FlowgladEventType.PaymentSucceeded,
+    id: payment.id,
+  })
+}
+
+export function constructPurchaseCompletedEventHash(
+  purchase: Pick<Purchase.Record, 'id'>
+) {
+  return constructEventHash({
+    type: FlowgladEventType.PurchaseCompleted,
+    id: purchase.id,
+  })
+}
+
+export function constructPaymentFailedEventHash(
+  payment: Pick<Payment.Record, 'id'>
+) {
+  return constructEventHash({
+    type: FlowgladEventType.PaymentFailed,
     id: payment.id,
   })
 }

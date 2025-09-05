@@ -57,7 +57,9 @@ export const stripePaymentIntentSucceededTask = task({
       customerAndCustomer,
       payment,
     } = await eventfulAdminTransaction(async ({ transaction }) => {
-      const { payment } = await processPaymentIntentStatusUpdated(
+      const {
+        result: { payment },
+      } = await processPaymentIntentStatusUpdated(
         payload.data.object,
         transaction
       )
