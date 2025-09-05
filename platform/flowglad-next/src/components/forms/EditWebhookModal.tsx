@@ -23,10 +23,10 @@ const EditWebhookModal: React.FC<EditWebhookModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Webhook"
       formSchema={editWebhookInputSchema}
-      defaultValues={{ webhook }}
+      defaultValues={{ id: webhook.id, webhook }}
       onSubmit={editWebhook.mutateAsync}
     >
-      <WebhookFormFields />
+      <WebhookFormFields edit={true} />
     </FormModal>
   )
 }

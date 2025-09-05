@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import { useState } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import debounce from 'debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,19 +33,75 @@ export default function DiscountCodeInput() {
 
   const discountCode = form.watch('discountCode')
 
+  const { attemptDiscountCode, clearDiscountCode } =
+    checkoutPageContext
+
+  // Extract purchase and product from context with proper type checking
+  const purchase =
+    'purchase' in checkoutPageContext
+      ? checkoutPageContext.purchase
+      : undefined
+  const product =
+    'product' in checkoutPageContext
+      ? checkoutPageContext.product
+      : undefined
+
+  const attemptHandler = useCallback(
+    async (data: DiscountCodeFormData) => {
+      try {
+        const code = data.discountCode
+        let discountSucceeded = false
+        setDiscountCodeStatus('loading')
+        if (purchase) {
+          const result = await attemptDiscountCode({
+            code,
+            purchaseId: purchase.id,
+          })
+          discountSucceeded = result?.isValid
+        } else if (product) {
+          const result = await attemptDiscountCode({
+            code,
+            productId: product.id,
+          })
+          discountSucceeded = result?.isValid
+        }
+        if (discountSucceeded) {
+          setDiscountCodeStatus('success')
+        } else {
+          setDiscountCodeStatus('error')
+        }
+      } catch (error) {
+        setDiscountCodeStatus('error')
+      }
+    },
+    [attemptDiscountCode, purchase, product]
+  )
+
+  const debouncedAttemptHandlerRef = useRef<ReturnType<
+    typeof debounce
+  > | null>(null)
+
+  useEffect(() => {
+    // Create the debounced function
+    debouncedAttemptHandlerRef.current = debounce(attemptHandler, 300)
+
+    // Cleanup function to cancel pending debounced calls
+    return () => {
+      if (debouncedAttemptHandlerRef.current) {
+        debouncedAttemptHandlerRef.current.clear()
+        debouncedAttemptHandlerRef.current = null
+      }
+    }
+  }, [attemptHandler])
+
+  const debouncedAttemptHandler = debouncedAttemptHandlerRef.current
+
   if (
     flowType === CheckoutFlowType.Invoice ||
     flowType === CheckoutFlowType.AddPaymentMethod
   ) {
     return null
   }
-
-  const {
-    attemptDiscountCode,
-    purchase,
-    product,
-    clearDiscountCode,
-  } = checkoutPageContext
 
   let hint: string | undefined = undefined
   if (discountCodeStatus === 'error') {
@@ -55,42 +112,19 @@ export default function DiscountCodeInput() {
     hint = 'Discount code applied!'
   }
 
-  const attemptHandler = async (data: DiscountCodeFormData) => {
-    try {
-      const code = data.discountCode
-      let discountSucceeded = false
-      setDiscountCodeStatus('loading')
-      if (purchase) {
-        const result = await attemptDiscountCode({
-          code,
-          purchaseId: purchase.id,
-        })
-        discountSucceeded = result?.isValid
-      } else if (product) {
-        const result = await attemptDiscountCode({
-          code,
-          productId: product.id,
-        })
-        discountSucceeded = result?.isValid
-      }
-      if (discountSucceeded) {
-        setDiscountCodeStatus('success')
-      } else {
-        setDiscountCodeStatus('error')
-      }
-    } catch (error) {
-      setDiscountCodeStatus('error')
-    }
-  }
-
   const clearDiscountCodeButton = (
     <Button
       onClick={async (e) => {
         e.preventDefault()
-        await clearDiscountCode({
-          purchaseId: purchase?.id,
-          productId: product.id,
-        })
+        if (purchase?.id) {
+          await clearDiscountCode({
+            purchaseId: purchase.id!,
+          })
+        } else if (product?.id) {
+          await clearDiscountCode({
+            productId: product.id!,
+          })
+        }
         setDiscountCodeStatus('idle')
         form.setValue('discountCode', '')
       }}
@@ -134,6 +168,19 @@ export default function DiscountCodeInput() {
                         onChange={(e) => {
                           const code = e.target.value.toUpperCase()
                           field.onChange(code)
+                        }}
+                        onBlur={async (e) => {
+                          field.onBlur()
+                          const code = e.target.value.trim()
+                          if (
+                            code &&
+                            code !== discount?.code &&
+                            debouncedAttemptHandler
+                          ) {
+                            debouncedAttemptHandler({
+                              discountCode: code,
+                            })
+                          }
                         }}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
