@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { Subscription } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
 import { SubscriptionStatus } from '@/types'
@@ -99,18 +98,14 @@ const SubscriptionsTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Customer" column={column} />
-          ),
+          header: 'Customer',
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.customer.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'subscription.status',
           cell: ({ row: { original: cellData } }) => (
             <SubscriptionStatusCell
@@ -119,27 +114,21 @@ const SubscriptionsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Product" column={column} />
-          ),
+          header: 'Product',
           accessorKey: 'product.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.product.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'subscription.createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.subscription.createdAt)}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Canceled" column={column} />
-          ),
+          header: 'Canceled',
           accessorKey: 'subscription.canceledAt',
           cell: ({ row: { original: cellData } }) => (
             <>
@@ -150,9 +139,7 @@ const SubscriptionsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'subscription.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell
@@ -179,7 +166,7 @@ const SubscriptionsTable = ({
   const router = useRouter()
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
       className="bg-background"

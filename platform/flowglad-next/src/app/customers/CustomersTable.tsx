@@ -1,7 +1,6 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import {
   Customer,
   InferredCustomerStatus,
@@ -138,27 +137,21 @@ const CustomersTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.customer.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Email" column={column} />
-          ),
+          header: 'Email',
           accessorKey: 'customer.email',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.customer.email}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Total Spend" column={column} />
-          ),
+          header: 'Total Spend',
           accessorKey: 'totalSpend',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -170,18 +163,14 @@ const CustomersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Payments" column={column} />
-          ),
+          header: 'Payments',
           accessorKey: 'payments',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.payments || 0}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created At" column={column} />
-          ),
+          header: 'Created At',
           accessorKey: 'customer.createdAt',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -190,9 +179,7 @@ const CustomersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'customer.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.customer.id}>
@@ -222,7 +209,7 @@ const CustomersTable = ({
         placeholder="Search"
         className="mb-4"
       />
-      <Table
+      <DataTable
         columns={columns}
         data={tableData}
         className="bg-background"

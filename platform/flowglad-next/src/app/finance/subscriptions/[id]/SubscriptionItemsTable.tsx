@@ -1,8 +1,7 @@
 'use client'
 import { useMemo } from 'react'
 import { DisplayColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import core from '@/utils/core'
@@ -24,30 +23,21 @@ const SubscriptionItemsTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'name' as const,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Quantity" column={column} />
-          ),
+          header: 'Quantity',
           accessorKey: 'quantity' as const,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.quantity}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell
-              title="Per Unit Price"
-              column={column}
-            />
-          ),
+          header: 'Per Unit Price',
           accessorKey: 'unitPrice' as const,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -60,18 +50,14 @@ const SubscriptionItemsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Added Date" column={column} />
-          ),
+          header: 'Added Date',
           accessorKey: 'addedDate' as const,
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.addedDate)}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           id: 'id' as const,
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.id}>
@@ -86,7 +72,7 @@ const SubscriptionItemsTable = ({
   const tableData = subscriptionItems
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
       className="bg-background"

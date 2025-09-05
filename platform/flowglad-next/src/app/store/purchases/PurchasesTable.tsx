@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { DisplayColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { formatDate } from '@/utils/core'
 import { Purchase } from '@/db/schema/purchases'
 
@@ -14,27 +13,21 @@ const PurchasesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Customer" column={column} />
-          ),
+          header: 'Customer',
           id: 'customer',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{`${cellData.customer.name} (${cellData.customer.email})`}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Product" column={column} />
-          ),
+          header: 'Product',
           accessorKey: 'product',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.product.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -43,9 +36,7 @@ const PurchasesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Date" column={column} />
-          ),
+          header: 'Date',
           accessorKey: 'purchaseDate',
           cell: ({ row: { original: cellData } }) => (
             <>
@@ -60,7 +51,7 @@ const PurchasesTable = ({
   )
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={data}
       className="bg-background"

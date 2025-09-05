@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { DisplayColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from '@/utils/core'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
@@ -99,18 +98,14 @@ const ApiKeysTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Token" column={column} />
-          ),
+          header: 'Token',
           accessorKey: 'token',
           cell: ({ row: { original: cellData } }) => {
             return <ApiKeyTokenCell apiKey={cellData.apiKey} />
           },
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.apiKey.createdAt!)}</>
@@ -138,7 +133,7 @@ const ApiKeysTable = ({
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <Table
+            <DataTable
               columns={columns}
               data={tableData}
               className="bg-background"

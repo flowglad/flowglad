@@ -4,7 +4,7 @@
 import { Image as ImageIcon } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import Table from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
 import { Product } from '@/db/schema/products'
 import core from '@/utils/core'
 import { Price } from '@/db/schema/prices'
@@ -17,7 +17,6 @@ import { useRouter } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import PricingCellView from '@/components/PricingCellView'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { trpc } from '@/app/_trpc/client'
@@ -154,9 +153,7 @@ export const ProductsTable = ({
         },
         {
           id: 'name',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'product.name',
           cell: ({ row: { original: cellData } }) => (
             <>
@@ -167,9 +164,7 @@ export const ProductsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Pricing" column={column} />
-          ),
+          header: 'Pricing',
           accessorKey: 'prices',
           cell: ({ row: { original: cellData } }) => (
             <PricingCellView prices={cellData.prices} />
@@ -177,9 +172,7 @@ export const ProductsTable = ({
         },
         {
           id: 'status',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'product.active',
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.product.active} />
@@ -187,9 +180,7 @@ export const ProductsTable = ({
         },
         {
           id: 'created',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'product.createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.product.createdAt!)}</>
@@ -197,9 +188,7 @@ export const ProductsTable = ({
         },
         {
           id: 'pricingModel',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Pricing Model" column={column} />
-          ),
+          header: 'Pricing Model',
           accessorKey: 'pricingModel.name',
           cell: ({ row: { original: cellData } }) => {
             const pricingModelName = cellData.pricingModel?.name
@@ -210,9 +199,7 @@ export const ProductsTable = ({
           },
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'product.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.product.id}>
@@ -238,7 +225,7 @@ export const ProductsTable = ({
   return (
     <div className="flex-1 h-full w-full flex flex-col gap-6 pb-10">
       <div className="w-full flex flex-col gap-5">
-        <Table
+        <DataTable
           columns={columns}
           data={tableData}
           onClickRow={(row) => {

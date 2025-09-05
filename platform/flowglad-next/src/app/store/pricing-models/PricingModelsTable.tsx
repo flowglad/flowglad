@@ -1,10 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Table, {
-  type ColumnDefWithWidth,
-} from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { PricingModel } from '@/db/schema/pricingModels'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
@@ -94,9 +92,7 @@ const PricingModelsTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'pricingModel.name',
           width: '20%',
           cell: ({ row: { original: cellData } }) => (
@@ -116,9 +112,7 @@ const PricingModelsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Products" column={column} />
-          ),
+          header: 'Products',
           accessorKey: 'productsCount',
           width: '30%',
           cell: ({ row: { original: cellData } }) => (
@@ -126,9 +120,7 @@ const PricingModelsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'pricingModel.id',
           width: '30%',
           cell: ({ row: { original: cellData } }) => (
@@ -146,7 +138,7 @@ const PricingModelsTable = ({
             <MoreMenuCell pricingModel={cellData.pricingModel} />
           ),
         },
-      ] as ColumnDefWithWidth<PricingModel.TableRow, string>[],
+      ] as ColumnDef<PricingModel.TableRow, string>[],
     []
   )
 
@@ -154,7 +146,7 @@ const PricingModelsTable = ({
   const total = data?.total || 0
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
       className="bg-background"

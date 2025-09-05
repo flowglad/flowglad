@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
-import Table from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
 import { Purchase } from '@/db/schema/purchases'
 import core from '@/utils/core'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
@@ -11,9 +11,8 @@ import {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
 import { Badge } from '@/components/ui/badge'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import EndPurchaseModal from '@/components/forms/EndPurchaseModal'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { Payment } from '@/db/schema/payments'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode, PurchaseStatus } from '@/types'
@@ -113,9 +112,7 @@ const PurchasesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => {
             return (
@@ -135,9 +132,7 @@ const PurchasesTable = ({
           width: '10%',
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Revenue" column={column} />
-          ),
+          header: 'Revenue',
           accessorKey: 'revenue',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -150,9 +145,7 @@ const PurchasesTable = ({
           width: '12%',
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Customer" column={column} />
-          ),
+          header: 'Customer',
           accessorKey: 'customer',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -164,9 +157,7 @@ const PurchasesTable = ({
           width: '28%',
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Purchase Date" column={column} />
-          ),
+          header: 'Purchase Date',
           accessorKey: 'startDate',
           cell: ({ row: { original: cellData } }) => (
             <>
@@ -178,9 +169,7 @@ const PurchasesTable = ({
           width: '14%',
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'purchase.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.purchase.id}>
@@ -204,7 +193,7 @@ const PurchasesTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <Table
+      <DataTable
         columns={columns}
         data={tableData}
         className="bg-background w-full"

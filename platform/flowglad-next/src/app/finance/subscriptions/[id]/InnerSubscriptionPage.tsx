@@ -3,7 +3,7 @@ import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
 import { RichSubscription } from '@/subscriptions/schemas'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import PaymentsTable from '../../payments/PaymentsTable'
 import { useAuthContext } from '@/contexts/authContext'
 import SubscriptionItemsTable from './SubscriptionItemsTable'
@@ -42,7 +42,7 @@ const InnerSubscriptionPage = ({
             <SubscriptionStatusBadge status={subscription.status} />
           </div>
         </div>
-        <TableTitle title="Details" noButtons />
+        <TableHeader title="Details" noButtons />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <Label>Dates</Label>
@@ -71,15 +71,15 @@ const InnerSubscriptionPage = ({
             </div>
           </div>
         </div>
-        <TableTitle title="Items" noButtons />
+        <TableHeader title="Items" noButtons />
         <SubscriptionItemsTable
           subscriptionItems={subscription.subscriptionItems}
         />
-        <TableTitle title="Invoices" noButtons />
+        <TableHeader title="Invoices" noButtons />
         <InvoicesTable
           filters={{ subscriptionId: subscription.id }}
         />
-        <TableTitle title="Payments" noButtons />
+        <TableHeader title="Payments" noButtons />
         <PaymentsTable
           filters={{ subscriptionId: subscription.id }}
         />

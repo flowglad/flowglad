@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import OrganizationMembersTable from '@/app/settings/teammates/OrganizationMembersTable'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
 import { Button } from '@/components/ui/button'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 
 const OrganizationSettingsTab = () => {
   const { organization } = useAuthenticatedContext()
@@ -36,7 +36,7 @@ const OrganizationSettingsTab = () => {
 
       <div>
         <div className="flex flex-row justify-between items-start mb-4">
-          <TableTitle title="Team" noButtons />
+          <TableHeader title="Team" noButtons />
           <Button
             onClick={() => setIsInviteModalOpen(true)}
             size="sm"

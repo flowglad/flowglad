@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { UserRecord } from '@/db/schema/users'
 import { Membership } from '@/db/schema/memberships'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import { Plus } from 'lucide-react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
 import { trpc } from '@/app/_trpc/client'
@@ -48,18 +47,14 @@ const OrganizationMembersTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.user.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Email" column={column} />
-          ),
+          header: 'Email',
           accessorKey: 'email',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.user.email}</span>
@@ -77,7 +72,7 @@ const OrganizationMembersTable = ({
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <Table
+            <DataTable
               columns={columns}
               data={tableData}
               className="bg-background"

@@ -8,7 +8,7 @@ import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
@@ -119,13 +119,13 @@ export const CustomerBillingSubPage = ({
             payments={payments}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
-            <TableTitle title="Subscriptions" noButtons />
+            <TableHeader title="Subscriptions" noButtons />
             <SubscriptionsTable
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableTitle
+            <TableHeader
               title="Invoices"
               noButtons
               // buttonLabel="Create Invoice"
@@ -133,13 +133,13 @@ export const CustomerBillingSubPage = ({
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
             <InvoicesTable customer={customer} />
-            <TableTitle title="Payments" noButtons />
+            <TableHeader title="Payments" noButtons />
             <PaymentsTable
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableTitle title="Purchases" noButtons />
+            <TableHeader title="Purchases" noButtons />
             <PurchasesTable
               filters={{
                 customerId: customer.id,

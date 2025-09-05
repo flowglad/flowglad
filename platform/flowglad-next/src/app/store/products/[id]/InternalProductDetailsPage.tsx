@@ -15,7 +15,7 @@ import EditProductModal from '@/components/forms/EditProductModal'
 import { Plus } from 'lucide-react'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import PricesTable from './PricesTable'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
@@ -110,7 +110,7 @@ function InternalProductDetailsPage(
             />
           </div>
         </div>
-        <TableTitle
+        <TableHeader
           title="Prices"
           buttonLabel="Create Price"
           buttonIcon={<Plus className="w-4 h-4" strokeWidth={2} />}

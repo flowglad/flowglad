@@ -3,8 +3,7 @@ import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
 
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { Feature } from '@/db/schema/features'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
@@ -75,9 +74,7 @@ const FeaturesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'feature.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="font-bold text-sm">
@@ -87,18 +84,14 @@ const FeaturesTable = ({
         },
         {
           id: 'status',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'feature.active',
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.feature.active} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Type" column={column} />
-          ),
+          header: 'Type',
           accessorKey: 'feature.type',
           cell: ({ row: { original: cellData } }) => {
             let typeText = 'Toggle'
@@ -118,9 +111,7 @@ const FeaturesTable = ({
           },
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Slug" column={column} />
-          ),
+          header: 'Slug',
           accessorKey: 'feature.slug',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.feature.slug}>
@@ -129,9 +120,7 @@ const FeaturesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Catalog" column={column} />
-          ),
+          header: 'Catalog',
           accessorKey: 'pricingModel.name',
           cell: ({ row: { original: cellData } }) => {
             const pricingModelName = cellData.pricingModel?.name
@@ -142,9 +131,7 @@ const FeaturesTable = ({
           },
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'feature.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.feature.id}>
@@ -168,7 +155,7 @@ const FeaturesTable = ({
   const total = data?.total || 0
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
       onClickRow={(row) => {

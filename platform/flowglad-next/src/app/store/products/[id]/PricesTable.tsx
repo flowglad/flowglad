@@ -3,7 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { RotateCw, Check } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import Table from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
 import { Price } from '@/db/schema/prices'
 import core from '@/utils/core'
 import {
@@ -16,8 +16,7 @@ import ArchivePriceModal from '@/components/forms/ArchivePriceModal'
 import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
 import PricingCellView from '@/components/PricingCellView'
 import { PriceType } from '@/types'
-import TableTitle from '@/components/ion/TableTitle'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { TableHeader } from '@/components/ui/table-header'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
@@ -188,36 +187,28 @@ const PaginatedPricesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Price" column={column} />
-          ),
+          header: 'Price',
           accessorKey: 'price',
           cell: ({ row: { original: cellData } }) => (
             <>{cellData.price.name}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Type" column={column} />
-          ),
+          header: 'Type',
           accessorKey: 'type',
           cell: ({ row: { original: cellData } }) => (
             <PriceTypeCellView type={cellData.price.type} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Pricing" column={column} />
-          ),
+          header: 'Pricing',
           accessorKey: 'pricing',
           cell: ({ row: { original: cellData } }) => (
             <PricingCellView prices={[cellData.price]} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.price.active} />
@@ -236,18 +227,14 @@ const PaginatedPricesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.price.createdAt)}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'price.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.price.id}>
@@ -283,7 +270,7 @@ const PaginatedPricesTable = ({
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <Table
+            <DataTable
               columns={columns}
               data={tableData}
               className="bg-background"

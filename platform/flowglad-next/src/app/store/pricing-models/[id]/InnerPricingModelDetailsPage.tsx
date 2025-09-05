@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Pencil, Plus } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import CustomersTable from '@/app/customers/CustomersTable'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import FeaturesTable from '@/app/features/FeaturesTable'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
@@ -59,7 +59,7 @@ function InnerPricingModelDetailsPage({
         </div>
 
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <TableHeader
             title="Products"
             buttonLabel="Create Product"
             buttonIcon={<Plus size={16} />}
@@ -72,13 +72,13 @@ function InnerPricingModelDetailsPage({
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle title="Customers" noButtons />
+          <TableHeader title="Customers" noButtons />
           <CustomersTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <TableHeader
             title="Features"
             buttonLabel="Create Feature"
             buttonIcon={<Plus size={16} />}
@@ -91,7 +91,7 @@ function InnerPricingModelDetailsPage({
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <TableHeader
             title="Usage Meters"
             buttonLabel="Create Usage Meter"
             buttonIcon={<Plus size={16} />}

@@ -2,8 +2,8 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DisplayColumnDef } from '@tanstack/react-table'
-import Table, { TableCell } from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
+import { TableCell } from '@/components/ui/table'
 import { Payment } from '@/db/schema/payments'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
@@ -105,9 +105,7 @@ const PaymentsTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Amount" column={column} />
-          ),
+          header: 'Amount',
           accessorKey: 'payment.amount',
           cell: ({ row: { original: cellData } }) => (
             <TableCell
@@ -127,18 +125,14 @@ const PaymentsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'payment.status',
           cell: ({ row: { original: cellData } }) => (
             <PaymentStatusBadge status={cellData.payment.status} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Customer" column={column} />
-          ),
+          header: 'Customer',
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
             <Link
@@ -151,9 +145,7 @@ const PaymentsTable = ({
         },
         {
           id: 'refundedAmount',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Date" column={column} />
-          ),
+          header: 'Date',
           accessorKey: 'payment.refundedDate',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -162,9 +154,7 @@ const PaymentsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'payment.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.payment.id}>
@@ -189,7 +179,7 @@ const PaymentsTable = ({
   const total = data?.total || 0
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
       className="bg-background"

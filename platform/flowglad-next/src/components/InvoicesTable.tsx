@@ -1,11 +1,11 @@
-import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
+import { ColumnDef } from '@tanstack/react-table'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 // import CreateInvoiceModal from './forms/CreateInvoiceModal'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { PopoverMenuItem } from './PopoverMenu'
@@ -157,9 +157,7 @@ const InvoicesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Amount" column={column} />
-          ),
+          header: 'Amount',
           accessorKey: 'amount',
           width: '10%',
           cell: ({ row: { original: cellData } }) => (
@@ -175,30 +173,21 @@ const InvoicesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
             <InvoiceStatusBadge invoice={cellData.invoice} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell
-              title="Invoice Number"
-              column={column}
-            />
-          ),
+          header: 'Invoice Number',
           accessorKey: 'invoiceNumber',
           cell: ({ row: { original: cellData } }) => (
             <>{cellData.invoice.invoiceNumber}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Due" column={column} />
-          ),
+          header: 'Due',
           accessorKey: 'due',
           width: '15%',
           cell: ({ row: { original: cellData } }) => (
@@ -210,9 +199,7 @@ const InvoicesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'createdAt',
           width: '15%',
           cell: ({ row: { original: cellData } }) => (
@@ -220,9 +207,7 @@ const InvoicesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'invoice.id',
           width: '15%',
           cell: ({ row: { original: cellData } }) => (
@@ -241,7 +226,7 @@ const InvoicesTable = ({
             />
           ),
         },
-      ] as ColumnDefWithWidth<
+      ] as ColumnDef<
         {
           invoice: Invoice.ClientRecord
           customer: { id: string; name: string }
@@ -257,7 +242,7 @@ const InvoicesTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <Table
+      <DataTable
         columns={columns}
         data={tableData}
         className="w-full rounded-lg"
