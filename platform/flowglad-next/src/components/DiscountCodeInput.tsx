@@ -33,28 +33,18 @@ export default function DiscountCodeInput() {
 
   const discountCode = form.watch('discountCode')
 
-  if (
-    flowType === CheckoutFlowType.Invoice ||
-    flowType === CheckoutFlowType.AddPaymentMethod
-  ) {
-    return null
-  }
+  const { attemptDiscountCode, clearDiscountCode } =
+    checkoutPageContext
 
-  const {
-    attemptDiscountCode,
-    purchase,
-    product,
-    clearDiscountCode,
-  } = checkoutPageContext
-
-  let hint: string | undefined = undefined
-  if (discountCodeStatus === 'error') {
-    hint = 'Invalid discount code'
-  } else if (discountCodeStatus === 'loading') {
-    hint = 'Checking discount code...'
-  } else if (discountCodeStatus === 'success') {
-    hint = 'Discount code applied!'
-  }
+  // Extract purchase and product from context with proper type checking
+  const purchase =
+    'purchase' in checkoutPageContext
+      ? checkoutPageContext.purchase
+      : undefined
+  const product =
+    'product' in checkoutPageContext
+      ? checkoutPageContext.product
+      : undefined
 
   const attemptHandler = useCallback(
     async (data: DiscountCodeFormData) => {
@@ -106,14 +96,35 @@ export default function DiscountCodeInput() {
 
   const debouncedAttemptHandler = debouncedAttemptHandlerRef.current
 
+  if (
+    flowType === CheckoutFlowType.Invoice ||
+    flowType === CheckoutFlowType.AddPaymentMethod
+  ) {
+    return null
+  }
+
+  let hint: string | undefined = undefined
+  if (discountCodeStatus === 'error') {
+    hint = 'Invalid discount code'
+  } else if (discountCodeStatus === 'loading') {
+    hint = 'Checking discount code...'
+  } else if (discountCodeStatus === 'success') {
+    hint = 'Discount code applied!'
+  }
+
   const clearDiscountCodeButton = (
     <Button
       onClick={async (e) => {
         e.preventDefault()
-        await clearDiscountCode({
-          purchaseId: purchase?.id,
-          productId: product.id,
-        })
+        if (purchase?.id) {
+          await clearDiscountCode({
+            purchaseId: purchase.id!,
+          })
+        } else if (product?.id) {
+          await clearDiscountCode({
+            productId: product.id!,
+          })
+        }
         setDiscountCodeStatus('idle')
         form.setValue('discountCode', '')
       }}
