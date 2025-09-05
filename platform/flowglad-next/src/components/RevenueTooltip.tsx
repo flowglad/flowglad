@@ -30,10 +30,10 @@ function InnerRevenueTooltip({
   return (
     <div
       className={cn(
-        'bg-[#282828] flex flex-col gap-2 p-4 rounded-md border border-muted shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
+        'bg-popover text-popover-foreground flex flex-col gap-2 p-4 rounded-md border border-border shadow-md'
       )}
     >
-      <div className="flex justify-between items-center gap-2 text-xs font-medium text-foreground">
+      <div className="flex justify-between items-center gap-2 text-xs font-medium">
         <div className="text-left">
           <div
             className={cn(

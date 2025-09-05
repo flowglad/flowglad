@@ -49,6 +49,18 @@ export const RecurringRevenueChart = ({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
+
+  // Use useRef to store tooltip data during render, then update state after render
+  const pendingTooltipData =
+    React.useRef<TooltipCallbackProps | null>(null)
+
+  // Use useEffect to safely update tooltip state after render
+  React.useEffect(() => {
+    if (pendingTooltipData.current !== null) {
+      setTooltipData(pendingTooltipData.current)
+      pendingTooltipData.current = null
+    }
+  })
   const defaultCurrency = organization?.defaultCurrency
   const chartData = React.useMemo(() => {
     if (!mrrData) return []
@@ -163,13 +175,14 @@ export const RecurringRevenueChart = ({
             )
           }
           tooltipCallback={(props: any) => {
+            // Store tooltip data in ref during render, useEffect will update state safely
             if (props.active) {
-              setTooltipData((prev) => {
-                if (prev?.label === props.label) return prev
-                return props
-              })
+              // Only update if the data is different to prevent unnecessary re-renders
+              if (tooltipData?.label !== props.label) {
+                pendingTooltipData.current = props
+              }
             } else {
-              setTooltipData(null)
+              pendingTooltipData.current = null
             }
           }}
         />

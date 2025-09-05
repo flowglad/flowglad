@@ -57,6 +57,18 @@ export const chartColors = {
     fill: 'fill-fuchsia-500',
     text: 'text-fuchsia-500',
   },
+  primary: {
+    bg: 'bg-primary',
+    stroke: 'stroke-primary',
+    fill: 'fill-primary',
+    text: 'text-primary',
+  },
+  zinc: {
+    bg: 'bg-zinc-600',
+    stroke: 'stroke-zinc-600',
+    fill: 'fill-zinc-600',
+    text: 'text-zinc-600',
+  },
 } as const satisfies {
   [color: string]: {
     [key in ColorUtility]: string

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DateRangePicker } from './date-range-picker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { ActiveSubscribersChart } from './ActiveSubscribersChart'
 
 const DateRangeActiveSubscribersChart = ({

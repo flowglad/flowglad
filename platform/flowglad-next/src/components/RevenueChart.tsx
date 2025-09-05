@@ -68,6 +68,18 @@ export function RevenueChart({
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
 
+  // Use useRef to store tooltip data during render, then update state after render
+  const pendingTooltipData =
+    React.useRef<TooltipCallbackProps | null>(null)
+
+  // Use useEffect to safely update tooltip state after render
+  React.useEffect(() => {
+    if (pendingTooltipData.current !== null) {
+      setTooltipData(pendingTooltipData.current)
+      pendingTooltipData.current = null
+    }
+  })
+
   const chartData = React.useMemo(() => {
     if (!revenueData) return []
     if (!organization?.defaultCurrency) return []
@@ -188,7 +200,7 @@ export function RevenueChart({
   return (
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-gray-700 dark:text-gray-300 w-fit flex items-center flex-row">
+        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
           <p className="whitespace-nowrap">Revenue by</p>
           <Select
             value={interval}
@@ -226,10 +238,10 @@ export function RevenueChart({
           <Skeleton className="w-36 h-12" />
         ) : (
           <>
-            <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+            <p className="text-xl font-semibold text-foreground">
               {formattedRevenueValue}
             </p>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="text-sm text-muted-foreground">
               {isTooltipLabelDate
                 ? core.formatDate(new Date(tooltipLabel as string))
                 : core.formatDateRange({ fromDate, toDate })}
@@ -248,7 +260,7 @@ export function RevenueChart({
           categories={['revenue']}
           // startEndOnly={true}
           className="-mb-2 mt-8"
-          colors={['amber']}
+          colors={['blue']}
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}
@@ -268,13 +280,14 @@ export function RevenueChart({
             )
           }
           tooltipCallback={(props: any) => {
+            // Store tooltip data in ref during render, useEffect will update state safely
             if (props.active) {
-              setTooltipData((prev) => {
-                if (prev?.label === props.label) return prev
-                return props
-              })
+              // Only update if the data is different to prevent unnecessary re-renders
+              if (tooltipData?.label !== props.label) {
+                pendingTooltipData.current = props
+              }
             } else {
-              setTooltipData(null)
+              pendingTooltipData.current = null
             }
           }}
         />

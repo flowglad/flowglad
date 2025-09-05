@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
-import { DateRangePicker } from '@/components/date-range-picker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
@@ -16,7 +16,7 @@ const ChartContainer = ({
   children: React.ReactNode
 }) => {
   return (
-    <div className="bg-background w-full relative flex flex-col gap-6 p-8 pt-0 rounded-lg-sm border border-muted">
+    <div className="bg-background w-full relative flex flex-col gap-6 p-8 pt-0 rounded-2xl border">
       {children}
     </div>
   )

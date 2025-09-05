@@ -162,7 +162,7 @@ export const NestedFormModal = <T extends FieldValues>({
     >
       {shouldRenderContent && (
         <>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             <div className="w-full min-w-[460px]">
               <div className="flex-1 w-full flex flex-col justify-center gap-6">
                 {children}
@@ -190,7 +190,7 @@ export const NestedFormModal = <T extends FieldValues>({
         <DialogHeader className="text-center">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto">{innerContent}</div>
+        <div className="flex-1">{innerContent}</div>
         {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>
@@ -273,7 +273,7 @@ const FormModal = <T extends FieldValues>({
     >
       {shouldRenderContent && (
         <>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             <div className="w-full min-w-[460px]">
               <div className="flex-1 w-full flex flex-col justify-center gap-6">
                 {children}
@@ -301,7 +301,7 @@ const FormModal = <T extends FieldValues>({
         <DialogHeader className="text-center">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto">{innerContent}</div>
+        <div className="flex-1">{innerContent}</div>
         {!hideFooter && footer && (
           <DialogFooter>{footer}</DialogFooter>
         )}
@@ -320,9 +320,7 @@ const FormModal = <T extends FieldValues>({
           <DrawerHeader className="sticky top-0 z-10 bg-background border-b border-muted px-6 py-4">
             <DrawerTitle>{title}</DrawerTitle>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-5">
-            {innerContent}
-          </div>
+          <div className="flex-1 px-6 py-5">{innerContent}</div>
           <div className="sticky bottom-0 z-10 bg-background border-t border-muted px-6 py-4">
             {hideFooter ? null : footer}
           </div>
@@ -355,7 +353,7 @@ const FormModal = <T extends FieldValues>({
             })
           }
         })}
-        className={cn(isOpen && 'flex-1 overflow-y-auto')}
+        className={cn(isOpen && 'flex-1')}
         id={id}
       >
         {content}

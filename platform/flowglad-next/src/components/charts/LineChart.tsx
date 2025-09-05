@@ -967,7 +967,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                 name={category}
                 type="linear"
                 dataKey={category}
-                stroke=""
                 strokeWidth={2}
                 strokeLinejoin="round"
                 strokeLinecap="round"
