@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
-import { AlertCircle } from 'lucide-react'
 
-export default function Error({
+export default function BillingPortalError({
   error,
   reset,
 }: {
@@ -16,55 +17,77 @@ export default function Error({
   const organizationId = params?.organizationId as string
 
   useEffect(() => {
+    // Log the error to an error reporting service
     console.error('Billing portal error:', error)
   }, [error])
 
+  const handleGoBack = () => {
+    router.back()
+  }
+
+  const handleSelectDifferentCustomer = () => {
+    router.push(`/billing-portal/${organizationId}/select-customer`)
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full text-center space-y-6 p-6">
-        <div className="space-y-2">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <h2 className="text-2xl font-bold">
-            Something went wrong!
-          </h2>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-muted-foreground">
-            We encountered an error while loading the billing portal.
-          </p>
-          {process.env.NODE_ENV === 'development' &&
-            error.message && (
-              <p className="text-sm text-muted-foreground bg-muted rounded-md p-3 font-mono">
-                {error.message}
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold text-destructive">
+                Unable to Load Billing Portal
+              </h3>
+              <p className="text-sm text-destructive/80">
+                {error.message ||
+                  'An unexpected error occurred while loading your billing information.'}
               </p>
-            )}
-          {process.env.NODE_ENV === 'production' && (
-            <p className="text-sm text-muted-foreground">
-              Please try again or contact support if the issue
-              persists.
-            </p>
-          )}
+              {process.env.NODE_ENV === 'development' &&
+                error.message && (
+                  <p className="text-xs text-muted-foreground bg-muted rounded-md p-2 font-mono mt-2">
+                    {error.message}
+                  </p>
+                )}
+            </div>
+          </div>
         </div>
 
-        <div className="flex gap-3 justify-center">
-          <button
+        <div className="bg-card border rounded-lg p-6 space-y-4">
+          <h2 className="text-lg font-semibold">What you can try:</h2>
+          <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+            <li>Check your internet connection</li>
+            <li>Refresh the page to try again</li>
+            <li>Clear your browser cache and cookies</li>
+            <li>
+              Try accessing the portal in an incognito/private window
+            </li>
+            <li>Contact support if the problem persists</li>
+          </ul>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
             onClick={reset}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            className="flex-1 flex items-center justify-center gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Try Again
-          </button>
-          <button
-            onClick={() =>
-              router.push(
-                `/billing-portal/${organizationId}/select-customer`
-              )
-            }
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSelectDifferentCustomer}
+            className="flex-1 flex items-center justify-center gap-2"
           >
             Select Different Customer
-          </button>
+          </Button>
         </div>
+
+        {error.digest && (
+          <p className="text-xs text-muted-foreground text-center">
+            Error ID: {error.digest}
+          </p>
+        )}
       </div>
     </div>
   )

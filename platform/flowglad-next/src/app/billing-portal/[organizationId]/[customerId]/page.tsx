@@ -1,22 +1,32 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { useSession } from '@/utils/authClient'
-import { Button } from '@/components/ui/button'
-import { LogOut, ChevronLeft, User, AlertCircle } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
+import { SubscriptionCard } from '@/registry/base/subscription-card/subscription-card'
+import { InvoicesList } from '@/registry/base/invoices-list/invoices-list'
+import { PaymentMethodsList } from '@/registry/base/payment-methods-list/payment-methods-list'
+import { Button } from '@/components/ui/button'
+import { AlertCircle } from 'lucide-react'
+import { BillingPortalHeader } from './components/BillingPortalHeader'
+import { BillingPortalNav } from './components/BillingPortalNav'
+import { ChangeCustomerButton } from './components/ChangeCustomerButton'
+import { useState } from 'react'
+import { SubscriptionCancellationArrangement } from '@/types'
+import { useSession } from '@/utils/authClient'
 import { toast } from 'sonner'
 
-const BillingPortalPage = () => {
-  const router = useRouter()
+export default function BillingPortalPage() {
   const params = useParams<{
     organizationId: string
     customerId: string
   }>()
+  const router = useRouter()
   const { organizationId, customerId } = params
   const { data: session } = useSession()
-  const logoutMutation = trpc.utils.logout.useMutation()
+  const [activeSection, setActiveSection] = useState<
+    'subscription' | 'payment-methods' | 'invoices'
+  >('subscription')
 
   // Check if user has multiple customer profiles
   const { data: customersData } =
@@ -27,15 +37,14 @@ const BillingPortalPage = () => {
       }
     )
 
-  const {
-    data: customerBilling,
-    isLoading: isLoadingCustomerBilling,
-  } = trpc.customerBillingPortal.getBilling.useQuery(
-    {},
-    {
-      enabled: !!session?.user && !!customerId,
-    }
-  )
+  // Fetch billing data
+  const { data, isLoading, error, refetch } =
+    trpc.customerBillingPortal.getBilling.useQuery(
+      {},
+      {
+        enabled: !!session?.user && !!customerId,
+      }
+    )
 
   const hasMultipleCustomers =
     (customersData?.customers?.length ?? 0) > 1
@@ -67,138 +76,291 @@ const BillingPortalPage = () => {
     customerId,
   ])
 
-  const handleLogout = async () => {
-    try {
-      await logoutMutation.mutateAsync()
-      router.push('/sign-in')
-    } catch (error) {
-      // Log error for debugging but don't show to user
-      console.error('Logout failed:', error)
-      // Still redirect to sign-in even if mutation fails
-      // This ensures user can still leave the page
-      router.push('/sign-in')
-    }
+  // Cancel subscription mutation
+  const cancelSubscriptionMutation =
+    trpc.customerBillingPortal.cancelSubscription.useMutation({
+      onSuccess: () => {
+        refetch()
+      },
+    })
+
+  // Create add payment method session mutation
+  const createPaymentSessionMutation =
+    trpc.customerBillingPortal.createAddPaymentMethodSession.useMutation(
+      {
+        onSuccess: (data) => {
+          window.location.href = data.sessionUrl
+        },
+      }
+    )
+
+  // Set default payment method mutation
+  const setDefaultPaymentMethodMutation =
+    trpc.customerBillingPortal.setDefaultPaymentMethod.useMutation({
+      onSuccess: () => {
+        refetch()
+      },
+    })
+
+  const handleCancelSubscription = async (subscriptionId: string) => {
+    await cancelSubscriptionMutation.mutateAsync({
+      id: subscriptionId,
+      cancellation: {
+        timing:
+          SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+      },
+    })
   }
 
-  const handleChangeCustomer = () => {
-    router.push(`/billing-portal/${organizationId}/select-customer`)
+  const handleAddPaymentMethod = async () => {
+    await createPaymentSessionMutation.mutateAsync({})
   }
-  const customer = customerBilling?.customer
-  if (isLoadingCustomerBilling) {
-    return <></>
+
+  const handleSetDefaultPaymentMethod = async (
+    paymentMethodId: string
+  ) => {
+    await setDefaultPaymentMethodMutation.mutateAsync({
+      paymentMethodId,
+    })
   }
-  if (!customer) {
+
+  const handleDownloadInvoice = (invoiceId: string) => {
+    // This would typically trigger a download or open in new tab
+    // TODO: Implement invoice download functionality
+  }
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <h2 className="text-2xl font-bold">Customer not found</h2>
+      <div className="min-h-screen bg-background">
+        <BillingPortalHeader customer={null} loading />
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="space-y-8">
+            <div className="h-48 w-full bg-muted/10 rounded-lg animate-pulse" />
+            <div className="h-64 w-full bg-muted/10 rounded-lg animate-pulse" />
+            <div className="h-96 w-full bg-muted/10 rounded-lg animate-pulse" />
+          </div>
         </div>
       </div>
     )
   }
-  return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold">Billing Portal</h1>
-              {hasMultipleCustomers && (
-                <Button
-                  onClick={handleChangeCustomer}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <ChevronLeft size={16} />
-                  Change Customer
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <User size={16} />
-                <span>{customer.name || customer.email}</span>
-              </div>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <LogOut size={16} />
-                Logout
-              </Button>
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-background">
+        <BillingPortalHeader customer={null} />
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm text-destructive">
+                {error?.message ||
+                  'Failed to load billing information. Please try again.'}
+              </p>
             </div>
           </div>
         </div>
-      </header>
+      </div>
+    )
+  }
 
-      <div className="flex-1 container mx-auto px-6 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Customer Info Card */}
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Customer Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Name</p>
-                <p className="font-medium">
-                  {customer.name || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{customer.email}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Customer ID
-                </p>
-                <p className="font-mono text-sm">{customer.id}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Created
-                </p>
-                <p className="font-medium">
-                  {new Date(customer.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          </div>
+  const currentSubscription = data.currentSubscriptions?.[0]
 
-          {/* Placeholder sections for future components */}
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Subscription
-            </h2>
-            <p className="text-muted-foreground">
-              Subscription information will be displayed here
-            </p>
-          </div>
+  return (
+    <div className="min-h-screen bg-background">
+      <BillingPortalHeader customer={data.customer} />
 
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Payment Methods
-            </h2>
-            <p className="text-muted-foreground">
-              Payment methods will be displayed here
-            </p>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {hasMultipleCustomers && (
+          <div className="mb-6 flex justify-end">
+            <ChangeCustomerButton
+              organizationId={params.organizationId}
+              currentCustomerId={params.customerId}
+            />
           </div>
+        )}
 
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Invoices</h2>
-            <p className="text-muted-foreground">
-              Invoice history will be displayed here
-            </p>
-          </div>
+        <BillingPortalNav
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
+
+        <div className="mt-8 space-y-8">
+          {activeSection === 'subscription' && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6">
+                Subscription
+              </h2>
+              {currentSubscription ? (
+                <SubscriptionCard
+                  subscription={{
+                    id: currentSubscription.id,
+                    name: currentSubscription.name || 'Subscription',
+                    status:
+                      'status' in currentSubscription
+                        ? (currentSubscription.status as
+                            | 'active'
+                            | 'canceled'
+                            | 'past_due'
+                            | 'trialing')
+                        : 'active',
+                    currentPeriodEnd:
+                      'currentPeriodEnd' in currentSubscription
+                        ? new Date(
+                            currentSubscription.currentPeriodEnd as string
+                          )
+                        : new Date(),
+                    currentPeriodStart:
+                      'currentPeriodStart' in currentSubscription
+                        ? new Date(
+                            currentSubscription.currentPeriodStart as string
+                          )
+                        : new Date(),
+                    cancelAtPeriodEnd:
+                      'cancelAtPeriodEnd' in currentSubscription
+                        ? (currentSubscription.cancelAtPeriodEnd as boolean)
+                        : false,
+                    canceledAt:
+                      'canceledAt' in currentSubscription &&
+                      currentSubscription.canceledAt
+                        ? new Date(
+                            String(currentSubscription.canceledAt)
+                          )
+                        : undefined,
+                    trialEnd:
+                      'trialEnd' in currentSubscription &&
+                      currentSubscription.trialEnd
+                        ? new Date(
+                            String(currentSubscription.trialEnd)
+                          )
+                        : undefined,
+                    items:
+                      'lineItems' in currentSubscription &&
+                      Array.isArray(currentSubscription.lineItems)
+                        ? currentSubscription.lineItems.map(
+                            (item: any) => ({
+                              id: item.id,
+                              productName: item.productName || '',
+                              quantity: item.quantity || 1,
+                              unitAmount: item.amount || 0,
+                              currency: 'usd',
+                              priceId: item.priceId || '',
+                              productId: item.productId || '',
+                            })
+                          )
+                        : [],
+                  }}
+                  onCancel={handleCancelSubscription}
+                  loading={cancelSubscriptionMutation.isPending}
+                />
+              ) : (
+                <div className="text-center py-12 bg-muted/50 rounded-lg">
+                  <p className="text-muted-foreground mb-4">
+                    No active subscription
+                  </p>
+                  <Button onClick={() => router.push(`/pricing`)}>
+                    View Pricing Plans
+                  </Button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeSection === 'payment-methods' && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6">
+                Payment Methods
+              </h2>
+              <PaymentMethodsList
+                paymentMethods={data.paymentMethods.map((pm) => {
+                  const paymentData = pm.paymentMethodData || {}
+                  return {
+                    id: pm.id,
+                    type: 'card' as const,
+                    last4: String(paymentData.last4 || '****'),
+                    brand: String(paymentData.brand || 'unknown'),
+                    expiryMonth:
+                      typeof paymentData.exp_month === 'number'
+                        ? paymentData.exp_month
+                        : undefined,
+                    expiryYear:
+                      typeof paymentData.exp_year === 'number'
+                        ? paymentData.exp_year
+                        : undefined,
+                    isDefault: pm.default || false,
+                  }
+                })}
+                defaultPaymentMethodId={
+                  data.paymentMethods.find((pm) => pm.default)?.id
+                }
+                onAddPaymentMethod={handleAddPaymentMethod}
+                onSetDefault={handleSetDefaultPaymentMethod}
+                loading={
+                  createPaymentSessionMutation.isPending ||
+                  setDefaultPaymentMethodMutation.isPending
+                }
+              />
+            </section>
+          )}
+
+          {activeSection === 'invoices' && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6">Invoices</h2>
+              <InvoicesList
+                invoices={data.invoices.map((inv) => {
+                  const invoice = inv.invoice
+                  return {
+                    id: invoice.id,
+                    number:
+                      'invoiceNumber' in invoice &&
+                      invoice.invoiceNumber
+                        ? String(invoice.invoiceNumber)
+                        : `INV-${invoice.id.slice(-8)}`,
+                    status:
+                      'status' in invoice
+                        ? (() => {
+                            const s = String(invoice.status)
+                            // Map past_due to open for display
+                            if (s === 'past_due')
+                              return 'open' as const
+                            if (
+                              s === 'paid' ||
+                              s === 'void' ||
+                              s === 'draft' ||
+                              s === 'uncollectible'
+                            )
+                              return s as
+                                | 'paid'
+                                | 'void'
+                                | 'draft'
+                                | 'uncollectible'
+                            return 'open' as const
+                          })()
+                        : 'open',
+                    created: invoice.createdAt,
+                    dueDate:
+                      'dueDate' in invoice && invoice.dueDate
+                        ? new Date(String(invoice.dueDate))
+                        : undefined,
+                    amountDue:
+                      'total' in invoice && invoice.total
+                        ? Number(invoice.total)
+                        : 0,
+                    currency:
+                      'currency' in invoice && invoice.currency
+                        ? String(invoice.currency)
+                        : 'usd',
+                    hostedInvoiceUrl:
+                      'stripeInvoiceUrl' in invoice
+                        ? String(invoice.stripeInvoiceUrl || '')
+                        : undefined,
+                  }
+                })}
+                onInvoiceClick={handleDownloadInvoice}
+              />
+            </section>
+          )}
         </div>
       </div>
     </div>
   )
 }
-
-export default BillingPortalPage
