@@ -2,7 +2,6 @@ import { publicProcedure } from '@/server/trpc'
 import {
   findProductCheckoutSession,
   findPurchaseCheckoutSession,
-  findInvoiceCheckoutSession,
 } from '@/utils/checkoutSessionState'
 import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import { adminTransaction } from '@/db/adminTransaction'

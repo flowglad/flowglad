@@ -1,11 +1,5 @@
 import * as R from 'ramda'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
-import {
-  insertInvoiceLineItems,
-  selectInvoiceLineItems,
-  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
-} from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   insertCustomer,
   selectCustomerById,
@@ -13,10 +7,7 @@ import {
 } from '@/db/tableMethods/customerMethods'
 import {
   deleteOpenInvoicesForPurchase,
-  insertInvoice,
   safelyUpdateInvoiceStatus,
-  selectInvoices,
-  updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import {
   AuthenticatedTransactionParams,
@@ -78,6 +69,7 @@ import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
+import { createInitialInvoiceForPurchase } from './bookkeeping/invoices'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -166,131 +158,9 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
   }
 }
 
-export const createInitialInvoiceForPurchase = async (
-  params: {
-    purchase: Purchase.Record
-  },
-  transaction: DbTransaction
-) => {
-  const { purchase } = params
-  const [existingInvoice] = await selectInvoices(
-    {
-      purchaseId: purchase.id,
-    },
-    transaction
-  )
-  const customer = await selectCustomerById(
-    purchase.customerId,
-    transaction
-  )
-  const { customerId, organizationId, priceId } = purchase
-  const [{ price, organization }] =
-    await selectPriceProductAndOrganizationByPriceWhere(
-      { id: priceId },
-      transaction
-    )
-  if (existingInvoice) {
-    const invoiceLineItems = await selectInvoiceLineItems(
-      {
-        invoiceId: existingInvoice.id,
-      },
-      transaction
-    )
-    return {
-      invoice: existingInvoice,
-      invoiceLineItems,
-      organization,
-      customer,
-    }
-  }
-
-  const invoiceLineItemInput: InvoiceLineItem.Insert = {
-    invoiceId: '1',
-    priceId,
-    description: `${purchase.name}`,
-    quantity: 1,
-    price: purchase.firstInvoiceValue!,
-    livemode: purchase.livemode,
-    ledgerAccountId: null,
-    ledgerAccountCredit: null,
-    billingRunId: null,
-    type: SubscriptionItemType.Static,
-  }
-  if ([PriceType.SinglePayment].includes(price.type)) {
-    invoiceLineItemInput.quantity = 1
-    invoiceLineItemInput.price = purchase.firstInvoiceValue!
-  }
-  const trialPeriodDays = core.isNil(purchase.trialPeriodDays)
-    ? price.trialPeriodDays
-    : purchase.trialPeriodDays
-  if (trialPeriodDays) {
-    invoiceLineItemInput.description = `${purchase.name} - Trial Period`
-    invoiceLineItemInput.price = 0
-  }
-  const invoicesForcustomerId = await selectInvoices(
-    {
-      customerId,
-    },
-    transaction
-  )
-  const invoiceLineItemInserts = [invoiceLineItemInput]
-  const subtotal = invoiceLineItemInserts.reduce(
-    (acc, { price, quantity }) => acc + price * quantity,
-    0
-  )
-  const { billingAddress, bankPaymentOnly } = purchase
-  const invoiceInsert: Invoice.Insert = {
-    livemode: purchase.livemode,
-    customerId: purchase.customerId,
-    purchaseId: purchase.id,
-    status: InvoiceStatus.Draft,
-    invoiceNumber: core.createInvoiceNumber(
-      customer.invoiceNumberBase ?? '',
-      invoicesForcustomerId.length
-    ),
-    currency: price.currency,
-    type: InvoiceType.Purchase,
-    billingPeriodId: null,
-    subscriptionId: null,
-    subtotal,
-    applicationFee: 0,
-    taxRatePercentage: '0',
-    bankPaymentOnly,
-    organizationId,
-    taxCountry: billingAddress
-      ? (billingAddressSchema.parse(billingAddress).address
-          .country as CountryCode)
-      : null,
-    invoiceDate: new Date(),
-    dueDate: new Date(),
-  }
-  const invoice: Invoice.Record = await insertInvoice(
-    invoiceInsert,
-    transaction
-  )
-
-  const invoiceLineItems = existingInvoice
-    ? await selectInvoiceLineItems(
-        {
-          invoiceId: invoice.id,
-        },
-        transaction
-      )
-    : await insertInvoiceLineItems(
-        invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
-          ...invoiceLineItemInsert,
-          invoiceId: invoice.id,
-        })),
-        transaction
-      )
-
-  return {
-    invoice,
-    invoiceLineItems,
-    organization,
-    customer,
-  }
-}
+// Re-export from the new location to maintain backward compatibility
+// Original implementation moved to ./bookkeeping/invoices.ts to avoid circular dependency
+export { createInitialInvoiceForPurchase } from './bookkeeping/invoices'
 
 /**
  * Create a purchase that is not yet completed

@@ -55,7 +55,6 @@ import {
   selectLatestFeeCalculation,
   updateFeeCalculation,
 } from '@/db/tableMethods/feeCalculationMethods'
-import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
   insertCustomer,
   selectCustomers,
@@ -64,10 +63,9 @@ import {
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
 import { core } from '../core'
-import { projectPriceFieldsOntoPurchaseFields } from '../purchaseHelpers'
 import { Discount } from '@/db/schema/discounts'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import { createInitialInvoiceForPurchase } from '../bookkeeping'
+import { createInitialInvoiceForPurchase } from './invoices'
 import { Invoice } from '@/db/schema/invoices'
 import Stripe from 'stripe'
 import {
@@ -76,7 +74,6 @@ import {
 } from '@/db/tableMethods/invoiceMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 export const editCheckoutSession = async (
   input: EditCheckoutSessionInput,
