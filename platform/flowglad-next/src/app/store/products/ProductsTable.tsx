@@ -134,7 +134,6 @@ export const ProductsTable = ({
       [
         {
           id: 'image',
-          width: 100,
           cell: ({ row: { original: cellData } }) => (
             <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md">
               {cellData.product.imageURL ? (

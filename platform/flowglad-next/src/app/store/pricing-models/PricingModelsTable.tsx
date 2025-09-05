@@ -94,7 +94,6 @@ const PricingModelsTable = ({
         {
           header: 'Name',
           accessorKey: 'pricingModel.name',
-          width: '20%',
           cell: ({ row: { original: cellData } }) => (
             <div className="flex items-center gap-2">
               <span className="text-sm">
@@ -114,7 +113,6 @@ const PricingModelsTable = ({
         {
           header: 'Products',
           accessorKey: 'productsCount',
-          width: '30%',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.productsCount}</span>
           ),
@@ -122,7 +120,6 @@ const PricingModelsTable = ({
         {
           header: 'ID',
           accessorKey: 'pricingModel.id',
-          width: '30%',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell
               copyText={cellData.pricingModel.id}

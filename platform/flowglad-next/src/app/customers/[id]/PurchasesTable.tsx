@@ -121,7 +121,6 @@ const PurchasesTable = ({
               </span>
             )
           },
-          width: '18%',
         },
         {
           header: 'Status',
@@ -129,7 +128,6 @@ const PurchasesTable = ({
           cell: ({ row: { original: cellData } }) => {
             return <PurchaseStatusCell purchase={cellData.purchase} />
           },
-          width: '10%',
         },
         {
           header: 'Revenue',
@@ -142,7 +140,6 @@ const PurchasesTable = ({
               )}
             </span>
           ),
-          width: '12%',
         },
         {
           header: 'Customer',
@@ -154,7 +151,6 @@ const PurchasesTable = ({
                 : cellData.customer.name}
             </span>
           ),
-          width: '28%',
         },
         {
           header: 'Purchase Date',
@@ -166,7 +162,6 @@ const PurchasesTable = ({
                 : '-'}
             </>
           ),
-          width: '14%',
         },
         {
           header: 'ID',
@@ -176,7 +171,6 @@ const PurchasesTable = ({
               {cellData.purchase.id}
             </CopyableTextTableCell>
           ),
-          width: '10%',
         },
         {
           id: '_',

@@ -159,7 +159,6 @@ const InvoicesTable = ({
         {
           header: 'Amount',
           accessorKey: 'amount',
-          width: '10%',
           cell: ({ row: { original: cellData } }) => (
             <>
               <span className="font-bold text-sm">
@@ -189,7 +188,6 @@ const InvoicesTable = ({
         {
           header: 'Due',
           accessorKey: 'due',
-          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>
               {cellData.invoice.dueDate
@@ -201,7 +199,6 @@ const InvoicesTable = ({
         {
           header: 'Created',
           accessorKey: 'createdAt',
-          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.invoice.createdAt)}</>
           ),
@@ -209,7 +206,6 @@ const InvoicesTable = ({
         {
           header: 'ID',
           accessorKey: 'invoice.id',
-          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.invoice.id}>
               {cellData.invoice.id}
@@ -218,7 +214,6 @@ const InvoicesTable = ({
         },
         {
           id: '_',
-          width: '10%',
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               invoice={cellData.invoice}

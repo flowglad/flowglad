@@ -16,7 +16,6 @@ import MultiSelect, { Option } from './MultiSelect'
 import StatusBadge from '../StatusBadge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-// import { MultiSelect } from '@/components/ion/ui/MultiSelect'
 
 const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateWebhookInput>()
