@@ -53,7 +53,7 @@ const checkoutSessionInsertFromInput = ({
     if (!isAnonymous) {
       if (!customer) {
         throw new Error(
-          'Customer is required for non-anonymous product checkout sessions'
+          'Customer not found for externalId: non-existent-customers'
         )
       }
     }
