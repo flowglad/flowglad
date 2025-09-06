@@ -2,7 +2,6 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { redirect } from 'next/navigation'
 
 interface BillingPortalRedirectPageProps {

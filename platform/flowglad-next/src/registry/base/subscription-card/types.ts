@@ -4,6 +4,12 @@ export type SubscriptionStatus =
   | 'past_due'
   | 'trialing'
   | 'credit_trial'
+  | 'inactive'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'past_due'
+  | 'paused'
+  | 'unpaid'
 
 export interface SubscriptionItem {
   id: string

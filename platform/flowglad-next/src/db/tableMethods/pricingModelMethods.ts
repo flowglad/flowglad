@@ -317,6 +317,7 @@ export const selectPricingModelForCustomer = async (
       { isDefault: true, organizationId: customer.organizationId },
       transaction
     )
+
   return {
     ...pricingModel,
     products: pricingModel.products.filter(

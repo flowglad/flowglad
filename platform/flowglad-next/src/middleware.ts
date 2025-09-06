@@ -96,9 +96,15 @@ export const middlewareLogic = (
     pathName,
     customerBillingPortalOrganizationId,
   } = params
-
   if (!sessionCookie && isProtectedRoute) {
+    console.log(
+      'sessionCookie is not set and isProtectedRoute is true'
+    )
     if (pathName.startsWith('/billing-portal/')) {
+      console.log(
+        'redirecting to billing portal sign-in because sessionCookie is not set and pathName starts with /billing-portal/${customerBillingPortalOrganizationId}'
+      )
+
       const organizationId = pathName.split('/')[2]
       return {
         proceed: false,
@@ -108,6 +114,10 @@ export const middlewareLogic = (
         },
       }
     }
+    console.log(
+      'redirecting to sign-in because sessionCookie is not set and pathName does not start with /billing-portal/${customerBillingPortalOrganizationId}'
+    )
+
     return {
       proceed: false,
       redirect: {
@@ -119,10 +129,15 @@ export const middlewareLogic = (
 
   if (
     customerBillingPortalOrganizationId &&
-    !pathName.startsWith('/billing-portal/') &&
+    !pathName.startsWith(
+      `/billing-portal/${customerBillingPortalOrganizationId}`
+    ) &&
     isProtectedRoute &&
     !pathName.startsWith('/api/trpc/customerBillingPortal.')
   ) {
+    console.log(
+      'redirecting to billing portal because customerBillingPortalOrganizationId is set and pathName does not start with /billing-portal/${customerBillingPortalOrganizationId}'
+    )
     return {
       proceed: false,
       redirect: {
@@ -131,7 +146,6 @@ export const middlewareLogic = (
       },
     }
   }
-
   return { proceed: true }
 }
 
@@ -157,14 +171,14 @@ export default async function middleware(req: NextRequest) {
   const pathName = req.nextUrl.pathname
   const customerBillingPortalOrganizationId =
     await getCustomerBillingPortalOrganizationId()
-  const logicResult = middlewareLogic({
+  const logicParams = {
     sessionCookie,
     isProtectedRoute,
     pathName,
     customerBillingPortalOrganizationId,
     req: { nextUrl: req.url },
-  })
-
+  }
+  const logicResult = middlewareLogic(logicParams)
   if (!logicResult.proceed) {
     return NextResponse.redirect(
       new URL(logicResult.redirect.url, req.url),
