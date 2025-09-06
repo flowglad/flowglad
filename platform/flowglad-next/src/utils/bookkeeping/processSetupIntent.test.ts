@@ -245,15 +245,17 @@ describe('Process setup intent', async () => {
     })
 
     it('throws an error when metadata type is not CheckoutSession', async () => {
+      const metadata: StripeIntentMetadata = {
+        type: IntentMetadataType.BillingRun,
+        billingRunId: `br_${core.nanoid()}`,
+        billingPeriodId: `bp_${core.nanoid()}`,
+      }
       const invalidSetupIntent = {
         ...mockSucceededSetupIntent({
           checkoutSessionId: checkoutSession.id,
           stripeCustomerId: customer.stripeCustomerId!,
         }),
-        metadata: {
-          type: IntentMetadataType.Invoice,
-          invoiceId: `inv_${core.nanoid()}`,
-        },
+        metadata,
       }
 
       await expect(
@@ -845,8 +847,9 @@ describe('Process setup intent', async () => {
           stripeCustomerId: customer.stripeCustomerId!,
         }),
         metadata: {
-          type: IntentMetadataType.Invoice,
-          invoiceId: `inv_${core.nanoid()}`,
+          type: IntentMetadataType.BillingRun,
+          billingRunId: `br_${core.nanoid()}`,
+          billingPeriodId: `bp_${core.nanoid()}`,
         },
       }
 

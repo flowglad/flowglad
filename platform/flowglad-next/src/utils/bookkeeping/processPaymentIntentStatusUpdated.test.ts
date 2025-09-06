@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
   CurrencyCode,
   InvoiceStatus,
   PaymentStatus,
@@ -15,7 +17,9 @@ import { Payment } from '@/db/schema/payments'
 import {
   setupBillingPeriod,
   setupBillingRun,
+  setupCheckoutSession,
   setupCustomer,
+  setupFeeCalculation,
   setupInvoice,
   setupOrg,
   setupPayment,
@@ -266,8 +270,8 @@ describe('Process payment intent status updated', async () => {
         created: 123456,
         status: 'succeeded',
         metadata: {
-          invoiceId: invoice.id,
-          type: IntentMetadataType.Invoice,
+          billingRunId: `br_${core.nanoid()}`,
+          type: IntentMetadataType.BillingRun,
         },
         billing_details: { address: { country: 'US' } },
       }
@@ -313,8 +317,8 @@ describe('Process payment intent status updated', async () => {
         created: 123456,
         status: 'succeeded',
         metadata: {
-          _: invoice.id,
-          type: IntentMetadataType.Invoice,
+          _: `cs_${core.nanoid()}`,
+          type: IntentMetadataType.CheckoutSession,
         },
         billing_details: { address: { country: 'US' } },
       }
@@ -390,8 +394,8 @@ describe('Process payment intent status updated', async () => {
         amount: 4000,
         status: 'succeeded',
         metadata: {
-          invoiceId: invoice.id,
-          type: IntentMetadataType.Invoice,
+          billingRunId: `br_${core.nanoid()}`,
+          type: IntentMetadataType.BillingRun,
         },
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
@@ -399,9 +403,24 @@ describe('Process payment intent status updated', async () => {
         },
         billing_details: { address: { country: 'US' } },
       }
-      const fakeMetadata: any = {
-        invoiceId: invoice.id,
-        type: IntentMetadataType.Invoice,
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: CheckoutSessionStatus.Succeeded,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: paymentMethod.livemode,
+        priceId: price.id,
+      })
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: checkoutSession.livemode,
+      })
+      const fakeMetadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
       }
       const result = await adminTransaction(async ({ transaction }) =>
         upsertPaymentForStripeCharge(

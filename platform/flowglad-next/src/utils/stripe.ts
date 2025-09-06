@@ -523,7 +523,6 @@ export const getPaymentIntent = async (paymentIntentId: string) => {
 export type StripeIntent = Stripe.PaymentIntent | Stripe.SetupIntent
 
 export enum IntentMetadataType {
-  Invoice = 'invoice',
   CheckoutSession = 'checkout_session',
   BillingRun = 'billing_run',
 }
