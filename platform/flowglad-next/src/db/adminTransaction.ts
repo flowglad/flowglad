@@ -3,10 +3,7 @@ import db from './client'
 import { sql } from 'drizzle-orm'
 import { isNil } from '@/utils/core'
 import { Event } from './schema/events'
-import {
-  bulkInsertOrDoNothingEvents,
-  bulkInsertOrDoNothingEventsByHash,
-} from './tableMethods/eventMethods'
+import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 
 // New imports for ledger and transaction output types
 import { TransactionOutput } from './transactionEnhacementTypes'

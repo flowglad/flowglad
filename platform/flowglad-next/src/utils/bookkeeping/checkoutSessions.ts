@@ -589,7 +589,7 @@ export const processStripeChargeForCheckoutSession = async (
   }
   let invoice: Invoice.Record | null = null
   if (!checkoutSession) {
-    throw new Error('No purchase session found for payment intent')
+    throw new Error('No checkout session found for payment intent')
   }
   const checkoutSessionStatus =
     checkoutSessionStatusFromStripeCharge(charge)
