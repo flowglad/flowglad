@@ -3,7 +3,7 @@ import {
   comprehensiveAdminTransaction,
   eventfulAdminTransaction,
 } from '@/db/adminTransaction'
-import { selectCustomerAndCustomerFromCustomerWhere } from '@/db/tableMethods/customerMethods'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -54,7 +54,7 @@ export const stripePaymentIntentSucceededTask = task({
       invoice,
       membersForOrganization,
       organization,
-      customerAndCustomer,
+      customer,
       payment,
     } = await eventfulAdminTransaction(async ({ transaction }) => {
       const { payment } = await processPaymentIntentStatusUpdated(
@@ -73,13 +73,12 @@ export const stripePaymentIntentSucceededTask = task({
           transaction
         )
 
-      const [customerAndCustomer] =
-        await selectCustomerAndCustomerFromCustomerWhere(
-          {
-            id: purchase.customerId,
-          },
-          transaction
-        )
+      const [customer] = await selectCustomers(
+        {
+          id: purchase.customerId,
+        },
+        transaction
+      )
 
       const organization = await selectOrganizationById(
         purchase.organizationId,
@@ -101,7 +100,7 @@ export const stripePaymentIntentSucceededTask = task({
         invoiceLineItems: invoice.invoiceLineItems,
         purchase,
         organization,
-        customerAndCustomer,
+        customer,
         membersForOrganization,
         payment,
       }
@@ -116,8 +115,8 @@ export const stripePaymentIntentSucceededTask = task({
             object: EventNoun.Payment,
             id: payment.id,
             customer: {
-              id: customerAndCustomer.customer.id,
-              externalId: customerAndCustomer.customer.externalId,
+              id: customer.id,
+              externalId: customer.externalId,
             },
           },
           submittedAt: timestamp,
@@ -144,7 +143,6 @@ export const stripePaymentIntentSucceededTask = task({
      * Send the organization payment notification email
      */
     logger.info('Sending organization payment notification email')
-    const customer = customerAndCustomer.customer
     await sendOrganizationPaymentNotificationEmail({
       to: membersForOrganization.map(({ user }) => user.email ?? ''),
       amount: payload.data.object.amount,

@@ -72,21 +72,6 @@ export const updateCustomer = createUpdateFunction(
   config
 )
 
-export const selectCustomerAndCustomerFromCustomerWhere = async (
-  whereConditions: Partial<Customer.Record>,
-  transaction: DbTransaction
-) => {
-  const result = await transaction
-    .select({
-      customer: customersTable,
-    })
-    .from(customersTable)
-    .where(whereClauseFromObject(customersTable, whereConditions))
-  return result.map((row) => ({
-    customer: customersSelectSchema.parse(row.customer),
-  }))
-}
-
 export const selectCustomerAndCustomerTableRows = async (
   whereConditions: Partial<Customer.Record>,
   transaction: DbTransaction
