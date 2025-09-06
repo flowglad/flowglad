@@ -5,11 +5,21 @@ import {
   updateCustomer,
   selectCustomerAndCustomerTableRows,
   setUserIdForCustomerRecords,
+  selectCustomerById,
+  insertCustomer,
 } from './customerMethods'
-import { setupOrg, setupCustomer, setupUserAndApiKey } from '@/../seedDatabase'
+import {
+  setupOrg,
+  setupCustomer,
+  setupUserAndApiKey,
+} from '@/../seedDatabase'
 import { selectCustomers } from './customerMethods'
 import core from '@/utils/core'
-import { InferredCustomerStatus, Customer } from '@/db/schema/customers'
+import {
+  InferredCustomerStatus,
+  Customer,
+  customers,
+} from '@/db/schema/customers'
 import { setupPurchase } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { UserRecord } from '@/db/schema/users'
@@ -291,20 +301,20 @@ describe('setUserIdForCustomerRecords', () => {
     // Set up organization
     const orgData = await setupOrg()
     organization = orgData.organization
-    
+
     // Set up users
     const userData1 = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: true,
     })
     user1 = userData1.user
-    
+
     const userData2 = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: true,
     })
     user2 = userData2.user
-    
+
     targetEmail = `test+${core.nanoid()}@test.com`
   })
 
@@ -400,7 +410,7 @@ describe('setUserIdForCustomerRecords', () => {
 
     expect(targetEmailCustomers).toHaveLength(1)
     expect(targetEmailCustomers[0].userId).toBe(user1.id)
-    
+
     expect(differentEmailCustomers).toHaveLength(1)
     expect(differentEmailCustomers[0].userId).toBeNull()
   })
@@ -411,7 +421,7 @@ describe('setUserIdForCustomerRecords', () => {
       organizationId: organization.id,
       email: targetEmail,
     })
-    
+
     // First, set userId to user2
     await adminTransaction(async ({ transaction }) => {
       await updateCustomer(
@@ -422,7 +432,7 @@ describe('setUserIdForCustomerRecords', () => {
         transaction
       )
     })
-    
+
     // Verify initial userId is set to user2
     const customerBeforeUpdate = await adminTransaction(
       async ({ transaction }) => {
@@ -461,7 +471,7 @@ describe('setUserIdForCustomerRecords', () => {
 
   it('should handle case when no customers exist with the specified email', async () => {
     const nonExistentEmail = `nonexistent+${core.nanoid()}@test.com`
-    
+
     // Create a customer with different email to ensure table is not empty
     await setupCustomer({
       organizationId: organization.id,
@@ -533,10 +543,758 @@ describe('setUserIdForCustomerRecords', () => {
     )
 
     expect(updatedCustomers).toHaveLength(2)
-    const org1Customer = updatedCustomers.find(c => c.organizationId === organization.id)
-    const org2Customer = updatedCustomers.find(c => c.organizationId === organization2.id)
-    
+    const org1Customer = updatedCustomers.find(
+      (c) => c.organizationId === organization.id
+    )
+    const org2Customer = updatedCustomers.find(
+      (c) => c.organizationId === organization2.id
+    )
+
     expect(org1Customer?.userId).toBe(user1.id)
     expect(org2Customer?.userId).toBe(user1.id)
+  })
+})
+
+describe('Customer uniqueness constraints', () => {
+  let organization1: Organization.Record
+  let organization2: Organization.Record
+
+  beforeEach(async () => {
+    // Set up two organizations for testing cross-org scenarios
+    const org1Data = await setupOrg()
+    organization1 = org1Data.organization
+
+    const org2Data = await setupOrg()
+    organization2 = org2Data.organization
+  })
+
+  describe('organizationId/externalId/livemode uniqueness constraint', () => {
+    it('should allow inserting customers with the same externalId in different organizations', async () => {
+      const sharedExternalId = `ext_123_${core.nanoid()}`
+
+      // Create customer in organization1
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Create customer with same externalId in organization2
+      const customer2 = await setupCustomer({
+        organizationId: organization2.id,
+        externalId: sharedExternalId,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Verify both customers were created successfully
+      expect(customer1).toBeDefined()
+      expect(customer2).toBeDefined()
+      expect(customer1.externalId).toBe(sharedExternalId)
+      expect(customer2.externalId).toBe(sharedExternalId)
+      expect(customer1.organizationId).toBe(organization1.id)
+      expect(customer2.organizationId).toBe(organization2.id)
+    })
+
+    it('should allow inserting customers with the same externalId in the same organization but different livemode values', async () => {
+      const sharedExternalId = `ext_456_${core.nanoid()}`
+
+      // Create customer with livemode=true
+      const customerLive = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer_live_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Create customer with same externalId but livemode=false
+      const customerTest = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer_test_${core.nanoid()}@test.com`,
+        livemode: false,
+      })
+
+      // Verify both customers were created successfully
+      expect(customerLive).toBeDefined()
+      expect(customerTest).toBeDefined()
+      expect(customerLive.externalId).toBe(sharedExternalId)
+      expect(customerTest.externalId).toBe(sharedExternalId)
+      expect(customerLive.organizationId).toBe(organization1.id)
+      expect(customerTest.organizationId).toBe(organization1.id)
+      expect(customerLive.livemode).toBe(true)
+      expect(customerTest.livemode).toBe(false)
+    })
+
+    it('should prevent inserting duplicate customers with the same organizationId, externalId, and livemode', async () => {
+      const duplicateExternalId = `ext_789_${core.nanoid()}`
+
+      // Create first customer
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: duplicateExternalId,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      expect(customer1).toBeDefined()
+      expect(customer1.externalId).toBe(duplicateExternalId)
+
+      // Attempt to create duplicate customer
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: duplicateExternalId,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Duplicate Customer',
+              livemode: true,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should allow updating a customer externalId if it does not conflict with existing constraints', async () => {
+      // Create two customers
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_001_${core.nanoid()}`,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const customer2 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_002_${core.nanoid()}`,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const newExternalId = `ext_003_${core.nanoid()}`
+
+      // Update customer2's externalId
+      const updatedCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return await updateCustomer(
+            {
+              id: customer2.id,
+              externalId: newExternalId,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify the update succeeded
+      expect(updatedCustomer.externalId).toBe(newExternalId)
+      expect(updatedCustomer.id).toBe(customer2.id)
+    })
+
+    it('should prevent updating a customer externalId to a value that violates the uniqueness constraint', async () => {
+      const externalId1 = `ext_001_${core.nanoid()}`
+      const externalId2 = `ext_002_${core.nanoid()}`
+
+      // Create two customers
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: externalId1,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const customer2 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: externalId2,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Attempt to update customer2's externalId to match customer1's
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer2.id,
+              externalId: externalId1, // This should violate the constraint
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+
+      // Verify customer2 still has its original externalId
+      const unchangedCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectCustomerById(customer2.id, transaction)
+        }
+      )
+      expect(unchangedCustomer.externalId).toBe(externalId2)
+    })
+
+    it('should allow multiple customers with different externalIds in the same organization and livemode', async () => {
+      // Create three customers with different externalIds
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_a_${core.nanoid()}`,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const customer2 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_b_${core.nanoid()}`,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const customer3 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_c_${core.nanoid()}`,
+        email: `customer3_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Verify all customers were created successfully
+      expect(customer1).toBeDefined()
+      expect(customer2).toBeDefined()
+      expect(customer3).toBeDefined()
+
+      // Verify all belong to the same organization with same livemode
+      expect(customer1.organizationId).toBe(organization1.id)
+      expect(customer2.organizationId).toBe(organization1.id)
+      expect(customer3.organizationId).toBe(organization1.id)
+
+      expect(customer1.livemode).toBe(true)
+      expect(customer2.livemode).toBe(true)
+      expect(customer3.livemode).toBe(true)
+
+      // Verify each has a unique externalId
+      expect(customer1.externalId).not.toBe(customer2.externalId)
+      expect(customer1.externalId).not.toBe(customer3.externalId)
+      expect(customer2.externalId).not.toBe(customer3.externalId)
+    })
+
+    it('should enforce uniqueness constraint across different insertion methods', async () => {
+      const sharedExternalId = `ext_method_${core.nanoid()}`
+
+      // Create first customer using insertCustomer
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: sharedExternalId,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(customer1).toBeDefined()
+      expect(customer1.externalId).toBe(sharedExternalId)
+
+      // Attempt to create duplicate using raw insert
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await transaction.insert(customers).values({
+            id: `cust_${core.nanoid()}`,
+            organizationId: organization1.id,
+            externalId: sharedExternalId,
+            email: `customer2_${core.nanoid()}@test.com`,
+            name: 'Customer 2',
+            livemode: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should handle null values in the constraint properly', async () => {
+      // Attempt to insert a customer without an externalId should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await insertCustomer(
+            {
+              organizationId: organization1.id,
+              // @ts-expect-error - intentionally omitting required field for test
+              externalId: undefined,
+              email: `customer_${core.nanoid()}@test.com`,
+              name: 'Customer without externalId',
+              livemode: true,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+
+      // Also test with explicit null - this should fail at the database level
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          // Attempt raw SQL to bypass TypeScript checks
+          // @ts-expect-error - intentionally setting null for test
+          await transaction.insert(customers).values({
+            id: `cust_${core.nanoid()}`,
+            organizationId: organization1.id,
+            externalId: null,
+            email: `customer_${core.nanoid()}@test.com`,
+            name: 'Customer with null externalId',
+            livemode: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        })
+      ).rejects.toThrow()
+    })
+  })
+
+  describe('organizationId/invoiceNumberBase/livemode uniqueness constraint', () => {
+    it('should allow customers with the same invoiceNumberBase in different organizations', async () => {
+      const sharedInvoiceBase = `INV${core.nanoid().slice(0, 6)}`
+
+      // Create customer in organization1
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              invoiceNumberBase: sharedInvoiceBase,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Create customer with same invoiceNumberBase in organization2
+      const customer2 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization2.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Customer 2',
+              invoiceNumberBase: sharedInvoiceBase,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify both customers were created successfully
+      expect(customer1).toBeDefined()
+      expect(customer2).toBeDefined()
+      expect(customer1.invoiceNumberBase).toBe(sharedInvoiceBase)
+      expect(customer2.invoiceNumberBase).toBe(sharedInvoiceBase)
+      expect(customer1.organizationId).not.toBe(
+        customer2.organizationId
+      )
+    })
+
+    it('should allow customers with the same invoiceNumberBase in same organization but different livemode', async () => {
+      const sharedInvoiceBase = `INV${core.nanoid().slice(0, 6)}`
+
+      // Create customer with livemode=true
+      const customerLive = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer_live_${core.nanoid()}@test.com`,
+              name: 'Customer Live',
+              invoiceNumberBase: sharedInvoiceBase,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Create customer with same invoiceNumberBase but livemode=false
+      const customerTest = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer_test_${core.nanoid()}@test.com`,
+              name: 'Customer Test',
+              invoiceNumberBase: sharedInvoiceBase,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify both customers were created successfully
+      expect(customerLive).toBeDefined()
+      expect(customerTest).toBeDefined()
+      expect(customerLive.invoiceNumberBase).toBe(sharedInvoiceBase)
+      expect(customerTest.invoiceNumberBase).toBe(sharedInvoiceBase)
+      expect(customerLive.livemode).toBe(true)
+      expect(customerTest.livemode).toBe(false)
+    })
+
+    it('should prevent duplicate invoiceNumberBase in same organization and livemode', async () => {
+      const duplicateInvoiceBase = `INV${core.nanoid().slice(0, 6)}`
+
+      // Create first customer
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              invoiceNumberBase: duplicateInvoiceBase,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(customer1).toBeDefined()
+      expect(customer1.invoiceNumberBase).toBe(duplicateInvoiceBase)
+
+      // Attempt to create duplicate customer
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Customer 2',
+              invoiceNumberBase: duplicateInvoiceBase,
+              livemode: true,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should auto-generate unique invoiceNumberBase when not provided', async () => {
+      // Create multiple customers without specifying invoiceNumberBase
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_${core.nanoid()}`,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const customer2 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_${core.nanoid()}`,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const customer3 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: `ext_${core.nanoid()}`,
+        email: `customer3_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Verify all customers have unique invoiceNumberBase values
+      expect(customer1.invoiceNumberBase).toBeDefined()
+      expect(customer2.invoiceNumberBase).toBeDefined()
+      expect(customer3.invoiceNumberBase).toBeDefined()
+      expect(customer1.invoiceNumberBase).not.toBe(
+        customer2.invoiceNumberBase
+      )
+      expect(customer1.invoiceNumberBase).not.toBe(
+        customer3.invoiceNumberBase
+      )
+      expect(customer2.invoiceNumberBase).not.toBe(
+        customer3.invoiceNumberBase
+      )
+    })
+  })
+
+  describe('stripeCustomerId uniqueness constraint', () => {
+    it('should enforce global uniqueness for stripeCustomerId across all organizations', async () => {
+      const stripeCustomerId = `cus_${core.nanoid()}`
+
+      // Create customer with stripeCustomerId in organization1
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              stripeCustomerId: stripeCustomerId,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(customer1).toBeDefined()
+      expect(customer1.stripeCustomerId).toBe(stripeCustomerId)
+
+      // Attempt to create customer with same stripeCustomerId in different organization
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await insertCustomer(
+            {
+              organizationId: organization2.id, // Different organization
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Customer 2',
+              stripeCustomerId: stripeCustomerId, // Same Stripe ID
+              livemode: true,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should enforce global uniqueness for stripeCustomerId across livemode values', async () => {
+      const stripeCustomerId = `cus_${core.nanoid()}`
+
+      // Create customer with stripeCustomerId with livemode=true
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              stripeCustomerId: stripeCustomerId,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(customer1).toBeDefined()
+      expect(customer1.stripeCustomerId).toBe(stripeCustomerId)
+
+      // Attempt to create customer with same stripeCustomerId with livemode=false
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Customer 2',
+              stripeCustomerId: stripeCustomerId, // Same Stripe ID
+              livemode: false, // Different livemode
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('should allow multiple customers with different stripeCustomerIds', async () => {
+      // Create three customers with different stripeCustomerIds
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              stripeCustomerId: `cus_${core.nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      const customer2 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization2.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Customer 2',
+              stripeCustomerId: `cus_${core.nanoid()}`,
+              livemode: false,
+            },
+            transaction
+          )
+        }
+      )
+
+      const customer3 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer3_${core.nanoid()}@test.com`,
+              name: 'Customer 3',
+              stripeCustomerId: `cus_${core.nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify all customers were created successfully
+      expect(customer1).toBeDefined()
+      expect(customer2).toBeDefined()
+      expect(customer3).toBeDefined()
+
+      // Verify each has a unique stripeCustomerId
+      expect(customer1.stripeCustomerId).not.toBe(
+        customer2.stripeCustomerId
+      )
+      expect(customer1.stripeCustomerId).not.toBe(
+        customer3.stripeCustomerId
+      )
+      expect(customer2.stripeCustomerId).not.toBe(
+        customer3.stripeCustomerId
+      )
+    })
+
+    it('should allow null stripeCustomerId values', async () => {
+      // Create multiple customers without stripeCustomerId - use insertCustomer directly
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              livemode: true,
+              // Explicitly not including stripeCustomerId to get null
+            },
+            transaction
+          )
+        }
+      )
+
+      const customer2 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Customer 2',
+              livemode: true,
+              // Explicitly not including stripeCustomerId to get null
+            },
+            transaction
+          )
+        }
+      )
+
+      const customer3 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization2.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer3_${core.nanoid()}@test.com`,
+              name: 'Customer 3',
+              livemode: false,
+              // Explicitly not including stripeCustomerId to get null
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify all customers were created successfully with null stripeCustomerId
+      expect(customer1).toBeDefined()
+      expect(customer2).toBeDefined()
+      expect(customer3).toBeDefined()
+      expect(customer1.stripeCustomerId).toBeNull()
+      expect(customer2.stripeCustomerId).toBeNull()
+      expect(customer3.stripeCustomerId).toBeNull()
+    })
+
+    it('should prevent updating to a duplicate stripeCustomerId', async () => {
+      const stripeId1 = `cus_${core.nanoid()}`
+      const stripeId2 = `cus_${core.nanoid()}`
+
+      // Create two customers with different stripeCustomerIds
+      const customer1 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer1_${core.nanoid()}@test.com`,
+              name: 'Customer 1',
+              stripeCustomerId: stripeId1,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      const customer2 = await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: organization2.id,
+              externalId: `ext_${core.nanoid()}`,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Customer 2',
+              stripeCustomerId: stripeId2,
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Attempt to update customer2 to have customer1's stripeCustomerId
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer2.id,
+              stripeCustomerId: stripeId1, // This should violate the constraint
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+
+      // Verify customer2 still has its original stripeCustomerId
+      const unchangedCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectCustomerById(customer2.id, transaction)
+        }
+      )
+      expect(unchangedCustomer.stripeCustomerId).toBe(stripeId2)
+    })
   })
 })

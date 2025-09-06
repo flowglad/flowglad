@@ -22,9 +22,11 @@ import NumberInput from '@/components/ion/NumberInput'
 import StatusBadge from '@/components/StatusBadge'
 import { Switch } from '@/components/ui/switch'
 
-import { ControlledCurrencyInput } from './ControlledCurrencyInput'
 import { Percent } from 'lucide-react'
 import { core } from '@/utils/core'
+import { CurrencyInput } from '../ion/CurrencyInput'
+import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 export default function DiscountFormFields({
   edit = false,
@@ -41,9 +43,12 @@ export default function DiscountFormFields({
   const amountType = watch('discount.amountType')
   const discount = watch('discount')
   if (!core.IS_PROD) {
+    const discount = watch('discount')
+    console.log('===discount', discount)
     // eslint-disable-next-line no-console
     console.log('===errors', errors)
   }
+  const { organization } = useAuthenticatedContext()
   return (
     <div className="space-y-4">
       <FormField
@@ -146,11 +151,28 @@ export default function DiscountFormFields({
             }}
           />
         ) : (
-          <ControlledCurrencyInput
-            label="Amount"
-            name="discount.amount"
+          <Controller
             control={control}
-            className="flex-1"
+            name="discount.amount"
+            render={({ field }) => (
+              <CurrencyInput
+                value={field.value?.toString() ?? ''}
+                onValueChange={(value) => {
+                  if (value.floatValue) {
+                    field.onChange(
+                      humanReadableCurrencyAmountToStripeCurrencyAmount(
+                        organization!.defaultCurrency,
+                        Math.ceil(value.floatValue * 100) / 100
+                      )
+                    )
+                  } else {
+                    field.onChange(0)
+                  }
+                }}
+                className="flex-1"
+                label="Amount"
+              />
+            )}
           />
         )}
       </div>

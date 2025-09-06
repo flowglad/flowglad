@@ -59,13 +59,20 @@ const InvoiceFormFields = ({
   editMode?: boolean
 }) => {
   const { organization } = useAuthenticatedContext()
-  const { data } = trpc.customers.list.useQuery({
-    cursor: encodeCursor({
-      parameters: {
-        organizationId: organization!.id,
-      },
-    }),
-  })
+  const { data } = trpc.customers.list.useQuery(
+    {
+      cursor: encodeCursor({
+        parameters: {
+          organizationId: organization!.id,
+        },
+      }),
+      limit: '100',
+    },
+    {
+      refetchOnMount: 'always',
+      staleTime: 0,
+    }
+  )
 
   const { refetch } = trpc.organizations.getMembers.useQuery(
     {},

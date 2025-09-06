@@ -5,7 +5,7 @@ import { useAuthContext } from '@/contexts/authContext'
 export const useListPricingModelsQuery = () => {
   const { organization } = useAuthContext()
   return trpc.pricingModels.list.useQuery({
-    limit: 100,
+    limit: `100`,
     cursor: encodeCursor({
       parameters: {
         organizationId: organization!.id,

@@ -1,0 +1,1 @@
+ALTER TABLE "better_auth_user" ADD COLUMN "banned" boolean;

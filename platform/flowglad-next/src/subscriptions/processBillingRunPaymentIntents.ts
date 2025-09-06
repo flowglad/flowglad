@@ -33,6 +33,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
+  sendOrganizationPaymentFailedNotificationEmail,
   sendOrganizationPaymentNotificationEmail,
   sendPaymentFailedEmail,
 } from '@/utils/email'
@@ -133,6 +134,8 @@ interface BillingRunFailureNotificationParams
 const processFailedNotifications = async (
   params: BillingRunFailureNotificationParams
 ) => {
+  const organizationName = params.organization.name
+  const currency = params.invoice.currency
   await sendPaymentFailedEmail({
     organizationName: params.organization.name,
     to: [params.customer.email],
@@ -144,7 +147,20 @@ const processFailedNotifications = async (
       quantity: item.quantity,
     })),
     retryDate: params.retryDate,
-    currency: params.invoice.currency,
+    currency,
+  })
+
+  await sendOrganizationPaymentFailedNotificationEmail({
+    to: params.organizationMemberUsers
+      .filter((user) => user.email)
+      .map((user) => user.email!),
+    organizationName,
+    currency,
+    customerId: params.customer.id,
+    customerName: params.customer.name,
+    amount: params.invoiceLineItems.reduce((acc, item) => {
+      return item.price * item.quantity + acc
+    }, 0),
   })
 }
 
@@ -246,7 +262,6 @@ export const processPaymentIntentEventForBillingRun = async (
 
   const billingRunStatus =
     paymentIntentStatusToBillingRunStatus[event.data.object.status]
-
   billingRun = await updateBillingRun(
     {
       id: billingRun.id,

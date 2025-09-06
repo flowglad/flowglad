@@ -1,17 +1,18 @@
 import { adminTransaction } from './adminTransaction'
 import { verifyKey } from '@unkey/api'
 import db from './client'
+import { z } from 'zod'
 import { and, asc, desc, eq, or, sql } from 'drizzle-orm'
 import { type Session } from '@supabase/supabase-js'
 import core from '@/utils/core'
 import { memberships } from './schema/memberships'
-import { users } from './schema/users'
+import { users, usersSelectSchema } from './schema/users'
 import { selectApiKeys } from './tableMethods/apiKeyMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
 import { FlowgladApiKeyType } from '@/types'
 import { JwtPayload } from 'jsonwebtoken'
 import { headers } from 'next/headers'
-import { customers } from './schema/customers'
+import { customers, customersSelectSchema } from './schema/customers'
 import { ApiKey } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
 import { auth, getSession } from '@/utils/auth'
@@ -262,14 +263,14 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
   }
 }
 
-export const dbInfoForCustomerBillingPortal = async ({
+export const requestingCustomerAndUser = async ({
   betterAuthId,
   organizationId,
 }: {
   betterAuthId: string
   organizationId: string
-}): Promise<DatabaseAuthenticationInfo> => {
-  const [result] = await db
+}) => {
+  const result = await db
     .select({
       customer: customers,
       user: users,
@@ -282,6 +283,27 @@ export const dbInfoForCustomerBillingPortal = async ({
         eq(customers.organizationId, organizationId)
       )
     )
+    .limit(1)
+  return z
+    .object({
+      customer: customersSelectSchema,
+      user: usersSelectSchema,
+    })
+    .array()
+    .parse(result)
+}
+
+export const dbInfoForCustomerBillingPortal = async ({
+  betterAuthId,
+  organizationId,
+}: {
+  betterAuthId: string
+  organizationId: string
+}): Promise<DatabaseAuthenticationInfo> => {
+  const [result] = await requestingCustomerAndUser({
+    betterAuthId,
+    organizationId,
+  })
   if (!result) {
     throw new Error('Customer not found')
   }
