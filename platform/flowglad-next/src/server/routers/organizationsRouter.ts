@@ -345,8 +345,8 @@ const updateFocusedMembership = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const memberships = await adminTransaction(
       async ({ transaction }) => {
-        return selectMembershipAndOrganizationsByBetterAuthUserId(
-          ctx.user!.id,
+        return selectMembershipsAndOrganizationsByMembershipWhere(
+          { userId: ctx.user!.id },
           transaction
         )
       }
