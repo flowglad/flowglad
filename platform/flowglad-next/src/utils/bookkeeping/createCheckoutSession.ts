@@ -37,10 +37,7 @@ const checkoutSessionInsertFromInput = ({
   livemode: boolean
 }): CheckoutSession.Insert => {
   const coreFields = {
-    customerId: customer?.id ?? null,
     organizationId,
-    customerEmail: customer?.email ?? null,
-    customerName: customer?.name ?? null,
     status: CheckoutSessionStatus.Open,
     livemode,
     successUrl: checkoutSessionInput.successUrl,
@@ -48,23 +45,41 @@ const checkoutSessionInsertFromInput = ({
     outputMetadata: checkoutSessionInput.outputMetadata,
     outputName: checkoutSessionInput.outputName,
     automaticallyUpdateSubscriptions: null,
-  }
+  } as const
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    const isAnonymous =
+      'anonymous' in checkoutSessionInput &&
+      checkoutSessionInput.anonymous === true
+    if (!isAnonymous) {
+      if (!customer) {
+        throw new Error(
+          'Customer is required for non-anonymous product checkout sessions'
+        )
+      }
+    }
     return {
       ...coreFields,
       type: CheckoutSessionType.Product,
       invoiceId: null,
       priceId: checkoutSessionInput.priceId,
       targetSubscriptionId: null,
+      customerId: isAnonymous ? null : customer!.id,
+      customerEmail: isAnonymous ? null : customer!.email,
+      customerName: isAnonymous ? null : customer!.name,
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
   ) {
+    if (!customer) {
+      throw new Error(
+        'Customer is required for add payment method checkout sessions'
+      )
+    }
     return {
       ...coreFields,
-      customerId: customer!.id,
-      customerEmail: customer!.email,
-      customerName: customer!.name,
+      customerId: customer.id,
+      customerEmail: customer.email,
+      customerName: customer.name,
       automaticallyUpdateSubscriptions: false,
       type: CheckoutSessionType.AddPaymentMethod,
       targetSubscriptionId:
@@ -74,6 +89,11 @@ const checkoutSessionInsertFromInput = ({
     checkoutSessionInput.type ===
     CheckoutSessionType.ActivateSubscription
   ) {
+    if (!customer) {
+      throw new Error(
+        'Customer is required for activate subscription checkout sessions'
+      )
+    }
     return {
       ...coreFields,
       priceId: checkoutSessionInput.priceId,
@@ -81,6 +101,9 @@ const checkoutSessionInsertFromInput = ({
       targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
       purchaseId: null,
       invoiceId: null,
+      customerId: customer.id,
+      customerEmail: customer.email,
+      customerName: customer.name,
     }
   }
   throw new Error(
