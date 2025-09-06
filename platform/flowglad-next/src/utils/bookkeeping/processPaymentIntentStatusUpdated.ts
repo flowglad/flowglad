@@ -3,6 +3,9 @@ import {
   PaymentStatus,
   CheckoutSessionType,
   Nullish,
+  FlowgladEventType,
+  EventNoun,
+  PurchaseStatus,
 } from '@/types'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { CountryCode } from '@/types'
@@ -36,6 +39,15 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { Event } from '@/db/schema/events'
+import {
+  constructPaymentSucceededEventHash,
+  constructPaymentFailedEventHash,
+  constructPurchaseCompletedEventHash,
+} from '@/utils/eventHelpers'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import { selectCustomerAndCustomerFromCustomerWhere } from '@/db/tableMethods/customerMethods'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
@@ -314,7 +326,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
 export const processPaymentIntentStatusUpdated = async (
   paymentIntent: Stripe.PaymentIntent,
   transaction: DbTransaction
-) => {
+): Promise<TransactionOutput<{ payment: Payment.Record }>> => {
   const metadata = paymentIntent.metadata
   if (!metadata) {
     throw new Error(
@@ -344,10 +356,68 @@ export const processPaymentIntentStatusUpdated = async (
     },
     transaction
   )
+  // Fetch customer data for event payload
+  const purchase = await selectPurchaseById(
+    payment.purchaseId!,
+    transaction
+  )
+  const [customerAndCustomer] =
+    await selectCustomerAndCustomerFromCustomerWhere(
+      { id: purchase.customerId },
+      transaction
+    )
+  const timestamp = new Date()
+  const eventInserts: Event.Insert[] = []
   if (paymentIntent.status === 'succeeded') {
-    await commitPaymentSucceededEvent(payment, transaction)
+    eventInserts.push({
+      type: FlowgladEventType.PaymentSucceeded,
+      occurredAt: timestamp,
+      organizationId: payment.organizationId,
+      livemode: payment.livemode,
+      payload: {
+        object: EventNoun.Payment,
+        id: payment.id,
+        customer: {
+          id: customerAndCustomer.customer.id,
+          externalId: customerAndCustomer.customer.externalId,
+        },
+      },
+      submittedAt: timestamp,
+      hash: constructPaymentSucceededEventHash(payment),
+      metadata: {},
+      processedAt: null,
+    })
   } else if (paymentIntent.status === 'canceled') {
-    await commitPaymentCanceledEvent(payment, transaction)
+    eventInserts.push({
+      type: FlowgladEventType.PaymentFailed,
+      occurredAt: timestamp,
+      organizationId: payment.organizationId,
+      livemode: payment.livemode,
+      payload: {
+        id: payment.id,
+        object: EventNoun.Payment,
+      },
+      submittedAt: timestamp,
+      hash: constructPaymentFailedEventHash(payment),
+      metadata: {},
+      processedAt: null,
+    })
   }
-  return { payment }
+  if (purchase.status === PurchaseStatus.Paid) {
+    eventInserts.push({
+      type: FlowgladEventType.PurchaseCompleted,
+      occurredAt: timestamp,
+      organizationId: payment.organizationId,
+      livemode: payment.livemode,
+      payload: {
+        id: purchase.id,
+        object: EventNoun.Purchase,
+      },
+      submittedAt: timestamp,
+      hash: constructPurchaseCompletedEventHash(purchase),
+      metadata: {},
+      processedAt: null,
+    })
+  }
+  return { result: { payment }, eventsToLog: eventInserts }
 }

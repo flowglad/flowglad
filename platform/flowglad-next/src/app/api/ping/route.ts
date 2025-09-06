@@ -1,3 +1,4 @@
+import { CheckoutSessionType } from '@/types'
 import { core } from '@/utils/core'
 import { NextResponse } from 'next/server'
 

@@ -283,7 +283,9 @@ export const processPaymentIntentEventForBillingRun = async (
     )
   }
 
-  const { payment } = await processPaymentIntentStatusUpdated(
+  const {
+    result: { payment },
+  } = await processPaymentIntentStatusUpdated(
     event.data.object,
     transaction
   )

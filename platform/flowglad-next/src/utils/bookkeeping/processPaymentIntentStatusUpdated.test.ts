@@ -684,7 +684,8 @@ describe('Process payment intent status updated', async () => {
           async ({ transaction }) =>
             processPaymentIntentStatusUpdated(fakePI, transaction)
         )
-        expect(result.payment).toBeDefined()
+        // new return shape wraps result
+        expect(result.result.payment).toBeDefined()
       })
       it('throws an error when no invoice exists for the billing run', async () => {
         const fakePI: any = {

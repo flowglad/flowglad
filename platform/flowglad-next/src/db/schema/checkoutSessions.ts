@@ -685,19 +685,23 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
-const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
-  {
-    type: z.literal(CheckoutSessionType.Product),
-    priceId: z
-      .string()
-      .describe('The ID of the price the customer shall purchase'),
-    quantity: z
-      .number()
-      .optional()
-      .describe(
-        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-      ),
-  }
+const productCheckoutSessionSchema = z.discriminatedUnion(
+  'anonymous',
+  [
+    coreCheckoutSessionSchema.extend({
+      type: z.literal(CheckoutSessionType.Product),
+      priceId: z.string(),
+      quantity: z.number().optional(),
+      anonymous: z.literal(false).optional(),
+    }),
+    coreCheckoutSessionSchema.extend({
+      type: z.literal(CheckoutSessionType.Product),
+      priceId: z.string(),
+      quantity: z.number().optional(),
+      anonymous: z.literal(true),
+      customerExternalId: z.null().optional(),
+    }),
+  ]
 )
 
 const addPaymentMethodCheckoutSessionSchema =

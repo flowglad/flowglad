@@ -60,11 +60,13 @@ const processPaymentIntent = async ({
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
   }
   const { payment, purchase, invoice, checkoutSession } =
-    await adminTransaction(async ({ transaction }) => {
-      const { payment } = await processPaymentIntentStatusUpdated(
-        paymentIntent,
-        transaction
-      )
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const { result, eventsToLog } =
+        await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          transaction
+        )
+      const { payment } = result
       if (!payment.purchaseId) {
         throw new Error(
           `No purchase id found for payment ${payment.id}`
@@ -102,7 +104,10 @@ const processPaymentIntent = async ({
           )
         }
       }
-      return { payment, purchase, checkoutSession, invoice }
+      return {
+        result: { payment, purchase, checkoutSession, invoice },
+        eventsToLog,
+      }
     })
   return {
     purchase,
