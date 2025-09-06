@@ -24,10 +24,7 @@ import {
   IntervalUnit,
   CurrencyCode,
 } from '@/types'
-import {
-  createPaymentIntentForInvoice,
-  createStripeCustomer,
-} from './stripe'
+import { createStripeCustomer } from './stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import core from './core'
@@ -259,104 +256,6 @@ export const purchaseSubscriptionFieldsUpdated = (
     pricePerBillingCycleUpdated ||
     intervalUnitUpdated ||
     invtervalCountUpdated
-  )
-}
-
-export const editOpenPurchase = async (
-  payload: Purchase.Update,
-  { transaction }: AuthenticatedTransactionParams
-) => {
-  const oldPurchase = await selectPurchaseById(
-    payload.id,
-    transaction
-  )
-  const newPrice = await selectPriceById(
-    payload.priceId ?? oldPurchase.priceId,
-    transaction
-  )
-  const purchase = await updatePurchase(payload, transaction)
-  let stripeSetupIntentId: string | null = null
-  let stripePaymentIntentId: string | null = null
-  /**
-   * Important - null is falsy, so we need to check whether bankPaymentOnly is
-   * changing. If not, we use the old value.
-   */
-  const bankPaymentOnly = core.isNil(payload.bankPaymentOnly)
-    ? oldPurchase.bankPaymentOnly
-    : payload.bankPaymentOnly
-
-  if (newPrice.type === PriceType.Subscription) {
-    const oldPrice = await selectPriceById(
-      oldPurchase.priceId,
-      transaction
-    )
-    /**
-     * If the old price was not a subscription, we need to delete the open invoices
-     * because they are no longer valid.
-     */
-    if (oldPrice.type !== PriceType.Subscription) {
-      await deleteOpenInvoicesForPurchase(oldPurchase.id, transaction)
-    }
-  } else {
-    /**
-     * in all other cases, we need to create (or update) a payment intent for the invoice
-     * and then associate that payment intent with the purchase and invoice
-     */
-    const [{ invoiceLineItems, invoice }] =
-      await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-        {
-          purchaseId: purchase.id,
-        },
-        transaction
-      )
-    const customer = await selectCustomerById(
-      purchase.customerId,
-      transaction
-    )
-
-    const organization = await selectOrganizationById(
-      purchase.organizationId,
-      transaction
-    )
-    /**
-     * Create a payment intent for the invoice,
-     * but don't attach it to the invoice directly.
-     * Instead, it should attach to the checkout session,
-     * to enforce our invariant that all payment intents have a corresponding checkout session.
-     */
-    const paymentIntent = await createPaymentIntentForInvoice({
-      invoice: {
-        ...invoice,
-        bankPaymentOnly,
-      },
-      invoiceLineItems,
-      organization,
-      stripeCustomerId: customer.stripeCustomerId!,
-    })
-
-    const openCheckoutSessions =
-      await selectOpenNonExpiredCheckoutSessions(
-        {
-          purchaseId: payload.id,
-        },
-        transaction
-      )
-    if (openCheckoutSessions.length > 0) {
-      await updateCheckoutSessionsForOpenPurchase(
-        {
-          stripePaymentIntentId: paymentIntent.id,
-          purchaseId: payload.id,
-        },
-        transaction
-      )
-    }
-  }
-  return updatePurchase(
-    {
-      id: payload.id,
-      priceType: newPrice.type,
-    },
-    transaction
   )
 }
 

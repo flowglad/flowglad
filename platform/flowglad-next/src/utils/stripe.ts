@@ -528,11 +528,6 @@ export enum IntentMetadataType {
   BillingRun = 'billing_run',
 }
 
-export const invoiceIntentMetadataSchema = z.object({
-  invoiceId: z.string(),
-  type: z.literal(IntentMetadataType.Invoice),
-})
-
 export const checkoutSessionIntentMetadataSchema = z.object({
   checkoutSessionId: z.string(),
   type: z.literal(IntentMetadataType.CheckoutSession),
@@ -546,16 +541,11 @@ export const billingRunIntentMetadataSchema = z.object({
 
 export const stripeIntentMetadataSchema = z
   .discriminatedUnion('type', [
-    invoiceIntentMetadataSchema,
     checkoutSessionIntentMetadataSchema,
     billingRunIntentMetadataSchema,
   ])
   .or(z.undefined())
   .or(z.null())
-
-export type InvoiceStripeIntentMetadata = z.infer<
-  typeof invoiceIntentMetadataSchema
->
 
 export type StripeIntentMetadata = z.infer<
   typeof stripeIntentMetadataSchema
@@ -610,66 +600,6 @@ const stripeConnectTransferDataForOrganization = ({
     on_behalf_of,
     transfer_data,
   }
-}
-
-/**
- * We must always create, not update, a payment intent for an invoice.
- * This is because we cannot send new automatic_payment_methods in an update.
- * @param params
- * @returns
- */
-export const createPaymentIntentForInvoice = async (params: {
-  invoice: Invoice.Record
-  invoiceLineItems: InvoiceLineItem.Record[]
-  organization: Organization.Record
-  stripeCustomerId: string
-}) => {
-  const {
-    invoice,
-    invoiceLineItems,
-    organization,
-    stripeCustomerId,
-  } = params
-  const amount = invoiceLineItems.reduce((acc, item) => {
-    return acc + item.price * item.quantity
-  }, 0)
-  const livemode = invoice.livemode
-  const transferData = stripeConnectTransferDataForOrganization({
-    organization,
-    livemode,
-  })
-
-  const achOnlyParams = unitedStatesBankAccountPaymentMethodOptions(
-    invoice.bankPaymentOnly
-  ) as Partial<Stripe.PaymentIntentCreateParams>
-  const metadata: InvoiceStripeIntentMetadata = {
-    invoiceId: invoice.id,
-    type: IntentMetadataType.Invoice,
-  }
-  const applicationFeeAmount = livemode
-    ? calculatePlatformApplicationFee({
-        organization,
-        subtotal: amount,
-        currency: invoice.currency,
-      })
-    : undefined
-  const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
-    amount,
-    currency: invoice.currency,
-    customer: stripeCustomerId,
-    application_fee_amount: applicationFeeAmount,
-    ...transferData,
-    ...achOnlyParams,
-    metadata,
-  }
-
-  return stripe(livemode).paymentIntents.create(paymentIntentParams)
-}
-
-export const selectinvoiceIdFromMetadata = (
-  metadata: Stripe.Metadata
-) => {
-  return metadata.invoiceId
 }
 
 export const constructStripeWebhookEvent = (params: {

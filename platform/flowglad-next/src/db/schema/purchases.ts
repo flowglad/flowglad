@@ -457,10 +457,6 @@ export const createPurchaseFormSchema = z.object({
   purchase: purchaseClientInsertSchema,
 })
 
-export const editPurchaseFormSchema = z.object({
-  purchase: purchaseClientUpdateSchema,
-})
-
 export const createCustomerOutputSchema = z.object({
   data: z.object({
     customer: customerClientSelectSchema,
