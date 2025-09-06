@@ -126,13 +126,20 @@ export const createInitialInvoiceForPurchase = async (
     transaction
   )
 
-  const invoiceLineItems = await insertInvoiceLineItems(
-    invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
-      ...invoiceLineItemInsert,
-      invoiceId: invoice.id,
-    })),
-    transaction
-  )
+  const invoiceLineItems = existingInvoice
+    ? await selectInvoiceLineItems(
+        {
+          invoiceId: invoice.id,
+        },
+        transaction
+      )
+    : await insertInvoiceLineItems(
+        invoiceLineItemInserts.map((invoiceLineItemInsert) => ({
+          ...invoiceLineItemInsert,
+          invoiceId: invoice.id,
+        })),
+        transaction
+      )
 
   return {
     invoice,
