@@ -6,6 +6,9 @@ import {
   InvoiceStatus,
   PaymentStatus,
   PurchaseStatus,
+  FlowgladEventType,
+  EventNoun,
+  PaymentMethodType,
 } from '@/types'
 import {
   chargeStatusToPaymentStatus,
@@ -14,6 +17,12 @@ import {
   processPaymentIntentStatusUpdated,
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { Payment } from '@/db/schema/payments'
+import { Purchase } from '@/db/schema/purchases'
+import { Product } from '@/db/schema/products'
+import { Price } from '@/db/schema/prices'
+import { PaymentMethod } from '@/db/schema/paymentMethods'
+import { Organization } from '@/db/schema/organizations'
+import { Event } from '@/db/schema/events'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -29,14 +38,31 @@ import {
 } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import {
   safelyUpdateInvoiceStatus,
   selectInvoiceById,
 } from '@/db/tableMethods/invoiceMethods'
-import { IntentMetadataType, StripeIntentMetadata } from '../stripe'
+import {
+  IntentMetadataType,
+  StripeIntentMetadata,
+  getStripeCharge,
+} from '../stripe'
 import core from '../core'
+import { vi } from 'vitest'
+
+// Mock getStripeCharge
+vi.mock('../stripe', async () => {
+  const actual = await vi.importActual('../stripe')
+  return {
+    ...actual,
+    getStripeCharge: vi.fn(),
+  }
+})
 
 const succeededCharge = {
   status: 'succeeded',
@@ -536,7 +562,6 @@ describe('Process payment intent status updated', async () => {
           async ({ transaction }) =>
             processPaymentIntentStatusUpdated(fakePI, transaction)
         )
-        // new return shape wraps result
         expect(result.result.payment).toBeDefined()
       })
       it('throws an error when no invoice exists for the billing run', async () => {
@@ -808,4 +833,564 @@ describe('Process payment intent status updated', async () => {
   //     expect(validTransition.status).toEqual(PaymentStatus.Succeeded)
   //   })
   // })
+
+  describe('Event Creation', () => {
+    let organization: Organization.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let product: Product.Record
+    let price: Price.Record
+    let purchase: Purchase.Record
+    let invoice: Invoice.Record
+
+    beforeEach(async () => {
+      // Set up organization with product and price
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      product = orgData.product
+      price = orgData.price
+
+      // Set up customer
+      customer = await setupCustomer({
+        organizationId: organization.id,
+        externalId: `cus_${core.nanoid()}`,
+        livemode: true,
+      })
+
+      // Set up payment method
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+
+      // Set up invoice
+      invoice = await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: InvoiceStatus.Open,
+        livemode: true,
+        priceId: price.id,
+      })
+
+      // Set up purchase (will be customized per test)
+      purchase = await setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        status: PurchaseStatus.Open,
+        livemode: true,
+        priceId: price.id,
+      })
+    })
+
+    it('should create PaymentSucceeded and PurchaseCompleted events when payment succeeds and purchase becomes paid', async () => {
+      // Mock getStripeCharge to return succeeded charge
+      vi.mocked(getStripeCharge).mockResolvedValue({
+        id: 'ch_test_123',
+        amount: 1000,
+        status: 'succeeded',
+        created: Math.floor(Date.now() / 1000),
+        payment_intent: 'pi_test_123',
+        billing_details: {
+          address: { country: 'US' },
+        },
+      } as any)
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 1000,
+        currency: 'usd',
+        status: 'succeeded' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: 'cs_test_123',
+        },
+      }
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        type: CheckoutSessionType.Purchase,
+        status: CheckoutSessionStatus.Succeeded,
+        quantity: 1,
+        livemode: true,
+        purchaseId: purchase.id,
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.payment).toBeDefined()
+      expect(result.payment.status).toBe(PaymentStatus.Succeeded)
+
+      // Verify events were created
+      const events = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectEvents } = await import(
+            '@/db/tableMethods/eventMethods'
+          )
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        }
+      )
+
+      expect(events).toHaveLength(2)
+
+      const paymentSucceededEvent = events.find(
+        (e) => e.type === FlowgladEventType.PaymentSucceeded
+      )
+      const purchaseCompletedEvent = events.find(
+        (e) => e.type === FlowgladEventType.PurchaseCompleted
+      )
+
+      expect(paymentSucceededEvent).toBeDefined()
+      expect(purchaseCompletedEvent).toBeDefined()
+
+      // Verify PaymentSucceeded event properties
+      expect(paymentSucceededEvent!.type).toBe(
+        FlowgladEventType.PaymentSucceeded
+      )
+      expect(paymentSucceededEvent!.organizationId).toBe(
+        organization.id
+      )
+      expect(paymentSucceededEvent!.livemode).toBe(true)
+      expect(paymentSucceededEvent!.payload).toEqual({
+        object: EventNoun.Payment,
+        id: result.payment.id,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
+      })
+      expect(paymentSucceededEvent!.processedAt).toBeNull()
+
+      // Verify PurchaseCompleted event properties
+      expect(purchaseCompletedEvent!.type).toBe(
+        FlowgladEventType.PurchaseCompleted
+      )
+      expect(purchaseCompletedEvent!.organizationId).toBe(
+        organization.id
+      )
+      expect(purchaseCompletedEvent!.livemode).toBe(true)
+      expect(purchaseCompletedEvent!.payload).toEqual({
+        id: purchase.id,
+        object: EventNoun.Purchase,
+      })
+      expect(purchaseCompletedEvent!.processedAt).toBeNull()
+    })
+
+    it('should create only PaymentSucceeded event when payment succeeds but purchase does not become paid', async () => {
+      // Mock getStripeCharge to return succeeded charge
+      vi.mocked(getStripeCharge).mockResolvedValue({
+        id: 'ch_test_123',
+        amount: 1000,
+        status: 'succeeded',
+        created: Math.floor(Date.now() / 1000),
+        payment_intent: 'pi_test_123',
+        billing_details: {
+          address: { country: 'US' },
+        },
+      } as any)
+
+      // Update purchase to a status that won't become Paid
+      await adminTransaction(async ({ transaction }) => {
+        const { updatePurchase } = await import(
+          '@/db/tableMethods/purchaseMethods'
+        )
+        await updatePurchase(
+          {
+            id: purchase.id,
+            status: PurchaseStatus.Failed,
+          } as any,
+          transaction
+        )
+      })
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 1000,
+        currency: 'usd',
+        status: 'succeeded' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: 'cs_test_123',
+        },
+      }
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        type: CheckoutSessionType.Purchase,
+        status: CheckoutSessionStatus.Succeeded,
+        quantity: 1,
+        livemode: true,
+        purchaseId: purchase.id,
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.payment).toBeDefined()
+      expect(result.payment.status).toBe(PaymentStatus.Succeeded)
+
+      // Verify only PaymentSucceeded event was created
+      const events = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectEvents } = await import(
+            '@/db/tableMethods/eventMethods'
+          )
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        }
+      )
+
+      expect(events).toHaveLength(1)
+      expect(events[0].type).toBe(FlowgladEventType.PaymentSucceeded)
+    })
+
+    it('should create only PaymentSucceeded event when payment succeeds without associated purchase', async () => {
+      // Mock getStripeCharge to return succeeded charge
+      vi.mocked(getStripeCharge).mockResolvedValue({
+        id: 'ch_test_123',
+        amount: 1000,
+        status: 'succeeded',
+        created: Math.floor(Date.now() / 1000),
+        payment_intent: 'pi_test_123',
+        billing_details: {
+          address: { country: 'US' },
+        },
+      } as any)
+
+      // Create billing run scenario (no purchase)
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
+      const billingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+        livemode: true,
+      })
+
+      const billingRun = await setupBillingRun({
+        subscriptionId: subscription.id,
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 1000,
+        currency: 'usd',
+        status: 'succeeded' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          billingRunId: billingRun.id,
+        },
+      }
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.payment).toBeDefined()
+      expect(result.payment.status).toBe(PaymentStatus.Succeeded)
+      expect(result.payment.purchaseId).toBeNull()
+
+      // Verify only PaymentSucceeded event was created
+      const events = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectEvents } = await import(
+            '@/db/tableMethods/eventMethods'
+          )
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        }
+      )
+
+      expect(events).toHaveLength(1)
+      expect(events[0].type).toBe(FlowgladEventType.PaymentSucceeded)
+    })
+
+    it('should create only PaymentFailed event when payment intent is canceled', async () => {
+      // Mock getStripeCharge to return failed charge
+      vi.mocked(getStripeCharge).mockResolvedValue({
+        id: 'ch_test_123',
+        amount: 1000,
+        status: 'failed',
+        created: Math.floor(Date.now() / 1000),
+        payment_intent: 'pi_test_123',
+        failure_code: 'insufficient_funds',
+        failure_message: 'Insufficient funds',
+        billing_details: {
+          address: { country: 'US' },
+        },
+      } as any)
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 0,
+        currency: 'usd',
+        status: 'canceled' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: 'cs_test_123',
+        },
+      }
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        type: CheckoutSessionType.Purchase,
+        status: CheckoutSessionStatus.Succeeded,
+        quantity: 1,
+        livemode: true,
+        purchaseId: purchase.id,
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.payment).toBeDefined()
+      expect(result.payment.status).toBe(PaymentStatus.Failed)
+
+      // Verify only PaymentFailed event was created
+      const events = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectEvents } = await import(
+            '@/db/tableMethods/eventMethods'
+          )
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        }
+      )
+
+      expect(events).toHaveLength(1)
+      expect(events[0].type).toBe(FlowgladEventType.PaymentFailed)
+      expect(events[0].payload).toEqual({
+        id: result.payment.id,
+        object: EventNoun.Payment,
+      })
+    })
+
+    it('should create no events when payment intent status is processing', async () => {
+      // Mock getStripeCharge to return pending charge
+      vi.mocked(getStripeCharge).mockResolvedValue({
+        id: 'ch_test_123',
+        amount: 1000,
+        status: 'pending',
+        created: Math.floor(Date.now() / 1000),
+        payment_intent: 'pi_test_123',
+        billing_details: {
+          address: { country: 'US' },
+        },
+      } as any)
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 1000,
+        amount_received: 0,
+        currency: 'usd',
+        status: 'processing' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: 'cs_test_123',
+        },
+      }
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        type: CheckoutSessionType.Purchase,
+        status: CheckoutSessionStatus.Succeeded,
+        quantity: 1,
+        livemode: true,
+        purchaseId: purchase.id,
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.payment).toBeDefined()
+      expect(result.payment.status).toBe(PaymentStatus.Processing)
+
+      // Verify no events were created
+      const events = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectEvents } = await import(
+            '@/db/tableMethods/eventMethods'
+          )
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        }
+      )
+
+      expect(events).toHaveLength(0)
+    })
+
+    it('should create events with correct properties and structure', async () => {
+      // Mock getStripeCharge to return succeeded charge
+      vi.mocked(getStripeCharge).mockResolvedValue({
+        id: 'ch_test_123',
+        amount: 1000,
+        status: 'succeeded',
+        created: Math.floor(Date.now() / 1000),
+        payment_intent: 'pi_test_123',
+        billing_details: {
+          address: { country: 'US' },
+        },
+      } as any)
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 1000,
+        currency: 'usd',
+        status: 'succeeded' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: 'cs_test_123',
+        },
+      }
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        type: CheckoutSessionType.Purchase,
+        status: CheckoutSessionStatus.Succeeded,
+        quantity: 1,
+        livemode: true,
+        purchaseId: purchase.id,
+      })
+
+      const result = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.payment).toBeDefined()
+
+      // Verify events were created with correct structure
+      const events = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectEvents } = await import(
+            '@/db/tableMethods/eventMethods'
+          )
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        }
+      )
+
+      expect(events).toHaveLength(2)
+
+      const paymentSucceededEvent = events.find(
+        (e) => e.type === FlowgladEventType.PaymentSucceeded
+      )
+      const purchaseCompletedEvent = events.find(
+        (e) => e.type === FlowgladEventType.PurchaseCompleted
+      )
+
+      // Verify event structure and properties
+      for (const event of events) {
+        expect(event.type).toBeDefined()
+        expect(event.organizationId).toBe(organization.id)
+        expect(event.livemode).toBe(true)
+        expect(event.occurredAt).toBeInstanceOf(Date)
+        expect(event.submittedAt).toBeInstanceOf(Date)
+        expect(event.processedAt).toBeNull()
+        expect(event.hash).toBeDefined()
+        expect(event.metadata).toEqual({})
+        expect(event.payload).toBeDefined()
+      }
+
+      // Verify PaymentSucceeded event specific properties
+      expect(paymentSucceededEvent!.payload).toEqual({
+        object: EventNoun.Payment,
+        id: result.payment.id,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
+      })
+
+      // Verify PurchaseCompleted event specific properties
+      expect(purchaseCompletedEvent!.payload).toEqual({
+        id: purchase.id,
+        object: EventNoun.Purchase,
+      })
+    })
+  })
 })

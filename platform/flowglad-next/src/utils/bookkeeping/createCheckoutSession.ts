@@ -46,16 +46,16 @@ const checkoutSessionInsertFromInput = ({
     outputName: checkoutSessionInput.outputName,
     automaticallyUpdateSubscriptions: null,
   } as const
+
+  const isAnonymous =
+    'anonymous' in checkoutSessionInput &&
+    checkoutSessionInput.anonymous === true
+
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
-    const isAnonymous =
-      'anonymous' in checkoutSessionInput &&
-      checkoutSessionInput.anonymous === true
-    if (!isAnonymous) {
-      if (!customer) {
-        throw new Error(
-          'Customer not found for externalId: non-existent-customers'
-        )
-      }
+    if (!isAnonymous && !customer) {
+      throw new Error(
+        'Customer not found for externalId: non-existent-customers'
+      )
     }
     return {
       ...coreFields,
@@ -176,7 +176,7 @@ export const createCheckoutSessionTransaction = async (
       await createSetupIntentForCheckoutSession({
         organization,
         checkoutSession,
-        customer: customer!,
+        customer,
       })
     stripeSetupIntentId = stripeSetupIntent.id
   } else if (price?.type === PriceType.SinglePayment && product) {
