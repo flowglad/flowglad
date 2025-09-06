@@ -167,7 +167,7 @@ function BillingPortalPage() {
     )
   }
   if (!data) {
-    return <BillingPortalLoading />
+    return <></>
   }
 
   const currentSubscription = data.currentSubscriptions?.[0]
@@ -244,9 +244,6 @@ function BillingPortalPage() {
                   <p className="text-muted-foreground mb-4">
                     No active subscription
                   </p>
-                  <Button onClick={() => router.push(`/pricing`)}>
-                    View Pricing Plans
-                  </Button>
                 </div>
               )}
             </section>
