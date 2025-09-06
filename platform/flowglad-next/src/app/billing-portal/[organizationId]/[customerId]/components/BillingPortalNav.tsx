@@ -22,19 +22,16 @@ export function BillingPortalNav({
       id: 'subscription' as const,
       label: 'Subscription',
       icon: Package,
-      description: 'Manage your subscription plan',
     },
     {
       id: 'payment-methods' as const,
       label: 'Payment Methods',
       icon: CreditCard,
-      description: 'Add or update payment methods',
     },
     {
       id: 'invoices' as const,
       label: 'Invoices',
       icon: FileText,
-      description: 'View and download invoices',
     },
   ]
 
@@ -72,16 +69,6 @@ export function BillingPortalNav({
                   )}
                 >
                   {item.label}
-                </span>
-                <span
-                  className={cn(
-                    'text-xs transition-colors',
-                    isActive
-                      ? 'text-primary/70'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {item.description}
                 </span>
               </div>
 

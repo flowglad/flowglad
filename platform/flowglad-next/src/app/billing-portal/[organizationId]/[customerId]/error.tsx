@@ -21,10 +21,6 @@ export default function BillingPortalError({
     console.error('Billing portal error:', error)
   }, [error])
 
-  const handleGoBack = () => {
-    router.back()
-  }
-
   const handleSelectDifferentCustomer = () => {
     router.push(`/billing-portal/${organizationId}/select-customer`)
   }

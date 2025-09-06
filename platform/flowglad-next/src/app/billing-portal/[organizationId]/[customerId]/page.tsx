@@ -15,8 +15,10 @@ import { useState } from 'react'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { useSession } from '@/utils/authClient'
 import { toast } from 'sonner'
+import dynamic from 'next/dynamic'
 
-export default function BillingPortalPage() {
+// Prevent server-side rendering for this component
+function BillingPortalPageContent() {
   const params = useParams<{
     organizationId: string
     customerId: string
@@ -364,3 +366,24 @@ export default function BillingPortalPage() {
     </div>
   )
 }
+
+// Export with dynamic import to prevent SSR
+const BillingPortalPage = dynamic(
+  () => Promise.resolve(BillingPortalPageContent),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="space-y-8">
+            <div className="h-48 w-full bg-muted/10 rounded-lg animate-pulse" />
+            <div className="h-64 w-full bg-muted/10 rounded-lg animate-pulse" />
+            <div className="h-96 w-full bg-muted/10 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+    ),
+  }
+)
+
+export default BillingPortalPage

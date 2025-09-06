@@ -3,6 +3,7 @@ export type SubscriptionStatus =
   | 'canceled'
   | 'past_due'
   | 'trialing'
+  | 'credit_trial'
 
 export interface SubscriptionItem {
   id: string
@@ -21,8 +22,8 @@ export interface Subscription {
   id: string
   name: string
   status: SubscriptionStatus
-  currentPeriodEnd: Date
-  currentPeriodStart: Date
+  currentPeriodEnd?: Date
+  currentPeriodStart?: Date
   cancelAtPeriodEnd: boolean
   canceledAt?: Date
   trialEnd?: Date
@@ -55,7 +56,7 @@ export interface SubscriptionActionsProps {
   subscriptionName: string
   status: SubscriptionStatus
   cancelAtPeriodEnd: boolean
-  currentPeriodEnd: Date
+  currentPeriodEnd?: Date
   onCancel?: (subscriptionId: string) => Promise<void>
   loading?: boolean
   className?: string
@@ -66,7 +67,7 @@ export interface CancelSubscriptionDialogProps {
   onOpenChange: (open: boolean) => void
   subscriptionId: string
   subscriptionName: string
-  currentPeriodEnd: Date
+  currentPeriodEnd?: Date
   onConfirm: () => Promise<void>
   loading?: boolean
 }

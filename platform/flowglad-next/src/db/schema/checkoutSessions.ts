@@ -6,6 +6,7 @@ import {
   integer,
   timestamp,
   boolean,
+  pgPolicy,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
@@ -129,6 +130,13 @@ export const checkoutSessions = pgTable(
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
+      pgPolicy('Enable insert for customer', {
+        as: 'permissive',
+        to: 'customer',
+        for: 'insert',
+        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
+      }),
+      livemodePolicy(),
     ]
   }
 ).enableRLS()

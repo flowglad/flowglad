@@ -2,7 +2,10 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { clearCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import {
+  clearCustomerBillingPortalOrganizationId,
+  setCustomerBillingPortalOrganizationId,
+} from '@/utils/customerBillingPortalState'
 import { redirect } from 'next/navigation'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -36,7 +39,7 @@ export const GET = async (
       { status: 404 }
     )
   }
-
+  await setCustomerBillingPortalOrganizationId(organizationId)
   return NextResponse.redirect(
     new URL(`/billing-portal/${organizationId}`, request.url)
   )

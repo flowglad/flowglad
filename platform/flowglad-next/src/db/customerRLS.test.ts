@@ -54,6 +54,8 @@ import {
 } from '@/types'
 import { DbTransaction } from './types'
 import { afterEach } from 'vitest'
+import { selectProducts } from '@/db/tableMethods/productMethods'
+import { setupProduct, setupPricingModel } from '@/../seedDatabase'
 
 /**
  * Helper function to create an authenticated transaction with customer role.
@@ -933,6 +935,99 @@ describe('Customer Role RLS Policies', () => {
       expect(result.subscriptions).toHaveLength(0)
       expect(result.payments).toHaveLength(0)
       expect(result.paymentMethods).toHaveLength(0)
+    })
+  })
+
+  describe('Products visibility by pricing model', () => {
+    it("should allow selecting only products in the authenticated customer's pricing model", async () => {
+      // Create two pricing models and products in org1
+      const pmA = await setupPricingModel({
+        organizationId: org1.id,
+        name: 'PM A',
+      })
+      const pmB = await setupPricingModel({
+        organizationId: org1.id,
+        name: 'PM B',
+      })
+
+      const productA = await setupProduct({
+        organizationId: org1.id,
+        name: 'Product A',
+        pricingModelId: pmA.id,
+      })
+      const productB = await setupProduct({
+        organizationId: org1.id,
+        name: 'Product B',
+        pricingModelId: pmB.id,
+      })
+
+      // Associate customerA with PM A
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          { id: customerA_Org1.id, pricingModelId: pmA.id },
+          transaction
+        )
+      })
+
+      const visibleProducts = await authenticatedCustomerTransaction(
+        customerA_Org1,
+        userA,
+        org1,
+        async ({ transaction }) => {
+          return selectProducts({}, transaction)
+        }
+      )
+
+      // Should only include products tied to PM A, exclude PM B and default org product
+      expect(visibleProducts.length).toBeGreaterThanOrEqual(1)
+      expect(
+        visibleProducts.every((p) => p.pricingModelId === pmA.id)
+      ).toBe(true)
+      expect(visibleProducts.some((p) => p.id === productA.id)).toBe(
+        true
+      )
+      expect(visibleProducts.some((p) => p.id === productB.id)).toBe(
+        false
+      )
+    })
+
+    it('should return no products when the customer has NULL pricingModelId', async () => {
+      // Create a new customer with its own user and NO pricing model
+      const emptyCustomer = await setupCustomer({
+        organizationId: org1.id,
+        email: `nopm_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const emptyUser = await adminTransaction(
+        async ({ transaction }) => {
+          const user = await insertUser(
+            {
+              id: `usr_${core.nanoid()}`,
+              email: emptyCustomer.email,
+              name: 'No PM User',
+              betterAuthId: `bau_${core.nanoid()}`,
+            },
+            transaction
+          )
+          await updateCustomer(
+            { id: emptyCustomer.id, userId: user.id },
+            transaction
+          )
+          return user
+        }
+      )
+
+      const visibleProducts = await authenticatedCustomerTransaction(
+        emptyCustomer,
+        emptyUser,
+        org1,
+        async ({ transaction }) => {
+          return selectProducts({}, transaction)
+        }
+      )
+
+      expect(visibleProducts).toHaveLength(0)
     })
   })
 

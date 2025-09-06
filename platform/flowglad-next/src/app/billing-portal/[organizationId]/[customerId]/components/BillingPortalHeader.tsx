@@ -29,18 +29,6 @@ export function BillingPortalHeader({
     router.push('/sign-in')
   }
 
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
-      return name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    }
-    return email[0].toUpperCase()
-  }
-
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 max-w-6xl">
@@ -69,11 +57,6 @@ export function BillingPortalHeader({
             ) : customer ? (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary">
-                      {getInitials(customer.name, customer.email)}
-                    </span>
-                  </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
                       {customer.name || 'Customer'}
