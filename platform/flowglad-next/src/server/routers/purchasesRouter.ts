@@ -7,7 +7,6 @@ import { selectPurchasesTableRowData } from '@/db/tableMethods/purchaseMethods'
 import { purchasesTableRowDataSchema } from '@/db/schema/purchases'
 import { protectedProcedure, router } from '@/server/trpc'
 import { createPurchase } from '@/server/mutations/createPurchase'
-import { editPurchase } from '@/server/mutations/editPurchase'
 import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
 import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
 import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
@@ -37,7 +36,6 @@ const getTableRows = protectedProcedure
 
 export const purchasesRouter = router({
   create: createPurchase,
-  update: editPurchase,
   // Purchase session management
   createSession: setCheckoutSessionCookie,
   updateSession: editCheckoutSession,

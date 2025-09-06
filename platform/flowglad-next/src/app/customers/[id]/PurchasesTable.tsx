@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
-import Table from '@/components/ion/Table'
+import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
 import { Purchase } from '@/db/schema/purchases'
 import core from '@/utils/core'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
@@ -11,49 +11,13 @@ import {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
 import Badge, { BadgeColor } from '@/components/ion/Badge'
-import TableTitle from '@/components/ion/TableTitle'
-import EndPurchaseModal from '@/components/forms/EndPurchaseModal'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
-import { Payment } from '@/db/schema/payments'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode, PurchaseStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-
-const MoreMenuCell = ({
-  purchase,
-}: {
-  purchase: Purchase.ClientRecord
-}) => {
-  const [isEndOpen, setIsEndOpen] = useState(false)
-  const items: PopoverMenuItem[] = []
-
-  if (!purchase.endDate) {
-    if (purchase.purchaseDate) {
-      items.push({
-        label: 'End Purchase',
-        handler: () => setIsEndOpen(true),
-        state: PopoverMenuItemState.Danger,
-        disabled: !purchase.purchaseDate,
-        helperText: purchase.purchaseDate
-          ? undefined
-          : 'Cannot end a purchase that has not started',
-      })
-    }
-  }
-
-  return (
-    <MoreMenuTableCell items={items}>
-      <EndPurchaseModal
-        isOpen={isEndOpen}
-        setIsOpen={setIsEndOpen}
-        purchase={purchase}
-      />
-    </MoreMenuTableCell>
-  )
-}
+import { Customer } from '@/db/schema/customers'
 
 const PurchaseStatusCell = ({
   purchase,
@@ -174,6 +138,7 @@ const PurchasesTable = ({
           width: '14%',
         },
         {
+          id: '_',
           header: ({ column }) => (
             <ColumnHeaderCell title="ID" column={column} />
           ),
@@ -185,13 +150,14 @@ const PurchasesTable = ({
           ),
           width: '10%',
         },
+      ] as ColumnDefWithWidth<
         {
-          id: '_',
-          cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell purchase={cellData.purchase} />
-          ),
+          purchase: Purchase.ClientRecord
+          customer: Customer.ClientRecord
+          revenue?: number
         },
-      ] as ColumnDef<Purchase.PurchaseTableRowData>[],
+        string
+      >[],
     []
   )
 

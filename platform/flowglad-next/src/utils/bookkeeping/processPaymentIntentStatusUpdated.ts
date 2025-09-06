@@ -108,27 +108,6 @@ export const upsertPaymentForStripeCharge = async (
     organizationId = subscription.organizationId
     livemode = subscription.livemode
     subscriptionId = subscription.id
-  } else if ('invoiceId' in paymentIntentMetadata) {
-    // TODO: the whole "invoiceId" block should be removed
-    // we now support paying invoices through purchase sessions,
-    // which seems to be more adaptive,
-    // and allows us to use the CheckoutPageContext and PaymentForm
-    let [maybeInvoiceAndLineItems] =
-      await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-        {
-          id: paymentIntentMetadata.invoiceId,
-        },
-        transaction
-      )
-    const { invoice } = maybeInvoiceAndLineItems
-    currency = invoice.currency
-    invoiceId = invoice.id
-    organizationId = invoice.organizationId!
-    purchaseId = invoice.purchaseId
-    taxCountry = invoice.taxCountry
-    customerId = invoice.customerId
-    livemode = invoice.livemode
-    subscriptionId = invoice.subscriptionId
   } else if ('checkoutSessionId' in paymentIntentMetadata) {
     const {
       checkoutSession,
