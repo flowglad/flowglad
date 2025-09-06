@@ -1,15 +1,4 @@
-export type SubscriptionStatus =
-  | 'active'
-  | 'canceled'
-  | 'past_due'
-  | 'trialing'
-  | 'credit_trial'
-  | 'inactive'
-  | 'incomplete'
-  | 'incomplete_expired'
-  | 'past_due'
-  | 'paused'
-  | 'unpaid'
+import { SubscriptionStatus } from '@/registry/lib/subscription-status'
 
 export interface SubscriptionItem {
   id: string
