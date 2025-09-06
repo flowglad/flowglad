@@ -336,7 +336,7 @@ export const setupCustomer = async (params: SetupCustomerParams) => {
         organizationId: params.organizationId,
         email,
         name: email,
-        externalId: (params.externalId?.trim() || core.nanoid()),
+        externalId: params.externalId?.trim() || core.nanoid(),
         livemode: params.livemode ?? true,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
@@ -1143,6 +1143,7 @@ export const setupCheckoutSession = async ({
   automaticallyUpdateSubscriptions,
   outputMetadata,
   purchaseId,
+  invoiceId,
 }: {
   organizationId: string
   customerId: string
@@ -1155,6 +1156,7 @@ export const setupCheckoutSession = async ({
   automaticallyUpdateSubscriptions?: boolean
   outputMetadata?: Record<string, any>
   purchaseId?: string
+  invoiceId?: string
 }) => {
   const billingAddress: BillingAddress = {
     address: {
@@ -1226,11 +1228,17 @@ export const setupCheckoutSession = async ({
   } else if (type === CheckoutSessionType.Purchase) {
     insert = purchaseCheckoutSessionInsert
   } else if (type === CheckoutSessionType.Invoice) {
-    const invoice = await setupInvoice({
-      customerId: customerId,
-      organizationId: organizationId,
-      priceId: priceId,
-    })
+    let invoiceIdToUse: string
+    if (invoiceId) {
+      invoiceIdToUse = invoiceId
+    } else {
+      const invoice = await setupInvoice({
+        customerId: customerId,
+        organizationId: organizationId,
+        priceId: priceId,
+      })
+      invoiceIdToUse = invoice.id
+    }
 
     insert = {
       ...coreFields,
@@ -1241,7 +1249,7 @@ export const setupCheckoutSession = async ({
       livemode,
       targetSubscriptionId: null,
       outputName: null,
-      invoiceId: invoice.id,
+      invoiceId: invoiceIdToUse,
       purchaseId: null,
       outputMetadata: null,
     }
