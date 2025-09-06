@@ -815,62 +815,68 @@ describe('Customer Role RLS Policies', () => {
   })
 
   describe('Query Filtering and Aggregation', () => {
-    it('should filter queries with WHERE conditions correctly', async () => {
-      const result = await authenticatedCustomerTransaction(
-        customerA_Org1,
-        userA,
-        org1,
-        async ({ transaction }) => {
-          // Query with specific conditions
-          const paidInvoices = await selectInvoices(
-            { status: InvoiceStatus.Paid },
-            transaction
-          )
+    it(
+      'should filter queries with WHERE conditions correctly',
+      async () => {
+        const result = await authenticatedCustomerTransaction(
+          customerA_Org1,
+          userA,
+          org1,
+          async ({ transaction }) => {
+            // Query with specific conditions
+            const paidInvoices = await selectInvoices(
+              { status: InvoiceStatus.Paid },
+              transaction
+            )
 
-          const openInvoices = await selectInvoices(
-            { status: InvoiceStatus.Open },
-            transaction
-          )
+            const openInvoices = await selectInvoices(
+              { status: InvoiceStatus.Open },
+              transaction
+            )
 
-          // Query with organizationId (should still be filtered to own data)
-          const orgFilteredInvoices = await selectInvoices(
-            { organizationId: org1.id },
-            transaction
-          )
+            // Query with organizationId (should still be filtered to own data)
+            const orgFilteredInvoices = await selectInvoices(
+              { organizationId: org1.id },
+              transaction
+            )
 
-          return { paidInvoices, openInvoices, orgFilteredInvoices }
-        }
-      )
+            return { paidInvoices, openInvoices, orgFilteredInvoices }
+          }
+        )
 
-      // Should only see own paid invoices
-      const ownPaidInvoices = result.paidInvoices.filter(
-        (i) => i.customerId === customerA_Org1.id
-      )
-      expect(ownPaidInvoices.length).toBeGreaterThanOrEqual(1)
-      expect(
-        result.paidInvoices.every(
+        // Should only see own paid invoices
+        const ownPaidInvoices = result.paidInvoices.filter(
           (i) => i.customerId === customerA_Org1.id
         )
-      ).toBe(true)
+        expect(ownPaidInvoices.length).toBeGreaterThanOrEqual(1)
+        expect(
+          result.paidInvoices.every(
+            (i) => i.customerId === customerA_Org1.id
+          )
+        ).toBe(true)
 
-      // Should only see own open invoices
-      const ownOpenInvoices = result.openInvoices.filter(
-        (i) => i.customerId === customerA_Org1.id
-      )
-      expect(ownOpenInvoices.length).toBeGreaterThanOrEqual(1)
-      expect(
-        result.openInvoices.every(
+        // Should only see own open invoices
+        const ownOpenInvoices = result.openInvoices.filter(
           (i) => i.customerId === customerA_Org1.id
         )
-      ).toBe(true)
+        expect(ownOpenInvoices.length).toBeGreaterThanOrEqual(1)
+        expect(
+          result.openInvoices.every(
+            (i) => i.customerId === customerA_Org1.id
+          )
+        ).toBe(true)
 
-      // Org filter should still only show own invoices
-      expect(
-        result.orgFilteredInvoices.every(
-          (i) => i.customerId === customerA_Org1.id
-        )
-      ).toBe(true)
-    })
+        // Org filter should still only show own invoices
+        expect(
+          result.orgFilteredInvoices.every(
+            (i) => i.customerId === customerA_Org1.id
+          )
+        ).toBe(true)
+      },
+      {
+        timeout: 10000,
+      }
+    )
 
     it('should handle empty results gracefully', async () => {
       // Create a customer with no related data

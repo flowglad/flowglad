@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
   CurrencyCode,
   InvoiceStatus,
   PaymentStatus,
   PurchaseStatus,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
 } from '@/types'
 import {
   chargeStatusToPaymentStatus,
@@ -18,13 +18,14 @@ import {
   setupBillingPeriod,
   setupBillingRun,
   setupCustomer,
-  setupInvoice,
+  setupFeeCalculation,
   setupOrg,
   setupPayment,
   setupPaymentMethod,
   setupPurchase,
   setupSubscription,
   setupCheckoutSession,
+  setupInvoice,
 } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
@@ -273,15 +274,16 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const fakeCharge: any = {
         id: 'ch_no_pi',
         payment_intent: null,
         created: 123456,
         status: 'succeeded',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata,
         billing_details: { address: { country: 'US' } },
       }
       const fakeMetadata: any = {
@@ -388,16 +390,17 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const fakeCharge: any = {
         id: 'ch1',
         payment_intent: 'pi_1',
         created: 1610000000,
         amount: 5000,
         status: 'succeeded',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata,
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,
@@ -414,12 +417,6 @@ describe('Process payment intent status updated', async () => {
         purchaseId: 'pur123',
         taxCountry: 'US',
         customerId: 'cp123',
-      }
-      const fakePayment = {
-        id: 'payment1',
-        status: PaymentStatus.Processing,
-        invoiceId: 'inv_123',
-        purchaseId: 'pur123',
       }
 
       const result = await adminTransaction(async ({ transaction }) =>
@@ -571,23 +568,30 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const fakeCharge: any = {
         id: 'ch_partial',
         payment_intent: 'pi_partial',
         created: 1610000000,
         amount: 4000,
         status: 'succeeded',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata,
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,
         },
         billing_details: { address: { country: 'US' } },
       }
-      const fakeMetadata: any = {
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: checkoutSession.livemode,
+      })
+      const fakeMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
@@ -614,16 +618,17 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const fakeCharge: any = {
         id: `ch_paid_${core.nanoid()}`,
         payment_intent: `pi_paid_${core.nanoid()}`,
         created: new Date().getTime() / 1000,
         amount: 5000,
         status: 'succeeded',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata,
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,

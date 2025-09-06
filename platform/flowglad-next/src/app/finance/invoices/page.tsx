@@ -7,15 +7,15 @@ import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
 import PageTitle from '@/components/ion/PageTitle'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
+// import { Button } from '@/components/ui/button'
+// import { Plus } from 'lucide-react'
+// import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 const InternalInvoicesPage = () => {
-  const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
-    useState(false)
+  // const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
+  //   useState(false)
   const [selectedStatus, setSelectedStatus] = useState<
     InvoiceStatus | 'all'
   >('all')
@@ -35,10 +35,10 @@ const InternalInvoicesPage = () => {
         <Breadcrumb />
         <div className="flex flex-row justify-between">
           <PageTitle>Invoices</PageTitle>
-          <Button onClick={() => setCreateInvoiceModalOpen(true)}>
+          {/* <Button onClick={() => setCreateInvoiceModalOpen(true)}>
             <Plus size={16} />
             Create Invoice
-          </Button>
+          </Button> */}
         </div>
 
         <Tabs value={selectedStatus} onValueChange={handleTabChange}>
@@ -55,10 +55,10 @@ const InternalInvoicesPage = () => {
             <InvoicesTable filters={filters} />
           </TabsContent>
         </Tabs>
-        <CreateInvoiceModal
+        {/* <CreateInvoiceModal
           isOpen={createInvoiceModalOpen}
           setIsOpen={setCreateInvoiceModalOpen}
-        />
+        /> */}
       </div>
     </InternalPageContainer>
   )

@@ -82,7 +82,7 @@ export const upsertPaymentForStripeCharge = async (
   let customerId: Nullish<string> = null
   let currency: Nullish<CurrencyCode> = null
   let subscriptionId: Nullish<string> = null
-  if ('billingRunId' in paymentIntentMetadata) {
+  if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
     const billingRun = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
       transaction
@@ -109,11 +109,6 @@ export const upsertPaymentForStripeCharge = async (
     organizationId = subscription.organizationId
     livemode = subscription.livemode
     subscriptionId = subscription.id
-  } else if ('invoiceId' in paymentIntentMetadata) {
-    // TODO: the whole "invoiceId" block should be removed
-    // we now support paying invoices through purchase sessions,
-    // which seems to be more adaptive,
-    // and allows us to use the CheckoutPageContext and PaymentForm
   } else if (
     paymentIntentMetadata.type === IntentMetadataType.CheckoutSession
   ) {
