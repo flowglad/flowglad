@@ -59,6 +59,7 @@ export const stripePaymentIntentSucceededTask = task({
     } = await eventfulAdminTransaction(async ({ transaction }) => {
       const {
         result: { payment },
+        eventsToLog,
       } = await processPaymentIntentStatusUpdated(
         payload.data.object,
         transaction
@@ -108,6 +109,7 @@ export const stripePaymentIntentSucceededTask = task({
       }
       const timestamp = new Date()
       const eventInserts: Event.Insert[] = [
+        ...eventsToLog,
         {
           type: FlowgladEventType.PaymentSucceeded,
           occurredAt: timestamp,
