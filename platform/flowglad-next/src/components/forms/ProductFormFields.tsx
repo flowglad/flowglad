@@ -20,6 +20,7 @@ import core from '@/utils/core'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 import { snakeCase } from 'change-case'
 import { useRef } from 'react'
+import { Product } from '@/db/schema/products'
 
 export const ProductFormFields = ({
   editProduct = false,
@@ -145,6 +146,11 @@ export const ProductFormFields = ({
             <div className="w-full mt-4">
               <ProductFeatureMultiSelect
                 pricingModelId={product.pricingModelId}
+                productId={
+                  editProduct
+                    ? (product as unknown as Product.ClientUpdate).id
+                    : undefined
+                }
               />
             </div>
             {editProduct && (
