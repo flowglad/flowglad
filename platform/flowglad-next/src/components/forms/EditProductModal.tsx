@@ -46,7 +46,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         id: product.id,
       }}
       onSubmit={async (item) => {
-        console.log('Form data being submitted:', item)
         await editProduct.mutateAsync(item)
       }}
       key={`${product.id}-${pricesLoading}`}

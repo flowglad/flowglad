@@ -58,11 +58,12 @@ export const ProductFeatureMultiSelect = ({
   )
 
   useEffect(() => {
-    if (!productFeaturesHash) {
+    if (!productFeaturesData?.data) {
       return
     }
-    const activeProductFeatures =
-      productFeaturesData?.data.filter((pf) => !pf.expiredAt) ?? []
+    const activeProductFeatures = productFeaturesData.data.filter(
+      (pf) => !pf.expiredAt
+    )
 
     setValue(
       'featureIds',
