@@ -47,7 +47,7 @@ import {
   constructPurchaseCompletedEventHash,
 } from '@/utils/eventHelpers'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { selectCustomerAndCustomerFromCustomerWhere } from '@/db/tableMethods/customerMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
@@ -336,15 +336,13 @@ export const processPaymentIntentStatusUpdated = async (
     transaction
   )
   // Fetch customer data for event payload
-  const purchase = await selectPurchaseById(
-    payment.purchaseId!,
+  const purchase = payment.purchaseId
+    ? await selectPurchaseById(payment.purchaseId, transaction)
+    : null
+  const customer = await selectCustomerById(
+    payment.customerId,
     transaction
   )
-  const [customerAndCustomer] =
-    await selectCustomerAndCustomerFromCustomerWhere(
-      { id: purchase.customerId },
-      transaction
-    )
   const timestamp = new Date()
   const eventInserts: Event.Insert[] = []
   if (paymentIntent.status === 'succeeded') {
@@ -357,8 +355,8 @@ export const processPaymentIntentStatusUpdated = async (
         object: EventNoun.Payment,
         id: payment.id,
         customer: {
-          id: customerAndCustomer.customer.id,
-          externalId: customerAndCustomer.customer.externalId,
+          id: customer.id,
+          externalId: customer.externalId,
         },
       },
       submittedAt: timestamp,
@@ -382,7 +380,7 @@ export const processPaymentIntentStatusUpdated = async (
       processedAt: null,
     })
   }
-  if (purchase.status === PurchaseStatus.Paid) {
+  if (purchase && purchase.status === PurchaseStatus.Paid) {
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: timestamp,
