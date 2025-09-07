@@ -16,8 +16,18 @@ import {
 } from '@/db/schema/billingPeriods'
 import { customers, customersSelectSchema } from '../schema/customers'
 import { subscriptionsSelectSchema } from '../schema/subscriptions'
-import { and, eq, gte, inArray, lt, lte } from 'drizzle-orm'
-import { BillingPeriodStatus } from '@/types'
+import {
+  and,
+  eq,
+  gte,
+  inArray,
+  lt,
+  lte,
+  ne,
+  or,
+  isNull,
+} from 'drizzle-orm'
+import { BillingPeriodStatus, CancellationReason } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { subscriptions } from '../schema/subscriptions'
 import {
@@ -242,3 +252,57 @@ export const selectSubscriptionsAndBillingPeriodsDueForNextBillingPeriodCreation
       ),
     }))
   }
+
+/**
+ * Selects active billing periods for a date range, excluding those for upgraded subscriptions
+ * This is used for billing runs to ensure we don't process billing for subscriptions that have been upgraded
+ */
+export const selectActiveBillingPeriodsForDateRange = async (
+  {
+    startDate,
+    endDate,
+    organizationId,
+    livemode,
+  }: {
+    startDate: Date
+    endDate: Date
+    organizationId: string
+    livemode: boolean
+  },
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select({
+      billingPeriod: billingPeriods,
+      subscription: subscriptions,
+    })
+    .from(billingPeriods)
+    .innerJoin(
+      subscriptions,
+      eq(billingPeriods.subscriptionId, subscriptions.id)
+    )
+    .where(
+      and(
+        eq(subscriptions.organizationId, organizationId),
+        eq(billingPeriods.livemode, livemode),
+        // Exclude billing periods for upgraded subscriptions
+        or(
+          isNull(subscriptions.cancellationReason),
+          ne(
+            subscriptions.cancellationReason,
+            CancellationReason.UpgradedToPaid
+          )
+        ),
+        // Date range conditions
+        lte(billingPeriods.startDate, endDate),
+        gte(billingPeriods.endDate, startDate)
+      )
+    )
+
+  return result.map((row) => ({
+    billingPeriod: billingPeriodsSelectSchema.parse(
+      row.billingPeriod
+    ),
+    subscription: subscriptionsSelectSchema.parse(row.subscription),
+  }))
+}
