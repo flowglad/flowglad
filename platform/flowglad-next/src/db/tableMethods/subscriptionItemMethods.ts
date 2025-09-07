@@ -210,7 +210,8 @@ const processSubscriptionRow = (
     richSubscriptionsMap.set(subscriptionId, {
       ...subscriptionsSelectSchema.parse(row.subscription),
       current: isSubscriptionCurrent(
-        row.subscription?.status as SubscriptionStatus
+        row.subscription?.status as SubscriptionStatus,
+        row.subscription?.cancellationReason
       ),
       subscriptionItems: [],
     })

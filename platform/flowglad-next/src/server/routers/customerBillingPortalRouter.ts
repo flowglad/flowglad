@@ -219,7 +219,8 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
             subscription: {
               ...updatedSubscription,
               current: isSubscriptionCurrent(
-                updatedSubscription.status
+                updatedSubscription.status,
+                updatedSubscription.cancellationReason
               ),
             },
           }
@@ -231,7 +232,8 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           subscription: {
             ...scheduledSubscription,
             current: isSubscriptionCurrent(
-              scheduledSubscription.status
+              scheduledSubscription.status,
+              scheduledSubscription.cancellationReason
             ),
           },
         }

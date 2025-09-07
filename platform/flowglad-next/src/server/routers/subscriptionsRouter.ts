@@ -96,7 +96,10 @@ const adjustSubscriptionProcedure = protectedProcedure
     return {
       subscription: {
         ...subscription,
-        current: isSubscriptionCurrent(subscription.status),
+        current: isSubscriptionCurrent(
+          subscription.status,
+          subscription.cancellationReason
+        ),
       },
       subscriptionItems,
     }
@@ -138,7 +141,8 @@ const cancelSubscriptionProcedure = protectedProcedure
             subscription: {
               ...updatedSubscription,
               current: isSubscriptionCurrent(
-                updatedSubscription.status
+                updatedSubscription.status,
+                updatedSubscription.cancellationReason
               ),
             },
           }
@@ -150,7 +154,10 @@ const cancelSubscriptionProcedure = protectedProcedure
         return {
           subscription: {
             ...subscription,
-            current: isSubscriptionCurrent(subscription.status),
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
           },
         }
       },
@@ -175,7 +182,10 @@ const listSubscriptionsProcedure = protectedProcedure
           ...result,
           data: result.data.map((subscription) => ({
             ...subscription,
-            current: isSubscriptionCurrent(subscription.status),
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
           })),
         }
       },
@@ -199,7 +209,10 @@ const getSubscriptionProcedure = protectedProcedure
         return {
           subscription: {
             ...subscription,
-            current: isSubscriptionCurrent(subscription.status),
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
           },
         }
       },
@@ -352,7 +365,8 @@ const createSubscriptionProcedure = protectedProcedure
           subscription: {
             ...output.result.subscription,
             current: isSubscriptionCurrent(
-              output.result.subscription.status
+              output.result.subscription.status,
+              output.result.subscription.cancellationReason
             ),
           },
         }

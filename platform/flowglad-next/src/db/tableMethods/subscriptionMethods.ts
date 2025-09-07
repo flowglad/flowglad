@@ -31,8 +31,9 @@ import {
   sql,
   count,
   inArray,
+  ne,
 } from 'drizzle-orm'
-import { SubscriptionStatus } from '@/types'
+import { SubscriptionStatus, CancellationReason } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { customers, customersSelectSchema } from '../schema/customers'
 import { prices, pricesSelectSchema } from '../schema/prices'
@@ -251,7 +252,15 @@ export const currentSubscriptionStatuses = [
   SubscriptionStatus.CreditTrial,
 ]
 
-export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
+export const isSubscriptionCurrent = (
+  status: SubscriptionStatus,
+  cancellationReason?: string | null
+) => {
+  // Exclude upgraded subscriptions from being considered current
+  if (cancellationReason === CancellationReason.UpgradedToPaid) {
+    return false
+  }
+
   return currentSubscriptionStatuses.includes(status)
 }
 
@@ -262,7 +271,10 @@ export const subscriptionWithCurrent = <
 ): T & { current: boolean } => {
   return {
     ...subscription,
-    current: isSubscriptionCurrent(subscription.status),
+    current: isSubscriptionCurrent(
+      subscription.status,
+      subscription.cancellationReason
+    ),
   }
 }
 
@@ -305,6 +317,14 @@ export const getActiveSubscriptionsForPeriod = async (
         or(
           isNull(subscriptions.canceledAt),
           gt(subscriptions.canceledAt, endDate)
+        ),
+        // Exclude subscriptions that were upgraded away
+        or(
+          isNull(subscriptions.cancellationReason),
+          ne(
+            subscriptions.cancellationReason,
+            CancellationReason.UpgradedToPaid
+          )
         )
       )
     )
@@ -358,3 +378,82 @@ export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =
       .returning()
     return updatedSubscriptions
   }
+
+/**
+ * Selects active subscriptions for a customer, excluding those that were upgraded
+ */
+export const selectActiveSubscriptionsForCustomer = async (
+  customerId: string,
+  transaction: DbTransaction
+): Promise<Subscription.Record[]> => {
+  const result = await transaction
+    .select()
+    .from(subscriptions)
+    .where(
+      and(
+        eq(subscriptions.customerId, customerId),
+        eq(subscriptions.status, SubscriptionStatus.Active),
+        // Exclude subscriptions that were upgraded away
+        or(
+          isNull(subscriptions.cancellationReason),
+          ne(
+            subscriptions.cancellationReason,
+            CancellationReason.UpgradedToPaid
+          )
+        )
+      )
+    )
+
+  return result.map((subscription) =>
+    subscriptionsSelectSchema.parse(subscription)
+  )
+}
+
+/**
+ * Finds the current subscription for a customer by following upgrade chains
+ */
+export const selectCurrentSubscriptionForCustomer = async (
+  customerId: string,
+  transaction: DbTransaction
+): Promise<Subscription.Record | null> => {
+  // Get all subscriptions for customer
+  const allSubscriptions = await selectSubscriptions(
+    {
+      customerId,
+    },
+    transaction
+  )
+
+  // Find the end of any upgrade chain
+  const findCurrent = (
+    sub: Subscription.Record,
+    depth = 0
+  ): Subscription.Record => {
+    // Prevent infinite loops
+    if (depth > 10) {
+      console.warn(
+        `Deep upgrade chain detected for subscription ${sub.id}`
+      )
+      return sub
+    }
+
+    const replacement = allSubscriptions.find(
+      (s) => s.id === sub.replacedBySubscriptionId
+    )
+    return replacement ? findCurrent(replacement, depth + 1) : sub
+  }
+
+  // Start with active subscriptions (excluding upgraded ones)
+  const activeSubscriptions = allSubscriptions.filter(
+    (s) =>
+      s.status === SubscriptionStatus.Active &&
+      s.cancellationReason !== CancellationReason.UpgradedToPaid
+  )
+
+  if (activeSubscriptions.length === 0) {
+    return null
+  }
+
+  // Return the first active subscription (should only be one per customer)
+  return activeSubscriptions[0]
+}
