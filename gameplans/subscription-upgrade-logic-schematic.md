@@ -5,7 +5,7 @@
 
 ### ✅ Implemented (PR 1 & PR 2 Complete):
 - Core upgrade flow in `processSetupIntentSucceeded`
-- `cancelFreeSubscriptionForUpgrade` helper function
+- `cancelFreeSubscriptionIfExists` helper function
 - `linkUpgradedSubscriptions` helper function
 - Database columns: `cancellationReason`, `replacedBySubscriptionId`, `isFreePlan`
 - Single free subscription validation in `verifyCanCreateSubscription`
