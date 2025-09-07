@@ -36,6 +36,7 @@ export const billingPeriods = pgTable(
       enumBase: BillingPeriodStatus,
     }).notNull(),
     trialPeriod: boolean('trial_period').notNull().default(false),
+    proratedPeriod: boolean('prorated_period').default(false),
   },
   (table) => {
     return [

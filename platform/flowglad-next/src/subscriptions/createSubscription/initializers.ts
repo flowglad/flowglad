@@ -39,6 +39,7 @@ export const createStandardSubscriptionAndItems = async (
     stripeSetupIntentId,
     metadata,
     autoStart = false,
+    billingCycleAnchorDate,
   } = params
   const subscriptionInsert: Subscription.StandardInsert = {
     organizationId: organization.id,
@@ -70,7 +71,7 @@ export const createStandardSubscriptionAndItems = async (
       `${product.name}${price.name ? ` - ${price.name}` : ''}`,
     currentBillingPeriodStart: currentBillingPeriod.startDate,
     currentBillingPeriodEnd: currentBillingPeriod.endDate,
-    billingCycleAnchorDate: startDate,
+    billingCycleAnchorDate: billingCycleAnchorDate || startDate,
     interval,
     intervalCount,
     stripeSetupIntentId: stripeSetupIntentId ?? null,
@@ -193,17 +194,38 @@ export const insertSubscriptionAndItems = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
-  const { price, startDate, interval, intervalCount, trialEnd } =
-    params
+  const {
+    price,
+    startDate,
+    interval,
+    intervalCount,
+    trialEnd,
+    billingCycleAnchorDate,
+    preservedBillingPeriodEnd,
+    preservedBillingPeriodStart,
+  } = params
 
-  const currentBillingPeriod = generateNextBillingPeriod({
-    billingCycleAnchorDate: startDate,
+  // Use provided anchor date or default to start date
+  const actualBillingCycleAnchor = billingCycleAnchorDate || startDate
+
+  let currentBillingPeriod = generateNextBillingPeriod({
+    billingCycleAnchorDate: actualBillingCycleAnchor,
     subscriptionStartDate: startDate,
     interval,
     intervalCount,
     lastBillingPeriodEndDate: null,
     trialEnd,
   })
+
+  // Override the dates if preserving billing cycle
+  if (preservedBillingPeriodEnd || preservedBillingPeriodStart) {
+    currentBillingPeriod = {
+      startDate:
+        preservedBillingPeriodStart || currentBillingPeriod.startDate,
+      endDate:
+        preservedBillingPeriodEnd || currentBillingPeriod.endDate,
+    }
+  }
 
   if (!isPriceTypeSubscription(price.type)) {
     throw new Error('Price is not a subscription')

@@ -43,6 +43,7 @@ const checkoutSession: CheckoutSession.Record = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
+  preserveBillingCycleAnchor: false,
 }
 
 const checkoutInfoDefaults = {
