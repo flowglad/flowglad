@@ -133,7 +133,7 @@ export const checkoutSessions = pgTable(
         as: 'permissive',
         to: 'customer',
         for: 'insert',
-        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id() and "price_id" in (select id from "prices")`,
+        withCheck: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id() and "price_id" in (select id from "prices")`,
       }),
       pgPolicy('Enable select for customer', {
         as: 'permissive',

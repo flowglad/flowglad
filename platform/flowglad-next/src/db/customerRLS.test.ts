@@ -1381,8 +1381,10 @@ describe('Customer Role RLS Policies', () => {
           },
           transaction
         )
+      })
 
-        // Refresh the customer objects to get the updated pricingModelId values
+      // Refresh the customer objects AFTER the admin transaction commits
+      await adminTransaction(async ({ transaction }) => {
         const { selectCustomerById } = await import(
           './tableMethods/customerMethods'
         )
@@ -1409,70 +1411,69 @@ describe('Customer Role RLS Policies', () => {
       })
     })
 
-    describe('Successful checkout session creation', () => {
-      it('should allow customer to create checkout session for price in their pricing model', async () => {
-        const result = await authenticatedCustomerTransaction(
-          customerA_Org1,
-          userA,
-          org1,
-          async ({ transaction }) => {
-            const checkoutSession = await insertCheckoutSession(
-              {
-                organizationId: org1.id,
-                customerId: customerA_Org1.id,
-                priceId: priceInModelA.id,
-                type: CheckoutSessionType.Product,
-                status: CheckoutSessionStatus.Open,
-                quantity: 1,
-                invoiceId: null,
-                purchaseId: null,
-                targetSubscriptionId: null,
-                automaticallyUpdateSubscriptions: null,
-                livemode: true,
-              },
-              transaction
-            )
+    describe('Checkout session creation restrictions', () => {
+      it('should prevent customer from directly creating checkout sessions (must use API)', async () => {
+        // Customer should NOT be able to directly create checkout sessions
+        // This must be done through a secure API endpoint
+        await expect(
+          authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              const checkoutSession = await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: priceInModelA.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
 
-            return checkoutSession
-          }
-        )
-
-        expect(result).toBeDefined()
-        expect(result.customerId).toBe(customerA_Org1.id)
-        expect(result.priceId).toBe(priceInModelA.id)
-        expect(result.status).toBe(CheckoutSessionStatus.Open)
+              return checkoutSession
+            }
+          )
+        ).rejects.toThrow(/Failed to insert.*checkout_sessions/)
       })
 
-      it('should allow customer to create checkout session with active product and active price', async () => {
-        const result = await authenticatedCustomerTransaction(
-          customerA_Org1,
-          userA,
-          org1,
-          async ({ transaction }) => {
-            const checkoutSession = await insertCheckoutSession(
-              {
-                organizationId: org1.id,
-                customerId: customerA_Org1.id,
-                priceId: activePrice.id,
-                type: CheckoutSessionType.Product,
-                status: CheckoutSessionStatus.Open,
-                quantity: 2,
-                invoiceId: null,
-                purchaseId: null,
-                targetSubscriptionId: null,
-                automaticallyUpdateSubscriptions: null,
-                livemode: true,
-              },
-              transaction
-            )
+      it('should prevent customer from directly creating checkout session even with active product and price', async () => {
+        // Customer should NOT be able to directly create checkout sessions
+        // This must be done through a secure API endpoint
+        await expect(
+          authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              const checkoutSession = await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: activePrice.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 2,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
 
-            return checkoutSession
-          }
-        )
-
-        expect(result).toBeDefined()
-        expect(result.priceId).toBe(activePrice.id)
-        expect(result.quantity).toBe(2)
+              return checkoutSession
+            }
+          )
+        ).rejects.toThrow(/Failed to insert.*checkout_sessions/)
       })
     })
 
