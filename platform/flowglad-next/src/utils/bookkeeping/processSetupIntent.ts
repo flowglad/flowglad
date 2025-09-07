@@ -7,6 +7,8 @@ import {
   CheckoutSessionType,
   PurchaseStatus,
   SubscriptionStatus,
+  FlowgladEventType,
+  EventNoun,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -51,6 +53,11 @@ import {
   cancelFreeSubscriptionForUpgrade,
   linkUpgradedSubscriptions,
 } from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
+import {
+  constructPurchaseCompletedEventHash,
+  constructSubscriptionCreatedEventHash,
+} from '../eventHelpers'
+import { Event } from '@/db/schema/events'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -446,10 +453,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }
 
     // Check for and cancel any free subscription before creating the new one
-    const canceledFreeSubscription = await cancelFreeSubscriptionForUpgrade(
-      customer.id,
-      transaction
-    )
+    const canceledFreeSubscription =
+      await cancelFreeSubscriptionForUpgrade(customer.id, transaction)
 
     const subscriptionsForCustomer = await selectSubscriptions(
       {
@@ -489,6 +494,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    const eventInserts: Event.Insert[] = []
+    if (output.eventsToLog) {
+      eventInserts.push(...output.eventsToLog)
+    }
 
     // Link the old and new subscriptions if there was an upgrade
     if (canceledFreeSubscription && output.result.subscription) {
@@ -497,6 +506,23 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         output.result.subscription.id,
         transaction
       )
+      // Add upgrade event to the events to log
+      eventInserts.push({
+        type: FlowgladEventType.SubscriptionCreated,
+        occurredAt: new Date(),
+        organizationId: organization.id,
+        livemode: output.result.subscription.livemode,
+        metadata: {},
+        submittedAt: new Date(),
+        processedAt: null,
+        hash: constructSubscriptionCreatedEventHash(
+          output.result.subscription
+        ),
+        payload: {
+          object: EventNoun.Subscription,
+          id: output.result.subscription.id,
+        },
+      })
     }
 
     const updatedPurchase = await updatePurchase(
@@ -508,9 +534,24 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    eventInserts.push({
+      type: FlowgladEventType.PurchaseCompleted,
+      occurredAt: new Date(),
+      organizationId: organization.id,
+      livemode: updatedPurchase.livemode,
+      metadata: {},
+      submittedAt: new Date(),
+      processedAt: null,
+      hash: constructPurchaseCompletedEventHash(updatedPurchase),
+      payload: {
+        id: updatedPurchase.id,
+        object: EventNoun.Purchase,
+      },
+    })
 
     return {
       ...output,
+      eventsToLog: eventInserts,
       result: {
         purchase: updatedPurchase,
         checkoutSession,

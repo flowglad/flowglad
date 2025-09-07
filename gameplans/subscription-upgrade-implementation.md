@@ -1,7 +1,7 @@
 # Subscription Upgrade Implementation Plan
 
 ## Implementation Status Summary
-**Last Updated**: 2025-09-07
+**Last Updated**: 2025-01-07
 
 ### ✅ Completed Components:
 - **Database Schema**: New columns added (cancellationReason, replacedBySubscriptionId, isFreePlan)
@@ -11,6 +11,10 @@
 - **Test Coverage**: Upgrade flow tests in processSetupIntent.upgrade.test.ts
 - **TypeScript Types**: CancellationReason enum added to types.ts
 - **Automatic Free Plan Marking**: Subscriptions with unitPrice=0 automatically marked as isFreePlan=true
+- **Analytics & Reporting**: Upgrades excluded from churn metrics, separate upgrade tracking
+- **Event Logging**: SubscriptionUpgraded events logged with full details
+- **MRR Tracking**: Upgrade MRR tracked separately from new/churn MRR
+- **Upgrade Metrics**: Functions to track conversion rates, time to upgrade, and revenue
 
 ### ⚠️ Partially Completed:
 - **Race Condition Prevention**: Single free subscription validation exists, but not comprehensive
@@ -19,8 +23,6 @@
 - **Subscription Selection Logic**: No filtering for upgraded-away subscriptions
 - **Database Constraints**: No unique constraint for one active subscription per customer
 - **Idempotency**: No check for already-processed setup intents
-- **Analytics & Reporting**: No exclusion of upgrades from churn metrics
-- **Event Logging**: No upgrade-specific events
 - **UI/UX Updates**: No special handling for subscription transitions
 
 ## Overview
@@ -309,11 +311,11 @@ describe('Upgrade Race Condition Prevention', () => {
 
 ---
 
-### PR 5: Analytics & Reporting Adjustments ❌ NOT IMPLEMENTED
+### PR 5: Analytics & Reporting Adjustments ✅ COMPLETED (2025-01-07)
 **Update metrics to handle upgrade flow correctly**
 
 #### Tasks:
-1. **Update churn calculations** (`/src/utils/billing-dashboard/revenueCalculationHelpers.ts`) ❌:
+1. **Update churn calculations** (`/src/utils/billing-dashboard/revenueCalculationHelpers.ts`) ✅:
    ```typescript
    export const calculateChurnedSubscriptions = (
      subscriptions: Subscription.Record[]
@@ -325,7 +327,7 @@ describe('Upgrade Race Condition Prevention', () => {
    }
    ```
 
-2. **Add upgrade tracking metrics** ❌:
+2. **Add upgrade tracking metrics** ✅:
    ```typescript
    // New file: src/utils/billing-dashboard/upgradeMetrics.ts
    export const getUpgradeMetrics = async (
@@ -353,9 +355,9 @@ describe('Upgrade Race Condition Prevention', () => {
    }
    ```
 
-3. **Update MRR calculations** to track upgrade transitions correctly ❌
+3. **Update MRR calculations** to track upgrade transitions correctly ✅
 
-4. **Add event logging** ❌:
+4. **Add event logging** ✅:
    ```typescript
    // Log upgrade event
    eventsToLog.push({
