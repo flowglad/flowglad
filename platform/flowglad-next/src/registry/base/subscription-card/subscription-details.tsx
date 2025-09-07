@@ -31,10 +31,7 @@ export function SubscriptionDetails({
         </div>
         <div className="text-right">
           <p className="font-semibold">
-            {formatCurrency(
-              totalAmount,
-              subscription.currency || primaryItem.currency
-            )}
+            {formatCurrency(totalAmount, subscription.currency)}
           </p>
           {billingInterval && (
             <p className="text-sm text-muted-foreground">
@@ -112,7 +109,7 @@ export function SubscriptionDetails({
                 <span className="font-medium">
                   {formatCurrency(
                     item.unitAmount * item.quantity,
-                    item.currency
+                    subscription.currency
                   )}
                   {item.usageType === 'metered' && (
                     <span className="text-xs text-muted-foreground ml-1">

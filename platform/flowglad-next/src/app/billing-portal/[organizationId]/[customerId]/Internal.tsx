@@ -224,13 +224,13 @@ function BillingPortalPage() {
                     trialEnd: trialEnd
                       ? new Date(trialEnd)
                       : undefined,
+                    currency: 'usd',
                     items: currentSubscription.subscriptionItems.map(
                       (item) => ({
                         id: item.id,
                         productName: item.name || '',
                         quantity: item.quantity,
                         unitAmount: item.unitPrice,
-                        currency: 'usd',
                         priceId: item.priceId || '',
                         productId: '',
                       })

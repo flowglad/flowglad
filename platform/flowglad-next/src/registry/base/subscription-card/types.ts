@@ -7,7 +7,6 @@ export interface SubscriptionItem {
   productName: string
   quantity: number
   unitAmount: number
-  currency: string
   interval?: 'month' | 'year' | 'week' | 'day'
   intervalCount?: number
   usageType?: 'metered' | 'licensed'
@@ -23,7 +22,7 @@ export interface Subscription {
   canceledAt?: Date
   trialEnd?: Date
   items: SubscriptionItem[]
-  currency?: string
+  currency: string
   defaultPaymentMethodId?: string
 }
 
