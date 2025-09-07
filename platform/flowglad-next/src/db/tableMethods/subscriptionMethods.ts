@@ -229,7 +229,8 @@ export const selectSubscriptionsTableRowData =
           subscription: {
             ...subscription,
             current: isSubscriptionCurrent(
-              subscription.status as SubscriptionStatus
+              subscription.status as SubscriptionStatus,
+              subscription.cancellationReason
             ),
           },
           price: pricesSelectSchema.parse(price),
