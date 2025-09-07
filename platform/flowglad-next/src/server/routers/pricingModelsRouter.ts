@@ -18,6 +18,7 @@ import {
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
   selectPricingModelsTableRows,
   safelyUpdatePricingModel,
+  selectPricingModelById,
 } from '@/db/tableMethods/pricingModelMethods'
 import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
 import { z } from 'zod'
@@ -31,6 +32,8 @@ import {
   idInputSchema,
 } from '@/db/tableUtils'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
+import { TRPCError } from '@trpc/server'
+import { adminTransaction } from '@/db/adminTransaction'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'pricingModel',
@@ -202,18 +205,27 @@ const clonePricingModelProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
+    const pricingModel = await authenticatedTransaction(
       async ({ transaction }) => {
-        const pricingModel = await clonePricingModelTransaction(
-          input,
-          transaction
-        )
-        return { pricingModel }
+        return selectPricingModelById(input.id, transaction)
       },
       {
         apiKey: ctx.apiKey,
       }
     )
+    if (!pricingModel) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message:
+          'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
+      })
+    }
+    const clonedPricingModel = await adminTransaction(
+      async ({ transaction }) => {
+        return await clonePricingModelTransaction(input, transaction)
+      }
+    )
+    return { pricingModel: clonedPricingModel }
   })
 
 const getTableRowsProcedure = protectedProcedure
