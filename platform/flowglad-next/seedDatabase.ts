@@ -336,7 +336,7 @@ export const setupCustomer = async (params: SetupCustomerParams) => {
         organizationId: params.organizationId,
         email,
         name: email,
-        externalId: (params.externalId?.trim() || core.nanoid()),
+        externalId: params.externalId?.trim() || core.nanoid(),
         livemode: params.livemode ?? true,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
@@ -1143,6 +1143,7 @@ export const setupCheckoutSession = async ({
   automaticallyUpdateSubscriptions,
   outputMetadata,
   purchaseId,
+  outputName,
 }: {
   organizationId: string
   customerId: string
@@ -1154,6 +1155,7 @@ export const setupCheckoutSession = async ({
   targetSubscriptionId?: string
   automaticallyUpdateSubscriptions?: boolean
   outputMetadata?: Record<string, any>
+  outputName?: string
   purchaseId?: string
 }) => {
   const billingAddress: BillingAddress = {
@@ -1212,7 +1214,7 @@ export const setupCheckoutSession = async ({
       quantity,
       livemode,
       targetSubscriptionId: null,
-      outputName: null,
+      outputName: outputName ?? null,
       outputMetadata: outputMetadata ?? {},
       purchaseId: purchaseId ?? 'test',
       automaticallyUpdateSubscriptions: null,
@@ -1240,7 +1242,7 @@ export const setupCheckoutSession = async ({
       quantity,
       livemode,
       targetSubscriptionId: null,
-      outputName: null,
+      outputName: outputName ?? null,
       invoiceId: invoice.id,
       purchaseId: null,
       outputMetadata: null,

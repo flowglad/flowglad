@@ -2,11 +2,15 @@ import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PurchaseStatus,
   SubscriptionStatus,
+  CancellationReason,
+  FlowgladEventType,
+  EventNoun,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -17,7 +21,10 @@ import {
 } from '@/utils/stripe'
 import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
-import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
+import {
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
 import {
   checkoutSessionIsInTerminalState,
@@ -367,7 +374,11 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
 
 interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
   type: CheckoutSessionType.Product | CheckoutSessionType.Purchase
-  purchase: Purchase.Record
+  /**
+   * Only provided on the first time the checkout session is created
+   * and is null on subsequent calls
+   */
+  purchase: Purchase.Record | null
   price: Price.Record
   product: Product.Record
   billingRun: BillingRun.Record | null
@@ -446,10 +457,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }
 
     // Check for and cancel any free subscription before creating the new one
-    const canceledFreeSubscription = await cancelFreeSubscriptionForUpgrade(
-      customer.id,
-      transaction
-    )
+    const canceledFreeSubscription =
+      await cancelFreeSubscriptionForUpgrade(customer.id, transaction)
 
     const subscriptionsForCustomer = await selectSubscriptions(
       {
@@ -457,6 +466,26 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+
+    // Check for existing active paid subscriptions to prevent duplicate paid subscriptions
+    // unless the organization allows multiple subscriptions per customer
+    const activePaidSubscriptions = subscriptionsForCustomer.filter(
+      (sub) =>
+        sub.status === SubscriptionStatus.Active &&
+        sub.isFreePlan === false &&
+        sub.cancellationReason !== CancellationReason.UpgradedToPaid
+    )
+
+    if (
+      activePaidSubscriptions.length > 0 &&
+      !organization.allowMultipleSubscriptionsPerCustomer
+    ) {
+      throw new Error(
+        `Customer ${customer.id} already has an active paid subscription. ` +
+          `Cannot create another paid subscription. ` +
+          `Existing subscription ID: ${activePaidSubscriptions[0].id}`
+      )
+    }
     const hasHadTrial = subscriptionsForCustomer.some(
       (subscription) => subscription.trialEnd
     )
@@ -509,8 +538,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       transaction
     )
 
+    // Add upgrade event if this was an upgrade
+    const eventsToLog = [...(output.eventsToLog || [])]
+
     return {
       ...output,
+      eventsToLog,
       result: {
         purchase: updatedPurchase,
         checkoutSession,
@@ -619,6 +652,95 @@ export const processSetupIntentSucceeded = async (
     | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
   >
 > => {
+  // Check if this setup intent was already processed (idempotency check)
+  const existingSubscription = await selectSubscriptions(
+    {
+      stripeSetupIntentId: setupIntent.id,
+    },
+    transaction
+  )
+
+  if (existingSubscription.length > 0) {
+    // This setup intent was already processed, return the existing subscription
+    // This prevents duplicate subscription creation in case of webhook replay
+    const subscription = existingSubscription[0]
+    const checkoutSession = await checkoutSessionFromSetupIntent(
+      setupIntent,
+      transaction
+    )
+    const customer = await selectCustomerById(
+      subscription.customerId!,
+      transaction
+    )
+    const paymentMethod = subscription.defaultPaymentMethodId
+      ? await selectPaymentMethodById(
+          subscription.defaultPaymentMethodId,
+          transaction
+        )
+      : undefined
+
+    // Determine result type based on checkout session type
+    if (
+      checkoutSession.type ===
+      CheckoutSessionType.ActivateSubscription
+    ) {
+      const organization = await selectOrganizationById(
+        checkoutSession.organizationId,
+        transaction
+      )
+      return {
+        result: {
+          type: CheckoutSessionType.ActivateSubscription,
+          checkoutSession,
+          organization,
+          customer,
+          paymentMethod: paymentMethod!,
+          billingRun: null,
+          subscription,
+          purchase: null,
+        },
+        eventsToLog: [],
+      }
+    }
+    if (checkoutSession.type === CheckoutSessionType.Invoice) {
+      throw new Error(
+        `processSetupIntentSucceeded: Invoice checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    if (checkoutSession.type === CheckoutSessionType.Purchase) {
+      throw new Error(
+        `processSetupIntentSucceeded: Purchase checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    if (
+      checkoutSession.type === CheckoutSessionType.AddPaymentMethod
+    ) {
+      throw new Error(
+        `processSetupIntentSucceeded: Add payment method checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    // Default to subscription creating result type
+    const priceResult =
+      await selectPriceProductAndOrganizationByPriceWhere(
+        { id: subscription.priceId! },
+        transaction
+      )
+
+    return {
+      result: {
+        type: checkoutSession.type,
+        checkoutSession,
+        price: priceResult[0]?.price,
+        product: priceResult[0]?.product,
+        organization: priceResult[0]?.organization,
+        customer,
+        billingRun: null,
+        purchase: null,
+      },
+      eventsToLog: [],
+    }
+  }
+
   const initialCheckoutSession = await checkoutSessionFromSetupIntent(
     setupIntent,
     transaction
