@@ -18,9 +18,8 @@ import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
 import core from '@/utils/core'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
-import { snakeCase } from 'change-case'
-import { useRef } from 'react'
 import { Product } from '@/db/schema/products'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 export const ProductFormFields = ({
   editProduct = false,
@@ -29,7 +28,6 @@ export const ProductFormFields = ({
 }) => {
   const form = useFormContext<CreateProductSchema>()
   const product = form.watch('product')
-  const isSlugDirty = useRef(false)
 
   if (
     !core.IS_PROD &&
@@ -54,25 +52,6 @@ export const ProductFormFields = ({
                       placeholder="Product"
                       className="w-full"
                       {...field}
-                      onChange={(e) => {
-                        // First, let the field handle its own onChange
-                        field.onChange(e)
-
-                        // Then handle our auto-slug logic
-                        const newName = e.target.value
-
-                        // Only auto-generate slug if:
-                        // 1. We're not editing an existing product
-                        // 2. The slug field is not dirty (user hasn't focused it)
-                        if (!editProduct && !isSlugDirty.current) {
-                          if (newName.trim()) {
-                            const newSlug = snakeCase(newName)
-                            form.setValue('product.slug', newSlug)
-                          } else {
-                            form.setValue('product.slug', '')
-                          }
-                        }
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -82,34 +61,25 @@ export const ProductFormFields = ({
             <FormField
               control={form.control}
               name="product.slug"
-              render={({ field }) => {
-                const { value, ...rest } = field
-                return (
-                  <FormItem>
-                    <FormLabel>Product Slug</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="product_slug"
-                        className="w-full"
-                        {...rest}
-                        value={value || ''}
-                        onFocus={() => {
-                          isSlugDirty.current = true
-                        }}
-                        onChange={(e) => {
-                          isSlugDirty.current = true
-                          field.onChange(e)
-                        }}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs text-subtle mt-1">
-                      Used to identify the product in its pricing
-                      model. Must be unique per-pricing model.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )
-              }}
+              render={() => (
+                <FormItem>
+                  <FormLabel>Product Slug</FormLabel>
+                  <FormControl>
+                    <AutoSlugInput
+                      name="product.slug"
+                      sourceName="product.name"
+                      placeholder="product_slug"
+                      disabledAuto={editProduct}
+                      className="w-full"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs text-subtle mt-1">
+                    Used to identify the product in its pricing
+                    model. Must be unique per-pricing model.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
             <FormField
               control={form.control}

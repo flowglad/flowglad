@@ -1,8 +1,7 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useState } from 'react'
 
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
-import { snakeCase } from 'change-case'
 import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import {
@@ -37,6 +36,7 @@ import { CreateProductSchema } from '@/db/schema/prices'
 import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
 import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 const SubscriptionFields = ({
   omitTrialFields = false,
@@ -198,22 +198,6 @@ const PriceFormFields = ({
   } = usePriceFormContext()
   const fullForm = useFormContext<CreateProductSchema>()
   const type = watch('price.type')
-  const productName = fullForm.watch('product.name')
-  const isPriceSlugDirty = useRef(false)
-
-  // Auto-generate price slug from product name when creating new products
-  useEffect(() => {
-    if (edit) return // Don't auto-generate for edit mode
-
-    // Only auto-generate if the price slug field is not dirty
-    if (!isPriceSlugDirty.current && productName?.trim()) {
-      const newSlug = snakeCase(productName)
-      setValue('price.slug', newSlug)
-    } else if (!isPriceSlugDirty.current && !productName?.trim()) {
-      // If product name is empty, also clear the price slug
-      setValue('price.slug', '')
-    }
-  }, [productName, edit, setValue])
 
   let typeFields = <></>
   const { organization } = useAuthenticatedContext()
@@ -271,20 +255,15 @@ const PriceFormFields = ({
       <FormField
         control={control}
         name="price.slug"
-        render={({ field }) => (
+        render={() => (
           <FormItem>
             <FormLabel>Price Slug</FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                value={field.value ?? ''}
-                onFocus={() => {
-                  isPriceSlugDirty.current = true
-                }}
-                onChange={(e) => {
-                  isPriceSlugDirty.current = true
-                  field.onChange(e)
-                }}
+              <AutoSlugInput
+                name="price.slug"
+                sourceName={priceOnly ? "price.name" : "product.name"}
+                placeholder="price_slug"
+                disabledAuto={edit}
               />
             </FormControl>
             <FormDescription>
