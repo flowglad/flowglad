@@ -440,7 +440,7 @@ export const selectCurrentSubscriptionForCustomer = async (
   // Start by looking for an active subscription that wasn't upgraded away
   const activeNonUpgraded = allSubscriptions.find(
     (s) =>
-      s.status === SubscriptionStatus.Active &&
+      currentSubscriptionStatuses.includes(s.status) &&
       s.cancellationReason !== CancellationReason.UpgradedToPaid
   )
 
