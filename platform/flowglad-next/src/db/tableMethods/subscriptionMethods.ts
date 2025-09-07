@@ -314,10 +314,12 @@ export const getActiveSubscriptionsForPeriod = async (
     .where(
       and(
         eq(subscriptions.organizationId, organizationId),
-        gte(subscriptions.startDate, startDate),
+        // Subscription started before the period ended
+        lte(subscriptions.startDate, endDate),
+        // Subscription was not canceled before the period started
         or(
           isNull(subscriptions.canceledAt),
-          gt(subscriptions.canceledAt, endDate)
+          gt(subscriptions.canceledAt, startDate)
         ),
         // Exclude subscriptions that were upgraded away
         or(
