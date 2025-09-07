@@ -677,7 +677,7 @@ export async function calculateMRRBreakdown(
     .from(subscriptions)
     .where(eq(subscriptions.organizationId, organizationId))
 
-  // Build a map of replaced subscription IDs to their replacements
+  // Build a map of replacement subscription IDs to their replaced predecessors
   const replacementMap = new Map<string, string>()
   for (const sub of allSubscriptions) {
     if (
