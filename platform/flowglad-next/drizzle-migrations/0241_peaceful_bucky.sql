@@ -1,1 +1,0 @@
-ALTER POLICY "Enable insert for customer" ON "checkout_sessions" TO customer USING ("customer_id" in (select id from "customers") and "organization_id" = current_organization_id() and "price_id" in (select id from "prices")) WITH CHECK ("customer_id" in (select id from "customers") and "organization_id" = current_organization_id() and "price_id" in (select id from "prices"));

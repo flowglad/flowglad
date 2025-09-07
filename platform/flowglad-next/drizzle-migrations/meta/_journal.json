@@ -1671,22 +1671,8 @@
     {
       "idx": 239,
       "version": "7",
-      "when": 1757208304408,
-      "tag": "0239_clumsy_jane_foster",
-      "breakpoints": true
-    },
-    {
-      "idx": 240,
-      "version": "7",
-      "when": 1757209272421,
-      "tag": "0240_dry_vector",
-      "breakpoints": true
-    },
-    {
-      "idx": 241,
-      "version": "7",
-      "when": 1757210385646,
-      "tag": "0241_peaceful_bucky",
+      "when": 1757212020536,
+      "tag": "0239_bright_hitman",
       "breakpoints": true
     }
   ]

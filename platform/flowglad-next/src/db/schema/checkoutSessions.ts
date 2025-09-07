@@ -23,6 +23,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  customerPolicy,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -129,22 +130,9 @@ export const checkoutSessions = pgTable(
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
-      pgPolicy('Enable insert for customer', {
+      customerPolicy('Enable select for customer', {
         as: 'permissive',
-        to: 'customer',
-        for: 'insert',
-        withCheck: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id() and "price_id" in (select id from "prices")`,
-      }),
-      pgPolicy('Enable select for customer', {
-        as: 'permissive',
-        to: 'customer',
         for: 'select',
-        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
-      }),
-      pgPolicy('Enable update for customer', {
-        as: 'permissive',
-        to: 'customer',
-        for: 'update',
         using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
       }),
       livemodePolicy(TABLE_NAME),
@@ -704,8 +692,8 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
-const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
-  {
+export const productCheckoutSessionSchema =
+  coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.Product),
     priceId: z
       .string()
@@ -716,10 +704,9 @@ const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
       .describe(
         'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
       ),
-  }
-)
+  })
 
-const addPaymentMethodCheckoutSessionSchema =
+export const addPaymentMethodCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.AddPaymentMethod),
     targetSubscriptionId: z
@@ -736,7 +723,7 @@ const addPaymentMethodCheckoutSessionSchema =
       ),
   })
 
-const activateSubscriptionCheckoutSessionSchema =
+export const activateSubscriptionCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.ActivateSubscription),
     priceId: z.string(),
@@ -745,8 +732,8 @@ const activateSubscriptionCheckoutSessionSchema =
 
 const createCheckoutSessionObject = z.discriminatedUnion('type', [
   productCheckoutSessionSchema,
-  addPaymentMethodCheckoutSessionSchema,
   activateSubscriptionCheckoutSessionSchema,
+  addPaymentMethodCheckoutSessionSchema,
 ])
 
 export type CreateCheckoutSessionObject = z.infer<

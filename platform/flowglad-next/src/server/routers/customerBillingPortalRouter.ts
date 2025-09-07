@@ -12,6 +12,9 @@ import {
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
 import {
+  createPricedCheckoutSessionSchema,
+  customerBillingCreateAddPaymentMethodSession,
+  customerBillingCreatePricedCheckoutSession,
   customerBillingTransaction,
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
@@ -47,7 +50,7 @@ import {
   selectUserById,
   selectUsers,
 } from '@/db/tableMethods/userMethods'
-import core from '@/utils/core'
+import core, { customerBillingPortalURL } from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
@@ -59,6 +62,13 @@ import {
 } from '@/db/tableMethods/paymentMethodMethods'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
+import {
+  activateSubscriptionCheckoutSessionSchema,
+  checkoutSessionClientSelectSchema,
+  createCheckoutSessionSchema,
+  productCheckoutSessionSchema,
+} from '@/db/schema/checkoutSessions'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 // Enhanced getBilling procedure with pagination support for invoices
 const getBillingProcedure = customerProtectedProcedure
@@ -495,6 +505,44 @@ const getCustomersForUserAndOrganizationProcedure =
       )
     )
 
+const createCheckoutSessionWithPriceProcedure =
+  customerProtectedProcedure
+    .input(
+      z.object({
+        checkoutSession: createPricedCheckoutSessionSchema,
+      })
+    )
+    .output(
+      z.object({
+        checkoutSession: checkoutSessionClientSelectSchema,
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const checkoutSessionInput = input.checkoutSession
+      return await customerBillingCreatePricedCheckoutSession({
+        checkoutSessionInput,
+        customer: ctx.customer,
+        organizationId: ctx.organizationId!,
+        livemode: ctx.livemode,
+      })
+    })
+
+const createAddPaymentMethodCheckoutSessionProcedure =
+  customerProtectedProcedure
+    .input(z.object({}))
+    .output(
+      z.object({
+        checkoutSession: checkoutSessionClientSelectSchema,
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      return await customerBillingCreateAddPaymentMethodSession({
+        customer: ctx.customer,
+        organizationId: ctx.organizationId!,
+        livemode: ctx.livemode,
+      })
+    })
+
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
@@ -502,6 +550,10 @@ export const customerBillingPortalRouter = router({
   createAddPaymentMethodSession:
     createAddPaymentMethodSessionProcedure,
   setDefaultPaymentMethod: setDefaultPaymentMethodProcedure,
+  createCheckoutSessionWithPrice:
+    createCheckoutSessionWithPriceProcedure,
+  createAddPaymentMethodCheckoutSession:
+    createAddPaymentMethodCheckoutSessionProcedure,
   getCustomersForUserAndOrganization:
     getCustomersForUserAndOrganizationProcedure,
 })

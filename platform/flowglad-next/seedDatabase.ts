@@ -324,6 +324,7 @@ interface SetupCustomerParams {
   invoiceNumberBase?: string
   email?: string
   livemode?: boolean
+  pricingModelId?: string
   externalId?: string
   userId?: string
 }
@@ -336,12 +337,13 @@ export const setupCustomer = async (params: SetupCustomerParams) => {
         organizationId: params.organizationId,
         email,
         name: email,
-        externalId: (params.externalId?.trim() || core.nanoid()),
+        externalId: params.externalId?.trim() || core.nanoid(),
         livemode: params.livemode ?? true,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
         invoiceNumberBase: params.invoiceNumberBase ?? core.nanoid(),
         userId: params.userId,
+        pricingModelId: params.pricingModelId,
       },
       transaction
     )

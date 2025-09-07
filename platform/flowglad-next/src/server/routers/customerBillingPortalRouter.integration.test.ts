@@ -19,9 +19,6 @@ import {
   setupInvoice,
   setupBillingPeriod,
   setupBillingRun,
-  setupInvoiceLineItem,
-  setupPrice,
-  setupProduct,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import type { Organization } from '@/db/schema/organizations'

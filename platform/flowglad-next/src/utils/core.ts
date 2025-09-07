@@ -523,6 +523,17 @@ export const billingPortalPageURL = (params: {
 export const emailBaseUrl =
   envVariable('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000'
 
+export const customerBillingPortalURL = (params: {
+  organizationId: string
+  customerId: string
+}) => {
+  const { organizationId, customerId } = params
+  return safeUrl(
+    `/billing-portal/${organizationId}/${customerId}`,
+    emailBaseUrl
+  )
+}
+
 export const core = {
   IS_PROD,
   IS_TEST,
@@ -562,6 +573,7 @@ export const core = {
   createInvoiceNumber,
   formatDateRange,
   gitCommitId,
+  customerBillingPortalURL,
   safeZodNullOrUndefined,
   safeZodNullishString,
   safeZodPositiveInteger,

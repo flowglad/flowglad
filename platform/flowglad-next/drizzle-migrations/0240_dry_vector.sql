@@ -1,2 +1,0 @@
-CREATE POLICY "Enable select for customer" ON "checkout_sessions" AS PERMISSIVE FOR SELECT TO "customer" USING ("customer_id" in (select id from "customers") and "organization_id" = current_organization_id());--> statement-breakpoint
-CREATE POLICY "Enable update for customer" ON "checkout_sessions" AS PERMISSIVE FOR UPDATE TO "customer" USING ("customer_id" in (select id from "customers") and "organization_id" = current_organization_id());

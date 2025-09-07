@@ -1,5 +1,5 @@
 {
-  "id": "99627355-4ece-4ecb-86fd-4eed958d8edc",
+  "id": "6c198096-2db9-4d53-b322-157cc775a55c",
   "prevId": "e169ec5b-5fbf-4916-ac26-806f8c4bb690",
   "version": "7",
   "dialect": "postgresql",
@@ -1497,14 +1497,14 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Enable insert for customer": {
-          "name": "Enable insert for customer",
+        "Enable select for customer": {
+          "name": "Enable select for customer",
           "as": "PERMISSIVE",
-          "for": "INSERT",
+          "for": "SELECT",
           "to": [
             "customer"
           ],
-          "using": "\"customer_id\" in (select id from \"customers\") and \"organization_id\" = current_organization_id() and \"price_id\" in (select id from \"prices\")"
+          "using": "\"customer_id\" in (select id from \"customers\") and \"organization_id\" = current_organization_id()"
         },
         "Check mode (checkout_sessions)": {
           "name": "Check mode (checkout_sessions)",
