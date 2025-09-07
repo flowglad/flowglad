@@ -34,13 +34,32 @@ export const CustomerSubscriptionCreatedEmail = ({
   planName: string
   price: number
   currency: CurrencyCode
-  interval: IntervalUnit
-  nextBillingDate: Date
+  interval?: IntervalUnit
+  nextBillingDate?: Date
   paymentMethodLast4?: string
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
-  const intervalText = interval === 'month' ? 'month' : 'year'
+
+  const getIntervalText = (intervalUnit?: IntervalUnit) => {
+    if (!intervalUnit) return null
+    switch (intervalUnit) {
+      case IntervalUnit.Day:
+        return 'day'
+      case IntervalUnit.Week:
+        return 'week'
+      case IntervalUnit.Month:
+        return 'month'
+      case IntervalUnit.Year:
+        return 'year'
+      default:
+        return null
+    }
+  }
+
+  const formattedPriceWithInterval = interval
+    ? `${formattedPrice}/${getIntervalText(interval)}`
+    : formattedPrice
 
   return (
     <EmailLayout previewText="Payment method confirmed - Subscription active">
@@ -58,11 +77,13 @@ export const CustomerSubscriptionCreatedEmail = ({
           Plan: {planName}
         </DetailItem>
         <DetailItem dataTestId="price">
-          Price: {formattedPrice}/{intervalText}
+          Price: {formattedPriceWithInterval}
         </DetailItem>
-        <DetailItem dataTestId="next-billing-date">
-          Next billing date: {formatDate(nextBillingDate)}
-        </DetailItem>
+        {nextBillingDate && (
+          <DetailItem dataTestId="next-billing-date">
+            Next billing date: {formatDate(nextBillingDate)}
+          </DetailItem>
+        )}
         {paymentMethodLast4 && (
           <DetailItem dataTestId="payment-method">
             Payment method: •••• {paymentMethodLast4}

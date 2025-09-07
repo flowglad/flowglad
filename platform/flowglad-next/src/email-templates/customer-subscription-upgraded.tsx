@@ -38,22 +38,46 @@ export const CustomerSubscriptionUpgradedEmail = ({
   previousPlanName: string
   previousPlanPrice: number
   previousPlanCurrency: CurrencyCode
-  previousPlanInterval: 'month' | 'year'
+  previousPlanInterval?: IntervalUnit
   newPlanName: string
   price: number
   currency: CurrencyCode
-  interval: IntervalUnit
-  nextBillingDate: Date
+  interval?: IntervalUnit
+  nextBillingDate?: Date
   paymentMethodLast4?: string
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
-  const intervalText = interval === 'month' ? 'month' : 'year'
+
+  const getIntervalText = (intervalUnit?: IntervalUnit) => {
+    if (!intervalUnit) return null
+    switch (intervalUnit) {
+      case IntervalUnit.Day:
+        return 'day'
+      case IntervalUnit.Week:
+        return 'week'
+      case IntervalUnit.Month:
+        return 'month'
+      case IntervalUnit.Year:
+        return 'year'
+      default:
+        return null
+    }
+  }
 
   const formattedPreviousPrice =
     previousPlanPrice === 0
       ? 'Free'
-      : `${stripeCurrencyAmountToHumanReadableCurrencyAmount(previousPlanCurrency, previousPlanPrice)}/${previousPlanInterval === 'month' ? 'month' : 'year'}`
+      : previousPlanInterval
+        ? `${stripeCurrencyAmountToHumanReadableCurrencyAmount(previousPlanCurrency, previousPlanPrice)}/${getIntervalText(previousPlanInterval)}`
+        : stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            previousPlanCurrency,
+            previousPlanPrice
+          )
+
+  const formattedNewPrice = interval
+    ? `${formattedPrice}/${getIntervalText(interval)}`
+    : formattedPrice
 
   return (
     <EmailLayout previewText="Payment method confirmed - Subscription upgraded">
@@ -76,11 +100,13 @@ export const CustomerSubscriptionUpgradedEmail = ({
           New plan: {newPlanName}
         </DetailItem>
         <DetailItem dataTestId="price">
-          Price: {formattedPrice}/{intervalText}
+          Price: {formattedNewPrice}
         </DetailItem>
-        <DetailItem dataTestId="first-charge-date">
-          First charge: {formatDate(nextBillingDate)}
-        </DetailItem>
+        {nextBillingDate && (
+          <DetailItem dataTestId="first-charge-date">
+            First charge: {formatDate(nextBillingDate)}
+          </DetailItem>
+        )}
         {paymentMethodLast4 && (
           <DetailItem dataTestId="payment-method">
             Payment method: •••• {paymentMethodLast4}
@@ -88,12 +114,14 @@ export const CustomerSubscriptionUpgradedEmail = ({
         )}
       </DetailSection>
 
-      <Paragraph style={{ marginTop: '24px' }}>
-        Your first charge of {formattedPrice} will be processed on{' '}
-        {formatDate(nextBillingDate)}.
-        {paymentMethodLast4 &&
-          ` The payment method ending in ${paymentMethodLast4} will be used.`}
-      </Paragraph>
+      {nextBillingDate && (
+        <Paragraph style={{ marginTop: '24px' }}>
+          Your first charge of {formattedPrice} will be processed on{' '}
+          {formatDate(nextBillingDate)}.
+          {paymentMethodLast4 &&
+            ` The payment method ending in ${paymentMethodLast4} will be used.`}
+        </Paragraph>
+      )}
 
       <Paragraph style={{ marginTop: '16px' }}>
         You can manage your subscription and payment methods at any

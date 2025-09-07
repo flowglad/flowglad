@@ -14,7 +14,7 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     previousPlanName: 'Free Plan',
     previousPlanPrice: 0,
     previousPlanCurrency: CurrencyCode.USD,
-    previousPlanInterval: 'month' as const,
+    previousPlanInterval: IntervalUnit.Month,
     newPlanName: 'Pro Plan',
     price: 4900, // $49.00
     currency: CurrencyCode.USD,
@@ -119,7 +119,7 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
       previousPlanName: 'Basic Plan',
       previousPlanPrice: 1900, // $19.00
       previousPlanCurrency: CurrencyCode.USD,
-      previousPlanInterval: 'month' as const,
+      previousPlanInterval: IntervalUnit.Month,
     }
     const { getByTestId } = render(
       <CustomerSubscriptionUpgradedEmail {...paidToPaidProps} />
@@ -136,7 +136,7 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
       previousPlanName: 'Basic Yearly',
       previousPlanPrice: 20000, // $200.00
       previousPlanCurrency: CurrencyCode.USD,
-      previousPlanInterval: 'year' as const,
+      previousPlanInterval: IntervalUnit.Year,
     }
     const { getByTestId } = render(
       <CustomerSubscriptionUpgradedEmail {...yearlyPreviousProps} />
@@ -153,7 +153,7 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
       previousPlanName: 'Euro Basic',
       previousPlanPrice: 2500, // €25.00
       previousPlanCurrency: CurrencyCode.EUR,
-      previousPlanInterval: 'month' as const,
+      previousPlanInterval: IntervalUnit.Month,
       currency: CurrencyCode.EUR,
       price: 4500, // €45.00
     }
@@ -337,5 +337,85 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     )
 
     expect(queryByAltText('Logo')).not.toBeInTheDocument()
+  })
+
+  it('handles non-renewing upgraded subscription without interval', () => {
+    const nonRenewingProps = {
+      ...baseProps,
+      interval: undefined,
+      nextBillingDate: undefined,
+    }
+    const { getByTestId, queryByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail {...nonRenewingProps} />
+    )
+
+    // Should show price without interval
+    expect(getByTestId('price')).toHaveTextContent('Price: $49.00')
+    // Should not show first charge date
+    expect(queryByTestId('first-charge-date')).not.toBeInTheDocument()
+  })
+
+  it('handles weekly interval for upgraded subscription', () => {
+    const weeklyProps = {
+      ...baseProps,
+      interval: IntervalUnit.Week,
+      price: 700, // $7.00
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail {...weeklyProps} />
+    )
+
+    expect(getByTestId('price')).toHaveTextContent(
+      'Price: $7.00/week'
+    )
+  })
+
+  it('handles daily interval for upgraded subscription', () => {
+    const dailyProps = {
+      ...baseProps,
+      interval: IntervalUnit.Day,
+      price: 199, // $1.99
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail {...dailyProps} />
+    )
+
+    expect(getByTestId('price')).toHaveTextContent('Price: $1.99/day')
+  })
+
+  it('handles previous plan with weekly interval', () => {
+    const weeklyPreviousProps = {
+      ...baseProps,
+      previousPlanName: 'Weekly Basic',
+      previousPlanPrice: 700, // $7.00
+      previousPlanCurrency: CurrencyCode.USD,
+      previousPlanInterval: IntervalUnit.Week,
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail {...weeklyPreviousProps} />
+    )
+
+    expect(getByTestId('previous-plan')).toHaveTextContent(
+      'Previous plan: Weekly Basic ($7.00/week)'
+    )
+  })
+
+  it('handles non-renewing previous plan', () => {
+    const nonRenewingPreviousProps = {
+      ...baseProps,
+      previousPlanName: 'One-time Plan',
+      previousPlanPrice: 9900, // $99.00
+      previousPlanCurrency: CurrencyCode.USD,
+      previousPlanInterval: undefined,
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail
+        {...nonRenewingPreviousProps}
+      />
+    )
+
+    expect(getByTestId('previous-plan')).toHaveTextContent(
+      'Previous plan: One-time Plan ($99.00)'
+    )
   })
 })

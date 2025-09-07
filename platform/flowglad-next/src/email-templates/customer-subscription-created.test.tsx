@@ -223,4 +223,48 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       getByText(/The payment method will be used for future charges/)
     ).toBeInTheDocument()
   })
+
+  it('handles non-renewing subscription without interval', () => {
+    const nonRenewingProps = {
+      ...baseProps,
+      interval: undefined,
+      nextBillingDate: undefined,
+    }
+    const { getByTestId, queryByTestId } = render(
+      <CustomerSubscriptionCreatedEmail {...nonRenewingProps} />
+    )
+
+    // Should show price without interval
+    expect(getByTestId('price')).toHaveTextContent('Price: $25.00')
+    // Should not show next billing date
+    expect(queryByTestId('next-billing-date')).not.toBeInTheDocument()
+  })
+
+  it('formats weekly pricing correctly', () => {
+    const weeklyProps = {
+      ...baseProps,
+      interval: IntervalUnit.Week,
+      price: 500, // $5.00
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionCreatedEmail {...weeklyProps} />
+    )
+
+    expect(getByTestId('price')).toHaveTextContent(
+      'Price: $5.00/week'
+    )
+  })
+
+  it('formats daily pricing correctly', () => {
+    const dailyProps = {
+      ...baseProps,
+      interval: IntervalUnit.Day,
+      price: 100, // $1.00
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionCreatedEmail {...dailyProps} />
+    )
+
+    expect(getByTestId('price')).toHaveTextContent('Price: $1.00/day')
+  })
 })

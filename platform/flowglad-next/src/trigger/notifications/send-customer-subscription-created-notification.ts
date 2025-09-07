@@ -28,7 +28,7 @@ export const sendCustomerSubscriptionCreatedNotificationTask = task({
   ) => {
     logger.log('Sending customer subscription created notification', {
       payload,
-      ctx,
+      attempt: ctx.attempt,
     })
 
     const {
@@ -84,22 +84,38 @@ export const sendCustomerSubscriptionCreatedNotificationTask = task({
     }
 
     // Calculate next billing date based on subscription start and interval
-    const nextBillingDate = new Date(subscription.createdAt!)
-    if (price.intervalUnit === 'month') {
-      nextBillingDate.setMonth(
-        nextBillingDate.getMonth() + (price.intervalCount || 1)
-      )
-    } else if (price.intervalUnit === 'year') {
-      nextBillingDate.setFullYear(
-        nextBillingDate.getFullYear() + (price.intervalCount || 1)
-      )
+    let nextBillingDate: Date | undefined
+    if (price.intervalUnit) {
+      nextBillingDate = new Date(subscription.createdAt!)
+      const intervalCount = price.intervalCount || 1
+
+      switch (price.intervalUnit) {
+        case 'day':
+          nextBillingDate.setDate(
+            nextBillingDate.getDate() + intervalCount
+          )
+          break
+        case 'week':
+          nextBillingDate.setDate(
+            nextBillingDate.getDate() + intervalCount * 7
+          )
+          break
+        case 'month':
+          nextBillingDate.setMonth(
+            nextBillingDate.getMonth() + intervalCount
+          )
+          break
+        case 'year':
+          nextBillingDate.setFullYear(
+            nextBillingDate.getFullYear() + intervalCount
+          )
+          break
+      }
     }
-    if (!price.intervalUnit) {
-      throw new Error('Price interval unit is required')
-    }
+    const notifUatEmail = core.envVariable('NOTIF_UAT_EMAIL')
     const result = await safeSend({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
-      bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+      bcc: notifUatEmail ? [notifUatEmail] : undefined,
       to: [customer.email],
       subject: 'Payment method confirmed - Subscription active',
       react: await CustomerSubscriptionCreatedEmail({
@@ -111,8 +127,8 @@ export const sendCustomerSubscriptionCreatedNotificationTask = task({
         planName: subscription.name || price.name || 'Subscription',
         price: price.unitPrice,
         currency: price.currency,
-        interval: price.intervalUnit,
-        nextBillingDate,
+        interval: price.intervalUnit || undefined,
+        nextBillingDate: nextBillingDate || undefined,
         paymentMethodLast4: (paymentMethod?.paymentMethodData as any)
           ?.last4,
       }),
