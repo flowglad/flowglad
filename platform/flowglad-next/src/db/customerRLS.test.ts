@@ -1411,14 +1411,6 @@ describe('Customer Role RLS Policies', () => {
 
     describe('Successful checkout session creation', () => {
       it('should allow customer to create checkout session for price in their pricing model', async () => {
-        // Debug: Verify customer has pricing model before test
-        console.log(
-          'Test: customerA_Org1.pricingModelId =',
-          customerA_Org1.pricingModelId
-        )
-        console.log('Test: pricingModelA.id =', pricingModelA.id)
-        console.log('Test: priceInModelA.id =', priceInModelA.id)
-
         const result = await authenticatedCustomerTransaction(
           customerA_Org1,
           userA,
