@@ -1,31 +1,31 @@
 # Subscription Upgrade Implementation Plan
 
 ## Implementation Status Summary
-**Last Updated**: 2025-01-07
+**Last Updated**: 2025-01-09
 
 ### ✅ Completed Components:
 - **PR 1 - Database Schema**: New columns added (cancellationReason, replacedBySubscriptionId, isFreePlan)
 - **PR 2 - Core Upgrade Logic**: Cancel-and-replace flow implemented in processSetupIntentSucceeded
 - **PR 3 - Subscription Selection Logic**: Active subscription queries exclude upgraded-away subscriptions
 - **PR 4 - Race Condition Prevention**: Comprehensive validation to prevent double upgrades
+- **PR 5 - Analytics & Reporting**: Upgrades excluded from churn metrics, separate upgrade tracking
+- **PR 6 - Idempotency**: Setup intent idempotency fully implemented with unique constraint and application checks
 - **Helper Functions**: cancelFreeSubscriptionForUpgrade and linkUpgradedSubscriptions created
 - **Single Free Subscription Validation**: Prevents multiple free subscriptions per customer
 - **Test Coverage**: Comprehensive upgrade flow tests in processSetupIntent.upgrade.test.ts
 - **TypeScript Types**: CancellationReason enum added to types.ts
 - **Automatic Free Plan Marking**: Subscriptions with unitPrice=0 automatically marked as isFreePlan=true
-- **Analytics & Reporting**: Upgrades excluded from churn metrics, separate upgrade tracking
 - **Event Logging**: SubscriptionUpgraded events logged with full details
 - **MRR Tracking**: Upgrade MRR tracked separately from new/churn MRR
 - **Upgrade Metrics**: Functions to track conversion rates, time to upgrade, and revenue
 
 ### ⚠️ Partially Completed:
-None - All PRs 1-4 are now completed!
+None - All PRs 1-6 are now completed!
 
 ### ❌ Not Implemented:
-- **Idempotency**: No check for already-processed setup intents based on stripeSetupIntentId
-- **UI/UX Updates**: No special handling for subscription transitions
-- **Customer Notifications**: No automated email notifications for upgrades  
-- **Proration Integration**: Proration infrastructure exists but not integrated with upgrade flow
+- **PR 7 - Customer Notifications**: No automated email notifications for upgrades  
+- **PR 8 - Proration Integration**: Proration infrastructure exists but not integrated with upgrade flow
+- **PR 9 - UI/UX Updates**: No special handling for subscription transitions
 
 ## Overview
 Modify the subscription lifecycle to support the new model where every customer starts with a free-tier subscription. When a setup intent succeeds, instead of creating a new subscription, we'll cancel the free subscription and create a new paid one atomically.
@@ -380,36 +380,24 @@ describe('Analytics with Upgrades', () => {
 
 ---
 
-### PR 6: Idempotency Improvements ❌ NOT IMPLEMENTED
+### PR 6: Idempotency Improvements ✅ COMPLETED (2025-01-09)
 **Prevent duplicate subscription creation from repeated webhook processing**
 
 #### Tasks:
-1. **Add idempotency check in `processSetupIntentSucceeded`**:
-   ```typescript
-   // Check if this setup intent was already processed
-   const existingSubscription = await selectSubscriptions({
-     stripeSetupIntentId: setupIntent.id
-   }, transaction)
-   
-   if (existingSubscription.length > 0) {
-     // Already processed, return existing subscription
-     return { 
-       result: existingSubscription[0],
-       eventsToLog: []
-     }
-   }
-   ```
+1. **Add idempotency check in `processSetupIntentSucceeded`** ✅:
+   - Implemented check for existing subscriptions with same stripeSetupIntentId
+   - Returns existing subscription without creating duplicates
+   - Prevents webhook replay issues
 
-2. **Ensure stripeSetupIntentId is properly stored** when creating subscriptions
+2. **Ensure stripeSetupIntentId is properly stored** ✅:
+   - Setup intent ID passed to createSubscriptionWorkflow
+   - Unique constraint on stripeSetupIntentId column ensures database-level protection
 
-#### Test Coverage:
-```typescript
-describe('Setup Intent Idempotency', () => {
-  it('returns existing subscription when setup intent already processed')
-  it('prevents duplicate subscriptions from webhook replays')
-  it('handles concurrent webhook deliveries')
-})
-```
+#### Test Coverage ✅:
+- Test for idempotent setup intent processing (processSetupIntent.upgrade-comprehensive.test.ts:615)
+- Test for preventing duplicate paid subscriptions (processSetupIntent.upgrade-comprehensive.test.ts:524)
+- Test for preventing concurrent upgrade attempts (processSetupIntent.upgrade-comprehensive.test.ts:688)
+- Database unique constraint ensures no duplicates at DB level
 
 ---
 
@@ -492,7 +480,7 @@ describe('UI Upgrade Handling', () => {
 3. **PR 3** - Selection logic updates ✅ COMPLETED
 4. **PR 4** - Race condition prevention (validation only) ✅ COMPLETED
 5. **PR 5** - Analytics updates ✅ COMPLETED
-6. **PR 6** - Idempotency improvements ❌ NOT IMPLEMENTED
+6. **PR 6** - Idempotency improvements ✅ COMPLETED
 7. **PR 7** - Customer notifications ❌ NOT IMPLEMENTED
 8. **PR 8** - Proration integration ❌ NOT IMPLEMENTED
 9. **PR 9** - UI updates (optional) ❌ NOT IMPLEMENTED

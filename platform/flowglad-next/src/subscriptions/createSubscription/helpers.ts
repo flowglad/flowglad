@@ -1,4 +1,9 @@
-import { SubscriptionStatus, PriceType, IntervalUnit } from '@/types'
+import {
+  SubscriptionStatus,
+  PriceType,
+  IntervalUnit,
+  SubscriptionItemType,
+} from '@/types'
 import { DbTransaction } from '@/db/types'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import {
@@ -28,6 +33,8 @@ import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { createBillingPeriodAndItems } from '../billingPeriodHelpers'
+import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
+import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { BillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 import { FeatureType } from '@/types'
 import { generateNextBillingPeriod } from '../billingIntervalHelpers'
@@ -52,6 +59,42 @@ export const deriveSubscriptionStatus = ({
     return SubscriptionStatus.Active
   }
   return SubscriptionStatus.Incomplete
+}
+
+/**
+ * Creates prorated billing period items when upgrading mid-cycle
+ * @param subscriptionItems The subscription items to prorate
+ * @param billingPeriod The billing period
+ * @param upgradeDate The date of the upgrade
+ * @returns Array of prorated billing period items
+ */
+export const createProratedBillingPeriodItems = (
+  subscriptionItems: SubscriptionItem.Record[],
+  billingPeriod: BillingPeriod.Record,
+  upgradeDate: Date
+): BillingPeriodItem.Insert[] => {
+  // Skip if upgrade date is at period start (no proration needed)
+  if (upgradeDate.getTime() === billingPeriod.startDate.getTime()) {
+    return []
+  }
+
+  const split = calculateSplitInBillingPeriodBasedOnAdjustmentDate(
+    upgradeDate,
+    billingPeriod
+  )
+
+  return subscriptionItems.map((item) => ({
+    billingPeriodId: billingPeriod.id,
+    quantity: item.quantity,
+    unitPrice: Math.round(item.unitPrice * split.afterPercentage),
+    name: `Prorated: ${item.name}`,
+    description: `Prorated charge for ${(split.afterPercentage * 100).toFixed(1)}% of billing period (${upgradeDate.toISOString().split('T')[0]} to ${billingPeriod.endDate.toISOString().split('T')[0]})`,
+    livemode: item.livemode,
+    type: SubscriptionItemType.Static,
+    usageMeterId: null,
+    usageEventsPerUnit: null,
+    discountRedemptionId: null,
+  }))
 }
 
 export const safelyProcessCreationForExistingSubscription = async (
@@ -143,8 +186,12 @@ export const verifyCanCreateSubscription = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
 ) => {
-  const { customer, defaultPaymentMethod, backupPaymentMethod, price } =
-    params
+  const {
+    customer,
+    defaultPaymentMethod,
+    backupPaymentMethod,
+    price,
+  } = params
   const currentSubscriptionsForCustomer = await selectSubscriptions(
     {
       customerId: customer.id,
@@ -160,23 +207,24 @@ export const verifyCanCreateSubscription = async (
   // ) {
   //   return false
   // }
-  
+
   // Check for single free subscription constraint
   // A subscription is considered free if the price.unitPrice is 0
   const isCreatingFreeSubscription = price.unitPrice === 0
   if (isCreatingFreeSubscription) {
-    const activeFreeSubscriptions = currentSubscriptionsForCustomer.filter(
-      sub => sub.isFreePlan === true
-    )
+    const activeFreeSubscriptions =
+      currentSubscriptionsForCustomer.filter(
+        (sub) => sub.isFreePlan === true
+      )
     if (activeFreeSubscriptions.length > 0) {
       throw new Error(
         `Customer ${customer.id} already has an active free subscription. ` +
-        `Only one free subscription is allowed per customer. ` +
-        `Please upgrade or cancel the existing free subscription before creating a new one.`
+          `Only one free subscription is allowed per customer. ` +
+          `Please upgrade or cancel the existing free subscription before creating a new one.`
       )
     }
   }
-  
+
   if (currentSubscriptionsForCustomer.length > 0) {
     const organization = await selectOrganizationById(
       customer.organizationId,
@@ -436,6 +484,9 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     subscriptionItems: SubscriptionItem.Record[]
     defaultPaymentMethod: PaymentMethod.Record | null
     autoStart: boolean
+    prorateFirstPeriod?: boolean
+    preservedBillingPeriodEnd?: Date
+    preservedBillingPeriodStart?: Date
   },
   transaction: DbTransaction
 ) => {
@@ -475,14 +526,17 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
   }
   /**
    * Initial active subscription: create the first billing period based on subscription.currentBillingPeriodStart/end
+   * Also create billing period when preserving cycle with proration, even if dates don't match
    */
-  if (
-    subscription.startDate?.getTime() ===
-      subscription.currentBillingPeriodStart?.getTime() &&
+  const shouldCreateBillingPeriod =
+    (subscription.startDate?.getTime() ===
+      subscription.currentBillingPeriodStart?.getTime() ||
+      params.prorateFirstPeriod) &&
     params.autoStart &&
     defaultPaymentMethod &&
     subscription.runBillingAtPeriodStart
-  ) {
+
+  if (shouldCreateBillingPeriod) {
     const { billingPeriod, billingPeriodItems } =
       await createBillingPeriodAndItems(
         {
@@ -493,6 +547,27 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
         },
         transaction
       )
+
+    // Handle proration if needed
+    let finalBillingPeriodItems = billingPeriodItems
+    if (params.prorateFirstPeriod && subscription.startDate) {
+      const proratedItems = createProratedBillingPeriodItems(
+        subscriptionItems,
+        billingPeriod,
+        subscription.startDate
+      )
+
+      if (proratedItems.length > 0) {
+        // Replace standard items with prorated versions
+        // Delete the original items and insert prorated ones
+        // Note: We're creating new items, not modifying existing ones
+        finalBillingPeriodItems = await bulkInsertBillingPeriodItems(
+          proratedItems,
+          transaction
+        )
+      }
+    }
+
     const scheduledFor = subscription.runBillingAtPeriodStart
       ? subscription.currentBillingPeriodStart
       : subscription.currentBillingPeriodEnd
@@ -507,7 +582,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     return {
       subscription,
       billingPeriod,
-      billingPeriodItems,
+      billingPeriodItems: finalBillingPeriodItems,
       billingRun,
     }
   }

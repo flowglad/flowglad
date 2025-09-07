@@ -208,6 +208,7 @@ export const createNonInvoiceCheckoutSession = async (
     type: CheckoutSessionType.Product,
     targetSubscriptionId: null,
     automaticallyUpdateSubscriptions: null,
+    preserveBillingCycleAnchor: false,
   }
   if (purchase) {
     checkoutSessionInsert = {

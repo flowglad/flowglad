@@ -98,6 +98,9 @@ const columns = {
     columnName: 'type',
     enumBase: CheckoutSessionType,
   }).notNull(),
+  preserveBillingCycleAnchor: boolean(
+    'preserve_billing_cycle_anchor'
+  ).default(false),
   outputMetadata: jsonb('output_metadata'),
   outputName: text('output_name'),
   targetSubscriptionId: text('target_subscription_id'),
@@ -168,6 +171,7 @@ const purchaseCheckoutSessionRefinement = {
   targetSubscriptionId: core.safeZodNullOrUndefined,
   automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Purchase),
+  preserveBillingCycleAnchor: z.null().optional(),
 }
 
 const invoiceCheckoutSessionRefinement = {
@@ -178,7 +182,16 @@ const invoiceCheckoutSessionRefinement = {
   targetSubscriptionId: z.null(),
   type: z.literal(CheckoutSessionType.Invoice),
   outputMetadata: z.null(),
+  preserveBillingCycleAnchor: z.null().optional(),
 }
+
+const preserveBillingCycleAnchorSchema = z
+  .boolean()
+  .optional()
+  .default(false)
+  .describe(
+    'Whether to preserve the billing cycle anchor date in the case that the customer already has an active subscription that renews. If not provided, defaults to false.'
+  )
 
 const productCheckoutSessionRefinement = {
   priceId: z.string(),
@@ -186,6 +199,7 @@ const productCheckoutSessionRefinement = {
   targetSubscriptionId: core.safeZodNullOrUndefined,
   automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Product),
+  preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
 }
 
 const activateSubscriptionRefinement = {
@@ -193,6 +207,7 @@ const activateSubscriptionRefinement = {
   targetSubscriptionId: z.string(),
   invoiceId: z.null(),
   purchaseId: z.null(),
+  preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
 }
 
 const addPaymentMethodCheckoutSessionRefinement = {
@@ -278,10 +293,12 @@ export const addPaymentMethodCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     addPaymentMethodCheckoutSessionRefinement
   )
+
 export const activateSubscriptionCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     activateSubscriptionRefinement
   )
+
 export const checkoutSessionsInsertSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionsInsertSchema,

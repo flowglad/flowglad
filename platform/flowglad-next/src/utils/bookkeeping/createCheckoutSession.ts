@@ -56,6 +56,7 @@ const checkoutSessionInsertFromInput = ({
       invoiceId: null,
       priceId: checkoutSessionInput.priceId,
       targetSubscriptionId: null,
+      preserveBillingCycleAnchor: false,
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
@@ -78,6 +79,7 @@ const checkoutSessionInsertFromInput = ({
       targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
       purchaseId: null,
       invoiceId: null,
+      preserveBillingCycleAnchor: false,
     }
   }
   throw new Error(
