@@ -555,10 +555,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         prorateFirstPeriod,
         autoStart: true,
         quantity: checkoutSession.quantity,
-        metadata: {
-          ...(checkoutSession.outputMetadata ?? {}),
-          upgraded_from_subscription_id: canceledFreeSubscription?.id,
-        },
+        metadata: checkoutSession.outputMetadata ?? {},
         name: checkoutSession.outputName ?? undefined,
         product,
         livemode: checkoutSession.livemode,

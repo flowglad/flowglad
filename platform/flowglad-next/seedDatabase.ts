@@ -1258,6 +1258,7 @@ export const setupCheckoutSession = async ({
       priceId: null,
       status: status,
       type: CheckoutSessionType.Invoice,
+      preserveBillingCycleAnchor: null,
       quantity,
       livemode,
       targetSubscriptionId: null,

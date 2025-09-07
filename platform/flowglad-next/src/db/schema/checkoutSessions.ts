@@ -185,6 +185,15 @@ const invoiceCheckoutSessionRefinement = {
   preserveBillingCycleAnchor: z.null().optional(),
 }
 
+export const invoiceCheckoutSessionNulledColumns = {
+  priceId: null,
+  purchaseId: null,
+  outputMetadata: null,
+  automaticallyUpdateSubscriptions: null,
+  preserveBillingCycleAnchor: null,
+  targetSubscriptionId: null,
+} as const
+
 const preserveBillingCycleAnchorSchema = z
   .boolean()
   .optional()
