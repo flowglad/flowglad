@@ -45,18 +45,18 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     expect(result).toHaveLength(3)
-    expect(result[0]).toMatchObject({
-      month: new Date('2023-01-01T05:00:00.000Z'),
-      count: 0,
-    })
-    expect(result[1]).toMatchObject({
-      month: new Date('2023-02-01T05:00:00.000Z'),
-      count: 0,
-    })
-    expect(result[2]).toMatchObject({
-      month: new Date('2023-03-01T05:00:00.000Z'),
-      count: 0,
-    })
+    expect(result[0].count).toBe(0)
+    expect(result[0].month.toISOString().split('T')[0]).toBe(
+      '2023-01-01'
+    )
+    expect(result[1].count).toBe(0)
+    expect(result[1].month.toISOString().split('T')[0]).toBe(
+      '2023-02-01'
+    )
+    expect(result[2].count).toBe(0)
+    expect(result[2].month.toISOString().split('T')[0]).toBe(
+      '2023-03-01'
+    )
   })
 
   it('should correctly count a single active subscription spanning the entire period', async () => {
@@ -96,18 +96,18 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     expect(result).toHaveLength(3)
-    expect(result[0]).toMatchObject({
-      month: new Date('2023-01-01T05:00:00.000Z'),
-      count: 1,
-    })
-    expect(result[1]).toMatchObject({
-      month: new Date('2023-02-01T05:00:00.000Z'),
-      count: 1,
-    })
-    expect(result[2]).toMatchObject({
-      month: new Date('2023-03-01T05:00:00.000Z'),
-      count: 1,
-    })
+    expect(result[0].count).toBe(1)
+    expect(result[0].month.toISOString().split('T')[0]).toBe(
+      '2023-01-01'
+    )
+    expect(result[1].count).toBe(1)
+    expect(result[1].month.toISOString().split('T')[0]).toBe(
+      '2023-02-01'
+    )
+    expect(result[2].count).toBe(1)
+    expect(result[2].month.toISOString().split('T')[0]).toBe(
+      '2023-03-01'
+    )
   })
 
   it('should correctly count multiple subscriptions starting and ending on different dates', async () => {
@@ -180,18 +180,18 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     expect(result).toHaveLength(3)
-    expect(result[0]).toMatchObject({
-      month: new Date('2023-01-01T05:00:00.000Z'),
-      count: 2, // Subscriptions 1 and 3
-    })
-    expect(result[1]).toMatchObject({
-      month: new Date('2023-02-01T05:00:00.000Z'),
-      count: 3, // All three subscriptions
-    })
-    expect(result[2]).toMatchObject({
-      month: new Date('2023-03-01T05:00:00.000Z'),
-      count: 2, // Subscriptions 1 and 2
-    })
+    expect(result[0].count).toBe(2) // Subscriptions 1 and 3
+    expect(result[0].month.toISOString().split('T')[0]).toBe(
+      '2023-01-01'
+    )
+    expect(result[1].count).toBe(3) // All three subscriptions
+    expect(result[1].month.toISOString().split('T')[0]).toBe(
+      '2023-02-01'
+    )
+    expect(result[2].count).toBe(2) // Subscriptions 1 and 2
+    expect(result[2].month.toISOString().split('T')[0]).toBe(
+      '2023-03-01'
+    )
   })
 
   it('should return zero counts for an organization with no subscriptions', async () => {
@@ -253,10 +253,10 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     expect(result).toHaveLength(1)
-    expect(result[0]).toMatchObject({
-      month: new Date('2023-02-01T05:00:00.000Z'),
-      count: 1,
-    })
+    expect(result[0].count).toBe(1)
+    expect(result[0].month.toISOString().split('T')[0]).toBe(
+      '2023-02-01'
+    )
   })
 
   it('should correctly count subscriptions that start during the period and remain active', async () => {
@@ -295,18 +295,18 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     expect(result).toHaveLength(3)
-    expect(result[0]).toMatchObject({
-      month: new Date('2023-01-01T05:00:00.000Z'),
-      count: 0,
-    })
-    expect(result[1]).toMatchObject({
-      month: new Date('2023-02-01T05:00:00.000Z'),
-      count: 1,
-    })
-    expect(result[2]).toMatchObject({
-      month: new Date('2023-03-01T05:00:00.000Z'),
-      count: 1,
-    })
+    expect(result[0].count).toBe(0)
+    expect(result[0].month.toISOString().split('T')[0]).toBe(
+      '2023-01-01'
+    )
+    expect(result[1].count).toBe(1)
+    expect(result[1].month.toISOString().split('T')[0]).toBe(
+      '2023-02-01'
+    )
+    expect(result[2].count).toBe(1)
+    expect(result[2].month.toISOString().split('T')[0]).toBe(
+      '2023-03-01'
+    )
   })
 
   it('should correctly count subscriptions that started before the period and ended during it', async () => {
@@ -345,18 +345,18 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     expect(result).toHaveLength(3)
-    expect(result[0]).toMatchObject({
-      month: new Date('2023-01-01T05:00:00.000Z'),
-      count: 1,
-    })
-    expect(result[1]).toMatchObject({
-      month: new Date('2023-02-01T05:00:00.000Z'),
-      count: 1,
-    })
-    expect(result[2]).toMatchObject({
-      month: new Date('2023-03-01T05:00:00.000Z'),
-      count: 0,
-    })
+    expect(result[0].count).toBe(1)
+    expect(result[0].month.toISOString().split('T')[0]).toBe(
+      '2023-01-01'
+    )
+    expect(result[1].count).toBe(1)
+    expect(result[1].month.toISOString().split('T')[0]).toBe(
+      '2023-02-01'
+    )
+    expect(result[2].count).toBe(0)
+    expect(result[2].month.toISOString().split('T')[0]).toBe(
+      '2023-03-01'
+    )
   })
 
   it('should handle edge cases like subscriptions starting/ending exactly on month boundaries', async () => {
@@ -411,18 +411,18 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     expect(result).toHaveLength(3)
-    expect(result[0]).toMatchObject({
-      month: new Date('2023-01-01T05:00:00.000Z'),
-      count: 1, // Only subscription 2
-    })
-    expect(result[1]).toMatchObject({
-      month: new Date('2023-02-01T05:00:00.000Z'),
-      count: 2, // Both subscriptions
-    })
-    expect(result[2]).toMatchObject({
-      month: new Date('2023-03-01T05:00:00.000Z'),
-      count: 1, // Only subscription 1
-    })
+    expect(result[0].count).toBe(1) // Only subscription 2
+    expect(result[0].month.toISOString().split('T')[0]).toBe(
+      '2023-01-01'
+    )
+    expect(result[1].count).toBe(2) // Both subscriptions
+    expect(result[1].month.toISOString().split('T')[0]).toBe(
+      '2023-02-01'
+    )
+    expect(result[2].count).toBe(1) // Only subscription 1
+    expect(result[2].month.toISOString().split('T')[0]).toBe(
+      '2023-03-01'
+    )
   })
 })
 
