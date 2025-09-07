@@ -70,7 +70,7 @@ export const customerBillingTransaction = async (
     transaction
   )
   const currentSubscriptions = subscriptions.filter((item) => {
-    return isSubscriptionCurrent(item.status)
+    return isSubscriptionCurrent(item.status, item.cancellationReason)
   })
   return {
     customer,
