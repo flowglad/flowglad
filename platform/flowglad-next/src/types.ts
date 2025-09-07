@@ -511,6 +511,13 @@ export enum SubscriptionStatus {
   Paused = 'paused',
 }
 
+export enum CancellationReason {
+  UpgradedToPaid = 'upgraded_to_paid',
+  CustomerRequest = 'customer_request',
+  NonPayment = 'non_payment',
+  Other = 'other',
+}
+
 export enum TaxType {
   AmusementTax = 'amusement_tax',
   CommunicationsTax = 'communications_tax',
