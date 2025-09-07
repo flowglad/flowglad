@@ -336,7 +336,7 @@ export const setupCustomer = async (params: SetupCustomerParams) => {
         organizationId: params.organizationId,
         email,
         name: email,
-        externalId: (params.externalId?.trim() || core.nanoid()),
+        externalId: params.externalId?.trim() || core.nanoid(),
         livemode: params.livemode ?? true,
         stripeCustomerId:
           params.stripeCustomerId ?? `cus_${core.nanoid()}`,
@@ -1143,6 +1143,7 @@ export const setupCheckoutSession = async ({
   automaticallyUpdateSubscriptions,
   outputMetadata,
   purchaseId,
+  outputName,
 }: {
   organizationId: string
   customerId: string
@@ -1154,6 +1155,7 @@ export const setupCheckoutSession = async ({
   targetSubscriptionId?: string
   automaticallyUpdateSubscriptions?: boolean
   outputMetadata?: Record<string, any>
+  outputName?: string
   purchaseId?: string
 }) => {
   const billingAddress: BillingAddress = {
@@ -1179,7 +1181,7 @@ export const setupCheckoutSession = async ({
     {
       ...coreFields,
       priceId,
-      status: CheckoutSessionStatus.Open,
+      status: status,
       type: CheckoutSessionType.AddPaymentMethod,
       livemode,
       quantity: 1,
@@ -1193,12 +1195,12 @@ export const setupCheckoutSession = async ({
     {
       ...coreFields,
       priceId,
-      status: CheckoutSessionStatus.Open,
+      status: status,
       type: CheckoutSessionType.Product,
       quantity,
       livemode,
       targetSubscriptionId: null,
-      outputName: null,
+      outputName: outputName ?? null,
       invoiceId: null,
       outputMetadata: outputMetadata ?? {},
       automaticallyUpdateSubscriptions: null,
@@ -1207,17 +1209,30 @@ export const setupCheckoutSession = async ({
     {
       ...coreFields,
       priceId,
-      status: CheckoutSessionStatus.Open,
+      status: status,
       type: CheckoutSessionType.Purchase,
       quantity,
       livemode,
       targetSubscriptionId: null,
-      outputName: null,
+      outputName: outputName ?? null,
       outputMetadata: outputMetadata ?? {},
       purchaseId: purchaseId ?? 'test',
       automaticallyUpdateSubscriptions: null,
     }
-
+  const activateSubscriptionCheckoutSessionInsert: CheckoutSession.ActivateSubscriptionInsert =
+    {
+      ...coreFields,
+      priceId,
+      type: CheckoutSessionType.ActivateSubscription,
+      targetSubscriptionId: targetSubscriptionId ?? '',
+      outputName: outputName ?? null,
+      outputMetadata: outputMetadata ?? {},
+      purchaseId: null,
+      invoiceId: null,
+      automaticallyUpdateSubscriptions: null,
+      livemode,
+      status: status,
+    }
   let insert: CheckoutSession.Insert
   if (type === CheckoutSessionType.AddPaymentMethod) {
     insert = addPaymentMethodCheckoutSessionInsert
@@ -1235,16 +1250,18 @@ export const setupCheckoutSession = async ({
     insert = {
       ...coreFields,
       priceId: null,
-      status: CheckoutSessionStatus.Open,
+      status: status,
       type: CheckoutSessionType.Invoice,
       quantity,
       livemode,
       targetSubscriptionId: null,
-      outputName: null,
+      outputName: outputName ?? null,
       invoiceId: invoice.id,
       purchaseId: null,
       outputMetadata: null,
     }
+  } else if (type === CheckoutSessionType.ActivateSubscription) {
+    insert = activateSubscriptionCheckoutSessionInsert
   }
   return adminTransaction(async ({ transaction }) => {
     const checkoutSession = await insertCheckoutSession(

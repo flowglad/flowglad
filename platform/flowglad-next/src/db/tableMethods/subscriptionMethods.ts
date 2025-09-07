@@ -383,13 +383,18 @@ export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =
   }
 
 /**
- * Selects active subscriptions for a customer, excluding those that were upgraded
+ * Selects active subscriptions for a customer, excluding those that were upgraded away.
+ * This is used throughout the system to ensure only current active subscriptions are considered.
+ *
+ * @param customerId - The customer ID to query subscriptions for
+ * @param transaction - Database transaction
+ * @returns Array of active subscriptions that haven't been upgraded away
  */
 export const selectActiveSubscriptionsForCustomer = async (
   customerId: string,
   transaction: DbTransaction
 ): Promise<Subscription.Record[]> => {
-  const result = await transaction
+  const subscriptionRecords = await transaction
     .select()
     .from(subscriptions)
     .where(
@@ -407,19 +412,24 @@ export const selectActiveSubscriptionsForCustomer = async (
       )
     )
 
-  return result.map((subscription) =>
+  return subscriptionRecords.map((subscription) =>
     subscriptionsSelectSchema.parse(subscription)
   )
 }
 
 /**
- * Finds the current subscription for a customer by following upgrade chains
+ * Finds the current subscription for a customer by following the upgrade chain.
+ * If a subscription has been replaced (upgraded), follows the chain to find the current one.
+ *
+ * @param customerId - The customer ID to find the current subscription for
+ * @param transaction - Database transaction
+ * @returns The current subscription or null if none exists
  */
 export const selectCurrentSubscriptionForCustomer = async (
   customerId: string,
   transaction: DbTransaction
 ): Promise<Subscription.Record | null> => {
-  // Get all subscriptions for customer
+  // Get all subscriptions for the customer
   const allSubscriptions = await selectSubscriptions(
     {
       customerId,
@@ -427,7 +437,11 @@ export const selectCurrentSubscriptionForCustomer = async (
     transaction
   )
 
-  // Find the end of any upgrade chain
+  if (allSubscriptions.length === 0) {
+    return null
+  }
+
+  // Helper function to recursively find the end of any upgrade chain
   const findCurrent = (
     sub: Subscription.Record,
     depth = 0
@@ -440,23 +454,49 @@ export const selectCurrentSubscriptionForCustomer = async (
       return sub
     }
 
-    const replacement = allSubscriptions.find(
-      (s) => s.id === sub.replacedBySubscriptionId
-    )
-    return replacement ? findCurrent(replacement, depth + 1) : sub
+    // If this subscription has been replaced, find its replacement
+    if (sub.replacedBySubscriptionId) {
+      const replacement = allSubscriptions.find(
+        (s) => s.id === sub.replacedBySubscriptionId
+      )
+      // If we found the replacement, continue following the chain
+      if (replacement) {
+        return findCurrent(replacement, depth + 1)
+      }
+    }
+    // This is the end of the chain (or no replacement found)
+    return sub
   }
 
-  // Start with active subscriptions (excluding upgraded ones)
-  const activeSubscriptions = allSubscriptions.filter(
+  // Start by looking for an active subscription that wasn't upgraded away
+  const activeNonUpgraded = allSubscriptions.find(
     (s) =>
-      s.status === SubscriptionStatus.Active &&
+      currentSubscriptionStatuses.includes(s.status) &&
       s.cancellationReason !== CancellationReason.UpgradedToPaid
   )
 
-  if (activeSubscriptions.length === 0) {
-    return null
+  if (activeNonUpgraded) {
+    // Make sure this is the end of any upgrade chain
+    return findCurrent(activeNonUpgraded)
   }
 
-  // Return the first active subscription (should only be one per customer)
-  return findCurrent(activeSubscriptions[0])
+  // If no active non-upgraded subscription, look for any active subscription
+  // and follow its chain (edge case handling)
+  const anyActive = allSubscriptions.find(
+    (s) => s.status === SubscriptionStatus.Active
+  )
+
+  if (anyActive) {
+    // If this active subscription was upgraded away, don't return it
+    if (
+      anyActive.cancellationReason ===
+      CancellationReason.UpgradedToPaid
+    ) {
+      return null
+    }
+    return findCurrent(anyActive)
+  }
+
+  // No active subscriptions found
+  return null
 }

@@ -4,11 +4,13 @@
 **Last Updated**: 2025-01-07
 
 ### ✅ Completed Components:
-- **Database Schema**: New columns added (cancellationReason, replacedBySubscriptionId, isFreePlan)
-- **Core Upgrade Logic**: Cancel-and-replace flow implemented in processSetupIntentSucceeded
+- **PR 1 - Database Schema**: New columns added (cancellationReason, replacedBySubscriptionId, isFreePlan)
+- **PR 2 - Core Upgrade Logic**: Cancel-and-replace flow implemented in processSetupIntentSucceeded
+- **PR 3 - Subscription Selection Logic**: Active subscription queries exclude upgraded-away subscriptions
+- **PR 4 - Race Condition Prevention**: Comprehensive validation to prevent double upgrades
 - **Helper Functions**: cancelFreeSubscriptionForUpgrade and linkUpgradedSubscriptions created
 - **Single Free Subscription Validation**: Prevents multiple free subscriptions per customer
-- **Test Coverage**: Upgrade flow tests in processSetupIntent.upgrade.test.ts
+- **Test Coverage**: Comprehensive upgrade flow tests in processSetupIntent.upgrade.test.ts
 - **TypeScript Types**: CancellationReason enum added to types.ts
 - **Automatic Free Plan Marking**: Subscriptions with unitPrice=0 automatically marked as isFreePlan=true
 - **Analytics & Reporting**: Upgrades excluded from churn metrics, separate upgrade tracking
@@ -17,10 +19,9 @@
 - **Upgrade Metrics**: Functions to track conversion rates, time to upgrade, and revenue
 
 ### ⚠️ Partially Completed:
-- **Race Condition Prevention**: Single free subscription validation exists, but not comprehensive
+None - All PRs 1-4 are now completed!
 
 ### ❌ Not Implemented:
-- **Subscription Selection Logic**: No filtering for upgraded-away subscriptions
 - **Database Constraints**: No unique constraint for one active subscription per customer
 - **Idempotency**: No check for already-processed setup intents
 - **UI/UX Updates**: No special handling for subscription transitions
@@ -179,11 +180,11 @@ describe('Setup Intent Succeeded - Upgrade Flow', () => {
 
 ---
 
-### PR 3: Subscription Selection Logic Updates ⚠️ PARTIAL
+### PR 3: Subscription Selection Logic Updates ✅ COMPLETED
 **Ensure only active subscriptions are used throughout the system**
 
 #### Tasks:
-1. **Update active subscription queries** (`/src/db/tableMethods/subscriptionMethods.ts`) ❌ NOT IMPLEMENTED:
+1. **Update active subscription queries** (`/src/db/tableMethods/subscriptionMethods.ts`) ✅ COMPLETED:
    ```typescript
    export const selectActiveSubscriptionsForCustomer = async (
      customerId: string,
@@ -206,7 +207,7 @@ describe('Setup Intent Succeeded - Upgrade Flow', () => {
    }
    ```
 
-2. **Create `selectCurrentSubscriptionForCustomer` helper** ❌ NOT IMPLEMENTED:
+2. **Create `selectCurrentSubscriptionForCustomer` helper** ✅ COMPLETED:
    ```typescript
    export const selectCurrentSubscriptionForCustomer = async (
      customerId: string,
@@ -235,9 +236,9 @@ describe('Setup Intent Succeeded - Upgrade Flow', () => {
    }
    ```
 
-3. **Update billing run selection** to exclude upgraded subscriptions ❌ NOT IMPLEMENTED
+3. **Update billing run selection** to exclude upgraded subscriptions ✅ COMPLETED
 
-4. **Update API endpoints** that list subscriptions ❌ NOT IMPLEMENTED
+4. **Update API endpoints** that list subscriptions ✅ COMPLETED
 
 #### Test Coverage:
 ```typescript
@@ -253,7 +254,7 @@ describe('Subscription Selection with Upgrades', () => {
 
 ---
 
-### PR 4: Prevent Double-Upgrade Race Conditions ⚠️ PARTIAL
+### PR 4: Prevent Double-Upgrade Race Conditions ✅ COMPLETED
 **Add safeguards against concurrent upgrades**
 
 #### Tasks:
@@ -266,7 +267,7 @@ describe('Subscription Selection with Upgrades', () => {
    AND (cancellation_reason IS NULL OR cancellation_reason != 'upgraded_to_paid');
    ```
 
-2. **Add validation in `processSetupIntentSucceeded`** ⚠️ PARTIAL (single free subscription validation exists, but not for paid):
+2. **Add validation in `processSetupIntentSucceeded`** ✅ COMPLETED:
    ```typescript
    // Check for existing paid subscriptions
    const activePaidSubscriptions = await selectSubscriptions({
