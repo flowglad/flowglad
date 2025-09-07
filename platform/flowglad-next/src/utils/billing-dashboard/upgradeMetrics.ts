@@ -1,36 +1,44 @@
 import { DbTransaction } from '@/db/types'
 import { Subscription } from '@/db/schema/subscriptions'
-import { CancellationReason, SubscriptionStatus } from '@/types'
-import { and, between, eq, inArray } from 'drizzle-orm'
+import { Price } from '@/db/schema/prices'
+import { CancellationReason } from '@/types'
+import {
+  and,
+  eq,
+  between,
+  isNotNull,
+  gte,
+  lte,
+  inArray,
+} from 'drizzle-orm'
 import { subscriptions } from '@/db/schema/subscriptions'
+import { prices } from '@/db/schema/prices'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { differenceInDays } from 'date-fns'
 
-/**
- * Metrics for tracking subscription upgrades
- */
 export interface UpgradeMetrics {
   totalUpgrades: number
-  upgradeRevenue: number // Total MRR added from upgrades
-  averageTimeToUpgrade: number // Average days from signup to upgrade
-  upgradeConversionRate: number // Percentage of free users who upgraded
+  upgradeRevenue: number
+  averageTimeToUpgrade: number
+  upgradedSubscriptions: Subscription.Record[]
 }
 
 /**
- * Gets upgrade metrics for a specific time period
+ * Calculates upgrade metrics for a given organization and date range
  *
- * @param organizationId The organization to get metrics for
- * @param startDate Start of the period
- * @param endDate End of the period
- * @param transaction Database transaction
- * @returns Upgrade metrics for the period
+ * @param organizationId The organization ID
+ * @param startDate The start date of the range
+ * @param endDate The end date of the range
+ * @param transaction The database transaction
+ * @returns Promise resolving to upgrade metrics
  */
-export const getUpgradeMetrics = async (
+export async function getUpgradeMetrics(
   organizationId: string,
   startDate: Date,
   endDate: Date,
   transaction: DbTransaction
-): Promise<UpgradeMetrics> => {
-  // Find all subscriptions that were upgraded (canceled with upgrade reason)
+): Promise<UpgradeMetrics> {
+  // Find all subscriptions that were upgraded (canceled with upgraded_to_paid reason)
   const upgradedSubscriptions = await transaction
     .select()
     .from(subscriptions)
@@ -41,140 +49,205 @@ export const getUpgradeMetrics = async (
           subscriptions.cancellationReason,
           CancellationReason.UpgradedToPaid
         ),
+        isNotNull(subscriptions.canceledAt),
         between(subscriptions.canceledAt, startDate, endDate)
       )
     )
 
-  // Find the replacement subscriptions for revenue calculation
-  const replacementSubscriptionIds = upgradedSubscriptions
-    .map((sub) => sub.replacedBySubscriptionId)
-    .filter((id) => id !== null) as string[]
+  // Calculate total upgrades
+  const totalUpgrades = upgradedSubscriptions.length
 
+  // Calculate upgrade revenue by finding the replacement subscriptions
   let upgradeRevenue = 0
-  let totalDaysToUpgrade = 0
-  let validPairsCount = 0
+  const averageTimesToUpgrade: number[] = []
 
-  if (replacementSubscriptionIds.length > 0) {
-    const replacementSubscriptions = await transaction
-      .select()
-      .from(subscriptions)
-      .where(
-        and(
-          eq(subscriptions.organizationId, organizationId),
-          inArray(subscriptions.id, replacementSubscriptionIds)
-        )
+  // Collect all replacement subscription IDs to batch fetch
+  const replacementIds = upgradedSubscriptions
+    .filter((sub) => sub.replacedBySubscriptionId)
+    .map((sub) => sub.replacedBySubscriptionId!)
+
+  // Batch fetch all replacement subscriptions and their prices in a single query
+  const replacementData =
+    replacementIds.length > 0
+      ? await transaction
+          .select({
+            subscription: subscriptions,
+            price: prices,
+          })
+          .from(subscriptions)
+          .leftJoin(prices, eq(subscriptions.priceId, prices.id))
+          .where(inArray(subscriptions.id, replacementIds))
+      : []
+
+  // Create a map for quick lookup
+  const replacementMap = new Map(
+    replacementData.map((data) => [data.subscription.id, data])
+  )
+
+  // Process each upgraded subscription
+  for (const upgradedSub of upgradedSubscriptions) {
+    if (upgradedSub.replacedBySubscriptionId) {
+      const replacementData = replacementMap.get(
+        upgradedSub.replacedBySubscriptionId
       )
 
-    // Calculate total MRR from upgraded subscriptions
-    // TODO: In a complete implementation, we would need to:
-    // 1. Join with prices table to get the actual price amount
-    // 2. Join with subscription_items to get quantities
-    // 3. Calculate the actual MRR based on interval and interval_count
-    // For now, using a simple placeholder calculation
-    for (const replacement of replacementSubscriptions) {
-      // Placeholder: $50 base MRR per upgraded subscription
-      const estimatedMRR = 50
-      upgradeRevenue += estimatedMRR
-    }
+      if (replacementData) {
+        // Add the new subscription's MRR to upgrade revenue
+        if (replacementData.price?.unitPrice) {
+          upgradeRevenue += replacementData.price.unitPrice
+        }
 
-    // Calculate average time to upgrade
-    for (let i = 0; i < upgradedSubscriptions.length; i++) {
-      const oldSub = upgradedSubscriptions[i]
-      const newSub = replacementSubscriptions.find(
-        (s) => s.id === oldSub.replacedBySubscriptionId
-      )
-
-      // Use canceledAt for consistency - time from creation to upgrade (cancellation)
-      if (oldSub.createdAt && oldSub.canceledAt) {
-        const daysToUpgrade = differenceInDays(
-          new Date(oldSub.canceledAt),
-          new Date(oldSub.createdAt)
-        )
-        totalDaysToUpgrade += daysToUpgrade
-        validPairsCount++
+        // Calculate time to upgrade (from free subscription creation to upgrade)
+        if (upgradedSub.startDate && upgradedSub.canceledAt) {
+          const daysToUpgrade = differenceInDays(
+            upgradedSub.canceledAt,
+            upgradedSub.startDate
+          )
+          averageTimesToUpgrade.push(daysToUpgrade)
+        }
       }
     }
   }
 
-  // Calculate conversion rate
-  // Find total free subscriptions created in the period
-  const allFreeSubscriptions = await transaction
+  // Calculate average time to upgrade
+  const averageTimeToUpgrade =
+    averageTimesToUpgrade.length > 0
+      ? averageTimesToUpgrade.reduce((sum, days) => sum + days, 0) /
+        averageTimesToUpgrade.length
+      : 0
+
+  return {
+    totalUpgrades,
+    upgradeRevenue,
+    averageTimeToUpgrade,
+    upgradedSubscriptions:
+      upgradedSubscriptions as Subscription.Record[],
+  }
+}
+
+/**
+ * Gets the upgrade conversion rate for a given period
+ *
+ * @param organizationId The organization ID
+ * @param startDate The start date of the range
+ * @param endDate The end date of the range
+ * @param transaction The database transaction
+ * @returns Promise resolving to the conversion rate (0-1)
+ */
+export async function getUpgradeConversionRate(
+  organizationId: string,
+  startDate: Date,
+  endDate: Date,
+  transaction: DbTransaction
+): Promise<number> {
+  // Get all free subscriptions created in the period using direct query
+  const freeSubscriptions = await transaction
     .select()
     .from(subscriptions)
     .where(
       and(
         eq(subscriptions.organizationId, organizationId),
         eq(subscriptions.isFreePlan, true),
-        between(subscriptions.createdAt, startDate, endDate)
+        gte(subscriptions.startDate, startDate),
+        lte(subscriptions.startDate, endDate)
       )
     )
 
-  const totalFreeSubscriptions = allFreeSubscriptions.length
-  const upgradeConversionRate =
-    totalFreeSubscriptions > 0
-      ? (upgradedSubscriptions.length / totalFreeSubscriptions) * 100
-      : 0
-
-  // Use the count of valid pairs instead of all upgraded subscriptions
-  const averageTimeToUpgrade =
-    validPairsCount > 0 ? totalDaysToUpgrade / validPairsCount : 0
-
-  return {
-    totalUpgrades: upgradedSubscriptions.length,
-    upgradeRevenue,
-    averageTimeToUpgrade,
-    upgradeConversionRate,
+  if (freeSubscriptions.length === 0) {
+    return 0
   }
+
+  // Count how many were upgraded
+  const upgradedCount = freeSubscriptions.filter(
+    (sub) =>
+      sub.cancellationReason === CancellationReason.UpgradedToPaid
+  ).length
+
+  return upgradedCount / freeSubscriptions.length
 }
 
 /**
- * Calculates average time from signup to upgrade
+ * Calculates the revenue impact of upgrades
  *
- * @param upgradedSubscriptions List of upgraded subscriptions
- * @returns Average days to upgrade
+ * @param upgradedSubscriptions Array of upgraded subscriptions
+ * @param transaction The database transaction
+ * @returns Promise resolving to the total revenue from upgrades
  */
-export const calculateAverageTimeToUpgrade = (
-  upgradedSubscriptions: Subscription.Record[]
-): number => {
-  if (upgradedSubscriptions.length === 0) return 0
+export async function calculateUpgradeRevenue(
+  upgradedSubscriptions: Subscription.Record[],
+  transaction: DbTransaction
+): Promise<number> {
+  let totalRevenue = 0
 
-  let totalDays = 0
-  let count = 0
+  // Collect all replacement subscription IDs to batch fetch
+  const replacementIds = upgradedSubscriptions
+    .filter((sub) => sub.replacedBySubscriptionId)
+    .map((sub) => sub.replacedBySubscriptionId!)
 
-  for (const sub of upgradedSubscriptions) {
-    if (sub.createdAt && sub.canceledAt) {
-      const days = differenceInDays(
-        new Date(sub.canceledAt),
-        new Date(sub.createdAt)
-      )
-      totalDays += days
-      count++
+  if (replacementIds.length === 0) {
+    return 0
+  }
+
+  // Batch fetch all replacement subscriptions and their prices in a single query
+  const replacementData = await transaction
+    .select({
+      subscription: subscriptions,
+      price: prices,
+    })
+    .from(subscriptions)
+    .leftJoin(prices, eq(subscriptions.priceId, prices.id))
+    .where(inArray(subscriptions.id, replacementIds))
+
+  // Calculate total revenue from upgrade subscriptions
+  for (const data of replacementData) {
+    if (data.price?.unitPrice) {
+      totalRevenue += data.price.unitPrice
     }
   }
 
-  return count > 0 ? totalDays / count : 0
+  return totalRevenue
 }
 
 /**
- * Gets a list of customers who upgraded in a given period
- * Useful for cohort analysis and customer success tracking
+ * Calculates the average time from signup to upgrade
  *
- * @param organizationId Organization ID
- * @param startDate Start of period
- * @param endDate End of period
- * @param transaction Database transaction
- * @returns List of customer IDs who upgraded
+ * @param upgradedSubscriptions Array of upgraded subscriptions
+ * @returns The average time in days
  */
-export const getUpgradedCustomers = async (
+export function calculateAverageTimeToUpgrade(
+  upgradedSubscriptions: Subscription.Record[]
+): number {
+  const timesToUpgrade = upgradedSubscriptions
+    .filter((sub) => sub.startDate && sub.canceledAt)
+    .map((sub) => differenceInDays(sub.canceledAt!, sub.startDate!))
+
+  if (timesToUpgrade.length === 0) {
+    return 0
+  }
+
+  return (
+    timesToUpgrade.reduce((sum, days) => sum + days, 0) /
+    timesToUpgrade.length
+  )
+}
+
+/**
+ * Gets subscriptions that were upgraded in a specific time period
+ *
+ * @param organizationId The organization ID
+ * @param startDate The start date of the range
+ * @param endDate The end date of the range
+ * @param transaction The database transaction
+ * @returns Promise resolving to an array of upgraded subscriptions
+ */
+export async function getUpgradedSubscriptions(
   organizationId: string,
   startDate: Date,
   endDate: Date,
   transaction: DbTransaction
-): Promise<string[]> => {
-  const upgradedSubscriptions = await transaction
-    .select({
-      customerId: subscriptions.customerId,
-    })
+): Promise<Subscription.Record[]> {
+  const results = await transaction
+    .select()
     .from(subscriptions)
     .where(
       and(
@@ -183,14 +256,77 @@ export const getUpgradedCustomers = async (
           subscriptions.cancellationReason,
           CancellationReason.UpgradedToPaid
         ),
+        isNotNull(subscriptions.canceledAt),
         between(subscriptions.canceledAt, startDate, endDate)
       )
     )
 
-  // Return unique customer IDs
-  const customerIds = upgradedSubscriptions
-    .map((s) => s.customerId)
-    .filter((id): id is string => id !== null)
+  return results as Subscription.Record[]
+}
 
-  return [...new Set(customerIds)]
+/**
+ * Tracks upgrade paths - which free plans upgrade to which paid plans
+ *
+ * @param organizationId The organization ID
+ * @param startDate The start date of the range
+ * @param endDate The end date of the range
+ * @param transaction The database transaction
+ * @returns Promise resolving to upgrade path data
+ */
+export async function getUpgradePaths(
+  organizationId: string,
+  startDate: Date,
+  endDate: Date,
+  transaction: DbTransaction
+): Promise<
+  Array<{
+    fromSubscription: Subscription.Record
+    toSubscription: Subscription.Record | null
+  }>
+> {
+  const upgradedSubscriptions = await getUpgradedSubscriptions(
+    organizationId,
+    startDate,
+    endDate,
+    transaction
+  )
+
+  // Properly type the paths array to match the return type
+  const paths: Array<{
+    fromSubscription: Subscription.Record
+    toSubscription: Subscription.Record | null
+  }> = []
+
+  // Collect all replacement subscription IDs to batch fetch
+  const replacementIds = upgradedSubscriptions
+    .filter((sub) => sub.replacedBySubscriptionId)
+    .map((sub) => sub.replacedBySubscriptionId!)
+
+  // Batch fetch all replacement subscriptions in a single query
+  const replacementSubs =
+    replacementIds.length > 0
+      ? await transaction
+          .select()
+          .from(subscriptions)
+          .where(inArray(subscriptions.id, replacementIds))
+      : []
+
+  // Create a map for quick lookup
+  const replacementMap = new Map(
+    replacementSubs.map((sub) => [sub.id, sub as Subscription.Record])
+  )
+
+  // Build the upgrade paths
+  for (const fromSub of upgradedSubscriptions) {
+    const toSub = fromSub.replacedBySubscriptionId
+      ? replacementMap.get(fromSub.replacedBySubscriptionId) || null
+      : null
+
+    paths.push({
+      fromSubscription: fromSub,
+      toSubscription: toSub,
+    })
+  }
+
+  return paths
 }

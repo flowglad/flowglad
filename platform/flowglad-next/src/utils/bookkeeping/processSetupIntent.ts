@@ -58,6 +58,11 @@ import {
   cancelFreeSubscriptionForUpgrade,
   linkUpgradedSubscriptions,
 } from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
+import {
+  constructPurchaseCompletedEventHash,
+  constructSubscriptionCreatedEventHash,
+} from '../eventHelpers'
+import { Event } from '@/db/schema/events'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -518,6 +523,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    const eventInserts: Event.Insert[] = []
+    if (output.eventsToLog) {
+      eventInserts.push(...output.eventsToLog)
+    }
 
     // Link the old and new subscriptions if there was an upgrade
     if (canceledFreeSubscription && output.result.subscription) {
@@ -526,6 +535,23 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         output.result.subscription.id,
         transaction
       )
+      // Add upgrade event to the events to log
+      eventInserts.push({
+        type: FlowgladEventType.SubscriptionCreated,
+        occurredAt: new Date(),
+        organizationId: organization.id,
+        livemode: output.result.subscription.livemode,
+        metadata: {},
+        submittedAt: new Date(),
+        processedAt: null,
+        hash: constructSubscriptionCreatedEventHash(
+          output.result.subscription
+        ),
+        payload: {
+          object: EventNoun.Subscription,
+          id: output.result.subscription.id,
+        },
+      })
     }
 
     const updatedPurchase = await updatePurchase(
@@ -537,13 +563,24 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
-
-    // Add upgrade event if this was an upgrade
-    const eventsToLog = [...(output.eventsToLog || [])]
+    eventInserts.push({
+      type: FlowgladEventType.PurchaseCompleted,
+      occurredAt: new Date(),
+      organizationId: organization.id,
+      livemode: updatedPurchase.livemode,
+      metadata: {},
+      submittedAt: new Date(),
+      processedAt: null,
+      hash: constructPurchaseCompletedEventHash(updatedPurchase),
+      payload: {
+        id: updatedPurchase.id,
+        object: EventNoun.Purchase,
+      },
+    })
 
     return {
       ...output,
-      eventsToLog,
+      eventsToLog: eventInserts,
       result: {
         purchase: updatedPurchase,
         checkoutSession,
