@@ -10,10 +10,11 @@
 - **PR 4 - Race Condition Prevention**: Comprehensive validation to prevent double upgrades
 - **PR 5 - Analytics & Reporting**: Upgrades excluded from churn metrics, separate upgrade tracking
 - **PR 6 - Idempotency**: Setup intent idempotency fully implemented with unique constraint and application checks
+- **PR 7 - Customer Email Notifications**: Email templates and trigger.dev tasks for subscription notifications
 - **PR 8 - Proration Test Coverage**: Comprehensive test coverage for proration edge cases (processSetupIntent.upgrade-proration.test.ts)
 - **Helper Functions**: cancelFreeSubscriptionForUpgrade and linkUpgradedSubscriptions created
 - **Single Free Subscription Validation**: Prevents multiple free subscriptions per customer
-- **Test Coverage**: Comprehensive upgrade flow tests in processSetupIntent.upgrade.test.ts
+- **Test Coverage**: Comprehensive upgrade flow tests and email template tests
 - **TypeScript Types**: CancellationReason enum added to types.ts
 - **Automatic Free Plan Marking**: Subscriptions with unitPrice=0 automatically marked as isFreePlan=true
 - **Event Logging**: SubscriptionUpgraded events logged with full details
@@ -24,7 +25,6 @@
 None - All core PRs completed!
 
 ### ❌ Not Implemented:
-- **PR 7 - Customer Notifications**: No automated email notifications for upgrades  
 - **PR 9 - UI/UX Updates**: No special handling for subscription transitions
 
 ## Overview
@@ -401,33 +401,61 @@ describe('Analytics with Upgrades', () => {
 
 ---
 
-### PR 7: Customer Email Notifications ❌ NOT IMPLEMENTED  
-**Send confirmation emails when customers upgrade**
+### PR 7: Customer Email Notifications ✅ COMPLETED (2025-01-09)
+**Send confirmation emails when customers create or upgrade subscriptions**
 
-#### Tasks:
-1. **Create email template** for upgrade confirmations
-2. **Add email sending logic** after successful upgrade:
+#### Implemented:
+1. **Created email templates**:
+   - `customer-subscription-created.tsx`: For new paid subscriptions
+   - `customer-subscription-upgraded.tsx`: For upgrades from free/paid to paid plans
+   - Both templates support optional intervals for non-renewing subscriptions
+   - Handle all interval types (day/week/month/year)
+   - Display pricing appropriately (free vs paid plans)
+
+2. **Created Trigger.dev tasks**:
+   - `send-customer-subscription-created-notification.ts`: Sends new subscription emails
+   - `send-customer-subscription-upgraded-notification.ts`: Sends upgrade confirmation emails
+   - Both tasks include:
+     - Proper BCC handling for UAT email environment variable
+     - All interval types support in billing date calculations
+     - Safe logging (no sensitive ctx data)
+
+3. **Integrated into subscription workflow**:
    ```typescript
-   if (canceledFreeSubscription) {
-     await sendUpgradeConfirmationEmail({
-       customer,
-       oldSubscription: canceledFreeSubscription,
-       newSubscription: output.result.subscription,
-       organization
+   // In createSubscriptionWorkflow:
+   if (params.previousSubscriptionId) {
+     // This is an upgrade
+     await idempotentSendCustomerSubscriptionUpgradedNotification({
+       customerId: subscription.customerId,
+       newSubscriptionId: subscription.id,
+       previousSubscriptionId: params.previousSubscriptionId,
+       organizationId: subscription.organizationId,
+     })
+   } else {
+     // This is a new subscription
+     await idempotentSendCustomerSubscriptionCreatedNotification({
+       customerId: subscription.customerId,
+       subscriptionId: subscription.id,
+       organizationId: subscription.organizationId,
      })
    }
    ```
 
-3. **Include upgrade details** in email (old plan, new plan, next billing date)
+4. **Fixed metadata dependency issue**:
+   - Removed business logic dependency on customer-controlled metadata
+   - Added explicit `previousSubscriptionId` parameter to track upgrades
+   - Ensures system resilience to future paid-to-paid upgrades
 
 #### Test Coverage:
-```typescript
-describe('Upgrade Email Notifications', () => {
-  it('sends email when upgrading from free to paid')
-  it('includes correct plan details in email')
-  it('handles email sending failures gracefully')
-})
-```
+- 19 tests for `customer-subscription-created` email template
+- 28 tests for `customer-subscription-upgraded` email template  
+- Tests cover:
+  - All interval types (day/week/month/year)
+  - Non-renewing subscriptions (no interval)
+  - Free and paid previous plans
+  - Missing payment methods
+  - Different currencies
+  - Proper date formatting
 
 ---
 
@@ -496,9 +524,9 @@ describe('UI Upgrade Handling', () => {
 4. **PR 4** - Race condition prevention (validation only) ✅ COMPLETED
 5. **PR 5** - Analytics updates ✅ COMPLETED
 6. **PR 6** - Idempotency improvements ✅ COMPLETED
-7. **PR 8** - Proration test coverage ✅ COMPLETED
-8. **PR 7** - Customer notifications ❌ NOT IMPLEMENTED (Optional)
-9. **PR 9** - UI updates ❌ NOT IMPLEMENTED (Optional)
+7. **PR 7** - Customer notifications ✅ COMPLETED
+8. **PR 8** - Proration test coverage ✅ COMPLETED
+9. **PR 9** - UI updates (optional) ❌ NOT IMPLEMENTED
 
 ### Monitoring:
 - Track upgrade success rate

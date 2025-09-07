@@ -22,6 +22,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  customerPolicy,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -132,6 +133,12 @@ export const checkoutSessions = pgTable(
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
+      customerPolicy('Allow read on own checkout sessions', {
+        as: 'permissive',
+        to: 'customer',
+        for: 'select',
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }),
     ]
   }
 ).enableRLS()
