@@ -1,2 +1,2 @@
 ALTER TABLE "billing_periods" ADD COLUMN "prorated_period" boolean DEFAULT false;--> statement-breakpoint
-ALTER TABLE "checkout_sessions" ADD COLUMN "preserve_billing_cycle_anchor" boolean DEFAULT false;
+ALTER TABLE "checkout_sessions" ADD COLUMN "preserve_billing_cycle_anchor" boolean DEFAULT false NOT NULL;

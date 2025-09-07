@@ -674,7 +674,8 @@ const checkoutSessionInsertFromInput = ({
       customerId: isAnonymous ? null : customer!.id,
       customerEmail: isAnonymous ? null : customer!.email,
       customerName: isAnonymous ? null : customer!.name,
-      preserveBillingCycleAnchor: false,
+      preserveBillingCycleAnchor:
+        checkoutSessionInput.preserveBillingCycleAnchor ?? false,
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod

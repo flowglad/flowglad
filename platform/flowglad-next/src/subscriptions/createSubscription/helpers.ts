@@ -30,7 +30,10 @@ import core from '@/utils/core'
 import { Price } from '@/db/schema/prices'
 import { bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId } from '@/db/tableMethods/ledgerAccountMethods'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import {
+  BillingPeriodItem,
+  billingPeriodItems as billingPeriodItemsTable,
+} from '@/db/schema/billingPeriodItems'
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { createBillingPeriodAndItems } from '../billingPeriodHelpers'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
@@ -39,6 +42,7 @@ import { BillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManager
 import { FeatureType } from '@/types'
 import { generateNextBillingPeriod } from '../billingIntervalHelpers'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { eq } from 'drizzle-orm'
 
 export const deriveSubscriptionStatus = ({
   autoStart,
@@ -561,6 +565,18 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
         // Replace standard items with prorated versions
         // Delete the original items and insert prorated ones
         // Note: We're creating new items, not modifying existing ones
+
+        // Delete the original billing period items
+        await transaction
+          .delete(billingPeriodItemsTable)
+          .where(
+            eq(
+              billingPeriodItemsTable.billingPeriodId,
+              billingPeriod.id
+            )
+          )
+
+        // Insert the prorated items
         finalBillingPeriodItems = await bulkInsertBillingPeriodItems(
           proratedItems,
           transaction

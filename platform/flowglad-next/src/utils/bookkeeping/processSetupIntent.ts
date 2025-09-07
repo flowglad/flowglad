@@ -498,7 +498,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     // Determine if we should preserve the billing cycle from the canceled free subscription
     const preserveBillingCycle =
       checkoutSession.preserveBillingCycleAnchor &&
-      canceledFreeSubscription
+      !!canceledFreeSubscription
     const startDate = new Date()
 
     // Prepare billing cycle preservation parameters

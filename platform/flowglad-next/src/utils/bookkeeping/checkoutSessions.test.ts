@@ -616,7 +616,7 @@ describe('Checkout Sessions', async () => {
         await updateCheckoutSession(
           {
             ...checkoutSession,
-            preserveBillingCycleAnchor: null,
+            preserveBillingCycleAnchor: false,
             type: CheckoutSessionType.Purchase,
             purchaseId: purchase.id,
           } as CheckoutSession.Update,

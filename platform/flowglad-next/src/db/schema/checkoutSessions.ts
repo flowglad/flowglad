@@ -98,9 +98,9 @@ const columns = {
     columnName: 'type',
     enumBase: CheckoutSessionType,
   }).notNull(),
-  preserveBillingCycleAnchor: boolean(
-    'preserve_billing_cycle_anchor'
-  ).default(false),
+  preserveBillingCycleAnchor: boolean('preserve_billing_cycle_anchor')
+    .notNull()
+    .default(false),
   outputMetadata: jsonb('output_metadata'),
   outputName: text('output_name'),
   targetSubscriptionId: text('target_subscription_id'),
@@ -144,8 +144,8 @@ export const checkoutSessionOutputMetadataSchema = z
 const commonRefinement = {
   billingAddress: billingAddressSchema.nullable().optional(),
   status: core.createSafeZodEnum(CheckoutSessionStatus),
-  successUrl: z.string().url().nullable().optional(),
-  cancelUrl: z.string().url().nullable().optional(),
+  successUrl: z.url().nullable().optional(),
+  cancelUrl: z.url().nullable().optional(),
   // outputMetadata: z.any().nullable(),
   paymentMethodType: core
     .createSafeZodEnum(PaymentMethodType)
@@ -171,7 +171,7 @@ const purchaseCheckoutSessionRefinement = {
   targetSubscriptionId: core.safeZodNullOrUndefined,
   automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Purchase),
-  preserveBillingCycleAnchor: z.null().optional(),
+  preserveBillingCycleAnchor: z.literal(false).optional(),
 }
 
 const invoiceCheckoutSessionRefinement = {
@@ -182,7 +182,7 @@ const invoiceCheckoutSessionRefinement = {
   targetSubscriptionId: z.null(),
   type: z.literal(CheckoutSessionType.Invoice),
   outputMetadata: z.null(),
-  preserveBillingCycleAnchor: z.null().optional(),
+  preserveBillingCycleAnchor: z.literal(false).optional(),
 }
 
 export const invoiceCheckoutSessionNulledColumns = {
@@ -190,14 +190,13 @@ export const invoiceCheckoutSessionNulledColumns = {
   purchaseId: null,
   outputMetadata: null,
   automaticallyUpdateSubscriptions: null,
-  preserveBillingCycleAnchor: null,
+  preserveBillingCycleAnchor: false,
   targetSubscriptionId: null,
 } as const
 
 const preserveBillingCycleAnchorSchema = z
   .boolean()
   .optional()
-  .default(false)
   .describe(
     'Whether to preserve the billing cycle anchor date in the case that the customer already has an active subscription that renews. If not provided, defaults to false.'
   )
@@ -723,6 +722,7 @@ const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
       .describe(
         'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
       ),
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
   }
 )
 
@@ -748,6 +748,7 @@ const activateSubscriptionCheckoutSessionSchema =
     type: z.literal(CheckoutSessionType.ActivateSubscription),
     priceId: z.string(),
     targetSubscriptionId: z.string(),
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
   })
 
 const createCheckoutSessionObject = z.discriminatedUnion('type', [

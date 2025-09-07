@@ -206,6 +206,9 @@ export const createNonInvoiceCheckoutSession = async (
     ...checkoutSessionInsertCore,
     invoiceId: null,
     type: CheckoutSessionType.Product,
+    /**
+     * Assume defaults for no-code checkout sessions
+     */
     targetSubscriptionId: null,
     automaticallyUpdateSubscriptions: null,
     preserveBillingCycleAnchor: false,

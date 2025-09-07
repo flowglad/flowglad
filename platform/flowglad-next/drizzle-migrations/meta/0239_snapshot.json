@@ -1,5 +1,5 @@
 {
-  "id": "db167029-34f4-46a3-9dc2-8e6d9a10e35b",
+  "id": "85ead40b-e9f1-4bc5-80cd-32ec9db05127",
   "prevId": "e169ec5b-5fbf-4916-ac26-806f8c4bb690",
   "version": "7",
   "dialect": "postgresql",
@@ -1261,7 +1261,7 @@
           "name": "preserve_billing_cycle_anchor",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         },
         "output_metadata": {
