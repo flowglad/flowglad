@@ -688,13 +688,21 @@ export const processSetupIntentSucceeded = async (
         checkoutSession.organizationId,
         transaction
       )
+
+      // Ensure payment method exists for activation
+      if (!paymentMethod) {
+        throw new Error(
+          `processSetupIntentSucceeded: Payment method required for subscription activation (checkout session id: ${checkoutSession.id})`
+        )
+      }
+
       return {
         result: {
           type: CheckoutSessionType.ActivateSubscription,
           checkoutSession,
           organization,
           customer,
-          paymentMethod: paymentMethod!,
+          paymentMethod,
           billingRun: null,
           subscription,
           purchase: null,
@@ -726,13 +734,20 @@ export const processSetupIntentSucceeded = async (
         transaction
       )
 
+    // Validate that price result exists
+    if (!priceResult[0]) {
+      throw new Error(
+        `processSetupIntentSucceeded: Price not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id})`
+      )
+    }
+
     return {
       result: {
         type: checkoutSession.type,
         checkoutSession,
-        price: priceResult[0]?.price,
-        product: priceResult[0]?.product,
-        organization: priceResult[0]?.organization,
+        price: priceResult[0].price,
+        product: priceResult[0].product,
+        organization: priceResult[0].organization,
         customer,
         billingRun: null,
         purchase: null,

@@ -1,7 +1,7 @@
 import { DbTransaction } from '@/db/types'
 import { Subscription } from '@/db/schema/subscriptions'
 import { CancellationReason, SubscriptionStatus } from '@/types'
-import { and, between, eq } from 'drizzle-orm'
+import { and, between, eq, inArray } from 'drizzle-orm'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { differenceInDays } from 'date-fns'
 
@@ -52,6 +52,7 @@ export const getUpgradeMetrics = async (
 
   let upgradeRevenue = 0
   let totalDaysToUpgrade = 0
+  let validPairsCount = 0
 
   if (replacementSubscriptionIds.length > 0) {
     const replacementSubscriptions = await transaction
@@ -59,17 +60,21 @@ export const getUpgradeMetrics = async (
       .from(subscriptions)
       .where(
         and(
-          eq(subscriptions.organizationId, organizationId)
-          // Use SQL IN clause for the replacement IDs
-          // Note: This is a simplified approach, in production you'd use drizzle's inArray
+          eq(subscriptions.organizationId, organizationId),
+          inArray(subscriptions.id, replacementSubscriptionIds)
         )
       )
 
     // Calculate total MRR from upgraded subscriptions
+    // TODO: In a complete implementation, we would need to:
+    // 1. Join with prices table to get the actual price amount
+    // 2. Join with subscription_items to get quantities
+    // 3. Calculate the actual MRR based on interval and interval_count
+    // For now, using a simple placeholder calculation
     for (const replacement of replacementSubscriptions) {
-      // This would need to be adjusted based on actual schema
-      // For now, using a placeholder calculation
-      upgradeRevenue += 100 // Placeholder - would need to join with prices table
+      // Placeholder: $50 base MRR per upgraded subscription
+      const estimatedMRR = 50
+      upgradeRevenue += estimatedMRR
     }
 
     // Calculate average time to upgrade
@@ -79,12 +84,14 @@ export const getUpgradeMetrics = async (
         (s) => s.id === oldSub.replacedBySubscriptionId
       )
 
-      if (oldSub.createdAt && newSub?.createdAt) {
+      // Use canceledAt for consistency - time from creation to upgrade (cancellation)
+      if (oldSub.createdAt && oldSub.canceledAt) {
         const daysToUpgrade = differenceInDays(
-          new Date(newSub.createdAt),
+          new Date(oldSub.canceledAt),
           new Date(oldSub.createdAt)
         )
         totalDaysToUpgrade += daysToUpgrade
+        validPairsCount++
       }
     }
   }
@@ -108,10 +115,9 @@ export const getUpgradeMetrics = async (
       ? (upgradedSubscriptions.length / totalFreeSubscriptions) * 100
       : 0
 
+  // Use the count of valid pairs instead of all upgraded subscriptions
   const averageTimeToUpgrade =
-    upgradedSubscriptions.length > 0
-      ? totalDaysToUpgrade / upgradedSubscriptions.length
-      : 0
+    validPairsCount > 0 ? totalDaysToUpgrade / validPairsCount : 0
 
   return {
     totalUpgrades: upgradedSubscriptions.length,
@@ -130,9 +136,12 @@ export const getUpgradeMetrics = async (
 export const calculateUpgradeRevenue = (
   upgradedSubscriptions: Subscription.Record[]
 ): number => {
-  // This would need to be implemented based on actual price data
-  // For now, returning a placeholder
-  return upgradedSubscriptions.length * 100 // Placeholder calculation
+  // TODO: This function should:
+  // 1. Join with prices table to get actual amounts
+  // 2. Join with subscription_items for quantities
+  // 3. Calculate proper MRR based on billing intervals
+  // Currently returns a placeholder estimate
+  return upgradedSubscriptions.length * 50 // $50 per upgraded subscription as placeholder
 }
 
 /**
