@@ -229,7 +229,8 @@ export const selectSubscriptionsTableRowData =
           subscription: {
             ...subscription,
             current: isSubscriptionCurrent(
-              subscription.status as SubscriptionStatus
+              subscription.status as SubscriptionStatus,
+              subscription.cancellationReason
             ),
           },
           price: pricesSelectSchema.parse(price),
@@ -252,7 +253,15 @@ export const currentSubscriptionStatuses = [
   SubscriptionStatus.CreditTrial,
 ]
 
-export const isSubscriptionCurrent = (status: SubscriptionStatus) => {
+export const isSubscriptionCurrent = (
+  status: SubscriptionStatus,
+  cancellationReason?: string | null
+) => {
+  // Exclude upgraded subscriptions from being considered current
+  if (cancellationReason === CancellationReason.UpgradedToPaid) {
+    return false
+  }
+
   return currentSubscriptionStatuses.includes(status)
 }
 
@@ -263,7 +272,10 @@ export const subscriptionWithCurrent = <
 ): T & { current: boolean } => {
   return {
     ...subscription,
-    current: isSubscriptionCurrent(subscription.status),
+    current: isSubscriptionCurrent(
+      subscription.status,
+      subscription.cancellationReason
+    ),
   }
 }
 
@@ -302,10 +314,20 @@ export const getActiveSubscriptionsForPeriod = async (
     .where(
       and(
         eq(subscriptions.organizationId, organizationId),
-        gte(subscriptions.startDate, startDate),
+        // Subscription started before the period ended
+        lte(subscriptions.startDate, endDate),
+        // Subscription was not canceled before the period started
         or(
           isNull(subscriptions.canceledAt),
-          gt(subscriptions.canceledAt, endDate)
+          gt(subscriptions.canceledAt, startDate)
+        ),
+        // Exclude subscriptions that were upgraded away
+        or(
+          isNull(subscriptions.cancellationReason),
+          ne(
+            subscriptions.cancellationReason,
+            CancellationReason.UpgradedToPaid
+          )
         )
       )
     )
@@ -421,8 +443,17 @@ export const selectCurrentSubscriptionForCustomer = async (
 
   // Helper function to recursively find the end of any upgrade chain
   const findCurrent = (
-    sub: Subscription.Record
+    sub: Subscription.Record,
+    depth = 0
   ): Subscription.Record => {
+    // Prevent infinite loops
+    if (depth > 10) {
+      console.warn(
+        `Deep upgrade chain detected for subscription ${sub.id}`
+      )
+      return sub
+    }
+
     // If this subscription has been replaced, find its replacement
     if (sub.replacedBySubscriptionId) {
       const replacement = allSubscriptions.find(
@@ -430,7 +461,7 @@ export const selectCurrentSubscriptionForCustomer = async (
       )
       // If we found the replacement, continue following the chain
       if (replacement) {
-        return findCurrent(replacement)
+        return findCurrent(replacement, depth + 1)
       }
     }
     // This is the end of the chain (or no replacement found)
