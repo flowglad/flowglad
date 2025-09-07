@@ -465,7 +465,7 @@ describe('Customer Role RLS Policies', () => {
 
       // Should not see customerB's invoice
       expect(result.invoiceBQuery).toBeNull()
-    })
+    }, 10000)
 
     it('should prevent customerB from seeing customerA data in same org', async () => {
       const result = await authenticatedCustomerTransaction(

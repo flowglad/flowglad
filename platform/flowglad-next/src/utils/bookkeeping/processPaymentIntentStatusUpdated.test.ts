@@ -538,6 +538,13 @@ describe('Process payment intent status updated', async () => {
           amount: 6000,
           status: 'succeeded',
           billing_details: { address: { country: 'US' } },
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+            },
+          },
         }
         const fakeBillingRun = {
           id: 'br_123',
@@ -558,6 +565,8 @@ describe('Process payment intent status updated', async () => {
           invoiceId: 'inv_br',
           purchaseId: null,
         }
+        // Mock getStripeCharge to return the fake charge
+        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge as any)
         const result = await adminTransaction(
           async ({ transaction }) =>
             processPaymentIntentStatusUpdated(fakePI, transaction)
@@ -583,6 +592,13 @@ describe('Process payment intent status updated', async () => {
           amount: 6000,
           status: 'succeeded',
           billing_details: { address: { country: 'US' } },
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+            },
+          },
         }
         const fakeBillingRun = {
           id: 'br_err',
@@ -596,11 +612,13 @@ describe('Process payment intent status updated', async () => {
           customerId: 'cp_br_err',
           livemode: true,
         }
+        // Mock getStripeCharge to return the fake charge so test can proceed to billing run check
+        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge as any)
         await expect(
           adminTransaction(async ({ transaction }) =>
             processPaymentIntentStatusUpdated(fakePI, transaction)
           )
-        ).rejects.toThrow(/No billing runs found with id: br_err/)
+        ).rejects.toThrow('No billing runs found with id: br_err')
       })
     })
 
@@ -885,6 +903,18 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('should create PaymentSucceeded and PurchaseCompleted events when payment succeeds and purchase becomes paid', async () => {
+      // First, create the checkout session
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        type: CheckoutSessionType.Purchase,
+        status: CheckoutSessionStatus.Succeeded,
+        quantity: 1,
+        livemode: true,
+        purchaseId: purchase.id,
+      })
+
       // Mock getStripeCharge to return succeeded charge
       vi.mocked(getStripeCharge).mockResolvedValue({
         id: 'ch_test_123',
@@ -894,6 +924,13 @@ describe('Process payment intent status updated', async () => {
         payment_intent: 'pi_test_123',
         billing_details: {
           address: { country: 'US' },
+        },
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
         },
       } as any)
 
@@ -907,20 +944,10 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded' as const,
         latest_charge: 'ch_test_123',
         metadata: {
-          checkoutSessionId: 'cs_test_123',
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
         },
       }
-
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Purchase,
-        status: CheckoutSessionStatus.Succeeded,
-        quantity: 1,
-        livemode: true,
-        purchaseId: purchase.id,
-      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1003,6 +1030,13 @@ describe('Process payment intent status updated', async () => {
         billing_details: {
           address: { country: 'US' },
         },
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        },
       } as any)
 
       // Update purchase to a status that won't become Paid
@@ -1019,20 +1053,6 @@ describe('Process payment intent status updated', async () => {
         )
       })
 
-      const paymentIntent: any = {
-        id: 'pi_test_123',
-        object: 'payment_intent',
-        amount: 1000,
-        amount_capturable: 0,
-        amount_received: 1000,
-        currency: 'usd',
-        status: 'succeeded' as const,
-        latest_charge: 'ch_test_123',
-        metadata: {
-          checkoutSessionId: 'cs_test_123',
-        },
-      }
-
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
         customerId: customer.id,
@@ -1043,6 +1063,21 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         purchaseId: purchase.id,
       })
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 1000,
+        currency: 'usd',
+        status: 'succeeded' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
+        },
+      }
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1083,6 +1118,13 @@ describe('Process payment intent status updated', async () => {
         payment_intent: 'pi_test_123',
         billing_details: {
           address: { country: 'US' },
+        },
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
         },
       } as any)
 
@@ -1166,21 +1208,14 @@ describe('Process payment intent status updated', async () => {
         billing_details: {
           address: { country: 'US' },
         },
-      } as any)
-
-      const paymentIntent: any = {
-        id: 'pi_test_123',
-        object: 'payment_intent',
-        amount: 1000,
-        amount_capturable: 0,
-        amount_received: 0,
-        currency: 'usd',
-        status: 'canceled' as const,
-        latest_charge: 'ch_test_123',
-        metadata: {
-          checkoutSessionId: 'cs_test_123',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
         },
-      }
+      } as any)
 
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1192,6 +1227,21 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         purchaseId: purchase.id,
       })
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 0,
+        currency: 'usd',
+        status: 'canceled' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
+        },
+      }
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1237,21 +1287,14 @@ describe('Process payment intent status updated', async () => {
         billing_details: {
           address: { country: 'US' },
         },
-      } as any)
-
-      const paymentIntent: any = {
-        id: 'pi_test_123',
-        object: 'payment_intent',
-        amount: 1000,
-        amount_capturable: 1000,
-        amount_received: 0,
-        currency: 'usd',
-        status: 'processing' as const,
-        latest_charge: 'ch_test_123',
-        metadata: {
-          checkoutSessionId: 'cs_test_123',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
         },
-      }
+      } as any)
 
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1263,6 +1306,21 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         purchaseId: purchase.id,
       })
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 1000,
+        amount_received: 0,
+        currency: 'usd',
+        status: 'processing' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
+        },
+      }
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1303,21 +1361,14 @@ describe('Process payment intent status updated', async () => {
         billing_details: {
           address: { country: 'US' },
         },
-      } as any)
-
-      const paymentIntent: any = {
-        id: 'pi_test_123',
-        object: 'payment_intent',
-        amount: 1000,
-        amount_capturable: 0,
-        amount_received: 1000,
-        currency: 'usd',
-        status: 'succeeded' as const,
-        latest_charge: 'ch_test_123',
-        metadata: {
-          checkoutSessionId: 'cs_test_123',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
         },
-      }
+      } as any)
 
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -1329,6 +1380,21 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         purchaseId: purchase.id,
       })
+
+      const paymentIntent: any = {
+        id: 'pi_test_123',
+        object: 'payment_intent',
+        amount: 1000,
+        amount_capturable: 0,
+        amount_received: 1000,
+        currency: 'usd',
+        status: 'succeeded' as const,
+        latest_charge: 'ch_test_123',
+        metadata: {
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
+        },
+      }
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
