@@ -689,7 +689,7 @@ export async function calculateMRRBreakdown(
   }
 
   // New MRR: Subscriptions in current month but not in previous month
-  // This includes new paid subscriptions from upgrades
+  // Excludes free-to-paid upgrades; those are tracked in upgradeMRR
   for (const subscriptionId of currentSubscriptionIds) {
     if (!previousSubscriptionIds.has(subscriptionId)) {
       const mrr = getSubscriptionMRR(
