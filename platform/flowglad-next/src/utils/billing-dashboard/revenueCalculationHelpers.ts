@@ -2,7 +2,11 @@ import { DbTransaction } from '@/db/types'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { Subscription } from '@/db/schema/subscriptions'
-import { IntervalUnit, RevenueChartIntervalUnit } from '@/types'
+import {
+  IntervalUnit,
+  RevenueChartIntervalUnit,
+  CancellationReason,
+} from '@/types'
 import {
   selectBillingPeriods,
   selectBillingPeriodsDueForTransition,
@@ -34,6 +38,7 @@ export interface RevenueCalculationOptions {
   startDate: Date
   endDate: Date
   granularity: RevenueChartIntervalUnit
+  debug?: boolean // Optional debug flag, defaults to false
 }
 
 export interface BillingPeriodWithItems {
@@ -56,26 +61,67 @@ export interface BillingPeriodWithItems {
 export function normalizeToMonthlyValue(
   value: number,
   interval: IntervalUnit,
-  intervalCount: number
+  intervalCount: number,
+  debug: boolean = false
 ): number {
+  if (debug) {
+    console.log('[NORMALIZE DEBUG] normalizeToMonthlyValue called:', {
+      value,
+      interval,
+      intervalCount,
+    })
+  }
+
   if (intervalCount <= 0) {
     throw new Error(
       `Invalid intervalCount: ${intervalCount}. Must be greater than 0.`
     )
   }
 
+  let normalizedValue: number
+
   switch (interval) {
     case IntervalUnit.Month:
-      return value / intervalCount
+      normalizedValue = value / intervalCount
+      if (debug) {
+        console.log('[NORMALIZE DEBUG] Monthly interval:', {
+          calculation: `${value} / ${intervalCount}`,
+          result: normalizedValue,
+        })
+      }
+      break
     case IntervalUnit.Year:
-      return value / (12 * intervalCount)
+      normalizedValue = value / (12 * intervalCount)
+      if (debug) {
+        console.log('[NORMALIZE DEBUG] Yearly interval:', {
+          calculation: `${value} / (12 * ${intervalCount})`,
+          result: normalizedValue,
+        })
+      }
+      break
     case IntervalUnit.Week:
-      return (value * 52) / (12 * intervalCount) // 52 weeks in a year
+      normalizedValue = (value * 52) / (12 * intervalCount) // 52 weeks in a year
+      if (debug) {
+        console.log('[NORMALIZE DEBUG] Weekly interval:', {
+          calculation: `(${value} * 52) / (12 * ${intervalCount})`,
+          result: normalizedValue,
+        })
+      }
+      break
     case IntervalUnit.Day:
-      return (value * 365) / (12 * intervalCount) // 365 days in a year
+      normalizedValue = (value * 365) / (12 * intervalCount) // 365 days in a year
+      if (debug) {
+        console.log('[NORMALIZE DEBUG] Daily interval:', {
+          calculation: `(${value} * 365) / (12 * ${intervalCount})`,
+          result: normalizedValue,
+        })
+      }
+      break
     default:
       throw new Error(`Unsupported interval: ${interval}`)
   }
+
+  return normalizedValue
 }
 
 /**
@@ -89,13 +135,32 @@ export function normalizeToMonthlyValue(
 export function calculateOverlapPercentage(
   billingPeriod: BillingPeriod.Record,
   monthStart: Date,
-  monthEnd: Date
+  monthEnd: Date,
+  debug: boolean = false
 ): number {
   const bpStart = startOfDay(billingPeriod.startDate)
   const bpEnd = endOfDay(billingPeriod.endDate)
 
+  if (debug) {
+    console.log(
+      '[OVERLAP DEBUG] calculateOverlapPercentage called:',
+      {
+        billingPeriodId: billingPeriod.id,
+        bpStart: bpStart.toISOString(),
+        bpEnd: bpEnd.toISOString(),
+        monthStart: monthStart.toISOString(),
+        monthEnd: monthEnd.toISOString(),
+      }
+    )
+  }
+
   // If the billing period is outside the month, no overlap
   if (bpEnd < monthStart || bpStart > monthEnd) {
+    if (debug) {
+      console.log(
+        '[OVERLAP DEBUG] No overlap - billing period outside month'
+      )
+    }
     return 0
   }
 
@@ -103,11 +168,26 @@ export function calculateOverlapPercentage(
   const overlapStart = bpStart > monthStart ? bpStart : monthStart
   const overlapEnd = bpEnd < monthEnd ? bpEnd : monthEnd
 
+  if (debug) {
+    console.log('[OVERLAP DEBUG] Overlap period:', {
+      overlapStart: overlapStart.toISOString(),
+      overlapEnd: overlapEnd.toISOString(),
+    })
+  }
+
   // Calculate the number of days in the overlap
   const daysInOverlap = differenceInDays(overlapEnd, overlapStart) + 1
 
   // Calculate the total number of days in the billing period
   let totalDaysInBillingPeriod = differenceInDays(bpEnd, bpStart) + 1
+
+  if (debug) {
+    console.log('[OVERLAP DEBUG] Days calculation:', {
+      daysInOverlap,
+      totalDaysInBillingPeriod,
+      rawPercentage: daysInOverlap / totalDaysInBillingPeriod,
+    })
+  }
 
   // Adjust for leap years if the billing period includes February 29
   const isLeapYear = (date: Date) => {
@@ -124,11 +204,25 @@ export function calculateOverlapPercentage(
     const feb29 = new Date(bpStart.getFullYear(), 1, 29)
     if (bpStart <= feb29 && bpEnd >= feb29) {
       totalDaysInBillingPeriod += 1
+      if (debug) {
+        console.log(
+          '[OVERLAP DEBUG] Adjusted for leap year, new totalDaysInBillingPeriod:',
+          totalDaysInBillingPeriod
+        )
+      }
     }
   }
 
+  const finalPercentage = daysInOverlap / totalDaysInBillingPeriod
+  if (debug) {
+    console.log(
+      '[OVERLAP DEBUG] Final overlap percentage:',
+      finalPercentage
+    )
+  }
+
   // Return the percentage of overlap
-  return daysInOverlap / totalDaysInBillingPeriod
+  return finalPercentage
 }
 
 /**
@@ -191,7 +285,16 @@ export async function calculateMRRByMonth(
   options: RevenueCalculationOptions,
   transaction: DbTransaction
 ): Promise<MonthlyRecurringRevenue[]> {
-  const { startDate, endDate } = options
+  const { startDate, endDate, debug = false } = options
+
+  if (debug) {
+    console.log('[MRR DEBUG] calculateMRRByMonth called with:', {
+      organizationId,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      options,
+    })
+  }
 
   // Generate an array of months between startDate and endDate
   const months: Date[] = []
@@ -202,6 +305,13 @@ export async function calculateMRRByMonth(
     currentDate = addMonths(currentDate, 1)
   }
 
+  if (debug) {
+    console.log(
+      '[MRR DEBUG] Processing months:',
+      months.map((m) => m.toISOString())
+    )
+  }
+
   // Get all billing periods that overlap with the date range
   const billingPeriods = await getBillingPeriodsForDateRange(
     organizationId,
@@ -210,11 +320,45 @@ export async function calculateMRRByMonth(
     transaction
   )
 
+  if (debug) {
+    console.log(
+      '[MRR DEBUG] Found billing periods:',
+      billingPeriods.length
+    )
+    billingPeriods.forEach((bp, index) => {
+      console.log(`[MRR DEBUG] Billing Period ${index}:`, {
+        id: bp.billingPeriod.id,
+        subscriptionId: bp.subscription.id,
+        startDate: bp.billingPeriod.startDate.toISOString(),
+        endDate: bp.billingPeriod.endDate.toISOString(),
+        interval: (bp.subscription as any).interval,
+        intervalCount: bp.subscription.intervalCount,
+        itemsCount: bp.billingPeriodItems.length,
+        items: bp.billingPeriodItems.map((item) => ({
+          name: item.name,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          totalValue: item.unitPrice * item.quantity,
+        })),
+      })
+    })
+  }
+
   // Calculate MRR for each month
   const mrrByMonth = months.map((month) => {
     const monthStart = startOfDay(month)
     const monthEnd = endOfDay(endOfMonth(month))
     let monthlyRevenue = 0
+
+    if (debug) {
+      console.log(
+        `[MRR DEBUG] Processing month: ${month.toISOString()}`,
+        {
+          monthStart: monthStart.toISOString(),
+          monthEnd: monthEnd.toISOString(),
+        }
+      )
+    }
 
     // For each billing period, calculate its contribution to this month's MRR
     billingPeriods.forEach(
@@ -230,7 +374,8 @@ export async function calculateMRRByMonth(
         const overlapPercentage = calculateOverlapPercentage(
           billingPeriod,
           month,
-          monthEnd
+          monthEnd,
+          debug
         )
 
         if (overlapPercentage > 0) {
@@ -243,7 +388,8 @@ export async function calculateMRRByMonth(
           const monthlyValue = normalizeToMonthlyValue(
             totalValue,
             (subscription as Subscription.StandardRecord).interval,
-            subscription.intervalCount
+            subscription.intervalCount,
+            debug
           )
 
           // If the billing period fully covers the month, use the full monthly value
@@ -252,17 +398,49 @@ export async function calculateMRRByMonth(
             ? monthlyValue
             : monthlyValue * overlapPercentage
 
+          if (debug) {
+            console.log(
+              `[MRR DEBUG] Billing Period contribution for ${billingPeriod.id}:`,
+              {
+                subscriptionId: subscription.id,
+                bpStart: bpStart.toISOString(),
+                bpEnd: bpEnd.toISOString(),
+                fullyCoversMonth,
+                overlapPercentage,
+                totalValue,
+                monthlyValue,
+                contribution,
+                interval: (subscription as any).interval,
+                intervalCount: subscription.intervalCount,
+              }
+            )
+          }
+
           // Add the contribution of this billing period to the month's MRR
           monthlyRevenue += contribution
+        } else if (debug) {
+          console.log(
+            `[MRR DEBUG] Billing Period ${billingPeriod.id} has no overlap with month`
+          )
         }
       }
     )
+
+    if (debug) {
+      console.log(
+        `[MRR DEBUG] Total MRR for month ${month.toISOString()}: ${monthlyRevenue}`
+      )
+    }
 
     return {
       month,
       amount: monthlyRevenue,
     }
   })
+
+  if (debug) {
+    console.log('[MRR DEBUG] Final MRR by month:', mrrByMonth)
+  }
 
   return mrrByMonth
 }
@@ -374,14 +552,15 @@ export async function calculateMRRChange(
 }
 
 /**
- * Decomposes MRR into its components: new, expansion, contraction, and churn
+ * Decomposes MRR into its components: new, expansion, contraction, churn, and upgrades
  * This helps understand the sources of MRR changes
  */
 export interface MRRBreakdown {
   newMRR: number // MRR from new subscriptions
   expansionMRR: number // MRR from upgrades to existing subscriptions
   contractionMRR: number // MRR from downgrades to existing subscriptions
-  churnMRR: number // MRR lost from canceled subscriptions
+  churnMRR: number // MRR lost from canceled subscriptions (excluding upgrades)
+  upgradeMRR: number // MRR gained from free-to-paid upgrades
   netMRR: number // Net change in MRR
 }
 
@@ -488,28 +667,70 @@ export async function calculateMRRBreakdown(
   let expansionMRR = 0
   let contractionMRR = 0
   let churnMRR = 0
+  let upgradeMRR = 0
+
+  // To properly track upgrades, we need to get ALL subscriptions for the organization
+  // to find upgrade relationships, not just those with billing periods
+  const allSubscriptions = await transaction
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.organizationId, organizationId))
+
+  // Build a map of replaced subscription IDs to their replacements
+  const replacementMap = new Map<string, string>()
+  for (const sub of allSubscriptions) {
+    if (
+      sub.replacedBySubscriptionId &&
+      sub.cancellationReason === CancellationReason.UpgradedToPaid
+    ) {
+      replacementMap.set(sub.replacedBySubscriptionId, sub.id)
+    }
+  }
 
   // New MRR: Subscriptions in current month but not in previous month
+  // This includes new paid subscriptions from upgrades
   for (const subscriptionId of currentSubscriptionIds) {
     if (!previousSubscriptionIds.has(subscriptionId)) {
-      newMRR += getSubscriptionMRR(
+      const mrr = getSubscriptionMRR(
         subscriptionId,
         currentBillingPeriods,
         currentMonthStart,
         currentMonthEnd
       )
+
+      // Check if this subscription replaced an upgraded one
+      const isUpgradeReplacement = replacementMap.has(subscriptionId)
+
+      if (isUpgradeReplacement) {
+        upgradeMRR += mrr
+      } else {
+        newMRR += mrr
+      }
     }
   }
 
   // Churn MRR: Subscriptions in previous month but not in current month
+  // (excluding subscriptions that were upgraded)
   for (const subscriptionId of previousSubscriptionIds) {
     if (!currentSubscriptionIds.has(subscriptionId)) {
-      churnMRR += getSubscriptionMRR(
-        subscriptionId,
-        previousBillingPeriods,
-        previousMonthStart,
-        previousMonthEnd
-      )
+      // Find the subscription to check if it was upgraded
+      const subscription = previousBillingPeriods.find(
+        (bp) => bp.subscription.id === subscriptionId
+      )?.subscription
+
+      // Only count as churn if not upgraded to paid
+      if (
+        subscription &&
+        subscription.cancellationReason !==
+          CancellationReason.UpgradedToPaid
+      ) {
+        churnMRR += getSubscriptionMRR(
+          subscriptionId,
+          previousBillingPeriods,
+          previousMonthStart,
+          previousMonthEnd
+        )
+      }
     }
   }
 
@@ -541,13 +762,15 @@ export async function calculateMRRBreakdown(
   }
 
   // Calculate net MRR
-  const netMRR = newMRR + expansionMRR - contractionMRR - churnMRR
+  const netMRR =
+    newMRR + expansionMRR + upgradeMRR - contractionMRR - churnMRR
 
   return {
     newMRR,
     expansionMRR,
     contractionMRR,
     churnMRR,
+    upgradeMRR,
     netMRR,
   }
 }

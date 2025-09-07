@@ -1,5 +1,5 @@
 import { DbTransaction } from '@/db/types'
-import { RevenueChartIntervalUnit } from '@/types'
+import { RevenueChartIntervalUnit, CancellationReason } from '@/types'
 import {
   startOfMonth,
   endOfMonth,
@@ -120,12 +120,13 @@ export async function calculateSubscriberBreakdown(
       sub.startDate <= currentMonthEnd
   ).length
 
-  // Calculate churned subscribers
+  // Calculate churned subscribers (excluding upgrades)
   const churned = previousSubscriptions.filter(
     (sub) =>
       sub.canceledAt &&
       sub.canceledAt >= currentMonthStart &&
-      sub.canceledAt <= currentMonthEnd
+      sub.canceledAt <= currentMonthEnd &&
+      sub.cancellationReason !== CancellationReason.UpgradedToPaid
   ).length
 
   // Calculate net change
