@@ -1,5 +1,5 @@
 {
-  "id": "6c198096-2db9-4d53-b322-157cc775a55c",
+  "id": "85ead40b-e9f1-4bc5-80cd-32ec9db05127",
   "prevId": "e169ec5b-5fbf-4916-ac26-806f8c4bb690",
   "version": "7",
   "dialect": "postgresql",
@@ -155,8 +155,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (api_keys)": {
-          "name": "Check mode (api_keys)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -693,8 +693,8 @@
           ],
           "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
         },
-        "Check mode (billing_period_items)": {
-          "name": "Check mode (billing_period_items)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -785,6 +785,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "prorated_period": {
+          "name": "prorated_period",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
         }
       },
       "indexes": {
@@ -854,8 +861,8 @@
           ],
           "using": "\"subscriptionId\" in (select \"id\" from \"Subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\"))"
         },
-        "Check mode (billing_periods)": {
-          "name": "Check mode (billing_periods)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -1077,8 +1084,8 @@
           ],
           "using": "\"billing_period_id\" in (select \"id\" from \"billing_periods\" where \"subscription_id\" in (select \"id\" from \"subscriptions\" where \"organization_id\" in (select \"organization_id\" from \"memberships\")))"
         },
-        "Check mode (billing_runs)": {
-          "name": "Check mode (billing_runs)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -1249,6 +1256,13 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "preserve_billing_cycle_anchor": {
+          "name": "preserve_billing_cycle_anchor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "output_metadata": {
           "name": "output_metadata",
@@ -1488,6 +1502,15 @@
         }
       },
       "policies": {
+        "Check mode": {
+          "name": "Check mode",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "merchant"
+          ],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        },
         "Enable all actions for discounts in own organization": {
           "name": "Enable all actions for discounts in own organization",
           "as": "PERMISSIVE",
@@ -1496,24 +1519,6 @@
             "merchant"
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
-        },
-        "Enable select for customer": {
-          "name": "Enable select for customer",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "customer"
-          ],
-          "using": "\"customer_id\" in (select id from \"customers\") and \"organization_id\" = current_organization_id()"
-        },
-        "Check mode (checkout_sessions)": {
-          "name": "Check mode (checkout_sessions)",
-          "as": "RESTRICTIVE",
-          "for": "ALL",
-          "to": [
-            "merchant"
-          ],
-          "using": "current_setting('app.livemode')::boolean = livemode"
         }
       },
       "checkConstraints": {},
@@ -2046,8 +2051,8 @@
           ],
           "using": "false"
         },
-        "Check mode (customers)": {
-          "name": "Check mode (customers)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -2285,8 +2290,8 @@
         }
       },
       "policies": {
-        "Check mode (discount_redemptions)": {
-          "name": "Check mode (discount_redemptions)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -2501,8 +2506,8 @@
         }
       },
       "policies": {
-        "Check mode (discounts)": {
-          "name": "Check mode (discounts)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -2744,8 +2749,8 @@
         }
       },
       "policies": {
-        "Check mode (events)": {
-          "name": "Check mode (events)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -3031,8 +3036,8 @@
           ],
           "using": "\"organization_id\" = current_organization_id() and \"active\" = true"
         },
-        "Check mode (features)": {
-          "name": "Check mode (features)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -3369,8 +3374,8 @@
         }
       },
       "policies": {
-        "Check mode (fee_calculations)": {
-          "name": "Check mode (fee_calculations)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -3572,8 +3577,8 @@
         }
       },
       "policies": {
-        "Check mode (files)": {
-          "name": "Check mode (files)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -3835,8 +3840,8 @@
           ],
           "using": "\"invoice_id\" in (select \"id\" from \"invoices\")"
         },
-        "Check mode (invoice_line_items)": {
-          "name": "Check mode (invoice_line_items)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -4297,8 +4302,8 @@
         }
       },
       "policies": {
-        "Check mode (invoices)": {
-          "name": "Check mode (invoices)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -4564,8 +4569,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (ledger_accounts)": {
-          "name": "Check mode (ledger_accounts)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -5189,8 +5194,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (ledger_entries)": {
-          "name": "Check mode (ledger_entries)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -5461,8 +5466,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (ledger_transactions)": {
-          "name": "Check mode (ledger_transactions)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -5628,8 +5633,8 @@
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")",
           "withCheck": "\"product_id\" is null OR \"product_id\" in (select \"id\" from \"products\")"
         },
-        "Check mode (links)": {
-          "name": "Check mode (links)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -6036,8 +6041,8 @@
         }
       },
       "policies": {
-        "Check mode (messages)": {
-          "name": "Check mode (messages)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -6556,8 +6561,8 @@
           ],
           "using": "\"customerId\" in (select \"id\" from \"customers\")"
         },
-        "Check mode (payment_methods)": {
-          "name": "Check mode (payment_methods)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -7084,8 +7089,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (payments)": {
-          "name": "Check mode (payments)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -7415,8 +7420,8 @@
           ],
           "using": "\"product_id\" in (select \"id\" from \"products\")"
         },
-        "Check mode (prices)": {
-          "name": "Check mode (prices)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -7572,8 +7577,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (pricing_models)": {
-          "name": "Check mode (pricing_models)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -7808,8 +7813,8 @@
           ],
           "using": "\"feature_id\" in (select \"id\" from \"features\")"
         },
-        "Check mode (product_features)": {
-          "name": "Check mode (product_features)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -8085,8 +8090,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (products)": {
-          "name": "Check mode (products)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -8316,8 +8321,8 @@
           ],
           "using": "\"organizationId\" in (select \"organizationId\" from \"Memberships\" where \"UserId\" = requesting_user_id())"
         },
-        "Check mode (proper_nouns)": {
-          "name": "Check mode (proper_nouns)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -8474,8 +8479,8 @@
         }
       },
       "policies": {
-        "Check mode (purchase_access_sessions)": {
-          "name": "Check mode (purchase_access_sessions)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -8769,8 +8774,8 @@
         }
       },
       "policies": {
-        "Check mode (purchases)": {
-          "name": "Check mode (purchases)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -9034,8 +9039,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (refunds)": {
-          "name": "Check mode (refunds)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -9351,8 +9356,8 @@
           ],
           "using": "\"subscription_item_id\" in (select \"id\" from \"subscription_items\")"
         },
-        "Check mode (subscription_item_features)": {
-          "name": "Check mode (subscription_item_features)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -9618,8 +9623,8 @@
           ],
           "using": "\"subscriptionId\" in (select \"id\" from \"Subscriptions\")"
         },
-        "Check mode (subscription_items)": {
-          "name": "Check mode (subscription_items)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -10030,8 +10035,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (subscription_meter_period_calculations)": {
-          "name": "Check mode (subscription_meter_period_calculations)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -10489,8 +10494,8 @@
           ],
           "using": "false"
         },
-        "Check mode (subscriptions)": {
-          "name": "Check mode (subscriptions)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -10695,8 +10700,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (usage_credit_applications)": {
-          "name": "Check mode (usage_credit_applications)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -10923,8 +10928,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (usage_credit_balance_adjustments)": {
-          "name": "Check mode (usage_credit_balance_adjustments)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -11291,8 +11296,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (usage_credits)": {
-          "name": "Check mode (usage_credits)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -11656,8 +11661,8 @@
           ],
           "using": "\"customer_id\" in (select \"id\" from \"customers\")"
         },
-        "Check mode (usage_events)": {
-          "name": "Check mode (usage_events)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -11866,8 +11871,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (usage_meters)": {
-          "name": "Check mode (usage_meters)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [
@@ -12167,8 +12172,8 @@
           ],
           "using": "\"organization_id\" in (select \"organization_id\" from \"memberships\")"
         },
-        "Check mode (webhooks)": {
-          "name": "Check mode (webhooks)",
+        "Check mode": {
+          "name": "Check mode",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": [

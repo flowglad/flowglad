@@ -425,6 +425,7 @@ export const setupSubscription = async (params: {
   replacedBySubscriptionId?: string | null
   canceledAt?: Date | null
   metadata?: any
+  billingCycleAnchorDate?: Date
 }): Promise<Subscription.Record> => {
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
@@ -488,7 +489,8 @@ export const setupSubscription = async (params: {
             | SubscriptionStatus.Canceled
             | SubscriptionStatus.Paused,
           livemode: params.livemode ?? true,
-          billingCycleAnchorDate: new Date(),
+          billingCycleAnchorDate:
+            params.billingCycleAnchorDate ?? new Date(),
           currentBillingPeriodEnd:
             params.currentBillingPeriodEnd ??
             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -1146,6 +1148,7 @@ export const setupCheckoutSession = async ({
   outputMetadata,
   purchaseId,
   outputName,
+  preserveBillingCycleAnchor,
 }: {
   organizationId: string
   customerId: string
@@ -1159,6 +1162,7 @@ export const setupCheckoutSession = async ({
   outputMetadata?: Record<string, any>
   outputName?: string
   purchaseId?: string
+  preserveBillingCycleAnchor?: boolean
 }) => {
   const billingAddress: BillingAddress = {
     address: {
@@ -1206,6 +1210,7 @@ export const setupCheckoutSession = async ({
       invoiceId: null,
       outputMetadata: outputMetadata ?? {},
       automaticallyUpdateSubscriptions: null,
+      preserveBillingCycleAnchor: preserveBillingCycleAnchor ?? false,
     }
   const purchaseCheckoutSessionInsert: CheckoutSession.PurchaseInsert =
     {
@@ -1229,6 +1234,7 @@ export const setupCheckoutSession = async ({
       targetSubscriptionId: targetSubscriptionId ?? '',
       outputName: outputName ?? null,
       outputMetadata: outputMetadata ?? {},
+      preserveBillingCycleAnchor: preserveBillingCycleAnchor ?? false,
       purchaseId: null,
       invoiceId: null,
       automaticallyUpdateSubscriptions: null,
@@ -1254,6 +1260,7 @@ export const setupCheckoutSession = async ({
       priceId: null,
       status: status,
       type: CheckoutSessionType.Invoice,
+      preserveBillingCycleAnchor: false,
       quantity,
       livemode,
       targetSubscriptionId: null,
