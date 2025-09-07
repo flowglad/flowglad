@@ -36,6 +36,7 @@ import {
   startOfMonth,
   endOfMonth,
   addDays,
+  subDays,
   subMonths,
 } from 'date-fns'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -429,9 +430,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 10000, // $100/month in cents
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -442,9 +444,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 5000, // $50/month in cents
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -606,9 +609,9 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 20000, // $200/month in cents
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -814,9 +817,9 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 5000, // $50/month
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -827,9 +830,9 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 10000, // $100/month
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -840,9 +843,9 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 20000, // $200/month
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -1128,9 +1131,9 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 5000, // $50/month
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -1141,9 +1144,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 20000, // $200/month
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -1594,9 +1598,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 5000, // $50/month in cents
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -1607,9 +1612,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 10000, // $100/month in cents
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -1620,9 +1626,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 20000, // $200/month in cents
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -1680,6 +1687,7 @@ describe('Analytics Upgrade Tracking', () => {
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
             startDate: addDays(testStartDate, 5),
+            isFreePlan: true,
             livemode: true,
           })
 
@@ -1811,9 +1819,8 @@ describe('Analytics Upgrade Tracking', () => {
 
           // Verify upgrade metrics
           expect(metrics.totalUpgrades).toBe(3)
-          // Note: upgradeRevenue calculation is not implemented in the source code (returns 0)
-          // The test verifies that the function correctly identifies upgrades and follows replacedBySubscriptionId links
-          expect(metrics.upgradeRevenue).toBe(0) // Currently returns 0 as per implementation
+          // Now that upgrade revenue calculation is implemented, it should return the sum of upgraded subscription prices
+          expect(metrics.upgradeRevenue).toBe(35000) // $50 + $100 + $200 = $350 (in cents: 5000 + 10000 + 20000)
           expect(metrics.upgradedSubscriptions).toHaveLength(3)
 
           // Verify that replacedBySubscriptionId links are set correctly
@@ -1915,6 +1922,7 @@ describe('Analytics Upgrade Tracking', () => {
             priceId: price.id, // Paid price
             status: SubscriptionStatus.Active,
             startDate: addDays(testStartDate, 5),
+            isFreePlan: true,
             livemode: true,
           })
 
@@ -2171,9 +2179,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 5000, // $50/month
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -2184,9 +2193,10 @@ describe('Analytics Upgrade Tracking', () => {
             unitPrice: 20000, // $200/month
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             currency: organization.defaultCurrency,
           })
 
@@ -2220,6 +2230,7 @@ describe('Analytics Upgrade Tracking', () => {
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
             startDate: addDays(testStartDate, 5),
+            isFreePlan: true,
             livemode: true,
           })
 
@@ -2716,6 +2727,623 @@ describe('Analytics Upgrade Tracking', () => {
           // The second upgrade attempt should fail
           expect(error).toBeDefined()
         }
+      })
+    })
+  })
+
+  describe('Edge Cases and Boundary Conditions', () => {
+    describe('Date boundary inclusivity', () => {
+      it('should include upgrades exactly on startDate and endDate boundaries', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const testStartDate = startOfMonth(new Date())
+          const testEndDate = endOfMonth(new Date())
+
+          const orgData = await setupOrg()
+          const { organization, product } = orgData
+          const customer1 = await setupCustomer({
+            organizationId: organization.id,
+          })
+          const customer2 = await setupCustomer({
+            organizationId: organization.id,
+          })
+          const paymentMethod1 = await setupPaymentMethod({
+            customerId: customer1.id,
+            organizationId: organization.id,
+          })
+          const paymentMethod2 = await setupPaymentMethod({
+            customerId: customer2.id,
+            organizationId: organization.id,
+          })
+
+          const freePrice = await setupPrice({
+            unitPrice: 0,
+            productId: product.id,
+            name: 'Free Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: organization.defaultCurrency,
+          })
+          const paidPrice = await setupPrice({
+            unitPrice: 10000,
+            productId: product.id,
+            name: 'Paid Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: organization.defaultCurrency,
+          })
+
+          // Upgrade exactly on startDate
+          const freeSub1 = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer1.id,
+            paymentMethodId: paymentMethod1.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: subDays(testStartDate, 5),
+            canceledAt: testStartDate, // Exactly on boundary
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          // Upgrade exactly on endDate
+          const freeSub2 = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer2.id,
+            paymentMethodId: paymentMethod2.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: subDays(testEndDate, 5),
+            canceledAt: testEndDate, // Exactly on boundary
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          const metrics = await getUpgradeMetrics(
+            organization.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          expect(metrics.totalUpgrades).toBe(2)
+        })
+      })
+    })
+
+    describe('Missing replacement subscription handling', () => {
+      it('should handle upgrades with missing or invalid replacedBySubscriptionId', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const testStartDate = startOfMonth(new Date())
+          const testEndDate = endOfMonth(new Date())
+
+          const orgData = await setupOrg()
+          const { organization, product } = orgData
+          const customer = await setupCustomer({
+            organizationId: organization.id,
+          })
+          const paymentMethod = await setupPaymentMethod({
+            customerId: customer.id,
+            type: PaymentMethodType.Card,
+            organizationId: organization.id,
+          })
+
+          const freePrice = await setupPrice({
+            unitPrice: 0,
+            productId: product.id,
+            name: 'Free Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: organization.defaultCurrency,
+          })
+
+          // Upgrade with null replacedBySubscriptionId
+          const freeSub1 = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: subDays(testStartDate, 10),
+            canceledAt: addDays(testStartDate, 5),
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            replacedBySubscriptionId: null,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          // Upgrade with non-existent ID
+          const freeSub2 = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: subDays(testStartDate, 15),
+            canceledAt: addDays(testStartDate, 10),
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            replacedBySubscriptionId: 'non-existent-id',
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          const metrics = await getUpgradeMetrics(
+            organization.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          expect(metrics.totalUpgrades).toBe(2)
+          expect(metrics.upgradeRevenue).toBe(0) // No valid replacements
+          // When replacements are missing/invalid, avg time may be 0
+          // This is the current behavior of the implementation
+          expect(metrics.averageTimeToUpgrade).toBe(0)
+        })
+      })
+
+      it('should handle zero-priced replacements correctly', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const testStartDate = startOfMonth(new Date())
+          const testEndDate = endOfMonth(new Date())
+
+          const orgData = await setupOrg()
+          const { organization, product } = orgData
+          const customer = await setupCustomer({
+            organizationId: organization.id,
+          })
+          const paymentMethod = await setupPaymentMethod({
+            customerId: customer.id,
+            organizationId: organization.id,
+          })
+
+          const freePrice1 = await setupPrice({
+            unitPrice: 0,
+            productId: product.id,
+            name: 'Free Tier 1',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: organization.defaultCurrency,
+          })
+          const freePrice2 = await setupPrice({
+            unitPrice: 0, // Zero-priced replacement
+            productId: product.id,
+            name: 'Free Tier 2',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: organization.defaultCurrency,
+          })
+
+          const freeSub = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice1.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: testStartDate,
+            canceledAt: addDays(testStartDate, 5),
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            livemode: true,
+          })
+
+          const replacementSub = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice2.id,
+            status: SubscriptionStatus.Active,
+            startDate: addDays(testStartDate, 5),
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          await updateSubscription(
+            {
+              id: freeSub.id,
+              replacedBySubscriptionId: replacementSub.id,
+              renews: freeSub.renews,
+            },
+            transaction
+          )
+
+          const metrics = await getUpgradeMetrics(
+            organization.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          expect(metrics.totalUpgrades).toBe(1)
+          expect(metrics.upgradeRevenue).toBe(0) // Zero-priced but counted
+          expect(metrics.averageTimeToUpgrade).toBe(5)
+        })
+      })
+    })
+
+    describe('Cross-organization isolation', () => {
+      it('should properly isolate metrics between organizations', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const testStartDate = startOfMonth(new Date())
+          const testEndDate = endOfMonth(new Date())
+
+          const orgData1 = await setupOrg()
+          const orgData2 = await setupOrg()
+          const { organization: org1, product: product1 } = orgData1
+          const { organization: org2, product: product2 } = orgData2
+
+          const customer1 = await setupCustomer({
+            organizationId: org1.id,
+          })
+          const customer2 = await setupCustomer({
+            organizationId: org2.id,
+          })
+
+          const paymentMethod1 = await setupPaymentMethod({
+            customerId: customer1.id,
+            organizationId: org1.id,
+          })
+          const paymentMethod2 = await setupPaymentMethod({
+            customerId: customer2.id,
+            organizationId: org2.id,
+          })
+
+          const freePrice1 = await setupPrice({
+            unitPrice: 0,
+            productId: product1.id,
+            name: 'Free Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: org1.defaultCurrency,
+          })
+          const paidPrice1 = await setupPrice({
+            unitPrice: 10000,
+            productId: product1.id,
+            name: 'Paid Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: org1.defaultCurrency,
+          })
+
+          const freePrice2 = await setupPrice({
+            unitPrice: 0,
+            productId: product2.id,
+            name: 'Free Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: org2.defaultCurrency,
+          })
+          const paidPrice2 = await setupPrice({
+            unitPrice: 10000,
+            productId: product2.id,
+            name: 'Paid Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: org2.defaultCurrency,
+          })
+
+          // Org1 upgrade
+          const org1FreeSub = await setupSubscription({
+            organizationId: org1.id,
+            customerId: customer1.id,
+            paymentMethodId: paymentMethod1.id,
+            priceId: freePrice1.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: testStartDate,
+            canceledAt: addDays(testStartDate, 5),
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          const org1PaidSub = await setupSubscription({
+            organizationId: org1.id,
+            customerId: customer1.id,
+            paymentMethodId: paymentMethod1.id,
+            priceId: paidPrice1.id,
+            status: SubscriptionStatus.Active,
+            startDate: addDays(testStartDate, 5),
+            livemode: true,
+          })
+
+          await updateSubscription(
+            {
+              id: org1FreeSub.id,
+              replacedBySubscriptionId: org1PaidSub.id,
+              renews: org1FreeSub.renews,
+            },
+            transaction
+          )
+
+          // Org2 upgrades (2 of them)
+          const org2FreeSub1 = await setupSubscription({
+            organizationId: org2.id,
+            customerId: customer2.id,
+            paymentMethodId: paymentMethod2.id,
+            priceId: freePrice2.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: testStartDate,
+            canceledAt: addDays(testStartDate, 3),
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          const org2PaidSub1 = await setupSubscription({
+            organizationId: org2.id,
+            customerId: customer2.id,
+            paymentMethodId: paymentMethod2.id,
+            priceId: paidPrice2.id,
+            status: SubscriptionStatus.Active,
+            startDate: addDays(testStartDate, 3),
+            livemode: true,
+          })
+
+          await updateSubscription(
+            {
+              id: org2FreeSub1.id,
+              replacedBySubscriptionId: org2PaidSub1.id,
+              renews: org2FreeSub1.renews,
+            },
+            transaction
+          )
+
+          const org2FreeSub2 = await setupSubscription({
+            organizationId: org2.id,
+            customerId: customer2.id,
+            paymentMethodId: paymentMethod2.id,
+            priceId: freePrice2.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: testStartDate,
+            canceledAt: addDays(testStartDate, 7),
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          // Test org1 metrics
+          const org1Metrics = await getUpgradeMetrics(
+            org1.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          expect(org1Metrics.totalUpgrades).toBe(1)
+          expect(org1Metrics.upgradeRevenue).toBe(10000)
+
+          // Test org2 metrics
+          const org2Metrics = await getUpgradeMetrics(
+            org2.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          expect(org2Metrics.totalUpgrades).toBe(2) // One with replacement, one without
+          expect(org2Metrics.upgradeRevenue).toBe(10000) // Only one has replacement
+
+          // Test conversion rates are isolated
+          const org1ConversionRate = await getUpgradeConversionRate(
+            org1.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          const org2ConversionRate = await getUpgradeConversionRate(
+            org2.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          // Org1 has 1 free sub created in the period that upgraded (100% conversion)
+          expect(org1ConversionRate).toBe(1)
+          // Org2 has 2 free subs created in the period, both upgraded (100% conversion)
+          expect(org2ConversionRate).toBe(1)
+        })
+      })
+    })
+
+    describe('Cohort vs in-window semantics', () => {
+      it('should use cohort semantics for conversion rate (counts upgrades of subs created in period regardless of when upgrade happened)', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const testStartDate = startOfMonth(new Date())
+          const testEndDate = endOfMonth(new Date())
+
+          const orgData = await setupOrg()
+          const { organization, product } = orgData
+          const customer = await setupCustomer({
+            organizationId: organization.id,
+          })
+          const paymentMethod = await setupPaymentMethod({
+            customerId: customer.id,
+            organizationId: organization.id,
+          })
+
+          const freePrice = await setupPrice({
+            unitPrice: 0,
+            productId: product.id,
+            name: 'Free Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: organization.defaultCurrency,
+          })
+
+          // Free subscription created within the window
+          const freeSub1 = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: addDays(testStartDate, 5), // Created within window
+            canceledAt: addDays(testEndDate, 10), // Upgraded AFTER window
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          // Free subscription created before window, upgraded within
+          const freeSub2 = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: subDays(testStartDate, 10), // Created BEFORE window
+            canceledAt: addDays(testStartDate, 5), // Upgraded within window
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          // Free subscription created within window, not upgraded
+          const freeSub3 = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Active,
+            startDate: addDays(testStartDate, 10), // Created within window
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          const conversionRate = await getUpgradeConversionRate(
+            organization.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          // Cohort semantics: 2 free subs created in window (freeSub1, freeSub3)
+          // 1 of them upgraded (freeSub1, even though upgrade was after window)
+          // Conversion rate = 1/2 = 0.5
+          expect(conversionRate).toBe(0.5)
+
+          // Also verify that getUpgradeMetrics uses in-window semantics
+          const metrics = await getUpgradeMetrics(
+            organization.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          // Only freeSub2 was upgraded WITHIN the window
+          expect(metrics.totalUpgrades).toBe(1)
+        })
+      })
+    })
+
+    describe('Data integrity edge cases', () => {
+      it('should handle negative time periods gracefully', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          const testStartDate = startOfMonth(new Date())
+          const testEndDate = endOfMonth(new Date())
+
+          const orgData = await setupOrg()
+          const { organization, product } = orgData
+          const customer = await setupCustomer({
+            organizationId: organization.id,
+          })
+          const paymentMethod = await setupPaymentMethod({
+            customerId: customer.id,
+            organizationId: organization.id,
+          })
+
+          const freePrice = await setupPrice({
+            unitPrice: 0,
+            productId: product.id,
+            name: 'Free Tier',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            livemode: true,
+            isDefault: false,
+            currency: organization.defaultCurrency,
+          })
+
+          // Subscription with canceledAt before startDate (data inconsistency)
+          const freeSub = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: freePrice.id,
+            status: SubscriptionStatus.Canceled,
+            startDate: addDays(testStartDate, 10),
+            canceledAt: addDays(testStartDate, 5), // Before startDate!
+            cancellationReason: CancellationReason.UpgradedToPaid,
+            isFreePlan: true,
+            livemode: true,
+          })
+
+          const metrics = await getUpgradeMetrics(
+            organization.id,
+            testStartDate,
+            testEndDate,
+            transaction
+          )
+
+          // Current behavior: counts upgrade even with negative time
+          // The subscription is counted because canceledAt is within the date range
+          expect(metrics.totalUpgrades).toBe(1)
+          // With negative time difference, the implementation filters out invalid date ranges
+          expect(metrics.averageTimeToUpgrade).toBe(0) // Function returns 0 for negative times
+        })
       })
     })
   })

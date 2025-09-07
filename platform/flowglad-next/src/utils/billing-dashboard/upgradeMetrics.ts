@@ -1,8 +1,18 @@
 import { DbTransaction } from '@/db/types'
 import { Subscription } from '@/db/schema/subscriptions'
+import { Price } from '@/db/schema/prices'
 import { CancellationReason } from '@/types'
-import { and, eq, between, isNotNull, gte, lte } from 'drizzle-orm'
+import {
+  and,
+  eq,
+  between,
+  isNotNull,
+  gte,
+  lte,
+  inArray,
+} from 'drizzle-orm'
 import { subscriptions } from '@/db/schema/subscriptions'
+import { prices } from '@/db/schema/prices'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { differenceInDays } from 'date-fns'
 
@@ -51,32 +61,40 @@ export async function getUpgradeMetrics(
   let upgradeRevenue = 0
   const averageTimesToUpgrade: number[] = []
 
+  // Collect all replacement subscription IDs to batch fetch
+  const replacementIds = upgradedSubscriptions
+    .filter((sub) => sub.replacedBySubscriptionId)
+    .map((sub) => sub.replacedBySubscriptionId!)
+
+  // Batch fetch all replacement subscriptions and their prices in a single query
+  const replacementData =
+    replacementIds.length > 0
+      ? await transaction
+          .select({
+            subscription: subscriptions,
+            price: prices,
+          })
+          .from(subscriptions)
+          .leftJoin(prices, eq(subscriptions.priceId, prices.id))
+          .where(inArray(subscriptions.id, replacementIds))
+      : []
+
+  // Create a map for quick lookup
+  const replacementMap = new Map(
+    replacementData.map((data) => [data.subscription.id, data])
+  )
+
+  // Process each upgraded subscription
   for (const upgradedSub of upgradedSubscriptions) {
     if (upgradedSub.replacedBySubscriptionId) {
-      // Find the new subscription that replaced this one
-      const [newSubscription] = await selectSubscriptions(
-        {
-          id: upgradedSub.replacedBySubscriptionId,
-        },
-        transaction
+      const replacementData = replacementMap.get(
+        upgradedSub.replacedBySubscriptionId
       )
 
-      if (newSubscription) {
-        // Calculate the revenue difference
-        // For standard subscriptions, we can get the price from the subscription
-        if ('priceId' in newSubscription && newSubscription.priceId) {
-          // Get the price information
-          const price = await transaction
-            .select()
-            .from(subscriptions)
-            .where(eq(subscriptions.id, newSubscription.id))
-            .limit(1)
-
-          if (price.length > 0) {
-            // Add the new subscription's MRR to upgrade revenue
-            // This is simplified - in production, you'd want to calculate actual MRR
-            upgradeRevenue += 0 // Placeholder - would need price details
-          }
+      if (replacementData) {
+        // Add the new subscription's MRR to upgrade revenue
+        if (replacementData.price?.unitPrice) {
+          upgradeRevenue += replacementData.price.unitPrice
         }
 
         // Calculate time to upgrade (from free subscription creation to upgrade)
@@ -161,21 +179,29 @@ export async function calculateUpgradeRevenue(
 ): Promise<number> {
   let totalRevenue = 0
 
-  for (const subscription of upgradedSubscriptions) {
-    if (subscription.replacedBySubscriptionId) {
-      // Get the new subscription details
-      const [newSubscription] = await selectSubscriptions(
-        {
-          id: subscription.replacedBySubscriptionId,
-        },
-        transaction
-      )
+  // Collect all replacement subscription IDs to batch fetch
+  const replacementIds = upgradedSubscriptions
+    .filter((sub) => sub.replacedBySubscriptionId)
+    .map((sub) => sub.replacedBySubscriptionId!)
 
-      if (newSubscription && 'priceId' in newSubscription) {
-        // For now, just placeholder - would need to fetch price details
-        // This would require joining with prices table to get unitPrice
-        totalRevenue += 0 // Placeholder - implement price fetching if needed
-      }
+  if (replacementIds.length === 0) {
+    return 0
+  }
+
+  // Batch fetch all replacement subscriptions and their prices in a single query
+  const replacementData = await transaction
+    .select({
+      subscription: subscriptions,
+      price: prices,
+    })
+    .from(subscriptions)
+    .leftJoin(prices, eq(subscriptions.priceId, prices.id))
+    .where(inArray(subscriptions.id, replacementIds))
+
+  // Calculate total revenue from upgrade subscriptions
+  for (const data of replacementData) {
+    if (data.price?.unitPrice) {
+      totalRevenue += data.price.unitPrice
     }
   }
 
@@ -265,19 +291,36 @@ export async function getUpgradePaths(
     transaction
   )
 
-  const paths = []
+  // Properly type the paths array to match the return type
+  const paths: Array<{
+    fromSubscription: Subscription.Record
+    toSubscription: Subscription.Record | null
+  }> = []
 
+  // Collect all replacement subscription IDs to batch fetch
+  const replacementIds = upgradedSubscriptions
+    .filter((sub) => sub.replacedBySubscriptionId)
+    .map((sub) => sub.replacedBySubscriptionId!)
+
+  // Batch fetch all replacement subscriptions in a single query
+  const replacementSubs =
+    replacementIds.length > 0
+      ? await transaction
+          .select()
+          .from(subscriptions)
+          .where(inArray(subscriptions.id, replacementIds))
+      : []
+
+  // Create a map for quick lookup
+  const replacementMap = new Map(
+    replacementSubs.map((sub) => [sub.id, sub as Subscription.Record])
+  )
+
+  // Build the upgrade paths
   for (const fromSub of upgradedSubscriptions) {
-    let toSub = null
-    if (fromSub.replacedBySubscriptionId) {
-      const [replacement] = await selectSubscriptions(
-        {
-          id: fromSub.replacedBySubscriptionId,
-        },
-        transaction
-      )
-      toSub = replacement || null
-    }
+    const toSub = fromSub.replacedBySubscriptionId
+      ? replacementMap.get(fromSub.replacedBySubscriptionId) || null
+      : null
 
     paths.push({
       fromSubscription: fromSub,
