@@ -1,6 +1,6 @@
 import { DbTransaction } from '@/db/types'
 import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionStatus } from '@/types'
+import { SubscriptionStatus, CancellationReason } from '@/types'
 import {
   selectSubscriptions,
   updateSubscription,
@@ -10,9 +10,9 @@ import {
  * Cancels an active free subscription when a customer is upgrading to a paid plan.
  * This is used during the setup intent success flow to handle the transition
  * from free to paid subscriptions.
- * 
+ *
  * Tested via integration tests in processSetupIntent.upgrade.test.ts
- * 
+ *
  * @param customerId - The customer whose free subscription should be canceled
  * @param transaction - Database transaction to ensure atomicity
  * @returns The canceled subscription if one was found and canceled, null otherwise
@@ -32,7 +32,7 @@ export const cancelFreeSubscriptionForUpgrade = async (
 
   // Filter for free subscriptions (isFreePlan = true)
   const freeSubscriptions = activeSubscriptions.filter(
-    sub => sub.isFreePlan === true
+    (sub) => sub.isFreePlan === true
   )
 
   if (freeSubscriptions.length === 0) {
@@ -41,7 +41,9 @@ export const cancelFreeSubscriptionForUpgrade = async (
 
   // If multiple free subscriptions exist (edge case), cancel the most recent one
   const subscriptionToCancel = freeSubscriptions.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime()
   )[0]
 
   // Cancel the free subscription with special reason
@@ -52,7 +54,7 @@ export const cancelFreeSubscriptionForUpgrade = async (
       renews: subscriptionToCancel.renews,
       status: SubscriptionStatus.Canceled,
       canceledAt: new Date(),
-      cancellationReason: 'upgraded_to_paid',
+      cancellationReason: CancellationReason.UpgradedToPaid,
     },
     transaction
   )
@@ -63,7 +65,7 @@ export const cancelFreeSubscriptionForUpgrade = async (
 /**
  * Links a canceled free subscription to its replacement paid subscription
  * by updating the replacedBySubscriptionId field.
- * 
+ *
  * @param oldSubscription - The canceled free subscription record
  * @param newSubscriptionId - The ID of the new paid subscription
  * @param transaction - Database transaction

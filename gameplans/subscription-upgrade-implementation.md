@@ -1,5 +1,28 @@
 # Subscription Upgrade Implementation Plan
 
+## Implementation Status Summary
+**Last Updated**: 2025-09-07
+
+### ✅ Completed Components:
+- **Database Schema**: New columns added (cancellationReason, replacedBySubscriptionId, isFreePlan)
+- **Core Upgrade Logic**: Cancel-and-replace flow implemented in processSetupIntentSucceeded
+- **Helper Functions**: cancelFreeSubscriptionForUpgrade and linkUpgradedSubscriptions created
+- **Single Free Subscription Validation**: Prevents multiple free subscriptions per customer
+- **Test Coverage**: Upgrade flow tests in processSetupIntent.upgrade.test.ts
+- **TypeScript Types**: CancellationReason enum added to types.ts
+- **Automatic Free Plan Marking**: Subscriptions with unitPrice=0 automatically marked as isFreePlan=true
+
+### ⚠️ Partially Completed:
+- **Race Condition Prevention**: Single free subscription validation exists, but not comprehensive
+
+### ❌ Not Implemented:
+- **Subscription Selection Logic**: No filtering for upgraded-away subscriptions
+- **Database Constraints**: No unique constraint for one active subscription per customer
+- **Idempotency**: No check for already-processed setup intents
+- **Analytics & Reporting**: No exclusion of upgrades from churn metrics
+- **Event Logging**: No upgrade-specific events
+- **UI/UX Updates**: No special handling for subscription transitions
+
 ## Overview
 Modify the subscription lifecycle to support the new model where every customer starts with a free-tier subscription. When a setup intent succeeds, instead of creating a new subscription, we'll cancel the free subscription and create a new paid one atomically.
 
@@ -13,11 +36,11 @@ This approach is simpler and less risky than in-place upgrades, avoiding complex
 
 ## Implementation PRs
 
-### PR 1: Database Schema & Model Updates
+### PR 1: Database Schema & Model Updates ✅ COMPLETED
 **Add tracking fields for subscription upgrades**
 
 #### Tasks:
-1. **Add migration for new columns**:
+1. **Add migration for new columns** ✅:
    ```sql
    ALTER TABLE subscriptions 
    ADD COLUMN cancellation_reason TEXT,
@@ -27,14 +50,14 @@ This approach is simpler and less risky than in-place upgrades, avoiding complex
    CREATE INDEX idx_replaced_by ON subscriptions(replaced_by_subscription_id);
    ```
 
-2. **Update Drizzle schema** (`/src/db/schema/subscriptions.ts`):
+2. **Update Drizzle schema** (`/src/db/schema/subscriptions.ts`) ✅:
    ```typescript
    cancellationReason: text('cancellation_reason'),
    replacedBySubscriptionId: uuid('replaced_by_subscription_id'),
    isFreePlan: boolean('is_free_plan').default(false),
    ```
 
-3. **Update TypeScript types** in `/src/types/index.ts`:
+3. **Update TypeScript types** in `/src/types.ts` ✅:
    ```typescript
    enum CancellationReason {
      UpgradedToPaid = 'upgraded_to_paid',
@@ -44,7 +67,7 @@ This approach is simpler and less risky than in-place upgrades, avoiding complex
    }
    ```
 
-4. **Update `createCustomerBookkeeping`** to mark free subscriptions (`/src/utils/bookkeeping.ts:548`):
+4. **Update `createCustomerBookkeeping`** to mark free subscriptions ✅ (automatically handled in createSubscriptionWorkflow):
    ```typescript
    const subscriptionResult = await createSubscriptionWorkflow({
      // ... existing params ...
@@ -71,11 +94,11 @@ This approach is simpler and less risky than in-place upgrades, avoiding complex
 
 ---
 
-### PR 2: Core Upgrade Logic in Setup Intent
+### PR 2: Core Upgrade Logic in Setup Intent ✅ COMPLETED
 **Implement cancel-and-replace on setup intent success**
 
 #### Tasks:
-1. **Create helper function** `cancelFreeSubscriptionForUpgrade`:
+1. **Create helper function** `cancelFreeSubscriptionForUpgrade` ✅:
    ```typescript
    // New file: src/subscriptions/cancelFreeSubscriptionForUpgrade.ts
    export const cancelFreeSubscriptionForUpgrade = async (
@@ -104,7 +127,7 @@ This approach is simpler and less risky than in-place upgrades, avoiding complex
    }
    ```
 
-2. **Modify `processSetupIntentSucceeded`** (`/src/utils/bookkeeping/processSetupIntent.ts:592`):
+2. **Modify `processSetupIntentSucceeded`** (`/src/utils/bookkeeping/processSetupIntent.ts:592`) ✅:
    ```typescript
    // Before creating subscription, cancel free plan
    const canceledSubscription = await cancelFreeSubscriptionForUpgrade(
@@ -124,7 +147,7 @@ This approach is simpler and less risky than in-place upgrades, avoiding complex
    }, transaction)
    ```
 
-3. **Update `createSubscriptionFromSetupIntentableCheckoutSession`** to link subscriptions:
+3. **Update `createSubscriptionFromSetupIntentableCheckoutSession`** to link subscriptions ✅:
    ```typescript
    // After successful creation, update the old subscription
    if (previousSubscriptionId) {
@@ -154,11 +177,11 @@ describe('Setup Intent Succeeded - Upgrade Flow', () => {
 
 ---
 
-### PR 3: Subscription Selection Logic Updates
+### PR 3: Subscription Selection Logic Updates ⚠️ PARTIAL
 **Ensure only active subscriptions are used throughout the system**
 
 #### Tasks:
-1. **Update active subscription queries** (`/src/db/tableMethods/subscriptionMethods.ts`):
+1. **Update active subscription queries** (`/src/db/tableMethods/subscriptionMethods.ts`) ❌ NOT IMPLEMENTED:
    ```typescript
    export const selectActiveSubscriptionsForCustomer = async (
      customerId: string,
@@ -181,7 +204,7 @@ describe('Setup Intent Succeeded - Upgrade Flow', () => {
    }
    ```
 
-2. **Create `selectCurrentSubscriptionForCustomer` helper**:
+2. **Create `selectCurrentSubscriptionForCustomer` helper** ❌ NOT IMPLEMENTED:
    ```typescript
    export const selectCurrentSubscriptionForCustomer = async (
      customerId: string,
@@ -210,9 +233,9 @@ describe('Setup Intent Succeeded - Upgrade Flow', () => {
    }
    ```
 
-3. **Update billing run selection** to exclude upgraded subscriptions
+3. **Update billing run selection** to exclude upgraded subscriptions ❌ NOT IMPLEMENTED
 
-4. **Update API endpoints** that list subscriptions
+4. **Update API endpoints** that list subscriptions ❌ NOT IMPLEMENTED
 
 #### Test Coverage:
 ```typescript
@@ -228,11 +251,11 @@ describe('Subscription Selection with Upgrades', () => {
 
 ---
 
-### PR 4: Prevent Double-Upgrade Race Conditions
+### PR 4: Prevent Double-Upgrade Race Conditions ⚠️ PARTIAL
 **Add safeguards against concurrent upgrades**
 
 #### Tasks:
-1. **Add database constraint**:
+1. **Add database constraint** ❌ NOT IMPLEMENTED:
    ```sql
    -- Only one active non-upgraded subscription per customer
    CREATE UNIQUE INDEX idx_one_active_sub_per_customer 
@@ -241,7 +264,7 @@ describe('Subscription Selection with Upgrades', () => {
    AND (cancellation_reason IS NULL OR cancellation_reason != 'upgraded_to_paid');
    ```
 
-2. **Add validation in `processSetupIntentSucceeded`**:
+2. **Add validation in `processSetupIntentSucceeded`** ⚠️ PARTIAL (single free subscription validation exists, but not for paid):
    ```typescript
    // Check for existing paid subscriptions
    const activePaidSubscriptions = await selectSubscriptions({
@@ -257,7 +280,7 @@ describe('Subscription Selection with Upgrades', () => {
    }
    ```
 
-3. **Strengthen idempotency**:
+3. **Strengthen idempotency** ❌ NOT IMPLEMENTED:
    ```typescript
    // Check if this setup intent was already processed
    const existingSubscription = await selectSubscriptionAndItems({
@@ -286,11 +309,11 @@ describe('Upgrade Race Condition Prevention', () => {
 
 ---
 
-### PR 5: Analytics & Reporting Adjustments
+### PR 5: Analytics & Reporting Adjustments ❌ NOT IMPLEMENTED
 **Update metrics to handle upgrade flow correctly**
 
 #### Tasks:
-1. **Update churn calculations** (`/src/utils/billing-dashboard/revenueCalculationHelpers.ts`):
+1. **Update churn calculations** (`/src/utils/billing-dashboard/revenueCalculationHelpers.ts`) ❌:
    ```typescript
    export const calculateChurnedSubscriptions = (
      subscriptions: Subscription.Record[]
@@ -302,7 +325,7 @@ describe('Upgrade Race Condition Prevention', () => {
    }
    ```
 
-2. **Add upgrade tracking metrics**:
+2. **Add upgrade tracking metrics** ❌:
    ```typescript
    // New file: src/utils/billing-dashboard/upgradeMetrics.ts
    export const getUpgradeMetrics = async (
@@ -330,9 +353,9 @@ describe('Upgrade Race Condition Prevention', () => {
    }
    ```
 
-3. **Update MRR calculations** to track upgrade transitions correctly
+3. **Update MRR calculations** to track upgrade transitions correctly ❌
 
-4. **Add event logging**:
+4. **Add event logging** ❌:
    ```typescript
    // Log upgrade event
    eventsToLog.push({
@@ -363,7 +386,7 @@ describe('Analytics with Upgrades', () => {
 
 ---
 
-### PR 6: UI/UX Updates (Optional)
+### PR 6: UI/UX Updates (Optional) ❌ NOT IMPLEMENTED
 **Handle subscription transitions in customer-facing interfaces**
 
 #### Tasks:

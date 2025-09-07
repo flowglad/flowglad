@@ -5,7 +5,12 @@ import { CreateSubscriptionParams } from './types'
 import { Customer } from '@/db/schema/customers'
 import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
-import { SubscriptionStatus, IntervalUnit, PriceType } from '@/types'
+import {
+  SubscriptionStatus,
+  IntervalUnit,
+  PriceType,
+  CancellationReason,
+} from '@/types'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { core } from '@/utils/core'
@@ -181,7 +186,7 @@ describe('Single Free Subscription Constraint', () => {
         livemode: true,
         isFreePlan: true,
         canceledAt: new Date(),
-        cancellationReason: 'customer_request',
+        cancellationReason: CancellationReason.CustomerRequest,
       })
 
       // Try to create new free subscription (should succeed)
