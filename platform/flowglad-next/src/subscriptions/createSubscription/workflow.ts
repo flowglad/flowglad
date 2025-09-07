@@ -133,14 +133,13 @@ export const createSubscriptionWorkflow = async (
       updatedSubscription
     )
 
-    // Send customer notification - choose based on upgrade status
-    if (params.metadata?.upgraded_from_subscription_id) {
+    // Send customer notification - choose based on whether this is an upgrade
+    if (params.previousSubscriptionId) {
       // This is an upgrade from free to paid
       await idempotentSendCustomerSubscriptionUpgradedNotification({
         customerId: updatedSubscription.customerId,
         newSubscriptionId: updatedSubscription.id,
-        previousSubscriptionId:
-          params.metadata.upgraded_from_subscription_id,
+        previousSubscriptionId: params.previousSubscriptionId,
         organizationId: updatedSubscription.organizationId,
       })
     } else {

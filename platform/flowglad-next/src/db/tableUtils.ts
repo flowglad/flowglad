@@ -1152,7 +1152,11 @@ export const createPaginatedListQuerySchema = <T extends z.ZodType>(
   }>
 }
 
-export const metadataSchema = z.record(z.string(), z.any())
+export const metadataSchema = z
+  .record(z.string(), z.any())
+  .describe(
+    'User-defined data associated with the resource. Does not influence any internal behavior.'
+  )
 
 export const createPaginatedTableRowOutputSchema = <
   T extends z.ZodType,

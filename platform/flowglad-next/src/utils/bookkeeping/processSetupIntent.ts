@@ -516,17 +516,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         startDate: new Date(),
         autoStart: true,
         quantity: checkoutSession.quantity,
-        metadata: {
-          ...checkoutSession.outputMetadata,
-          ...(canceledFreeSubscription && {
-            upgraded_from_subscription_id:
-              canceledFreeSubscription.id,
-            is_upgrade: true,
-          }),
-        },
+        metadata: checkoutSession.outputMetadata ?? {},
         name: checkoutSession.outputName ?? undefined,
         product,
         livemode: checkoutSession.livemode,
+        previousSubscriptionId: canceledFreeSubscription?.id,
       },
       transaction
     )
