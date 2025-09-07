@@ -487,6 +487,13 @@ export const selectCurrentSubscriptionForCustomer = async (
   )
 
   if (anyActive) {
+    // If this active subscription was upgraded away, don't return it
+    if (
+      anyActive.cancellationReason ===
+      CancellationReason.UpgradedToPaid
+    ) {
+      return null
+    }
     return findCurrent(anyActive)
   }
 
