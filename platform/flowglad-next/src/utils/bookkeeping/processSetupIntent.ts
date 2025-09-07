@@ -516,20 +516,28 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         startDate: new Date(),
         autoStart: true,
         quantity: checkoutSession.quantity,
-        metadata: checkoutSession.outputMetadata ?? {},
+        metadata: {
+          ...checkoutSession.outputMetadata,
+          ...(canceledFreeSubscription && {
+            upgraded_from_subscription_id:
+              canceledFreeSubscription.id,
+            is_upgrade: true,
+          }),
+        },
         name: checkoutSession.outputName ?? undefined,
         product,
         livemode: checkoutSession.livemode,
       },
       transaction
     )
+
     const eventInserts: Event.Insert[] = []
     if (output.eventsToLog) {
       eventInserts.push(...output.eventsToLog)
     }
 
     // Link the old and new subscriptions if there was an upgrade
-    if (canceledFreeSubscription && output.result.subscription) {
+    if (canceledFreeSubscription && output.result?.subscription) {
       await linkUpgradedSubscriptions(
         canceledFreeSubscription,
         output.result.subscription.id,
