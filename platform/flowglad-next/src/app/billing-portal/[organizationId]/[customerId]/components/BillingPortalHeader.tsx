@@ -30,7 +30,10 @@ export function BillingPortalHeader({
       await signOut()
       router.push('/sign-in')
     } catch (error) {
-      toast.error('Error logging out: ' + error)
+      console.error('Logout failed:', error)
+      toast.error(
+        'Failed to log out. Please try again or refresh the page.'
+      )
     }
   }
 
