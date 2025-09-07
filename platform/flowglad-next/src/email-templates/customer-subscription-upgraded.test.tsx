@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { CustomerSubscriptionUpgradedEmail } from './customer-subscription-upgraded'
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, IntervalUnit } from '@/types'
 import core from '@/utils/core'
 
 describe('CustomerSubscriptionUpgradedEmail', () => {
@@ -12,10 +12,13 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     organizationId: 'org_789',
     customerExternalId: 'cus_101',
     previousPlanName: 'Free Plan',
+    previousPlanPrice: 0,
+    previousPlanCurrency: CurrencyCode.USD,
+    previousPlanInterval: 'month' as const,
     newPlanName: 'Pro Plan',
     price: 4900, // $49.00
     currency: CurrencyCode.USD,
-    interval: 'month' as const,
+    interval: IntervalUnit.Month,
     nextBillingDate: new Date('2025-02-15'),
     paymentMethodLast4: '1234',
   }
@@ -98,7 +101,7 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
   it('formats pricing for yearly subscriptions', () => {
     const yearlyProps = {
       ...baseProps,
-      interval: 'year' as const,
+      interval: IntervalUnit.Year,
       price: 50000, // $500.00
     }
     const { getByTestId } = render(
@@ -107,6 +110,64 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
 
     expect(getByTestId('price')).toHaveTextContent(
       'Price: $500.00/year'
+    )
+  })
+
+  it('shows paid previous plan with pricing', () => {
+    const paidToPaidProps = {
+      ...baseProps,
+      previousPlanName: 'Basic Plan',
+      previousPlanPrice: 1900, // $19.00
+      previousPlanCurrency: CurrencyCode.USD,
+      previousPlanInterval: 'month' as const,
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail {...paidToPaidProps} />
+    )
+
+    expect(getByTestId('previous-plan')).toHaveTextContent(
+      'Previous plan: Basic Plan ($19.00/month)'
+    )
+  })
+
+  it('handles yearly previous plan correctly', () => {
+    const yearlyPreviousProps = {
+      ...baseProps,
+      previousPlanName: 'Basic Yearly',
+      previousPlanPrice: 20000, // $200.00
+      previousPlanCurrency: CurrencyCode.USD,
+      previousPlanInterval: 'year' as const,
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail {...yearlyPreviousProps} />
+    )
+
+    expect(getByTestId('previous-plan')).toHaveTextContent(
+      'Previous plan: Basic Yearly ($200.00/year)'
+    )
+  })
+
+  it('handles different currencies for previous plan', () => {
+    const differentCurrencyProps = {
+      ...baseProps,
+      previousPlanName: 'Euro Basic',
+      previousPlanPrice: 2500, // €25.00
+      previousPlanCurrency: CurrencyCode.EUR,
+      previousPlanInterval: 'month' as const,
+      currency: CurrencyCode.EUR,
+      price: 4500, // €45.00
+    }
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail
+        {...differentCurrencyProps}
+      />
+    )
+
+    expect(getByTestId('previous-plan')).toHaveTextContent(
+      'Previous plan: Euro Basic (€25.00/month)'
+    )
+    expect(getByTestId('price')).toHaveTextContent(
+      'Price: €45.00/month'
     )
   })
 
@@ -221,6 +282,7 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
   it('handles different currency codes correctly', () => {
     const gbpProps = {
       ...baseProps,
+      previousPlanCurrency: CurrencyCode.GBP,
       currency: CurrencyCode.GBP,
       price: 3500, // £35.00
     }
@@ -233,12 +295,12 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     )
   })
 
-  it('shows Free label for previous plan', () => {
+  it('shows Free label for zero-price previous plan', () => {
     const { getByTestId } = render(
       <CustomerSubscriptionUpgradedEmail {...baseProps} />
     )
 
-    // Previous plan should clearly indicate it was free
+    // Previous plan should clearly indicate it was free when price is 0
     expect(getByTestId('previous-plan')).toHaveTextContent('(Free)')
   })
 

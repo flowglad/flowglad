@@ -119,7 +119,9 @@ export const sendCustomerSubscriptionUpgradedNotificationTask = task({
         nextBillingDate.getFullYear() + (newPrice.intervalCount || 1)
       )
     }
-
+    if (!newPrice.intervalUnit) {
+      throw new Error('Price interval unit is required')
+    }
     const result = await safeSend({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
       bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
@@ -135,13 +137,15 @@ export const sendCustomerSubscriptionUpgradedNotificationTask = task({
           previousSubscription.name ||
           previousPrice.name ||
           'Free Plan',
+        previousPlanPrice: previousPrice.unitPrice,
+        previousPlanCurrency: previousPrice.currency,
+        previousPlanInterval: (previousPrice.intervalUnit ||
+          'month') as 'month' | 'year',
         newPlanName:
           newSubscription.name || newPrice.name || 'Subscription',
         price: newPrice.unitPrice,
         currency: newPrice.currency,
-        interval: (newPrice.intervalUnit || 'month') as
-          | 'month'
-          | 'year',
+        interval: newPrice.intervalUnit,
         nextBillingDate,
         paymentMethodLast4: (paymentMethod?.paymentMethodData as any)
           ?.last4,

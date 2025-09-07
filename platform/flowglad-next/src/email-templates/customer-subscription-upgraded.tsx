@@ -1,4 +1,4 @@
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, IntervalUnit } from '@/types'
 import { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
@@ -20,6 +20,9 @@ export const CustomerSubscriptionUpgradedEmail = ({
   organizationId,
   customerExternalId,
   previousPlanName,
+  previousPlanPrice,
+  previousPlanCurrency,
+  previousPlanInterval,
   newPlanName,
   price,
   currency,
@@ -33,16 +36,24 @@ export const CustomerSubscriptionUpgradedEmail = ({
   organizationId: string
   customerExternalId: string
   previousPlanName: string
+  previousPlanPrice: number
+  previousPlanCurrency: CurrencyCode
+  previousPlanInterval: 'month' | 'year'
   newPlanName: string
   price: number
   currency: CurrencyCode
-  interval: 'month' | 'year'
+  interval: IntervalUnit
   nextBillingDate: Date
   paymentMethodLast4?: string
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
   const intervalText = interval === 'month' ? 'month' : 'year'
+
+  const formattedPreviousPrice =
+    previousPlanPrice === 0
+      ? 'Free'
+      : `${stripeCurrencyAmountToHumanReadableCurrencyAmount(previousPlanCurrency, previousPlanPrice)}/${previousPlanInterval === 'month' ? 'month' : 'year'}`
 
   return (
     <EmailLayout previewText="Payment method confirmed - Subscription upgraded">
@@ -59,7 +70,7 @@ export const CustomerSubscriptionUpgradedEmail = ({
 
       <DetailSection>
         <DetailItem dataTestId="previous-plan">
-          Previous plan: {previousPlanName} (Free)
+          Previous plan: {previousPlanName} ({formattedPreviousPrice})
         </DetailItem>
         <DetailItem dataTestId="new-plan">
           New plan: {newPlanName}

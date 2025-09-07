@@ -1,4 +1,4 @@
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, IntervalUnit } from '@/types'
 import { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
@@ -34,7 +34,7 @@ export const CustomerSubscriptionCreatedEmail = ({
   planName: string
   price: number
   currency: CurrencyCode
-  interval: 'month' | 'year'
+  interval: IntervalUnit
   nextBillingDate: Date
   paymentMethodLast4?: string
 }) => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { CustomerSubscriptionCreatedEmail } from './customer-subscription-created'
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, IntervalUnit } from '@/types'
 import core from '@/utils/core'
 
 describe('CustomerSubscriptionCreatedEmail', () => {
@@ -14,7 +14,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     planName: 'Pro Plan',
     price: 2500, // $25.00
     currency: CurrencyCode.USD,
-    interval: 'month' as const,
+    interval: IntervalUnit.Month,
     nextBillingDate: new Date('2025-02-01'),
     paymentMethodLast4: '4242',
   }
@@ -56,7 +56,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
   it('formats yearly pricing correctly', () => {
     const yearlyProps = {
       ...baseProps,
-      interval: 'year' as const,
+      interval: IntervalUnit.Year,
       price: 30000, // $300.00
     }
     const { getByTestId } = render(
