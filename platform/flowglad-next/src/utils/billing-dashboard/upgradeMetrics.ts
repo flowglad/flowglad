@@ -128,23 +128,6 @@ export const getUpgradeMetrics = async (
 }
 
 /**
- * Calculates the revenue impact of upgrades
- *
- * @param upgradedSubscriptions List of upgraded (canceled) subscriptions
- * @returns Total MRR added from upgrades
- */
-export const calculateUpgradeRevenue = (
-  upgradedSubscriptions: Subscription.Record[]
-): number => {
-  // TODO: This function should:
-  // 1. Join with prices table to get actual amounts
-  // 2. Join with subscription_items for quantities
-  // 3. Calculate proper MRR based on billing intervals
-  // Currently returns a placeholder estimate
-  return upgradedSubscriptions.length * 50 // $50 per upgraded subscription as placeholder
-}
-
-/**
  * Calculates average time from signup to upgrade
  *
  * @param upgradedSubscriptions List of upgraded subscriptions
