@@ -22,9 +22,10 @@
 None - All PRs 1-4 are now completed!
 
 ### ❌ Not Implemented:
-- **Database Constraints**: No unique constraint for one active subscription per customer
-- **Idempotency**: No check for already-processed setup intents
+- **Idempotency**: No check for already-processed setup intents based on stripeSetupIntentId
 - **UI/UX Updates**: No special handling for subscription transitions
+- **Customer Notifications**: No automated email notifications for upgrades  
+- **Proration Integration**: Proration infrastructure exists but not integrated with upgrade flow
 
 ## Overview
 Modify the subscription lifecycle to support the new model where every customer starts with a free-tier subscription. When a setup intent succeeds, instead of creating a new subscription, we'll cancel the free subscription and create a new paid one atomically.
@@ -258,16 +259,7 @@ describe('Subscription Selection with Upgrades', () => {
 **Add safeguards against concurrent upgrades**
 
 #### Tasks:
-1. **Add database constraint** ❌ NOT IMPLEMENTED:
-   ```sql
-   -- Only one active non-upgraded subscription per customer
-   CREATE UNIQUE INDEX idx_one_active_sub_per_customer 
-   ON subscriptions(customer_id) 
-   WHERE status NOT IN ('canceled', 'expired') 
-   AND (cancellation_reason IS NULL OR cancellation_reason != 'upgraded_to_paid');
-   ```
-
-2. **Add validation in `processSetupIntentSucceeded`** ✅ COMPLETED:
+1. **Add validation in `processSetupIntentSucceeded`** ✅ COMPLETED:
    ```typescript
    // Check for existing paid subscriptions
    const activePaidSubscriptions = await selectSubscriptions({
@@ -283,7 +275,7 @@ describe('Subscription Selection with Upgrades', () => {
    }
    ```
 
-3. **Strengthen idempotency** ❌ NOT IMPLEMENTED:
+2. **Strengthen idempotency** ❌ NOT IMPLEMENTED:
    ```typescript
    // Check if this setup intent was already processed
    const existingSubscription = await selectSubscriptionAndItems({
@@ -305,7 +297,6 @@ describe('Upgrade Race Condition Prevention', () => {
   it('handles concurrent setup intent processing')
   it('allows retry of failed upgrade attempts')
   it('correctly identifies idempotent requests')
-  it('database constraint prevents duplicate active subscriptions')
   it('handles webhook replay scenarios')
 })
 ```
@@ -358,11 +349,11 @@ describe('Upgrade Race Condition Prevention', () => {
 
 3. **Update MRR calculations** to track upgrade transitions correctly ✅
 
-4. **Add event logging** ✅:
+3. **Add event logging** ✅:
    ```typescript
    // Log upgrade event
    eventsToLog.push({
-     type: FlowgladEventType.SubscriptionUpgraded,
+     type: FlowgladEventType.SubscriptionCreated, // Using existing event type
      occurredAt: timestamp,
      organizationId: subscription.organizationId,
      payload: {
@@ -389,7 +380,90 @@ describe('Analytics with Upgrades', () => {
 
 ---
 
-### PR 6: UI/UX Updates (Optional) ❌ NOT IMPLEMENTED
+### PR 6: Idempotency Improvements ❌ NOT IMPLEMENTED
+**Prevent duplicate subscription creation from repeated webhook processing**
+
+#### Tasks:
+1. **Add idempotency check in `processSetupIntentSucceeded`**:
+   ```typescript
+   // Check if this setup intent was already processed
+   const existingSubscription = await selectSubscriptions({
+     stripeSetupIntentId: setupIntent.id
+   }, transaction)
+   
+   if (existingSubscription.length > 0) {
+     // Already processed, return existing subscription
+     return { 
+       result: existingSubscription[0],
+       eventsToLog: []
+     }
+   }
+   ```
+
+2. **Ensure stripeSetupIntentId is properly stored** when creating subscriptions
+
+#### Test Coverage:
+```typescript
+describe('Setup Intent Idempotency', () => {
+  it('returns existing subscription when setup intent already processed')
+  it('prevents duplicate subscriptions from webhook replays')
+  it('handles concurrent webhook deliveries')
+})
+```
+
+---
+
+### PR 7: Customer Email Notifications ❌ NOT IMPLEMENTED  
+**Send confirmation emails when customers upgrade**
+
+#### Tasks:
+1. **Create email template** for upgrade confirmations
+2. **Add email sending logic** after successful upgrade:
+   ```typescript
+   if (canceledFreeSubscription) {
+     await sendUpgradeConfirmationEmail({
+       customer,
+       oldSubscription: canceledFreeSubscription,
+       newSubscription: output.result.subscription,
+       organization
+     })
+   }
+   ```
+
+3. **Include upgrade details** in email (old plan, new plan, next billing date)
+
+#### Test Coverage:
+```typescript
+describe('Upgrade Email Notifications', () => {
+  it('sends email when upgrading from free to paid')
+  it('includes correct plan details in email')
+  it('handles email sending failures gracefully')
+})
+```
+
+---
+
+### PR 8: Proration Integration ❌ NOT IMPLEMENTED
+**Handle mid-cycle upgrades with proper proration**
+
+#### Tasks:  
+1. **Integrate existing proration logic** from `adjustSubscription.ts`
+2. **Calculate prorated amounts** when upgrading mid-cycle
+3. **Create credit/debit items** for billing period adjustments
+4. **Schedule immediate billing run** if needed
+
+#### Test Coverage:
+```typescript
+describe('Upgrade Proration', () => {
+  it('calculates correct prorated amount for mid-cycle upgrade')
+  it('creates appropriate billing period items')
+  it('schedules billing run for prorated charges')
+})
+```
+
+---
+
+### PR 9: UI/UX Updates (Optional) ❌ NOT IMPLEMENTED
 **Handle subscription transitions in customer-facing interfaces**
 
 #### Tasks:
@@ -413,23 +487,15 @@ describe('UI Upgrade Handling', () => {
 ## Rollout Strategy
 
 ### Deployment Order:
-1. **PR 1** - Schema changes (safe, backward compatible)
-2. **PR 3** - Selection logic updates (prepares queries)
-3. **PR 2** - Core upgrade logic (behind feature flag)
-4. **PR 4** - Race condition prevention
-5. **PR 5** - Analytics updates
-6. **PR 6** - UI updates (if needed)
-
-### Feature Flag Strategy:
-```typescript
-// In processSetupIntentSucceeded
-if (process.env.ENABLE_SUBSCRIPTION_UPGRADES === 'true') {
-  const canceledSub = await cancelFreeSubscriptionForUpgrade(...)
-  // New upgrade flow
-} else {
-  // Existing flow
-}
-```
+1. **PR 1** - Schema changes ✅ COMPLETED
+2. **PR 2** - Core upgrade logic ✅ COMPLETED
+3. **PR 3** - Selection logic updates ✅ COMPLETED
+4. **PR 4** - Race condition prevention (validation only) ✅ COMPLETED
+5. **PR 5** - Analytics updates ✅ COMPLETED
+6. **PR 6** - Idempotency improvements ❌ NOT IMPLEMENTED
+7. **PR 7** - Customer notifications ❌ NOT IMPLEMENTED
+8. **PR 8** - Proration integration ❌ NOT IMPLEMENTED
+9. **PR 9** - UI updates (optional) ❌ NOT IMPLEMENTED
 
 ### Monitoring:
 - Track upgrade success rate
