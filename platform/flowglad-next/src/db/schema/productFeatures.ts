@@ -69,7 +69,7 @@ export const productFeatures = pgTable(
         parentIdColumnInCurrentTable: 'feature_id',
         currentTableName: TABLE_NAME,
       }),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

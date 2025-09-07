@@ -120,7 +120,6 @@ export const checkoutSessions = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
       constructIndex(TABLE_NAME, [table.customerId]),
-      livemodePolicy(),
       merchantPolicy(
         'Enable all actions for discounts in own organization',
         {
@@ -136,7 +135,19 @@ export const checkoutSessions = pgTable(
         for: 'insert',
         using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id() and "price_id" in (select id from "prices")`,
       }),
-      livemodePolicy(),
+      pgPolicy('Enable select for customer', {
+        as: 'permissive',
+        to: 'customer',
+        for: 'select',
+        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
+      }),
+      pgPolicy('Enable update for customer', {
+        as: 'permissive',
+        to: 'customer',
+        for: 'update',
+        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
+      }),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

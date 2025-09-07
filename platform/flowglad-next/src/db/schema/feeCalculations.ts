@@ -106,7 +106,7 @@ export const feeCalculations = pgTable(
       constructIndex(TABLE_NAME, [table.checkoutSessionId]),
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
       merchantPolicy('Enable select for own organization', {
         as: 'permissive',
         to: 'merchant',

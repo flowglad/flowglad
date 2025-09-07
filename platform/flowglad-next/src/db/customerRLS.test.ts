@@ -10,6 +10,9 @@ import {
   setupInvoice,
   setupPayment,
 } from '@/../seedDatabase'
+import { insertPricingModel } from './tableMethods/pricingModelMethods'
+import { insertProduct } from './tableMethods/productMethods'
+import { insertPrice } from './tableMethods/priceMethods'
 import { sql } from 'drizzle-orm'
 import db from './client'
 import type { Organization } from './schema/organizations'
@@ -37,13 +40,14 @@ import {
 import {
   selectSubscriptions,
   selectSubscriptionById,
-  insertSubscription,
   updateSubscription,
 } from './tableMethods/subscriptionMethods'
 import {
-  selectPayments,
-  insertPayment,
-} from './tableMethods/paymentMethods'
+  insertCheckoutSession,
+  safelyUpdateCheckoutSessionStatus,
+  updateCheckoutSession,
+} from './tableMethods/checkoutSessionMethods'
+import { selectPayments } from './tableMethods/paymentMethods'
 import { selectPaymentMethods } from './tableMethods/paymentMethodMethods'
 import core from '@/utils/core'
 import {
@@ -1167,16 +1171,6 @@ describe('Customer Role RLS Policies', () => {
     beforeEach(async () => {
       // Setup pricing models for testing
       await adminTransaction(async ({ transaction }) => {
-        const { insertPricingModel } = await import(
-          './tableMethods/pricingModelMethods'
-        )
-        const { insertProduct } = await import(
-          './tableMethods/productMethods'
-        )
-        const { insertPrice } = await import(
-          './tableMethods/priceMethods'
-        )
-
         pricingModelA = await insertPricingModel(
           {
             organizationId: org1.id,
@@ -1387,20 +1381,49 @@ describe('Customer Role RLS Policies', () => {
           },
           transaction
         )
+
+        // Refresh the customer objects to get the updated pricingModelId values
+        const { selectCustomerById } = await import(
+          './tableMethods/customerMethods'
+        )
+        customerA_Org1 = await selectCustomerById(
+          customerA_Org1.id,
+          transaction
+        )
+        customerB_Org1 = await selectCustomerById(
+          customerB_Org1.id,
+          transaction
+        )
+
+        // Verify the pricing models were assigned correctly
+        if (!customerA_Org1.pricingModelId) {
+          throw new Error(
+            'customerA_Org1 pricingModelId not set after refresh'
+          )
+        }
+        if (!customerB_Org1.pricingModelId) {
+          throw new Error(
+            'customerB_Org1 pricingModelId not set after refresh'
+          )
+        }
       })
     })
 
     describe('Successful checkout session creation', () => {
       it('should allow customer to create checkout session for price in their pricing model', async () => {
+        // Debug: Verify customer has pricing model before test
+        console.log(
+          'Test: customerA_Org1.pricingModelId =',
+          customerA_Org1.pricingModelId
+        )
+        console.log('Test: pricingModelA.id =', pricingModelA.id)
+        console.log('Test: priceInModelA.id =', priceInModelA.id)
+
         const result = await authenticatedCustomerTransaction(
           customerA_Org1,
           userA,
           org1,
           async ({ transaction }) => {
-            const { insertCheckoutSession } = await import(
-              './tableMethods/checkoutSessionMethods'
-            )
-
             const checkoutSession = await insertCheckoutSession(
               {
                 organizationId: org1.id,
@@ -1434,10 +1457,6 @@ describe('Customer Role RLS Policies', () => {
           userA,
           org1,
           async ({ transaction }) => {
-            const { insertCheckoutSession } = await import(
-              './tableMethods/checkoutSessionMethods'
-            )
-
             const checkoutSession = await insertCheckoutSession(
               {
                 organizationId: org1.id,
@@ -1475,10 +1494,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               // Try to create checkout session for customerB while authenticated as customerA
               await insertCheckoutSession(
                 {
@@ -1490,6 +1505,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1515,10 +1532,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               // Try to create checkout session for customer in org2
               await insertCheckoutSession(
                 {
@@ -1530,6 +1543,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1566,10 +1581,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               // Try to create checkout session for customerA_Org2 (same user, different org)
               await insertCheckoutSession(
                 {
@@ -1581,6 +1592,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1608,10 +1621,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               // CustomerA is in pricing model A, trying to use price from model B
               await insertCheckoutSession(
                 {
@@ -1623,6 +1632,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1680,10 +1691,6 @@ describe('Customer Role RLS Policies', () => {
             nullPricingModelUser,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               // Customer with null pricing model shouldn't be able to checkout any price
               await insertCheckoutSession(
                 {
@@ -1695,6 +1702,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1720,10 +1729,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               // Try to use a price from org2 while in org1
               await insertCheckoutSession(
                 {
@@ -1735,6 +1740,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1757,10 +1764,6 @@ describe('Customer Role RLS Policies', () => {
         // Create a price for the inactive product
         const priceForInactiveProduct = await adminTransaction(
           async ({ transaction }) => {
-            const { insertPrice } = await import(
-              './tableMethods/priceMethods'
-            )
-
             return await insertPrice(
               {
                 productId: inactiveProduct.id,
@@ -1795,10 +1798,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1809,6 +1808,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1834,10 +1835,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1848,6 +1845,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1868,10 +1867,6 @@ describe('Customer Role RLS Policies', () => {
         // Create an inactive price for inactive product
         const bothInactive = await adminTransaction(
           async ({ transaction }) => {
-            const { insertPrice } = await import(
-              './tableMethods/priceMethods'
-            )
-
             return await insertPrice(
               {
                 productId: inactiveProduct.id,
@@ -1906,10 +1901,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { insertCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1920,6 +1911,8 @@ describe('Customer Role RLS Policies', () => {
                   quantity: 1,
                   invoiceId: null,
                   purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
                   livemode: true,
                 },
                 transaction
@@ -1942,10 +1935,6 @@ describe('Customer Role RLS Policies', () => {
         // First create a checkout session
         const checkoutSession = await adminTransaction(
           async ({ transaction }) => {
-            const { insertCheckoutSession } = await import(
-              './tableMethods/checkoutSessionMethods'
-            )
-
             return await insertCheckoutSession(
               {
                 organizationId: org1.id,
@@ -1956,6 +1945,8 @@ describe('Customer Role RLS Policies', () => {
                 quantity: 1,
                 invoiceId: null,
                 purchaseId: null,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
                 expires: new Date(Date.now() - 1000), // Already expired
                 livemode: true,
               },
@@ -1972,15 +1963,19 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { updateCheckoutSession } = await import(
-                './tableMethods/checkoutSessionMethods'
-              )
-
               // Try to update expired session
               await updateCheckoutSession(
                 {
                   id: checkoutSession.id,
                   quantity: 5,
+                  type: CheckoutSessionType.Product,
+                  priceId: activePrice.id,
+                  status: CheckoutSessionStatus.Open,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
                 },
                 transaction
               )
@@ -2003,10 +1998,6 @@ describe('Customer Role RLS Policies', () => {
         // Create a succeeded checkout session
         const succeededSession = await adminTransaction(
           async ({ transaction }) => {
-            const { insertCheckoutSession } = await import(
-              './tableMethods/checkoutSessionMethods'
-            )
-
             return await insertCheckoutSession(
               {
                 organizationId: org1.id,
@@ -2034,9 +2025,6 @@ describe('Customer Role RLS Policies', () => {
             userA,
             org1,
             async ({ transaction }) => {
-              const { safelyUpdateCheckoutSessionStatus } =
-                await import('./tableMethods/checkoutSessionMethods')
-
               // Try to update terminal state session
               await safelyUpdateCheckoutSessionStatus(
                 succeededSession,

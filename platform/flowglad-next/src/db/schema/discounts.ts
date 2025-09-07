@@ -69,11 +69,11 @@ export const discounts = pgTable(
         table.organizationId,
         table.livemode,
       ]),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
-          using: sql`"organization_id" = current_organization_id() and "active" = true`
+          using: sql`"organization_id" = current_organization_id() and "active" = true`,
         }
       ),
       merchantPolicy(
