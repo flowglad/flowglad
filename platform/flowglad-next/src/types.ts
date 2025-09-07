@@ -579,7 +579,6 @@ export enum FlowgladEventType {
   SubscriptionCreated = 'subscription.created',
   SubscriptionUpdated = 'subscription.updated',
   SubscriptionCancelled = 'subscription.canceled',
-  SubscriptionUpgraded = 'subscription.upgraded',
 }
 
 export enum EventCategory {

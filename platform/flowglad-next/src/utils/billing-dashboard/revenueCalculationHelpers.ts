@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { DbTransaction } from '@/db/types'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
