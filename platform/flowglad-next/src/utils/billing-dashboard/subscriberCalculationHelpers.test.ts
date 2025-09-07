@@ -12,14 +12,11 @@ import {
   SubscriptionStatus,
 } from '@/types'
 
-// Mock the subscription methods
-vi.mock('@/db/tableMethods/subscriptionMethods', () => ({
-  currentSubscriptionStatuses: [
-    SubscriptionStatus.Active,
-    SubscriptionStatus.Trialing,
-  ],
-  getActiveSubscriptionsForPeriod: vi.fn(),
-}))
+// Import real subscription methods
+import {
+  currentSubscriptionStatuses,
+  getActiveSubscriptionsForPeriod,
+} from '@/db/tableMethods/subscriptionMethods'
 
 import {
   calculateActiveSubscribersByMonth,
@@ -45,9 +42,6 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { DbTransaction } from '@/db/types'
-
-// Import the mocked functions
-import { getActiveSubscriptionsForPeriod } from '@/db/tableMethods/subscriptionMethods'
 
 const coreSubscriptionValues = {
   id: 'sub-1',
@@ -852,33 +846,27 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle only churned subscribers in the current month', async () => {
-    const { organization } = await setupOrg()
+    const { organization, product, price } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
     // Create a subscription that was active in January but canceled in February
-    const churnedSubscription: Subscription.Record =
-      createSubscription({
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-15T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-
-    // Mock subscription data
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      churnedSubscription,
-    ]) // Current month
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      churnedSubscription,
-    ]) // Previous month
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      defaultPaymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z'),
+      canceledAt: new Date('2023-02-15T05:00:00.000Z'),
+    })
 
     const result = await adminTransaction(async ({ transaction }) => {
       return calculateSubscriberBreakdown(
@@ -895,50 +883,44 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle both new and churned subscribers', async () => {
-    const { organization } = await setupOrg()
+    const { organization, product, price } = await setupOrg()
+    const customer1 = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm1 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer1.id,
+    })
+    const customer2 = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm2 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer2.id,
+    })
+
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
     // Create a subscription that started in February
-    const newSubscription: Subscription.Record = createSubscription({
-      id: 'sub-1',
+    await setupSubscription({
       organizationId: organization.id,
-      customerId: 'cust-1',
-      defaultPaymentMethodId: 'pm-1',
-      priceId: 'price-1',
-      status: SubscriptionStatus.Active,
+      customerId: customer1.id,
+      defaultPaymentMethodId: pm1.id,
+      priceId: price.id,
       startDate: new Date('2023-02-15T05:00:00.000Z'),
       canceledAt: null,
-      livemode: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     })
 
     // Create a subscription that was active in January but canceled in February
-    const churnedSubscription: Subscription.Record =
-      createSubscription({
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-15T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-
-    // Mock subscription data
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      newSubscription,
-      churnedSubscription,
-    ])
-    // Current month
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      churnedSubscription,
-    ]) // Previous month
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer2.id,
+      defaultPaymentMethodId: pm2.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z'),
+      canceledAt: new Date('2023-02-15T05:00:00.000Z'),
+    })
 
     const result = await adminTransaction(async ({ transaction }) => {
       return calculateSubscriberBreakdown(
@@ -955,81 +937,47 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle equal numbers of new and churned subscribers (zero net change)', async () => {
-    const { organization } = await setupOrg()
+    const { organization, product, price } = await setupOrg()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
-    const newSubInputs: Partial<Subscription.StandardRecord>[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-10T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-20T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]
-    // Create two subscriptions that started in February
-    const newSubscriptions: Subscription.StandardRecord[] =
-      newSubInputs.map(createSubscription)
 
-    const churnedSubInputs: Partial<Subscription.StandardRecord>[] = [
-      {
-        id: 'sub-3',
+    // Create two new subscriptions that started in February
+    for (let i = 1; i <= 2; i++) {
+      const customer = await setupCustomer({
         organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-10T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-4',
+      })
+      const paymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
-        customerId: 'cust-4',
-        defaultPaymentMethodId: 'pm-4',
-        priceId: 'price-4',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-15T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-20T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]
+        customerId: customer.id,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        defaultPaymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        startDate: new Date(`2023-02-${10 + i * 5}T05:00:00.000Z`),
+        canceledAt: null,
+      })
+    }
+
     // Create two subscriptions that were active in January but canceled in February
-    const churnedSubscriptions: Subscription.StandardRecord[] =
-      churnedSubInputs.map(createSubscription)
-
-    // Mock subscription data
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      ...newSubscriptions,
-      ...churnedSubscriptions,
-    ]) // Current month
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce(
-      churnedSubscriptions
-    ) // Previous month
+    for (let i = 1; i <= 2; i++) {
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        defaultPaymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        startDate: new Date('2022-12-01T05:00:00.000Z'),
+        canceledAt: new Date(`2023-02-${10 + i * 5}T05:00:00.000Z`),
+      })
+    }
 
     const result = await adminTransaction(async ({ transaction }) => {
       return calculateSubscriberBreakdown(
@@ -1046,79 +994,46 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle more new than churned subscribers (positive net change)', async () => {
-    const { organization } = await setupOrg()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
-    const newSubInputs: Partial<Subscription.StandardRecord>[] = [
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-10T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-20T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-3',
-        organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2023-02-25T05:00:00.000Z'),
-        canceledAt: null,
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]
+    const { organization, product, price } = await setupOrg()
+
     // Create three subscriptions that started in February
-    const newSubscriptions: Subscription.Record[] = newSubInputs.map(
-      createSubscription
-    )
+    const startDates = ['2023-02-10', '2023-02-20', '2023-02-25']
+    for (const startDate of startDates) {
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        defaultPaymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        startDate: new Date(`${startDate}T05:00:00.000Z`),
+        canceledAt: null,
+      })
+    }
 
     // Create one subscription that was active in January but canceled in February
-    const churnedSubscription: Subscription.Record =
-      createSubscription({
-        id: 'sub-4',
-        organizationId: organization.id,
-        customerId: 'cust-4',
-        defaultPaymentMethodId: 'pm-4',
-        priceId: 'price-4',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-15T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-
-    // Mock subscription data
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      ...newSubscriptions,
-      churnedSubscription,
-    ]) // Current month
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      churnedSubscription,
-    ]) // Previous month
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      defaultPaymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z'),
+      canceledAt: new Date('2023-02-15T05:00:00.000Z'),
+    })
 
     const result = await adminTransaction(async ({ transaction }) => {
       return calculateSubscriberBreakdown(
@@ -1135,77 +1050,47 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle more churned than new subscribers (negative net change)', async () => {
-    const { organization } = await setupOrg()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
+    const { organization, product, price } = await setupOrg()
+
     // Create one subscription that started in February
-    const newSubscription: Subscription.Record = createSubscription({
-      id: 'sub-1',
+    const newCustomer = await setupCustomer({
       organizationId: organization.id,
-      customerId: 'cust-1',
-      defaultPaymentMethodId: 'pm-1',
-      priceId: 'price-1',
-      status: SubscriptionStatus.Active,
+    })
+    const newPm = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: newCustomer.id,
+    })
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: newCustomer.id,
+      defaultPaymentMethodId: newPm.id,
+      priceId: price.id,
       startDate: new Date('2023-02-15T05:00:00.000Z'),
       canceledAt: null,
-      livemode: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     })
-    const churnedSubInputs: Partial<Subscription.StandardRecord>[] = [
-      {
-        id: 'sub-2',
-        organizationId: organization.id,
-        customerId: 'cust-2',
-        defaultPaymentMethodId: 'pm-2',
-        priceId: 'price-2',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-10T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-3',
-        organizationId: organization.id,
-        customerId: 'cust-3',
-        defaultPaymentMethodId: 'pm-3',
-        priceId: 'price-3',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-15T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-20T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'sub-4',
-        organizationId: organization.id,
-        customerId: 'cust-4',
-        defaultPaymentMethodId: 'pm-4',
-        priceId: 'price-4',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-20T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-25T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]
-    // Create three subscriptions that were active in January but canceled in February
-    const churnedSubscriptions: Subscription.StandardRecord[] =
-      churnedSubInputs.map(createSubscription)
 
-    // Mock subscription data
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      newSubscription,
-      ...churnedSubscriptions,
-    ]) // Current month
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce(
-      churnedSubscriptions
-    ) // Previous month
+    // Create three subscriptions that were active in January but canceled in February
+    const cancelDates = ['2023-02-10', '2023-02-20', '2023-02-25']
+    for (const cancelDate of cancelDates) {
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        defaultPaymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        startDate: new Date('2022-12-01T05:00:00.000Z'),
+        canceledAt: new Date(`${cancelDate}T05:00:00.000Z`),
+      })
+    }
 
     const result = await adminTransaction(async ({ transaction }) => {
       return calculateSubscriberBreakdown(
@@ -1249,53 +1134,44 @@ describe('calculateSubscriberBreakdown', () => {
   })
 
   it('should handle edge cases where subscribers churn on the first/last day of the month', async () => {
-    const { organization } = await setupOrg()
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
 
-    // Create a subscription that churned on the first day of February
-    const churnedOnFirstDay: Subscription.Record = createSubscription(
-      {
-        id: 'sub-1',
-        organizationId: organization.id,
-        customerId: 'cust-1',
-        defaultPaymentMethodId: 'pm-1',
-        priceId: 'price-1',
-        status: SubscriptionStatus.Active,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date('2023-02-01T05:00:00.000Z'),
-        livemode: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-    )
+    const { organization, product, price } = await setupOrg()
 
-    // Create a subscription that churned on the last day of February
-    const churnedOnLastDay: Subscription.Record = createSubscription({
-      id: 'sub-2',
+    // Create a subscription that churned on the first day of February
+    const customer1 = await setupCustomer({
       organizationId: organization.id,
-      customerId: 'cust-2',
-      defaultPaymentMethodId: 'pm-2',
-      priceId: 'price-2',
-      status: SubscriptionStatus.Active,
-      startDate: new Date('2022-12-15T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-28T05:00:00.000Z'),
-      livemode: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    })
+    const pm1 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer1.id,
+    })
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer1.id,
+      defaultPaymentMethodId: pm1.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z'),
+      canceledAt: new Date('2023-02-01T05:00:00.000Z'),
     })
 
-    // Mock subscription data
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      churnedOnFirstDay,
-      churnedOnLastDay,
-    ])
-
-    // Current month
-    vi.mocked(getActiveSubscriptionsForPeriod).mockResolvedValueOnce([
-      churnedOnFirstDay,
-      churnedOnLastDay,
-    ]) // Previous month
+    // Create a subscription that churned on the last day of February
+    const customer2 = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm2 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer2.id,
+    })
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer2.id,
+      defaultPaymentMethodId: pm2.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-15T05:00:00.000Z'),
+      canceledAt: new Date('2023-02-28T05:00:00.000Z'),
+    })
 
     const result = await adminTransaction(async ({ transaction }) => {
       return calculateSubscriberBreakdown(
