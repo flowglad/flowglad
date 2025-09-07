@@ -495,6 +495,41 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       (subscription) => subscription.trialEnd
     )
 
+    // Determine if we should preserve the billing cycle from the canceled free subscription
+    const preserveBillingCycle =
+      checkoutSession.preserveBillingCycleAnchor &&
+      !!canceledFreeSubscription
+    const startDate = new Date()
+
+    // Prepare billing cycle preservation parameters
+    let billingCycleAnchorDate: Date | undefined
+    let preservedBillingPeriodEnd: Date | undefined
+    let preservedBillingPeriodStart: Date | undefined
+    let prorateFirstPeriod = false
+
+    if (preserveBillingCycle) {
+      billingCycleAnchorDate =
+        canceledFreeSubscription.billingCycleAnchorDate || startDate
+      preservedBillingPeriodEnd =
+        canceledFreeSubscription.currentBillingPeriodEnd || undefined
+      preservedBillingPeriodStart =
+        canceledFreeSubscription.currentBillingPeriodStart ||
+        undefined
+      prorateFirstPeriod = true
+
+      // Validate that we're not past the period end
+      if (
+        preservedBillingPeriodEnd &&
+        startDate > preservedBillingPeriodEnd
+      ) {
+        // If we're past the period, don't preserve (start a new cycle)
+        billingCycleAnchorDate = undefined
+        preservedBillingPeriodEnd = undefined
+        preservedBillingPeriodStart = undefined
+        prorateFirstPeriod = false
+      }
+    }
+
     const output = await createSubscriptionWorkflow(
       {
         stripeSetupIntentId: setupIntent.id,
@@ -513,7 +548,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
           hasHadTrial,
           trialPeriodDays: price.trialPeriodDays,
         }),
-        startDate: new Date(),
+        startDate,
+        billingCycleAnchorDate,
+        preservedBillingPeriodEnd,
+        preservedBillingPeriodStart,
+        prorateFirstPeriod,
         autoStart: true,
         quantity: checkoutSession.quantity,
         metadata: checkoutSession.outputMetadata ?? {},

@@ -121,6 +121,9 @@ export const createSubscriptionWorkflow = async (
       subscriptionItems,
       defaultPaymentMethod,
       autoStart: params.autoStart ?? false,
+      prorateFirstPeriod: params.prorateFirstPeriod,
+      preservedBillingPeriodEnd: params.preservedBillingPeriodEnd,
+      preservedBillingPeriodStart: params.preservedBillingPeriodStart,
     },
     transaction
   )

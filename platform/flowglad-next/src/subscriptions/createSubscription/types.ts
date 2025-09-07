@@ -33,6 +33,10 @@ export interface CreateSubscriptionParams {
   autoStart?: boolean
   discountRedemption?: DiscountRedemption.Record | null
   previousSubscriptionId?: string // ID of canceled free subscription when upgrading
+  billingCycleAnchorDate?: Date
+  preservedBillingPeriodEnd?: Date
+  preservedBillingPeriodStart?: Date
+  prorateFirstPeriod?: boolean
 }
 
 export interface StandardCreateSubscriptionResult {
