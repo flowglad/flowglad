@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { LogOut, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
+import { toast } from 'sonner'
 
 interface BillingPortalHeaderProps {
   customer: {
@@ -24,9 +25,13 @@ export function BillingPortalHeader({
   const logoutMutation = trpc.utils.logout.useMutation()
 
   const handleLogout = async () => {
-    await logoutMutation.mutateAsync()
-    await signOut()
-    router.push('/sign-in')
+    try {
+      await logoutMutation.mutateAsync()
+      await signOut()
+      router.push('/sign-in')
+    } catch (error) {
+      toast.error('Error logging out: ' + error)
+    }
   }
 
   return (

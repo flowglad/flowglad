@@ -1,10 +1,7 @@
 'use client'
 
+import { cn } from '@/registry/lib/cn'
 import { CreditCard, FileText, Package } from 'lucide-react'
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ')
-}
 
 interface BillingPortalNavProps {
   activeSection: 'subscription' | 'payment-methods' | 'invoices'
