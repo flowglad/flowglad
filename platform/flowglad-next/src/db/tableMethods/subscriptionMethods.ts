@@ -458,5 +458,5 @@ export const selectCurrentSubscriptionForCustomer = async (
   }
 
   // Return the first active subscription (should only be one per customer)
-  return activeSubscriptions[0]
+  return findCurrent(activeSubscriptions[0])
 }
