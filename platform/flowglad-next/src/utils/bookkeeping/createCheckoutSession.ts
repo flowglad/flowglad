@@ -130,13 +130,17 @@ export const createCheckoutSessionTransaction = async (
   },
   transaction: DbTransaction
 ) => {
-  const [customer] = await selectCustomers(
-    {
-      externalId:
-        checkoutSessionInput.customerExternalId || undefined,
-    },
-    transaction
-  )
+  // Only query for customer if customerExternalId is provided
+  let customer: Customer.Record | null = null
+  if (checkoutSessionInput.customerExternalId) {
+    const [foundCustomer] = await selectCustomers(
+      {
+        externalId: checkoutSessionInput.customerExternalId,
+      },
+      transaction
+    )
+    customer = foundCustomer
+  }
   // Anonymous sessions can omit customerExternalId; in that case customer will be null
   // NOTE: invoice and purchase checkout sessions
   // are not supported by API yet.
@@ -180,7 +184,7 @@ export const createCheckoutSessionTransaction = async (
       await createSetupIntentForCheckoutSession({
         organization,
         checkoutSession,
-        customer,
+        ...(customer ? { customer } : {}),
       })
     stripeSetupIntentId = stripeSetupIntent.id
   } else if (price?.type === PriceType.SinglePayment && product) {

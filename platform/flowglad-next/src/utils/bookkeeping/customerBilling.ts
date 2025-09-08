@@ -131,17 +131,49 @@ export const setDefaultPaymentMethodForCustomer = async (
   }
 }
 
+// Build a no-URL core and variant-level schemas, since .omit is not available on discriminated unions
+const coreCheckoutSessionNoUrls = z.object({
+  customerExternalId: z.string().nullable().optional(),
+  outputMetadata: z.record(z.string(), z.any()).optional(),
+  outputName: z.string().optional(),
+})
+
+const productCheckoutSessionSchemaNoUrls = z.discriminatedUnion('anonymous', [
+  coreCheckoutSessionNoUrls.extend({
+    type: z.literal(CheckoutSessionType.Product),
+    priceId: z.string(),
+    quantity: z.number().optional(),
+    anonymous: z.literal(false).optional(),
+    // Ensure a concrete customerExternalId when not anonymous
+    customerExternalId: z.string(),
+    preserveBillingCycleAnchor: z.boolean().optional(),
+  }),
+  coreCheckoutSessionNoUrls.extend({
+    type: z.literal(CheckoutSessionType.Product),
+    priceId: z.string(),
+    quantity: z.number().optional(),
+    anonymous: z.literal(true),
+    // Anonymous sessions may omit or null customerExternalId
+    customerExternalId: z.null().optional(),
+    preserveBillingCycleAnchor: z.boolean().optional(),
+  }),
+])
+
+const activateSubscriptionCheckoutSessionSchemaNoUrls =
+  coreCheckoutSessionNoUrls.extend({
+    type: z.literal(CheckoutSessionType.ActivateSubscription),
+    priceId: z.string(),
+    targetSubscriptionId: z.string(),
+    preserveBillingCycleAnchor: z.boolean().optional(),
+    // Require customerExternalId for activate flow
+    customerExternalId: z.string(),
+  })
+
 export const createPricedCheckoutSessionSchema = z.discriminatedUnion(
   'type',
   [
-    productCheckoutSessionSchema.omit({
-      successUrl: true,
-      cancelUrl: true,
-    }),
-    activateSubscriptionCheckoutSessionSchema.omit({
-      successUrl: true,
-      cancelUrl: true,
-    }),
+    productCheckoutSessionSchemaNoUrls,
+    activateSubscriptionCheckoutSessionSchemaNoUrls,
   ]
 )
 
