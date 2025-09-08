@@ -330,6 +330,7 @@ export default function Billing() {
 }
 `
 </details>
+
 ## Demo: Integrating Flowglad in <40 seconds
 
 https://github.com/user-attachments/assets/6480c847-4f59-482e-8549-8833c2e182fb
