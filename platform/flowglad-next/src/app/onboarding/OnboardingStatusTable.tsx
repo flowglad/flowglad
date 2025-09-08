@@ -266,6 +266,7 @@ const OnboardingStatusTable = ({
           }}
         />
       ))}
+      {/* Temporarily disabled MCP Server setup
       <OnboardingStatusRow
         key={'setup-flowglad-mcp-server'}
         completed={false}
@@ -276,7 +277,7 @@ const OnboardingStatusTable = ({
             href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            {/* <img
               src="https://cursor.com/deeplink/mcp-install-light.svg"
               alt="Add flowglad MCP server to Cursor"
               height="40"
@@ -285,6 +286,7 @@ const OnboardingStatusTable = ({
           </a>
         }
       />
+      */}
       <NounVerbModal
         isOpen={isNounVerbModalOpen}
         setIsOpen={setIsNounVerbModalOpen}
