@@ -14,13 +14,15 @@ const nextConfig = {
     'chromium-bidi',
   ],
   images: {
-    remotePatterns: process.env.NEXT_PUBLIC_CDN_URL ? [
-      {
-        protocol: 'https',
-        hostname: process.env.NEXT_PUBLIC_CDN_URL,
-        port: '',
-      },
-    ] : [],
+    remotePatterns: process.env.NEXT_PUBLIC_CDN_URL
+      ? [
+          {
+            protocol: 'https',
+            hostname: process.env.NEXT_PUBLIC_CDN_URL,
+            port: '',
+          },
+        ]
+      : [],
   },
   async headers() {
     return [
@@ -44,6 +46,9 @@ const nextConfig = {
         ],
       },
     ]
+  },
+  experimental: {
+    webpackMemoryOptimizations: true,
   },
   webpack: (
     config,

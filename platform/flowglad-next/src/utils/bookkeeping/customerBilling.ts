@@ -13,10 +13,22 @@ import {
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
-import { InvoiceStatus } from '@/types'
+import { CheckoutSessionType, InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { Customer } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
+import {
+  activateSubscriptionCheckoutSessionSchema,
+  CreateCheckoutSessionInput,
+  productCheckoutSessionSchema,
+} from '@/db/schema/checkoutSessions'
+import { Price } from '@/db/schema/prices'
+import { createCheckoutSessionTransaction } from './createCheckoutSession'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { adminTransaction } from '@/db/adminTransaction'
+import { customerBillingPortalURL } from '@/utils/core'
+import { z } from 'zod'
 
 export const customerBillingTransaction = async (
   params: {
@@ -58,7 +70,7 @@ export const customerBillingTransaction = async (
     transaction
   )
   const currentSubscriptions = subscriptions.filter((item) => {
-    return isSubscriptionCurrent(item.status)
+    return isSubscriptionCurrent(item.status, item.cancellationReason)
   })
   return {
     customer,
@@ -117,4 +129,155 @@ export const setDefaultPaymentMethodForCustomer = async (
       message: 'Failed to set default payment method',
     })
   }
+}
+
+export const createPricedCheckoutSessionSchema = z.discriminatedUnion(
+  'type',
+  [
+    productCheckoutSessionSchema.omit({
+      successUrl: true,
+      cancelUrl: true,
+    }),
+    activateSubscriptionCheckoutSessionSchema.omit({
+      successUrl: true,
+      cancelUrl: true,
+    }),
+  ]
+)
+
+export const customerBillingCreatePricedCheckoutSession = async ({
+  checkoutSessionInput: rawCheckoutSessionInput,
+  customer,
+}: {
+  checkoutSessionInput: z.infer<
+    typeof createPricedCheckoutSessionSchema
+  >
+  customer: Customer.Record
+}) => {
+  const checkoutSessionInputResult =
+    createPricedCheckoutSessionSchema.safeParse(
+      rawCheckoutSessionInput
+    )
+  if (!checkoutSessionInputResult.success) {
+    if (
+      checkoutSessionInputResult.error.issues[0].code ===
+      'invalid_union'
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Invalid checkout session type. Only product and activate_subscription checkout sessions are supported. Received type: ' +
+          rawCheckoutSessionInput.type,
+      })
+    }
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        'Invalid checkout session input provided: ' +
+        JSON.stringify(checkoutSessionInputResult.error.issues),
+    })
+  }
+  const checkoutSessionInput = checkoutSessionInputResult.data
+  if (
+    customer.externalId !== checkoutSessionInput.customerExternalId
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'You do not have permission to create a checkout session for this customer',
+    })
+  }
+  if (
+    checkoutSessionInput.type !== CheckoutSessionType.Product &&
+    checkoutSessionInput.type !==
+      CheckoutSessionType.ActivateSubscription
+  ) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        'Invalid checkout session type. Only product and activate_subscription checkout sessions are supported. Received type: ' +
+        // @ts-expect-error - this is a type error because it should never be hit
+        checkoutSessionInput.type,
+    })
+  }
+
+  const price = await authenticatedTransaction(
+    async ({ transaction }) => {
+      return await selectPriceById(
+        checkoutSessionInput.priceId,
+        transaction
+      )
+    }
+  )
+
+  if (!price) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message:
+        'Price ' +
+        checkoutSessionInput.priceId +
+        ' not found. Either it does not exist or you do not have access to it.',
+    })
+  }
+
+  const redirectUrl = customerBillingPortalURL({
+    organizationId: customer.organizationId,
+    customerId: customer.id,
+  })
+
+  return await adminTransaction(async ({ transaction }) => {
+    return await createCheckoutSessionTransaction(
+      {
+        checkoutSessionInput: {
+          ...checkoutSessionInput,
+          successUrl: redirectUrl,
+          cancelUrl: redirectUrl,
+        },
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
+      },
+      transaction
+    )
+  })
+}
+
+export const customerBillingCreateAddPaymentMethodSession = async (
+  customer: Customer.Record
+) => {
+  if (!customer) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'You do not have permission to create a payment method setup session',
+    })
+  }
+
+  if (!customer.stripeCustomerId) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'You do not have permission to create a payment method setup session',
+    })
+  }
+
+  const redirectUrl = customerBillingPortalURL({
+    organizationId: customer.organizationId,
+    customerId: customer.id,
+  })
+
+  return await adminTransaction(async ({ transaction }) => {
+    return await createCheckoutSessionTransaction(
+      {
+        checkoutSessionInput: {
+          customerExternalId: customer.externalId,
+          successUrl: redirectUrl,
+          cancelUrl: redirectUrl,
+          type: CheckoutSessionType.AddPaymentMethod,
+        },
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
+      },
+      transaction
+    )
+  })
 }

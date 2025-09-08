@@ -41,7 +41,7 @@ export const files = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.organizationId]),
       constructUniqueIndex(TABLE_NAME, [table.objectKey]),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {

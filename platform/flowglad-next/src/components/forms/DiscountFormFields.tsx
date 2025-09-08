@@ -1,7 +1,10 @@
 'use client'
 
 import { useFormContext, Controller } from 'react-hook-form'
-import { CreateDiscountInput } from '@/db/schema/discounts'
+import {
+  CreateDiscountFormSchema,
+  CreateDiscountInput,
+} from '@/db/schema/discounts'
 import { Input } from '@/components/ui/input'
 import {
   FormField,
@@ -24,16 +27,17 @@ import { Label } from '@/components/ui/label'
 
 import { Percent } from 'lucide-react'
 import { core } from '@/utils/core'
-import { DollarSign } from 'lucide-react'
-import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { currencyCharacter } from '@/registry/lib/currency'
 
 export default function DiscountFormFields({
   edit = false,
 }: {
   edit?: boolean
 }) {
-  const form = useFormContext<CreateDiscountInput>()
+  const form = useFormContext<CreateDiscountFormSchema>()
   const {
     formState: { errors },
     watch,
@@ -43,6 +47,9 @@ export default function DiscountFormFields({
   const amountType = watch('discount.amountType')
   const discount = watch('discount')
   const { organization } = useAuthenticatedContext()
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization!.defaultCurrency
+  )
   return (
     <div className="space-y-4">
       <FormField
@@ -165,43 +172,28 @@ export default function DiscountFormFields({
         ) : (
           <FormField
             control={control}
-            name="discount.amount"
+            name="__rawAmountString"
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormLabel>Amount</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      placeholder="0.00"
-                      className="pl-10 text-right"
-                      value={
-                        field.value
-                          ? (field.value / 100).toFixed(2)
-                          : ''
-                      }
-                      onChange={(e) => {
-                        const value = e.target.value
-                        if (value) {
-                          const floatValue = parseFloat(value)
-                          if (!isNaN(floatValue)) {
-                            field.onChange(
-                              humanReadableCurrencyAmountToStripeCurrencyAmount(
-                                organization!.defaultCurrency,
-                                Math.ceil(floatValue * 100) / 100
-                              )
-                            )
-                          }
-                        } else {
-                          field.onChange(0)
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {currencyCharacter(organization!.defaultCurrency)}
+                  </span>
+                  <FormControl>
+                    <CurrencyInput
+                      value={field.value?.toString() ?? ''}
+                      onValueChange={(value) => {
+                        if (!value) {
+                          field.onChange('0')
+                          return
                         }
+                        field.onChange(value)
                       }}
+                      allowDecimals={!zeroDecimal}
                     />
-                  </div>
-                </FormControl>
+                  </FormControl>
+                </div>
                 <FormMessage />
               </FormItem>
             )}

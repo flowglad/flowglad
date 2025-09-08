@@ -90,7 +90,7 @@ export const events = pgTable(
         table.objectId,
       ]),
       constructUniqueIndex(TABLE_NAME, [table.hash]),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
       merchantPolicy('Enable insert for own organizations', {
         as: 'permissive',
         to: 'merchant',

@@ -106,7 +106,7 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
     constructIndex(TABLE_NAME, [table.customerId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.priceId]),
-    livemodePolicy(),
+    livemodePolicy(TABLE_NAME),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
@@ -455,10 +455,6 @@ export namespace Purchase {
 // Update form schemas to use client versions
 export const createPurchaseFormSchema = z.object({
   purchase: purchaseClientInsertSchema,
-})
-
-export const editPurchaseFormSchema = z.object({
-  purchase: purchaseClientUpdateSchema,
 })
 
 export const createCustomerOutputSchema = z.object({

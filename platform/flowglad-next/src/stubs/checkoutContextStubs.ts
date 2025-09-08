@@ -55,6 +55,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   updatedByCommit: 'test',
   position: 0,
   automaticallyUpdateSubscriptions: null,
+  preserveBillingCycleAnchor: false,
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =

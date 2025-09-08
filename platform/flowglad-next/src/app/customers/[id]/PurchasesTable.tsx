@@ -12,47 +12,12 @@ import {
 } from '@/components/PopoverMenu'
 import { Badge } from '@/components/ui/badge'
 import { TableHeader } from '@/components/ui/table-header'
-import EndPurchaseModal from '@/components/forms/EndPurchaseModal'
-import { Payment } from '@/db/schema/payments'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode, PurchaseStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-
-const MoreMenuCell = ({
-  purchase,
-}: {
-  purchase: Purchase.ClientRecord
-}) => {
-  const [isEndOpen, setIsEndOpen] = useState(false)
-  const items: PopoverMenuItem[] = []
-
-  if (!purchase.endDate) {
-    if (purchase.purchaseDate) {
-      items.push({
-        label: 'End Purchase',
-        handler: () => setIsEndOpen(true),
-        state: PopoverMenuItemState.Danger,
-        disabled: !purchase.purchaseDate,
-        helperText: purchase.purchaseDate
-          ? undefined
-          : 'Cannot end a purchase that has not started',
-      })
-    }
-  }
-
-  return (
-    <MoreMenuTableCell items={items}>
-      <EndPurchaseModal
-        isOpen={isEndOpen}
-        setIsOpen={setIsEndOpen}
-        purchase={purchase}
-      />
-    </MoreMenuTableCell>
-  )
-}
+import { Customer } from '@/db/schema/customers'
 
 const PurchaseStatusCell = ({
   purchase,
@@ -172,13 +137,14 @@ const PurchasesTable = ({
             </CopyableTextTableCell>
           ),
         },
+      ] as ColumnDef<
         {
-          id: '_',
-          cell: ({ row: { original: cellData } }) => (
-            <MoreMenuCell purchase={cellData.purchase} />
-          ),
+          purchase: Purchase.ClientRecord
+          customer: Customer.ClientRecord
+          revenue?: number
         },
-      ] as ColumnDef<Purchase.PurchaseTableRowData>[],
+        string
+      >[],
     []
   )
 

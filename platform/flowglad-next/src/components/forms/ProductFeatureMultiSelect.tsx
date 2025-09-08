@@ -5,27 +5,82 @@ import { CreateProductSchema } from '@/db/schema/prices'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useEffect } from 'react'
+import { encodeCursor } from '@/db/tableUtils'
 
 export const ProductFeatureMultiSelect = ({
   pricingModelId,
+  productId,
 }: {
   pricingModelId: string
+  productId?: string
 }) => {
-  const { data: features } =
-    trpc.features.getFeaturesForPricingModel.useQuery({
-      pricingModelId,
-    })
+  const { data: featuresData, isLoading: featuresLoading } =
+    trpc.features.getFeaturesForPricingModel.useQuery(
+      {
+        pricingModelId,
+      },
+      {
+        refetchOnMount: 'always',
+        staleTime: 0,
+      }
+    )
   const {
     formState: { errors },
     control,
+    setValue,
   } = useFormContext<CreateProductSchema>()
+
+  // Fetch current product features for this product via paginated list with filter in cursor
+  // Note: Using limit 100 (max allowed by pagination system). If a product has >100 features,
+  // only the first 100 will be pre-selected. This seems unlikely in practice.
+  const {
+    data: productFeaturesData,
+    isLoading: productFeaturesLoading,
+  } = trpc.productFeatures.list.useQuery(
+    {
+      cursor: encodeCursor({
+        parameters: {
+          productId,
+        },
+        createdAt: new Date(0),
+        direction: 'forward',
+      }),
+      limit: 100,
+    },
+    {
+      enabled: !!productId,
+      refetchOnMount: 'always',
+      staleTime: 0,
+    }
+  )
+
+  const productFeaturesHash = JSON.stringify(
+    productFeaturesData ?? []
+  )
+
+  useEffect(() => {
+    if (!productFeaturesData?.data) {
+      return
+    }
+    const activeProductFeatures = productFeaturesData.data.filter(
+      (pf) => !pf.expiredAt
+    )
+
+    setValue(
+      'featureIds',
+      activeProductFeatures.map((pf) => pf.featureId)
+    )
+  }, [productFeaturesHash])
+
+  const loading = productFeaturesLoading || featuresLoading
 
   return (
     <>
       <label className="text-sm font-medium leading-none text-foreground">
         Features
       </label>
-      {!features ? (
+      {loading ? (
         <Skeleton className="h-9 w-full" />
       ) : (
         <Controller<CreateProductSchema, 'featureIds'>
@@ -34,17 +89,17 @@ export const ProductFeatureMultiSelect = ({
           render={({ field }) => (
             <MultipleSelector
               options={
-                features?.features.map((feature) => ({
+                featuresData?.features.map((feature) => ({
                   label: feature.name,
                   value: feature.id,
                 })) || []
               }
               value={(field.value || []).map((id) => {
-                const f = features?.features.find(
+                const feature = featuresData?.features.find(
                   (feat) => feat.id === id
                 )
                 return {
-                  label: f?.name ?? id,
+                  label: feature?.name ?? id,
                   value: id,
                 }
               })}

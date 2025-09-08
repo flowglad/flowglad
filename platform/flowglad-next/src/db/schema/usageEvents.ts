@@ -139,7 +139,7 @@ export const usageEvents = pgTable(
           using: sql`"customer_id" in (select "id" from "customers")`,
         }
       ),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

@@ -58,7 +58,7 @@ export function PaymentMethodRow({
     }
     return null
   }
-
+  const showPopover = onRemove || (onSetDefault && !isDefault)
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
       <div className="flex items-center gap-4">
@@ -96,7 +96,7 @@ export function PaymentMethodRow({
         </div>
       </div>
 
-      {(onRemove || onSetDefault) && (
+      {showPopover && (
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -119,7 +119,6 @@ export function PaymentMethodRow({
                   onClick={handleSetDefault}
                   disabled={isSettingDefault}
                 >
-                  <Check className="h-4 w-4 mr-2" />
                   Set as Default
                 </Button>
               )}

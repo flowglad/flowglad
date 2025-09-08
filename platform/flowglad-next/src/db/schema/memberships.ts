@@ -37,7 +37,10 @@ export const memberships = pgTable(
       constructIndex(MEMBERSHIPS_TABLE_NAME, [table.userId]),
       constructIndex(MEMBERSHIPS_TABLE_NAME, [table.organizationId]),
       // Composite index for the common query pattern (userId, focused)
-      constructIndex(MEMBERSHIPS_TABLE_NAME, [table.userId, table.focused]),
+      constructIndex(MEMBERSHIPS_TABLE_NAME, [
+        table.userId,
+        table.focused,
+      ]),
       constructUniqueIndex(MEMBERSHIPS_TABLE_NAME, [
         table.userId,
         table.organizationId,
@@ -53,7 +56,7 @@ export const memberships = pgTable(
       ),
       // no livemode policy for memberships, because memberships are used to determine access to
       // everything else.
-      // livemodePolicy(),
+      // livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

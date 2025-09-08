@@ -6,6 +6,7 @@ import {
   integer,
   timestamp,
   boolean,
+  pgPolicy,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
@@ -22,6 +23,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  customerPolicy,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -98,6 +100,9 @@ const columns = {
     columnName: 'type',
     enumBase: CheckoutSessionType,
   }).notNull(),
+  preserveBillingCycleAnchor: boolean('preserve_billing_cycle_anchor')
+    .notNull()
+    .default(false),
   outputMetadata: jsonb('output_metadata'),
   outputName: text('output_name'),
   targetSubscriptionId: text('target_subscription_id'),
@@ -119,7 +124,6 @@ export const checkoutSessions = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
       constructIndex(TABLE_NAME, [table.customerId]),
-      livemodePolicy(),
       merchantPolicy(
         'Enable all actions for discounts in own organization',
         {
@@ -129,6 +133,12 @@ export const checkoutSessions = pgTable(
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
+      customerPolicy('Enable select for customer', {
+        as: 'permissive',
+        for: 'select',
+        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
+      }),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()
@@ -141,8 +151,8 @@ export const checkoutSessionOutputMetadataSchema = z
 const commonRefinement = {
   billingAddress: billingAddressSchema.nullable().optional(),
   status: core.createSafeZodEnum(CheckoutSessionStatus),
-  successUrl: z.string().url().nullable().optional(),
-  cancelUrl: z.string().url().nullable().optional(),
+  successUrl: z.url().nullable().optional(),
+  cancelUrl: z.url().nullable().optional(),
   // outputMetadata: z.any().nullable(),
   paymentMethodType: core
     .createSafeZodEnum(PaymentMethodType)
@@ -168,6 +178,7 @@ const purchaseCheckoutSessionRefinement = {
   targetSubscriptionId: core.safeZodNullOrUndefined,
   automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Purchase),
+  preserveBillingCycleAnchor: z.literal(false).optional(),
 }
 
 const invoiceCheckoutSessionRefinement = {
@@ -178,7 +189,24 @@ const invoiceCheckoutSessionRefinement = {
   targetSubscriptionId: z.null(),
   type: z.literal(CheckoutSessionType.Invoice),
   outputMetadata: z.null(),
+  preserveBillingCycleAnchor: z.literal(false).optional(),
 }
+
+export const invoiceCheckoutSessionNulledColumns = {
+  priceId: null,
+  purchaseId: null,
+  outputMetadata: null,
+  automaticallyUpdateSubscriptions: null,
+  preserveBillingCycleAnchor: false,
+  targetSubscriptionId: null,
+} as const
+
+const preserveBillingCycleAnchorSchema = z
+  .boolean()
+  .optional()
+  .describe(
+    'Whether to preserve the billing cycle anchor date in the case that the customer already has an active subscription that renews. If not provided, defaults to false.'
+  )
 
 const productCheckoutSessionRefinement = {
   priceId: z.string(),
@@ -186,6 +214,7 @@ const productCheckoutSessionRefinement = {
   targetSubscriptionId: core.safeZodNullOrUndefined,
   automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Product),
+  preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
 }
 
 const activateSubscriptionRefinement = {
@@ -193,6 +222,7 @@ const activateSubscriptionRefinement = {
   targetSubscriptionId: z.string(),
   invoiceId: z.null(),
   purchaseId: z.null(),
+  preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
 }
 
 const addPaymentMethodCheckoutSessionRefinement = {
@@ -278,10 +308,12 @@ export const addPaymentMethodCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     addPaymentMethodCheckoutSessionRefinement
   )
+
 export const activateSubscriptionCheckoutSessionsInsertSchema =
   coreCheckoutSessionsInsertSchema.extend(
     activateSubscriptionRefinement
   )
+
 export const checkoutSessionsInsertSchema = z
   .discriminatedUnion('type', [
     purchaseCheckoutSessionsInsertSchema,
@@ -685,8 +717,8 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
-const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
-  {
+export const productCheckoutSessionSchema =
+  coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.Product),
     priceId: z
       .string()
@@ -697,10 +729,10 @@ const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
       .describe(
         'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
       ),
-  }
-)
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
+  })
 
-const addPaymentMethodCheckoutSessionSchema =
+export const addPaymentMethodCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.AddPaymentMethod),
     targetSubscriptionId: z
@@ -717,17 +749,18 @@ const addPaymentMethodCheckoutSessionSchema =
       ),
   })
 
-const activateSubscriptionCheckoutSessionSchema =
+export const activateSubscriptionCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.ActivateSubscription),
     priceId: z.string(),
     targetSubscriptionId: z.string(),
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
   })
 
 const createCheckoutSessionObject = z.discriminatedUnion('type', [
   productCheckoutSessionSchema,
-  addPaymentMethodCheckoutSessionSchema,
   activateSubscriptionCheckoutSessionSchema,
+  addPaymentMethodCheckoutSessionSchema,
 ])
 
 export type CreateCheckoutSessionObject = z.infer<

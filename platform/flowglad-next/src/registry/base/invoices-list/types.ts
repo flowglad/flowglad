@@ -4,6 +4,9 @@ export type InvoiceStatus =
   | 'paid'
   | 'void'
   | 'uncollectible'
+  | 'refunded'
+  | 'partially_refunded'
+  | 'awaiting_payment_confirmation'
 
 export interface Invoice {
   id: string

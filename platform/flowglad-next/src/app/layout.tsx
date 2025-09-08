@@ -19,6 +19,7 @@ import {
 import { auth, getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
+import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -70,6 +71,11 @@ export default async function RootLayout({
       )
     }
   }
+  const currentPath = headersList.get('x-pathname') || ''
+  const role = currentPath.startsWith('/billing-portal/')
+    ? 'customer'
+    : 'merchant'
+
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={cn(inter.className, 'h-full')}>
@@ -78,6 +84,7 @@ export default async function RootLayout({
             organization,
             livemode,
             user,
+            role,
           }}
         >
           {/* {!livemode && (

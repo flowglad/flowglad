@@ -69,11 +69,11 @@ export const discounts = pgTable(
         table.organizationId,
         table.livemode,
       ]),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
-          using: sql`"organization_id" = current_organization_id() and "active" = true`
+          using: sql`"organization_id" = current_organization_id() and "active" = true`,
         }
       ),
       merchantPolicy(
@@ -347,8 +347,18 @@ export namespace Discount {
 export const createDiscountInputSchema = z.object({
   discount: discountClientInsertSchema,
 })
+
+export const createDiscountFormSchema =
+  createDiscountInputSchema.extend({
+    __rawAmountString: z.string(),
+  })
+
 export type CreateDiscountInput = z.infer<
   typeof createDiscountInputSchema
+>
+
+export type CreateDiscountFormSchema = z.infer<
+  typeof createDiscountFormSchema
 >
 
 export const editDiscountInputSchema = z.object({
@@ -356,8 +366,16 @@ export const editDiscountInputSchema = z.object({
   id: z.string(),
 })
 
+export const editDiscountFormSchema = editDiscountInputSchema.extend({
+  __rawAmountString: z.string(),
+})
+
 export type EditDiscountInput = z.infer<
   typeof editDiscountInputSchema
+>
+
+export type EditDiscountFormSchema = z.infer<
+  typeof editDiscountFormSchema
 >
 
 export const productIdOrPurchaseIdSchema = z

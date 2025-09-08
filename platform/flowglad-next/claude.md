@@ -30,3 +30,8 @@ Do this in four steps:
 2. Stub tests — see [@new-test-2-planning-stubs.md](llm-prompts/new-test-2-planning-stubs.md)
 3. Prepare global setup — see [@new-test-3-before-each-setup.md](llm-prompts/new-test-3-before-each-setup.md)
 4. Implement tests — see [@new-test-4-implementation.md](llm-prompts/new-test-4-implementation.md)
+
+### ast-grep
+Remember that you have `ast-grep` CLI at your disposal.
+
+ast-grep is a code tool for structural search and replace. It is like syntax-aware grep/sed! You can write code patterns to locate and modify code, based on AST, in thousands of files, interactively.

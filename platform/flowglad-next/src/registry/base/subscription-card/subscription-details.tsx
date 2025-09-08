@@ -31,10 +31,7 @@ export function SubscriptionDetails({
         </div>
         <div className="text-right">
           <p className="font-semibold">
-            {formatCurrency(
-              totalAmount,
-              subscription.currency || primaryItem?.currency
-            )}
+            {formatCurrency(totalAmount, subscription.currency)}
           </p>
           {billingInterval && (
             <p className="text-sm text-muted-foreground">
@@ -45,34 +42,38 @@ export function SubscriptionDetails({
       </div>
 
       {/* Current Period */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          <span>Current Period</span>
-        </div>
-        <div className="text-right">
-          <p className="text-sm">
-            {formatDate(subscription.currentPeriodStart)} -{' '}
-            {formatDate(subscription.currentPeriodEnd)}
-          </p>
-        </div>
-      </div>
+      {subscription.currentPeriodStart &&
+        subscription.currentPeriodEnd && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>Current Period</span>
+            </div>
+            <div className="text-right">
+              <p className="text-sm">
+                {formatDate(subscription.currentPeriodStart)} -{' '}
+                {formatDate(subscription.currentPeriodEnd)}
+              </p>
+            </div>
+          </div>
+        )}
 
       {/* Cancellation Notice */}
-      {subscription.cancelAtPeriodEnd && (
-        <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3">
-          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-amber-900">
-              Subscription will end on{' '}
-              {formatDate(subscription.currentPeriodEnd)}
-            </p>
-            <p className="text-xs text-amber-700 mt-1">
-              You will continue to have access until this date
-            </p>
+      {subscription.cancelAtPeriodEnd &&
+        subscription.currentPeriodEnd && (
+          <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3">
+            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900">
+                Subscription will end on{' '}
+                {formatDate(subscription.currentPeriodEnd)}
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                You will continue to have access until this date
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Past Due Notice */}
       {subscription.status === 'past_due' && (
@@ -108,7 +109,7 @@ export function SubscriptionDetails({
                 <span className="font-medium">
                   {formatCurrency(
                     item.unitAmount * item.quantity,
-                    item.currency
+                    subscription.currency
                   )}
                   {item.usageType === 'metered' && (
                     <span className="text-xs text-muted-foreground ml-1">

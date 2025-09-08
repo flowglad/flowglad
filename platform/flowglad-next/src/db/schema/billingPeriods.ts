@@ -36,6 +36,7 @@ export const billingPeriods = pgTable(
       enumBase: BillingPeriodStatus,
     }).notNull(),
     trialPeriod: boolean('trial_period').notNull().default(false),
+    proratedPeriod: boolean('prorated_period').default(false),
   },
   (table) => {
     return [
@@ -49,7 +50,7 @@ export const billingPeriods = pgTable(
           using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
         }
       ),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

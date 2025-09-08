@@ -509,8 +509,8 @@ export const taxSchemaColumns = {
   taxType: core.createSafeZodEnum(TaxType).nullable(),
 }
 
-export const livemodePolicy = () =>
-  pgPolicy('Check mode', {
+export const livemodePolicy = (tableName: string) =>
+  pgPolicy(`Check mode (${tableName})`, {
     as: 'restrictive',
     to: merchantRole,
     for: 'all',
@@ -760,7 +760,7 @@ export const createPaginatedSelectSchema = <T extends {}>(
 ) => {
   return z.object({
     cursor: z.string().optional(),
-    limit: z
+    limit: z.coerce
       .string()
       .transform((str) => Number(str))
       .refine((num) => num >= 1 && num <= 100, {

@@ -9,6 +9,15 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { ClonePricingModelInput } from '@/db/schema/pricingModels'
+import { DestinationEnvironment } from '@/types'
+import { sentenceCase } from 'change-case'
+import {
+  Select,
+  SelectContent,
+  SelectValue,
+  SelectTrigger,
+  SelectItem,
+} from '@/components/ui/select'
 
 const ClonePricingModelFormFields: React.FC = () => {
   const form = useFormContext<ClonePricingModelInput>()
@@ -20,14 +29,44 @@ const ClonePricingModelFormFields: React.FC = () => {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>
-              Catalog Name <span className="text-destructive">*</span>
-            </FormLabel>
+            <FormLabel>Pricing Model Name</FormLabel>
             <FormControl>
               <Input
                 placeholder="Enter pricing model name"
                 {...field}
               />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="destinationEnvironment"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Destination Environment</FormLabel>
+            <FormControl>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Destination Environment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(DestinationEnvironment).map(
+                    (environment) => (
+                      <SelectItem
+                        key={environment}
+                        value={environment}
+                      >
+                        {sentenceCase(environment)}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
             </FormControl>
             <FormMessage />
           </FormItem>

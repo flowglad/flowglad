@@ -1,10 +1,12 @@
 'use client'
 
 import FormModal from '@/components/forms/FormModal'
-import { createPriceSchema } from '@/db/schema/prices'
+import { createPriceFormSchema } from '@/db/schema/prices'
 import PriceFormFields from './PriceFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { PriceType } from '@/types'
+import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 interface CreatePriceModalProps {
   isOpen: boolean
@@ -18,13 +20,13 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
   productId,
 }) => {
   const createPrice = trpc.prices.create.useMutation()
-
+  const { organization } = useAuthenticatedContext()
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Create Price"
-      formSchema={createPriceSchema}
+      formSchema={createPriceFormSchema}
       defaultValues={{
         price: {
           productId,
@@ -33,8 +35,20 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
           unitPrice: 0,
           active: true,
         },
+        __rawPriceString: '0.00',
       }}
-      onSubmit={createPrice.mutateAsync}
+      onSubmit={async (input) => {
+        await createPrice.mutateAsync({
+          ...input,
+          price: {
+            ...input.price,
+            unitPrice: rawStringAmountToCountableCurrencyAmount(
+              organization!.defaultCurrency,
+              input.__rawPriceString!
+            ),
+          },
+        })
+      }}
     >
       <PriceFormFields priceOnly productId={productId} />
     </FormModal>

@@ -10,6 +10,9 @@ import {
   setupInvoice,
   setupPayment,
 } from '@/../seedDatabase'
+import { insertPricingModel } from './tableMethods/pricingModelMethods'
+import { insertProduct } from './tableMethods/productMethods'
+import { insertPrice } from './tableMethods/priceMethods'
 import { sql } from 'drizzle-orm'
 import db from './client'
 import type { Organization } from './schema/organizations'
@@ -20,6 +23,8 @@ import type { Subscription } from './schema/subscriptions'
 import type { Payment } from './schema/payments'
 import type { PaymentMethod } from './schema/paymentMethods'
 import type { Price } from './schema/prices'
+import type { Product } from './schema/products'
+import type { PricingModel } from './schema/pricingModels'
 import { insertUser } from './tableMethods/userMethods'
 import {
   selectCustomers,
@@ -35,13 +40,14 @@ import {
 import {
   selectSubscriptions,
   selectSubscriptionById,
-  insertSubscription,
   updateSubscription,
 } from './tableMethods/subscriptionMethods'
 import {
-  selectPayments,
-  insertPayment,
-} from './tableMethods/paymentMethods'
+  insertCheckoutSession,
+  safelyUpdateCheckoutSessionStatus,
+  updateCheckoutSession,
+} from './tableMethods/checkoutSessionMethods'
+import { selectPayments } from './tableMethods/paymentMethods'
 import { selectPaymentMethods } from './tableMethods/paymentMethodMethods'
 import core from '@/utils/core'
 import {
@@ -51,9 +57,15 @@ import {
   PaymentMethodType,
   CurrencyCode,
   InvoiceType,
+  CheckoutSessionType,
+  CheckoutSessionStatus,
+  PriceType,
+  IntervalUnit,
 } from '@/types'
 import { DbTransaction } from './types'
 import { afterEach } from 'vitest'
+import { selectProducts } from '@/db/tableMethods/productMethods'
+import { setupProduct, setupPricingModel } from '@/../seedDatabase'
 
 /**
  * Helper function to create an authenticated transaction with customer role.
@@ -936,6 +948,99 @@ describe('Customer Role RLS Policies', () => {
     })
   })
 
+  describe('Products visibility by pricing model', () => {
+    it("should allow selecting only products in the authenticated customer's pricing model", async () => {
+      // Create two pricing models and products in org1
+      const pmA = await setupPricingModel({
+        organizationId: org1.id,
+        name: 'PM A',
+      })
+      const pmB = await setupPricingModel({
+        organizationId: org1.id,
+        name: 'PM B',
+      })
+
+      const productA = await setupProduct({
+        organizationId: org1.id,
+        name: 'Product A',
+        pricingModelId: pmA.id,
+      })
+      const productB = await setupProduct({
+        organizationId: org1.id,
+        name: 'Product B',
+        pricingModelId: pmB.id,
+      })
+
+      // Associate customerA with PM A
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          { id: customerA_Org1.id, pricingModelId: pmA.id },
+          transaction
+        )
+      })
+
+      const visibleProducts = await authenticatedCustomerTransaction(
+        customerA_Org1,
+        userA,
+        org1,
+        async ({ transaction }) => {
+          return selectProducts({}, transaction)
+        }
+      )
+
+      // Should only include products tied to PM A, exclude PM B and default org product
+      expect(visibleProducts.length).toBeGreaterThanOrEqual(1)
+      expect(
+        visibleProducts.every((p) => p.pricingModelId === pmA.id)
+      ).toBe(true)
+      expect(visibleProducts.some((p) => p.id === productA.id)).toBe(
+        true
+      )
+      expect(visibleProducts.some((p) => p.id === productB.id)).toBe(
+        false
+      )
+    })
+
+    it('should return no products when the customer has NULL pricingModelId', async () => {
+      // Create a new customer with its own user and NO pricing model
+      const emptyCustomer = await setupCustomer({
+        organizationId: org1.id,
+        email: `nopm_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      const emptyUser = await adminTransaction(
+        async ({ transaction }) => {
+          const user = await insertUser(
+            {
+              id: `usr_${core.nanoid()}`,
+              email: emptyCustomer.email,
+              name: 'No PM User',
+              betterAuthId: `bau_${core.nanoid()}`,
+            },
+            transaction
+          )
+          await updateCustomer(
+            { id: emptyCustomer.id, userId: user.id },
+            transaction
+          )
+          return user
+        }
+      )
+
+      const visibleProducts = await authenticatedCustomerTransaction(
+        emptyCustomer,
+        emptyUser,
+        org1,
+        async ({ transaction }) => {
+          return selectProducts({}, transaction)
+        }
+      )
+
+      expect(visibleProducts).toHaveLength(0)
+    })
+  })
+
   describe('Billing Portal Router Integration', () => {
     it('should only return authenticated customers data in billing queries', async () => {
       // Simulate what the billing portal router does
@@ -1048,6 +1153,774 @@ describe('Customer Role RLS Policies', () => {
       expect(result.ownSubscription.status).toBe(
         SubscriptionStatus.Active
       )
+    })
+  })
+
+  describe('Checkout Session RLS Policies', () => {
+    let activeProduct: Product.Record
+    let inactiveProduct: Product.Record
+    let activePrice: Price.Record
+    let inactivePrice: Price.Record
+    let pricingModelA: PricingModel.Record
+    let pricingModelB: PricingModel.Record
+    let productInModelA: Product.Record
+    let productInModelB: Product.Record
+    let priceInModelA: Price.Record
+    let priceInModelB: Price.Record
+
+    beforeEach(async () => {
+      // Setup pricing models for testing
+      await adminTransaction(async ({ transaction }) => {
+        pricingModelA = await insertPricingModel(
+          {
+            organizationId: org1.id,
+            name: 'Pricing Model A',
+            livemode: true,
+          },
+          transaction
+        )
+
+        pricingModelB = await insertPricingModel(
+          {
+            organizationId: org1.id,
+            name: 'Pricing Model B',
+            livemode: true,
+          },
+          transaction
+        )
+
+        // Create products in different pricing models
+        productInModelA = await insertProduct(
+          {
+            organizationId: org1.id,
+            pricingModelId: pricingModelA.id,
+            name: 'Product in Model A',
+            description: 'Product in pricing model A',
+            imageURL: '',
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: `prod_${core.nanoid()}`,
+            default: false,
+            slug: `product-model-a-${core.nanoid()}`,
+            active: true,
+            livemode: true,
+          },
+          transaction
+        )
+
+        productInModelB = await insertProduct(
+          {
+            organizationId: org1.id,
+            pricingModelId: pricingModelB.id,
+            name: 'Product in Model B',
+            description: 'Product in pricing model B',
+            imageURL: '',
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: `prod_${core.nanoid()}`,
+            default: false,
+            slug: `product-model-b-${core.nanoid()}`,
+            active: true,
+            livemode: true,
+          },
+          transaction
+        )
+
+        // Create prices for products
+        priceInModelA = await insertPrice(
+          {
+            productId: productInModelA.id,
+            name: 'Price in Model A',
+            externalId: `price_${core.nanoid()}`,
+            slug: `price-model-a-${core.nanoid()}`,
+            type: PriceType.Subscription,
+            unitPrice: 5000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: true,
+            livemode: true,
+            isDefault: true,
+            setupFeeAmount: 0,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            usageEventsPerUnit: null,
+            startsWithCreditTrial: false,
+            overagePriceId: null,
+            usageMeterId: null,
+          },
+          transaction
+        )
+
+        priceInModelB = await insertPrice(
+          {
+            productId: productInModelB.id,
+            name: 'Price in Model B',
+            externalId: `price_${core.nanoid()}`,
+            slug: `price-model-b-${core.nanoid()}`,
+            type: PriceType.Subscription,
+            unitPrice: 6000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: true,
+            livemode: true,
+            isDefault: true,
+            setupFeeAmount: 0,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            usageEventsPerUnit: null,
+            startsWithCreditTrial: false,
+            overagePriceId: null,
+            usageMeterId: null,
+          },
+          transaction
+        )
+
+        // Create active and inactive products/prices for testing
+        activeProduct = await insertProduct(
+          {
+            organizationId: org1.id,
+            pricingModelId: pricingModelA.id,
+            name: 'Active Product',
+            description: 'Active product for testing',
+            imageURL: '',
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: `prod_${core.nanoid()}`,
+            default: false,
+            slug: `active-product-${core.nanoid()}`,
+            active: true,
+            livemode: true,
+          },
+          transaction
+        )
+
+        inactiveProduct = await insertProduct(
+          {
+            organizationId: org1.id,
+            pricingModelId: pricingModelA.id,
+            name: 'Inactive Product',
+            description: 'Inactive product for testing',
+            imageURL: '',
+            displayFeatures: [],
+            singularQuantityLabel: 'unit',
+            pluralQuantityLabel: 'units',
+            externalId: `prod_${core.nanoid()}`,
+            default: false,
+            slug: `inactive-product-${core.nanoid()}`,
+            active: false,
+            livemode: true,
+          },
+          transaction
+        )
+
+        activePrice = await insertPrice(
+          {
+            productId: activeProduct.id,
+            name: 'Active Price',
+            externalId: `price_${core.nanoid()}`,
+            slug: `active-price-${core.nanoid()}`,
+            type: PriceType.Subscription,
+            unitPrice: 3000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: true,
+            livemode: true,
+            isDefault: true,
+            setupFeeAmount: 0,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            usageEventsPerUnit: null,
+            startsWithCreditTrial: false,
+            overagePriceId: null,
+            usageMeterId: null,
+          },
+          transaction
+        )
+
+        inactivePrice = await insertPrice(
+          {
+            productId: activeProduct.id,
+            name: 'Inactive Price',
+            externalId: `price_${core.nanoid()}`,
+            slug: `inactive-price-${core.nanoid()}`,
+            type: PriceType.Subscription,
+            unitPrice: 4000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            active: false,
+            livemode: true,
+            isDefault: false,
+            setupFeeAmount: 0,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            usageEventsPerUnit: null,
+            startsWithCreditTrial: false,
+            overagePriceId: null,
+            usageMeterId: null,
+          },
+          transaction
+        )
+
+        // Assign customerA_Org1 to pricing model A
+        await updateCustomer(
+          {
+            id: customerA_Org1.id,
+            pricingModelId: pricingModelA.id,
+          },
+          transaction
+        )
+
+        // Assign customerB_Org1 to pricing model B
+        await updateCustomer(
+          {
+            id: customerB_Org1.id,
+            pricingModelId: pricingModelB.id,
+          },
+          transaction
+        )
+      })
+
+      // Refresh the customer objects AFTER the admin transaction commits
+      await adminTransaction(async ({ transaction }) => {
+        const { selectCustomerById } = await import(
+          './tableMethods/customerMethods'
+        )
+        customerA_Org1 = await selectCustomerById(
+          customerA_Org1.id,
+          transaction
+        )
+        customerB_Org1 = await selectCustomerById(
+          customerB_Org1.id,
+          transaction
+        )
+
+        // Verify the pricing models were assigned correctly
+        if (!customerA_Org1.pricingModelId) {
+          throw new Error(
+            'customerA_Org1 pricingModelId not set after refresh'
+          )
+        }
+        if (!customerB_Org1.pricingModelId) {
+          throw new Error(
+            'customerB_Org1 pricingModelId not set after refresh'
+          )
+        }
+      })
+    })
+
+    describe('Checkout session creation restrictions', () => {
+      it('should prevent customer from directly creating checkout sessions (must use API)', async () => {
+        // Customer should NOT be able to directly create checkout sessions
+        // This must be done through a secure API endpoint
+        await expect(
+          authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              const checkoutSession = await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: priceInModelA.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+
+              return checkoutSession
+            }
+          )
+        ).rejects.toThrow(/Failed to insert.*checkout_sessions/)
+      })
+
+      it('should prevent customer from directly creating checkout session even with active product and price', async () => {
+        // Customer should NOT be able to directly create checkout sessions
+        // This must be done through a secure API endpoint
+        await expect(
+          authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              const checkoutSession = await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: activePrice.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 2,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+
+              return checkoutSession
+            }
+          )
+        ).rejects.toThrow(/Failed to insert.*checkout_sessions/)
+      })
+    })
+
+    describe('Cross-customer checkout session isolation', () => {
+      it('should prevent customer from creating checkout session for another customer in same organization', async () => {
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              // Try to create checkout session for customerB while authenticated as customerA
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerB_Org1.id, // Different customer!
+                  priceId: priceInModelA.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+
+      it('should prevent customer from creating checkout session for customer in different organization', async () => {
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              // Try to create checkout session for customer in org2
+              await insertCheckoutSession(
+                {
+                  organizationId: org2.id,
+                  customerId: customerA_Org2.id,
+                  priceId: org2Price.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+
+      it('should prevent customer from creating checkout session for customer in another organization sharing same user id', async () => {
+        // First, update customerA_Org2 to share the same userId as customerA_Org1
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customerA_Org2.id,
+              userId: userA.id, // Same user as customerA_Org1
+            },
+            transaction
+          )
+        })
+
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              // Try to create checkout session for customerA_Org2 (same user, different org)
+              await insertCheckoutSession(
+                {
+                  organizationId: org2.id,
+                  customerId: customerA_Org2.id,
+                  priceId: org2Price.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+    })
+
+    describe('Pricing model validation', () => {
+      it('should prevent checkout with price from different pricing model in same organization', async () => {
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              // CustomerA is in pricing model A, trying to use price from model B
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: priceInModelB.id, // Price from wrong pricing model!
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+
+      it('should prevent checkout when customer has NULL pricing model', async () => {
+        // Create a customer with NULL pricing model
+        const nullPricingModelCustomer = await setupCustomer({
+          organizationId: org1.id,
+          email: `null_pm_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+
+        const nullPricingModelUser = await adminTransaction(
+          async ({ transaction }) => {
+            const user = await insertUser(
+              {
+                id: `usr_${core.nanoid()}`,
+                email: nullPricingModelCustomer.email,
+                name: 'Null PM Customer',
+                betterAuthId: `bau_${core.nanoid()}`,
+              },
+              transaction
+            )
+
+            await updateCustomer(
+              {
+                id: nullPricingModelCustomer.id,
+                userId: user.id,
+                pricingModelId: null, // Explicitly set to null
+              },
+              transaction
+            )
+
+            return user
+          }
+        )
+
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            nullPricingModelCustomer,
+            nullPricingModelUser,
+            org1,
+            async ({ transaction }) => {
+              // Customer with null pricing model shouldn't be able to checkout any price
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: nullPricingModelCustomer.id,
+                  priceId: priceInModelA.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+
+      it('should prevent checkout with price from different organization', async () => {
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              // Try to use a price from org2 while in org1
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: org2Price.id, // Price from different org!
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+    })
+
+    describe('Product and price active status validation', () => {
+      it('should prevent checkout with price from inactive product', async () => {
+        // Create a price for the inactive product
+        const priceForInactiveProduct = await adminTransaction(
+          async ({ transaction }) => {
+            return await insertPrice(
+              {
+                productId: inactiveProduct.id,
+                name: 'Price for Inactive Product',
+                externalId: `price_${core.nanoid()}`,
+                slug: `price-inactive-product-${core.nanoid()}`,
+                type: PriceType.Subscription,
+                unitPrice: 7000,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                active: true, // Price is active but product is not
+                livemode: true,
+                isDefault: true,
+                setupFeeAmount: 0,
+                trialPeriodDays: 0,
+                currency: CurrencyCode.USD,
+                usageEventsPerUnit: null,
+                startsWithCreditTrial: false,
+                overagePriceId: null,
+                usageMeterId: null,
+              },
+              transaction
+            )
+          }
+        )
+
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: priceForInactiveProduct.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+
+      it('should prevent checkout with inactive price even if product is active', async () => {
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: inactivePrice.id, // Inactive price
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
+
+      it('should prevent checkout when both product and price are inactive', async () => {
+        // Create an inactive price for inactive product
+        const bothInactive = await adminTransaction(
+          async ({ transaction }) => {
+            return await insertPrice(
+              {
+                productId: inactiveProduct.id,
+                name: 'Both Inactive',
+                externalId: `price_${core.nanoid()}`,
+                slug: `both-inactive-${core.nanoid()}`,
+                type: PriceType.Subscription,
+                unitPrice: 8000,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                active: false, // Both product and price inactive
+                livemode: true,
+                isDefault: false,
+                setupFeeAmount: 0,
+                trialPeriodDays: 0,
+                currency: CurrencyCode.USD,
+                usageEventsPerUnit: null,
+                startsWithCreditTrial: false,
+                overagePriceId: null,
+                usageMeterId: null,
+              },
+              transaction
+            )
+          }
+        )
+
+        let error: Error | null = null
+
+        try {
+          await authenticatedCustomerTransaction(
+            customerA_Org1,
+            userA,
+            org1,
+            async ({ transaction }) => {
+              await insertCheckoutSession(
+                {
+                  organizationId: org1.id,
+                  customerId: customerA_Org1.id,
+                  priceId: bothInactive.id,
+                  type: CheckoutSessionType.Product,
+                  status: CheckoutSessionStatus.Open,
+                  quantity: 1,
+                  invoiceId: null,
+                  purchaseId: null,
+                  targetSubscriptionId: null,
+                  automaticallyUpdateSubscriptions: null,
+                  livemode: true,
+                },
+                transaction
+              )
+            }
+          )
+        } catch (err: any) {
+          error = err
+        }
+
+        expect(error).toBeTruthy()
+        expect(error?.message).toMatch(
+          /Failed to insert|violates row-level security|permission denied/i
+        )
+      })
     })
   })
 
