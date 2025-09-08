@@ -619,7 +619,7 @@ export const processStripeChargeForCheckoutSession = async (
       status: checkoutSessionStatus,
       customerName: charge.billing_details?.name,
       customerEmail: charge.billing_details?.email,
-      purchaseId: purchase?.id,
+      purchaseId: purchase?.id ?? checkoutSession.purchaseId,
     } as CheckoutSession.Update,
     transaction
   )

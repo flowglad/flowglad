@@ -143,7 +143,12 @@ export const upsertPaymentForStripeCharge = async (
     }
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
-    organizationId = invoice?.organizationId!
+    if (!checkoutSession.organizationId) {
+      throw new Error(
+        `Checkout session ${checkoutSession.id} does not have an organizationId`
+      )
+    }
+    organizationId = checkoutSession.organizationId
     taxCountry = invoice?.taxCountry ?? null
     purchase = updatedPurchase
     purchaseId = purchase?.id ?? null
@@ -336,6 +341,7 @@ export const processPaymentIntentStatusUpdated = async (
     transaction
   )
   // Fetch customer data for event payload
+  // Re-fetch purchase after update to get the latest status
   const purchase = payment.purchaseId
     ? await selectPurchaseById(payment.purchaseId, transaction)
     : null

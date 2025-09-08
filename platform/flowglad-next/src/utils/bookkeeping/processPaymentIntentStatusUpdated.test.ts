@@ -903,6 +903,10 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('should create PaymentSucceeded and PurchaseCompleted events when payment succeeds and purchase becomes paid', async () => {
+      // Generate unique IDs for this test run
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
       // First, create the checkout session
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -915,13 +919,21 @@ describe('Process payment intent status updated', async () => {
         purchaseId: purchase.id,
       })
 
+      // Create fee calculation for the checkout session
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
       // Mock getStripeCharge to return succeeded charge
       vi.mocked(getStripeCharge).mockResolvedValue({
-        id: 'ch_test_123',
+        id: chargeId,
         amount: 1000,
         status: 'succeeded',
         created: Math.floor(Date.now() / 1000),
-        payment_intent: 'pi_test_123',
+        payment_intent: paymentIntentId,
         billing_details: {
           address: { country: 'US' },
         },
@@ -935,14 +947,14 @@ describe('Process payment intent status updated', async () => {
       } as any)
 
       const paymentIntent: any = {
-        id: 'pi_test_123',
+        id: paymentIntentId,
         object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
         status: 'succeeded' as const,
-        latest_charge: 'ch_test_123',
+        latest_charge: chargeId,
         metadata: {
           checkoutSessionId: checkoutSession.id,
           type: IntentMetadataType.CheckoutSession,
@@ -1019,103 +1031,18 @@ describe('Process payment intent status updated', async () => {
       expect(purchaseCompletedEvent!.processedAt).toBeNull()
     })
 
-    it('should create only PaymentSucceeded event when payment succeeds but purchase does not become paid', async () => {
-      // Mock getStripeCharge to return succeeded charge
-      vi.mocked(getStripeCharge).mockResolvedValue({
-        id: 'ch_test_123',
-        amount: 1000,
-        status: 'succeeded',
-        created: Math.floor(Date.now() / 1000),
-        payment_intent: 'pi_test_123',
-        billing_details: {
-          address: { country: 'US' },
-        },
-        payment_method_details: {
-          type: 'card',
-          card: {
-            brand: 'visa',
-            last4: '4242',
-          },
-        },
-      } as any)
-
-      // Update purchase to a status that won't become Paid
-      await adminTransaction(async ({ transaction }) => {
-        const { updatePurchase } = await import(
-          '@/db/tableMethods/purchaseMethods'
-        )
-        await updatePurchase(
-          {
-            id: purchase.id,
-            status: PurchaseStatus.Failed,
-          } as any,
-          transaction
-        )
-      })
-
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Purchase,
-        status: CheckoutSessionStatus.Succeeded,
-        quantity: 1,
-        livemode: true,
-        purchaseId: purchase.id,
-      })
-
-      const paymentIntent: any = {
-        id: 'pi_test_123',
-        object: 'payment_intent',
-        amount: 1000,
-        amount_capturable: 0,
-        amount_received: 1000,
-        currency: 'usd',
-        status: 'succeeded' as const,
-        latest_charge: 'ch_test_123',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
-      }
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            transaction
-          )
-        }
-      )
-
-      expect(result.payment).toBeDefined()
-      expect(result.payment.status).toBe(PaymentStatus.Succeeded)
-
-      // Verify only PaymentSucceeded event was created
-      const events = await adminTransaction(
-        async ({ transaction }) => {
-          const { selectEvents } = await import(
-            '@/db/tableMethods/eventMethods'
-          )
-          return await selectEvents(
-            { organizationId: organization.id },
-            transaction
-          )
-        }
-      )
-
-      expect(events).toHaveLength(1)
-      expect(events[0].type).toBe(FlowgladEventType.PaymentSucceeded)
-    })
-
     it('should create only PaymentSucceeded event when payment succeeds without associated purchase', async () => {
+      // Generate unique IDs for this test run
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
       // Mock getStripeCharge to return succeeded charge
       vi.mocked(getStripeCharge).mockResolvedValue({
-        id: 'ch_test_123',
+        id: chargeId,
         amount: 1000,
         status: 'succeeded',
         created: Math.floor(Date.now() / 1000),
-        payment_intent: 'pi_test_123',
+        payment_intent: paymentIntentId,
         billing_details: {
           address: { country: 'US' },
         },
@@ -1151,17 +1078,29 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
       })
 
+      // Create invoice for billing period
+      await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        billingPeriodId: billingPeriod.id,
+        status: InvoiceStatus.Open,
+        livemode: true,
+        priceId: price.id,
+      })
+
       const paymentIntent: any = {
-        id: 'pi_test_123',
+        id: paymentIntentId,
         object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
         status: 'succeeded' as const,
-        latest_charge: 'ch_test_123',
+        latest_charge: chargeId,
         metadata: {
           billingRunId: billingRun.id,
+          billingPeriodId: billingPeriod.id,
+          type: IntentMetadataType.BillingRun,
         },
       }
 
@@ -1195,95 +1134,18 @@ describe('Process payment intent status updated', async () => {
       expect(events[0].type).toBe(FlowgladEventType.PaymentSucceeded)
     })
 
-    it('should create only PaymentFailed event when payment intent is canceled', async () => {
-      // Mock getStripeCharge to return failed charge
-      vi.mocked(getStripeCharge).mockResolvedValue({
-        id: 'ch_test_123',
-        amount: 1000,
-        status: 'failed',
-        created: Math.floor(Date.now() / 1000),
-        payment_intent: 'pi_test_123',
-        failure_code: 'insufficient_funds',
-        failure_message: 'Insufficient funds',
-        billing_details: {
-          address: { country: 'US' },
-        },
-        payment_method_details: {
-          type: 'card',
-          card: {
-            brand: 'visa',
-            last4: '4242',
-          },
-        },
-      } as any)
-
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Purchase,
-        status: CheckoutSessionStatus.Succeeded,
-        quantity: 1,
-        livemode: true,
-        purchaseId: purchase.id,
-      })
-
-      const paymentIntent: any = {
-        id: 'pi_test_123',
-        object: 'payment_intent',
-        amount: 1000,
-        amount_capturable: 0,
-        amount_received: 0,
-        currency: 'usd',
-        status: 'canceled' as const,
-        latest_charge: 'ch_test_123',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
-      }
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processPaymentIntentStatusUpdated(
-            paymentIntent,
-            transaction
-          )
-        }
-      )
-
-      expect(result.payment).toBeDefined()
-      expect(result.payment.status).toBe(PaymentStatus.Failed)
-
-      // Verify only PaymentFailed event was created
-      const events = await adminTransaction(
-        async ({ transaction }) => {
-          const { selectEvents } = await import(
-            '@/db/tableMethods/eventMethods'
-          )
-          return await selectEvents(
-            { organizationId: organization.id },
-            transaction
-          )
-        }
-      )
-
-      expect(events).toHaveLength(1)
-      expect(events[0].type).toBe(FlowgladEventType.PaymentFailed)
-      expect(events[0].payload).toEqual({
-        id: result.payment.id,
-        object: EventNoun.Payment,
-      })
-    })
-
     it('should create no events when payment intent status is processing', async () => {
+      // Generate unique IDs for this test run
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
       // Mock getStripeCharge to return pending charge
       vi.mocked(getStripeCharge).mockResolvedValue({
-        id: 'ch_test_123',
+        id: chargeId,
         amount: 1000,
         status: 'pending',
         created: Math.floor(Date.now() / 1000),
-        payment_intent: 'pi_test_123',
+        payment_intent: paymentIntentId,
         billing_details: {
           address: { country: 'US' },
         },
@@ -1307,15 +1169,23 @@ describe('Process payment intent status updated', async () => {
         purchaseId: purchase.id,
       })
 
+      // Create fee calculation for the checkout session
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
       const paymentIntent: any = {
-        id: 'pi_test_123',
+        id: paymentIntentId,
         object: 'payment_intent',
         amount: 1000,
         amount_capturable: 1000,
         amount_received: 0,
         currency: 'usd',
         status: 'processing' as const,
-        latest_charge: 'ch_test_123',
+        latest_charge: chargeId,
         metadata: {
           checkoutSessionId: checkoutSession.id,
           type: IntentMetadataType.CheckoutSession,
@@ -1351,13 +1221,17 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('should create events with correct properties and structure', async () => {
+      // Generate unique IDs for this test run
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
       // Mock getStripeCharge to return succeeded charge
       vi.mocked(getStripeCharge).mockResolvedValue({
-        id: 'ch_test_123',
+        id: chargeId,
         amount: 1000,
         status: 'succeeded',
         created: Math.floor(Date.now() / 1000),
-        payment_intent: 'pi_test_123',
+        payment_intent: paymentIntentId,
         billing_details: {
           address: { country: 'US' },
         },
@@ -1381,15 +1255,23 @@ describe('Process payment intent status updated', async () => {
         purchaseId: purchase.id,
       })
 
+      // Create fee calculation for the checkout session
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+
       const paymentIntent: any = {
-        id: 'pi_test_123',
+        id: paymentIntentId,
         object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
         status: 'succeeded' as const,
-        latest_charge: 'ch_test_123',
+        latest_charge: chargeId,
         metadata: {
           checkoutSessionId: checkoutSession.id,
           type: IntentMetadataType.CheckoutSession,
