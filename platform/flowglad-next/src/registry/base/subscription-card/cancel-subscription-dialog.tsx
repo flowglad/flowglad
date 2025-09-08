@@ -41,10 +41,12 @@ export function CancelSubscriptionDialog({
               What happens when you cancel:
             </h4>
             <ul className="text-sm text-amber-700 space-y-1">
-              <li>
-                • Your subscription will remain active until{' '}
-                {formatDate(currentPeriodEnd)}
-              </li>
+              {currentPeriodEnd && (
+                <li>
+                  • Your subscription will remain active until{' '}
+                  {formatDate(currentPeriodEnd)}
+                </li>
+              )}
               <li>
                 • You won&apos;t be charged after the current period
                 ends

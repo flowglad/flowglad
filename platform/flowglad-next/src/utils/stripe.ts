@@ -289,16 +289,6 @@ export const isCurrencySupported = (currency: CurrencyCode) => {
   return stripeSupportedCurrencies.includes(currency)
 }
 
-export const humanReadableCurrencyAmountToStripeCurrencyAmount = (
-  currency: CurrencyCode,
-  amount: number
-) => {
-  if (!isCurrencyZeroDecimal(currency)) {
-    return amount * 100
-  }
-  return amount
-}
-
 export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   currency: CurrencyCode,
   amount: number
@@ -311,6 +301,26 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
     return formatter.format(Number((amount / 100).toFixed(2)))
   }
   return formatter.format(amount)
+}
+
+export const countableCurrencyAmountToRawStringAmount = (
+  currencyCode: CurrencyCode,
+  amount: number
+) => {
+  if (isCurrencyZeroDecimal(currencyCode)) {
+    return amount.toString()
+  }
+  return (amount / 100).toFixed(2)
+}
+
+export const rawStringAmountToCountableCurrencyAmount = (
+  currencyCode: CurrencyCode,
+  amount: string
+) => {
+  if (isCurrencyZeroDecimal(currencyCode)) {
+    return Number(amount)
+  }
+  return Math.round(Number(amount) * 100)
 }
 
 export const stripe = (livemode: boolean) => {

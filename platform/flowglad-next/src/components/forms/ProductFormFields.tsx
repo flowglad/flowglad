@@ -61,11 +61,12 @@ export const ProductFormFields = ({
             <FormField
               control={form.control}
               name="product.slug"
-              render={() => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Product Slug</FormLabel>
                   <FormControl>
                     <AutoSlugInput
+                      {...field}
                       name="product.slug"
                       sourceName="product.name"
                       placeholder="product_slug"
@@ -74,8 +75,8 @@ export const ProductFormFields = ({
                     />
                   </FormControl>
                   <FormDescription className="text-xs text-subtle mt-1">
-                    Used to identify the product in its pricing
-                    model. Must be unique per-pricing model.
+                    Used to identify the product via API. Must be
+                    unique per-pricing model.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

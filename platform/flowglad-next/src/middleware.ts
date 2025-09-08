@@ -32,9 +32,7 @@ const publicRoutes = [
    */
   '/api/trpc/customerBillingPortal.requestMagicLink',
   '/api/trpc/purchases.(.*)Session',
-  '/api/trpc/checkoutSessions.setPaymentMethodType',
-  '/api/trpc/checkoutSessions.setCustomerEmail',
-  '/api/trpc/checkoutSessions.setBillingAddress',
+  '/api/trpc/checkoutSessions.public.(.*)',
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/discounts.attempt',
   '/api/trpc/discounts.clear',
@@ -65,6 +63,90 @@ if (core.IS_DEV) {
 
 const isPublicRoute = createRouteMatcher(publicRoutes)
 
+type MiddlewareLogicResponse =
+  | {
+      proceed: true
+    }
+  | {
+      proceed: false
+      redirect: {
+        url: string
+        status: number
+      }
+    }
+
+interface MiddlewareLogicParams {
+  sessionCookie: string | null | undefined
+  isProtectedRoute: boolean
+  pathName: string
+  customerBillingPortalOrganizationId: string | null | undefined
+  req: {
+    nextUrl: string
+  }
+}
+
+export const middlewareLogic = (
+  params: MiddlewareLogicParams
+): MiddlewareLogicResponse => {
+  const {
+    sessionCookie,
+    isProtectedRoute,
+    pathName,
+    customerBillingPortalOrganizationId,
+  } = params
+  if (!sessionCookie && isProtectedRoute) {
+    console.log(
+      'sessionCookie is not set and isProtectedRoute is true'
+    )
+    if (pathName.startsWith('/billing-portal/')) {
+      console.log(
+        'redirecting to billing portal sign-in because sessionCookie is not set and pathName starts with /billing-portal/${customerBillingPortalOrganizationId}'
+      )
+
+      const organizationId = pathName.split('/')[2]
+      return {
+        proceed: false,
+        redirect: {
+          url: `/billing-portal/${organizationId}/sign-in`,
+          status: 307,
+        },
+      }
+    }
+    console.log(
+      'redirecting to sign-in because sessionCookie is not set and pathName does not start with /billing-portal/${customerBillingPortalOrganizationId}'
+    )
+
+    return {
+      proceed: false,
+      redirect: {
+        url: '/sign-in',
+        status: 307,
+      },
+    }
+  }
+
+  if (
+    customerBillingPortalOrganizationId &&
+    !pathName.startsWith(
+      `/billing-portal/${customerBillingPortalOrganizationId}`
+    ) &&
+    isProtectedRoute &&
+    !pathName.startsWith('/api/trpc/customerBillingPortal.')
+  ) {
+    console.log(
+      'redirecting to billing portal because customerBillingPortalOrganizationId is set and pathName does not start with /billing-portal/${customerBillingPortalOrganizationId}'
+    )
+    return {
+      proceed: false,
+      redirect: {
+        url: `/billing-portal/${customerBillingPortalOrganizationId}`,
+        status: 307,
+      },
+    }
+  }
+  return { proceed: true }
+}
+
 export default async function middleware(req: NextRequest) {
   // Handle CORS for staging
   if (
@@ -85,30 +167,20 @@ export default async function middleware(req: NextRequest) {
   const sessionCookie = getSessionCookie(req)
   const isProtectedRoute = !isPublicRoute(req)
   const pathName = req.nextUrl.pathname
-  if (!sessionCookie && isProtectedRoute) {
-    if (pathName.startsWith('/billing-portal/')) {
-      return NextResponse.redirect(
-        new URL(
-          `/billing-portal/${pathName.split('/')[2]}/sign-in`,
-          req.url
-        )
-      )
-    }
-    return NextResponse.redirect(new URL('/sign-in', req.url))
-  }
-
   const customerBillingPortalOrganizationId =
     await getCustomerBillingPortalOrganizationId()
-  if (
-    customerBillingPortalOrganizationId &&
-    !pathName.startsWith('/billing-portal/') &&
-    isProtectedRoute
-  ) {
+  const logicParams = {
+    sessionCookie,
+    isProtectedRoute,
+    pathName,
+    customerBillingPortalOrganizationId,
+    req: { nextUrl: req.url },
+  }
+  const logicResult = middlewareLogic(logicParams)
+  if (!logicResult.proceed) {
     return NextResponse.redirect(
-      new URL(
-        `/billing-portal/${customerBillingPortalOrganizationId}`,
-        req.url
-      )
+      new URL(logicResult.redirect.url, req.url),
+      logicResult.redirect.status
     )
   }
 

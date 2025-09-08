@@ -19,9 +19,6 @@ import {
   setupInvoice,
   setupBillingPeriod,
   setupBillingRun,
-  setupInvoiceLineItem,
-  setupPrice,
-  setupProduct,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import type { Organization } from '@/db/schema/organizations'
@@ -56,6 +53,7 @@ import { insertUser } from '@/db/tableMethods/userMethods'
 import core from '@/utils/core'
 import { auth, getSession } from '@/utils/auth'
 import * as authHelpers from '@/utils/authHelpers'
+import { insertCustomer } from '@/db/tableMethods/customerMethods'
 
 // Mock next/headers to avoid Next.js context errors
 vi.mock('next/headers', () => ({
@@ -613,28 +611,39 @@ describe('Customer Billing Portal Router', () => {
 
     test('throws error when customer lacks Stripe customer ID', async () => {
       // Create customer without Stripe ID
-      const customerWithoutStripe = await adminTransaction(
-        async ({ transaction }) => {
-          const { insertCustomer } = await import(
-            '@/db/tableMethods/customerMethods'
-          )
-          return insertCustomer(
-            {
-              organizationId: organization.id,
-              email: `test+${core.nanoid()}@test.com`,
-              name: 'Test Customer Without Stripe',
-              externalId: core.nanoid(),
-              livemode: true,
-              stripeCustomerId: null, // No Stripe customer ID
-              invoiceNumberBase: core.nanoid(),
-              userId: user.id,
-            },
-            transaction
-          )
-        }
-      )
+      const {
+        user: userWithoutStripeCustomer,
+        customer: customerWithoutStripe,
+      } = await adminTransaction(async ({ transaction }) => {
+        const userWithoutStripeCustomer = await insertUser(
+          {
+            id: `user_${core.nanoid()}`,
+            email: `test-no-customer-${core.nanoid()}@test.com`,
+            name: 'User Without Customer',
+            betterAuthId: `better_auth_${core.nanoid()}`,
+          },
+          transaction
+        )
+        const customer = await insertCustomer(
+          {
+            organizationId: organization.id,
+            email: `test+${core.nanoid()}@test.com`,
+            name: 'Test Customer Without Stripe',
+            externalId: core.nanoid(),
+            livemode: true,
+            stripeCustomerId: null, // No Stripe customer ID
+            invoiceNumberBase: core.nanoid(),
+            userId: userWithoutStripeCustomer.id,
+          },
+          transaction
+        )
+        return { user: userWithoutStripeCustomer, customer }
+      })
 
-      const ctx = createTestContext(user, customerWithoutStripe)
+      const ctx = createTestContext(
+        userWithoutStripeCustomer,
+        customerWithoutStripe
+      )
 
       await expect(
         customerBillingPortalRouter
@@ -644,8 +653,23 @@ describe('Customer Billing Portal Router', () => {
     })
 
     test('throws error when customer not found in context', async () => {
+      // Create a user with no associated customer
+      const userWithoutCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return insertUser(
+            {
+              id: `user_${core.nanoid()}`,
+              email: `test-no-customer-${core.nanoid()}@test.com`,
+              name: 'User Without Customer',
+              betterAuthId: `better_auth_${core.nanoid()}`,
+            },
+            transaction
+          )
+        }
+      )
+
       const ctxWithoutCustomer = {
-        ...createTestContext(),
+        ...createTestContext(userWithoutCustomer, undefined),
         customer: undefined,
       }
 

@@ -82,7 +82,7 @@ export const invoiceLineItems = pgTable(
           using: sql`"invoice_id" in (select "id" from "invoices")`,
         }
       ),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

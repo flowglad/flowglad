@@ -1,9 +1,8 @@
 'use client'
-import { useState } from 'react'
-
+import { useEffect, useState, useRef } from 'react'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
-import { CurrencyInput } from '@/components/ion/CurrencyInput'
 import {
   Select,
   SelectContent,
@@ -29,13 +28,14 @@ import {
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
-import { core } from '@/utils/core'
+import { cn, core } from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
-import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
+import { humanReadableCurrencyAmountToStripeCurrencyAmount, isCurrencyZeroDecimal } from '@/utils/stripe'
+import { currencyCharacter } from '@/registry/lib/currency'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 const SubscriptionFields = ({
@@ -51,32 +51,41 @@ const SubscriptionFields = ({
     watch,
   } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization!.defaultCurrency
+  )
   return (
     <>
       <div className="flex items-end gap-2.5">
-        <Controller
+        <FormField
           control={control}
-          name="price.unitPrice"
+          name="__rawPriceString"
           render={({ field }) => (
-            <CurrencyInput
-              value={field.value?.toString() ?? ''}
-              onValueChange={(value) => {
-                if (value.floatValue) {
-                  field.onChange(
-                    humanReadableCurrencyAmountToStripeCurrencyAmount(
-                      organization!.defaultCurrency,
-                      Math.ceil(value.floatValue * 100) / 100
-                    )
-                  )
-                } else {
-                  field.onChange(0)
-                }
-              }}
-              className="flex-1"
-              label="Amount"
-            />
+            <FormItem className="flex-1">
+              <FormLabel>Amount</FormLabel>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {currencyCharacter(organization!.defaultCurrency)}
+                </span>
+                <FormControl>
+                  <CurrencyInput
+                    value={field.value?.toString() ?? ''}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        const zeroValue = zeroDecimal ? '0' : '0.00'
+                        field.onChange(zeroValue)
+                        return
+                      }
+                      field.onChange(value)
+                    }}
+                    allowDecimals={!zeroDecimal}
+                  />
+                </FormControl>
+              </div>
+            </FormItem>
           )}
         />
+
         <FormField
           control={control}
           name="price.intervalUnit"
@@ -162,18 +171,37 @@ const SinglePaymentFields = () => {
     formState: { errors },
     control,
   } = usePriceFormContext()
+  const { organization } = useAuthenticatedContext()
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization!.defaultCurrency
+  )
+
   return (
     <div className="flex items-end gap-2.5">
       <FormField
         control={control}
-        name="price.unitPrice"
+        name="__rawPriceString"
         render={({ field }) => (
           <FormItem className="flex-1">
             <FormLabel>Amount</FormLabel>
-            <FormControl>
-              <CurrencyInput {...field} className="flex-1" />
-            </FormControl>
-            <FormMessage />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {currencyCharacter(organization!.defaultCurrency)}
+              </span>
+              <FormControl>
+                <CurrencyInput
+                  value={field.value?.toString() ?? ''}
+                  onValueChange={(value) => {
+                    if (!value) {
+                      field.onChange('0')
+                      return
+                    }
+                    field.onChange(value)
+                  }}
+                  allowDecimals={!zeroDecimal}
+                />
+              </FormControl>
+            </div>
           </FormItem>
         )}
       />
@@ -255,11 +283,12 @@ const PriceFormFields = ({
       <FormField
         control={control}
         name="price.slug"
-        render={() => (
+        render={({ field }) => (
           <FormItem>
             <FormLabel>Price Slug</FormLabel>
             <FormControl>
               <AutoSlugInput
+                {...field}
                 name="price.slug"
                 sourceName={priceOnly ? "price.name" : "product.name"}
                 placeholder="price_slug"
@@ -267,8 +296,8 @@ const PriceFormFields = ({
               />
             </FormControl>
             <FormDescription>
-              The slug is used to identify the price in the API. It
-              must be unique within the pricing model.
+              The slug is used to identify the price in the API. Must
+              be unique per-pricing model.
             </FormDescription>
             <FormMessage />
           </FormItem>
