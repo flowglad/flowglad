@@ -2,12 +2,12 @@
 **IMPORTANT**: This project uses `pnpm` as its package manager. ALWAYS use `pnpm` for all package management operations. Never use `npm` or `yarn`.
 
 Examples:
-- Install dependencies: `pnpm install`
-- Add a package: `pnpm add <package-name>`
-- Run scripts: `pnpm run <script-name>`
+- Install dependencies: `pnpm install-packages`
+- Add a package: `pnpm install-packages <package-name>`
 - Build: `pnpm build`
 - Lint: `pnpm lint`
-- Type check: `pnpm type-check`
+
+## Installing Dependencies 
 
 ## On Every Change
 Whenever you complete a task, confirm that everything lints as expected:
@@ -32,6 +32,5 @@ Do this in four steps:
 4. Implement tests — see [@new-test-4-implementation.md](llm-prompts/new-test-4-implementation.md)
 
 ### ast-grep
-Remember that you have `ast-grep` CLI at your disposal.
 
-ast-grep is a code tool for structural search and replace. It is like syntax-aware grep/sed! You can write code patterns to locate and modify code, based on AST, in thousands of files, interactively.
+You run in an environment where `ast-grep` is available; whenever a search requires syntax-aware or structural matching, default to `ast-grep --lang rust -p '<pattern>'` (or set `--lang` appropriately) and avoid falling back to text-only tools like `rg` or `grep` unless I explicitly request a plain-text search.
