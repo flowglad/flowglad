@@ -1,7 +1,8 @@
 {
-  "name": "goobr-app",
-  "version": "0.1.0",
+  "name": "@flowglad/javascript",
   "private": true,
+  "license": "MIT",
+  "version": "0.0.0",
   "scripts": {
     "randombytes": "tsx scripts/randomBytes.ts",
     "test": "pnpm -r test",
