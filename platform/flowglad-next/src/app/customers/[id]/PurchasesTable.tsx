@@ -82,7 +82,7 @@ const PurchasesTable = ({
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => {
             return (
-              <span className="text-sm font-medium w-[25ch] truncate">
+              <span className="text-sm font-normal w-[25ch] truncate">
                 {cellData.purchase.name}
               </span>
             )

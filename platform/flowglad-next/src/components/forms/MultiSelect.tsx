@@ -553,11 +553,11 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'flex items-center w-full rounded-lg-sm border text-sm text-foreground',
+              'flex items-center w-full rounded-2xl border text-sm text-foreground',
               'transition-all',
               'min-h-9 h-auto',
               'overflow-hidden',
-              'px-3 py-1.5',
+              'px-1 py-1.5',
               {
                 [disabled ? 'bg-muted' : 'bg-background']: true,
                 'hover:border-outline': !disabled && !resolvedError,
@@ -584,7 +584,7 @@ const MultipleSelector = React.forwardRef<
                   <Badge
                     key={option.value}
                     className={cn(
-                      'py-1',
+                      'py-1 rounded-full bg-accent text-foreground border-transparent hover:bg-accent/80 shadow-none',
                       'data-[disabled]:bg-muted-foreground data-[disabled]:text-muted data-[disabled]:hover:bg-muted-foreground',
                       'data-[fixed]:bg-muted-foreground data-[fixed]:text-muted data-[fixed]:hover:bg-muted-foreground',
                       badgeClassName
@@ -610,7 +610,7 @@ const MultipleSelector = React.forwardRef<
                       }}
                       onClick={() => handleUnselect(option)}
                     >
-                      <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      <X className="h-3 w-3 text-foreground hover:text-foreground/80" />
                     </button>
                   </Badge>
                 )
@@ -647,7 +647,7 @@ const MultipleSelector = React.forwardRef<
                     'w-full':
                       hidePlaceholderWhenSelected &&
                       selected.length > 0,
-                    'ml-1':
+                    'ml-0':
                       selected.length !== 0 &&
                       (!hidePlaceholderWhenSelected ||
                         selected.length > 0),
@@ -677,7 +677,7 @@ const MultipleSelector = React.forwardRef<
           <div className="relative">
             {open && (
               <CommandList
-                className="absolute top-1 z-10 w-full rounded-md border border-muted bg-background text-on-background shadow-medium outline-none animate-in"
+                className="absolute top-1 z-10 w-full rounded-xl border bg-popover p-1 text-popover-foreground shadow-md outline-none animate-in"
                 onMouseLeave={() => {
                   setOnScrollbar(false)
                 }}

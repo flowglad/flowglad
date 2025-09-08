@@ -144,7 +144,7 @@ export const ProductFormFields = ({
                 />
               </div>
             )}
-            <div className="w-full mt-4">
+            <div className="w-full">
               <ProductFeatureMultiSelect
                 pricingModelId={product.pricingModelId}
                 productId={
@@ -186,10 +186,10 @@ export const ProductFormFields = ({
               />
             )}
           </div>
-          <div className="w-full mt-8">
+          <div className="w-full mt-6">
             <PriceFormFields edit={editProduct} />
           </div>
-          <div className="w-full mt-8">
+          <div className="w-full mt-6">
             <FileInput
               directory="products"
               onUploadComplete={({ publicURL }) => {

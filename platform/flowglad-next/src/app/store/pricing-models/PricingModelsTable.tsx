@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { Pencil, Copy, Star } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
@@ -26,16 +27,19 @@ const MoreMenuCell = ({
   const menuItems: PopoverMenuItem[] = [
     {
       label: 'Edit Pricing Model',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Clone Pricing Model',
+      icon: <Copy />,
       handler: () => setIsCloneOpen(true),
     },
   ]
   if (!pricingModel.isDefault) {
     menuItems.push({
       label: 'Set as Default',
+      icon: <Star />,
       handler: () => setIsSetDefaultOpen(true),
     })
   }

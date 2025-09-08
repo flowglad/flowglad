@@ -111,7 +111,7 @@ export const BillingHeader = React.forwardRef<
     >
       <div className="bg-card w-full flex justify-center rounded-lg px-6 py-4 relative border border-border shadow">
         <div className="w-full flex flex-col items-center gap-4">
-          <div className="text-2xl font-medium text-foreground w-full text-center">
+          <div className="text-2xl font-normal text-foreground w-full text-center">
             {product.name}
           </div>
           <div className="text-lg text-muted-foreground text-center w-full">

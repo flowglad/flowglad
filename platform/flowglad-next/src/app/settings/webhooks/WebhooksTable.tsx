@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Eye, Pencil } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { Webhook } from '@/db/schema/webhooks'
@@ -42,10 +43,12 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Show Signing Secret',
+      icon: <Eye />,
       handler: handleShowSecret,
     },
     {
       label: 'Edit Webhook',
+      icon: <Pencil />,
       handler: () => setIsEditModalOpen(true),
     },
   ]

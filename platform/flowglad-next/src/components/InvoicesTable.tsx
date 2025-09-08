@@ -1,4 +1,5 @@
 import { DataTable } from '@/components/ui/data-table'
+import { Link, Pencil, Mail } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
@@ -79,6 +80,7 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Copy URL',
+      icon: <Link />,
       handler: copyInvoiceUrlHandler,
     },
   ]
@@ -86,12 +88,14 @@ const MoreMenuCell = ({
   if (!invoiceIsInTerminalState(invoice)) {
     items.push({
       label: 'Edit Invoice',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     })
 
     if (invoice.status !== InvoiceStatus.Draft) {
       items.push({
         label: 'Send Reminder Email',
+        icon: <Mail />,
         handler: () => setIsSendReminderEmailOpen(true),
       })
     }
@@ -161,7 +165,7 @@ const InvoicesTable = ({
           accessorKey: 'amount',
           cell: ({ row: { original: cellData } }) => (
             <>
-              <span className="font-bold text-sm">
+              <span className="font-normal text-sm">
                 {stripeCurrencyAmountToHumanReadableCurrencyAmount(
                   cellData.invoice.currency,
                   0

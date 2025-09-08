@@ -28,6 +28,7 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Refund Payment',
+      icon: <RotateCcw />,
       handler: () => setIsRefundOpen(true),
       disabled: payment.status !== PaymentStatus.Succeeded,
     },

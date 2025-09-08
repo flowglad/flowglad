@@ -32,7 +32,7 @@ export function TableHeader({ title, ...props }: TableHeaderProps) {
 
   return (
     <div className="w-full flex justify-between items-start">
-      <div className="text-xl font-semibold text-foreground">
+      <div className="text-xl font-normal text-foreground">
         {title}
       </div>
       {hasButtons && (

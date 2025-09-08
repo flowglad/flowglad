@@ -9,11 +9,14 @@ import {
   DiscountAmountType,
   DiscountDuration,
 } from '@/types'
-import { PopoverMenuItem } from '@/components/PopoverMenu'
+import {
+  PopoverMenuItem,
+  PopoverMenuItemState,
+} from '@/components/PopoverMenu'
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
 import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'
 import StatusBadge from '@/components/StatusBadge'
-import { RotateCw, Infinity } from 'lucide-react'
+import { RotateCw, Infinity, Pencil, Trash2 } from 'lucide-react'
 import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { trpc } from '@/app/_trpc/client'
@@ -30,10 +33,13 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit Discount',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Delete Discount',
+      icon: <Trash2 />,
+      state: PopoverMenuItemState.Danger,
       handler: () => setIsDeleteOpen(true),
     },
   ]

@@ -19,7 +19,7 @@ import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { useCopyTextHandler } from '../hooks/useCopyTextHandler'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon, Pencil, ExternalLink, Copy } from 'lucide-react'
 import debounce from 'debounce'
 
 const customerStatusColors: Record<InferredCustomerStatus, string> = {
@@ -68,18 +68,22 @@ const CustomerMoreMenuCell = ({
   const basePopoverMenuItems = [
     {
       label: 'Edit Customer',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Copy Portal Link',
+      icon: <ExternalLink />,
       handler: copyPortalURLHandler,
     },
     {
       label: 'Copy External ID',
+      icon: <Copy />,
       handler: copyExternalIDHandler,
     },
     {
       label: 'Copy ID',
+      icon: <Copy />,
       handler: copyIDHandler,
     },
   ]

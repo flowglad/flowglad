@@ -1,7 +1,14 @@
 // Generated with Ion on 9/23/2024, 6:30:46 PM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=372:6968
 'use client'
-import { Image as ImageIcon } from 'lucide-react'
+import {
+  Image as ImageIcon,
+  Pencil,
+  Copy,
+  Archive,
+  ArchiveRestore,
+  Plus,
+} from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import { DataTable } from '@/components/ui/data-table'
@@ -61,22 +68,26 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit product',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Copy purchase link',
+      icon: <Copy />,
       handler: copyPurchaseLinkHandler,
     },
     {
       label: product.active
         ? 'Deactivate product'
         : 'Activate product',
+      icon: product.active ? <Archive /> : <ArchiveRestore />,
       handler: () => setIsArchiveOpen(true),
     },
   ]
   if (product.active) {
     items.push({
       label: 'Create price',
+      icon: <Plus />,
       handler: () => setIsCreatePriceOpen(true),
     })
   }
@@ -134,18 +145,22 @@ export const ProductsTable = ({
       [
         {
           id: 'image',
+          size: 40, // Fixed width for image column
           cell: ({ row: { original: cellData } }) => (
             <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md">
               {cellData.product.imageURL ? (
                 <Image
                   src={cellData.product.imageURL}
                   alt={cellData.product.name}
-                  width={140}
-                  height={80}
+                  width={40}
+                  height={40}
                   className="object-cover object-center overflow-hidden h-10 w-10"
                 />
               ) : (
-                <ImageIcon size={20} />
+                <ImageIcon
+                  size={16}
+                  className="text-muted-foreground"
+                />
               )}
             </div>
           ),
@@ -156,7 +171,7 @@ export const ProductsTable = ({
           accessorKey: 'product.name',
           cell: ({ row: { original: cellData } }) => (
             <>
-              <span className="font-bold text-sm">
+              <span className="font-normal text-sm">
                 {cellData.product.name}
               </span>
             </>
@@ -176,26 +191,6 @@ export const ProductsTable = ({
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.product.active} />
           ),
-        },
-        {
-          id: 'created',
-          header: 'Created',
-          accessorKey: 'product.createdAt',
-          cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.product.createdAt!)}</>
-          ),
-        },
-        {
-          id: 'pricingModel',
-          header: 'Pricing Model',
-          accessorKey: 'pricingModel.name',
-          cell: ({ row: { original: cellData } }) => {
-            const pricingModelName = cellData.pricingModel?.name
-            if (pricingModelName) {
-              return <div className="w-fit">{pricingModelName}</div>
-            }
-            return <div className="w-fit">-</div>
-          },
         },
         {
           header: 'ID',

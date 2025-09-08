@@ -50,7 +50,7 @@ const OnboardingStatusRow = ({
     <>
       <div className="flex flex-row items-center justify-between border border-border rounded-lg bg-card py-4 px-4">
         <div className="flex flex-col justify-start w-full">
-          <p className="font-medium text-foreground pb-1">{title}</p>
+          <p className="font-normal text-foreground pb-1">{title}</p>
           <OnboardingItemDescriptionLabel>
             {description}
           </OnboardingItemDescriptionLabel>
@@ -117,7 +117,7 @@ const CodeblockGroup = ({
         <Tabs
           value={selectedSection}
           onValueChange={setSelectedSection}
-          className="w-full flex border-b border-muted font-semibold"
+          className="w-full flex border-b border-muted font-normal"
         >
           <TabsList className="gap-8">
             {sections.map((section) => (

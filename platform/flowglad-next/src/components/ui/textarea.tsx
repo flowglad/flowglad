@@ -39,7 +39,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             setCharCount(e.target.value.length)
           }}
           className={cn(
-            'flex min-h-[80px] w-full rounded-2xl border-input bg-background px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring-strong focus-visible:bg-transparent',
+            'flex min-h-[80px] w-full rounded-2xl border border-input bg-background px-3 py-2 text-base transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
             textareaClassName
           )}
           {...props}

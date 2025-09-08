@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from '@/utils/core'
-import { PopoverMenuItem } from '@/components/PopoverMenu'
+import {
+  PopoverMenuItem,
+  PopoverMenuItemState,
+} from '@/components/PopoverMenu'
 import { FlowgladApiKeyType } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
 import { trpc } from '@/app/_trpc/client'
@@ -29,6 +33,8 @@ const MoreMenuCell = ({
   if (isKeyDeleteable) {
     basePopoverMenuItems.push({
       label: 'Delete API Key',
+      icon: <Trash2 />,
+      state: PopoverMenuItemState.Danger,
       handler: () => setIsDeleteOpen(true),
     })
   }

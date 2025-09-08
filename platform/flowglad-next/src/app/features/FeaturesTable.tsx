@@ -1,5 +1,6 @@
 'use client'
 import { useMemo, useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
 
@@ -36,6 +37,7 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit feature',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
   ]
@@ -77,7 +79,7 @@ const FeaturesTable = ({
           header: 'Name',
           accessorKey: 'feature.name',
           cell: ({ row: { original: cellData } }) => (
-            <span className="font-bold text-sm">
+            <span className="font-normal text-sm">
               {cellData.feature.name}
             </span>
           ),

@@ -1,4 +1,13 @@
-import { ChartColumnIncreasing, Plus } from 'lucide-react'
+import {
+  ChartColumnIncreasing,
+  Plus,
+  Pencil,
+  Copy,
+  Archive,
+  ArchiveRestore,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RotateCw, Check } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
@@ -41,10 +50,12 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit price',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Copy purchase link',
+      icon: <Copy />,
       handler: copyTextHandler,
     },
   ]
@@ -55,12 +66,14 @@ const MoreMenuCell = ({
   if (!price.active) {
     items.push({
       label: 'Unarchive price',
+      icon: <ArchiveRestore />,
       handler: () => setIsArchiveOpen(true),
     })
   }
   if (!price.isDefault && otherPrices.some((p) => p.isDefault)) {
     items.push({
       label: 'Make default',
+      icon: <Star />,
       handler: () => setIsSetDefaultOpen(true),
     })
   }
@@ -80,6 +93,7 @@ const MoreMenuCell = ({
     }
     items.push({
       label: 'Archive price',
+      icon: <Archive />,
       handler: () => setIsArchiveOpen(true),
       disabled: !canDelist,
       helperText,
@@ -87,6 +101,7 @@ const MoreMenuCell = ({
   }
   items.push({
     label: 'Delete price',
+    icon: <Trash2 />,
     state: PopoverMenuItemState.Danger,
     disabled: !canDelist,
     handler: () => {
@@ -120,7 +135,7 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
       return (
         <div className="flex items-center gap-3">
           <RotateCw size={16} strokeWidth={2} />
-          <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
+          <div className="w-fit flex flex-col justify-center text-sm font-normal text-foreground">
             Subscription
           </div>
         </div>
@@ -128,7 +143,7 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
     case PriceType.SinglePayment:
       return (
         <div className="flex items-center gap-3">
-          <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
+          <div className="w-fit flex flex-col justify-center text-sm font-normal text-foreground">
             Single Payment
           </div>
         </div>
@@ -137,7 +152,7 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
       return (
         <div className="flex items-center gap-3">
           <ChartColumnIncreasing size={16} strokeWidth={2} />
-          <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
+          <div className="w-fit flex flex-col justify-center text-sm font-normal text-foreground">
             Usage
           </div>
         </div>

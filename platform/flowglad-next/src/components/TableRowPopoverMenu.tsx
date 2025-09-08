@@ -1,9 +1,10 @@
-import { Ellipsis } from 'lucide-react'
+import { MoreVertical } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
 import PopoverMenu, { PopoverMenuProps } from './PopoverMenu'
 
 export type TableRowPopoverMenuProps = PopoverMenuProps
@@ -18,10 +19,17 @@ export function TableRowPopoverMenu({
      */
     <div onClick={(e) => e.stopPropagation()}>
       <Popover>
-        <PopoverTrigger className="w-8 h-8 justify-center">
-          <Ellipsis size={16} className="rotate-90" />
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+            size="icon"
+          >
+            <MoreVertical className="h-4 w-4" />
+            <span className="sr-only">Open menu</span>
+          </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-fit" align="end">
+        <PopoverContent className="w-fit p-1" align="end">
           <PopoverMenu items={items} />
         </PopoverContent>
       </Popover>

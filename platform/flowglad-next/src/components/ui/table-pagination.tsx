@@ -29,7 +29,7 @@ export function TablePagination({
           <span>Loading...</span>
         ) : (
           <span>
-            Showing {showingStart} to {showingEnd} of {total} results
+            Showing {showingEnd} of {total} results
           </span>
         )}
       </p>
