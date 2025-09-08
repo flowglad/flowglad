@@ -20,7 +20,6 @@ import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/utils/core'
 import { useEffect, useState } from 'react'
 import { FallbackSkeleton } from '../ui/skeleton'
-import { FeatureFlag } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
 import {
   SidebarHeader,
@@ -92,16 +91,11 @@ export const SideNavigation = () => {
       label: 'Purchases',
       href: '/store/purchases',
     },
-  ]
-  if (
-    organization &&
-    organization.featureFlags?.[FeatureFlag.Usage]
-  ) {
-    storeChildItems.push({
+    {
       label: 'Usage Meters',
       href: '/store/usage-meters',
-    })
-  }
+    },
+  ]
 
   return (
     <>
