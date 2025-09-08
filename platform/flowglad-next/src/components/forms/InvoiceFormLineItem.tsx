@@ -18,8 +18,11 @@ import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { CurrencyInput } from '../ion/CurrencyInput'
-import { currencyCharacter } from '@/registry/lib/currency'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import {
+  currencyCharacter,
+  isCurrencyZeroDecimal,
+} from '@/registry/lib/currency'
 import { cn } from '@/utils/core'
 
 interface InvoiceFormLineItemProps {
@@ -56,6 +59,10 @@ const InvoiceFormLineItem = ({
   const xOnClickHandler = () => {
     onRemove(id)
   }
+
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization!.defaultCurrency
+  )
 
   return (
     <div
@@ -120,14 +127,6 @@ const InvoiceFormLineItem = ({
               <FormControl>
                 <CurrencyInput
                   value={field.value?.toString() ?? ''}
-                  className={cn(
-                    'flex h-9 w-full rounded-md border bg-input px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-                    form.formState.errors.invoiceLineItems?.[index]
-                      ?.price
-                      ? 'border-destructive focus-visible:ring-destructive'
-                      : 'border-transparent focus-visible:border-stroke-strong focus-visible:bg-transparent focus-visible:ring-0',
-                    'flex-1'
-                  )}
                   onValueChange={(value) => {
                     if (!value) {
                       field.onChange('0')
@@ -135,6 +134,7 @@ const InvoiceFormLineItem = ({
                     }
                     field.onChange(value?.floatValue != null ? humanReadableCurrencyAmountToStripeCurrencyAmount(organization!.defaultCurrency, value.floatValue) : 0)
                   }}
+                  allowDecimals={!zeroDecimal}
                 />
               </FormControl>
             </div>
