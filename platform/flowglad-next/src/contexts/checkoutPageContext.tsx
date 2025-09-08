@@ -55,13 +55,13 @@ export type CheckoutPageContextValues = {
     typeof trpc.purchases.updateSession.useMutation
   >['mutateAsync']
   editCheckoutSessionPaymentMethodType: ReturnType<
-    typeof trpc.checkoutSessions.setPaymentMethodType.useMutation
+    typeof trpc.checkoutSessions.public.setPaymentMethodType.useMutation
   >['mutateAsync']
   editCheckoutSessionCustomerEmail: ReturnType<
-    typeof trpc.checkoutSessions.setCustomerEmail.useMutation
+    typeof trpc.checkoutSessions.public.setCustomerEmail.useMutation
   >['mutateAsync']
   editCheckoutSessionBillingAddress: ReturnType<
-    typeof trpc.checkoutSessions.setBillingAddress.useMutation
+    typeof trpc.checkoutSessions.public.setBillingAddress.useMutation
   >['mutateAsync']
   attemptDiscountCode: ReturnType<
     typeof trpc.discounts.attempt.useMutation
@@ -70,7 +70,7 @@ export type CheckoutPageContextValues = {
     typeof trpc.discounts.clear.useMutation
   >['mutateAsync']
   editCheckoutSessionAutomaticallyUpdateSubscriptions: ReturnType<
-    typeof trpc.checkoutSessions.setAutomaticallyUpdateSubscriptions.useMutation
+    typeof trpc.checkoutSessions.public.setAutomaticallyUpdateSubscriptions.useMutation
   >['mutateAsync']
   discountCode?: string
   checkoutBlocked?: boolean
@@ -141,13 +141,13 @@ export const useCheckoutPageContext =
     const editCheckoutSession =
       trpc.purchases.updateSession.useMutation()
     const editCheckoutSessionPaymentMethodType =
-      trpc.checkoutSessions.setPaymentMethodType.useMutation()
+      trpc.checkoutSessions.public.setPaymentMethodType.useMutation()
     const editCheckoutSessionCustomerEmail =
-      trpc.checkoutSessions.setCustomerEmail.useMutation()
+      trpc.checkoutSessions.public.setCustomerEmail.useMutation()
     const editCheckoutSessionBillingAddress =
-      trpc.checkoutSessions.setBillingAddress.useMutation()
+      trpc.checkoutSessions.public.setBillingAddress.useMutation()
     const editCheckoutSessionAutomaticallyUpdateSubscriptions =
-      trpc.checkoutSessions.setAutomaticallyUpdateSubscriptions.useMutation()
+      trpc.checkoutSessions.public.setAutomaticallyUpdateSubscriptions.useMutation()
     const attemptDiscountCode = trpc.discounts.attempt.useMutation()
     const clearDiscountCode = trpc.discounts.clear.useMutation()
     const router = useRouter()

@@ -140,6 +140,7 @@ const isCustomerBillingAuthed = t.middleware(
 
 // Protected procedure with tracing
 export const protectedProcedure = baseProcedure.use(isAuthed)
+
 export const customerProtectedProcedure =
   baseProcedure.use(isCustomerAuthed)
 export const customerBillingProtectedProcedure = baseProcedure.use(

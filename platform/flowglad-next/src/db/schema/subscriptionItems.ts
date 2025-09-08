@@ -98,7 +98,7 @@ export const subscriptionItems = pgTable(
           using: sql`"subscriptionId" in (select "id" from "Subscriptions")`,
         }
       ),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

@@ -155,7 +155,7 @@ export const prices = pgTable(
         parentIdColumnInCurrentTable: 'product_id',
         currentTableName: TABLE_NAME,
       }),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

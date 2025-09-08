@@ -100,7 +100,7 @@ export const products = pgTable(TABLE_NAME, columns, (table) => {
         using: sql`"organization_id" in (select "organization_id" from "memberships")`,
       }
     ),
-    livemodePolicy(),
+    livemodePolicy(TABLE_NAME),
   ]
 }).enableRLS()
 

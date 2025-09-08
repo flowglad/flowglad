@@ -2,17 +2,23 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { clearCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import {
+  clearCustomerBillingPortalOrganizationId,
+  setCustomerBillingPortalOrganizationId,
+} from '@/utils/customerBillingPortalState'
 import { redirect } from 'next/navigation'
+import { NextRequest, NextResponse } from 'next/server'
 
-const MagicLinkSuccessPage = async ({
-  params,
-}: {
-  params: Promise<{ organizationId: string }>
-}) => {
+export const GET = async (
+  request: NextRequest,
+  { params }: { params: Promise<{ organizationId: string }> }
+) => {
   const session = await getSession()
   if (!session) {
-    return <div>No session found</div>
+    return NextResponse.json(
+      { error: 'No session found' },
+      { status: 401 }
+    )
   }
 
   const user = await betterAuthUserToApplicationUser(session.user)
@@ -28,10 +34,13 @@ const MagicLinkSuccessPage = async ({
 
   if (customers.length === 0) {
     await clearCustomerBillingPortalOrganizationId()
-    return <div>No customers found for this user</div>
+    return NextResponse.json(
+      { error: 'No customers found for this user' },
+      { status: 404 }
+    )
   }
-
-  redirect(`/billing-portal/${organizationId}`)
+  await setCustomerBillingPortalOrganizationId(organizationId)
+  return NextResponse.redirect(
+    new URL(`/billing-portal/${organizationId}`, request.url)
+  )
 }
-
-export default MagicLinkSuccessPage

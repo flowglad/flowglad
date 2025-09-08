@@ -371,7 +371,6 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
   })
 
-  // TODO: restore this test once we have a way to set up payment intents with associated charges
   it('processes a PaymentIntentCanceled event correctly', async () => {
     const stripePaymentIntentId = `pi_${new Date().getTime()}__canceled`
     const billingRun = await setupBillingRun({
@@ -464,7 +463,6 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
   })
 
-  // TODO: restore this test once we have a way to set up payment intents with associated charges
   it('processes a PaymentIntentProcessing event correctly', async () => {
     const stripePaymentIntentId = `pi_${new Date().getTime()}___processing`
     const billingRun = await setupBillingRun({
@@ -539,8 +537,6 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
   })
 
-  // TODO: restore this test once we have a way to set up payment intents with associated charges
-  // in pre-determined states.
   it('processes a PaymentIntentRequiresAction event correctly', async () => {
     const stripePaymentIntentId = `pi_${new Date().getTime()}___requires_action`
     const stripeChargeId = `ch_${new Date().getTime()}___processing`

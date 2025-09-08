@@ -3,6 +3,13 @@ export type SubscriptionStatus =
   | 'canceled'
   | 'past_due'
   | 'trialing'
+  | 'credit_trial'
+  | 'inactive'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'past_due'
+  | 'paused'
+  | 'unpaid'
 
 export function getStatusColor(status: SubscriptionStatus): string {
   switch (status) {
