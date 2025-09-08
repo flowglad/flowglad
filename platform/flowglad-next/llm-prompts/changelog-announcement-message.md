@@ -10,6 +10,7 @@ Using the git commit logs from the past 2 weeks, generate a concise, customer-fa
 * Tone: Sincere, thoughtful, thorough, and easy to digest for customers.
 * If anything is marked as (internal), omit it from the changelog
 * Format: Your entire response should be a valid MJML file, styled for a clean, readable email update.
+* Theme Support: The MJML template includes CSS media queries to automatically detect system theme preferences (light/dark mode) and apply appropriate colors. The template defaults to light theme colors and switches to dark theme when the user's system is set to dark mode.
 Input for your processing:
 * Pull commit logs using:git log --pretty=format:"%h - %an, %ar :%n%s%n%b" --since="2 weeks ago"
 Example:
@@ -21,20 +22,21 @@ Example:
     />
     <mj-attributes>
       <mj-all font-family="Inter, Arial, sans-serif" />
-      <mj-text font-size="16px" line-height="1.6" color="#F5F5F5" align="left" padding="0" />
+      <mj-text font-size="16px" line-height="1.6" color="#1F2937" align="left" padding="0" />
       <mj-button font-weight="600" border-radius="8px" />
       <mj-section padding="0" />
       <mj-column padding="0" />
     </mj-attributes>
     <mj-style inline="inline">
+      /* Light theme (default) */
       .cardColumn {
-        background-color: #232323 !important;
-        border: 1px solid #424242 !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
         border-radius: 8px !important;
       }
       a {
         text-decoration: none;
-        color: #F5F5F5;
+        color: #1F2937;
       }
       ol,
       ul {
@@ -44,10 +46,30 @@ Example:
       li {
         margin-bottom: 12px;
       }
+      
+      /* Dark theme - applies when system preference is dark */
+      @media (prefers-color-scheme: dark) {
+        .cardColumn {
+          background-color: #232323 !important;
+          border: 1px solid #424242 !important;
+        }
+        a {
+          color: #F5F5F5;
+        }
+        .dark-theme-text {
+          color: #F5F5F5 !important;
+        }
+        .dark-theme-subtitle {
+          color: #AAAAAA !important;
+        }
+        .dark-theme-body {
+          background-color: #1B1B1B !important;
+        }
+      }
     </mj-style>
   </mj-head>
-  <mj-body background-color="#1B1B1B">
-    <mj-wrapper full-width background-color="#1B1B1B">
+  <mj-body background-color="#F9FAFB" css-class="dark-theme-body">
+    <mj-wrapper full-width background-color="#F9FAFB" css-class="dark-theme-body">
       <!-- Header -->
       <mj-section padding="32px 16px 80px">
         <mj-column>
@@ -55,8 +77,9 @@ Example:
             align="center"
             font-size="32px"
             font-weight="700"
-            color="#FFFFFF"
+            color="#111827"
             padding="0"
+            css-class="dark-theme-text"
           >
             Flowglad Product Updates
           </mj-text>
@@ -64,8 +87,9 @@ Example:
             align="center"
             font-size="16px"
             line-height="1.6"
-            color="#AAAAAA"
+            color="#6B7280"
             padding="16px 0 0"
+            css-class="dark-theme-subtitle"
           >
             The easiest way to make internet money.
           </mj-text>
@@ -73,8 +97,9 @@ Example:
             align="center"
             font-size="16px"
             line-height="1.6"
-            color="#AAAAAA"
+            color="#6B7280"
             padding="16px 0 0"
+            css-class="dark-theme-subtitle"
           >
             Set up payments and billing in seconds with 100% open-source tools. Design any pricing model and integrate it instantly with the Flowglad MCP.
           </mj-text>
@@ -82,10 +107,11 @@ Example:
             align="center"
             font-size="16px"
             line-height="1.6"
-            color="#AAAAAA"
+            color="#6B7280"
             padding="16px 0 0"
+            css-class="dark-theme-subtitle"
           >
-            Use our <a href="https://docs.flowglad.com/quickstart" style="color:#F5F5F5"><strong>quickstart guide</strong></a> to process your first payment in under 3 minutes.
+            Use our <a href="https://docs.flowglad.com/quickstart" style="color:#1F2937"><strong>quickstart guide</strong></a> to process your first payment in under 3 minutes.
           </mj-text>
         </mj-column>
       </mj-section>
@@ -95,8 +121,9 @@ Example:
           <mj-text
             font-size="20px"
             font-weight="600"
-            color="#FFFFFF"
+            color="#111827"
             padding="0 0 8px"
+            css-class="dark-theme-text"
           >
             🏆 Highlights
           </mj-text>
@@ -126,8 +153,9 @@ Example:
           <mj-text
             font-size="20px"
             font-weight="600"
-            color="#FFFFFF"
+            color="#111827"
             padding="0 0 8px"
+            css-class="dark-theme-text"
           >
             🧩 Features
           </mj-text>
@@ -163,8 +191,9 @@ Example:
           <mj-text
             font-size="20px"
             font-weight="600"
-            color="#FFFFFF"
+            color="#111827"
             padding="0 0 8px"
+            css-class="dark-theme-text"
           >
             🛠️ Improvements
           </mj-text>
@@ -219,16 +248,16 @@ Example:
       <!-- Footer -->
       <mj-section padding="24px 16px 40px">
         <mj-column>
-          <mj-text font-size="14px" line-height="1.6" color="#AAAAAA" padding="0">
+          <mj-text font-size="14px" line-height="1.6" color="#6B7280" padding="0" css-class="dark-theme-subtitle">
             Agree Ahmed<br />
-            CEO, <a href="https://flowglad.com" style="color:#F5F5F5"><strong>Flowglad</strong></a><br /><br />
-            PS - Treat us like your payments therapist by <a href="https://cal.com/team/flowglad/chat" style="color:#F5F5F5"><strong>grabbing time on our calendar</strong></a>.<br /><br />
+            CEO, <a href="https://flowglad.com" style="color:#1F2937"><strong>Flowglad</strong></a><br /><br />
+            PS - Treat us like your payments therapist by <a href="https://cal.com/team/flowglad/chat" style="color:#1F2937"><strong>grabbing time on our calendar</strong></a>.<br /><br />
             ⭐️ us on
-            <a href="https://github.com/flowglad/flowglad" style="color:#F5F5F5"><strong>GitHub</strong></a>. Chat on
-            <a href="https://discord.gg/XTK7hVyQD9" style="color:#F5F5F5"><strong>Discord</strong></a> or follow on
-            <a href="https://x.com/flowglad" style="color:#F5F5F5"><strong>X</strong></a> and
-            <a href="http://linkedin.com/company/flowglad/" style="color:#F5F5F5"><strong>LinkedIn</strong></a>.<br /><br />
-            <a href="{unsubscribe_link}" style="color:#ffffff; text-decoration:none;">Unsubscribe</a>
+            <a href="https://github.com/flowglad/flowglad" style="color:#1F2937"><strong>GitHub</strong></a>. Chat on
+            <a href="https://discord.gg/XTK7hVyQD9" style="color:#1F2937"><strong>Discord</strong></a> or follow on
+            <a href="https://x.com/flowglad" style="color:#1F2937"><strong>X</strong></a> and
+            <a href="http://linkedin.com/company/flowglad/" style="color:#1F2937"><strong>LinkedIn</strong></a>.<br /><br />
+            <a href="{unsubscribe_link}" style="color:#1F2937; text-decoration:none;">Unsubscribe</a>
           </mj-text>
         </mj-column>
       </mj-section>
