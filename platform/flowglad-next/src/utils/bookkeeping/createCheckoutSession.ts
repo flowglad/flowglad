@@ -151,7 +151,7 @@ export const createCheckoutSessionTransaction = async (
   )
   let price: Price.Record | null = null
   let product: Product.Record | null = null
-  let organization: Organization.Record | undefined
+  let organization: Organization.Record | null = null
   if (checkoutSession.type === CheckoutSessionType.Product) {
     const [result] =
       await selectPriceProductAndOrganizationByPriceWhere(
