@@ -11,8 +11,7 @@ import { trpc } from '@/app/_trpc/client'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
   countableCurrencyAmountToRawStringAmount,
-  humanReadableCurrencyAmountToStripeCurrencyAmount,
-  stripeCurrencyAmountToHumanReadableCurrencyAmount,
+  rawStringAmountToCountableCurrencyAmount,
 } from '@/utils/stripe'
 
 interface EditDiscountModalProps {
@@ -49,9 +48,9 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           ...input,
           discount: {
             ...input.discount,
-            amount: humanReadableCurrencyAmountToStripeCurrencyAmount(
+            amount: rawStringAmountToCountableCurrencyAmount(
               organization!.defaultCurrency,
-              Number(input.__rawAmountString!)
+              input.__rawAmountString!
             ),
           },
         })

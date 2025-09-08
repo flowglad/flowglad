@@ -5,10 +5,7 @@ import { createDiscountInputSchema } from '@/db/schema/discounts'
 import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { DiscountAmountType, DiscountDuration } from '@/types'
-import {
-  humanReadableCurrencyAmountToStripeCurrencyAmount,
-  stripeCurrencyAmountToHumanReadableCurrencyAmount,
-} from '@/utils/stripe'
+import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 import { createDiscountFormSchema } from '@/db/schema/discounts'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 
@@ -34,9 +31,9 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           ...input,
           discount: {
             ...input.discount,
-            amount: humanReadableCurrencyAmountToStripeCurrencyAmount(
+            amount: rawStringAmountToCountableCurrencyAmount(
               organization!.defaultCurrency,
-              Number(input.__rawAmountString!)
+              input.__rawAmountString!
             ),
           },
         })

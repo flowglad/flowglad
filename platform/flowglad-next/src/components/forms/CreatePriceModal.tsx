@@ -1,14 +1,11 @@
 'use client'
 
 import FormModal from '@/components/forms/FormModal'
-import {
-  createPriceSchema,
-  createPriceFormSchema,
-} from '@/db/schema/prices'
+import { createPriceFormSchema } from '@/db/schema/prices'
 import PriceFormFields from './PriceFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { PriceType } from '@/types'
-import { humanReadableCurrencyAmountToStripeCurrencyAmount } from '@/utils/stripe'
+import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 
 interface CreatePriceModalProps {
@@ -45,11 +42,10 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
           ...input,
           price: {
             ...input.price,
-            unitPrice:
-              humanReadableCurrencyAmountToStripeCurrencyAmount(
-                organization!.defaultCurrency,
-                Number(input.__rawPriceString!)
-              ),
+            unitPrice: rawStringAmountToCountableCurrencyAmount(
+              organization!.defaultCurrency,
+              input.__rawPriceString!
+            ),
           },
         })
       }}
