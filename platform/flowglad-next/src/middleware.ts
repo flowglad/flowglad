@@ -54,6 +54,7 @@ const publicRoutes = [
    * Preview UI routes are public
    */
   '/preview-ui(.*)',
+  '/blog/(.*)',
 ]
 
 if (core.IS_DEV) {
