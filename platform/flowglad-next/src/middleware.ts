@@ -55,7 +55,6 @@ const publicRoutes = [
    */
   '/preview-ui(.*)',
   '/blog/(.*)',
-  '/feedback/(.*)',
 ]
 
 if (core.IS_DEV) {
