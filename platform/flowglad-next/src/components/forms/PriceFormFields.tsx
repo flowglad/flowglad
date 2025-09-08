@@ -245,7 +245,7 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input {...field} value={field.value ?? ''} />
+                <Input placeholder="Price" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

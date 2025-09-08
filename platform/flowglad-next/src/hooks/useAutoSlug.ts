@@ -39,13 +39,15 @@ export function useAutoSlug({
     // Skip if source value hasn't actually changed
     const currentSourceValue = sourceValue || ''
     if (lastSourceValueRef.current === currentSourceValue) return
-    lastSourceValueRef.current = currentSourceValue
     
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current)
     }
     
     const executeUpdate = () => {
+      // Update ref only after we're actually executing the update
+      lastSourceValueRef.current = currentSourceValue
+      
       // Get the current slug value directly from form
       const currentSlug = form.getValues(name) || ''
       let newSlug = ''

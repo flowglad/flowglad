@@ -42,7 +42,7 @@ export default function UsageMeterFormFields({
           <FormItem>
             <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input {...field} />
+              <Input placeholder="Usage Meter" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -58,11 +58,12 @@ export default function UsageMeterFormFields({
         <FormField
           control={form.control}
           name="usageMeter.slug"
-          render={() => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Slug</FormLabel>
               <FormControl>
                 <AutoSlugInput
+                  {...field}
                   name="usageMeter.slug"
                   sourceName="usageMeter.name"
                   placeholder="usage_meter_slug"

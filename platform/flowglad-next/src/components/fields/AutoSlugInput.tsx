@@ -9,18 +9,20 @@ interface AutoSlugInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   disabledAuto?: boolean
   debounceMs?: number
   onDirtyChange?: (isDirty: boolean) => void
+  onBlur?: React.FocusEventHandler<HTMLInputElement>
 }
 
-export function AutoSlugInput({
+const AutoSlugInput = React.forwardRef<HTMLInputElement, AutoSlugInputProps>(({
   name,
   sourceName,
   disabledAuto = false,
   debounceMs = 0,
   onDirtyChange,
+  onBlur,
   className,
   placeholder = 'slug_name',
   ...props
-}: AutoSlugInputProps) {
+}, ref) => {
   const { bindSlugInput, isDirty, setDirty } = useAutoSlug({
     name,
     sourceName,
@@ -32,14 +34,23 @@ export function AutoSlugInput({
     onDirtyChange?.(isDirty)
   }, [isDirty, onDirtyChange])
   
+  const handleBlur = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    onBlur?.(e)
+  }, [onBlur])
+  
   return (
     <Input
+      ref={ref}
       {...props}
       {...bindSlugInput}
+      onBlur={handleBlur}
       placeholder={placeholder}
       className={cn(className)}
     />
   )
-}
+})
 
+AutoSlugInput.displayName = 'AutoSlugInput'
+
+export { AutoSlugInput }
 export default AutoSlugInput
