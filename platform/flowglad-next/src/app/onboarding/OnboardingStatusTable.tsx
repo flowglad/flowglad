@@ -87,6 +87,7 @@ const OnboardingCodeblock = ({
         </Markdown>
         <Button
           size="sm"
+          className="font-sans"
           onClick={() => {
             toast.success('Copied to clipboard')
             navigator.clipboard.writeText(markdownText)

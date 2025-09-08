@@ -88,69 +88,88 @@ function CheckoutForm() {
           clientSecret,
           appearance: {
             disableAnimations: true,
-            // theme: 'night',
             variables: {
-              colorText: '#ffffff',
-              colorBackground: '#353535',
-              colorPrimary: '#ffffff',
-              tabIconColor: '#d3d3d3',
-              tabIconHoverColor: '#939393',
-              colorTextSecondary: '#939393',
-              borderRadius: '8px',
+              colorText: 'hsl(var(--foreground))',
+              colorBackground: 'hsl(var(--background))',
+              colorPrimary: 'hsl(var(--primary))',
+              tabIconColor: 'hsl(var(--muted-foreground))',
+              tabIconHoverColor: 'hsl(var(--foreground))',
+              colorTextSecondary: 'hsl(var(--muted-foreground))',
+              borderRadius: '12px', // rounded-xl to match Input and Select components
             },
             rules: {
-              '.CodeInput': {
-                border: '1px solid var(--colorBackground)',
-                color: 'var(--colorText)',
-                backgroundColor: '#1f1f1f',
-              },
-              '.Input': {
-                border: '1px solid var(--colorBackground)',
-                color: 'var(--colorText)',
-              },
-              '.Input:autofill': {
-                color: '#000',
-              },
+              '.Input, .CodeInput, .p-Input, .p-LinkAuth, .p-Input-input, .p-Fieldset-input':
+                {
+                  border: '1px solid hsl(var(--input)) !important',
+                  color: 'hsl(var(--foreground)) !important',
+                  backgroundColor:
+                    'hsl(var(--background)) !important',
+                  borderRadius: '12px !important', // rounded-xl
+                },
+              '.Input:focus, .CodeInput:focus, .p-Input:focus, .p-LinkAuth:focus, .p-Input-input:focus, .p-Fieldset-input:focus':
+                {
+                  borderColor: 'hsl(var(--foreground)) !important',
+                  outline: 'none !important',
+                  boxShadow:
+                    '0 0 0 2px hsl(var(--foreground) / 0.2) !important',
+                },
               '.Block': {
-                color: 'var(--colorText)',
+                color: 'hsl(var(--foreground))',
               },
-              '.Tab': {
-                color: '#d3d3d3',
-                border: '1px solid var(--colorBackground)',
-              },
-              '.Tab--selected': {
-                color: 'var(--colorText)',
-                border: '1px solid #ffffff24',
-              },
-              '.Tab:hover': {
-                color: '#939393',
-              },
+              '.Tab, .p-Tab, .p-TabButton, .p-PaymentMethodSelector-tab':
+                {
+                  color: 'hsl(var(--muted-foreground)) !important',
+                  border: '1px solid hsl(var(--input)) !important',
+                  backgroundColor:
+                    'hsl(var(--background)) !important',
+                  borderRadius: '12px !important', // rounded-xl
+                },
+              '.Tab--selected, .p-Tab--selected, .p-TabButton--selected, .p-PaymentMethodSelector-tab--selected':
+                {
+                  color: 'hsl(var(--foreground)) !important',
+                  border:
+                    '1px solid hsl(var(--foreground)) !important',
+                  backgroundColor:
+                    'hsl(var(--background)) !important',
+                  borderRadius: '12px !important', // rounded-xl
+                },
+              '.Tab:hover, .p-Tab:hover, .p-TabButton:hover, .p-PaymentMethodSelector-tab:hover':
+                {
+                  color: 'hsl(var(--foreground)) !important',
+                  backgroundColor: 'hsl(var(--accent)) !important',
+                  borderColor: 'hsl(var(--foreground)) !important',
+                },
               '.PickerItem': {
-                color: '#d3d3d3',
-                backgroundColor: 'var(--colorBackground)',
-                border: '1px solid var(--colorBackground)',
+                color: 'hsl(var(--muted-foreground))',
+                backgroundColor: 'hsl(var(--background))',
+                border: '1px solid hsl(var(--input))',
+                borderRadius: '12px', // rounded-xl
               },
               '.PickerItem:hover': {
-                color: '#939393',
-                border: '1px solid #ffffff24',
-                backgroundColor: 'var(--colorBackground)',
+                color: 'hsl(var(--foreground))',
+                border: '1px solid hsl(var(--foreground))',
+                backgroundColor: 'hsl(var(--accent))',
               },
               '.Label': {
-                color: '#939393',
+                color: 'hsl(var(--muted-foreground))',
               },
               '.Dropdown': {
-                color: 'var(--colorText)',
-                border: '1px solid var(--colorBackground)',
-                backgroundColor: '#ff0000',
+                color: 'hsl(var(--foreground))',
+                border: '1px solid hsl(var(--input))',
+                backgroundColor: 'hsl(var(--popover))',
+                borderRadius: '12px', // rounded-xl
+                boxShadow:
+                  'hsl(var(--foreground) / 0.1) 0px 4px 6px -1px, hsl(var(--foreground) / 0.1) 0px 2px 4px -2px',
               },
               '.DropdownItem': {
-                color: 'var(--colorText)',
-                border: '1px solid #ffffff24',
-                backgroundColor: '#1f1f1f',
+                color: 'hsl(var(--foreground))',
+                backgroundColor: 'transparent',
+                borderRadius: '8px', // rounded-lg for items
+                border: 'none',
               },
               '.DropdownItem:hover': {
-                color: 'var(--colorText)',
-                backgroundColor: '#0f0f0f',
+                color: 'hsl(var(--accent-foreground))',
+                backgroundColor: 'hsl(var(--accent))',
               },
             },
           },

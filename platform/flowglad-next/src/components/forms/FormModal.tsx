@@ -27,7 +27,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useState, useCallback } from 'react'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   Drawer,
@@ -224,7 +224,7 @@ const FormModal = <T extends FieldValues>({
     reset,
   } = form
 
-  const hardResetFormValues = () => {
+  const hardResetFormValues = useCallback(() => {
     form.reset(defaultValues, {
       keepDefaultValues: true,
       keepIsSubmitted: false,
@@ -233,7 +233,7 @@ const FormModal = <T extends FieldValues>({
       keepValues: false,
       keepTouched: false,
     })
-  }
+  }, [form, defaultValues])
 
   const shouldRenderContent = useShouldRenderContent({
     isOpen,

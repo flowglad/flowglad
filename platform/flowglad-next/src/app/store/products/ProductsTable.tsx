@@ -145,9 +145,10 @@ export const ProductsTable = ({
       [
         {
           id: 'image',
-          size: 40, // Fixed width for image column
+          size: 50,
+          maxSize: 50,
           cell: ({ row: { original: cellData } }) => (
-            <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md">
+            <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md shrink-0">
               {cellData.product.imageURL ? (
                 <Image
                   src={cellData.product.imageURL}
@@ -169,40 +170,64 @@ export const ProductsTable = ({
           id: 'name',
           header: 'Name',
           accessorKey: 'product.name',
+          size: 250,
+          maxSize: 300,
           cell: ({ row: { original: cellData } }) => (
-            <>
-              <span className="font-normal text-sm">
+            <div className="min-w-0 max-w-[250px]">
+              <span
+                className="font-normal text-sm truncate block"
+                title={cellData.product.name}
+              >
                 {cellData.product.name}
               </span>
-            </>
+            </div>
           ),
         },
         {
           header: 'Pricing',
           accessorKey: 'prices',
+          size: 120,
+          maxSize: 150,
           cell: ({ row: { original: cellData } }) => (
-            <PricingCellView prices={cellData.prices} />
+            <div className="min-w-0 max-w-[120px]">
+              <PricingCellView prices={cellData.prices} />
+            </div>
           ),
         },
         {
           id: 'status',
           header: 'Status',
           accessorKey: 'product.active',
+          size: 100,
+          maxSize: 100,
           cell: ({ row: { original: cellData } }) => (
-            <StatusBadge active={cellData.product.active} />
+            <div className="min-w-0">
+              <StatusBadge active={cellData.product.active} />
+            </div>
           ),
         },
         {
           header: 'ID',
           accessorKey: 'product.id',
+          size: 200,
+          maxSize: 200,
           cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.product.id}>
-              {cellData.product.id}
-            </CopyableTextTableCell>
+            <div className="min-w-0 max-w-[250px]">
+              <CopyableTextTableCell copyText={cellData.product.id}>
+                <span
+                  className="truncate block"
+                  title={cellData.product.id}
+                >
+                  {cellData.product.id}
+                </span>
+              </CopyableTextTableCell>
+            </div>
           ),
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell product={cellData.product} />
           ),
@@ -219,23 +244,25 @@ export const ProductsTable = ({
   return (
     <div className="flex-1 h-full w-full flex flex-col gap-6 pb-10">
       <div className="w-full flex flex-col gap-5">
-        <DataTable
-          columns={columns}
-          data={tableData}
-          onClickRow={(row) => {
-            router.push(`/store/products/${row.product.id}`)
-          }}
-          className="bg-background"
-          bordered
-          pagination={{
-            pageIndex,
-            pageSize,
-            total,
-            onPageChange: handlePaginationChange,
-            isLoading,
-            isFetching,
-          }}
-        />
+        <div className="w-full overflow-hidden">
+          <DataTable
+            columns={columns}
+            data={tableData}
+            onClickRow={(row) => {
+              router.push(`/store/products/${row.product.id}`)
+            }}
+            className="bg-background w-full min-w-0"
+            bordered
+            pagination={{
+              pageIndex,
+              pageSize,
+              total,
+              onPageChange: handlePaginationChange,
+              isLoading,
+              isFetching,
+            }}
+          />
+        </div>
       </div>
     </div>
   )

@@ -51,7 +51,6 @@ export function TableHeader({ title, ...props }: TableHeaderProps) {
           <Button
             variant="outline"
             size="sm"
-            className="border-primary"
             onClick={buttonProps.buttonOnClick}
             disabled={buttonProps.buttonDisabled}
           >
