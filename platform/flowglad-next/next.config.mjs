@@ -24,6 +24,18 @@ const nextConfig = {
         ]
       : [],
   },
+  rewrites: async () => {
+    return [
+      {
+        source: '/feedback/:path*',
+        destination: 'https://flowglad.featurebase.app/:path*',
+      },
+      {
+        source: '/blog/:path*',
+        destination: 'https://flowglad.com/blog/:path*',
+      },
+    ]
+  },
   async headers() {
     return [
       {
