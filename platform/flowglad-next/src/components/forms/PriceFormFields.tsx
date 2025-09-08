@@ -193,7 +193,7 @@ const SinglePaymentFields = () => {
                   value={field.value?.toString() ?? ''}
                   onValueChange={(value) => {
                     if (!value) {
-                      field.onChange(0)
+                      field.onChange('0')
                       return
                     }
                     field.onChange(value)
