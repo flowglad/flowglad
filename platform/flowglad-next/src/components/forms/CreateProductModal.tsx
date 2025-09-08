@@ -14,10 +14,7 @@ import { toast } from 'sonner'
 import { Product } from '@/db/schema/products'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { singlePaymentDummyPrice } from '@/stubs/priceStubs'
-import {
-  humanReadableCurrencyAmountToStripeCurrencyAmount,
-  rawStringAmountToCountableCurrencyAmount,
-} from '@/utils/stripe'
+import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 export const defaultPrice: Price.ClientSinglePaymentInsert = {
   ...singlePaymentDummyPrice,

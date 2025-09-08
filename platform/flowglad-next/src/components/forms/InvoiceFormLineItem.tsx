@@ -16,10 +16,7 @@ import clsx from 'clsx'
 import NumberInput from '../ion/NumberInput'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
-import {
-  humanReadableCurrencyAmountToStripeCurrencyAmount,
-  stripeCurrencyAmountToHumanReadableCurrencyAmount,
-} from '@/utils/stripe'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { CurrencyInput } from '../ion/CurrencyInput'
 import { currencyCharacter } from '@/registry/lib/currency'

@@ -289,16 +289,6 @@ export const isCurrencySupported = (currency: CurrencyCode) => {
   return stripeSupportedCurrencies.includes(currency)
 }
 
-export const humanReadableCurrencyAmountToStripeCurrencyAmount = (
-  currency: CurrencyCode,
-  amount: number
-) => {
-  if (!isCurrencyZeroDecimal(currency)) {
-    return Math.round(amount * 100)
-  }
-  return amount
-}
-
 export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   currency: CurrencyCode,
   amount: number
