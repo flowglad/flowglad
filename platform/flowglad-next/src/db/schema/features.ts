@@ -80,7 +80,7 @@ export const features = pgTable(
         using: sql`"organization_id" = current_organization_id() and "active" = true`,
       }
     ),
-    livemodePolicy(),
+    livemodePolicy(TABLE_NAME),
   ]
 ).enableRLS()
 

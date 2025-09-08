@@ -257,9 +257,11 @@ export const checkoutSessionsRouter = router({
   get: getCheckoutSessionProcedure,
   list: listCheckoutSessionsProcedure,
   getIntentStatus: getIntentStatusProcedure,
-  setPaymentMethodType: setPaymentMethodTypeProcedure,
-  setCustomerEmail: setCustomerEmailProcedure,
-  setBillingAddress: setBillingAddressProcedure,
-  setAutomaticallyUpdateSubscriptions:
-    setAutomaticallyUpdateSubscriptionsProcedure,
+  public: {
+    setPaymentMethodType: setPaymentMethodTypeProcedure,
+    setCustomerEmail: setCustomerEmailProcedure,
+    setBillingAddress: setBillingAddressProcedure,
+    setAutomaticallyUpdateSubscriptions:
+      setAutomaticallyUpdateSubscriptionsProcedure,
+  },
 })

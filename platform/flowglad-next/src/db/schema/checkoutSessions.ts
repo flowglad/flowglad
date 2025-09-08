@@ -6,6 +6,7 @@ import {
   integer,
   timestamp,
   boolean,
+  pgPolicy,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
@@ -123,7 +124,6 @@ export const checkoutSessions = pgTable(
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructIndex(TABLE_NAME, [table.discountId]),
       constructIndex(TABLE_NAME, [table.customerId]),
-      livemodePolicy(),
       merchantPolicy(
         'Enable all actions for discounts in own organization',
         {
@@ -133,12 +133,12 @@ export const checkoutSessions = pgTable(
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
-      customerPolicy('Allow read on own checkout sessions', {
+      customerPolicy('Enable select for customer', {
         as: 'permissive',
-        to: 'customer',
         for: 'select',
-        using: sql`"customer_id" in (select "id" from "customers")`,
+        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
       }),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()
@@ -717,8 +717,8 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
-const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
-  {
+export const productCheckoutSessionSchema =
+  coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.Product),
     priceId: z
       .string()
@@ -730,10 +730,9 @@ const productCheckoutSessionSchema = coreCheckoutSessionSchema.extend(
         'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
       ),
     preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
-  }
-)
+  })
 
-const addPaymentMethodCheckoutSessionSchema =
+export const addPaymentMethodCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.AddPaymentMethod),
     targetSubscriptionId: z
@@ -750,7 +749,7 @@ const addPaymentMethodCheckoutSessionSchema =
       ),
   })
 
-const activateSubscriptionCheckoutSessionSchema =
+export const activateSubscriptionCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.ActivateSubscription),
     priceId: z.string(),
@@ -760,8 +759,8 @@ const activateSubscriptionCheckoutSessionSchema =
 
 const createCheckoutSessionObject = z.discriminatedUnion('type', [
   productCheckoutSessionSchema,
-  addPaymentMethodCheckoutSessionSchema,
   activateSubscriptionCheckoutSessionSchema,
+  addPaymentMethodCheckoutSessionSchema,
 ])
 
 export type CreateCheckoutSessionObject = z.infer<

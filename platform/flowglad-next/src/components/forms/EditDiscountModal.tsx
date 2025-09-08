@@ -3,11 +3,16 @@
 import FormModal from '@/components/forms/FormModal'
 import {
   Discount,
-  EditDiscountInput,
-  editDiscountInputSchema,
+  editDiscountFormSchema,
+  EditDiscountFormSchema,
 } from '@/db/schema/discounts'
 import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import { trpc } from '@/app/_trpc/client'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import {
+  countableCurrencyAmountToRawStringAmount,
+  rawStringAmountToCountableCurrencyAmount,
+} from '@/utils/stripe'
 
 interface EditDiscountModalProps {
   isOpen: boolean
@@ -21,18 +26,35 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   discount,
 }) => {
   const editDiscount = trpc.discounts.update.useMutation()
-  const defaultValues: EditDiscountInput = {
+  const { organization } = useAuthenticatedContext()
+  const __rawAmountString = countableCurrencyAmountToRawStringAmount(
+    organization!.defaultCurrency,
+    discount.amount
+  )
+  const defaultValues: EditDiscountFormSchema = {
     discount,
     id: discount.id,
+    __rawAmountString,
   }
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Edit Discount"
-      formSchema={editDiscountInputSchema}
+      formSchema={editDiscountFormSchema}
       defaultValues={defaultValues}
-      onSubmit={editDiscount.mutateAsync}
+      onSubmit={(input) => {
+        return editDiscount.mutateAsync({
+          ...input,
+          discount: {
+            ...input.discount,
+            amount: rawStringAmountToCountableCurrencyAmount(
+              organization!.defaultCurrency,
+              input.__rawAmountString!
+            ),
+          },
+        })
+      }}
     >
       <DiscountFormFields edit />
     </FormModal>

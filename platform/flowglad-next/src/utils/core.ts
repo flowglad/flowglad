@@ -16,7 +16,7 @@ import { camelCase, sentenceCase } from 'change-case'
 import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
-import { Nullish, StripePriceMode } from '@/types'
+import { CurrencyCode, Nullish, StripePriceMode } from '@/types'
 
 export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs))
@@ -308,15 +308,16 @@ export const emailAddressToCompanyDomain = (email: string) => {
   return rawCompanyDomain
 }
 
-export const safeZodNonNegativeInteger = z
+export const safeZodNonNegativeInteger = z.coerce
   .number()
   .transform((str) => Number(str))
   .refine(
-    (arg) => z.number().int().nonnegative().safeParse(arg).success,
+    (arg) =>
+      z.coerce.number().int().nonnegative().safeParse(arg).success,
     { message: 'Value must be a non-negative integer' }
   )
 
-export const safeZodPositiveInteger = z
+export const safeZodPositiveInteger = z.coerce
   .number()
   .transform((str) => Number(str))
   .refine(
@@ -523,6 +524,17 @@ export const billingPortalPageURL = (params: {
 export const emailBaseUrl =
   envVariable('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000'
 
+export const customerBillingPortalURL = (params: {
+  organizationId: string
+  customerId: string
+}) => {
+  const { organizationId, customerId } = params
+  return safeUrl(
+    `/billing-portal/${organizationId}/${customerId}`,
+    emailBaseUrl
+  )
+}
+
 export const core = {
   IS_PROD,
   IS_TEST,
@@ -562,6 +574,7 @@ export const core = {
   createInvoiceNumber,
   formatDateRange,
   gitCommitId,
+  customerBillingPortalURL,
   safeZodNullOrUndefined,
   safeZodNullishString,
   safeZodPositiveInteger,

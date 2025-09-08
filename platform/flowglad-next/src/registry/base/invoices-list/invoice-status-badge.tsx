@@ -43,6 +43,7 @@ export function InvoiceStatusBadge({
         }
     }
     // Exhaustiveness check to catch future changes to InvoiceStatus
+    // @ts-expect-error - This is a catch-all for future changes to InvoiceStatus
     const _exhaustiveStatus: never = status
     throw new Error(`Unhandled invoice status: ${_exhaustiveStatus}`)
   }

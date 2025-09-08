@@ -234,7 +234,6 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
     )
   }
   const userId = membershipsForOrganization[0].users.id
-  // TODO: scope this
   const jwtClaim: JWTClaim = {
     role: 'merchant',
     sub: userId,

@@ -8,6 +8,7 @@ import {
   FormField,
   FormItem,
   FormControl,
+  FormLabel,
 } from '@/components/ui/form'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -16,11 +17,16 @@ import NumberInput from '../ion/NumberInput'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
 import {
-  humanReadableCurrencyAmountToStripeCurrencyAmount,
+  rawStringAmountToCountableCurrencyAmount,
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
 } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { CurrencyInput } from '../ion/CurrencyInput'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import {
+  currencyCharacter,
+  isCurrencyZeroDecimal,
+} from '@/registry/lib/currency'
+import { cn } from '@/utils/core'
 
 interface InvoiceFormLineItemProps {
   id: string
@@ -56,6 +62,10 @@ const InvoiceFormLineItem = ({
   const xOnClickHandler = () => {
     onRemove(id)
   }
+
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization!.defaultCurrency
+  )
 
   return (
     <div
@@ -111,22 +121,32 @@ const InvoiceFormLineItem = ({
         control={form.control}
         name={`invoiceLineItems.${index}.price`}
         render={({ field }) => (
-          <CurrencyInput
-            value={field.value?.toString() ?? ''}
-            className="w-[100px]"
-            onValueChange={(value) => {
-              if (value.floatValue) {
-                field.onChange(
-                  humanReadableCurrencyAmountToStripeCurrencyAmount(
-                    organization!.defaultCurrency,
-                    Math.ceil(value.floatValue * 100) / 100
-                  )
-                )
-              } else {
-                field.onChange(0)
-              }
-            }}
-          />
+          <FormItem className="flex-1">
+            <FormLabel>Price</FormLabel>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {currencyCharacter(organization!.defaultCurrency)}
+              </span>
+              <FormControl>
+                <CurrencyInput
+                  value={field.value?.toString() ?? ''}
+                  onValueChange={(value) => {
+                    if (!value) {
+                      field.onChange('0')
+                      return
+                    }
+                    field.onChange(
+                      rawStringAmountToCountableCurrencyAmount(
+                        organization!.defaultCurrency,
+                        value.toString()
+                      )
+                    )
+                  }}
+                  allowDecimals={!zeroDecimal}
+                />
+              </FormControl>
+            </div>
+          </FormItem>
         )}
       />
 

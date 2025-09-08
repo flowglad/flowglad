@@ -118,7 +118,7 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       for: 'delete',
       using: sql`false`,
     }),
-    livemodePolicy(),
+    livemodePolicy(TABLE_NAME),
   ]
 }).enableRLS()
 

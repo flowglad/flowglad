@@ -2,11 +2,17 @@
 
 import FormModal from '@/components/forms/FormModal'
 import { Product } from '@/db/schema/products'
-import { editProductSchema } from '@/db/schema/prices'
+import { editProductFormSchema } from '@/db/schema/prices'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { Price } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'
+import {
+  countableCurrencyAmountToRawStringAmount,
+  rawStringAmountToCountableCurrencyAmount,
+  isCurrencyZeroDecimal,
+} from '@/utils/stripe'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 interface EditProductModalProps {
   isOpen: boolean
@@ -33,20 +39,38 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }),
     })
   const prices = pricesData?.data
-
+  const { organization } = useAuthenticatedContext()
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Edit Product"
-      formSchema={editProductSchema}
+      formSchema={editProductFormSchema}
       defaultValues={{
         product,
         price: prices?.[0],
         id: product.id,
+        __rawPriceString: countableCurrencyAmountToRawStringAmount(
+          organization!.defaultCurrency,
+          prices?.[0]?.unitPrice!
+        ),
       }}
-      onSubmit={async (item) => {
-        await editProduct.mutateAsync(item)
+      onSubmit={async (input) => {
+        let price = input.price
+        if (input.price) {
+          const unitPrice = rawStringAmountToCountableCurrencyAmount(
+            organization!.defaultCurrency,
+            input.__rawPriceString!
+          )
+          price = {
+            ...input.price,
+            unitPrice,
+          }
+        }
+        await editProduct.mutateAsync({
+          ...input,
+          price,
+        })
       }}
       key={`${product.id}-${pricesLoading}`}
       mode="drawer"

@@ -47,7 +47,7 @@ export const purchaseAccessSessions = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.purchaseId]),
       constructUniqueIndex(TABLE_NAME, [table.token]),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

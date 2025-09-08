@@ -46,7 +46,7 @@ export const links = pgTable(
           withCheck: sql`"product_id" is null OR "product_id" in (select "id" from "products")`,
         }
       ),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

@@ -7,6 +7,7 @@ import { UserRecord } from '@/db/schema/users'
 
 export type AuthContextValues = Partial<{
   user: UserRecord
+  role: 'merchant' | 'customer'
   organization: Organization.ClientRecord
 }> & {
   setOrganization: (organization: Organization.ClientRecord) => void
@@ -60,7 +61,9 @@ const AuthProvider = ({
   const {
     data: focusedMembership,
     refetch: refetchFocusedMembership,
-  } = trpc.organizations.getFocusedMembership.useQuery()
+  } = trpc.organizations.getFocusedMembership.useQuery(undefined, {
+    enabled: values.role === 'merchant',
+  })
   /**
    * A race condition happens where sometimes the layout renders
    * before the user is fetched when first logging in.
