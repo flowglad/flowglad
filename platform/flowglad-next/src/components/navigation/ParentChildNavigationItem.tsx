@@ -55,13 +55,14 @@ const ParentChildNavigationItem = ({
         }}
         tooltip={parentLabel}
         className={cn(
-          'w-full flex items-center',
-          isCollapsed ? 'justify-center gap-0' : 'gap-2'
+          'w-full flex items-center h-9',
+          isCollapsed ? 'justify-center gap-0' : 'gap-2',
+          'group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center'
         )}
       >
-        <span
+        <div
           className={cn(
-            'w-full h-full flex items-center',
+            'w-full h-full flex items-center min-w-0',
             isCollapsed ? 'gap-0' : 'gap-2'
           )}
         >
@@ -79,13 +80,13 @@ const ParentChildNavigationItem = ({
           {!isCollapsed && (
             <span className="ml-auto shrink-0">
               {isOpen ? (
-                <ChevronUp size={16} strokeWidth={2} />
+                <ChevronUp size={16} strokeWidth={1.5} />
               ) : (
-                <ChevronDown size={16} strokeWidth={2} />
+                <ChevronDown size={16} strokeWidth={1.5} />
               )}
             </span>
           )}
-        </span>
+        </div>
       </SidebarMenuButton>
       {isOpen && !isCollapsed && (
         <SidebarMenuSub className="pl-5">

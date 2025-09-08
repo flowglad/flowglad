@@ -45,7 +45,7 @@ const OnboardingNavigationSection = ({
           className="w-full flex items-center min-w-0"
         >
           {/* Icon as direct child so [&>svg] styles apply */}
-          <TriangleRight size={16} strokeWidth={2} color="orange" />
+          <TriangleRight size={16} strokeWidth={1.5} color="orange" />
           {/* Label */}
           <span
             className={cn(
@@ -61,7 +61,7 @@ const OnboardingNavigationSection = ({
           {!isCollapsed && (
             <ChevronRight
               size={16}
-              strokeWidth={2}
+              strokeWidth={1.5}
               className="ml-auto"
             />
           )}

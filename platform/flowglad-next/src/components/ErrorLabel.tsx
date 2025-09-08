@@ -14,7 +14,7 @@ const ErrorLabel = ({
   const errorMessage =
     typeof error === 'string' ? error : error.message
   return (
-    <p className={cn('mt-1 text-sm text-danger', className)}>
+    <p className={cn('mt-1 text-sm text-destructive', className)}>
       {errorMessage}
     </p>
   )

@@ -15,7 +15,6 @@ import Image from 'next/image'
 import OnboardingNavigationSection from './OnboardingNavigationSection'
 import ParentChildNavigationItem from './ParentChildNavigationItem'
 import StandaloneNavigationItem from './StandaloneNavigationItem'
-import { Switch } from '@/components/ui/switch'
 import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
@@ -27,6 +26,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
   SidebarTrigger,
@@ -110,8 +110,8 @@ export const SideNavigation = () => {
         className={cn(
           'w-full flex flex-row items-center border-b border-muted py-3',
           isCollapsed
-            ? 'justify-center px-3 gap-0'
-            : 'justify-between px-3 gap-2.5 p-2'
+            ? 'justify-center px-1 gap-0'
+            : 'justify-between px-1 gap-2.5 p-2'
         )}
       >
         <div
@@ -142,34 +142,36 @@ export const SideNavigation = () => {
         <SidebarMenu
           className={cn(
             'flex flex-col gap-0',
-            isCollapsed ? 'px-0 items-center' : 'px-3 w-full'
+            isCollapsed ? 'px-0 items-center' : 'px-2 w-full'
           )}
         >
           <OnboardingNavigationSection isCollapsed={isCollapsed} />
           <StandaloneNavigationItem
             title="Dashboard"
             href="/dashboard"
-            icon={<Gauge size={16} />}
+            icon={<Gauge size={16} strokeWidth={1.5} />}
             basePath="/dashboard"
             isCollapsed={isCollapsed}
           />
           <StandaloneNavigationItem
             title="Customers"
             href="/customers"
-            icon={<Users size={16} />}
+            icon={<Users size={16} strokeWidth={1.5} />}
             basePath="/customers"
             isCollapsed={isCollapsed}
           />
           <ParentChildNavigationItem
             parentLabel="Store"
-            parentLeadingIcon={<Store size={16} />}
+            parentLeadingIcon={<Store size={16} strokeWidth={1.5} />}
             childItems={storeChildItems}
             basePath="/store"
             isCollapsed={isCollapsed}
           />
           <ParentChildNavigationItem
             parentLabel="Finance"
-            parentLeadingIcon={<CircleDollarSign size={16} />}
+            parentLeadingIcon={
+              <CircleDollarSign size={16} strokeWidth={1.5} />
+            }
             childItems={[
               { label: 'Payments', href: '/finance/payments' },
               {
@@ -184,7 +186,7 @@ export const SideNavigation = () => {
           <StandaloneNavigationItem
             title="Settings"
             href="/settings"
-            icon={<Settings size={16} />}
+            icon={<Settings size={16} strokeWidth={1.5} />}
             basePath="/settings"
             isCollapsed={isCollapsed}
           />
@@ -202,42 +204,42 @@ export const SideNavigation = () => {
       >
         <SidebarMenu
           className={cn(
-            isCollapsed ? 'px-0 items-center' : 'px-2 w-full'
+            isCollapsed ? 'px-0 items-center' : 'px-0 w-full'
           )}
         >
           <StandaloneNavigationItem
             title="Discord"
             href="https://app.flowglad.com/invite-discord"
-            icon={<RiDiscordFill size={16} />}
+            icon={<RiDiscordFill size={16} strokeWidth={1.5} />}
             basePath="https://app.flowglad.com/invite-discord"
             isCollapsed={isCollapsed}
           />
           <StandaloneNavigationItem
             title="Documentation"
             href="https://docs.flowglad.com"
-            icon={<BookOpen size={16} />}
+            icon={<BookOpen size={16} strokeWidth={1.5} />}
             basePath="https://docs.flowglad.com"
             isCollapsed={isCollapsed}
           />
           <StandaloneNavigationItem
             title="Logout"
             href="/logout"
-            icon={<LogOut size={16} />}
+            icon={<LogOut size={16} strokeWidth={1.5} />}
             basePath="/logout"
             isCollapsed={isCollapsed}
           />
         </SidebarMenu>
-        <div className="pt-4 px-2">
-          {initialFocusedMembershipLoading ? (
-            <Skeleton className="w-full h-6" />
-          ) : (
-            <div className="w-full h-6 flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">
-                Test Mode
-              </span>
-              <Switch
-                checked={!livemode}
-                onCheckedChange={async () => {
+        <SidebarMenu
+          className={cn(
+            isCollapsed ? 'px-0 items-center' : 'px-0 w-full'
+          )}
+        >
+          <SidebarMenuItem>
+            {initialFocusedMembershipLoading ? (
+              <Skeleton className="w-full h-8 rounded-md" />
+            ) : (
+              <SidebarMenuButton
+                onClick={async () => {
                   await toggleTestMode.mutateAsync({
                     livemode: !Boolean(livemode),
                   })
@@ -246,10 +248,44 @@ export const SideNavigation = () => {
                   toggleTestMode.isPending ||
                   focusedMembership.isPending
                 }
-              />
-            </div>
-          )}
-        </div>
+                tooltip="Test Mode"
+                className={cn(
+                  'group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center'
+                )}
+              >
+                <span
+                  className={cn(
+                    'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+                    isCollapsed
+                      ? 'max-w-0 opacity-0 ml-0'
+                      : 'max-w-xs opacity-100 truncate'
+                  )}
+                >
+                  {isCollapsed ? null : 'Test Mode'}
+                </span>
+                {!isCollapsed && (
+                  <span className="ml-auto shrink-0">
+                    <div
+                      className={cn(
+                        'inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent shadow-sm transition-colors',
+                        !livemode ? 'bg-foreground' : 'bg-input'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'block h-4 w-4 rounded-full bg-background shadow-lg transition-transform',
+                          !livemode
+                            ? 'translate-x-4'
+                            : 'translate-x-0'
+                        )}
+                      />
+                    </div>
+                  </span>
+                )}
+              </SidebarMenuButton>
+            )}
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </>
   )
