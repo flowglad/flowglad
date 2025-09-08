@@ -320,7 +320,7 @@ export const rawStringAmountToCountableCurrencyAmount = (
   if (isCurrencyZeroDecimal(currencyCode)) {
     return Number(amount)
   }
-  return Number(amount) * 100
+  return Math.round(Number(amount) * 100)
 }
 
 export const stripe = (livemode: boolean) => {
