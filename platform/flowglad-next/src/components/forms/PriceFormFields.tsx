@@ -34,7 +34,7 @@ import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
-import { humanReadableCurrencyAmountToStripeCurrencyAmount, isCurrencyZeroDecimal } from '@/utils/stripe'
+import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { currencyCharacter } from '@/registry/lib/currency'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
