@@ -118,7 +118,7 @@ export const subscriptionMeterPeriodCalculations = pgTable(
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }
       ),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

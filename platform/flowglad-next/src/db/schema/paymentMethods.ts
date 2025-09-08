@@ -71,7 +71,7 @@ export const paymentMethods = pgTable(
           using: sql`"customerId" in (select "id" from "customers")`,
         }
       ),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()

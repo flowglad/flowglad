@@ -1,15 +1,4 @@
-export interface SubscriptionItem {
-  id: string
-  priceId: string
-  productId: string
-  productName: string
-  quantity: number
-  unitAmount: number
-  currency: string
-  interval?: 'month' | 'year' | 'week' | 'day'
-  intervalCount?: number
-  usageType?: 'metered' | 'licensed'
-}
+import { SubscriptionItem } from '../base/subscription-card/types'
 
 export function calculateTotalAmount(
   items: SubscriptionItem[]

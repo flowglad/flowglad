@@ -6,7 +6,6 @@ import { trpc } from '@/app/_trpc/client'
 import { CustomerSelector } from '@/registry/base/customer-selector/customer-selector'
 import { useSession } from '@/utils/authClient'
 import { Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 
 export default function SelectCustomerPage() {
   const router = useRouter()

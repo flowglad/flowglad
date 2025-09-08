@@ -53,7 +53,7 @@ export const messages = pgTable(
         table.platformId,
         table.platform,
       ]),
-      livemodePolicy(),
+      livemodePolicy(TABLE_NAME),
     ]
   }
 ).enableRLS()
