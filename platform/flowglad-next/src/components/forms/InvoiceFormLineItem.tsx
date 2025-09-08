@@ -16,7 +16,10 @@ import clsx from 'clsx'
 import NumberInput from '../ion/NumberInput'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import {
+  rawStringAmountToCountableCurrencyAmount,
+  stripeCurrencyAmountToHumanReadableCurrencyAmount,
+} from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
@@ -132,7 +135,12 @@ const InvoiceFormLineItem = ({
                       field.onChange('0')
                       return
                     }
-                    field.onChange(value?.floatValue != null ? humanReadableCurrencyAmountToStripeCurrencyAmount(organization!.defaultCurrency, value.floatValue) : 0)
+                    field.onChange(
+                      rawStringAmountToCountableCurrencyAmount(
+                        organization!.defaultCurrency,
+                        value.toString()
+                      )
+                    )
                   }}
                   allowDecimals={!zeroDecimal}
                 />
