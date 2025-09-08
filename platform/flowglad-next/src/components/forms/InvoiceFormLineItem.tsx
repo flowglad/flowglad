@@ -8,6 +8,7 @@ import {
   FormField,
   FormItem,
   FormControl,
+  FormLabel,
 } from '@/components/ui/form'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -21,6 +22,8 @@ import {
 } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { CurrencyInput } from '../ion/CurrencyInput'
+import { currencyCharacter } from '@/registry/lib/currency'
+import { cn } from '@/utils/core'
 
 interface InvoiceFormLineItemProps {
   id: string
@@ -111,22 +114,34 @@ const InvoiceFormLineItem = ({
         control={form.control}
         name={`invoiceLineItems.${index}.price`}
         render={({ field }) => (
-          <CurrencyInput
-            value={field.value?.toString() ?? ''}
-            className="w-[100px]"
-            onValueChange={(value) => {
-              if (value.floatValue) {
-                field.onChange(
-                  humanReadableCurrencyAmountToStripeCurrencyAmount(
-                    organization!.defaultCurrency,
-                    Math.ceil(value.floatValue * 100) / 100
-                  )
-                )
-              } else {
-                field.onChange(0)
-              }
-            }}
-          />
+          <FormItem className="flex-1">
+            <FormLabel>Price</FormLabel>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {currencyCharacter(organization!.defaultCurrency)}
+              </span>
+              <FormControl>
+                <CurrencyInput
+                  value={field.value?.toString() ?? ''}
+                  className={cn(
+                    'flex h-9 w-full rounded-md border bg-input px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+                    form.formState.errors.invoiceLineItems?.[index]
+                      ?.price
+                      ? 'border-destructive focus-visible:ring-destructive'
+                      : 'border-transparent focus-visible:border-stroke-strong focus-visible:bg-transparent focus-visible:ring-0',
+                    'flex-1'
+                  )}
+                  onValueChange={(value) => {
+                    if (!value) {
+                      field.onChange(0)
+                      return
+                    }
+                    field.onChange(value)
+                  }}
+                />
+              </FormControl>
+            </div>
+          </FormItem>
         )}
       />
 

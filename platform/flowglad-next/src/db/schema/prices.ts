@@ -546,6 +546,12 @@ export const editPriceSchema = z.object({
   id: z.string(),
 })
 
+export const editPriceFormSchema = editPriceSchema.extend({
+  __rawPriceString: z.string(),
+})
+
+export type EditPriceFormSchema = z.infer<typeof editPriceFormSchema>
+
 export type EditPriceInput = z.infer<typeof editPriceSchema>
 
 export const createPriceSchema = z
@@ -555,6 +561,14 @@ export const createPriceSchema = z
   .meta({
     id: 'CreatePriceInput',
   })
+
+export const createPriceFormSchema = createPriceSchema.extend({
+  __rawPriceString: z.string(),
+})
+
+export type CreatePriceFormSchema = z.infer<
+  typeof createPriceFormSchema
+>
 
 export type CreatePriceInput = z.infer<typeof createPriceSchema>
 
@@ -584,6 +598,14 @@ export const createProductSchema = z.object({
   featureIds: z.array(z.string()).optional(),
 })
 
+export const createProductFormSchema = createProductSchema.extend({
+  __rawPriceString: z.string(),
+})
+
+export type CreateProductFormSchema = z.infer<
+  typeof createProductFormSchema
+>
+
 export type CreateProductPriceInput = z.infer<
   typeof createProductPriceInputSchema
 >
@@ -596,6 +618,14 @@ export const editProductSchema = z.object({
   featureIds: z.array(z.string()).optional(),
   id: z.string(),
 })
+
+export const editProductFormSchema = editProductSchema.extend({
+  __rawPriceString: z.string(),
+})
+
+export type EditProductFormSchema = z.infer<
+  typeof editProductFormSchema
+>
 
 export type EditProductInput = z.infer<typeof editProductSchema>
 

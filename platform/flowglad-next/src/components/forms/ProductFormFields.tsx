@@ -103,8 +103,8 @@ export const ProductFormFields = ({
                       />
                     </FormControl>
                     <FormDescription className="text-xs text-subtle mt-1">
-                      Used to identify the product in its pricing
-                      model. Must be unique per-pricing model.
+                      Used to identify the price via API. Must be
+                      unique per-pricing model.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

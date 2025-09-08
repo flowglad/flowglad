@@ -5,6 +5,12 @@ import { createDiscountInputSchema } from '@/db/schema/discounts'
 import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { DiscountAmountType, DiscountDuration } from '@/types'
+import {
+  humanReadableCurrencyAmountToStripeCurrencyAmount,
+  stripeCurrencyAmountToHumanReadableCurrencyAmount,
+} from '@/utils/stripe'
+import { createDiscountFormSchema } from '@/db/schema/discounts'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 interface CreateDiscountModalProps {
   isOpen: boolean
@@ -16,24 +22,36 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
   setIsOpen,
 }) => {
   const createDiscount = trpc.discounts.create.useMutation()
-
+  const { organization } = useAuthenticatedContext()
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Create Discount"
-      formSchema={createDiscountInputSchema}
-      onSubmit={createDiscount.mutateAsync}
+      formSchema={createDiscountFormSchema}
+      onSubmit={async (input) => {
+        await createDiscount.mutateAsync({
+          ...input,
+          discount: {
+            ...input.discount,
+            amount: humanReadableCurrencyAmountToStripeCurrencyAmount(
+              organization!.defaultCurrency,
+              Number(input.__rawAmountString!)
+            ),
+          },
+        })
+      }}
       defaultValues={{
         discount: {
           name: '',
           code: '',
           amountType: DiscountAmountType.Fixed,
-          amount: 0,
+          amount: 1,
           duration: DiscountDuration.Once,
           active: true,
           numberOfPayments: null,
         },
+        __rawAmountString: '0',
       }}
     >
       <DiscountFormFields />
