@@ -3,7 +3,7 @@
 'use client'
 import { PriceType } from '@/types'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
-import { Price } from '@/db/schema/prices'
+import { createProductFormSchema, Price } from '@/db/schema/prices'
 import {
   CreateProductSchema,
   createProductSchema,
@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { Product } from '@/db/schema/products'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { singlePaymentDummyPrice } from '@/stubs/priceStubs'
+import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 export const defaultPrice: Price.ClientSinglePaymentInsert = {
   ...singlePaymentDummyPrice,
@@ -54,7 +55,7 @@ export const CreateProductModal = ({
   if (!organization) {
     return <></>
   }
-  const finalDefaultValues = createProductSchema.parse(
+  const finalDefaultValues = createProductFormSchema.parse(
     defaultValues ?? {
       product: {
         ...defaultProduct,
@@ -64,19 +65,30 @@ export const CreateProductModal = ({
         ...defaultPrice,
         currency: organization.defaultCurrency,
       },
-      offerings: [],
+      __rawPriceString: '0',
     }
   )
   return (
     <FormModal
       title="Create Product"
-      formSchema={createProductSchema}
+      formSchema={createProductFormSchema}
       defaultValues={finalDefaultValues}
       onSubmit={async (input) => {
         if (onSubmitStart) {
           onSubmitStart()
         }
-        const resp = await createProduct.mutateAsync(input)
+        const unitPrice = rawStringAmountToCountableCurrencyAmount(
+          organization!.defaultCurrency,
+          input.__rawPriceString!
+        )
+
+        const resp = await createProduct.mutateAsync({
+          ...input,
+          price: {
+            ...input.price,
+            unitPrice,
+          },
+        })
         navigator.clipboard.writeText(
           `${window.location.origin}/product/${resp.product.id}/purchase`
         )

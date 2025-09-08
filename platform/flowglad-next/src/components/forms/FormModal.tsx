@@ -60,10 +60,10 @@ const useShouldRenderContent = ({
 
 interface FormModalProps<T extends FieldValues>
   extends ModalInterfaceProps {
-  onSubmit: (data: T) => void
   onSuccess?: () => void
   formSchema: z.ZodSchema<T>
   defaultValues: DefaultValues<T>
+  onSubmit: (data: T) => void
   title: string
   children: React.ReactNode
   wide?: boolean

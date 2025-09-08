@@ -66,7 +66,7 @@ Here's what you need to do, assuming the table is named "UnicornRiders" (the act
           for: 'all',
           using: sql`"organization_id" in (select "organization_id" from "memberships")`,
         }),
-        livemodePolicy(),
+        livemodePolicy(TABLE_NAME),
       ]
     }
   ).enableRLS()

@@ -29,7 +29,9 @@ export function CustomerAvatar({
     const parts = name.trim().split(/\s+/)
     if (parts.length === 0) return 'U'
     if (parts.length === 1) return parts[0][0]?.toUpperCase() || 'U'
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    return (
+      (parts[0][0] + parts[parts.length - 1][0])?.toUpperCase() || 'U'
+    )
   }
 
   if (avatarUrl && !imageError) {

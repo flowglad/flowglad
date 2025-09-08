@@ -132,6 +132,18 @@ export const updateInvoiceTransaction = async (
 
   return {
     invoice: updatedInvoice,
-    invoiceLineItems: updatedInvoiceLineItems,
+    /**
+     * Sort the invoice line items by createdAt
+     * ascending to consistent ordering of the line items
+     */
+    invoiceLineItems: updatedInvoiceLineItems
+      .slice()
+      .sort((a, b) =>
+        a.createdAt < b.createdAt
+          ? -1
+          : a.createdAt > b.createdAt
+            ? 1
+            : 0
+      ),
   }
 }
