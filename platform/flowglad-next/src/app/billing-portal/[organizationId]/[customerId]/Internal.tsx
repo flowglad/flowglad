@@ -6,7 +6,6 @@ import { trpc } from '@/app/_trpc/client'
 import { SubscriptionCard } from '@/registry/base/subscription-card/subscription-card'
 import { InvoicesList } from '@/registry/base/invoices-list/invoices-list'
 import { PaymentMethodsList } from '@/registry/base/payment-methods-list/payment-methods-list'
-import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { BillingPortalHeader } from './components/BillingPortalHeader'
 import { BillingPortalNav } from './components/BillingPortalNav'
@@ -15,9 +14,8 @@ import { useState } from 'react'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { useSession } from '@/utils/authClient'
 import { toast } from 'sonner'
-import dynamic from 'next/dynamic'
 import { SubscriptionStatus } from '@/registry/lib/subscription-status'
-import BillingPortalLoading from './loading'
+import core from '@/utils/core'
 
 // Prevent server-side rendering for this component
 function BillingPortalPage() {
@@ -33,7 +31,7 @@ function BillingPortalPage() {
   >('subscription')
 
   // Check if user has multiple customer profiles
-  const { data: customersData } =
+  const { data: customersData, isLoading: isLoadingCustomers } =
     trpc.customerBillingPortal.getCustomersForUserAndOrganization.useQuery(
       {},
       {
@@ -65,8 +63,14 @@ function BillingPortalPage() {
     }
 
     // If customers are loaded and current customer is not in the list
-    if (customersData?.customers && !currentCustomer) {
-      toast.error('Access denied to this customer profile')
+    if (
+      customersData?.customers &&
+      !currentCustomer &&
+      !isLoadingCustomers
+    ) {
+      toast.error(
+        'This customer either does not exist or you do not have access to it'
+      )
       router.replace(
         `/billing-portal/${organizationId}/select-customer`
       )
@@ -129,8 +133,13 @@ function BillingPortalPage() {
   }
 
   const handleDownloadInvoice = (invoiceId: string) => {
-    // This would typically trigger a download or open in new tab
-    // TODO: Implement invoice download functionality
+    window.open(
+      core.safeUrl(
+        `/invoice/view/${organizationId}/${invoiceId}`,
+        process.env.NEXT_PUBLIC_APP_URL!
+      ),
+      '_blank'
+    )
   }
 
   if (isLoading) {
@@ -205,9 +214,6 @@ function BillingPortalPage() {
         <div className="mt-8 space-y-8">
           {activeSection === 'subscription' && (
             <section>
-              <h2 className="text-2xl font-bold mb-6">
-                Subscription
-              </h2>
               {currentSubscription ? (
                 <SubscriptionCard
                   subscription={{
@@ -251,9 +257,6 @@ function BillingPortalPage() {
 
           {activeSection === 'payment-methods' && (
             <section>
-              <h2 className="text-2xl font-bold mb-6">
-                Payment Methods
-              </h2>
               <PaymentMethodsList
                 paymentMethods={data.paymentMethods.map((pm) => {
                   const paymentData = pm.paymentMethodData || {}
@@ -288,7 +291,6 @@ function BillingPortalPage() {
 
           {activeSection === 'invoices' && (
             <section>
-              <h2 className="text-2xl font-bold mb-6">Invoices</h2>
               <InvoicesList
                 invoices={data.invoices.map((inv) => {
                   const invoice = inv.invoice

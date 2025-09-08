@@ -148,15 +148,11 @@ export const createPricedCheckoutSessionSchema = z.discriminatedUnion(
 export const customerBillingCreatePricedCheckoutSession = async ({
   checkoutSessionInput: rawCheckoutSessionInput,
   customer,
-  organizationId,
-  livemode,
 }: {
   checkoutSessionInput: z.infer<
     typeof createPricedCheckoutSessionSchema
   >
   customer: Customer.Record
-  organizationId: string
-  livemode: boolean
 }) => {
   const checkoutSessionInputResult =
     createPricedCheckoutSessionSchema.safeParse(
@@ -225,7 +221,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   }
 
   const redirectUrl = customerBillingPortalURL({
-    organizationId,
+    organizationId: customer.organizationId,
     customerId: customer.id,
   })
 
@@ -237,27 +233,38 @@ export const customerBillingCreatePricedCheckoutSession = async ({
           successUrl: redirectUrl,
           cancelUrl: redirectUrl,
         },
-        organizationId,
-        livemode,
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
       },
       transaction
     )
   })
 }
 
-export const customerBillingCreateAddPaymentMethodSession = async ({
-  customer,
-  organizationId,
-  livemode,
-}: {
+export const customerBillingCreateAddPaymentMethodSession = async (
   customer: Customer.Record
-  organizationId: string
-  livemode: boolean
-}) => {
+) => {
+  if (!customer) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'You do not have permission to create a payment method setup session',
+    })
+  }
+
+  if (!customer.stripeCustomerId) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'You do not have permission to create a payment method setup session',
+    })
+  }
+
   const redirectUrl = customerBillingPortalURL({
-    organizationId,
+    organizationId: customer.organizationId,
     customerId: customer.id,
   })
+
   return await adminTransaction(async ({ transaction }) => {
     return await createCheckoutSessionTransaction(
       {
@@ -267,8 +274,8 @@ export const customerBillingCreateAddPaymentMethodSession = async ({
           cancelUrl: redirectUrl,
           type: CheckoutSessionType.AddPaymentMethod,
         },
-        organizationId,
-        livemode,
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
       },
       transaction
     )

@@ -119,7 +119,6 @@ export function PaymentMethodRow({
                   onClick={handleSetDefault}
                   disabled={isSettingDefault}
                 >
-                  <Check className="h-4 w-4 mr-2" />
                   Set as Default
                 </Button>
               )}

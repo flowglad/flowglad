@@ -32,9 +32,7 @@ const publicRoutes = [
    */
   '/api/trpc/customerBillingPortal.requestMagicLink',
   '/api/trpc/purchases.(.*)Session',
-  '/api/trpc/checkoutSessions.setPaymentMethodType',
-  '/api/trpc/checkoutSessions.setCustomerEmail',
-  '/api/trpc/checkoutSessions.setBillingAddress',
+  '/api/trpc/checkoutSessions.public.(.*)',
   '/api/trpc/purchases.requestAccess',
   '/api/trpc/discounts.attempt',
   '/api/trpc/discounts.clear',

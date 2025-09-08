@@ -18,17 +18,14 @@ export function BillingPortalNav({
     {
       id: 'subscription' as const,
       label: 'Subscription',
-      icon: Package,
     },
     {
       id: 'payment-methods' as const,
       label: 'Payment Methods',
-      icon: CreditCard,
     },
     {
       id: 'invoices' as const,
       label: 'Invoices',
-      icon: FileText,
     },
   ]
 
@@ -36,7 +33,6 @@ export function BillingPortalNav({
     <nav className="border-b">
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
         {navItems.map((item) => {
-          const Icon = item.icon
           const isActive = activeSection === item.id
 
           return (
@@ -49,15 +45,6 @@ export function BillingPortalNav({
                 isActive && 'text-primary'
               )}
             >
-              <Icon
-                className={cn(
-                  'h-5 w-5 transition-colors',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground group-hover:text-foreground'
-                )}
-              />
-
               <div className="flex flex-col">
                 <span
                   className={cn(

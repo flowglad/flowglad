@@ -385,53 +385,23 @@ const createAddPaymentMethodSessionProcedure =
         sessionUrl: z.url().describe('The Stripe setup session URL'),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      const { customer, organizationId, livemode } = ctx
+    .mutation(async ({ ctx }) => {
+      const { customer } = ctx
+
+      // Check if customer exists and throw early
       if (!customer) {
         throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Customer not found',
+          code: 'FORBIDDEN',
+          message:
+            'You do not have permission to create a payment method setup session',
         })
       }
-      // Get the Stripe customer ID
-      if (!customer.stripeCustomerId) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Customer does not have a Stripe customer ID',
-        })
-      }
-      const redirectUrl = core.safeUrl(
-        `/billing-portal/${organizationId}/${customer.id}`,
-        process.env.NEXT_PUBLIC_APP_URL!
-      )
-      try {
-        return await authenticatedTransaction(
-          async ({ transaction }) => {
-            // Create a Stripe Checkout session in setup mode for adding a payment method
-            const session = await createCheckoutSessionTransaction(
-              {
-                checkoutSessionInput: {
-                  customerExternalId: customer.externalId,
-                  successUrl: redirectUrl,
-                  cancelUrl: redirectUrl,
-                  type: CheckoutSessionType.AddPaymentMethod,
-                },
-                organizationId: ctx.organizationId!,
-                livemode: customer.livemode,
-              },
-              transaction
-            )
-            return {
-              sessionUrl: session.url,
-            }
-          }
-        )
-      } catch (error) {
-        console.error('Error creating setup session:', error)
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create payment method setup session',
-        })
+
+      // Customer should never be undefined at this point
+      const session =
+        await customerBillingCreateAddPaymentMethodSession(customer)
+      return {
+        sessionUrl: session.url,
       }
     })
 
@@ -524,8 +494,6 @@ const createCheckoutSessionWithPriceProcedure =
       return await customerBillingCreatePricedCheckoutSession({
         checkoutSessionInput,
         customer: ctx.customer,
-        organizationId: ctx.organizationId!,
-        livemode: ctx.livemode,
       })
     })
 
@@ -538,11 +506,9 @@ const createAddPaymentMethodCheckoutSessionProcedure =
       })
     )
     .mutation(async ({ input, ctx }) => {
-      return await customerBillingCreateAddPaymentMethodSession({
-        customer: ctx.customer,
-        organizationId: ctx.organizationId!,
-        livemode: ctx.livemode,
-      })
+      return await customerBillingCreateAddPaymentMethodSession(
+        ctx.customer
+      )
     })
 
 export const customerBillingPortalRouter = router({

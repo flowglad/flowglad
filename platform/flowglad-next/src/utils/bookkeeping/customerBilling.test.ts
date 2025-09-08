@@ -41,7 +41,10 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import {
+  updateCustomer,
+  selectCustomerById,
+} from '@/db/tableMethods/customerMethods'
 import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
 import * as databaseAuthentication from '@/db/databaseAuthentication'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
@@ -622,10 +625,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         },
         transaction
       )
-      // Refresh customer record
-      const { selectCustomerById } = await import(
-        '@/db/tableMethods/customerMethods'
-      )
       const updatedCustomer = await selectCustomerById(
         customer.id,
         transaction
@@ -718,8 +717,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
       customerBillingCreatePricedCheckoutSession({
         checkoutSessionInput,
         customer,
-        organizationId: organization.id,
-        livemode: true,
       })
     ).rejects.toThrow()
   })
@@ -738,8 +735,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     const result = await customerBillingCreatePricedCheckoutSession({
       checkoutSessionInput,
       customer,
-      organizationId: organization.id,
-      livemode: true,
     })
 
     expect(result).toBeDefined()
@@ -769,8 +764,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         // @ts-expect-error - testing invalid type
         checkoutSessionInput,
         customer,
-        organizationId: organization.id,
-        livemode: true,
       })
     ).rejects.toThrow(
       'Invalid checkout session type. Only product and activate_subscription checkout sessions are supported. Received type: add_payment_method'
@@ -791,8 +784,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
       customerBillingCreatePricedCheckoutSession({
         checkoutSessionInput,
         customer,
-        organizationId: organization.id,
-        livemode: true,
       })
     ).rejects.toThrow(
       'You do not have permission to create a checkout session for this customer'
@@ -822,8 +813,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     const result = await customerBillingCreatePricedCheckoutSession({
       checkoutSessionInput,
       customer,
-      organizationId: organization.id,
-      livemode: true,
     })
 
     expect(result).toBeDefined()
@@ -855,10 +844,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
           pricingModelId: null,
         },
         transaction
-      )
-      // Refresh customer record
-      const { selectCustomerById } = await import(
-        '@/db/tableMethods/customerMethods'
       )
       const updatedCustomer = await selectCustomerById(
         customerWithoutPricingModel.id,
@@ -921,8 +906,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
       customerBillingCreatePricedCheckoutSession({
         checkoutSessionInput,
         customer: customerWithoutPricingModel,
-        organizationId: organization.id,
-        livemode: true,
       })
     ).rejects.toThrow()
   })
