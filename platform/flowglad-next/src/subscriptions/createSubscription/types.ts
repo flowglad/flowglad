@@ -32,6 +32,10 @@ export interface CreateSubscriptionParams {
   backupPaymentMethod?: PaymentMethod.Record
   autoStart?: boolean
   discountRedemption?: DiscountRedemption.Record | null
+  billingCycleAnchorDate?: Date
+  preservedBillingPeriodEnd?: Date
+  preservedBillingPeriodStart?: Date
+  prorateFirstPeriod?: boolean
 }
 
 export interface StandardCreateSubscriptionResult {

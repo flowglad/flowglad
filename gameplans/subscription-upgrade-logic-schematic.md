@@ -1,5 +1,28 @@
 # Subscription Upgrade Logic Schematic
 
+## Implementation Status
+**Last Updated**: 2025-01-07
+
+### ✅ Implemented (PR 1, PR 2 & PR 5 Complete - All completed by 2025-01-07):
+- Core upgrade flow in `processSetupIntentSucceeded`
+- `cancelFreeSubscriptionIfExists` helper function
+- `linkUpgradedSubscriptions` helper function
+- Database columns: `cancellationReason`, `replacedBySubscriptionId`, `isFreePlan`
+- Single free subscription validation in `verifyCanCreateSubscription`
+- CancellationReason enum in types.ts
+- Automatic isFreePlan marking based on unitPrice === 0
+- Analytics exclusion for upgraded subscriptions in churn metrics
+- Separate upgrade MRR tracking in MRR breakdown
+- Upgrade metrics functions (conversion rate, time to upgrade, revenue)
+- Event logging with SubscriptionUpgraded event type
+- Comprehensive test coverage for analytics changes
+
+### ❌ Not Implemented:
+- `selectActiveSubscriptionsForCustomer` filtering
+- `selectCurrentSubscriptionForCustomer` helper
+- Database constraint for single active subscription
+- Idempotency check for setup intents
+
 ## Current Flow (BEFORE)
 ```mermaid
 graph TD

@@ -2,11 +2,15 @@ import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PurchaseStatus,
   SubscriptionStatus,
+  CancellationReason,
+  FlowgladEventType,
+  EventNoun,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -17,7 +21,10 @@ import {
 } from '@/utils/stripe'
 import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
-import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
+import {
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
 import {
   checkoutSessionIsInTerminalState,
@@ -51,6 +58,11 @@ import {
   cancelFreeSubscriptionForUpgrade,
   linkUpgradedSubscriptions,
 } from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
+import {
+  constructPurchaseCompletedEventHash,
+  constructSubscriptionCreatedEventHash,
+} from '../eventHelpers'
+import { Event } from '@/db/schema/events'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -367,7 +379,11 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
 
 interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
   type: CheckoutSessionType.Product | CheckoutSessionType.Purchase
-  purchase: Purchase.Record
+  /**
+   * Only provided on the first time the checkout session is created
+   * and is null on subsequent calls
+   */
+  purchase: Purchase.Record | null
   price: Price.Record
   product: Product.Record
   billingRun: BillingRun.Record | null
@@ -446,10 +462,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }
 
     // Check for and cancel any free subscription before creating the new one
-    const canceledFreeSubscription = await cancelFreeSubscriptionForUpgrade(
-      customer.id,
-      transaction
-    )
+    const canceledFreeSubscription =
+      await cancelFreeSubscriptionForUpgrade(customer.id, transaction)
 
     const subscriptionsForCustomer = await selectSubscriptions(
       {
@@ -457,9 +471,64 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+
+    // Check for existing active paid subscriptions to prevent duplicate paid subscriptions
+    // unless the organization allows multiple subscriptions per customer
+    const activePaidSubscriptions = subscriptionsForCustomer.filter(
+      (sub) =>
+        sub.status === SubscriptionStatus.Active &&
+        sub.isFreePlan === false &&
+        sub.cancellationReason !== CancellationReason.UpgradedToPaid
+    )
+
+    if (
+      activePaidSubscriptions.length > 0 &&
+      !organization.allowMultipleSubscriptionsPerCustomer
+    ) {
+      throw new Error(
+        `Customer ${customer.id} already has an active paid subscription. ` +
+          `Cannot create another paid subscription. ` +
+          `Existing subscription ID: ${activePaidSubscriptions[0].id}`
+      )
+    }
     const hasHadTrial = subscriptionsForCustomer.some(
       (subscription) => subscription.trialEnd
     )
+
+    // Determine if we should preserve the billing cycle from the canceled free subscription
+    const preserveBillingCycle =
+      checkoutSession.preserveBillingCycleAnchor &&
+      !!canceledFreeSubscription
+    const startDate = new Date()
+
+    // Prepare billing cycle preservation parameters
+    let billingCycleAnchorDate: Date | undefined
+    let preservedBillingPeriodEnd: Date | undefined
+    let preservedBillingPeriodStart: Date | undefined
+    let prorateFirstPeriod = false
+
+    if (preserveBillingCycle) {
+      billingCycleAnchorDate =
+        canceledFreeSubscription.billingCycleAnchorDate || startDate
+      preservedBillingPeriodEnd =
+        canceledFreeSubscription.currentBillingPeriodEnd || undefined
+      preservedBillingPeriodStart =
+        canceledFreeSubscription.currentBillingPeriodStart ||
+        undefined
+      prorateFirstPeriod = true
+
+      // Validate that we're not past the period end
+      if (
+        preservedBillingPeriodEnd &&
+        startDate > preservedBillingPeriodEnd
+      ) {
+        // If we're past the period, don't preserve (start a new cycle)
+        billingCycleAnchorDate = undefined
+        preservedBillingPeriodEnd = undefined
+        preservedBillingPeriodStart = undefined
+        prorateFirstPeriod = false
+      }
+    }
 
     const output = await createSubscriptionWorkflow(
       {
@@ -479,7 +548,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
           hasHadTrial,
           trialPeriodDays: price.trialPeriodDays,
         }),
-        startDate: new Date(),
+        startDate,
+        billingCycleAnchorDate,
+        preservedBillingPeriodEnd,
+        preservedBillingPeriodStart,
+        prorateFirstPeriod,
         autoStart: true,
         quantity: checkoutSession.quantity,
         metadata: checkoutSession.outputMetadata ?? {},
@@ -489,6 +562,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    const eventInserts: Event.Insert[] = []
+    if (output.eventsToLog) {
+      eventInserts.push(...output.eventsToLog)
+    }
 
     // Link the old and new subscriptions if there was an upgrade
     if (canceledFreeSubscription && output.result.subscription) {
@@ -497,6 +574,23 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         output.result.subscription.id,
         transaction
       )
+      // Add upgrade event to the events to log
+      eventInserts.push({
+        type: FlowgladEventType.SubscriptionCreated,
+        occurredAt: new Date(),
+        organizationId: organization.id,
+        livemode: output.result.subscription.livemode,
+        metadata: {},
+        submittedAt: new Date(),
+        processedAt: null,
+        hash: constructSubscriptionCreatedEventHash(
+          output.result.subscription
+        ),
+        payload: {
+          object: EventNoun.Subscription,
+          id: output.result.subscription.id,
+        },
+      })
     }
 
     const updatedPurchase = await updatePurchase(
@@ -508,9 +602,24 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    eventInserts.push({
+      type: FlowgladEventType.PurchaseCompleted,
+      occurredAt: new Date(),
+      organizationId: organization.id,
+      livemode: updatedPurchase.livemode,
+      metadata: {},
+      submittedAt: new Date(),
+      processedAt: null,
+      hash: constructPurchaseCompletedEventHash(updatedPurchase),
+      payload: {
+        id: updatedPurchase.id,
+        object: EventNoun.Purchase,
+      },
+    })
 
     return {
       ...output,
+      eventsToLog: eventInserts,
       result: {
         purchase: updatedPurchase,
         checkoutSession,
@@ -619,6 +728,110 @@ export const processSetupIntentSucceeded = async (
     | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
   >
 > => {
+  // Check if this setup intent was already processed (idempotency check)
+  const existingSubscription = await selectSubscriptions(
+    {
+      stripeSetupIntentId: setupIntent.id,
+    },
+    transaction
+  )
+
+  if (existingSubscription.length > 0) {
+    // This setup intent was already processed, return the existing subscription
+    // This prevents duplicate subscription creation in case of webhook replay
+    const subscription = existingSubscription[0]
+    const checkoutSession = await checkoutSessionFromSetupIntent(
+      setupIntent,
+      transaction
+    )
+    const customer = await selectCustomerById(
+      subscription.customerId!,
+      transaction
+    )
+    const paymentMethod = subscription.defaultPaymentMethodId
+      ? await selectPaymentMethodById(
+          subscription.defaultPaymentMethodId,
+          transaction
+        )
+      : undefined
+
+    // Determine result type based on checkout session type
+    if (
+      checkoutSession.type ===
+      CheckoutSessionType.ActivateSubscription
+    ) {
+      const organization = await selectOrganizationById(
+        checkoutSession.organizationId,
+        transaction
+      )
+
+      // Ensure payment method exists for activation
+      if (!paymentMethod) {
+        throw new Error(
+          `processSetupIntentSucceeded: Payment method required for subscription activation (checkout session id: ${checkoutSession.id})`
+        )
+      }
+
+      return {
+        result: {
+          type: CheckoutSessionType.ActivateSubscription,
+          checkoutSession,
+          organization,
+          customer,
+          paymentMethod,
+          billingRun: null,
+          subscription,
+          purchase: null,
+        },
+        eventsToLog: [],
+      }
+    }
+    if (checkoutSession.type === CheckoutSessionType.Invoice) {
+      throw new Error(
+        `processSetupIntentSucceeded: Invoice checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    if (checkoutSession.type === CheckoutSessionType.Purchase) {
+      throw new Error(
+        `processSetupIntentSucceeded: Purchase checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    if (
+      checkoutSession.type === CheckoutSessionType.AddPaymentMethod
+    ) {
+      throw new Error(
+        `processSetupIntentSucceeded: Add payment method checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      )
+    }
+    // Default to subscription creating result type
+    const priceResult =
+      await selectPriceProductAndOrganizationByPriceWhere(
+        { id: subscription.priceId! },
+        transaction
+      )
+
+    // Validate that price result exists
+    if (!priceResult[0]) {
+      throw new Error(
+        `processSetupIntentSucceeded: Price not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id})`
+      )
+    }
+
+    return {
+      result: {
+        type: checkoutSession.type,
+        checkoutSession,
+        price: priceResult[0].price,
+        product: priceResult[0].product,
+        organization: priceResult[0].organization,
+        customer,
+        billingRun: null,
+        purchase: null,
+      },
+      eventsToLog: [],
+    }
+  }
+
   const initialCheckoutSession = await checkoutSessionFromSetupIntent(
     setupIntent,
     transaction

@@ -34,22 +34,13 @@ import {
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  selectPurchaseById,
-  upsertPurchaseById,
-} from '@/db/tableMethods/purchaseMethods'
-import {
-  safelyUpdateCheckoutSessionStatus,
-  selectCheckoutSessionById,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
-  createStripeCustomer,
-  stripeIdFromObjectOrId,
-} from '../stripe'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import core from '../core'
 import Stripe from 'stripe'
-import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import {
+  CheckoutSession,
+  invoiceCheckoutSessionNulledColumns,
+} from '@/db/schema/checkoutSessions'
 import {
   FeeCalculation,
   feeCalculations,
@@ -625,6 +616,7 @@ describe('Checkout Sessions', async () => {
         await updateCheckoutSession(
           {
             ...checkoutSession,
+            preserveBillingCycleAnchor: false,
             type: CheckoutSessionType.Purchase,
             purchaseId: purchase.id,
           } as CheckoutSession.Update,
@@ -904,9 +896,7 @@ describe('Checkout Sessions', async () => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
-              priceId: null,
-              purchaseId: null,
-              outputMetadata: null,
+              ...invoiceCheckoutSessionNulledColumns,
               type: CheckoutSessionType.Invoice,
               invoiceId: invoice.id,
             } as CheckoutSession.InvoiceUpdate,
@@ -940,9 +930,7 @@ describe('Checkout Sessions', async () => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
-              priceId: null,
-              purchaseId: null,
-              outputMetadata: null,
+              ...invoiceCheckoutSessionNulledColumns,
               type: CheckoutSessionType.Invoice,
               invoiceId: invoice.id,
             } as CheckoutSession.InvoiceUpdate,
@@ -990,9 +978,7 @@ describe('Checkout Sessions', async () => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
-              priceId: null,
-              purchaseId: null,
-              outputMetadata: null,
+              ...invoiceCheckoutSessionNulledColumns,
               type: CheckoutSessionType.Invoice,
               invoiceId: invoice.id,
             } as CheckoutSession.InvoiceUpdate,
@@ -1031,9 +1017,7 @@ describe('Checkout Sessions', async () => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
-              priceId: null,
-              purchaseId: null,
-              outputMetadata: null,
+              ...invoiceCheckoutSessionNulledColumns,
               type: CheckoutSessionType.Invoice,
               invoiceId: invoice.id,
             } as CheckoutSession.InvoiceUpdate,
@@ -1082,9 +1066,7 @@ describe('Checkout Sessions', async () => {
         await updateCheckoutSession(
           {
             ...checkoutSession,
-            priceId: null,
-            purchaseId: null,
-            outputMetadata: null,
+            ...invoiceCheckoutSessionNulledColumns,
             type: CheckoutSessionType.Invoice,
             invoiceId: invoice.id,
           } as CheckoutSession.InvoiceUpdate,

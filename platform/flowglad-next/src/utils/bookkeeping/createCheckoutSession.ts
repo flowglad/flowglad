@@ -66,6 +66,8 @@ const checkoutSessionInsertFromInput = ({
       customerId: isAnonymous ? null : customer!.id,
       customerEmail: isAnonymous ? null : customer!.email,
       customerName: isAnonymous ? null : customer!.name,
+      preserveBillingCycleAnchor:
+        checkoutSessionInput.preserveBillingCycleAnchor ?? false
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
@@ -104,6 +106,8 @@ const checkoutSessionInsertFromInput = ({
       customerId: customer.id,
       customerEmail: customer.email,
       customerName: customer.name,
+      preserveBillingCycleAnchor:
+        checkoutSessionInput.preserveBillingCycleAnchor ?? false
     }
   }
   throw new Error(
