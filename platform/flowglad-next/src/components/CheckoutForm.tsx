@@ -16,8 +16,8 @@ const CheckoutFormDisabled = () => {
         <PaymentLoadingForm disableAnimation />
       </div>
       <div className="absolute top-0 left-0 right-0 bottom-0 backdrop-blur-sm rounded-md mb-20">
-        <div className="flex flex-col gap-4 items-center justify-center h-full bg-[rgba(0,0,0,0.84)] rounded-md">
-          <div className="flex flex-col gap-2 items-center justify-center bg-background-input p-4 rounded-md border border-muted">
+        <div className="flex flex-col gap-4 items-center justify-center h-full bg-background/95 backdrop-blur-sm rounded-md">
+          <div className="flex flex-col gap-2 items-center justify-center bg-card p-4 rounded-md border border-border">
             <TriangleAlert className="w-8 h-8" />
             <p className="text-lg font-semibold">
               Checkout is disabled

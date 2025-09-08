@@ -559,8 +559,7 @@ const MultipleSelector = React.forwardRef<
               'overflow-hidden',
               'px-3 py-1.5',
               {
-                [disabled ? 'bg-disabled' : 'bg-background-input']:
-                  true,
+                [disabled ? 'bg-muted' : 'bg-background']: true,
                 'hover:border-outline': !disabled && !resolvedError,
                 'focus-within:danger-focus border-danger hover:border-danger':
                   resolvedError && !disabled,

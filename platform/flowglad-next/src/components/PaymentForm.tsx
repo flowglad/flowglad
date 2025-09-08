@@ -471,8 +471,8 @@ const PaymentForm = () => {
             </Button>
             {errorMessage && <ErrorLabel error={errorMessage} />}
             {!checkoutSession.livemode && (
-              <div className="p-2 bg-orange-600 justify-center items-center text-center w-full flex mt-4 rounded-md">
-                <div className="text-white text-sm">
+              <div className="p-2 bg-yellow-500 dark:bg-yellow-600 justify-center items-center text-center w-full flex mt-4 rounded-md">
+                <div className="text-white dark:text-black text-sm">
                   <p>This is a test mode checkout.</p>
                   <p>No payments will be processed.</p>
                 </div>

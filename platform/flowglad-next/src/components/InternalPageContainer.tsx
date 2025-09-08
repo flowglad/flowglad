@@ -13,7 +13,7 @@ const InnerPageContainer = ({
         className
       )}
     >
-      <div className="bg-background flex-1 h-full w-full flex gap-8 p-6 pb-10">
+      <div className="bg-background flex-1 h-full w-full max-w-[75rem] mx-auto flex gap-8 p-6 pb-10">
         <div className="flex-1 h-full w-full flex flex-col">
           {children}
         </div>

@@ -141,7 +141,7 @@ export const SideNavigation = () => {
       <SidebarContent className="pt-3">
         <SidebarMenu
           className={cn(
-            'flex flex-col gap-1',
+            'flex flex-col gap-0',
             isCollapsed ? 'px-0 items-center' : 'px-3 w-full'
           )}
         >
@@ -194,7 +194,7 @@ export const SideNavigation = () => {
 
       <SidebarFooter
         className={cn(
-          'flex flex-col gap-3 overflow-hidden transition-all duration-300 ease-in-out',
+          'flex flex-col gap-0 overflow-hidden transition-all duration-300 ease-in-out',
           isCollapsed
             ? 'opacity-0 max-h-0 pointer-events-none'
             : 'opacity-100'

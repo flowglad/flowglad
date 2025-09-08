@@ -162,7 +162,7 @@ export default function DiscountCodeInput() {
                     <div className="relative">
                       <Input
                         id="discountCode"
-                        className="h-11 bg-[#353535] focus-visible:bg-[#353535] border-none pr-12"
+                        className="h-11 bg-muted focus-visible:bg-muted border-none pr-12"
                         autoCapitalize="characters"
                         {...field}
                         onChange={(e) => {

@@ -395,7 +395,7 @@ const InvoiceFormFields = ({
           )}
         />
       )}
-      <div className="w-full border-opacity-[0.07] flex items-start py-6 border-b border-white">
+      <div className="w-full flex items-start py-6 border-b border-border">
         <div className="flex-1 w-full flex flex-col justify-center gap-6">
           <div className="w-full flex flex-col gap-3">
             <InvoiceFormLineItemsField />

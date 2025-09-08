@@ -25,16 +25,17 @@ const PurchaseStatusCell = ({
   purchase: Purchase.ClientRecord
 }) => {
   let badgeLabel: string = 'Pending'
-  let badgeClassName: string = 'bg-gray-100 text-gray-800'
+  let badgeClassName: string = 'bg-muted text-muted-foreground'
 
   if (purchase.endDate) {
-    badgeClassName = 'bg-gray-100 text-gray-800'
+    badgeClassName = 'bg-muted text-muted-foreground'
     badgeLabel = 'Concluded'
   } else if (purchase.purchaseDate) {
-    badgeClassName = 'bg-green-100 text-green-800'
+    badgeClassName =
+      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
     badgeLabel = 'Paid'
   } else {
-    badgeClassName = 'bg-gray-100 text-gray-800'
+    badgeClassName = 'bg-muted text-muted-foreground'
     badgeLabel = 'Pending'
   }
 

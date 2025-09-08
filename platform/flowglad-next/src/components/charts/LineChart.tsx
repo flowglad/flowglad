@@ -76,7 +76,7 @@ const LegendItem = ({
         // base
         'group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition',
         hasOnValueChange
-          ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
+          ? 'cursor-pointer hover:bg-accent'
           : 'cursor-default'
       )}
       onClick={(e) => {
@@ -100,8 +100,7 @@ const LegendItem = ({
           'truncate whitespace-nowrap text-xs',
           // text color
           'text-gray-700 dark:text-gray-300',
-          hasOnValueChange &&
-            'group-hover:text-gray-900 dark:group-hover:text-gray-50',
+          hasOnValueChange && 'group-hover:text-accent-foreground',
           activeLegend && activeLegend !== name
             ? 'opacity-40'
             : 'opacity-100'
@@ -154,7 +153,7 @@ const ScrollButton = ({
         'group inline-flex size-5 items-center truncate rounded transition',
         disabled
           ? 'cursor-not-allowed text-gray-400 dark:text-gray-600'
-          : 'cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50'
+          : 'cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground'
       )}
       disabled={disabled}
       onClick={(e) => {

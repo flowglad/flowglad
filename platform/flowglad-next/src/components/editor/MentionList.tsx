@@ -66,12 +66,12 @@ const MentionList = forwardRef<
   }))
 
   return (
-    <div className="bg-background-input rounded-md shadow-medium flex flex-col gap-1 overflow-auto p-3 relative border border-muted">
+    <div className="bg-background rounded-md shadow-medium flex flex-col gap-1 overflow-auto p-3 relative border border-border">
       {props.items.length ? (
         props.items.map((item, index) => (
           <button
-            className={`hover:bg-gray-500 px-1 text-left rounded-md ${
-              index === selectedIndex ? 'bg-blue-300' : ''
+            className={`hover:bg-accent px-1 text-left rounded-md ${
+              index === selectedIndex ? 'bg-accent' : ''
             }`}
             key={index}
             onClick={() => selectItem(index)}

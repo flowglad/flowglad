@@ -24,7 +24,7 @@ const CheckoutPage = ({
   /** Background split overlay for left side of checkout page */
   const leftBackgroundOverlay = cn(
     'absolute top-0 left-0 bottom-0 right-[50%]',
-    'bg-background-input -z-10 hidden lg:block'
+    'bg-muted -z-10 hidden lg:block'
   )
   /** Background split overlay for right side of checkout page */
   const rightBackgroundOverlay = cn(

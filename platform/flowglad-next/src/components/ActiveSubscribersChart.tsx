@@ -55,7 +55,7 @@ const SubscriberCountTooltip = ({
     <ErrorBoundary fallback={<div>Error</div>}>
       <div
         className={cn(
-          'bg-[#282828] flex flex-col gap-2 p-4 rounded-md border border-muted shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
+          'bg-popover flex flex-col gap-2 p-4 rounded-md border border-border shadow-lg'
         )}
       >
         <div className="flex justify-between items-center gap-2 text-xs font-medium text-foreground">
@@ -69,7 +69,7 @@ const SubscriberCountTooltip = ({
                         color as AvailableChartColorsKeys,
                         'bg'
                       )
-                    : 'bg-gray-500',
+                    : 'bg-muted-foreground',
                   'w-2 h-2 rounded-full'
                 )}
                 style={{ width: '10px', height: '10px' }}

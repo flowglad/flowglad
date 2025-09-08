@@ -48,7 +48,7 @@ const OnboardingStatusRow = ({
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div className="flex flex-row items-center justify-between border border-muted rounded-lg bg-background-input py-4 px-4">
+      <div className="flex flex-row items-center justify-between border border-border rounded-lg bg-card py-4 px-4">
         <div className="flex flex-col justify-start w-full">
           <p className="font-medium text-foreground pb-1">{title}</p>
           <OnboardingItemDescriptionLabel>
@@ -59,7 +59,7 @@ const OnboardingStatusRow = ({
         {actionNode || action ? (
           <div className="flex flex-row items-start justify-end">
             {completed ? (
-              <div className="rounded-full bg-green-500  p-2 justify-end items-end">
+              <div className="rounded-full bg-green-600 text-white p-2 justify-end items-end">
                 <Check size={20} strokeWidth={2} />
               </div>
             ) : (
@@ -80,8 +80,8 @@ const OnboardingCodeblock = ({
   markdownText: string
 }) => {
   return (
-    <div className="flex flex-col gap-2 py-2 bg-background-input rounded-b-lg w-full">
-      <div className="flex flex-row items-center gap-2 text-sm font-mono bg-background p-4 rounded-md w-full justify-between">
+    <div className="flex flex-col gap-2 py-2 bg-muted rounded-b-lg w-full">
+      <div className="flex flex-row items-center gap-2 text-sm font-mono bg-card border border-border p-4 rounded-md w-full justify-between">
         <Markdown className={'max-w-[500px] overflow-x-scroll'}>
           {markdownText}
         </Markdown>
@@ -233,7 +233,7 @@ const OnboardingStatusTable = ({
                   '_blank'
                 )
               }}
-              className="border-white bg-transparent hover:bg-white/10"
+              className="border-border bg-background hover:bg-accent"
               variant="outline"
             >
               Setup Manually
