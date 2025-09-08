@@ -1,190 +1,94 @@
-# GOOBR - Movie Prototype App
+<p align="center">
+  <a href="https://github.com/flowglad/flowglad">
+    <img width="1440" alt="1440w light" src="https://github.com/user-attachments/assets/4dea09ea-91c9-4233-a4ac-cef513bbb927" />
+  </a>
 
-**"tap in, get there."** - A fully functional ride-hailing app prototype for film production.
+  <h3 align="center">Flowglad</h3>
 
-## 🎬 About
+  <p align="center">
+    Open-source payment and billing for web devs & vibe coders
+    <br />
+    <a href="https://flowglad.com"><strong>Get Started</strong></a>
+    <br />
+    <br />   
+    ·
+    <a href="https://docs.flowglad.com/quickstart">Quickstart</a>
+    ·
+    <a href="https://flowglad.com">Website</a>
+    ·
+    <a href="https://github.com/flowglad/flowglad/issues">Issues</a>
+    ·
+    <a href="https://app.flowglad.com/invite-discord">Discord</a>
+  </p>
+</p>
 
-GOOBR is a complete, movie-ready ride-hailing app prototype built with Next.js 14. It features a rider app, driver app, operations console, and Director Mode for scripting on-screen events during filming.
+## Project Goals
 
-## 🚀 Quick Start
+In the last 15 years, the market has given developers more options than ever for every single part of their stack. But when it comes to payments, there have been virtually zero new entrants. The existing options are slim, and almost all of them require us to talk to sales to even set up an account. When it comes to _self-serve_ payments, there are even fewer options.
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+The result? The developer experience and cost of payments has barely improved in that time. Best in class DX in payments feels eerily suspended in 2015. Meanwhile, we've enjoyed constant improvements in auth, compute, hosting, and practically everything else.
 
-2. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
+Flowglad wants to change that.
 
-3. **Open your browser:**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+We're building a payments layer that lets you:
+- Think about billing and payments as little as possible
+- Spend as little time on integration and maintenance as possible
+- Get as much out of your single integration as possible
+- Unlock more payment providers from a single integration
 
-## 📱 App Structure
+Achieving this mission will take time. It will be hard. It might even make some people unhappy. But with AI bringing more and more developers on line and exploding the complexity of startup billing, the need is more urgent than ever.
 
-### Rider App (`/`)
-- **Landing Page**: Hero section with "Get a ride" CTA
-- **Request Ride** (`/request`): Pickup/dropoff selection, ride types, pricing
-- **Live Ride** (`/live`): Driver matching, ETA, driver info
-- **Trip Progress** (`/trip`): Progress bar, cancel option
-- **Receipt** (`/receipt`): Payment breakdown, rating, tips
+## Demo: Integrating Flowglad in <40 seconds
 
-### Driver App (`/driver`)
-- **Sign In**: Passcode entry (use `000000`)
-- **Dashboard**: Online/offline toggle, earnings overview
-- **Queue** (`/queue`): Incoming ride requests
-- **Active Trip** (`/run`): Trip controls (arrived, picked up, end)
-- **Earnings** (`/earnings`): Daily summary and charts
+https://github.com/user-attachments/assets/6480c847-4f59-482e-8549-8833c2e182fb
 
-### Operations Console (`/ops`)
-- **Live Map**: Real-time vehicle tracking
-- **Trip Management**: Active rides table
-- **Surge Controls**: Toggle surge pricing
-- **Quick Actions**: Spawn demand, add drivers, etc.
+## Language & Framework SDK Coverage
 
-### Director Mode (`/director`)
-- **Scenario Selection**: Pre-built scenarios for filming
-- **Timeline Control**: Playback controls and timeline scrubbing
-- **Hotkeys**: Keyboard shortcuts for live events
-- **Cinematic Mode**: Full-screen overlay for filming
+Flowglad aims to have first class support for every language and framework that developers build in. If we haven't gotten to your tool of choice yet, we have a [REST API](https://docs.flowglad.com/api-reference/introduction) that anyone can integrate as a fallback.
 
-## 🎮 Demo Controls
+Here's our progress thus far. If you don't see your framework or language on here, please let us know in [our Discord](https://discord.gg/zsvkVtTXge)!
 
-### Rider Flow
-- **Request Page**: Toggle surge pricing demo
-- **Live Page**: Manual control of ride status (searching → matched → en route)
-- **Trip Page**: Progress bar controls (reset, 50%, complete)
-- **Receipt Page**: Rating and tip controls
+| Framework   | Support |
+|-------------|---------|
+| Next.js     | ✅      |
+| Express     | ✅      |
+| React       | ✅      |
+| Remix       | 🟡      |
+| Astro       | 🟡      |
+| Hono        | 🟡      |
+| Vue         | 🟡      |
+| Deno        | 🟡      |
+| Sveltekit   | 🟡      |
+| Nuxt        | 🟡      |
+| Fastify     | 🟡      |
+| Python      | 🟡      |
+| Django      | 🟡      |
+| Golang      | 🟡      |
+| React Native| 🟡      |
 
-### Driver Flow
-- **Sign In**: Use passcode `000000`
-- **Dashboard**: Toggle online/offline status
-- **Queue**: Accept/decline incoming rides
+## Authentication Services
+Flowglad couples tightly with your authentication layer, automatically mapping your notion of customers to our notion of customers. To make this effortless, we have adapters for many popular auth services.
 
-### Operations
-- **Surge Toggle**: Enable/disable surge pricing visualization
-- **Global Pause**: Pause all operations
-- **Quick Actions**: Spawn demand spikes, add drivers
+If you have a custom auth setup or need to support team-based billing, you can tell Flowglad how to derive the customer record on your server by setting `getRequestingCustomer`.
 
-### Director Mode
-- **Scenario Picker**: Select from 6 pre-built scenarios
-- **Playback Controls**: Play/pause/reset timeline
-- **Hotkeys**: 
-  - `1` - Spawn demand spike
-  - `2` - Toggle heavy rain
-  - `3` - Force surge pricing
-  - `4` - Trigger driver chat
-  - `5` - Cancel ride
-- **Cinematic Mode**: Full-screen overlay for filming
+| Authentication Service | Support |
+|------------------------|---------|
+| Supabase Auth          | ✅      |
+| Clerk                  | ✅      |
+| NextAuth               | ✅      |
+| Better Auth            | 🟡      |
+| Stack Auth             | 🟡      |
+| Firebase Auth          | 🟡      |
 
-## 🎬 Filming Shot List
 
-### Essential Shots
-1. **Landing Hero** - GOOBR wordmark with "tap in, get there." tagline
-2. **Ride Request** - Estimate wiggle when switching between Eco/Comfort/XL
-3. **Driver Matching** - Spinning loader and driver card entrance animation
-4. **Live Map** - Car sprite gliding with smooth easing
-5. **Surge Pricing** - Pulsing halo effect over neighborhoods
-6. **Driver Actions** - Tapping "Arrived" then "Picked Up" buttons
-7. **Trip Progress** - Animated progress bar completion
-8. **Receipt** - 5-star rating with confetti animation
-9. **Operations Console** - Live map with surge controls
-10. **Director Mode** - Timeline scrubbing and scenario selection
+## Built With
 
-### Cinematic Mode
-- Access via Director Mode or add `?film=1` to any URL
-- Hides browser chrome for clean filming
-- Slows UI animations for dramatic effect
-- Full-screen overlay with timeline controls
-
-## 🎨 Brand Guidelines
-
-### Colors
-- **Goobr Black**: `#0B0B0F`
-- **Goobr White**: `#F7F7FB`
-- **Goobr Purple**: `#6C5CE7`
-- **Goobr Mint**: `#2EE6A6`
-- **Goobr Amber**: `#FFB02E`
-
-### Typography
-- **Font**: Inter (Google Fonts)
-- **Base Size**: 14-16px
-- **Display**: 32-48px
-
-### Motion
-- **Duration**: 150ms ease-out
-- **Car Animation**: Springy easing for vehicle movement
-- **Surge Halo**: 2s pulse animation
-
-## 🛠️ Technical Stack
-
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **Animations**: CSS transitions + keyframes
-- **State**: React hooks (useState, useEffect)
-- **No External APIs**: Everything runs locally with mock data
-
-## 📁 Project Structure
-
-```
-src/
-├── app/
-│   ├── (rider)/           # Rider app pages
-│   ├── (driver)/          # Driver app pages
-│   ├── (ops)/             # Operations console
-│   ├── director/          # Director Mode
-│   └── layout.tsx         # Root layout
-├── components/
-│   ├── GoobrLogo.tsx      # Brand logo component
-│   └── FakeMap.tsx        # SVG map with animations
-└── globals.css            # Global styles and animations
-```
-
-## 🎯 Filming Tips
-
-### Camera Angles
-- **Mobile**: Use browser dev tools to simulate mobile viewport
-- **Desktop**: Full-screen for operations console shots
-- **Tablet**: Medium viewport for driver app
-
-### Lighting
-- **Day Mode**: Default light theme
-- **Night Mode**: Director Mode cinematic overlay
-- **Focus**: Use browser zoom for close-up UI shots
-
-### Audio
-- **Sound Effects**: Add post-production sound effects
-- **Voiceover**: Record narration separately
-- **Music**: Add background music in editing
-
-### Transitions
-- **Page Transitions**: Smooth navigation between screens
-- **State Changes**: Animate UI state changes
-- **Loading States**: Show loading spinners and skeletons
-
-## 🚀 Production Notes
-
-This is a **prototype only** - no real payments, GPS, or external services are integrated. All data is mocked for demonstration purposes.
-
-### Mock Data
-- **Drivers**: 30 fictional drivers with unique names and vehicles
-- **Locations**: 8 neighborhoods with realistic names
-- **Pricing**: Dynamic fare calculation with surge multipliers
-- **Events**: Scripted scenarios for consistent filming
-
-### Performance
-- **Optimized**: Fast loading with minimal dependencies
-- **Responsive**: Works on all screen sizes
-- **Accessible**: Keyboard navigation and focus management
-- **Cross-browser**: Tested on Chrome, Safari, Firefox
-
-## 📞 Support
-
-For filming support or technical questions, refer to the Director Mode controls and demo features built into each page.
-
----
-
-**GOOBR** - *tap in, get there.* 🚗✨
+- [Next.js](https://nextjs.org/?ref=flowglad.com)
+- [tRPC](https://trpc.io/?ref=flowglad.com)
+- [React.js](https://reactjs.org/?ref=flowglad.com)
+- [Tailwind CSS](https://tailwindcss.com/?ref=flowglad.com)
+- [Drizzle ORM](https://orm.drizzle.team/?ref=flowglad.com)
+- [Zod](https://zod.dev/?ref=flowglad.com)
+- [Trigger.dev](https://trigger.dev/?ref=flowglad.com)
+- [Supabase](https://supabase.com/?ref=flowglad.com)
+- [Stack Auth](https://stack-auth.com/?ref=flowglad.com)
