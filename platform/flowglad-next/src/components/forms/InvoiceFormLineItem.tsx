@@ -133,7 +133,7 @@ const InvoiceFormLineItem = ({
                       field.onChange('0')
                       return
                     }
-                    field.onChange(value)
+                    field.onChange(value?.floatValue != null ? humanReadableCurrencyAmountToStripeCurrencyAmount(organization!.defaultCurrency, value.floatValue) : 0)
                   }}
                 />
               </FormControl>
