@@ -18,9 +18,8 @@ import { DbTransaction } from '@/db/types'
 import { Customer } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import {
-  activateSubscriptionCheckoutSessionSchema,
   CreateCheckoutSessionInput,
-  productCheckoutSessionSchema,
+  activateSubscriptionCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
 import { Price } from '@/db/schema/prices'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
@@ -144,7 +143,7 @@ const productCheckoutSessionSchemaNoUrls = z.discriminatedUnion('anonymous', [
     priceId: z.string(),
     quantity: z.number().optional(),
     anonymous: z.literal(false).optional(),
-    // Ensure a concrete customerExternalId when not anonymous
+    // Require a concrete customerExternalId when not anonymous
     customerExternalId: z.string(),
     preserveBillingCycleAnchor: z.boolean().optional(),
   }),
@@ -159,21 +158,14 @@ const productCheckoutSessionSchemaNoUrls = z.discriminatedUnion('anonymous', [
   }),
 ])
 
-const activateSubscriptionCheckoutSessionSchemaNoUrls =
-  coreCheckoutSessionNoUrls.extend({
-    type: z.literal(CheckoutSessionType.ActivateSubscription),
-    priceId: z.string(),
-    targetSubscriptionId: z.string(),
-    preserveBillingCycleAnchor: z.boolean().optional(),
-    // Require customerExternalId for activate flow
-    customerExternalId: z.string(),
-  })
-
 export const createPricedCheckoutSessionSchema = z.discriminatedUnion(
   'type',
   [
     productCheckoutSessionSchemaNoUrls,
-    activateSubscriptionCheckoutSessionSchemaNoUrls,
+    activateSubscriptionCheckoutSessionSchema.omit({
+      successUrl: true,
+      cancelUrl: true,
+    }),
   ]
 )
 

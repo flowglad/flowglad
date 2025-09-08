@@ -795,9 +795,22 @@ export const singleCheckoutSessionOutputSchema = z.object({
 })
 
 export const createCheckoutSessionSchema = z
-  .object({
-    checkoutSession: createCheckoutSessionObject,
-  })
+  .preprocess(
+    (val) => {
+      const v = val as any
+      const cs = v?.checkoutSession
+      if (
+        cs?.type === CheckoutSessionType.Product &&
+        cs.anonymous === undefined
+      ) {
+        return { ...v, checkoutSession: { ...cs, anonymous: false } }
+      }
+      return v
+    },
+    z.object({
+      checkoutSession: createCheckoutSessionObject,
+    })
+  )
   .describe('Use this schema for new checkout sessions.')
 
 export type CreateCheckoutSessionInput = z.infer<
