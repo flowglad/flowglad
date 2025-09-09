@@ -25,11 +25,12 @@ import {
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import NumberInput from '@/components/ion/NumberInput'
 import UsageMetersSelect from './UsageMetersSelect'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 import core, { titleCase } from '@/utils/core'
 import { Switch } from '@/components/ui/switch'
 
-const FeatureFormFields = () => {
+const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateFeatureInput>()
 
   const featureType = form.watch('feature.type')
@@ -64,13 +65,15 @@ const FeatureFormFields = () => {
       <FormField
         control={form.control}
         name="feature.slug"
-        render={({ field }) => (
+        render={() => (
           <FormItem>
             <FormLabel>Slug</FormLabel>
             <FormControl>
-              <Input
-                placeholder="e.g. my-awesome-feature"
-                {...field}
+              <AutoSlugInput
+                name="feature.slug"
+                sourceName="feature.name"
+                placeholder="feature_slug"
+                disabledAuto={edit}
               />
             </FormControl>
             <FormDescription>

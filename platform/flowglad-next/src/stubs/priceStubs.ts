@@ -25,7 +25,7 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
-  slug: 'test-price',
+  slug: '',
 }
 
 export const singlePaymentDummyPrice: Price.SinglePaymentRecord = {

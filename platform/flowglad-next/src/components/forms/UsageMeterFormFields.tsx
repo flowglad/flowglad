@@ -21,6 +21,7 @@ import {
 import { UsageMeterAggregationType } from '@/types'
 import { sentenceCase } from 'change-case'
 import core from '@/utils/core'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 export default function UsageMeterFormFields({
   edit,
@@ -41,7 +42,7 @@ export default function UsageMeterFormFields({
           <FormItem>
             <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input {...field} />
+              <Input placeholder="Usage Meter" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -61,7 +62,13 @@ export default function UsageMeterFormFields({
             <FormItem>
               <FormLabel>Slug</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <AutoSlugInput
+                  {...field}
+                  name="usageMeter.slug"
+                  sourceName="usageMeter.name"
+                  placeholder="usage_meter_slug"
+                  disabledAuto={edit}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
