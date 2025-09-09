@@ -134,7 +134,10 @@ export function NavMain({
                               asChild
                               isActive={isSubItemActive}
                             >
-                              <Link href={subItem.url}>
+                              <Link
+                                href={subItem.url}
+                                prefetch={true}
+                              >
                                 <span>{subItem.title}</span>
                               </Link>
                             </SidebarMenuSubButton>
