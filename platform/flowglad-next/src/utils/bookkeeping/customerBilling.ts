@@ -18,9 +18,8 @@ import { DbTransaction } from '@/db/types'
 import { Customer } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import {
-  activateSubscriptionCheckoutSessionSchema,
   CreateCheckoutSessionInput,
-  productCheckoutSessionSchema,
+  customerBillingCreatePricedCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
 import { Price } from '@/db/schema/prices'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
@@ -131,31 +130,17 @@ export const setDefaultPaymentMethodForCustomer = async (
   }
 }
 
-export const createPricedCheckoutSessionSchema = z.discriminatedUnion(
-  'type',
-  [
-    productCheckoutSessionSchema.omit({
-      successUrl: true,
-      cancelUrl: true,
-    }),
-    activateSubscriptionCheckoutSessionSchema.omit({
-      successUrl: true,
-      cancelUrl: true,
-    }),
-  ]
-)
-
 export const customerBillingCreatePricedCheckoutSession = async ({
   checkoutSessionInput: rawCheckoutSessionInput,
   customer,
 }: {
   checkoutSessionInput: z.infer<
-    typeof createPricedCheckoutSessionSchema
+    typeof customerBillingCreatePricedCheckoutSessionSchema
   >
   customer: Customer.Record
 }) => {
   const checkoutSessionInputResult =
-    createPricedCheckoutSessionSchema.safeParse(
+    customerBillingCreatePricedCheckoutSessionSchema.safeParse(
       rawCheckoutSessionInput
     )
   if (!checkoutSessionInputResult.success) {
@@ -185,19 +170,6 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       code: 'FORBIDDEN',
       message:
         'You do not have permission to create a checkout session for this customer',
-    })
-  }
-  if (
-    checkoutSessionInput.type !== CheckoutSessionType.Product &&
-    checkoutSessionInput.type !==
-      CheckoutSessionType.ActivateSubscription
-  ) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Invalid checkout session type. Only product and activate_subscription checkout sessions are supported. Received type: ' +
-        // @ts-expect-error - this is a type error because it should never be hit
-        checkoutSessionInput.type,
     })
   }
 

@@ -18,7 +18,7 @@ import {
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { Organization } from '@/db/schema/organizations'
@@ -32,15 +32,12 @@ const checkoutSessionInsertFromInput = ({
   livemode,
 }: {
   checkoutSessionInput: CreateCheckoutSessionObject
-  customer: Customer.Record
+  customer: Customer.Record | null
   organizationId: string
   livemode: boolean
 }): CheckoutSession.Insert => {
   const coreFields = {
-    customerId: customer.id,
     organizationId,
-    customerEmail: customer.email,
-    customerName: customer.name,
     status: CheckoutSessionStatus.Open,
     livemode,
     successUrl: checkoutSessionInput.successUrl,
@@ -48,22 +45,43 @@ const checkoutSessionInsertFromInput = ({
     outputMetadata: checkoutSessionInput.outputMetadata,
     outputName: checkoutSessionInput.outputName,
     automaticallyUpdateSubscriptions: null,
-  }
+  } as const
+
+  const isAnonymous =
+    'anonymous' in checkoutSessionInput &&
+    checkoutSessionInput.anonymous === true
+
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    if (!isAnonymous && !customer) {
+      throw new Error(
+        `Required customer not found for Product checkout (anonymous=false). externalId='${checkoutSessionInput.customerExternalId}', organization='${organizationId}'.`
+      )
+    }
     return {
       ...coreFields,
       type: CheckoutSessionType.Product,
       invoiceId: null,
       priceId: checkoutSessionInput.priceId,
       targetSubscriptionId: null,
+      customerId: isAnonymous ? null : customer!.id,
+      customerEmail: isAnonymous ? null : customer!.email,
+      customerName: isAnonymous ? null : customer!.name,
       preserveBillingCycleAnchor:
-        checkoutSessionInput.preserveBillingCycleAnchor,
+        checkoutSessionInput.preserveBillingCycleAnchor ?? false,
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
   ) {
+    if (!customer) {
+      throw new Error(
+        'Customer is required for add payment method checkout sessions'
+      )
+    }
     return {
       ...coreFields,
+      customerId: customer.id,
+      customerEmail: customer.email,
+      customerName: customer.name,
       automaticallyUpdateSubscriptions: false,
       type: CheckoutSessionType.AddPaymentMethod,
       targetSubscriptionId:
@@ -73,6 +91,11 @@ const checkoutSessionInsertFromInput = ({
     checkoutSessionInput.type ===
     CheckoutSessionType.ActivateSubscription
   ) {
+    if (!customer) {
+      throw new Error(
+        'Customer is required for activate subscription checkout sessions'
+      )
+    }
     return {
       ...coreFields,
       priceId: checkoutSessionInput.priceId,
@@ -80,8 +103,11 @@ const checkoutSessionInsertFromInput = ({
       targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
       purchaseId: null,
       invoiceId: null,
+      customerId: customer.id,
+      customerEmail: customer.email,
+      customerName: customer.name,
       preserveBillingCycleAnchor:
-        checkoutSessionInput.preserveBillingCycleAnchor,
+        checkoutSessionInput.preserveBillingCycleAnchor ?? false,
     }
   }
   throw new Error(
@@ -104,17 +130,18 @@ export const createCheckoutSessionTransaction = async (
   },
   transaction: DbTransaction
 ) => {
-  const [customer] = await selectCustomers(
-    {
-      externalId: checkoutSessionInput.customerExternalId,
-    },
-    transaction
-  )
-  if (!customer) {
-    throw new Error(
-      `Customer not found for externalId: ${checkoutSessionInput.customerExternalId}`
+  // Only query for customer if customerExternalId is provided
+  let customer: Customer.Record | null = null
+  if (checkoutSessionInput.customerExternalId) {
+    customer = await selectCustomerByExternalIdAndOrganizationId(
+      {
+        externalId: checkoutSessionInput.customerExternalId,
+        organizationId,
+      },
+      transaction
     )
   }
+  // Anonymous sessions can omit customerExternalId; in that case customer will be null
   // NOTE: invoice and purchase checkout sessions
   // are not supported by API yet.
   const checkoutSession = await insertCheckoutSession(
@@ -157,7 +184,7 @@ export const createCheckoutSessionTransaction = async (
       await createSetupIntentForCheckoutSession({
         organization,
         checkoutSession,
-        customer,
+        ...(customer ? { customer } : {}),
       })
     stripeSetupIntentId = stripeSetupIntent.id
   } else if (price?.type === PriceType.SinglePayment && product) {

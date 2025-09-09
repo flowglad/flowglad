@@ -20,7 +20,7 @@ import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { Skeleton } from '../ui/skeleton'
-import { FeatureFlag, BusinessOnboardingStatus } from '@/types'
+import { BusinessOnboardingStatus } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
 import {
   SidebarContent,
@@ -163,16 +163,11 @@ export const SideNavigation = () => {
       title: 'Purchases',
       url: '/store/purchases',
     },
-  ]
-  if (
-    organization &&
-    organization.featureFlags?.[FeatureFlag.Usage]
-  ) {
-    storeChildItems.push({
+    {
       title: 'Usage Meters',
       url: '/store/usage-meters',
-    })
-  }
+    },
+  ]
 
   const navigationSections: MainNavItem[] = [
     {

@@ -30,20 +30,29 @@ export function constructPaymentSucceededEventHash(
   })
 }
 
-export function constructCustomerCreatedEventHash(
-  customer: Pick<Customer.Record, 'id'>
-) {
-  return constructEventHash({
-    type: FlowgladEventType.CustomerCreated,
-    id: customer.id,
-  })
-}
-
 export function constructPurchaseCompletedEventHash(
   purchase: Pick<Purchase.Record, 'id'>
 ) {
   return constructEventHash({
     type: FlowgladEventType.PurchaseCompleted,
     id: purchase.id,
+  })
+}
+
+export function constructPaymentFailedEventHash(
+  payment: Pick<Payment.Record, 'id'>
+) {
+  return constructEventHash({
+    type: FlowgladEventType.PaymentFailed,
+    id: payment.id,
+  })
+}
+
+export function constructCustomerCreatedEventHash(
+  customer: Pick<Customer.Record, 'id'>
+) {
+  return constructEventHash({
+    type: FlowgladEventType.CustomerCreated,
+    id: customer.id,
   })
 }

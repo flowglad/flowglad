@@ -11,7 +11,7 @@ import {
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
 
-import { usageProcedure } from '@/server/trpc'
+import { protectedProcedure } from '@/server/trpc'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedTransaction,
@@ -31,7 +31,7 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const usageEventsRouteConfigs = routeConfigs
 
-export const createUsageEvent = usageProcedure
+export const createUsageEvent = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUsageEventSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
@@ -46,7 +46,7 @@ export const createUsageEvent = usageProcedure
     )
   )
 
-export const getUsageEvent = usageProcedure
+export const getUsageEvent = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
@@ -60,7 +60,7 @@ export const getUsageEvent = usageProcedure
     return { usageEvent }
   })
 
-export const bulkInsertUsageEventsProcedure = usageProcedure
+export const bulkInsertUsageEventsProcedure = protectedProcedure
   .input(bulkInsertUsageEventsSchema)
   .output(
     z.object({ usageEvents: z.array(usageEventsClientSelectSchema) })
