@@ -38,7 +38,7 @@ The easiest way to make internet money.
 
 A payment processor for vibe coding. 
 
-Inifite pricing models, one source of truth, zero webhooks.
+Infinite pricing models, one source of truth, zero webhooks.
 
 ## Features
 
