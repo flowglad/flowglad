@@ -40,10 +40,10 @@ Infinite pricing models, one source of truth, zero webhooks.
 
 ## Features
 
-- **Stateless By Default:** Total freedom from managing billing or pricing data. Say goodbye to webhooks, `"subscriptions"` db tables, `PRICE_ID` env variables, or manually mapping prices to features.
-- **Single Source of Truth:** Read the latest customer billing state from Flowglad, including feature access and usage meter credits
-- **Access Data Using Your Ids:** Flowglad identifies customers based on your auth. It lets you define the slugs you use to refer to features, meters, prices, and products
-- **Full-Stack SDK:** Access Flowglad data on the backend using `flowgladServer.getBilling()`, or in your React frontend using our `useBilling()` hook
+- **Stateless By Default:** Say goodbye to webhooks, `"subscriptions"` db tables, `customer_id` columns, `PRICE_ID` env variables, or manually mapping your plans to prices to features.
+- **Single Source of Truth:** Read your latest customer billing state from Flowglad, including feature access and usage meter credits
+- **Access Data Using Your Ids:** Identify customers according to your auth. Define the slugs you use to refer to features, meters, prices, and products
+- **Full-Stack SDK:** Access your customer's data on the backend using `flowgladServer.getBilling()`, or in your React frontend using our `useBilling()` hook
 - **Adaptable:** Iterate on new pricing models in testmode, and push them to prod in a click. Seamlessly rotate pricing models in your app without any redeployment.
 
 ## Set Up
