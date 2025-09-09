@@ -662,7 +662,7 @@ const checkoutSessionInsertFromInput = ({
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
     if (!isAnonymous && !customer) {
       throw new Error(
-        'Customer not found for externalId: non-existent-customers'
+        `Required customer not found for Product checkout (anonymous=false). externalId='${checkoutSessionInput.customerExternalId}', organization='${organizationId}'.`
       )
     }
     return {

@@ -19,7 +19,7 @@ import { Customer } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import {
   CreateCheckoutSessionInput,
-  activateSubscriptionCheckoutSessionSchema,
+  customerBillingCreatePricedCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
 import { Price } from '@/db/schema/prices'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
@@ -130,56 +130,18 @@ export const setDefaultPaymentMethodForCustomer = async (
   }
 }
 
-// Build a no-URL core and variant-level schemas, since .omit is not available on discriminated unions
-const coreCheckoutSessionNoUrls = z.object({
-  customerExternalId: z.string().nullable().optional(),
-  outputMetadata: z.record(z.string(), z.any()).optional(),
-  outputName: z.string().optional(),
-})
-
-const productCheckoutSessionSchemaNoUrls = z.discriminatedUnion('anonymous', [
-  coreCheckoutSessionNoUrls.extend({
-    type: z.literal(CheckoutSessionType.Product),
-    priceId: z.string(),
-    quantity: z.number().optional(),
-    anonymous: z.literal(false).optional(),
-    // Require a concrete customerExternalId when not anonymous
-    customerExternalId: z.string(),
-    preserveBillingCycleAnchor: z.boolean().optional(),
-  }),
-  coreCheckoutSessionNoUrls.extend({
-    type: z.literal(CheckoutSessionType.Product),
-    priceId: z.string(),
-    quantity: z.number().optional(),
-    anonymous: z.literal(true),
-    // Anonymous sessions may omit or null customerExternalId
-    customerExternalId: z.null().optional(),
-    preserveBillingCycleAnchor: z.boolean().optional(),
-  }),
-])
-
-export const createPricedCheckoutSessionSchema = z.discriminatedUnion(
-  'type',
-  [
-    productCheckoutSessionSchemaNoUrls,
-    activateSubscriptionCheckoutSessionSchema.omit({
-      successUrl: true,
-      cancelUrl: true,
-    }),
-  ]
-)
 
 export const customerBillingCreatePricedCheckoutSession = async ({
   checkoutSessionInput: rawCheckoutSessionInput,
   customer,
 }: {
   checkoutSessionInput: z.infer<
-    typeof createPricedCheckoutSessionSchema
+    typeof customerBillingCreatePricedCheckoutSessionSchema
   >
   customer: Customer.Record
 }) => {
   const checkoutSessionInputResult =
-    createPricedCheckoutSessionSchema.safeParse(
+    customerBillingCreatePricedCheckoutSessionSchema.safeParse(
       rawCheckoutSessionInput
     )
   if (!checkoutSessionInputResult.success) {
@@ -209,19 +171,6 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       code: 'FORBIDDEN',
       message:
         'You do not have permission to create a checkout session for this customer',
-    })
-  }
-  if (
-    checkoutSessionInput.type !== CheckoutSessionType.Product &&
-    checkoutSessionInput.type !==
-      CheckoutSessionType.ActivateSubscription
-  ) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Invalid checkout session type. Only product and activate_subscription checkout sessions are supported. Received type: ' +
-        // @ts-expect-error - this is a type error because it should never be hit
-        checkoutSessionInput.type,
     })
   }
 

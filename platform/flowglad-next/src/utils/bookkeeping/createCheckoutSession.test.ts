@@ -109,7 +109,7 @@ describe('createCheckoutSessionTransaction', () => {
         )
       )
     ).rejects.toThrow(
-      'Customer not found for externalId: non-existent-customer'
+      `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customer', organization='${organization.id}'.`
     )
   })
 
@@ -323,7 +323,9 @@ describe('createCheckoutSessionTransaction', () => {
             tx.transaction
           )
         )
-      ).rejects.toThrow('Customer not found for externalId: non-existent-customers')
+      ).rejects.toThrow(
+        `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customers', organization='${organization.id}'.`
+      )
     })
 
     it('should populate customer fields correctly for non-anonymous checkout with valid customer', async () => {

@@ -18,7 +18,7 @@ import {
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { Organization } from '@/db/schema/organizations'
@@ -54,7 +54,7 @@ const checkoutSessionInsertFromInput = ({
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
     if (!isAnonymous && !customer) {
       throw new Error(
-        'Customer not found for externalId: non-existent-customers'
+        `Required customer not found for Product checkout (anonymous=false). externalId='${checkoutSessionInput.customerExternalId}', organization='${organizationId}'.`
       )
     }
     return {
@@ -133,13 +133,13 @@ export const createCheckoutSessionTransaction = async (
   // Only query for customer if customerExternalId is provided
   let customer: Customer.Record | null = null
   if (checkoutSessionInput.customerExternalId) {
-    const [foundCustomer] = await selectCustomers(
+    customer = await selectCustomerByExternalIdAndOrganizationId(
       {
         externalId: checkoutSessionInput.customerExternalId,
+        organizationId,
       },
       transaction
     )
-    customer = foundCustomer
   }
   // Anonymous sessions can omit customerExternalId; in that case customer will be null
   // NOTE: invoice and purchase checkout sessions

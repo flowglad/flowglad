@@ -717,38 +717,44 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
+export const identifiedProductCheckoutSessionSchema =
+  coreCheckoutSessionSchema.extend({
+    type: z.literal(CheckoutSessionType.Product),
+    priceId: z
+      .string()
+      .describe('The ID of the price the customer shall purchase'),
+    quantity: z
+      .number()
+      .optional()
+      .describe(
+        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+      ),
+    anonymous: z.literal(false).optional(),
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
+  })
+
+export const anonymousProductCheckoutSessionSchema =
+  coreCheckoutSessionSchema.extend({
+    type: z.literal(CheckoutSessionType.Product),
+    priceId: z
+      .string()
+      .describe('The ID of the price the customer shall purchase'),
+    quantity: z
+      .number()
+      .optional()
+      .describe(
+        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+      ),
+    anonymous: z.literal(true),
+    customerExternalId: z.null().optional(),
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
+  })
+
 export const productCheckoutSessionSchema = z.discriminatedUnion(
   'anonymous',
   [
-    coreCheckoutSessionSchema.extend({
-      type: z.literal(CheckoutSessionType.Product),
-      priceId: z
-        .string()
-        .describe('The ID of the price the customer shall purchase'),
-      quantity: z
-        .number()
-        .optional()
-        .describe(
-          'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-        ),
-      anonymous: z.literal(false).optional(),
-      preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
-    }),
-    coreCheckoutSessionSchema.extend({
-      type: z.literal(CheckoutSessionType.Product),
-      priceId: z
-        .string()
-        .describe('The ID of the price the customer shall purchase'),
-      quantity: z
-        .number()
-        .optional()
-        .describe(
-          'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-        ),
-      anonymous: z.literal(true),
-      customerExternalId: z.null().optional(),
-      preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
-    }),
+    identifiedProductCheckoutSessionSchema,
+    anonymousProductCheckoutSessionSchema,
   ]
 )
 
@@ -777,6 +783,37 @@ export const activateSubscriptionCheckoutSessionSchema =
     preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
   })
 
+// Customer-billing variants (omit successUrl and cancelUrl)
+export const customerBillingIdentifiedProductCheckoutSessionSchema =
+  identifiedProductCheckoutSessionSchema.omit({
+    successUrl: true,
+    cancelUrl: true,
+  })
+
+export const customerBillingAnonymousProductCheckoutSessionSchema =
+  anonymousProductCheckoutSessionSchema.omit({
+    successUrl: true,
+    cancelUrl: true,
+  })
+
+export const customerBillingProductCheckoutSessionSchema =
+  z.discriminatedUnion('anonymous', [
+    customerBillingIdentifiedProductCheckoutSessionSchema,
+    customerBillingAnonymousProductCheckoutSessionSchema,
+  ])
+
+export const customerBillingActivateSubscriptionCheckoutSessionSchema =
+  activateSubscriptionCheckoutSessionSchema.omit({
+    successUrl: true,
+    cancelUrl: true,
+  })
+
+export const customerBillingCreatePricedCheckoutSessionSchema =
+  z.discriminatedUnion('type', [
+    customerBillingProductCheckoutSessionSchema,
+    customerBillingActivateSubscriptionCheckoutSessionSchema,
+  ])
+
 const createCheckoutSessionObject = z.discriminatedUnion('type', [
   productCheckoutSessionSchema,
   activateSubscriptionCheckoutSessionSchema,
@@ -797,15 +834,18 @@ export const singleCheckoutSessionOutputSchema = z.object({
 export const createCheckoutSessionSchema = z
   .preprocess(
     (val) => {
-      const v = val as any
-      const cs = v?.checkoutSession
+      const valueWithCheckoutSession = val as any
+      const checkoutSession = valueWithCheckoutSession?.checkoutSession
       if (
-        cs?.type === CheckoutSessionType.Product &&
-        cs.anonymous === undefined
+        checkoutSession?.type === CheckoutSessionType.Product &&
+        checkoutSession.anonymous === undefined
       ) {
-        return { ...v, checkoutSession: { ...cs, anonymous: false } }
+        return {
+          ...valueWithCheckoutSession,
+          checkoutSession: { ...checkoutSession, anonymous: false },
+        }
       }
-      return v
+      return valueWithCheckoutSession
     },
     z.object({
       checkoutSession: createCheckoutSessionObject,

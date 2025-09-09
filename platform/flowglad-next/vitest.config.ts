@@ -13,7 +13,6 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: ['./vitest.setup.ts'],
       env: loadEnv(mode, process.cwd(), ''),
-      testTimeout: 10000, // Increase default timeout to 10 seconds
       deps: {
         inline: [/@stackframe\/stack-shared/], // Force inline this package
       },
