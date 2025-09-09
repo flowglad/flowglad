@@ -63,6 +63,96 @@ pnpm install @flowglad/nextjs
 pnpm install @flowglad/react @flowglad/server
 ```
 
+Flowglad couples tightly with your auth. Here are some prompts that you can use to integrate Flowglad, based on your auth provider, in about 30 seconds:
+
+<details>
+<summary><strong>Clerk</strong></summary>
+
+```txt
+Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
+`bash
+# replace @flowglad/nextjs with @flowglad/react and @flowglad/server
+pnpm install @flowglad/react @flowglad/server # or whatever package manager we use
+`
+
+`ts
+// replace all imports of @flowglad/nextjs/server -> @flowglad/server
+import { FlowgladServer } from '@flowglad/server'
+`
+
+1. Create a `flowglad.ts` file in /src, that looks like this:
+
+`// flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  clerk: {
+    currentUser,
+  },
+})
+`
+<Important>
+If your customers are organizations rather than individual users, you should use the `getRequestingCustomer` initializer method:
+
+`ts flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: () => {
+   // whatever logic you currently use to 
+   // derive the organization associated with a given request
+  }
+})
+
+`
+</Important>
+
+2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
+
+`// /api/flowglad/[...path]/route.ts
+'use server'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
+import { flowgladServer } from '@/flowglad'
+
+const routeHandler = createAppRouterRouteHandler(flowgladServer)
+
+export { routeHandler as GET, routeHandler as POST }
+`
+
+3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
+
+- get the user via clerk auth
+- mount the `FlowgladProvider` with the user
+- pass the user to the `FlowgladProvider`
+
+`
+// /app/layout.tsx
+import { currentUser } from '@clerk/nextjs/server'
+// ... existing code ...
+// inside of the layout component:
+const user = await currentUser()
+
+return (
+
+<FlowgladProvider loadBilling={!!user}>
+  {/* ... existing layout JSX ... */}
+  {children}
+  {/* ... existing layout JSX ... */}
+</FlowgladProvider>
+) `
+
+4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
+
+`tsx /billing/page.tsx
+import { BillingPage } from '@flowglad/nextjs'
+
+export default function Billing() {
+  return <BillingPage />
+}
+`
+```
+</details>
 <details>
 <summary><strong>Supabase Auth</strong></summary>
 
@@ -152,95 +242,6 @@ export default function Billing() {
 }
 ```
 </details>
-<details>
-<summary><strong>Clerk</strong></summary>
-
-```txt
-Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
-`bash
-# replace @flowglad/nextjs with @flowglad/react and @flowglad/server
-pnpm install @flowglad/react @flowglad/server # or whatever package manager we use
-`
-
-`ts
-// replace all imports of @flowglad/nextjs/server -> @flowglad/server
-import { FlowgladServer } from '@flowglad/server'
-`
-
-1. Create a `flowglad.ts` file in /src, that looks like this:
-
-`// flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-import { currentUser } from '@clerk/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  clerk: {
-    currentUser,
-  },
-})
-`
-<Important>
-If your customers are organizations rather than individual users, you should use the `getRequestingCustomer` initializer method:
-
-`ts flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: () => {
-   // whatever logic you currently use to 
-   // derive the organization associated with a given request
-  }
-})
-
-`
-</Important>
-
-2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
-
-`// /api/flowglad/[...path]/route.ts
-'use server'
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
-import { flowgladServer } from '@/flowglad'
-
-const routeHandler = createAppRouterRouteHandler(flowgladServer)
-
-export { routeHandler as GET, routeHandler as POST }
-`
-
-3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
-
-- get the user via clerk auth
-- mount the `FlowgladProvider` with the user
-- pass the user to the `FlowgladProvider`
-
-`
-// /app/layout.tsx
-import { currentUser } from '@clerk/nextjs/server'
-// ... existing code ...
-// inside of the layout component:
-const user = await currentUser()
-
-return (
-
-<FlowgladProvider loadBilling={!!user}>
-  {/* ... existing layout JSX ... */}
-  {children}
-  {/* ... existing layout JSX ... */}
-</FlowgladProvider>
-) `
-
-4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
-`
-```
-</details>
-
 <details>
 <summary><strong>Next Auth</strong></summary>
 
