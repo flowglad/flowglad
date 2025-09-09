@@ -46,7 +46,7 @@ Infinite pricing models, one source of truth, zero webhooks.
 - **Single Source of Truth:** Read the latest customer billing state from Flowglad, including feature access and usage meter credits
 - **Access Data Using Your Ids:** Flowglad identifies customers based on your auth. It lets you define the slugs you use to refer to features, meters, prices, and products
 - **Full-Stack SDK:** Access Flowglad data on the backend using `flowgladServer.getBilling()`, or in your React frontend using our `useBilling()` hook
-- **Adaptible:** Iterate on new pricing models in testmode, and push them to prod in a click. Seamlessly rotate pricing models in your app without any redeployment.
+- **Adaptable:** Iterate on new pricing models in testmode, and push them to prod in a click. Seamlessly rotate pricing models in your app without any redeployment.
 
 ## Set Up
 
