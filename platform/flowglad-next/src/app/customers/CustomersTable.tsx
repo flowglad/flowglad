@@ -193,6 +193,8 @@ const CustomersTable = ({
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <CustomerMoreMenuCell customer={cellData.customer} />
           ),

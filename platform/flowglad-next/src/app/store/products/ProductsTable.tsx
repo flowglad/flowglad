@@ -244,14 +244,14 @@ export const ProductsTable = ({
   return (
     <div className="flex-1 h-full w-full flex flex-col gap-6 pb-10">
       <div className="w-full flex flex-col gap-5">
-        <div className="w-full overflow-hidden">
+        <div className="w-full">
           <DataTable
             columns={columns}
             data={tableData}
             onClickRow={(row) => {
               router.push(`/store/products/${row.product.id}`)
             }}
-            className="bg-background w-full min-w-0"
+            className="bg-background w-full"
             bordered
             pagination={{
               pageIndex,

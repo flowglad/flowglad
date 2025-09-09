@@ -223,7 +223,7 @@ export const SideNavigation = () => {
         className={cn(
           'w-full flex flex-row items-center border-b border-muted py-3',
           isCollapsed
-            ? 'justify-center px-1 gap-0'
+            ? 'justify-center px-1 gap-0 p-2'
             : 'justify-between px-1 gap-2.5 p-2'
         )}
       >

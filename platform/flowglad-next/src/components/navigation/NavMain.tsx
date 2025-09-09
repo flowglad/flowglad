@@ -3,6 +3,7 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import React from 'react'
 
 import {
   Collapsible,
@@ -18,6 +19,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 
 export function NavMain({
@@ -37,33 +39,81 @@ export function NavMain({
   title?: string
 }) {
   const pathname = usePathname()
+  const { state, setOpen } = useSidebar()
+  const isCollapsed = state === 'collapsed'
+
+  // State to track which items are expanded
+  const [expandedItems, setExpandedItems] = React.useState<
+    Set<string>
+  >(new Set())
 
   // Helper function to check if a URL is active
   const isActiveUrl = (url: string) => {
     return pathname === url || pathname.startsWith(url + '/')
   }
 
+  // Initialize expanded state based on active items
+  React.useEffect(() => {
+    const initialExpanded = new Set<string>()
+    items.forEach((item) => {
+      const hasActiveSubItem =
+        item.items?.some((subItem) => isActiveUrl(subItem.url)) ||
+        false
+      const shouldBeOpen = item.isActive || hasActiveSubItem
+      if (shouldBeOpen) {
+        initialExpanded.add(item.title)
+      }
+    })
+    setExpandedItems(initialExpanded)
+  }, [items, pathname])
+
   return (
     <SidebarGroup>
       {title && <SidebarGroupLabel>{title}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => {
-          // Check if any sub-item is active to keep parent open
-          const hasActiveSubItem =
-            item.items?.some((subItem) => isActiveUrl(subItem.url)) ||
-            false
-          const shouldBeOpen = item.isActive || hasActiveSubItem
+          const isItemExpanded = expandedItems.has(item.title)
+
+          // Handle click on collapsed sidebar with children
+          const handleParentClick = (event: React.MouseEvent) => {
+            if (isCollapsed && item.items && item.items.length > 0) {
+              event.preventDefault()
+              // Open the sidebar first, then expand the item
+              setOpen(true)
+              // Add the item to expanded items so it opens when sidebar expands
+              setExpandedItems((prev) =>
+                new Set(prev).add(item.title)
+              )
+            }
+          }
+
+          // Handle collapsible state changes
+          const handleOpenChange = (open: boolean) => {
+            setExpandedItems((prev) => {
+              const newSet = new Set(prev)
+              if (open) {
+                newSet.add(item.title)
+              } else {
+                newSet.delete(item.title)
+              }
+              return newSet
+            })
+          }
 
           return (
             <Collapsible
               key={item.title}
               asChild
-              defaultOpen={shouldBeOpen}
+              open={isItemExpanded}
+              onOpenChange={handleOpenChange}
               className="group/collapsible"
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    onClick={handleParentClick}
+                  >
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                     {item.items && (
