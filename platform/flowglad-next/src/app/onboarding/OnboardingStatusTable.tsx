@@ -17,7 +17,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
@@ -48,23 +47,46 @@ const OnboardingStatusRow = ({
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div className="flex flex-row items-center justify-between border border-border rounded-lg bg-card py-4 px-4">
-        <div className="flex flex-col justify-start w-full">
-          <p className="font-normal text-foreground pb-1">{title}</p>
-          <OnboardingItemDescriptionLabel>
-            {description}
-          </OnboardingItemDescriptionLabel>
+      <div
+        className="flex flex-col gap-6 border border-border rounded-[28px] bg-card p-6"
+        style={{
+          boxShadow:
+            '-3px 4px 21px 0px rgba(0, 0, 0, 0.05), -2px 2px 4px 0px rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        <div className="flex flex-col justify-start w-full gap-3">
+          <div className="flex flex-col gap-1">
+            <div className="w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
+              <p className="text-sm font-semibold text-secondary-foreground">
+                {title.match(/^\d+/)?.[0] || ''}
+              </p>
+            </div>
+            <p className="font-semibold text-foreground">
+              {title.replace(/^\d+\.\s*/, '')}
+            </p>
+            <OnboardingItemDescriptionLabel>
+              {description}
+            </OnboardingItemDescriptionLabel>
+          </div>
           {children}
         </div>
         {actionNode || action ? (
-          <div className="flex flex-row items-start justify-end">
+          <div className="flex flex-col">
             {completed ? (
-              <div className="rounded-full bg-green-600 text-white p-2 justify-end items-end">
-                <Check size={20} strokeWidth={2} />
+              <div className="flex justify-center">
+                <div className="rounded-full bg-green-600 text-white p-2">
+                  <Check size={20} strokeWidth={2} />
+                </div>
               </div>
             ) : (
               actionNode || (
-                <Button onClick={onClick}>{action}</Button>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={onClick}
+                >
+                  {action}
+                </Button>
               )
             )}
           </div>
@@ -80,21 +102,21 @@ const OnboardingCodeblock = ({
   markdownText: string
 }) => {
   return (
-    <div className="flex flex-col gap-2 py-2 bg-muted rounded-b-lg w-full">
-      <div className="flex flex-row items-center gap-2 text-sm font-mono bg-card border border-border p-4 rounded-md w-full justify-between">
-        <Markdown className={'max-w-[500px] overflow-x-scroll'}>
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex flex-row items-center gap-1 text-sm font-mono bg-card border border-border h-10 pl-4 pr-[1px] rounded-full w-full justify-between">
+        <Markdown className={'flex-1 overflow-x-auto'}>
           {markdownText}
         </Markdown>
         <Button
-          size="sm"
-          className="font-sans"
+          variant="ghost"
+          size="icon"
+          className="flex-shrink-0"
           onClick={() => {
             toast.success('Copied to clipboard')
             navigator.clipboard.writeText(markdownText)
           }}
         >
-          <Copy className="w-5 h-5 mr-2" />
-          Copy
+          <Copy className="w-4 h-4" />
         </Button>
       </div>
     </div>
@@ -114,24 +136,24 @@ const CodeblockGroup = ({
   )
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-row gap-2">
-        <Tabs
-          value={selectedSection}
-          onValueChange={setSelectedSection}
-          className="w-full flex border-b border-muted font-normal"
-        >
-          <TabsList className="gap-8">
-            {sections.map((section) => (
-              <TabsTrigger
-                key={section.title}
-                value={section.title}
-                className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-sm"
-              >
-                {section.title}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-row gap-0">
+        {sections.map((section) => (
+          <Button
+            key={section.title}
+            variant="ghost"
+            onClick={() => setSelectedSection(section.title)}
+            className={cn(
+              // Base styling
+              'px-3 py-1 text-sm font-medium transition-all duration-200 rounded-full',
+              // Active/inactive styling
+              selectedSection === section.title
+                ? 'bg-accent text-foreground' // Active state
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground' // Inactive state
+            )}
+          >
+            {section.title}
+          </Button>
+        ))}
       </div>
       {sections.map((section) => (
         <div
@@ -200,11 +222,11 @@ const OnboardingStatusTable = ({
         <CodeblockGroup
           sections={[
             {
-              title: 'Next.js projects',
+              title: 'Next.js',
               code: NEXT_INSTALL_COMMAND,
             },
             {
-              title: 'All other React projects',
+              title: 'Other React',
               code: REACT_INSTALL_COMMAND,
             },
           ]}
@@ -213,11 +235,13 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'integrate-flowglad'}
         completed={false}
-        title={'3. Integrate Flowglad'}
-        description={'Get set up in localhost in a few minutes'}
+        title={'3. Choose Integration Method'}
+        description={''}
         actionNode={
-          <div className="flex flex-row items-end justify-center gap-2">
+          <div className="flex flex-row gap-2">
             <Button
+              variant="secondary"
+              className="w-full"
               onClick={() => {
                 window.open(
                   'https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration',
@@ -225,19 +249,19 @@ const OnboardingStatusTable = ({
                 )
               }}
             >
-              Setup by Prompt
+              Prompt
             </Button>
             <Button
+              variant="secondary"
+              className="w-full"
               onClick={() => {
                 window.open(
                   'https://docs.flowglad.com/quickstart#4-server-setup',
                   '_blank'
                 )
               }}
-              className="border-border bg-background hover:bg-accent"
-              variant="outline"
             >
-              Setup Manually
+              Manually
             </Button>
           </div>
         }
