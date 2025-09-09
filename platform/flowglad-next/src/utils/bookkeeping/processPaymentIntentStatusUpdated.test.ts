@@ -1030,14 +1030,6 @@ describe('Process payment intent status updated', async () => {
         vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
 
         // Note: This test requires mocking the Stripe API calls
-<<<<<<< HEAD
-        // const result = await adminTransaction(
-        //   async ({ transaction }) =>
-        //     processPaymentIntentStatusUpdated(fakePI, transaction)
-        // )
-        // expect(result.payment).toBeDefined()
-        // expect(result.payment.taxCountry).toBe('CA')
-=======
         const {
           result: { payment },
         } = await adminTransaction(async ({ transaction }) =>
@@ -1045,7 +1037,6 @@ describe('Process payment intent status updated', async () => {
         )
         expect(payment).toBeDefined()
         expect(payment.taxCountry).toBe('US')
->>>>>>> 27a4531f (build and deploy flowglad next)
       })
     })
 
