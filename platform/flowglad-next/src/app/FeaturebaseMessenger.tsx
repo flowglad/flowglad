@@ -10,7 +10,14 @@ declare global {
 }
 
 export default function FeaturebaseMessenger() {
+  const appId = process.env.NEXT_PUBLIC_FEATUREBASE_APP_ID
+
   useEffect(() => {
+    if (!appId) {
+      // Silently no-op if not configured in this environment
+      return
+    }
+
     const browserWindow = window as Window
 
     if (typeof browserWindow.Featurebase !== 'function') {
@@ -25,12 +32,6 @@ export default function FeaturebaseMessenger() {
       browserWindow.Featurebase = featurebaseShim
     }
 
-    const appId = process.env.NEXT_PUBLIC_FEATUREBASE_APP_ID
-    if (!appId) {
-      // Silently no-op if not configured in this environment
-      return
-    }
-
     browserWindow.Featurebase!('boot', {
       appId,
       // Add additional user context when available. Avoid adding user data
@@ -38,7 +39,11 @@ export default function FeaturebaseMessenger() {
       // theme: 'light',
       // language: 'en',
     })
-  }, [])
+  }, [appId])
+
+  if (!appId) {
+    return null
+  }
 
   return (
     <Script
