@@ -415,43 +415,43 @@ rm -rf .next && pnpm run dev
 - [x] **Text contrast is readable in both light and dark themes**
 - [x] **Theme switching responds to system preferences**
 
-**Zinc Color Mapping Reference:**
+**Stone Color Mapping Reference:**
 ```css
-/* TailwindCSS Zinc Palette → Shadcn Semantic Variables */
+/* TailwindCSS Stone Palette → Shadcn Semantic Variables */
 
 /* Light Theme Mapping */
 :root {
-  /* zinc-50 (0 0% 98%) → background, card, popover, primary-foreground, destructive-foreground */
-  /* zinc-100 (240 5% 96%) → secondary, muted, accent */  
-  /* zinc-200 (240 6% 90%) → border, input */
-  /* zinc-500 (240 4% 46%) → muted-foreground */
-  /* zinc-900 (240 6% 10%) → foreground, card-foreground, popover-foreground, primary, secondary-foreground, accent-foreground, ring */
+  /* stone-50 (60 9% 98%) → background, card, popover, primary-foreground, destructive-foreground */
+  /* stone-100 (60 5% 96%) → secondary, muted, accent */  
+  /* stone-200 (20 6% 90%) → border, input */
+  /* stone-500 (25 5% 45%) → muted-foreground */
+  /* stone-900 (24 10% 10%) → foreground, card-foreground, popover-foreground, primary, secondary-foreground, accent-foreground, ring */
 }
 
 /* Dark Theme Mapping */
 .dark {
-  /* zinc-50 (0 0% 98%) → foreground, card-foreground, popover-foreground, primary, secondary-foreground, accent-foreground, destructive-foreground */
-  /* zinc-400 (240 5% 65%) → muted-foreground */
-  /* zinc-800 (240 4% 16%) → secondary, muted, accent, border, input */
-  /* zinc-900 (240 6% 10%) → primary-foreground */
-  /* zinc-950 (240 10% 4%) → background, card, popover */
-  /* zinc-300 (240 5% 84%) → ring */
+  /* stone-50 (60 9% 98%) → foreground, card-foreground, popover-foreground, primary, secondary-foreground, accent-foreground, destructive-foreground */
+  /* stone-400 (24 6% 64%) → muted-foreground */
+  /* stone-800 (12 7% 15%) → secondary, muted, accent, border, input */
+  /* stone-900 (24 10% 10%) → primary-foreground */
+  /* stone-950 (20 14% 4%) → background, card, popover */
+  /* stone-300 (24 6% 83%) → ring */
 }
 ```
 
-This mapping ensures proper contrast ratios and accessibility while maintaining visual consistency with TailwindCSS's Zinc palette.
+This mapping ensures proper contrast ratios and accessibility while maintaining visual consistency with TailwindCSS's Stone palette.
 
-**Why Zinc Over Slate:**
-- **Neutral Foundation**: Zinc provides a true neutral grayscale without color bias
-- **Better Contrast**: Zinc offers improved contrast ratios for accessibility compliance
-- **Standard Compliance**: Zinc aligns with TailwindCSS's recommended neutral palette
-- **Design Flexibility**: Zinc works better with both warm and cool color accents
-- **Community Adoption**: Zinc is increasingly the preferred choice in shadcn implementations
+**Why Stone Over Slate:**
+- **Warm Neutral Foundation**: Stone provides a warm neutral grayscale that feels more natural
+- **Better Visual Warmth**: Stone offers a slightly warmer tone than pure gray neutrals
+- **Modern Aesthetic**: Stone aligns with modern design trends favoring warm neutrals
+- **Design Flexibility**: Stone works better with both warm and cool color accents
+- **Community Adoption**: Stone is increasingly the preferred choice for warm, approachable interfaces
 
 **Developer Notes:**
-- Use semantic variables (`bg-background`, `text-foreground`) instead of direct zinc classes (`bg-zinc-50`)
-- Standard TailwindCSS colors (green-600, blue-500, etc.) work alongside zinc semantic variables
-- All zinc values are automatically responsive to light/dark mode via CSS variables
+- Use semantic variables (`bg-background`, `text-foreground`) instead of direct stone classes (`bg-stone-50`)
+- Standard TailwindCSS colors (green-600, blue-500, etc.) work alongside stone semantic variables
+- All stone values are automatically responsive to light/dark mode via CSS variables
 - Test color contrast in both themes to ensure accessibility compliance
 
 ---

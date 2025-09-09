@@ -1,7 +1,7 @@
 # Shadcn Color System Documentation
 
 ## Overview
-Flowglad uses shadcn's zinc-based semantic color system with CSS variables for theming. This system provides automatic dark mode support, consistent color usage across components, and excellent accessibility through proper contrast ratios.
+Flowglad uses shadcn's stone-based semantic color system with CSS variables for theming. This system provides automatic dark mode support, consistent color usage across components, and excellent accessibility through proper contrast ratios.
 
 ## Color Architecture
 
@@ -11,49 +11,49 @@ All colors are defined as HSL values in CSS variables, allowing for easy theming
 ```css
 /* Light Theme */
 :root {
-  --background: 0 0% 98%;          /* Main background color */
-  --foreground: 240 6% 10%;        /* Main text color */
-  --card: 0 0% 98%;                /* Card backgrounds */
-  --card-foreground: 240 6% 10%;   /* Text on cards */
-  --popover: 0 0% 98%;             /* Popover backgrounds */
-  --popover-foreground: 240 6% 10%; /* Text in popovers */
-  --primary: 240 6% 10%;           /* Primary brand color */
-  --primary-foreground: 0 0% 98%;  /* Text on primary backgrounds */
-  --secondary: 240 5% 96%;         /* Secondary actions */
-  --secondary-foreground: 240 6% 10%; /* Text on secondary backgrounds */
-  --muted: 240 5% 96%;             /* Muted backgrounds */
-  --muted-foreground: 240 4% 46%;  /* Muted text */
-  --accent: 240 5% 96%;            /* Accent color */
-  --accent-foreground: 240 6% 10%; /* Text on accent backgrounds */
-  --destructive: 0 84.2% 60.2%;    /* Destructive actions */
-  --destructive-foreground: 0 0% 98%; /* Text on destructive backgrounds */
-  --border: 240 6% 90%;            /* Border color */
-  --input: 240 6% 90%;             /* Input borders */
-  --ring: 240 6% 10%;              /* Focus rings */
-  --radius: 0.5rem;                /* Border radius */
+  --background: 60 9% 98%;          /* Main background color */
+  --foreground: 24 10% 10%;         /* Main text color */
+  --card: 60 9% 98%;                /* Card backgrounds */
+  --card-foreground: 24 10% 10%;    /* Text on cards */
+  --popover: 60 9% 98%;             /* Popover backgrounds */
+  --popover-foreground: 24 10% 10%; /* Text in popovers */
+  --primary: 24 10% 10%;            /* Primary brand color */
+  --primary-foreground: 60 9% 98%;  /* Text on primary backgrounds */
+  --secondary: 60 5% 96%;           /* Secondary actions */
+  --secondary-foreground: 24 10% 10%; /* Text on secondary backgrounds */
+  --muted: 60 5% 96%;               /* Muted backgrounds */
+  --muted-foreground: 25 5% 45%;    /* Muted text */
+  --accent: 60 5% 96%;              /* Accent color */
+  --accent-foreground: 24 10% 10%;  /* Text on accent backgrounds */
+  --destructive: 0 84.2% 60.2%;     /* Destructive actions */
+  --destructive-foreground: 60 9% 98%; /* Text on destructive backgrounds */
+  --border: 20 6% 90%;              /* Border color */
+  --input: 20 6% 90%;               /* Input borders */
+  --ring: 24 10% 10%;               /* Focus rings */
+  --radius: 0.5rem;                 /* Border radius */
 }
 
 /* Dark Theme */
 .dark {
-  --background: 240 10% 4%;
-  --foreground: 0 0% 98%;
-  --card: 240 10% 4%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 10% 4%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 6% 10%;
-  --secondary: 240 4% 16%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 4% 16%;
-  --muted-foreground: 240 5% 65%;
-  --accent: 240 4% 16%;
-  --accent-foreground: 0 0% 98%;
+  --background: 20 14% 4%;
+  --foreground: 60 9% 98%;
+  --card: 20 14% 4%;
+  --card-foreground: 60 9% 98%;
+  --popover: 20 14% 4%;
+  --popover-foreground: 60 9% 98%;
+  --primary: 60 9% 98%;
+  --primary-foreground: 24 10% 10%;
+  --secondary: 12 7% 15%;
+  --secondary-foreground: 60 9% 98%;
+  --muted: 12 7% 15%;
+  --muted-foreground: 24 6% 64%;
+  --accent: 12 7% 15%;
+  --accent-foreground: 60 9% 98%;
   --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 4% 16%;
-  --input: 240 4% 16%;
-  --ring: 240 5% 84%;
+  --destructive-foreground: 60 9% 98%;
+  --border: 12 7% 15%;
+  --input: 12 7% 15%;
+  --ring: 24 6% 83%;
 }
 ```
 
@@ -134,23 +134,23 @@ All colors are defined as HSL values in CSS variables, allowing for easy theming
 <Input className="focus-visible:ring-2 focus-visible:ring-ring" />
 ```
 
-## Zinc Palette Reference
+## Stone Palette Reference
 
-The zinc palette provides a neutral grayscale that works well with any accent color:
+The stone palette provides a warm neutral grayscale that works well with any accent color:
 
 | Shade | Light Mode HSL | Dark Mode HSL | Usage |
 |-------|---------------|--------------|--------|
-| zinc-50 | 0 0% 98% | - | Light backgrounds, primary-foreground |
-| zinc-100 | 240 5% 96% | - | Secondary, muted, accent |
-| zinc-200 | 240 6% 90% | - | Borders, inputs |
-| zinc-300 | 240 5% 84% | 240 5% 84% | Dark mode ring |
-| zinc-400 | 240 5% 65% | 240 5% 65% | Dark mode muted-foreground |
-| zinc-500 | 240 4% 46% | - | Light mode muted-foreground |
-| zinc-600 | 240 5% 34% | - | Unused |
-| zinc-700 | 240 5% 26% | - | Unused |
-| zinc-800 | 240 4% 16% | 240 4% 16% | Dark mode secondary, muted, accent, borders |
-| zinc-900 | 240 6% 10% | - | Light mode foreground, primary |
-| zinc-950 | 240 10% 4% | 240 10% 4% | Dark mode background |
+| stone-50 | 60 9% 98% | - | Light backgrounds, primary-foreground |
+| stone-100 | 60 5% 96% | - | Secondary, muted, accent |
+| stone-200 | 20 6% 90% | - | Borders, inputs |
+| stone-300 | 24 6% 83% | 24 6% 83% | Dark mode ring |
+| stone-400 | 24 6% 64% | 24 6% 64% | Dark mode muted-foreground |
+| stone-500 | 25 5% 45% | - | Light mode muted-foreground |
+| stone-600 | 33 5% 32% | - | Unused |
+| stone-700 | 30 7% 23% | - | Unused |
+| stone-800 | 12 7% 15% | 12 7% 15% | Dark mode secondary, muted, accent, borders |
+| stone-900 | 24 10% 10% | - | Light mode foreground, primary |
+| stone-950 | 20 14% 4% | 20 14% 4% | Dark mode background |
 
 ## Status Colors
 
@@ -310,8 +310,8 @@ Always prefer semantic color classes over direct color values:
 <Button className="bg-primary text-primary-foreground">
 
 // ❌ Avoid
-<div className="bg-zinc-50 text-zinc-900">
-<Button className="bg-zinc-900 text-zinc-50">
+<div className="bg-stone-50 text-stone-900">
+<Button className="bg-stone-900 text-stone-50">
 ```
 
 ### 2. Maintain Contrast Ratios

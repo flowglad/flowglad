@@ -63,11 +63,11 @@ export const chartColors = {
     fill: 'fill-primary',
     text: 'text-primary',
   },
-  zinc: {
-    bg: 'bg-zinc-600',
-    stroke: 'stroke-zinc-600',
-    fill: 'fill-zinc-600',
-    text: 'text-zinc-600',
+  stone: {
+    bg: 'bg-stone-600',
+    stroke: 'stroke-stone-600',
+    fill: 'fill-stone-600',
+    text: 'text-stone-600',
   },
 } as const satisfies {
   [color: string]: {
