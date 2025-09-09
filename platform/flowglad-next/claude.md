@@ -2,8 +2,8 @@
 **IMPORTANT**: This project uses `pnpm` as its package manager. ALWAYS use `pnpm` for all package management operations. Never use `npm` or `yarn`.
 
 Examples:
-- Install dependencies: `pnpm install-packages`
-- Add a package: `pnpm install-packages <package-name>`
+- Install dependencies: `pnpm install-packages` (N.B. - this project is in a monorepo but installs its own packages, hence the custom install script)
+- Add a package: `pnpm install-packages <package-name>` 
 - Build: `pnpm build`
 - Lint: `pnpm lint`
 
