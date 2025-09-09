@@ -6,7 +6,7 @@
   <h3 align="center">Flowglad</h3>
 
   <p align="center">
-    The easiest way to add payments to your app.
+    The easiest way to make internet money.
     <br />
     <a href="https://flowglad.com"><strong>Get Started</strong></a>
     <br />
@@ -34,9 +34,7 @@
   </a>
 </p>
 
-The easiest way to make internet money.
-
-A payment processor for vibe coding. 
+The payment processor for natural language programming.
 
 Infinite pricing models, one source of truth, zero webhooks.
 
