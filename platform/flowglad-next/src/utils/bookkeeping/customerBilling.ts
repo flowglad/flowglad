@@ -130,7 +130,6 @@ export const setDefaultPaymentMethodForCustomer = async (
   }
 }
 
-
 export const customerBillingCreatePricedCheckoutSession = async ({
   checkoutSessionInput: rawCheckoutSessionInput,
   customer,

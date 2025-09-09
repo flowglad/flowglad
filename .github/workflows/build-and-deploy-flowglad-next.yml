@@ -20,6 +20,10 @@ on:
         required: true
       FLOWGLAD_NEXT_VERCEL_PROJECT_NAME:
         required: true
+      MINTLIFY_PROJECT_ID:
+        required: true
+      MINTLIFY_API_KEY:
+        required: true
 
 jobs:
   deploy:
@@ -90,3 +94,8 @@ jobs:
           vercel-args: ${{ inputs.environment == 'production' && '--prebuilt --prod' || '--prebuilt' }}
           vercel-project-name: ${{ secrets.FLOWGLAD_NEXT_VERCEL_PROJECT_NAME }}
           vercel-version: 41.6.2 
+
+      - name: Trigger Update API Reference in Mintlify
+        if: ${{ inputs.environment == 'production' }}
+        run: curl --request POST --url https://api.mintlify.com/v1/project/update/${{ secrets.MINTLIFY_PROJECT_ID }} --header 'Authorization: Bearer ${{ secrets.MINTLIFY_API_KEY }}'
+        working-directory: platform/flowglad-next

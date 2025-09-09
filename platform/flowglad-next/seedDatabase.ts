@@ -1147,6 +1147,7 @@ export const setupCheckoutSession = async ({
   automaticallyUpdateSubscriptions,
   outputMetadata,
   purchaseId,
+  invoiceId,
   outputName,
   preserveBillingCycleAnchor,
 }: {
@@ -1162,6 +1163,7 @@ export const setupCheckoutSession = async ({
   outputMetadata?: Record<string, any>
   outputName?: string
   purchaseId?: string
+  invoiceId?: string
   preserveBillingCycleAnchor?: boolean
 }) => {
   const billingAddress: BillingAddress = {
@@ -1249,11 +1251,17 @@ export const setupCheckoutSession = async ({
   } else if (type === CheckoutSessionType.Purchase) {
     insert = purchaseCheckoutSessionInsert
   } else if (type === CheckoutSessionType.Invoice) {
-    const invoice = await setupInvoice({
-      customerId: customerId,
-      organizationId: organizationId,
-      priceId: priceId,
-    })
+    let invoiceIdToUse: string
+    if (invoiceId) {
+      invoiceIdToUse = invoiceId
+    } else {
+      const invoice = await setupInvoice({
+        customerId: customerId,
+        organizationId: organizationId,
+        priceId: priceId,
+      })
+      invoiceIdToUse = invoice.id
+    }
 
     insert = {
       ...coreFields,
@@ -1265,7 +1273,7 @@ export const setupCheckoutSession = async ({
       livemode,
       targetSubscriptionId: null,
       outputName: outputName ?? null,
-      invoiceId: invoice.id,
+      invoiceId: invoiceIdToUse,
       purchaseId: null,
       outputMetadata: null,
     }

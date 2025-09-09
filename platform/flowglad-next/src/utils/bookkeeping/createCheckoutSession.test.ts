@@ -98,14 +98,14 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     await expect(
-      adminTransaction(async (tx) =>
+      adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
       )
     ).rejects.toThrow(
@@ -123,14 +123,14 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
@@ -151,14 +151,14 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
@@ -178,15 +178,16 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: usagePrice.id,
     }
 
-    const { checkoutSession } = await adminTransaction(async (tx) =>
-      createCheckoutSessionTransaction(
-        {
-          checkoutSessionInput,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        tx.transaction
-      )
+    const { checkoutSession } = await adminTransaction(
+      async ({ transaction }) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
     )
 
     expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
@@ -201,14 +202,14 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
@@ -229,14 +230,14 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
@@ -256,7 +257,7 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     await expect(
-      adminTransaction(async (tx) =>
+      adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             // @ts-expect-error - testing invalid type
@@ -264,7 +265,7 @@ describe('createCheckoutSessionTransaction', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
       )
     ).rejects.toThrow('Invalid checkout session, type: InvalidType')
@@ -282,14 +283,14 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       const { checkoutSession, url } = await adminTransaction(
-        async (tx) =>
+        async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
               organizationId: organization.id,
               livemode: false,
             },
-            tx.transaction
+            transaction
           )
       )
 
@@ -313,14 +314,14 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       await expect(
-        adminTransaction(async (tx) =>
+        adminTransaction(async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
               organizationId: organization.id,
               livemode: false,
             },
-            tx.transaction
+            transaction
           )
         )
       ).rejects.toThrow(
@@ -338,14 +339,14 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       const { checkoutSession } = await adminTransaction(
-        async (tx) =>
+        async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
               organizationId: organization.id,
               livemode: false,
             },
-            tx.transaction
+            transaction
           )
       )
 
@@ -365,17 +366,19 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       await expect(
-        adminTransaction(async (tx) =>
+        adminTransaction(async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
               organizationId: organization.id,
               livemode: false,
             },
-            tx.transaction
+            transaction
           )
         )
-      ).rejects.toThrow('Customer is required for add payment method checkout sessions')
+      ).rejects.toThrow(
+        'Customer is required for add payment method checkout sessions'
+      )
     })
 
     it('should require customer for ActivateSubscription checkout even with anonymous flag', async () => {
@@ -391,17 +394,19 @@ describe('createCheckoutSessionTransaction', () => {
       }
 
       await expect(
-        adminTransaction(async (tx) =>
+        adminTransaction(async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
               organizationId: organization.id,
               livemode: false,
             },
-            tx.transaction
+            transaction
           )
         )
-      ).rejects.toThrow('Customer is required for activate subscription checkout sessions')
+      ).rejects.toThrow(
+        'Customer is required for activate subscription checkout sessions'
+      )
     })
   })
 })

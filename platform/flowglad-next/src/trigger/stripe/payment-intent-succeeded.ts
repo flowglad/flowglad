@@ -14,7 +14,7 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
-import {  InvoiceStatus } from '@/types'
+import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 import { Event } from '@/db/schema/events'
@@ -99,9 +99,7 @@ export const stripePaymentIntentSucceededTask = task({
         membersForOrganization,
         payment,
       }
-      const eventInserts: Event.Insert[] = [
-        ...(eventsToLog ?? []),
-      ]
+      const eventInserts: Event.Insert[] = [...(eventsToLog ?? [])]
 
       return [result, eventInserts]
     }, {})

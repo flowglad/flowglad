@@ -823,7 +823,8 @@ export const createCheckoutSessionSchema = z
   .preprocess(
     (val) => {
       const valueWithCheckoutSession = val as any
-      const checkoutSession = valueWithCheckoutSession?.checkoutSession
+      const checkoutSession =
+        valueWithCheckoutSession?.checkoutSession
       if (
         checkoutSession?.type === CheckoutSessionType.Product &&
         checkoutSession.anonymous === undefined

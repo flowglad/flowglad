@@ -481,7 +481,8 @@ const createCheckoutSessionWithPriceProcedure =
   customerProtectedProcedure
     .input(
       z.object({
-        checkoutSession: customerBillingCreatePricedCheckoutSessionSchema,
+        checkoutSession:
+          customerBillingCreatePricedCheckoutSessionSchema,
       })
     )
     .output(

@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { 
+import {
   constructSubscriptionCreatedEventHash,
   constructPaymentSucceededEventHash,
   constructPaymentFailedEventHash,
   constructPurchaseCompletedEventHash,
-  constructCustomerCreatedEventHash
+  constructCustomerCreatedEventHash,
 } from './eventHelpers'
 
 describe('constructSubscriptionCreatedEventHash', () => {
@@ -52,7 +52,7 @@ describe('constructPaymentSucceededEventHash', () => {
     } as const
 
     const payment2 = {
-      id: 'pay_123', 
+      id: 'pay_123',
       amount: 2000, // Different amount shouldn't matter
       customerId: 'cust_456', // Different customer shouldn't matter
     } as const
@@ -221,15 +221,17 @@ describe('constructCustomerCreatedEventHash', () => {
 describe('Event hash uniqueness across types', () => {
   test('different event types with same ID generate different hashes', () => {
     const id = 'shared_id_123'
-    
+
     // Using the same ID for different entity types
     const subscription = { id }
     const payment = { id }
     const purchase = { id }
     const customer = { id }
 
-    const subscriptionHash = constructSubscriptionCreatedEventHash(subscription)
-    const paymentSuccessHash = constructPaymentSucceededEventHash(payment)
+    const subscriptionHash =
+      constructSubscriptionCreatedEventHash(subscription)
+    const paymentSuccessHash =
+      constructPaymentSucceededEventHash(payment)
     const paymentFailHash = constructPaymentFailedEventHash(payment)
     const purchaseHash = constructPurchaseCompletedEventHash(purchase)
     const customerHash = constructCustomerCreatedEventHash(customer)
@@ -240,7 +242,7 @@ describe('Event hash uniqueness across types', () => {
       paymentSuccessHash,
       paymentFailHash,
       purchaseHash,
-      customerHash
+      customerHash,
     ]
 
     // Check that all hashes are unique

@@ -16,6 +16,7 @@ import {
   StripeIntentMetadata,
   getStripeCharge,
   stripeIntentMetadataSchema,
+  IntentMetadataType,
 } from '../stripe'
 import {
   safelyUpdatePaymentStatus,
@@ -93,7 +94,7 @@ export const upsertPaymentForStripeCharge = async (
   let customerId: Nullish<string> = null
   let currency: Nullish<CurrencyCode> = null
   let subscriptionId: Nullish<string> = null
-  if ('billingRunId' in paymentIntentMetadata) {
+  if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
     const billingRun = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
       transaction
@@ -120,7 +121,9 @@ export const upsertPaymentForStripeCharge = async (
     organizationId = subscription.organizationId
     livemode = subscription.livemode
     subscriptionId = subscription.id
-  } else if ('checkoutSessionId' in paymentIntentMetadata) {
+  } else if (
+    paymentIntentMetadata.type === IntentMetadataType.CheckoutSession
+  ) {
     const {
       checkoutSession,
       purchase: updatedPurchase,
@@ -133,13 +136,34 @@ export const upsertPaymentForStripeCharge = async (
       transaction
     )
     if (checkoutSession.type === CheckoutSessionType.Invoice) {
-      throw new Error(
-        `Cannot process paymentIntent with metadata.checkoutSessionId ${
-          paymentIntentMetadata.checkoutSessionId
-        } when checkoutSession type is ${
-          CheckoutSessionType.Invoice
-        }. Payment intent metadata should be an invoiceId in this case.`
-      )
+      let [maybeInvoiceAndLineItems] =
+        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+          {
+            id: checkoutSession.invoiceId,
+          },
+          transaction
+        )
+      const { invoice } = maybeInvoiceAndLineItems
+      currency = invoice.currency
+      invoiceId = invoice.id
+      organizationId = invoice.organizationId!
+      purchaseId = invoice.purchaseId
+      taxCountry = invoice.taxCountry
+      customerId = invoice.customerId
+      livemode = invoice.livemode
+      subscriptionId = invoice.subscriptionId
+    } else {
+      invoiceId = invoice?.id ?? null
+      currency = invoice?.currency ?? null
+      organizationId = invoice?.organizationId!
+      taxCountry = invoice?.taxCountry ?? null
+      purchase = updatedPurchase
+      purchaseId = purchase?.id ?? null
+      livemode = checkoutSession.livemode
+      customerId = purchase?.customerId || invoice?.customerId || null
+      // hard assumption
+      // checkoutSessionId payment intents are only for anonymous single payment purchases
+      subscriptionId = null
     }
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
