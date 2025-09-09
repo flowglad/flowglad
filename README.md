@@ -339,10 +339,6 @@ export default function Billing() {
 ```
 </details>
 
-## Demo: Integrating Flowglad in <40 seconds
-
-https://github.com/user-attachments/assets/6480c847-4f59-482e-8549-8833c2e182fb
-
 ## Language & Framework SDK Coverage
 
 Flowglad aims to have first class support for every language and framework that developers build in.
@@ -360,14 +356,6 @@ Here's our progress thus far. If you don't see your framework or language on her
 | Astro       | 🟡      |
 | Hono        | 🟡      |
 | Vue         | 🟡      |
-| Deno        | 🟡      |
-| Sveltekit   | 🟡      |
-| Nuxt        | 🟡      |
-| Fastify     | 🟡      |
-| Python      | 🟡      |
-| Django      | 🟡      |
-| Golang      | 🟡      |
-| React Native| 🟡      |
 
 ## Authentication Services
 Flowglad couples tightly with your authentication layer, automatically mapping your notion of customers to our notion of customers. To make this effortless, we have adapters for many popular auth services.
