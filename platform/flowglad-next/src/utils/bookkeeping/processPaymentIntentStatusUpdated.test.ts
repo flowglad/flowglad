@@ -925,9 +925,7 @@ describe('Process payment intent status updated', async () => {
           purchaseId: null,
         }
         // Mock getStripeCharge to return the fake charge
-        vi.mocked(getStripeCharge).mockResolvedValue(
-          fakeCharge as any
-        )
+        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
         const result = await adminTransaction(
           async ({ transaction }) =>
             processPaymentIntentStatusUpdated(fakePI, transaction)
@@ -959,9 +957,10 @@ describe('Process payment intent status updated', async () => {
             card: {
               brand: 'visa',
               last4: '4242',
-            },
-          } as any,
+            } as any,
+          },
         })
+
         const fakeBillingRun = {
           id: 'br_err',
           subscriptionId: 'sub_br_err',
@@ -1029,7 +1028,6 @@ describe('Process payment intent status updated', async () => {
         })
         vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
 
-        // Note: This test requires mocking the Stripe API calls
         const {
           result: { payment },
         } = await adminTransaction(async ({ transaction }) =>
@@ -1165,7 +1163,6 @@ describe('Process payment intent status updated', async () => {
         billing_details: { address: { country: 'US' } } as any,
       })
       vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
-      // Note: This test requires mocking the Stripe API calls
       const {
         result: { payment },
       } = await adminTransaction(async ({ transaction }) =>
@@ -1229,7 +1226,6 @@ describe('Process payment intent status updated', async () => {
         billing_details: { address: { country: 'US' } } as any,
       })
       vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
-      // Note: This test requires mocking the Stripe API calls
       const {
         result: { payment: payment1 },
       } = await adminTransaction(async ({ transaction }) =>
