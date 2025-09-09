@@ -55,7 +55,7 @@ Infinite pricing models, one source of truth, zero webhooks.
 First, install the packages necessary Flowglad packages based on your project setup:
 ```bash
 # Next.js Projects
-pnpm install @flowglad/next
+pnpm install @flowglad/nextjs
 
 # Vite Projects
 pnpm install @flowglad/react @flowglad/server
