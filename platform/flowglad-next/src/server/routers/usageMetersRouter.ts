@@ -1,4 +1,4 @@
-import { router, usageProcedure } from '../trpc'
+import { router, protectedProcedure } from '../trpc'
 import {
   editUsageMeterSchema,
   usageMeterPaginatedListSchema,
@@ -24,8 +24,6 @@ import {
 } from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
-import { FeatureFlag } from '@/types'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageMeter',
@@ -34,7 +32,7 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const usageMetersRouteConfigs = routeConfigs
 
-export const createUsageMeter = usageProcedure
+export const createUsageMeter = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
@@ -49,11 +47,6 @@ export const createUsageMeter = usageProcedure
             },
             transaction
           )
-        if (!hasFeatureFlag(organization, FeatureFlag.Usage)) {
-          throw new Error(
-            `Organization ${organization.id} does not have feature flag ${FeatureFlag.Usage} enabled`
-          )
-        }
         const usageMeter = await insertUsageMeter(
           {
             ...input.usageMeter,
@@ -67,7 +60,7 @@ export const createUsageMeter = usageProcedure
     )
   )
 
-const listUsageMetersProcedure = usageProcedure
+const listUsageMetersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(usageMeterPaginatedSelectSchema)
   .output(usageMeterPaginatedListSchema)
@@ -79,7 +72,7 @@ const listUsageMetersProcedure = usageProcedure
     )
   )
 
-const editUsageMeter = usageProcedure
+const editUsageMeter = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
@@ -98,7 +91,7 @@ const editUsageMeter = usageProcedure
     )
   )
 
-const getUsageMeter = usageProcedure
+const getUsageMeter = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
@@ -114,7 +107,7 @@ const getUsageMeter = usageProcedure
     )
   )
 
-const getTableRowsProcedure = usageProcedure
+const getTableRowsProcedure = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
