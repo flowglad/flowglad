@@ -3,6 +3,9 @@ import {
   PaymentStatus,
   CheckoutSessionType,
   Nullish,
+  FlowgladEventType,
+  EventNoun,
+  PurchaseStatus,
 } from '@/types'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { CountryCode } from '@/types'
@@ -36,6 +39,15 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { Event } from '@/db/schema/events'
+import {
+  constructPaymentSucceededEventHash,
+  constructPaymentFailedEventHash,
+  constructPurchaseCompletedEventHash,
+} from '@/utils/eventHelpers'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
@@ -131,7 +143,12 @@ export const upsertPaymentForStripeCharge = async (
     }
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
-    organizationId = invoice?.organizationId!
+    if (!checkoutSession.organizationId) {
+      throw new Error(
+        `Checkout session ${checkoutSession.id} does not have an organizationId`
+      )
+    }
+    organizationId = checkoutSession.organizationId
     taxCountry = invoice?.taxCountry ?? null
     purchase = updatedPurchase
     purchaseId = purchase?.id ?? null
@@ -293,7 +310,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
 export const processPaymentIntentStatusUpdated = async (
   paymentIntent: Stripe.PaymentIntent,
   transaction: DbTransaction
-) => {
+): Promise<TransactionOutput<{ payment: Payment.Record }>> => {
   const metadata = paymentIntent.metadata
   if (!metadata) {
     throw new Error(
@@ -323,10 +340,67 @@ export const processPaymentIntentStatusUpdated = async (
     },
     transaction
   )
+  // Fetch customer data for event payload
+  // Re-fetch purchase after update to get the latest status
+  const purchase = payment.purchaseId
+    ? await selectPurchaseById(payment.purchaseId, transaction)
+    : null
+  const customer = await selectCustomerById(
+    payment.customerId,
+    transaction
+  )
+  const timestamp = new Date()
+  const eventInserts: Event.Insert[] = []
   if (paymentIntent.status === 'succeeded') {
-    await commitPaymentSucceededEvent(payment, transaction)
+    eventInserts.push({
+      type: FlowgladEventType.PaymentSucceeded,
+      occurredAt: timestamp,
+      organizationId: payment.organizationId,
+      livemode: payment.livemode,
+      payload: {
+        object: EventNoun.Payment,
+        id: payment.id,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
+      },
+      submittedAt: timestamp,
+      hash: constructPaymentSucceededEventHash(payment),
+      metadata: {},
+      processedAt: null,
+    })
   } else if (paymentIntent.status === 'canceled') {
-    await commitPaymentCanceledEvent(payment, transaction)
+    eventInserts.push({
+      type: FlowgladEventType.PaymentFailed,
+      occurredAt: timestamp,
+      organizationId: payment.organizationId,
+      livemode: payment.livemode,
+      payload: {
+        id: payment.id,
+        object: EventNoun.Payment,
+      },
+      submittedAt: timestamp,
+      hash: constructPaymentFailedEventHash(payment),
+      metadata: {},
+      processedAt: null,
+    })
   }
-  return { payment }
+  if (purchase && purchase.status === PurchaseStatus.Paid) {
+    eventInserts.push({
+      type: FlowgladEventType.PurchaseCompleted,
+      occurredAt: timestamp,
+      organizationId: payment.organizationId,
+      livemode: payment.livemode,
+      payload: {
+        id: purchase.id,
+        object: EventNoun.Purchase,
+      },
+      submittedAt: timestamp,
+      hash: constructPurchaseCompletedEventHash(purchase),
+      metadata: {},
+      processedAt: null,
+    })
+  }
+  return { result: { payment }, eventsToLog: eventInserts }
 }
